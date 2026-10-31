@@ -92,7 +92,6 @@ body.in-console .hud-actions { display: none; }
   font-family: 'Montserrat', var(--font); font-size: 16px; font-weight: 700; font-style: italic;
   letter-spacing: 0.5px; color: var(--text); white-space: nowrap; filter: none;
 }
-.rail-brand-text i { font-style: normal; font-weight: 400; color: var(--text3); }
 .rail-item {
   position: relative; background: transparent; border: 0; cursor: pointer;
   color: var(--text3); border-radius: 9px; padding: 7px 8px 7px 16px;

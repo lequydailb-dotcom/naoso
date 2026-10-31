@@ -212,3 +212,10 @@ server/client_errors.tmp
 # Ghi chép nội bộ của người làm mã (nhật ký, luật cho phiên Claude Code): không phát cho khách
 /NHAT-KY.md
 /.claude/CLAUDE.md
+
+# Dữ liệu server tự sinh khi chạy (bộ đệm đồ thị, hàng việc GitHub, sự kiện webhook, tin đã đọc): không lên git
+server/cache/
+server/connect_smoke.json
+server/github_work.db*
+server/news_read.json
+server/webhook_events.sqlite3*
