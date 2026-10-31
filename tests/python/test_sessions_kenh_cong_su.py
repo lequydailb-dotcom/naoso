@@ -73,7 +73,7 @@ r = cl.get("/sessions", params={"brain": "brain", "channel": "agent:nguoi-viet"}
 check("GET /sessions?channel= tra dung phien", [s["id"] for s in r["sessions"]] == [row["id"]])
 
 # Slug CO DAU tieng Viet. _slugify giu nguyen chu tieng Viet, nen brain that co han
-# "naota-vu~.md" va "kiem-chung-vien.md" (dau day du). Khuon cu ^[a-z0-9][a-z0-9-]*$ chan dung
+# "naota-an~.md" va "kiem-chung-vien.md" (dau day du). Khuon cu ^[a-z0-9][a-z0-9-]*$ chan dung
 # nhung file do: bam vao trang Cong su la an 400 kem cau loi THO cua server hien thang ra man
 # hinh. Day la thu canh chuyen do.
 _slug_vn = "kiểm-chứng-viên"

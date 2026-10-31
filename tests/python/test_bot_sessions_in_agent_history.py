@@ -42,7 +42,7 @@ mk = lambda ch, title: store.create_session(brain="brain", engine="cli", title=t
 web = mk("web", "chat thường của chủ")
 tg = mk("telegram", "chat telegram")
 own = mk("agent:lan", "chủ chat với Lan")
-bot1 = mk("bot:naota-vu", "khách nhắn Naota An")
+bot1 = mk("bot:naota-an", "khách nhắn Naota An")
 bot2 = mk("bot:nhi-mai", "khách nhắn Nhi Mai")
 wf = mk("workflow:viet-bai", "chạy quy trình")
 cod = mk("coding:repo", "coding")
@@ -64,16 +64,16 @@ check("vòng tự học (channel='*') vẫn thấy mọi phiên, kể cả bot",
       {web, own, bot1, bot2, wf, cod} <= ids(store.list_sessions(limit=50, brain=["brain"], channel="*")))
 
 # 2. Lịch sử Agent
-hist = ids(store.list_sessions(limit=50, brain=["brain"], channel="agent:lan", also_channels=["bot:naota-vu"]))
+hist = ids(store.list_sessions(limit=50, brain=["brain"], channel="agent:lan", also_channels=["bot:naota-an"]))
 check("lịch sử Agent thấy cuộc chủ chat và phiên của bot dùng Agent đó", hist == {own, bot1}, hist)
 check("không thấy phiên của bot dùng Agent KHÁC", bot2 not in hist)
 check("không truyền kênh phụ thì như cũ (chỉ cuộc chủ chat)",
       ids(store.list_sessions(limit=50, brain=["brain"], channel="agent:lan")) == {own})
-two = ids(store.list_sessions(limit=50, brain=["brain"], channel="agent:lan", also_channels=["bot:naota-vu", "bot:nhi-mai"]))
+two = ids(store.list_sessions(limit=50, brain=["brain"], channel="agent:lan", also_channels=["bot:naota-an", "bot:nhi-mai"]))
 check("nhiều bot cùng dùng một Agent thì thấy hết", two == {own, bot1, bot2}, two)
 
 # 3. Tìm kiếm
-res = {r["session_id"] for r in store.search("đổi bộ não", brain=["brain"], channel="agent:lan", also_channels=["bot:naota-vu"])}
+res = {r["session_id"] for r in store.search("đổi bộ não", brain=["brain"], channel="agent:lan", also_channels=["bot:naota-an"])}
 check("tìm trong lịch sử Agent: thấy phiên chủ và phiên bot của Agent đó", res == {own, bot1}, res)
 res = {r["session_id"] for r in store.search("đổi bộ não", brain=["brain"], channel="agent:lan")}
 check("tìm không kênh phụ thì như cũ", res == {own}, res)
