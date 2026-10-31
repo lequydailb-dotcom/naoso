@@ -219,3 +219,4 @@ server/connect_smoke.json
 server/github_work.db*
 server/news_read.json
 server/webhook_events.sqlite3*
+/.claude/settings.local.json
