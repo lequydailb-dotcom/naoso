@@ -1,0 +1,79 @@
+{
+  "name": "Salepage mẫu",
+  "title": "Khoá học mẫu - Trang bán hàng ví dụ",
+  "description": "Trang bán hàng mẫu để học cách viết spec: hero hai cột, hàng thẻ, bảng giá, cảm nhận, cam kết và nút đặt mua.",
+  "font": "Montserrat",
+  "theme": {
+    "colors": {
+      "bg0": "rgba(244,243,239,1)",
+      "bg1": "rgba(255,255,255,1)",
+      "ink": "rgba(14,17,22,1)",
+      "soft": "rgba(60,65,74,1)",
+      "mute": "rgba(92,97,107,1)",
+      "accent": "rgba(252,203,29,1)",
+      "blue": "rgba(0,107,158,1)",
+      "line": "rgba(14,17,22,0.12)",
+      "cta": "rgba(252,203,29,1)"
+    },
+    "text": { "color": "$soft", "size": 16 },
+    "heading": { "color": "$ink" },
+    "badge": { "color": "$ink", "bg": "rgba(252,203,29,0.25)", "borderColor": "rgba(196,150,0,0.55)" },
+    "card": { "bg": "$bg1", "borderColor": "$line", "radius": 16, "titleColor": "$ink", "textColor": "$soft", "titleSize": 17 },
+    "button": { "bg": "$cta", "color": "$ink", "radius": 99, "size": 17 },
+    "testimonial": { "starColor": "$blue", "authorColor": "$blue", "borderColor": "$line" },
+    "priceTable": { "bg": "$bg1", "titleColor": "$ink", "labelColor": "$soft", "priceColor": "$ink", "todayColor": "$ink", "totalColor": "$blue", "borderColor": "$line", "strikeColor": "$mute" },
+    "guarantee": { "bg": "$ink", "titleColor": "$accent", "textColor": "rgba(244,243,239,1)", "borderColor": "$ink" },
+    "ctaBlock": { "subColor": "$mute", "arrowColor": "$blue" }
+  },
+  "sections": [
+    {
+      "name": "hero",
+      "background": "$bg0",
+      "padTop": 48, "gap": 20, "padBottom": 56,
+      "elements": [
+        { "kind": "hero", "side": "right", "mediaW": 0.42, "gap": 40,
+          "media": { "kind": "window", "title": "Trợ lý AI", "lines": [
+            { "who": "you", "text": "Tóm tắt giúp tôi doanh thu tuần này." },
+            { "who": "bot", "text": "Tuần này tăng 12% so với tuần trước, đơn nhiều nhất vào thứ Bảy." }
+          ] },
+          "items": [
+            { "kind": "badge", "text": "KHOÁ HỌC MẪU", "align": "left" },
+            { "kind": "heading", "tag": "h1", "size": 40, "align": "left", "text": "Tên Khoá Học<br>Viết Ở Đây" },
+            { "kind": "text", "size": 18, "align": "left", "html": "Một câu nói rõ người học nhận được gì sau khoá học, viết bằng ngôn ngữ của khách." },
+            { "kind": "button", "text": "Xem chương trình", "scrollTo": "noi-dung", "width": 0.6 }
+          ] }
+      ]
+    },
+    {
+      "name": "noi-dung",
+      "background": "$bg1",
+      "padTop": 56, "gap": 24, "padBottom": 56,
+      "elements": [
+        { "kind": "heading", "kicker": "01", "size": 31, "text": "Bạn Sẽ Học Gì" },
+        { "kind": "cardsRow", "gap": 18, "cards": [
+          { "icon": "1", "title": "Phần một", "text": "Mô tả ngắn kết quả của phần một." },
+          { "icon": "2", "title": "Phần hai", "text": "Mô tả ngắn kết quả của phần hai." },
+          { "icon": "3", "title": "Phần ba", "text": "Mô tả ngắn kết quả của phần ba." }
+        ] }
+      ]
+    },
+    {
+      "name": "gia",
+      "background": "$bg0",
+      "padTop": 56, "gap": 24, "padBottom": 56,
+      "elements": [
+        { "kind": "heading", "kicker": "02", "size": 31, "text": "Học Phí" },
+        { "kind": "priceTable", "title": "Bạn nhận được", "rows": [
+          { "label": "Khoá học chính", "price": "1.000.000đ" },
+          { "label": "Tài liệu kèm theo", "price": "300.000đ" }
+        ], "total": "1.300.000đ", "strike": "1.300.000đ", "today": "990.000đ" },
+        { "kind": "testimonialRow", "items": [
+          { "quote": "Cảm nhận mẫu của học viên thứ nhất.", "author": "Học viên A" },
+          { "quote": "Cảm nhận mẫu của học viên thứ hai.", "author": "Học viên B" }
+        ] },
+        { "kind": "guarantee", "icon": "🛡️", "title": "Cam kết mẫu", "text": "Viết rõ điều kiện cam kết của bạn ở đây." },
+        { "kind": "ctaBlock", "text": "ĐĂNG KÝ NGAY", "href": "https://example.com/dang-ky", "width": 0.55, "sub": "Dòng phụ: cách nhận khoá học sau khi thanh toán" }
+      ]
+    }
+  ]
+}
