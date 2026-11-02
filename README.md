@@ -24,24 +24,23 @@ NAOTA không phải chatbot. Nó là một **AI làm việc thay bạn**: đọc
 - **Second Brain của chính bạn.** Ký ức, wiki, kỹ năng lưu thành file chữ trên máy bạn, có lịch sử, mang đi đâu cũng được.
 - **Báo cáo bằng số thật.** Đấu kết nối nào thì NAOTA báo cáo kinh doanh và cuộc sống từ nguồn đó, không bịa số.
 
-## Ba cách dùng
+## Hai cách dùng
 
 | Cách | Hợp với ai |
 |---|---|
-| **Dùng web** tại [naota.vuong.ai](https://naota.vuong.ai) | Muốn dùng ngay, không cài gì |
 | **Cài trên máy** Windows, macOS, Linux | Muốn dữ liệu nằm ở máy mình |
 | **Đưa lên VPS riêng** | Muốn chạy 24/7, gọi từ điện thoại |
 
 ## Cài trên máy bằng một lệnh
 
-Tải mã về, mở thư mục rồi chạy:
+Cần có Git (Windows: `winget install -e --id Git.Git`). Mở PowerShell hoặc Terminal, dán đúng một dòng:
 
 | Máy | Lệnh |
 |---|---|
-| **Windows** | `powershell -ExecutionPolicy Bypass -File install.ps1` |
-| **Linux / macOS** | `chmod +x install.sh && ./install.sh` |
+| **Windows** | `git clone https://github.com/vuongtex/naota.git naota; cd naota; powershell -ExecutionPolicy Bypass -File install.ps1` |
+| **Linux / macOS** | `git clone https://github.com/vuongtex/naota.git naota && cd naota && chmod +x install.sh && ./install.sh` |
 
-Lệnh cài Python, thư viện, các bộ não CLI, rồi mở NAOTA ở `http://localhost:7777`. Trên Windows, lần sau chỉ cần bấm đúp **`NAOTA.bat`**. Các bước chi tiết ở [QUICKSTART.md](QUICKSTART.md), lên VPS xem [DEPLOY.md](DEPLOY.md).
+Lệnh cài Python, thư viện, các bộ não CLI, rồi mở NAOTA ở `http://localhost:7777`. Có bản mới thì bấm nút **Cập nhật** trong app. Phải tải bằng `git clone` như trên: tải file ZIP vẫn chạy được nhưng **không cập nhật được**. Trên Windows, lần sau chỉ cần bấm đúp **`NAOTA.bat`**. Các bước chi tiết ở [QUICKSTART.md](QUICKSTART.md), lên VPS xem [DEPLOY.md](DEPLOY.md).
 
 ## Bản quyền
 
