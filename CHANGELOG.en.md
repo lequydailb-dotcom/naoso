@@ -4,6 +4,10 @@
 
 NAOTA release history. Newest first.
 
+## [1.2.0] - 2026-11-03
+### Added
+- **ChatGPT and Claude keep a log in Naota.** When you work something out with an outside AI connected to Naota, it notes what you said, what you decided and why. Naota keeps the context and remembers your decisions, at no cost in Naota runs.
+
 ## [1.1.1] - 2026-11-03
 ### Fixed
 - **The phone menu no longer overlaps.** The last items (Connections, Store, System...) used to spill over the language, brain picker and version rows. Everything now sits in order; scroll down to reach it.
