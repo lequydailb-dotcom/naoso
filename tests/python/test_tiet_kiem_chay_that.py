@@ -220,9 +220,9 @@ _USAGE = (ROOT / "dashboard" / "usage.js").read_text(encoding="utf-8")
 # Câu tiếng Việt dời vào từ điển i18n, usage.js chỉ còn gọi window.t("khoa").
 # Nên kiểm CẢ HAI vế: trang gọi đúng khoá, và khoá đó trong vi.json nói đúng câu.
 _VI = json.loads((ROOT / "dashboard" / "i18n" / "vi.json").read_text(encoding="utf-8"))
-check("trang có vẽ dấu 'không áp cho bộ não đang dùng'",
+check("trang có vẽ dấu 'không áp cho model đang dùng'",
       "usage.muc.na" in _USAGE and "tk-muc-na" in _USAGE
-      and "không áp cho bộ não đang dùng" in _VI.get("usage.muc.na", ""))
+      and "không áp cho model đang dùng" in _VI.get("usage.muc.na", ""))
 check("CANARY: và THẬT SỰ gọi khi vẽ nút", "m.ap_dung === false" in _USAGE)
 check("có CSS cho dấu đó", ".tk-muc-na{" in _USAGE)
 

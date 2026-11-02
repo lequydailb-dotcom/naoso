@@ -157,7 +157,7 @@ JS = (ROOT / "dashboard" / "console.js").read_text(encoding="utf-8")
 _VI = json.loads((ROOT / "dashboard" / "i18n" / "vi.json").read_text(encoding="utf-8"))
 check("giao diện đồng bộ nói rõ chỉ lưu thông tin, không lưu media",
       "cs.bk_media_head" in JS
-      and "Mặc định chỉ đồng bộ THÔNG TIN, không đồng bộ media" in _VI.get("cs.bk_media_head", ""))
+      and "chỉ đồng bộ chữ (ghi chú, tài liệu), không đồng bộ ảnh và video" in _VI.get("cs.bk_media_head", ""))
 check("giao diện nói media vẫn nằm trên máy, không phải bị xoá",
       "cs.bk_media_c" in JS
       and "vẫn nằm nguyên trên máy" in _VI.get("cs.bk_media_c", ""))
