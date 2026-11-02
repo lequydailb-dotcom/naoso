@@ -2,8 +2,8 @@
 
        node tests/js/test_logo_linh_vat.js
 
-   Anh Vương chốt 31/10/2026: logo là chữ (cùng kiểu logo VUONG.AI): ô đen #0E1116 bo góc, chữ N
-   vàng #FCCB1D Montserrat Black nghiêng, dựng bằng BRAIN-VUONG-AI/naota/dung_logo_naota.py. Linh
+   Logo là chữ (cùng kiểu logo VUONG.AI): ô đen #0E1116 bo góc, chữ N
+   vàng #FCCB1D Montserrat Black nghiêng. Linh
    vật vẫn là ngôi sao nhưng mặc định màu vàng "nắng" theo bộ màu thương hiệu, và không còn thay
    chỗ logo. Logo nằm ở nhiều chỗ (logo.svg, các PNG, MAC_DINH, nút Đặt lại) nên test khoá lại.
 
