@@ -131,6 +131,20 @@ if hasattr(os, "getuid"):
           not ok and "Interactive authentication required" in err and "git pull --ff-only" in err
           and "systemctl restart" in err and "enable-linger" in err, err)
 
+    # Real case on a VPS without linger: /run/user is root-only, so even checking it raised PermissionError, the
+    # updater died and the page waited at "preparing" for good. It must carry on to the readable error instead.
+    us.write_state({"phase": "preparing", "result": None, "error": None})
+    seen = []
+    def _refused(self):
+        raise PermissionError(13, "Permission denied", str(self))
+    with patch.object(updater.os, "geteuid", lambda: 1000), \
+            patch.object(updater.Path, "is_dir", _refused), \
+            patch.object(updater.subprocess, "run", fake_run({"Restart": "always", "user": NO_BUS}, seen)):
+        ok = updater._launch_systemd_worker(a)
+    check("a root-only /run/user does not crash the updater: the page gets the error and the fix",
+          not ok and us.read_state().get("phase") == "error"
+          and "enable-linger" in (us.read_state().get("error") or ""), us.read_state())
+
     us.write_state({"phase": "preparing", "result": None, "error": None})
     seen = []
     with patch.object(updater.os, "geteuid", lambda: 1000), \

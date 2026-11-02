@@ -474,10 +474,15 @@ def _user_bus_env():
     """Environment for `systemd-run --user` from inside a system service, which has no session variables."""
     env = dict(os.environ)
     runtime = env.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
-    if Path(runtime).is_dir():
-        env["XDG_RUNTIME_DIR"] = runtime
-        if not env.get("DBUS_SESSION_BUS_ADDRESS") and Path(runtime, "bus").exists():
-            env["DBUS_SESSION_BUS_ADDRESS"] = f"unix:path={runtime}/bus"
+    # Without linger /run/user may be root-only, so even the stat is refused. That used to crash the updater
+    # and leave the screen at "preparing" for good; no readable runtime dir just means no user bus.
+    try:
+        if Path(runtime).is_dir():
+            env["XDG_RUNTIME_DIR"] = runtime
+            if not env.get("DBUS_SESSION_BUS_ADDRESS") and Path(runtime, "bus").exists():
+                env["DBUS_SESSION_BUS_ADDRESS"] = f"unix:path={runtime}/bus"
+    except OSError:
+        pass
     return env
 
 
@@ -553,7 +558,16 @@ def main():
 
     mode = service_mode()
     if mode == "systemd" and not a.systemd_worker:
-        return 0 if _launch_systemd_worker(a) else 1
+        try:
+            return 0 if _launch_systemd_worker(a) else 1
+        except Exception as e:
+            # Any surprise here must still end the update on screen; a dead launcher left "preparing" forever.
+            reason = _chu("Không chạy được updater độc lập; Naota vẫn được giữ nguyên. ",
+                          "Could not start an independent updater; Naota has been left running. ")
+            reason += f"{type(e).__name__}: {e}"[:400]
+            log(reason)
+            us.write_state({"phase": "error", "result": "error", "error": reason, "finished_at": _now()})
+            return 1
     if mode == "systemd" and a.restart_by_signal:
         mode = "systemd-signal"
 

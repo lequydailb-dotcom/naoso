@@ -4,6 +4,10 @@
 
 NAOTA release history. Newest first.
 
+## [1.0.5] - 2026-11-02
+### Fixed
+- **The Update button on a VPS no longer waits forever.** When the server runs NAOTA as a normal user that may not update itself, the page now shows the error at once, with the manual update command and how to enable the button, instead of waiting 10 minutes and asking for a reload.
+
 ## [1.0.4] - 2026-11-02
 ### Improved
 - **New icon set** across the sidebar and the whole app.
