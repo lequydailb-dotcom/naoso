@@ -104,7 +104,7 @@ for rel in ds:
         continue
     t = unicodedata.normalize("NFC", t).lower()
     for so, dong in enumerate(t.splitlines(), 1):
-        # Từ ghép bằng "-" vừa xét nguyên khối vừa xét từng mảnh (jv-art -> "jv-art", "jv", "art")
+        # Từ ghép bằng "-" vừa xét nguyên khối vừa xét từng mảnh (ab-cd -> "ab-cd", "ab", "cd")
         tu = []
         for m in TU.findall(dong):
             tu.extend([m] + [x for x in m.split("-") if x and x != m] if "-" in m else [m])
