@@ -198,7 +198,7 @@
              chỉ hiện ở màn chính, không theo node sang tab "Thư mục" của trang Trò chuyện. -->
         <button class="vault-expand" id="vtExpand" title="Mở lại panel Vault" data-i18n-title="vault.expand" aria-label="Mở lại panel Vault" data-i18n-aria="vault.expand"><i data-ic="panel-left"></i></button>
         <div class="vault-head">
-          <span class="vault-title">VAULT</span>
+          <span class="vault-title" data-i18n="vault.title">VAULT</span>
           <span class="vault-tools">
             <button class="mini-btn" id="vtNewFile" title="Tạo file mới ở gốc brain" data-i18n-title="vault.new_file">＋</button>
             <button class="mini-btn" id="vtNewDir" title="Tạo thư mục mới ở gốc brain" data-i18n-title="vault.new_dir"><i data-ic="folder-plus"></i></button>
@@ -274,17 +274,17 @@
         <div class="brain-stats" id="brainStats">
           <button class="bstat" data-tab="agents" title="Mở Studio · Agents" data-i18n-title="orb.stat_agents">
             <span class="bstat-num" id="statAgents">-</span>
-            <span class="bstat-lbl">AGENTS</span>
+            <span class="bstat-lbl" data-i18n="orb.lbl_agents">AGENTS</span>
           </button>
           <span class="bstat-sep"></span>
           <button class="bstat" data-tab="skills" title="Mở Studio · Skills" data-i18n-title="orb.stat_skills">
             <span class="bstat-num" id="statSkills">-</span>
-            <span class="bstat-lbl">SKILLS</span>
+            <span class="bstat-lbl" data-i18n="orb.lbl_skills">SKILLS</span>
           </button>
           <span class="bstat-sep"></span>
           <button class="bstat" data-tab="workflows" title="Mở Studio · Workflows" data-i18n-title="orb.stat_workflows">
             <span class="bstat-num" id="statWorkflows">-</span>
-            <span class="bstat-lbl">WORKFLOWS</span>
+            <span class="bstat-lbl" data-i18n="orb.lbl_workflows">WORKFLOWS</span>
           </button>
         </div>
 
@@ -804,7 +804,7 @@
         </div>
         <div class="set-sec">
           <h4 data-i18n="wz.s3">3. Nhà cung cấp AI (bộ não)</h4>
-          <div class="set-note"><span data-i18n="wz.prov_note">Chọn 1 nhà cung cấp chính. Đổi lại được trong</span> <i data-ic="cpu"></i> <b>Models</b>.</div>
+          <div class="set-note"><span data-i18n="wz.prov_note">Chọn 1 nhà cung cấp chính. Đổi lại được trong</span> <i data-ic="cpu"></i> <b data-i18n="page.models.label">Models AI</b>.</div>
           <div class="wz-prov" id="wzProv">
             <label class="wz-card" data-prov="anthropic-cli">
               <input type="radio" name="wzprov" value="anthropic-cli" checked>

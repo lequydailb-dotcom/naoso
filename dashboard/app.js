@@ -3302,7 +3302,7 @@ function renderConceptLabels(categories, total) {
     const catCol = (window.__naotaCatMap || {})[catKey];
     div.dataset.cat = catKey;
     div.innerHTML = `<div class="cl-name">${escapeHtml(c.name.toUpperCase())}</div>` +
-      `<div class="cl-meta">${c.count} note · <span class="cl-fire"${catCol ? ` style="color:${catCol}"` : ""}>${share}% Vault</span></div>`;
+      `<div class="cl-meta">${escapeHtml(window.t("app.cl_notes", { n: c.count }))} · <span class="cl-fire"${catCol ? ` style="color:${catCol}"` : ""}>${escapeHtml(window.t("app.cl_share", { p: share }))}</span></div>`;
     // Bấm nhãn danh mục → rọi sáng đúng cụm đó trong đồ thị.
     div.style.cursor = "pointer";
     div.title = window.t("app.spotlight_cluster", { ten: c.name });
@@ -4947,8 +4947,8 @@ if (document.getElementById("wzFinish")) {
   const orKey = document.getElementById("wzOrKey");
   const hint = document.getElementById("wzProvHint");
   const HINTS = {
-    "anthropic-cli": () => window.t("app.wz_hint_cli_1") + "<code>claude auth login --claudeai</code>" + window.t("app.wz_hint_cli_2"),
-    "openai-oauth": () => window.t("app.wz_hint_gpt_1") + "<b>Models</b>" + window.t("app.wz_hint_gpt_2") + "<code>codex login</code>" + window.t("app.wz_hint_gpt_3"),
+    "anthropic-cli": () => window.t("app.wz_hint_cli_1") + "<b>" + window.t("page.models.label") + "</b>" + window.t("app.wz_hint_cli_2"),
+    "openai-oauth": () => window.t("app.wz_hint_gpt_1") + "<b>" + window.t("page.models.label") + "</b>" + window.t("app.wz_hint_gpt_2"),
     "openrouter": () => window.t("app.wz_hint_or_1") + "<a href='https://openrouter.ai/keys' target='_blank' style='color:var(--link-ink)'>openrouter.ai/keys</a>" + window.t("app.wz_hint_or_2"),
   };
   function pick(prov) {
