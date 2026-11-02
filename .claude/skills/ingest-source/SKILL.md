@@ -1,6 +1,6 @@
 ---
 name: Ingest Source
-description: Tiêu hoá một source thô vào Second Brain, chưng cất thành tri thức wiki tích luỹ.
+description: Tiêu hoá một tài liệu thô vào bộ não, chưng cất thành tri thức wiki tích luỹ.
 description_en: "Digest one raw source into the Second Brain and distil it into wiki knowledge that compounds."
 group: AI
 ---

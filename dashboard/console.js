@@ -23,8 +23,8 @@
   // trước đây mỗi trang khai icon hai lần và đã lệch thật (Kanban trùng icon
   // với Tệp tin, Tài khoản trùng với Cài đặt).
   //
-  // Giá trị là TÊN icon Lucide. Tra tên tại https://lucide.dev/icons/, thêm vào
-  // dashboard/icons.manifest.json rồi chạy python tools/gen_icons.py.
+  // Giá trị là TÊN icon trong dashboard/icons.manifest.json; bảng "tabler" ở đó nói tên ấy
+  // vẽ bằng icon Tabler nào (tabler.io/icons). Thêm tên mới rồi chạy python tools/gen_icons.py.
   const VIEW_ICON = {
     home: "hexagon",
     chat: "message-circle",
@@ -52,13 +52,14 @@
     mcp: "plug",
     plugins: "toolbox",
     packs: "package",
-    logs: "scroll-text",
+    // Cập nhật: tên lửa = "bản mới cất cánh", khác hẳn icon nhật ký cũ.
+    logs: "rocket",
     account: "circle-user",
     usage: "chart-column",
-    // Không phải "smile" của Lucide: trang Linh vật mang chính khuôn mặt linh vật (vành cam,
-    // mắt liếc), xem RIENG trong dashboard/icons.js. Cái tab dẫn tới con pet mà không giống
-    // con pet thì nó là tab duy nhất trong app nói sai về nơi nó dẫn tới.
-    pet: "naota-pet",
+    // Trang Avatar (trước gọi là Linh vật, anh Vương đổi tên 02/11/2026): icon chân dung
+    // trong khung bo góc, đúng nghĩa "ảnh đại diện". Khuôn mặt cam "naota-pet" vẫn nằm trong
+    // RIENG của dashboard/icons.js cho chỗ nào cần chính con pet.
+    pet: "user-square-rounded",
     // "share-2" chu khong phai "link": nhan nhom "Ket noi" ngay trong cung mot rail da dung
     // ic("link"), nen de "link" o day la hai muc canh nhau deo y het nhau.
     share: "share-2",
@@ -135,7 +136,7 @@
     // in this one folded group to keep the rail on one screen. It unfolds by itself when one of
     // its pages is open.
     { id: "nang_cao", get label() { return t("nav.group.nang_cao"); },    icon: GICON.nang_cao,    ids: ["terminal", "plugins", "webhooks", "logins", "share"], fold: true },
-    { id: "he_thong", get label() { return t("nav.group.he_thong"); },    icon: GICON.he_thong,    ids: ["models", "settings", "account"], foot: true },
+    { id: "he_thong", get label() { return t("nav.group.he_thong"); },    icon: GICON.he_thong,    ids: ["models", "settings", "account", "logs"], foot: true },
   ];
   const RAIL_BY_ID = Object.fromEntries(RAIL_ITEMS.map(i => [i.id, i]));
 
@@ -154,7 +155,9 @@
   // Các id cũ vẫn dùng được qua lệnh UI và lối tắt, nhưng mở tab trong Cài đặt.
   // "coding": coding happens in any chat with a folder attached, so the Coding page left
   // the rail with the Code group; its id still opens it.
-  const RAIL_AN = new Set(["chatbots", "usage", "pet", "logs", "coding"]);
+  // "logs" (Cập nhật) ra lại thanh bên dưới Tài khoản (anh Vương 02/11/2026): người dùng phải
+  // THẤY có bản mới thì mới cập nhật đều, nên nó không còn là một tab chìm trong Cài đặt.
+  const RAIL_AN = new Set(["chatbots", "usage", "pet", "coding"]);
   // Trả về [{label, foot, items:[...]}], bỏ id không tồn tại. Mục nào chưa xếp nhóm → dồn vào "Khác".
   function railGroups() {
     const seen = new Set();
@@ -178,7 +181,7 @@
   }
   // Nhãn nhóm chứa một mục id (cho accordion: mở đúng nhóm của trang đang xem).
   function groupLabelOf(id) {
-    if (["pet", "usage", "logs", "runtime"].includes(id)) id = "settings";
+    if (["pet", "usage", "runtime"].includes(id)) id = "settings";
     const g = RAIL_GROUPS.find(gr => (gr.ids || []).includes(id));
     return g ? g.label : (RAIL_GROUPS[0] && RAIL_GROUPS[0].label) || "";
   }
@@ -352,9 +355,11 @@
     if (id === "selfimprove") { try { localStorage.setItem("naota.nv.view", "rep"); } catch (e) {} }
     id = TRANG_GOP[id] || id;
     const store = Alpine.store("nav");
-    const oldTab = { pet: "pet", usage: "usage", logs: "updates" }[id];
+    // Tab "updates" cũ của Cài đặt giờ là trang Cập nhật riêng (id "logs") trên thanh bên.
+    if (id === "settings" && arguments[2] === "updates") id = "logs";
+    const oldTab = { pet: "pet", usage: "usage" }[id];
     let tab = oldTab || (id === "settings" ? arguments[2] || "general" : null);
-    if (tab && !["general", "voice", "pet", "usage", "updates"].includes(tab)) tab = "general";
+    if (tab && !["general", "voice", "pet", "usage"].includes(tab)) tab = "general";
     if (oldTab) id = "settings";
     if (store.active === id && (!tab || store.settingsTab === tab)) return;
     const swap = () => {
@@ -1459,7 +1464,7 @@
         <div class="fm-crumb" id="fmCrumb"></div>
         <div class="fm-actions">
           <button class="s-btn-ghost" id="fmUp">↑ ${window.t("cs.fm_up")}</button>
-          <button class="s-btn-ghost" id="fmHome" title="${window.t("cs.fm_home_title")}">${ic("house")} Brain</button>
+          <button class="s-btn-ghost" id="fmHome" title="${window.t("cs.fm_home_title")}">${ic("house")} ${esc(window.t("cs.fm_home_btn"))}</button>
           <button class="s-btn-ghost" id="fmNewDir">+ ${window.t("cs.fm_new_dir")}</button>
           <button class="s-btn-ghost" id="fmNewFile">+ File</button>
           <label class="s-btn-ghost fm-uplabel">⤒ ${window.t("cs.fm_upload")}<input type="file" id="fmUpload" hidden multiple></label>
@@ -7496,7 +7501,7 @@
   });
 
   async function renderSettingsPage(el) {
-    const tabs = ["general", "voice", "pet", "usage", "updates"];
+    const tabs = ["general", "voice", "pet", "usage"];
     const tab = Alpine.store("nav").settingsTab || "general";
     el.innerHTML = `<div class="settings-tabs-page">
       <div class="settings-tabs" role="tablist" aria-label="${esc(t("page.settings.label"))}">
@@ -7526,7 +7531,6 @@
     try {
       if (tab === "pet") await renderPetPage(panel);
       else if (tab === "usage") await renderUsage(panel);
-      else if (tab === "updates") await renderLogs(panel);
       else await renderSettings(panel, tab);
     } catch (e) {
       if (panel.isConnected) panel.innerHTML = `<div class="cview-placeholder">${esc(t("app.err_net"))}</div>`;
@@ -8286,6 +8290,7 @@
     Alpine.store("nav", {
       active: "home",
       items: RAIL_ITEMS,
+      updAvail: false,   // máy chủ báo có bản mới (/version), vẽ chấm trên mục Cập nhật
       // Only a `fold` group (Advanced) opens and shuts; every other group is always open, so the
       // whole rail shows without a click. Holds the label of the fold group that is open, if any.
       openGroup: groupLabelOf("home"),
@@ -9482,7 +9487,11 @@
       let verTam = APP_VERSION;
       try { verTam = JSON.parse(document.getElementById("naota-fresh").textContent).version || APP_VERSION; } catch (e) {}
       ver.textContent = "v" + verTam;
-      fetch("/version").then(r => r.json()).then(d => { if (d && d.current) ver.textContent = "v" + d.current; }).catch(() => {});
+      fetch("/version").then(r => r.json()).then(d => {
+        if (d && d.current) ver.textContent = "v" + d.current;
+        // Có bản mới thì mục Cập nhật trên thanh bên mang chấm "Mới" cho tới khi cập nhật xong.
+        Alpine.store("nav").updAvail = !!(d && d.update_available);
+      }).catch(() => {});
     }
     // Theo dõi Studio mở/đóng → bật/tắt graph theo
     const st = document.getElementById("studio");

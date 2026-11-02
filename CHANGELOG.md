@@ -2,9 +2,16 @@
 
 ***Tiếng Việt** · [English](CHANGELOG.en.md)*
 
-Lịch sử phiên bản NAOTA. Bản mới nhất ở trên cùng. Xem ngay trong app tại **Cài đặt → Cập nhật**.
+Lịch sử phiên bản NAOTA. Bản mới nhất ở trên cùng. Xem ngay trong app tại mục **Cập nhật** (thanh bên, nhóm Hệ thống).
 
 Định dạng: mỗi phiên bản là một khối `## [x.y.z] - ngày`, bên dưới nhóm thay đổi theo `### Thêm mới / Sửa lỗi / Cải thiện / Bảo mật`.
+
+## [1.0.4] - 2026-11-02
+### Cải thiện
+- **Bộ icon mới** cho cả thanh bên lẫn bên trong app, nét gọn và dễ nhận hơn.
+- Mục **Linh vật** đổi tên thành **Avatar**.
+- **Cập nhật** ra hẳn thanh bên, ngay dưới **Tài khoản**. Có bản mới thì mục này hiện chấm **Mới**.
+- Chữ "brain" sót lại trong giao diện, trang Plugin và trang Tự học đã đổi sang tiếng Việt: **bộ não** là kho ghi chú, **model AI** là Claude, ChatGPT...
 
 ## [1.0.3] - 2026-11-02
 ### Cải thiện

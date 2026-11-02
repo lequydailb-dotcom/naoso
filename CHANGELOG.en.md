@@ -4,6 +4,13 @@
 
 NAOTA release history. Newest first.
 
+## [1.0.4] - 2026-11-02
+### Improved
+- **New icon set** across the sidebar and the whole app.
+- **Mascot** is now called **Avatar**.
+- **Updates** has its own sidebar item right under **Account**, with a **New** badge when a newer version is out.
+- Leftover "brain" wording in the interface, the Plugins page and the Learn page now reads clearly: brain means your notes vault, AI model means Claude, ChatGPT and the like.
+
 ## [1.0.3] - 2026-11-02
 ### Improved
 - The Account and Settings name block and the Models main-card badge now come from translations (Vietnamese: Tên NAOTA, Chính).

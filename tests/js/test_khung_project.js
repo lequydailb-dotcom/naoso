@@ -219,7 +219,7 @@ check("hai trần trong chú thích khớp server", /PROJECT_GHIM_FILE_MAX = 200
 // đúng tên thứ mà file sắp bị gỡ khỏi.
 check("hỏi lại trước khi gỡ file, và nói rõ file vẫn còn trong brain",
   /confirm\(pdT\(pdK\("confirm_remove_file"\)/.test(SU)
-  && /vẫn còn trong brain/.test(VI["proj.confirm_remove_file"] || ""));
+  && /vẫn còn trong bộ não/.test(VI["proj.confirm_remove_file"] || ""));
 check("link nói rõ chỉ mở được khi bộ não có công cụ duyệt web",
   /duyệt web/.test(VI["proj.link_note"] || ""));
 check("link mở ở tab mới có rel=noopener", /rel="noopener noreferrer"/.test(SU));

@@ -690,6 +690,8 @@
                       @click="$store.nav.go(it.id)" :title="it.label">
                 <span class="rail-ico" x-html="it.icon"></span>
                 <span class="rail-lbl" x-text="it.label"></span>
+                <span class="rail-new" x-show="it.id === 'logs' && $store.nav.updAvail"
+                      x-text="($store.nav.i18nTick, t('rail.upd_new'))"></span>
               </button>
             </template>
           </div>

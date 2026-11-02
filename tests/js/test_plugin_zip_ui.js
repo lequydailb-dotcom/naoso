@@ -122,8 +122,8 @@ async function pick(t, name, opts) {
   check("inspect called with the brain", a.calls.some(c => c.url === "/plugins/inspect"));
   check("nothing installed before the click", !a.calls.some(c => c.url === "/plugins/install"));
   check("confirmation shows the red code warning", a.box.innerHTML.includes("pkm-canh do"));
-  check("confirmation shows tool + min_mode", a.box.innerHTML.includes("zip_demo_echo") && a.box.innerHTML.includes("ghi (safe)"));
-  check("confirmation shows the forced-off note", a.box.innerHTML.includes("enabled: true"));
+  check("confirmation shows tool + min_mode", a.box.innerHTML.includes("zip_demo_echo") && a.box.innerHTML.includes("được ghi file"));
+  check("confirmation shows the forced-off note", a.box.innerHTML.includes("ghi sẵn là bật"));
   const btn = a.doc.getElementById("pzCai");
   check("install button enabled for a new plugin", btn && !btn.disabled);
   await btn.onclick(); await tick();

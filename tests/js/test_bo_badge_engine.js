@@ -83,7 +83,7 @@ check("bảng nhãn provider vẫn còn trong app.js", /const ENGINE_LABEL = \{/
 // tooltip (và vẫn nối tên model đầy đủ vào), và khoá đó trong vi.json mang ĐÚNG câu cần có.
 check("tooltip nói rõ đây là bộ não THẬT đã chạy, kèm tên model đầy đủ",
   /window\.t\("app\.ctx_engine"/.test(CTX) && /": " \+ data\.model/.test(CTX)
-  && (VI["app.ctx_engine"] || "").includes("Bộ não THẬT đã chạy lượt này"), CTX);
+  && (VI["app.ctx_engine"] || "").includes("Model THẬT đã chạy lượt này"), CTX);
 // Hai nửa của dòng này tới từ hai chỗ khác nhau trong payload. Điều kiện vào cũ là
 // `!data.ctx_path` -> có engine mà thiếu ctx_path là mất luôn nửa đang có.
 check("thiếu ctx_path nhưng có engine thì VẪN vẽ dòng",

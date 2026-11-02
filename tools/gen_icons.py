@@ -32,6 +32,13 @@ OUT = ROOT / "dashboard" / "vendor" / "lucide-icons.js"
 OUT_CSS = ROOT / "dashboard" / "vendor" / "lucide-icons.css"
 
 LUCIDE_VERSION = "1.27.0"
+# NAOTA draws its own look with Tabler Icons (MIT): the manifest's "tabler" map names, for each
+# key the app calls ic() with, the Tabler outline icon to draw. Keys without an entry stay Lucide.
+TABLER_VERSION = "3.31.0"
+TABLER_CDN = "https://cdn.jsdelivr.net/npm/@tabler/icons@{ver}/icons/outline/{name}.svg"
+# Tabler puts an invisible 24x24 hit box path first in every icon; the wrapper already sizes it.
+TABLER_BOX = re.compile(r'<path stroke="none" d="M0 0h24v24H0z" fill="none"\s*/>')
+TABLER: dict[str, str] = {}
 CDN = "https://cdn.jsdelivr.net/npm/lucide-static@{ver}/icons/{name}.svg"
 # Dự phòng khi CDN không vào được (tường lửa công ty, proxy của agent hay chặn jsdelivr và
 # unpkg): tải thẳng gói .tgz của ĐÚNG phiên bản đó từ npm rồi đọc icon trong gói. Đây chính
@@ -67,6 +74,7 @@ def load_manifest() -> tuple[list[str], list[str]]:
             "css_vars có tên chưa nằm trong groups: " + ", ".join(missing) +
             "\nThêm chúng vào một nhóm trước đã."
         )
+    TABLER.update(data.get("tabler", {}) or {})
     return sorted(set(names)), sorted(set(css_vars))
 
 
@@ -110,7 +118,20 @@ def goi_npm() -> tarfile.TarFile:
     return _goi
 
 
+def tai_tabler(name: str) -> str:
+    url = TABLER_CDN.format(ver=TABLER_VERSION, name=name)
+    try:
+        with urllib.request.urlopen(url, timeout=TIMEOUT) as resp:
+            return TABLER_BOX.sub("", resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        sys.exit(f"Không có icon Tabler '{name}' ({exc.code}). Tra tên đúng ở https://tabler.io/icons rồi sửa manifest.")
+    except urllib.error.URLError as exc:
+        sys.exit(f"Không tải được icon Tabler '{name}' ({exc}). Script này cần internet.")
+
+
 def tai(name: str) -> str:
+    if name in TABLER:
+        return tai_tabler(TABLER[name])
     """SVG thô của một icon: thử CDN trước, hỏng mạng thì lấy trong gói npm.
 
     404 ở CDN dừng NGAY: gói và CDN là cùng một phiên bản, nên 404 nghĩa là tên icon sai chứ
@@ -158,7 +179,8 @@ def main() -> None:
 
     lines = [
         "// FILE TỰ SINH - ĐỪNG SỬA TAY.",
-        f"// Nguồn: lucide-static@{LUCIDE_VERSION} (giấy phép ISC) - https://lucide.dev",
+        f"// Nguồn: @tabler/icons@{TABLER_VERSION} (giấy phép MIT) - https://tabler.io/icons;",
+        f"// tên nào chưa có trong bảng tabler của manifest thì lấy lucide-static@{LUCIDE_VERSION} (ISC).",
         "// Sinh lại: sửa dashboard/icons.manifest.json rồi chạy python tools/gen_icons.py",
         "window.LucideIcons = {",
     ]

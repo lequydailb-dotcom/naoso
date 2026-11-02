@@ -73,7 +73,7 @@ check("khoá từ điển chọn theo chế độ",
 });
 check("câu gỡ của trợ lý nói đúng là gỡ khỏi TRỢ LÝ, file vẫn còn trong brain",
   /trợ lý/.test(VI["ags.confirm_remove_file"] || "")
-  && /vẫn còn trong brain/.test(VI["ags.confirm_remove_file"] || ""));
+  && /vẫn còn trong bộ não/.test(VI["ags.confirm_remove_file"] || ""));
 check("chú thích nói rõ phạm vi: tài liệu thuộc về trợ lý, không riêng một cuộc",
   /quy trình/.test(VI["ags.note"] || ""));
 check("trần nạp trong chú thích khớp server",

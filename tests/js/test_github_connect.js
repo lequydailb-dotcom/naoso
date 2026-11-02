@@ -89,7 +89,7 @@ check("no em dash in the module", js.indexOf("\u2014") === -1 && js.indexOf("\u2
 
 const keys = Array.from(new Set((js.match(/tw\("(gh\.[a-z_]+)"/g) || []).map(m => m.slice(4, -1))));
 check("every gh.* key used exists in vi.json and en.json", keys.length > 20 && keys.every(k => vi[k] && en[k]));
-check("Vietnamese texts carry diacritics", /Kết nối/.test(vi["gh.connect"]) && /Gỡ khỏi brain/.test(vi["gh.remove_brain"]));
+check("Vietnamese texts carry diacritics", /Kết nối/.test(vi["gh.connect"]) && /Gỡ khỏi bộ não/.test(vi["gh.remove_brain"]));
 check("no em dash in the new texts", keys.every(k => !/[\u2013\u2014]/.test(vi[k] + en[k])));
 
 if (fails.length) { console.log("\nFAIL " + fails.length + ": " + fails.join(", ")); process.exit(1); }

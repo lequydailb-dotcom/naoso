@@ -9,8 +9,8 @@ const src = fs.readFileSync(path.join(__dirname, "../../dashboard/console.js"), 
 const railCtx = { ICON: {}, GICON: {}, t: k => k };
 vm.createContext(railCtx);
 vm.runInContext(src.slice(src.indexOf("  const RAIL_ITEMS ="), src.indexOf("  // Nhãn nhóm chứa")) + "\nglobalThis.groups = railGroups();", railCtx);
-assert.deepEqual(Array.from(railCtx.groups.find(g => g.foot).items, i => i.id), ["models", "settings", "account"]);  // Models moved under System, Share links into Advanced
-assert.ok(!railCtx.groups.flatMap(g => g.items).some(i => ["pet", "usage", "logs", "chatbots"].includes(i.id)),
+assert.deepEqual(Array.from(railCtx.groups.find(g => g.foot).items, i => i.id), ["models", "settings", "account", "logs"]);  // Models under System, Update right under Account
+assert.ok(!railCtx.groups.flatMap(g => g.items).some(i => ["pet", "usage", "chatbots"].includes(i.id)),
   "legacy targets must not reappear through the ungrouped-items fallback");
 function fn(name) {
   const start = src.search(new RegExp("  (?:async )?function " + name + "\\("));
@@ -28,7 +28,7 @@ const ctx = {
 };
 vm.createContext(ctx);
 vm.runInContext(fn("navigateTo"), ctx);
-for (const [target, tab] of [["usage", "usage"], ["pet", "pet"], ["logs", "updates"], ["runtime", "usage"]]) {
+for (const [target, tab] of [["usage", "usage"], ["pet", "pet"], ["runtime", "usage"]]) {
   ctx.navigateTo(target);
   assert.equal(nav.active, "settings", target + " must highlight Settings in the sidebar");
   assert.equal(nav.settingsTab, tab);
@@ -43,7 +43,9 @@ ctx.navigateTo("settings");
 assert.equal(nav.settingsTab, "general", "sidebar Settings opens General");
 ctx.navigateTo("settings", true, "invalid");
 assert.equal(nav.settingsTab, "general", "unknown tab falls back to General");
-for (const target of ["share", "account"]) {
+ctx.navigateTo("settings", true, "updates");
+assert.equal(nav.active, "logs", "the old Settings > Update tab now opens the Update page");
+for (const target of ["share", "account", "logs"]) {
   ctx.navigateTo(target);
   assert.equal(nav.active, target, target + " stays a separate page");
 }

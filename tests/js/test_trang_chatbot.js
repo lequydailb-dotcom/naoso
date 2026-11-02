@@ -118,17 +118,17 @@ check("nối xong thì nạp lại danh sách tài khoản và TÍCH SẴN con v
 // ============================================================
 check("xoá bot có hỏi lại", /confirm\(/.test(CB));
 check("xoá nói rõ brain và Agent KHÔNG bị xoá",
-  noi("cb.xn_xoa_giu", "KHÔNG bị xoá") && tu("cb.xn_xoa_giu", "Brain và Agent"));
+  noi("cb.xn_xoa_giu", "KHÔNG bị xoá") && tu("cb.xn_xoa_giu", "Bộ não và Agent"));
 check("form nói rõ bot tạo ra ở trạng thái tắt",
   /<b>' \+\s*\n?\s*esc\(window\.t\("cb\.tao_xong_tat"\)\) \+ '<\/b>/.test(CB)
   && VI["cb.tao_xong_tat"] === "TẮT" && tu("cb.tao_xong_1", "trạng thái"));
-check("form nói rõ bot đọc tài liệu của brain nào", noi("cb2.s_ai_hint", "chỉ đọc tài liệu trong brain"));
+check("form nói rõ bot đọc tài liệu của brain nào", noi("cb2.s_ai_hint", "chỉ đọc tài liệu trong bộ não"));
 // The "what does the bot answer from" choice is gone. Every bot answers from its Agent and the
 // brain's documents, so the form shows no choice and always sends "agent".
 check("form không còn mục chọn nguồn trả lời", !/cbNguon/.test(CB) && !/cb2\.s_nguon/.test(CB));
 check("bot luôn gửi nguồn trả lời là Agent và tài liệu", /nguon_tra_loi: "agent"/.test(CB));
 check("nói rõ rào duy nhất là chỉ đọc được brain này",
-  CB.includes("cb.intro_chi_doc") && /chỉ đọc\b[\s\S]{0,40}brain này/.test(VI["cb.intro_chi_doc"] || ""));
+  CB.includes("cb.intro_chi_doc") && /chỉ đọc[\s\S]{0,40}bộ não này/.test(VI["cb.intro_chi_doc"] || ""));
 check("thẻ bot hiện đang chạy chế độ nào",
   /b\.nguon_tra_loi === "tai_lieu" \? window\.t\("cb\.nguon_tl_ngan"\)/.test(CB)
   && tu("cb.nguon_tl_ngan", "chỉ tài liệu"));
@@ -182,7 +182,7 @@ check("CSS cho nhãn mức quyền và khối cảnh báo",
 // phải nói đúng như vậy - hứa thiếu thì chủ ngại nâng mức một cách vô cớ, hứa thừa thì chủ tin vào
 // một rào không tồn tại (câu cũ "giữ nguyên ở MỌI mức" thành lời hứa thừa từ khi đó).
 check("trang nói rõ hai rào giữ nguyên dưới mức Toàn quyền",
-  noi("cb.intro_7", "không thấy brain khác và không chạy được lệnh máy"));
+  noi("cb.intro_7", "không thấy bộ não khác và không chạy được lệnh máy"));
 check("và nói thẳng Toàn quyền chạy như kênh admin", noi("cb.intro_7", "kênh admin"));
 
 // ============================================================
@@ -198,8 +198,8 @@ check("form nạp Agent của brain đang mở",
 check("lưu bot thì Agent và tài liệu cùng một brain", /agent_brain: br, brain: br,/.test(CB));
 check("trang nói rõ đang xem bot của brain nào",
   /window\.t\("cb\.intro_1"\)\) \+ ' <b>' \+ esc\(brain\(\)\)/.test(CB)
-  && tu("cb.intro_1", "Bot của brain"));
-check("trang chỉ cách xem brain khác", noi("cb.intro_8", "Đổi brain ở đầu trang"));
+  && tu("cb.intro_1", "Bot của bộ não"));
+check("trang chỉ cách xem brain khác", noi("cb.intro_8", "Đổi bộ não ở đầu trang"));
 // Thẻ bot bỏ dòng brain: mọi bot ở đây đều cùng một brain nên nhắc lại từng thẻ chỉ là nhiễu.
 check("thẻ bot không nhắc lại brain", !/ic\("brain"\) \+ ' ' \+ esc\(b\.brain\)/.test(CB));
 // Trang "Agents" riêng đã gộp vào trang Cộng sự, nên nút này phải dẫn tới "workspace": dẫn

@@ -63,7 +63,7 @@ check("upload refuses files over 1 MB", /MAX_FILE = 1024 \* 1024/.test(lvSrc) &&
 const cons = D("console.js");
 check("sidebar: the Advanced group has logins", /ids: \["terminal", "plugins", "webhooks", "logins", "share"\]/.test(cons));
 // Choosing the brain is Naota's own setting, not an outside connection: Models sits under System.
-check("sidebar: Models is in the System group", /ids: \["models", "settings", "account"\], foot: true/.test(cons));
+check("sidebar: Models is in the System group", /ids: \["models", "settings", "account", "logs"\], foot: true/.test(cons));
 check("sidebar: logins has the cookie icon", /logins: "cookie"/.test(cons));
 check("page is called Phiên đăng nhập / Cookies", VI["page.logins.label"] === "Phiên đăng nhập" && EN["page.logins.label"] === "Cookies");
 check("cookie and file-up icons are vendored", /"cookie":/.test(D("vendor/lucide-icons.js")) && /"file-up":/.test(D("vendor/lucide-icons.js")));

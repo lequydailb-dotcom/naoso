@@ -393,8 +393,8 @@ check("ws.onclose gọi baoDutMang", /ws\.onclose = \(e?\) => \{[\s\S]{0,320}bao
   check("naota-pet có vành cam + mắt liếc lên phải",
     /stroke="#F28C28"/.test(icons) && /cy="10\.74"/.test(icons));
   check("bodyOf tra bảng icon riêng trước Lucide", /if \(RIENG\[name\]\) return RIENG\[name\];/.test(icons));
-  check("console.js: trang pet dùng icon đó chứ không phải mặt cười chung",
-    /pet: "naota-pet",/.test(console_js));
+  check("console.js: trang Avatar dùng icon chân dung",
+    /pet: "user-square-rounded",/.test(console_js));
 }
 
 // ---- 10e. Hình NGÔI SAO và ô chọn CỠ MẮT ----
