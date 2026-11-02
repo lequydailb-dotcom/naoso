@@ -879,7 +879,9 @@ body.has-rail .hud { margin-left: var(--rail-w); width: calc(100% - var(--rail-w
   body.nav-open .rail { left: 0; visibility: visible; transition: left .22s ease, visibility 0s;
     box-shadow: 8px 0 40px var(--shadow-veil); }
   .rail-top, .rail-foot { display: flex; }            /* hiện lại brand + version trong ngăn kéo */
-  .rail-nav { flex-direction: column; overflow: visible; gap: 2px; padding: 0; }
+  /* Full height, not shrunk to the drawer: with every group open the list is taller than a phone, and a shrunk
+     list spilled its last items over the language, brain and version rows below it. The drawer scrolls instead. */
+  .rail-nav { flex: 0 0 auto; flex-direction: column; overflow: visible; gap: 2px; padding: 0; }
   .rail-group, .rail-grp-items { display: block; }
   .rail-grp-lbl { display: flex; }
   .rail-item { flex: none; flex-direction: row; gap: 10px; padding: 9px 10px; border-radius: 9px; }

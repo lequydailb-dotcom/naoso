@@ -31,7 +31,10 @@ check("ngăn kéo không trượt bằng transform", /transform: none;/.test(rai
 check("ngăn kéo đóng thì ẩn hẳn", /visibility: hidden;/.test(rail)
   && /body\.nav-open \.rail \{ left: 0; visibility: visible;/.test(CSS));
 check("danh sách menu không tự cuộn bên trong ngăn kéo",
-  /\.rail-nav \{ flex-direction: column; overflow: visible;/.test(CSS));
+  /\.rail-nav \{ flex: 0 0 auto; flex-direction: column; overflow: visible;/.test(CSS));
+// Menu dài hơn màn hình điện thoại: danh sách giữ đủ chiều cao (không co theo ngăn kéo), nếu co thì các mục cuối
+// tràn đè lên ô ngôn ngữ, ô chọn bộ não và số phiên bản bên dưới.
+check("danh sách menu giữ đủ chiều cao, không tràn đè hàng dưới", /\.rail-nav \{ flex: 0 0 auto;/.test(CSS));
 check("nền mờ mặc định ẩn, kể cả khi thiếu thuộc tính hidden",
   /\.nav-backdrop, \.nav-backdrop\[hidden\] \{[^}]*display: none;/.test(CSS));
 check("nền mờ chỉ hiện khi ngăn kéo mở", /body\.nav-open \.nav-backdrop \{ display: block; \}/.test(CSS));

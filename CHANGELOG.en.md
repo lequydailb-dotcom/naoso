@@ -4,6 +4,10 @@
 
 NAOTA release history. Newest first.
 
+## [1.1.1] - 2026-11-03
+### Fixed
+- **The phone menu no longer overlaps.** The last items (Connections, Store, System...) used to spill over the language, brain picker and version rows. Everything now sits in order; scroll down to reach it.
+
 ## [1.1.0] - 2026-11-02
 ### Added
 - **Desktop installers.** Download Naota-Setup.exe (Windows) or Naota-macOS.dmg (Mac) and open it like any app, no commands to type.

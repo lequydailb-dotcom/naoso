@@ -6,6 +6,10 @@ Lịch sử phiên bản NAOTA. Bản mới nhất ở trên cùng. Xem ngay tro
 
 Định dạng: mỗi phiên bản là một khối `## [x.y.z] - ngày`, bên dưới nhóm thay đổi theo `### Thêm mới / Sửa lỗi / Cải thiện / Bảo mật`.
 
+## [1.1.1] - 2026-11-03
+### Sửa lỗi
+- **Menu trên điện thoại không còn đè chữ.** Các mục cuối (Nguồn dữ liệu, Chợ ứng dụng, Hệ thống...) từng tràn lên ô ngôn ngữ, ô chọn bộ não và số phiên bản. Giờ mọi thứ xếp liền nhau, vuốt xuống là thấy.
+
 ## [1.1.0] - 2026-11-02
 ### Thêm mới
 - **Bộ cài cho máy tính.** Tải Naota-Setup.exe (Windows) hoặc Naota-macOS.dmg (Mac), mở như mọi ứng dụng, không phải gõ lệnh.
