@@ -135,10 +135,15 @@ if hasattr(os, "getuid"):
     # updater died and the page waited at "preparing" for good. It must carry on to the readable error instead.
     us.write_state({"phase": "preparing", "result": None, "error": None})
     seen = []
-    def _refused(self):
-        raise PermissionError(13, "Permission denied", str(self))
+    class _RunUserRefused(type(Path())):
+        # Only the runtime dir probe is refused; the state file and the repo paths must still work.
+        def is_dir(self):
+            if "user" in self.parts:
+                raise PermissionError(13, "Permission denied", str(self))
+            return super().is_dir()
     with patch.object(updater.os, "geteuid", lambda: 1000), \
-            patch.object(updater.Path, "is_dir", _refused), \
+            patch.dict(updater.os.environ, {"XDG_RUNTIME_DIR": "/run/user/988"}), \
+            patch.object(updater, "Path", _RunUserRefused), \
             patch.object(updater.subprocess, "run", fake_run({"Restart": "always", "user": NO_BUS}, seen)):
         ok = updater._launch_systemd_worker(a)
     check("a root-only /run/user does not crash the updater: the page gets the error and the fix",
