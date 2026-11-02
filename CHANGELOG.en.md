@@ -4,6 +4,11 @@
 
 NAOTA release history. Newest first.
 
+## [1.0.2] - 2026-11-02
+### Improved
+- **One name for the store** in Vietnamese: the Agents, Data sources and Plugins pages now match the sidebar.
+- **Fewer English terms in Vietnamese** on the Learn, Models and Account pages. The account name field reads **Your NAOTA name**.
+
 ## [1.0.1] - 2026-11-02
 ### Improved
 - **A tidier sidebar.** Every item shows at once, no groups to open. Rarely used pages sit in a folded **Advanced** group and **System** is pinned to the bottom.

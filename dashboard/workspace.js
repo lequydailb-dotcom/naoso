@@ -545,7 +545,7 @@
             'aria-label="' + esc(t("ws.resize_list")) + '" title="' + esc(t("ws.resize_hint")) + '"></div>' +
           '<div class="ws-left-foot"><button type="button" class="ws-btn" id="wsNew">' + ic("plus") + ' ' + esc(t("ws.new_item")) + '</button>' +
           '<button type="button" class="ws-btn" id="wsImport">' + ic("upload-cloud") + ' ' + esc(t("ws.upload_agent")) + '</button>' +
-          '<button type="button" class="ws-btn" id="wsStore">' + ic("package") + ' Naota Store</button></div>' +
+          '<button type="button" class="ws-btn" id="wsStore">' + ic("package") + ' ' + esc(t("page.packs.label")) + '</button></div>' +
         '</aside>' +
         '<div class="ws-main">' +
           '<div class="ws-bar">' +
@@ -1602,7 +1602,7 @@
       '<div class="ws-ob-acts">' +
         '<button type="button" class="ws-btn primary" id="wsObAgent">' + ic("plus") + ' ' + esc(t("ws.new_agent")) + '</button>' +
         '<button type="button" class="ws-btn primary" id="wsObWf">' + ic("plus") + ' ' + esc(t("ws.new_workflow")) + '</button>' +
-        '<button type="button" class="ws-btn" id="wsObStore">' + ic("package") + ' Naota Store</button>' +
+        '<button type="button" class="ws-btn" id="wsObStore">' + ic("package") + ' ' + esc(t("page.packs.label")) + '</button>' +
       '</div>';
     var nut = function (id, fn) { var b = host.querySelector(id); if (b) b.onclick = fn; };
     nut("#wsObAgent", function () { taoMoi("agent"); });
