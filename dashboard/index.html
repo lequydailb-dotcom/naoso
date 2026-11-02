@@ -31,8 +31,8 @@
   <!-- Biến --ic-* cho icon dùng trong content: của CSS. Phải đứng TRƯỚC style.css
        vì style.css tham chiếu các biến này. -->
   <link rel="stylesheet" href="/static/vendor/lucide-icons.css?v=1">
-  <link rel="stylesheet" href="/static/style.css?v=156">
-  <link rel="stylesheet" href="/static/console.css?v=133">
+  <link rel="stylesheet" href="/static/style.css?v=159">
+  <link rel="stylesheet" href="/static/console.css?v=136">
   <!-- Áp tông đã lưu TRƯỚC khi vẽ để không nháy tối rồi mới đổi sang sáng.
        Giá trị cũ "dim" (tông tối-nhạt, gỡ) quy về tối; theme.js sẽ ghi đè lại.
        Chưa chọn gì thì SÁNG (NAOTA 1.0.0). Chế độ "auto" (chỉ khi người dùng tự chọn) tính theo khung giờ "HH:MM-HH:MM", cùng quy tắc với
@@ -967,7 +967,7 @@
   "/static/agent-judge-ui.js?v=2"
  ],
  "teams": [
-  "/static/teams.js?v=20"
+  "/static/teams.js?v=21"
  ],
  "packs": [
   "/static/packs.js?v=4"
@@ -990,7 +990,8 @@
   "/static/usage.js?v=4"
  ],
  "webhooks": [
-  "/static/webhooks.js?v=7"
+  "/static/webhooks.css?v=1",
+  "/static/webhooks.js?v=8"
  ],
  "nhiemvu": [
   "/static/date-range.css?v=1",
@@ -1035,6 +1036,8 @@
   <script src="/static/editor-cmds.js?v=2"></script>
   <!-- Đếm từ + ký tự cho trình sửa file. Thuần, console.js dùng qua window.NaotaWordCount. -->
   <script src="/static/word-count.js?v=1"></script>
+  <!-- .html opens on its preview with a Code tab: before file-editor.js and console.js. -->
+  <script src="/static/html-preview.js?v=1"></script>
   <script src="/static/file-editor.js?v=15"></script>
   <!-- Insert images into a note (paste/drop/button): compress, then save into images/. After
        editor-cmds.js because it shares its editor lookup (contextFor). -->
@@ -1052,6 +1055,8 @@
   <!-- Stick to the latest message, the jump button and its "New messages" pill, shared by app.js and teams.js. -->
   <script src="/static/chat-scroll.js?v=1"></script>
   <script src="/static/chat-quote.js?v=2"></script>
+  <!-- Long paste: preview the whole text, then paste inline or attach .txt. Before app.js and teams.js. -->
+  <script src="/static/chat-paste.js?v=1"></script>
   <!-- Sáu reaction dùng chung: nạp TRƯỚC chat-reactions.js, app.js, teams.js và mobile-chat.js. -->
   <script src="/static/reactions.js?v=3"></script>
   <!-- Nhấn giữ tin trên điện thoại: nạp TRƯỚC chat-reactions.js và teams.js. -->
@@ -1097,7 +1102,9 @@
   <script src="/static/quick-settings.js?v=11"></script>
   <script src="/static/remote-access.js?v=2"></script>
   <script src="/static/chat-zoom.js?v=6"></script>
-  <script src="/static/brains-ui.js?v=8"></script>
+  <script src="/static/brains-ui.js?v=9"></script>
+  <!-- Brain picker drawn by Naota over #graphSource: after brains-ui.js and app.js. -->
+  <script src="/static/brain-picker.js?v=1"></script>
   <script src="/static/sessions-ui.js?v=25"></script>
   <link rel="stylesheet" href="/static/improvement-candidates.css?v=3">
   <script src="/static/improvement-experiments.js?v=1"></script>
@@ -1140,7 +1147,7 @@
   <script src="/static/login-vault.js?v=2"></script>
   <script src="/static/messenger-connect.js?v=3"></script>
   <script src="/static/voice-catalog.js?v=1"></script>
-  <script src="/static/console.js?v=206"></script>
+  <script src="/static/console.js?v=208"></script>
   <script src="/static/mobile-chat.js?v=16"></script>
   <script src="/static/brain-view.js?v=1"></script>
   <script src="/static/push.js?v=3"></script>

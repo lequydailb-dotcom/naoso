@@ -104,3 +104,7 @@ desktop.ini
 # Ghi chép nội bộ của người làm mã (nhật ký, luật cho phiên Claude Code): không phát cho khách
 /NHAT-KY.md
 /.claude/CLAUDE.md
+
+# Desktop installers (packaging/) are built on Windows/macOS runners, never inside the image.
+packaging/
+dist/

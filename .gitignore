@@ -220,3 +220,7 @@ server/github_work.db*
 server/news_read.json
 server/webhook_events.sqlite3*
 /.claude/settings.local.json
+
+# Desktop installers built by packaging/ (CI publishes them on the "desktop" release)
+/dist/
+packaging/windows/Vietnamese.isl

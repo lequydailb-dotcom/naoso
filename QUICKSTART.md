@@ -4,6 +4,29 @@
 
 Chạy NAOTA trong vài phút. Chi tiết từng phần: [docs/](docs/README.md).
 
+## Máy tính cá nhân (Windows, macOS) - tải bộ cài
+
+Cài Naota như một ứng dụng bình thường: tải một file, bấm mở, xong thì có biểu tượng NAOTA để bấm vào mỗi ngày. Bộ cài tự kiểm tra máy còn thiếu gì (Git, Python, Node, các bộ não AI) và tự cài phần thiếu.
+
+- **Windows 10/11:** tải [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), bấm đúp, bấm Next tới hết. Một cửa sổ đen hiện tiến trình cài (vài phút). Xong thì có biểu tượng NAOTA trên Desktop và Start menu.
+- **macOS 11 trở lên:** tải [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), mở ra, kéo **NAOTA** vào **Applications**, rồi mở từ Launchpad. Lần đầu Terminal mở ra để cài (có thể hỏi đặt tài khoản quản trị Naota và mật khẩu máy Mac một lần).
+
+Bấm vào biểu tượng là Naota mở thành cửa sổ riêng (không thanh địa chỉ), Naota tự chạy cùng máy, nút **Cập nhật** trong app dùng được như thường. Dữ liệu nằm ở thư mục `Naota` trong thư mục người dùng; gỡ app không xoá thư mục này.
+
+**Cách cài không bị màn hình cảnh báo (khuyên dùng).** Hai bộ cài chưa ký số, nên tải bằng trình duyệt thì lần đầu máy sẽ chặn lại. Dán một dòng lệnh dưới đây thì không bị chặn, vẫn ra đúng bộ cài có logo Naota:
+- **Windows:** bấm Start, gõ `PowerShell`, mở lên, dán dòng này rồi Enter:
+  ```
+  irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-naota.ps1 | iex
+  ```
+- **macOS:** mở **Terminal** (Launchpad, gõ Terminal), dán dòng này rồi Enter:
+  ```
+  curl -fsSL https://raw.githubusercontent.com/vuongtex/naota/main/packaging/macos/get-naota.sh | bash
+  ```
+
+Nếu đã tải file bằng trình duyệt và bị chặn:
+- Windows hiện "Windows protected your PC": bấm **More info** rồi **Run anyway**.
+- macOS báo không mở được: vào **System Settings → Privacy & Security**, kéo xuống bấm **Open Anyway**, rồi mở lại NAOTA.
+
 ## Cách 1 - Hostinger VPS (Docker Manager, 1-click)
 
 > 🛒 **Chưa có VPS?** [Đăng ký VPS Hostinger tại đây](https://www.hostinger.com). VPS có sẵn Docker Manager nên cài Naota đúng một cú bấm. Thuê xong quay lại làm các bước dưới.

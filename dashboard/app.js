@@ -1230,6 +1230,17 @@ function handleMessage(data) {
     try { if (window.NaotaChatReactions) window.NaotaChatReactions.onFrame(data, { bubble: t && t.bubble }); } catch (e) {}
     return;
   }
+  if (data.type === "external_message") {
+    // an outside AI posted into this chat through Naota Gate (server/chat_bridge.py). The server stored the
+    // message already; the tab looking at the chat draws the bubble now, then the answer streams in like any turn.
+    if (isActive) {
+      appendUserMessage(data.content || "", [], Date.now());
+      recordTurn("user", chuNguoiGo(data.content || ""), null, null);
+      scrollBottom(true);
+    }
+    notifySessions();
+    return;
+  }
   if (data.type === "push") {
     // Tin do việc chạy NỀN đẩy vào (việc Kanban / loop / nhắc hẹn xong), không thuộc lượt
     // hỏi-đáp nào. KHÔNG đụng turns[sid]: lượt đang chạy (nếu có) vẫn stream bình thường,
@@ -2117,7 +2128,8 @@ function veTinDaLuu(m, brainCua, sidCua) {
     const _vongCu = window.NaotaLenh && window.NaotaLenh.docVong ? window.NaotaLenh.docVong(m.content || "") : null;
     if (_vongCu) { appendGoalRound(_vongCu, false); return { role: "user", text: _sach, atts: [], ts, goalRound: _vongCu }; }
     const _atts = docDinhKem(m.content || "");
-    const el = appendUserMessage(_sach, _atts, ts);
+    // the Naota Gate sender ("from ChatGPT") is read from the stored text, which still has its block.
+    const el = appendUserMessage(_sach, _atts, ts, nguonGate(m.content || ""));
     if(m.voice_metadata && m.voice_metadata.response_policy==='ack_only' && !m.voice_metadata.answer_requested) renderVoiceReceipt(el,{...m.voice_metadata,session_id:savedSessionId});
     return { role: "user", text: _sach, atts: _atts, ts, voice_metadata:m.voice_metadata };
   }
@@ -2330,7 +2342,17 @@ function lastUserText() {
 // "[SKILL: " là khối do chat-slash.js dựng khi người dùng gõ lệnh "/". Gỡ nó ra thì bong bóng
 // hiện ĐÚNG câu họ đã gõ, thay vì câu máy dựng quanh câu đó - đã gặp đúng chuyện này.
 // Giữ MỘT DÒNG: test_dinh_kem_khong_roi.js bóc đúng dòng này ra để chạy docDinhKem bằng node.
-const _KHOI_NGU_CANH = ["[FILE ĐANG MỞ trong trình sửa của Naota:", "[File đính kèm", "[NGỮ CẢNH GIAO DIỆN:", "[SKILL: ", "[CHẾ ĐỘ KẾ HOẠCH:", "[MỤC TIÊU:"];
+const _KHOI_NGU_CANH = ["[FILE ĐANG MỞ trong trình sửa của Naota:", "[File đính kèm", "[NGỮ CẢNH GIAO DIỆN:", "[SKILL: ", "[CHẾ ĐỘ KẾ HOẠCH:", "[MỤC TIÊU:", "[GỬI QUA NAOTA GATE:"];
+// a message an outside AI (ChatGPT, Claude...) posted through Naota Gate starts with
+// "[GỬI QUA NAOTA GATE: <name>. ...]" (server/chat_bridge.py). The block is stripped like the others;
+// this reads the name back so the bubble can say who sent it.
+const _KHOI_GATE = _KHOI_NGU_CANH[_KHOI_NGU_CANH.length - 1];   // the Naota Gate block, last in the list
+function nguonGate(text) {
+  const t = String(text == null ? "" : text).replace(/^\s+/, "");
+  if (!t.startsWith(_KHOI_GATE + " ")) return "";
+  const m = /^([^.\]\n]{1,40})/.exec(t.slice(_KHOI_GATE.length + 1));
+  return m ? m[1].trim() : "";
+}
 
 // Gỡ mấy khối đó ra để lấy lại ĐÚNG câu người dùng đã gõ.
 //
@@ -2442,7 +2464,8 @@ function vaAnhHong(root) {
   });
 }
 
-function appendUserMessage(text, attachments, ts) {
+function appendUserMessage(text, attachments, ts, via) {
+  const nguon = via || nguonGate(text);
   text = chuNguoiGo(text);
   const div = document.createElement("div");
   div.className = "msg msg-user";
@@ -2454,8 +2477,10 @@ function appendUserMessage(text, attachments, ts) {
     ? `<div class="utext${isLong ? " clamped" : ""}">${window.NaotaQuote ? window.NaotaQuote.utextHtml(text, escapeHtml) : escapeHtml(text)}</div>` +
       (isLong ? window.NaotaActs.clampButtonHtml(false) : "")
     : "";
-  div.innerHTML = `<div class="bubble">${textHtml}${attHtml}</div>` +
+  const nhanNguon = nguon ? `<div class="msg-via">${escapeHtml(window.t("chat.via_gate", { src: nguon }))}</div>` : "";
+  div.innerHTML = `${nhanNguon}<div class="bubble">${textHtml}${attHtml}</div>` +
     actsHtml("user", ts === undefined ? Date.now() : ts, !!(text || "").trim());
+  if (nguon) div.classList.add("msg-gate");
   vaAnhHong(div);
   chatAppend(div); scrollBottom(true);
 }
@@ -4015,16 +4040,12 @@ window.NaotaAttach = {
   note: (s) => { attachNote = String(s || ""); renderChips(); },
 };
 
-// Dán ảnh (Ctrl+V) + dán VĂN BẢN SIÊU DÀI thành file .txt đính kèm (kiểu Claude):
-// bài dài nhồi thẳng vào ô chat vừa khó đọc vừa nặng khung hội thoại - biến thành
-// file thì Naota đọc trọn vẹn còn màn hình chỉ hiện một chip gọn.
-const PASTE_TXT_CHARS = 1500;   // vượt MỘT trong hai ngưỡng là thành file
-const PASTE_TXT_LINES = 25;
+// Dán ảnh (Ctrl+V) thành file đính kèm. Dán CHỮ thì giữ chữ: tới 12.000 ký tự / 150 dòng vẫn dán
+// thẳng vào ô chat như thường. Vượt ngưỡng thì chat-paste.js hiện cả đoạn và HỎI: dán vào chat,
+// đính kèm .txt hay huỷ. Trước đây quá 1.500 ký tự là tự thành file, chủ không còn thấy
+// mình đã dán gì.
 function pasteAsTxt(text) {
-  const d = new Date(), p = n => String(n).padStart(2, "0");
-  const name = `van-ban-dan-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.txt`;
-  const f = new File([new Blob([text], { type: "text/plain" })], name, { type: "text/plain" });
-  uploadFile(f);
+  uploadFile(window.NaotaPaste.textFile(text));
 }
 document.addEventListener("paste", (e) => {
   const items = e.clipboardData?.items;
@@ -4035,14 +4056,14 @@ document.addEventListener("paste", (e) => {
       if (f) { chupFile(f).then(uploadFile); e.preventDefault(); }   // chép ngay, như lúc thả
     }
   }
-  // Văn bản dài: CHỈ khi đang dán vào ô chat - không cướp paste của các ô khác
-  // (form Kết nối, đặt tên brain...). Ô chat ngắn vẫn dán chữ bình thường.
+  // Chỉ ô chat. Các ô khác (form Kết nối, đặt tên brain...) giữ Ctrl+V bình thường.
   if (e.defaultPrevented || e.target !== chatInput) return;
+  const paste = window.NaotaPaste;
   const txt = e.clipboardData.getData("text/plain") || "";
-  if (txt.length > PASTE_TXT_CHARS || txt.split("\n").length > PASTE_TXT_LINES) {
-    e.preventDefault();
-    pasteAsTxt(txt);
-  }
+  if (!paste || !paste.isLong(txt)) return;   // chữ vừa phải: để trình duyệt tự dán, Ctrl+Z vẫn chạy
+  e.preventDefault();
+  const range = { start: chatInput.selectionStart, end: chatInput.selectionEnd };
+  paste.offer(txt, (value) => paste.insertAt(chatInput, range, value), pasteAsTxt);
 });
 
 // Kéo-thả file

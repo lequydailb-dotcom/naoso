@@ -128,8 +128,8 @@ Từng cái làm được gì:
 - **Đọc video YouTube**: dán link video vào chat rồi nhờ tóm tắt. Plugin lấy **phụ đề thật** của video (đường mà trình phát YouTube dùng) nên Naota đọc được lời thoại chứ không đoán theo tiêu đề. Không cần khoá API, không cần đăng nhập YouTube, chạy trên **mọi engine** kể cả engine API vốn không mở được URL. Khi YouTube chặn máy chủ, nó tự đổi lần lượt qua sáu kiểu trình phát rồi mới nhờ tới yt-dlp, nên vượt được phần lớn ca bị nghi là robot. Video không có phụ đề, video riêng tư hoặc bị YouTube chặn thì tool nói thẳng lý do để Naota khỏi bịa. Video dài bị cắt bớt thì nhờ "đọc tiếp" là nó đọc khúc sau. Chi tiết ở [Trò chuyện](02-tro-chuyen-va-giong-noi.md).
 - **Luật cho từng cuộc chat Zalo**: đặt cách ứng xử cho từng nhóm hoặc từng khách trên Zalo bằng lời (im lặng, báo mọi tin, báo theo từ khoá, nhắc khi quên trả lời quá N phút). Luật ghi ra `Naota/zalo/<slug>.md` nên xem và sửa lại được.
 - **Gửi tin Zalo an toàn**: gửi tin Zalo thay cho tool thô. Nó khoá cứng vào tài khoản đang nghe và chỉ gửi được cho cuộc chat trong danh sách đang theo dõi; tên khớp nhiều người thì từ chối và bắt hỏi lại. Hai plugin Zalo dùng chung với [Kênh Zalo](12-zalo.md).
-- **Meta Ads (Graph API)**: đọc số liệu quảng cáo Facebook/Instagram (danh sách tài khoản ads, chiến dịch, hiệu suất). **Chỉ đọc, không tiêu tiền.** Cần đã đấu kết nối "Meta Ads (tự tạo app - Graph API)" ở trang Kết nối.
-- **Facebook Trang (Graph API)**: quản lý Trang/Fanpage. Đọc danh sách Trang, bài và bình luận là chỉ-đọc; đăng bài, đăng ảnh, đăng album, đăng video, sửa chữ, xoá bài, trả lời bình luận là hành động **thật, công khai** và cần mức toàn quyền. Cần kết nối "Facebook Trang (tự tạo app - Graph API)".
+- **Meta Ads (Graph API)**: đọc số liệu quảng cáo Facebook/Instagram (danh sách tài khoản ads, chiến dịch, hiệu suất). **Chỉ đọc, không tiêu tiền.** Cần đã đấu kết nối "Meta Ads (Facebook & Instagram)" ở trang Kết nối.
+- **Facebook Trang (Graph API)**: quản lý Trang/Fanpage. Đọc danh sách Trang, bài và bình luận là chỉ-đọc; đăng bài, đăng ảnh, đăng album, đăng video, sửa chữ, xoá bài, trả lời bình luận là hành động **thật, công khai** và cần mức toàn quyền. Dùng Fanpage đã nối ở thẻ Facebook Messenger trang Kết nối (hoặc kết nối "Facebook Trang" trong Kho nếu đã cài từ trước).
 - **Theo dõi Facebook (Apify)**: theo dõi Trang và Nhóm **công khai** để tìm bài nhiều lượt chia sẻ, qua dịch vụ Apify. Chỉ đọc, không đụng tài khoản cá nhân, chạy được trên VPS. Cần dán Personal API token của apify.com vào kết nối "Theo dõi Facebook (Apify)".
 - **Nhật ký dùng tool**: đếm số lần **mỗi** tool được engine gọi (qua hook `post_tool_call`) rồi cho xem thống kê tool hay dùng nhất. Đây là ví dụ minh hoạ cơ chế hook, nên mặc định để tắt; bật ở trang Plugins, chat vài lượt có gọi tool, rồi hỏi Naota "tool nào hay dùng nhất".
 
@@ -310,7 +310,7 @@ Plugin dùng hook này vẫn chịu đúng rào chung: plugin người dùng t�
 
 ## Trang riêng và đường HTTP
 
-Plugin mở được đường web của riêng nó, dưới `/ext/<slug>/`. Dùng cho trang cài đặt, hoặc cho dịch vụ bên ngoài gọi vào (webhook, cửa OAuth). Gói "Naota trong ChatGPT" trong kho là ví dụ chạy thật.
+Plugin mở được đường web của riêng nó, dưới `/ext/<slug>/`. Dùng cho trang cài đặt, hoặc cho dịch vụ bên ngoài gọi vào (webhook, cửa OAuth). Gói **Naota Gate** (`naota.gate`) trong kho là ví dụ chạy thật.
 
 ```python
 def register(ctx):
@@ -326,6 +326,27 @@ def register(ctx):
 - **`register_well_known`**: chỉ GET, công khai, không cookie. Hai plugin xin cùng tên thì plugin nạp trước giữ.
 - Khai `page: ""` trong `plugin.yaml` thì thẻ plugin có nút **Mở trang**.
 - Chỉ plugin đi kèm app, plugin của gói đã cài và plugin toàn cục mới có đường. **Plugin trong brain thì không**, vì model ghi được vào brain.
+
+## Naota Gate: AI bên ngoài nhắn vào khung chat
+
+Gói **Naota Gate** (`naota.gate`) mở cửa MCP có OAuth cho ChatGPT, Claude và AI khác. Ngoài bộ công
+cụ Naota đã có, cửa này có thêm bốn công cụ chỉ AI bên ngoài thấy (`server/chat_bridge.py`):
+
+| Công cụ | Việc | Mức quyền |
+|---|---|---|
+| `naota_chat_find` | Tìm hội thoại theo tên (không phân biệt dấu) hoặc nội dung | Mọi mức |
+| `naota_chat_read` | Đọc các tin cuối của một hội thoại | Mọi mức |
+| `naota_chat_send` | Nhắn vào hội thoại như chủ gõ, chờ câu trả lời | Chỉ Toàn quyền |
+| `naota_chat_result` | Đọc câu trả lời khi Naota làm lâu | Mọi mức |
+
+- **Tin nhắn chạy đúng như chủ gõ:** đi qua chính vòng chat của dashboard, nên chữ chạy trên mọi tab
+  đang mở, có nút Dừng, lưu vào Lịch sử, ghi `memory/conversations` và vào vòng tự học. Bong bóng
+  tin mang nhãn **từ ChatGPT** hay **từ Claude**.
+- **Hội thoại đang trả lời** thì tin thành tin gõ thêm, như khi chủ gõ thêm lúc Naota đang làm.
+- **Chỉ hội thoại của chủ** (khung Trò chuyện, chat với Cộng sự). Hội thoại của khách và nhóm chat thì
+  không đọc, không nhắn được.
+- Bốn công cụ **không bao giờ** có trong bộ công cụ của chính Naota: chúng chỉ hiện khi cửa của gói gọi
+  `mcp_hub.tra_loi_jsonrpc(..., gate={"source": "<tên AI>"})`.
 
 ## Bảng tra nhanh nút và trạng thái
 

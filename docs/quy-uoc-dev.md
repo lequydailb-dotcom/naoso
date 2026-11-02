@@ -80,6 +80,20 @@ Giải thích dài phải gọn lại trong chữ (i), không để xổ hết r
   dài hợp lệ (lỗi, xác nhận...) ghi vào `tests/python/info_tip_allow.json` kèm lý do; đừng ghi một lời giải thích
   vào đó để cho qua test.
 
+## Không lặp lại tiêu đề trang
+
+Tiêu đề lặp lại chỉ tốn diện tích hiển thị. Đầu mỗi trang đã có thanh tiêu đề chung (`.cview-head`, chữ lấy từ `page.<id>.title` và
+`page.<id>.sub`), nên:
+
+- **Thân trang không vẽ lại tên trang**, kể cả khi kèm một câu khẩu hiệu ("Webhook: sự kiện bên ngoài gọi Naota làm
+  việc" ngay dưới tiêu đề "Webhook" là sai). Mở trang là vào thẳng thứ cần nhìn: số liệu, danh sách, nút bấm.
+- Nút (i) từng đứng cạnh cái tiêu đề thừa thì dời sang cạnh nút hành động chính, hoặc dùng `NaotaInfo.pair(html, nhãn)`
+  với một nhãn nói đúng nội dung bên trong ("Cách lấy cookie").
+- Tiêu đề thẻ bên trong trang phải mang thông tin mới (một con số, một trạng thái), không nhắc lại tên trang hay tên tab.
+- Trang tự ẩn `.cview-head` (Nhiệm vụ, Hội thoại, Nhóm, Chat) thì được có tiêu đề riêng, vì không còn gì để lặp.
+- Tiết kiệm chỗ nói chung: phần tổng quan đầu trang giữ một hàng thấp, cái gì bấm mới cần thì mở trong popup thay vì
+  xổ xuống đẩy cả trang.
+
 ## Viết CHANGELOG.md
 
 Nhật ký cập nhật được đọc trên màn hình dọc, nên viết CHO NGƯỜI ĐỌC TRÊN ĐIỆN

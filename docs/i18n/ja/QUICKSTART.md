@@ -7,6 +7,19 @@
 
 数分で NAOTA を動かせます。詳しいガイド：[docs/en/](../../../docs/en/README.md)。
 
+## パソコン（Windows、macOS）- インストーラーをダウンロード
+
+Naota を普通のアプリのようにインストールできます。ファイルを 1 つダウンロードして開けば、毎日クリックする NAOTA アイコンができます。インストーラーはパソコンに足りないもの（Git、Python、Node、AI ブレイン）を確認し、足りない分だけをインストールします。
+
+- **Windows 10/11:** [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe) をダウンロードし、ダブルクリックして最後まで Next を押します。黒いウィンドウに進行状況が表示されます（数分）。完了するとデスクトップとスタートメニューに NAOTA アイコンができます。
+- **macOS 11 以降:** [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg) をダウンロードして開き、**NAOTA** を **Applications** にドラッグしてから Launchpad で開きます。初回はターミナルが開いてインストールします（Naota の管理者アカウントの設定と、Mac のパスワードを一度求められることがあります）。
+
+アイコンをクリックすると Naota は専用ウィンドウ（アドレスバーなし）で開き、パソコンの起動時に自動で動き、アプリ内の **Update** ボタンも通常どおり使えます。データはユーザーフォルダ内の `Naota` フォルダにあり、アプリをアンインストールしてもこのフォルダは残ります。
+
+どちらのインストーラーもまだコード署名されていないため、初回に確認が表示されます:
+- Windows で「Windows protected your PC」と出たら、**More info** を押してから **Run anyway** を押します。
+- macOS で開けないと表示されたら、**System Settings → Privacy & Security** を開き、下にスクロールして **Open Anyway** を押し、もう一度 NAOTA を開きます。
+
 ## 方法 1 - Hostinger VPS（Docker Manager、ワンクリック）
 
 > 🛒 **VPS をまだお持ちでない方へ：** [Hostinger VPS はこちら](https://www.hostinger.com)。Docker Manager が標準搭載なので、Naota はワンクリックで入ります。準備ができたら下の手順に戻ってください。

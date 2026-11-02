@@ -7,6 +7,19 @@
 
 Coloque o NAOTA para rodar em poucos minutos. Guias completos: [docs/en/](../../../docs/en/README.md).
 
+## Computador pessoal (Windows, macOS) - baixe o instalador
+
+Instale o Naota como qualquer outro app: baixe um arquivo, abra e pronto, você ganha um ícone NAOTA para clicar todo dia. O instalador verifica o que falta no computador (Git, Python, Node, os cérebros de IA) e instala só isso.
+
+- **Windows 10/11:** baixe [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), dê dois cliques e aperte Next até o fim. Uma janela preta mostra o progresso (alguns minutos). No final aparece um ícone NAOTA na Área de Trabalho e no menu Iniciar.
+- **macOS 11 ou mais novo:** baixe [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), abra, arraste **NAOTA** para **Applications** e abra pelo Launchpad. Na primeira vez o Terminal abre para instalar (pode pedir para criar uma conta de administrador do Naota e a senha do Mac uma vez).
+
+Ao clicar no ícone, o Naota abre em uma janela própria (sem barra de endereço), inicia junto com o computador e o botão **Update** do app funciona normalmente. Seus dados ficam na pasta `Naota` dentro da sua pasta de usuário; desinstalar o app mantém essa pasta.
+
+Os dois instaladores ainda não têm assinatura de código, então o computador pergunta uma vez:
+- O Windows mostra "Windows protected your PC": clique em **More info** e depois em **Run anyway**.
+- O macOS diz que não consegue abrir o app: vá em **System Settings → Privacy & Security**, role para baixo, clique em **Open Anyway** e abra o NAOTA de novo.
+
 ## Opção 1 - VPS da Hostinger (Docker Manager, em um clique)
 
 > 🛒 **Ainda não tem VPS?** [Contrate uma VPS da Hostinger aqui](https://www.hostinger.com). Ela já vem com o Docker Manager, então o Naota instala em um clique. Quando estiver pronta, volte aos passos abaixo.
