@@ -6,6 +6,11 @@ Lịch sử phiên bản NAOTA. Bản mới nhất ở trên cùng. Xem ngay tro
 
 Định dạng: mỗi phiên bản là một khối `## [x.y.z] - ngày`, bên dưới nhóm thay đổi theo `### Thêm mới / Sửa lỗi / Cải thiện / Bảo mật`.
 
+## [1.2.1] - 2026-11-03
+### Cải thiện
+- **Chợ ứng dụng có Naota Gate**: ChatGPT, Claude nối vào Naota qua một gói, đọc và nhắn vào hội thoại, ghi sổ tay. Máy đã cài gói **Naota trong ChatGPT** thấy Gate như một bản cập nhật, không phải nối lại.
+- **14 gói của Chợ ứng dụng đổi sang mã tiếng Anh**, ví dụ Quản lý khách hàng là `naota.crm`. Gói đã cài hiện **Có bản mới** và cập nhật tại chỗ, giữ nguyên dữ liệu.
+
 ## [1.2.0] - 2026-11-03
 ### Thêm mới
 - **ChatGPT, Claude ghi sổ tay vào Naota.** Khi bạn bàn việc với một AI bên ngoài đã nối vào Naota, AI đó ghi lại bạn đã nói gì, đã chốt gì và vì sao. Naota giữ được ngữ cảnh và nhớ quyết định của bạn, không tốn lượt chạy nào.

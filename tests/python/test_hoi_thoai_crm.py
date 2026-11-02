@@ -1,4 +1,4 @@
-"""Tầng CRM trên kho hội thoại khách: hàm mà gói naota.khach-hang-crm cắm vào.
+"""Tầng CRM trên kho hội thoại khách: hàm mà gói naota.crm cắm vào.
 
     python tests/run.py hoi_thoai_crm      (KHÔNG mạng)
 

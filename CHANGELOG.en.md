@@ -4,6 +4,11 @@
 
 NAOTA release history. Newest first.
 
+## [1.2.1] - 2026-11-03
+### Improved
+- **The Store has Naota Gate**: ChatGPT and Claude connect to Naota through one pack, read and post into your chats, and keep a log. Machines with the **Naota in ChatGPT** pack see Gate as an update, no need to reconnect.
+- **14 Store packs now have English ids**, for example Customer management is `naota.crm`. Installed packs show **Update available** and update in place, keeping their data.
+
 ## [1.2.0] - 2026-11-03
 ### Added
 - **ChatGPT and Claude keep a log in Naota.** When you work something out with an outside AI connected to Naota, it notes what you said, what you decided and why. Naota keeps the context and remembers your decisions, at no cost in Naota runs.
