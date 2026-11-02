@@ -9,6 +9,8 @@ Lịch sử phiên bản NAOTA. Bản mới nhất ở trên cùng. Xem ngay tro
 ## [1.2.0] - 2026-11-03
 ### Thêm mới
 - **ChatGPT, Claude ghi sổ tay vào Naota.** Khi bạn bàn việc với một AI bên ngoài đã nối vào Naota, AI đó ghi lại bạn đã nói gì, đã chốt gì và vì sao. Naota giữ được ngữ cảnh và nhớ quyết định của bạn, không tốn lượt chạy nào.
+### Cải thiện
+- Trang **Ghi nhớ** ghi rõ là **NAOTA**: đồng bộ NAOTA với GitHub, NAOTA tự học từ trò chuyện, NAOTA đã tự học gì.
 
 ## [1.1.1] - 2026-11-03
 ### Sửa lỗi
