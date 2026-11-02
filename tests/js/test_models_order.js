@@ -41,7 +41,7 @@ const B = JS.slice(JS.indexOf("function bindOrderCards(el, c)"), JS.indexOf("asy
 check("found the cloud tab and its bindings", i > 0 && B.length > 1000);
 check("the order comes from the server's routing view", /const R = m\.routing \|\| \{\};/.test(CL));
 check("a Claude card the CLI says is signed out leaves the order", /claudeOut/.test(CL) && /id === "anthropic-cli" && claudeOut/.test(CL));
-check("the top card is MAIN, the others are numbered fallbacks", /ord\.idx === 0[\s\S]{0,80}MAIN/.test(CL) && /models\.ord_backup/.test(CL));
+check("the top card is MAIN, the others are numbered fallbacks", /ord\.idx === 0[\s\S]{0,80}models\.ord_main/.test(CL) && /models\.ord_backup/.test(CL));
 check("a fallback chat runs on right now is marked in use", /R\.chat_in_use === p\.id/.test(CL) && /models\.ord_live/.test(CL));
 check("each card has a model chip and an Effort chip", /data-ordpop="model"/.test(CL) && /data-ordpop="eff"/.test(CL));
 check("a Swap button stands between two cards", /\(i \? swapRow\(i\) : ""\)/.test(CL));

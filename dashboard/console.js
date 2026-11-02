@@ -2577,7 +2577,7 @@
         <div class="cgrid">
           <div class="gcard"><div class="gcard-top"><span class="gcard-name">Engine</span></div><div class="gcard-meta">${esc(eng)}</div></div>
           <div class="gcard"><div class="gcard-top"><span class="gcard-name">Model</span></div><div class="gcard-meta">${esc(curModel)}</div></div>
-          <div class="gcard"><div class="gcard-top"><span class="gcard-name">Workspace</span></div><div class="gcard-meta">${esc(s.workspace_name || "NAOTA")}</div></div>
+          <div class="gcard"><div class="gcard-top"><span class="gcard-name">${esc(window.t("cs.ac_ws_head"))}</span></div><div class="gcard-meta">${esc(s.workspace_name || "NAOTA")}</div></div>
           <div class="gcard"><div class="gcard-top"><span class="gcard-name">Telegram</span></div><div class="gcard-meta">${tg.enabled ? "● " + esc(window.t("settings.tag_on")) : "○ " + esc(window.t("settings.tag_off"))}${tg.chat_id ? " · " + esc(tg.chat_id) : ""}</div></div>
         </div>
       </div>
@@ -3315,7 +3315,7 @@
     // `cls` "ord-badges-m": the same badges again at the end of the chip row, shown instead of the head's on a phone,
     // where the head is too narrow for name, kind label and badge on one line.
     const ordBadges = (p, ord, cls) => !ord ? "" : `<div class="${cls || "ord-badges"}">${ord.idx === 0
-      ? '<span class="prov-badge">MAIN</span>'
+      ? `<span class="prov-badge">${esc(t("models.ord_main"))}</span>`
       : `<span class="ord-pos">${esc(t("models.ord_backup", { n: ord.idx }))}</span>`}${chatLive(p, ord)
       ? `<span class="prov-badge ord-live">${esc(t("models.ord_live"))}</span>` : ""}</div>`;
     const ordChips = (p, ord) => {
@@ -6477,7 +6477,7 @@
     const auth = s.auth || {};
     el.innerHTML = `
       <div class="cview-section">
-        <h3>Workspace</h3>
+        <h3>${esc(window.t("cs.ac_ws_head"))}</h3>
         <div class="gcard" style="max-width:560px">
           <label class="js-lbl">${esc(window.t("cs.ac_ws_name"))}</label>
           <input class="js-input" id="acWs" value="${esc(s.workspace_name || "NAOTA")}">

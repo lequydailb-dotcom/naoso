@@ -4,6 +4,10 @@
 
 NAOTA release history. Newest first.
 
+## [1.0.3] - 2026-11-02
+### Improved
+- The Account and Settings name block and the Models main-card badge now come from translations (Vietnamese: Tên NAOTA, Chính).
+
 ## [1.0.2] - 2026-11-02
 ### Improved
 - **One name for the store** in Vietnamese: the Agents, Data sources and Plugins pages now match the sidebar.
