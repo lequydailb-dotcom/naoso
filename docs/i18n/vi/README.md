@@ -266,7 +266,7 @@ Mở Naota → bộ cài đặt sẽ dẫn bạn qua:
 
 > 📚 **Tài liệu chi tiết:** xem thư mục **[docs/](../../../docs/README.md)** - hướng dẫn từng chức năng (mở ở đâu, bấm gì, dùng thế nào). Bảng dưới là bản đồ nhanh; cột **Chi tiết** dẫn tới trang hướng dẫn tương ứng.
 
-Thanh điều hướng bên trái gom **22 trang** thành **5 nhóm** (bấm tên nhóm để mở):
+Thanh điều hướng bên trái gom **22 trang** thành **6 nhóm**, hiện hết một lượt; riêng nhóm **Nâng cao** (Terminal, Plugins, Webhook, Cookies, Link chia sẻ) gập lại, bấm tên nhóm để mở:
 
 | Nhóm | Mục | Làm gì | Chi tiết |
 |---|---|---|---|

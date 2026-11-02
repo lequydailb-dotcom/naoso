@@ -671,11 +671,19 @@
     <!-- GIỮA cuộn được - gom theo nhóm; nhóm foot (Hệ thống) tự ghim xuống đáy -->
     <div class="rail-nav">
       <template x-for="g in $store.nav.groups" :key="g.label">
-        <div class="rail-group" :class="{ foot: g.foot, open: $store.nav.isOpen(g.label), 'has-active': g.items.some(it => it.id === $store.nav.active) }">
-          <button class="rail-grp-lbl" @click="$store.nav.toggleGroup(g.label)" :title="g.label">
-            <span class="rail-grp-ico" x-html="g.icon"></span>
-            <span class="grp-name" x-text="g.label"></span>
-          </button>
+        <!-- Every group is always open and its name is only a section label. Only a `fold` group
+             (Advanced) is a button that folds, which keeps the rail on one screen. -->
+        <div class="rail-group" :class="{ foot: g.foot, fold: g.fold, open: $store.nav.isOpen(g.label), 'has-active': g.items.some(it => it.id === $store.nav.active) }">
+          <template x-if="g.fold">
+            <button class="rail-grp-lbl" @click="$store.nav.toggleGroup(g.label)" :title="g.label"
+                    :aria-expanded="$store.nav.isOpen(g.label) ? 'true' : 'false'">
+              <span class="rail-grp-ico" x-html="g.icon"></span>
+              <span class="grp-name" x-text="g.label"></span>
+            </button>
+          </template>
+          <template x-if="!g.fold">
+            <div class="rail-grp-lbl" x-text="g.label"></div>
+          </template>
           <div class="rail-grp-items">
             <template x-for="it in g.items" :key="it.id">
               <button class="rail-item" :class="{ active: $store.nav.active === it.id }"

@@ -55,10 +55,10 @@ check("PAGES của ui_targets.py == RAIL_ITEMS", JSON.stringify(rail) === JSON.s
 // ---- Nhóm thanh bên: mở NHÓM khác mở TRANG ----
 check("open_group nhóm có thật: ok", A.validate({ action: "open_group", target: "nang_luc" }).ok);
 check("open_group nhóm lạ: chặn", !A.validate({ action: "open_group", target: "admin" }).ok);
-// the Code group left the rail (Terminal moved into Capabilities); an old "code" opens nang_luc.
-check("open_group 'code' (removed group) opens Capabilities", (() => {
+// the Code group left the rail (Terminal now sits in Advanced); an old "code" opens nang_cao.
+check("open_group 'code' (removed group) opens Advanced", (() => {
   const v = A.validate({ action: "open_group", target: "code" });
-  return v.ok && v.target === "nang_luc" && A.GROUPS.indexOf("code") < 0;
+  return v.ok && v.target === "nang_cao" && A.GROUPS.indexOf("code") < 0;
 })());
 check("sidebar open/close: ok", A.validate({ action: "sidebar", target: "open" }).ok
   && A.validate({ action: "sidebar", target: "close" }).ok);

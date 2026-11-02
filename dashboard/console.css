@@ -41,40 +41,49 @@ body.in-console .hud-actions { display: none; }
 .rail-top { flex: 0 0 auto; }                         /* đỉnh cố định */
 .rail-nav {                                           /* giữa: cuộn dọc */
   flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
-  display: flex; flex-direction: column; gap: 4px; padding: 6px 0;
+  display: flex; flex-direction: column; gap: 2px; padding: 4px 0;
 }
 .rail-nav::-webkit-scrollbar { width: 0; }            /* ẩn thanh cuộn cho gọn */
 .rail-nav { scrollbar-width: none; }
-/* Rail 2 tầng: tầng 1 = nhãn nhóm bấm gập/mở; tầng 2 = mục con xổ ra dưới. Nhóm .foot ghim đáy. */
+/* Every group is always open: its name is a small grey section label and all its items show
+   below it. Only the .fold group (Advanced) is a button that folds. The .foot group sits at the bottom. */
 .rail-group { display: flex; flex-direction: column; }
 .rail-group.foot { margin-top: auto; }                /* đẩy Hệ thống xuống đáy rail */
-.rail-grp-lbl {                                        /* tầng 1: nút nhãn nhóm, bấm để gập/mở */
+@media (min-width: 861px) {                           /* System stays in view while the middle scrolls */
+  .rail-group.foot { position: sticky; bottom: -4px; padding-bottom: 4px; background: var(--rail-bg);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+}
+.rail-grp-lbl {
   display: flex; align-items: center; width: 100%;
-  background: transparent; border: 0; cursor: pointer;
-  font-family: var(--font-ui); font-size: 12.5px; font-weight: 600; letter-spacing: 0.2px;
-  color: var(--text2); text-align: left; white-space: nowrap;
-  padding: 8px 8px 8px 5px; border-radius: 9px; user-select: none;
+  background: transparent; border: 0;
+  font-family: var(--font-ui); font-size: 11.5px; font-weight: 600; letter-spacing: 0.3px;
+  color: var(--text3); text-align: left; white-space: nowrap;
+  padding: 10px 8px 3px 10px; border-radius: 9px; user-select: none;
+}
+.rail-group:first-child > .rail-grp-lbl { padding-top: 2px; }
+button.rail-grp-lbl {                                  /* the fold group's label: clickable, with an arrow */
+  cursor: pointer; padding: 7px 8px 7px 10px; margin-top: 6px;
+  font-size: 13.5px; font-weight: 400; letter-spacing: 0.1px;
   transition: color var(--rail-anim), background var(--rail-anim);
 }
-.rail-grp-lbl::before {                                /* mũi tên ▸, xoay xuống ▾ khi mở */
-  content: ""; flex: 0 0 auto; margin-right: 6px;
+button.rail-grp-lbl::after {                           /* ▸ after the name, turns to ▾ when open */
+  content: ""; flex: 0 0 auto; margin-left: auto;
   width: 0; height: 0; border-left: 4px solid currentColor;
   border-top: 4px solid transparent; border-bottom: 4px solid transparent;
   opacity: 0.55; transition: transform var(--rail-anim);
 }
-.rail-grp-ico { flex: 0 0 auto; display: flex; align-items: center; margin-right: 9px; opacity: 0.8; }
-.rail-grp-ico svg { width: 17px; height: 17px; }
-.rail-group.open > .rail-grp-lbl::before { transform: rotate(90deg); }
-.rail-grp-lbl:hover { color: var(--text); background: var(--surface-2); }
+.rail-grp-ico { flex: 0 0 auto; display: flex; align-items: center; margin-right: 10px; }
+.rail-grp-ico svg { width: 19px; height: 19px; }
+.rail-group.open > button.rail-grp-lbl::after { transform: rotate(90deg); }
+button.rail-grp-lbl:hover { color: var(--text); background: var(--surface-2); }
 .rail-group.has-active:not(.open) > .rail-grp-lbl { color: var(--accent-ink); }   /* nhóm gập nhưng đang chứa trang hiện tại → hé màu cam */
-.rail-group.foot .rail-grp-lbl { border-top: 1px solid var(--glass-brd); border-radius: 0; margin-top: 6px; padding-top: 12px; }
-/* tầng 2: khối mục con, trượt mở/đóng bằng max-height */
+.rail-group.foot .rail-grp-lbl { border-top: 1px solid var(--glass-brd); border-radius: 0; margin-top: 6px; padding-top: 10px; }
 .rail-grp-items {
-  display: flex; flex-direction: column; gap: 2px;
-  max-height: 0; overflow: hidden; opacity: 0;
+  display: flex; flex-direction: column; gap: 1px;
   transition: max-height var(--rail-anim), opacity var(--rail-anim);
 }
-.rail-group.open > .rail-grp-items { max-height: 340px; opacity: 1; padding: 2px 0 4px; }
+.rail-group.fold > .rail-grp-items { max-height: 340px; overflow: hidden; }
+.rail-group.fold:not(.open) > .rail-grp-items { max-height: 0; opacity: 0; }
 .rail-brand {
   height: 42px; display: flex; align-items: center; justify-content: center; gap: 9px;
   color: var(--accent-ink); font-size: 22px;
@@ -94,7 +103,7 @@ body.in-console .hud-actions { display: none; }
 }
 .rail-item {
   position: relative; background: transparent; border: 0; cursor: pointer;
-  color: var(--text3); border-radius: 9px; padding: 7px 8px 7px 16px;
+  color: var(--text3); border-radius: 9px; padding: 6px 8px 6px 10px;
   display: flex; flex-direction: row; align-items: center; gap: 10px;
   transition: color var(--rail-anim), background var(--rail-anim);
 }
@@ -462,6 +471,7 @@ body.ord-is-dragging, body.ord-is-dragging * { cursor: grabbing !important; user
   .rail.collapsed .rail-grp-items {                             /* hiện HẾT mục (bỏ accordion), icon xếp dọc */
     max-height: none; opacity: 1; overflow: visible; padding: 0;
   }
+  .rail.collapsed .rail-group.fold > .rail-grp-items { max-height: none; opacity: 1; }  /* no label to unfold it here */
   .rail.collapsed .rail-group + .rail-group > .rail-grp-items { /* vạch ngăn mờ giữa các nhóm */
     border-top: 1px solid var(--glass-brd); margin-top: 5px; padding-top: 5px;
   }

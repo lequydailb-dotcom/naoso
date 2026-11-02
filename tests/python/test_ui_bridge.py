@@ -107,10 +107,11 @@ async def main():
     check("resolve_page: 'agents' -> workspace", m.resolve_page("agents") == "workspace")
     check("resolve_page: 'workflows' -> workspace", m.resolve_page("workflows") == "workspace")
     check("resolve_group: 'mở mục Năng lực' -> nang_luc", m.resolve_group("mở mục Năng lực") == "nang_luc")
-    # the Code group is gone; Terminal sits in Capabilities, so the old words open it.
-    check("resolve_group: 'nhóm code' / 'lập trình' -> nang_luc (Code group removed)",
-          m.resolve_group("nhóm code") == "nang_luc" and m.resolve_group("lập trình") == "nang_luc"
+    # the Code group is gone; Terminal sits in Advanced, so the old words open it.
+    check("resolve_group: 'nhóm code' / 'lập trình' -> nang_cao (Code group removed)",
+          m.resolve_group("nhóm code") == "nang_cao" and m.resolve_group("lập trình") == "nang_cao"
           and "code" not in m.GROUPS)
+    check("resolve_group: 'mở mục Nâng cao' -> nang_cao", m.resolve_group("mở mục Nâng cao") == "nang_cao")
     check("open_file chặn ..", bool(m.check_target("open_file", "../x.md")))
     check("open_file chặn tuyệt đối", bool(m.check_target("open_file", "C:/x.md")) and bool(m.check_target("open_file", "/etc/passwd")))
     check("open_file nhận tương đối", m.check_target("open_file", "Wiki/a.md") == "")

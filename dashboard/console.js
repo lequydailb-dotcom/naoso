@@ -79,6 +79,7 @@
     viec: ic("clipboard-check"),
     ket_noi: ic("link"),
     he_thong: ic("sliders-horizontal"),
+    nang_cao: ic("wrench"),
   };
   // Icon nút thu/mở sidebar: kiểu "panel sidebar". Tĩnh, không xoay.
   const COLLAPSE_ICON = ic("panel-left");
@@ -127,10 +128,14 @@
     // the "Code" group is gone : every chat now works in a folder and
     // can code, so a separate Coding area is redundant. Terminal lives here; Coding stays a real
     // page (old links, voice commands) but is hidden from the rail, see RAIL_AN.
-    { id: "nang_luc", get label() { return t("nav.group.nang_luc"); },    icon: GICON.nang_luc,    ids: ["workspace", "teams", "conversations", "skills", "plugins", "terminal"] },
-    { id: "viec", get label() { return t("nav.group.viec"); },        icon: GICON.viec,        ids: ["tasks", "webhooks"] },
-    { id: "ket_noi", get label() { return t("nav.group.ket_noi"); },     icon: GICON.ket_noi,     ids: ["mcp", "packs", "channels", "logins"] },
-    { id: "he_thong", get label() { return t("nav.group.he_thong"); },    icon: GICON.he_thong,    ids: ["models", "settings", "share", "account"], foot: true },
+    { id: "nang_luc", get label() { return t("nav.group.nang_luc"); },    icon: GICON.nang_luc,    ids: ["workspace", "teams", "conversations", "skills"] },
+    { id: "viec", get label() { return t("nav.group.viec"); },        icon: GICON.viec,        ids: ["tasks"] },
+    { id: "ket_noi", get label() { return t("nav.group.ket_noi"); },     icon: GICON.ket_noi,     ids: ["mcp", "packs", "channels"] },
+    // The rail shows every item at once (no accordion), so the pages a beginner rarely opens sit
+    // in this one folded group to keep the rail on one screen. It unfolds by itself when one of
+    // its pages is open.
+    { id: "nang_cao", get label() { return t("nav.group.nang_cao"); },    icon: GICON.nang_cao,    ids: ["terminal", "plugins", "webhooks", "logins", "share"], fold: true },
+    { id: "he_thong", get label() { return t("nav.group.he_thong"); },    icon: GICON.he_thong,    ids: ["models", "settings", "account"], foot: true },
   ];
   const RAIL_BY_ID = Object.fromEntries(RAIL_ITEMS.map(i => [i.id, i]));
 
@@ -157,7 +162,7 @@
       const items = (g.ids || [])
         .map(id => { seen.add(id); return RAIL_AN.has(id) ? null : RAIL_BY_ID[id]; })
         .filter(Boolean);
-      return { label: g.label, icon: g.icon || "", foot: !!g.foot, items };
+      return { label: g.label, icon: g.icon || "", foot: !!g.foot, fold: !!g.fold, items };
     }).filter(g => g.items.length);
     // Mục chưa xếp nhóm cũng phải đi qua RAIL_AN. Thiếu chỗ này là một lỗi thật, sống từ
     // Trước đây `chatbots` nằm trong RAIL_AN nhưng KHÔNG nằm trong `ids` của nhóm
@@ -8281,7 +8286,9 @@
     Alpine.store("nav", {
       active: "home",
       items: RAIL_ITEMS,
-      openGroup: groupLabelOf("home"),   // accordion 2 tầng: nhóm đang mở (mặc định nhóm chứa trang đầu)
+      // Only a `fold` group (Advanced) opens and shuts; every other group is always open, so the
+      // whole rail shows without a click. Holds the label of the fold group that is open, if any.
+      openGroup: groupLabelOf("home"),
       collapsed: (() => { try { return localStorage.getItem("naota_rail_collapsed") === "1"; } catch (e) { return false; } })(),
       collapseIcon: COLLAPSE_ICON,
       // Alpine không biết từ điển i18n đổi (nó là object thuần), nên phải có một biến
@@ -8290,8 +8297,11 @@
       i18nTick: 0,
       get groups() { void this.i18nTick; return railGroups(); },
       get meta() { void this.i18nTick; return VIEW_META[this.active] || VIEW_META.home; },
-      isOpen(label) { return this.openGroup === label; },
-      toggleGroup(label) { this.openGroup = (this.openGroup === label) ? null : label; },   // 1 nhóm mở 1 lúc; bấm lại để đóng
+      isOpen(label) {
+        const g = RAIL_GROUPS.find(gr => gr.label === label);
+        return !(g && g.fold) || this.openGroup === label;
+      },
+      toggleGroup(label) { this.openGroup = (this.openGroup === label) ? null : label; },
       toggleCollapsed() {   // thu/mở sidebar: thu → chỉ còn icon; mở → đầy chữ. Nhớ lựa chọn qua localStorage.
         this.collapsed = !this.collapsed;
         try { localStorage.setItem("naota_rail_collapsed", this.collapsed ? "1" : "0"); } catch (e) {}
@@ -8299,7 +8309,9 @@
       go(id) {
         const item = RAIL_ITEMS.find(i => i.id === id);
         if (item && item.launch) { item.launch(); recomputeGraph(); return; }  // launcher: không đổi view
-        const gl = groupLabelOf(id); if (gl) this.openGroup = gl;   // giữ nhóm chứa mục vừa mở luôn bung ra
+        // A page inside the fold group unfolds it; opening any other page leaves it as it was.
+        const fg = RAIL_GROUPS.find(gr => gr.fold && (gr.ids || []).includes(id));
+        if (fg) this.openGroup = fg.label;
         navigateTo(id);
       },
     });

@@ -39,12 +39,12 @@ const CON_CODE = khongComment(CON);
 const CODE_CODE = khongComment(CODE);
 
 // ============================================================
-// 1. Terminal sits in the Capabilities group
+// 1. Terminal sits in the Advanced group
 // ============================================================
-// Drop the "Code" group, Terminal goes into Capabilities, since every chat now
-// works in a folder and can code. Group labels are dictionary getters, so match the KEY.
-const nhomNangLuc = /nav\.group\.nang_luc"\)[\s\S]{0,140}?ids:\s*\[([^\]]*)\]/.exec(CON_CODE);
-check("Terminal is an item of the Capabilities group", !!nhomNangLuc && /"terminal"/.test(nhomNangLuc[1]));
+// Drop the "Code" group. Terminal is a rarely used page, so it sits in the folded Advanced
+// group. Group labels are dictionary getters, so match the KEY.
+const nhomNangCao = /nav\.group\.nang_cao"\)[\s\S]{0,140}?ids:\s*\[([^\]]*)\]/.exec(CON_CODE);
+check("Terminal is an item of the Advanced group", !!nhomNangCao && /"terminal"/.test(nhomNangCao[1]));
 check("the Code group is gone from the rail, its key and its icon",
       !/nav\.group\.code/.test(CON_CODE) && !/GICON\.code\b/.test(CON_CODE) && !VI_JSON["nav.group.code"]);
 // Bản cũ nhét "Code" thành một mục của nhóm Bộ não. Lỗi đã gặp ngay:

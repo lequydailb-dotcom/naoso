@@ -61,9 +61,9 @@ check("page has an Upload file button wired to the picker", lvSrc.includes('clas
 check("upload refuses files over 1 MB", /MAX_FILE = 1024 \* 1024/.test(lvSrc) && /file\.size > MAX_FILE/.test(lvSrc));
 
 const cons = D("console.js");
-check("sidebar: Connections group has logins", /ids: \["mcp", "packs", "channels", "logins"\]/.test(cons));
+check("sidebar: the Advanced group has logins", /ids: \["terminal", "plugins", "webhooks", "logins", "share"\]/.test(cons));
 // Choosing the brain is Naota's own setting, not an outside connection: Models sits under System.
-check("sidebar: Models is in the System group", /ids: \["models", "settings", "share", "account"\], foot: true/.test(cons));
+check("sidebar: Models is in the System group", /ids: \["models", "settings", "account"\], foot: true/.test(cons));
 check("sidebar: logins has the cookie icon", /logins: "cookie"/.test(cons));
 check("page is called Cookies in both languages", VI["page.logins.label"] === "Cookies" && EN["page.logins.label"] === "Cookies");
 check("cookie and file-up icons are vendored", /"cookie":/.test(D("vendor/lucide-icons.js")) && /"file-up":/.test(D("vendor/lucide-icons.js")));

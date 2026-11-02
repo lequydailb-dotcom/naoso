@@ -16,7 +16,7 @@ const en = JSON.parse(read("dashboard/i18n/en.json"));
 let fails = 0;
 function check(name, ok) { console.log((ok ? "ok   " : "FAIL ") + name); if (!ok) fails++; }
 
-check("webhooks in the Work group", /ids: \["tasks", "webhooks"\]/.test(cons));
+check("webhooks in the Advanced group", /ids: \["terminal", "plugins", "webhooks", "logins", "share"\]/.test(cons));
 check("webhooks page has an icon, meta and a renderer",
   /webhooks: "webhook"/.test(cons) && /if \(id === "webhooks"\) return renderWebhooks\(el\);/.test(cons)
   && /"tasks", "webhooks", "chatbots"/.test(cons));
