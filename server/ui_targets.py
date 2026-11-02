@@ -76,6 +76,9 @@ ALIASES = {
     "agents": "workspace", "workflows": "workspace",
     # Trang Nhóm (nhóm chat team): thanh bên gọi là "Nhóm". "nhom" trơn KHÔNG nằm ở đây (xem _EXACT_PAGE).
     "nhom chat": "teams", "team": "teams", "teams": "teams",
+    # Rail labels renamed on 2026-11-02; the old labels above stay so familiar commands keep working.
+    "so do": "home", "tai lieu": "files", "ghi nho": "learn", "cho ung dung": "packs",
+    "kenh cua toi": "channels", "phien dang nhap": "logins", "models ai": "models",
 }
 
 # Bí danh chỉ khớp khi CẢ CÂU (sau khi bỏ "mở", "trang"...) đúng bằng nó, không khớp cụm con. "nhom" khớp cụm con thì cướp
@@ -95,7 +98,7 @@ GROUP_ALIASES = {
     # The "Code" group left the rail; Terminal now sits in Advanced, so the old
     # words open that group instead of failing.
     "code": "nang_cao", "lap trinh": "nang_cao",
-    "nang luc": "nang_luc", "kha nang": "nang_luc", "capability": "nang_luc",
+    "nang luc": "nang_luc", "kha nang": "nang_luc", "capability": "nang_luc", "doi ngu": "nang_luc",
     "nang cao": "nang_cao", "advanced": "nang_cao", "mo rong": "nang_cao",
     "viec": "viec", "cong viec": "viec", "task": "viec",
     "ket noi": "ket_noi", "connect": "ket_noi", "ket noi va model": "ket_noi",
