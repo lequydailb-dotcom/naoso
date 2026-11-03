@@ -6,19 +6,19 @@ Lỗi đã gặp trên Telegram: loop "[CK] Tin Tức Mỗi Sáng" chạy bằng
 mọi lệnh đọc/ghi file đều trả `bwrap: Failed to make / slave: Permission denied`, và bản báo
 cáo gửi về là một bài dài model tự kể lại nỗi bối rối của nó.
 
-Nguyên nhân nằm NGOÀI Naota. Codex bọc mọi lệnh đọc/ghi file của nó bằng bubblewrap, mà
-bubblewrap cần tạo được user namespace + đổi propagation của `/`. Container Naota chạy user
+Nguyên nhân nằm NGOÀI Vanhanh. Codex bọc mọi lệnh đọc/ghi file của nó bằng bubblewrap, mà
+bubblewrap cần tạo được user namespace + đổi propagation của `/`. Container Vanhanh chạy user
 thường, không có CAP_SYS_ADMIN, và Ubuntu 24.04 còn chặn user namespace không đặc quyền bằng
 AppArmor. Nên trong Docker, hai mức rào `read-only` (mode suggest) và `workspace-write` (mode
 auto) của Codex KHÔNG BAO GIỜ khởi động được. Loop tạo từ chat mặc định là suggest, nên mọi
 việc nền chạy bằng ChatGPT trong Docker đều câm theo đúng kiểu này. Chạy bằng Claude thì không
-sao vì Naota chặn theo TỪNG TOOL qua chính SDK, không cần bubblewrap.
+sao vì Vanhanh chặn theo TỪNG TOOL qua chính SDK, không cần bubblewrap.
 
 Quyết định hướng xử lý: ảnh Docker tắt rào riêng của Codex, để chính container
 làm rào. Test này khoá ba thứ:
-  1. cờ `NAOTA_CODEX_SANDBOX` đổi được bản đồ mức quyền → cờ sandbox của Codex
+  1. cờ `VANHANH_CODEX_SANDBOX` đổi được bản đồ mức quyền → cờ sandbox của Codex
   2. ảnh Docker THẬT SỰ đặt cờ đó (không thì bản vá chỉ nằm trên giấy)
-  3. Naota nhận ra dấu vết bwrap và dán lời giải thích vào chính bản báo cáo, thay vì để chủ
+  3. Vanhanh nhận ra dấu vết bwrap và dán lời giải thích vào chính bản báo cáo, thay vì để chủ
      đọc một bài model tự kể chuyện
 """
 import os
@@ -27,8 +27,8 @@ import tempfile
 
 from _paths import ROOT, SERVER  # noqa: E402,F401
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-codexsb-"))
-os.environ.pop("NAOTA_CODEX_SANDBOX", None)     # test tự đặt, đừng để môi trường máy chen vào
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-codexsb-"))
+os.environ.pop("VANHANH_CODEX_SANDBOX", None)     # test tự đặt, đừng để môi trường máy chen vào
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -55,17 +55,17 @@ check("mặc định (không đặt cờ): giữ nguyên rào theo mức quyền
       _ban_do() == {"suggest": "read-only", "auto": "workspace-write", "full": None})
 
 for tat in ("off", "OFF", "0", "false", "none"):
-    os.environ["NAOTA_CODEX_SANDBOX"] = tat
-    check(f"NAOTA_CODEX_SANDBOX={tat!r} → bỏ rào ở MỌI mức",
+    os.environ["VANHANH_CODEX_SANDBOX"] = tat
+    check(f"VANHANH_CODEX_SANDBOX={tat!r} → bỏ rào ở MỌI mức",
           _ban_do() == {"suggest": None, "auto": None, "full": None})
 
-os.environ["NAOTA_CODEX_SANDBOX"] = "auto"
-check("NAOTA_CODEX_SANDBOX=auto → bật lại rào như cũ",
+os.environ["VANHANH_CODEX_SANDBOX"] = "auto"
+check("VANHANH_CODEX_SANDBOX=auto → bật lại rào như cũ",
       _ban_do() == {"suggest": "read-only", "auto": "workspace-write", "full": None})
-os.environ["NAOTA_CODEX_SANDBOX"] = "linh tinh"
+os.environ["VANHANH_CODEX_SANDBOX"] = "linh tinh"
 check("giá trị lạ → giữ hành vi mặc định chứ không nổ",
       _ban_do()["suggest"] == "read-only")
-os.environ.pop("NAOTA_CODEX_SANDBOX", None)
+os.environ.pop("VANHANH_CODEX_SANDBOX", None)
 
 check("mức lạ (không có trong bản đồ) → không đặt rào, không nổ",
       claude_cli.codex_sandbox_cho_mode("mức-chưa-có") is None
@@ -80,34 +80,34 @@ class _Vo:
     cwd = None
     tag = "loop"
     system_prompt = None
-    naota_vault = None
-    naota_mode = "suggest"
+    vanhanh_vault = None
+    vanhanh_mode = "suggest"
 
 
-os.environ["NAOTA_CODEX_SANDBOX"] = "off"
+os.environ["VANHANH_CODEX_SANDBOX"] = "off"
 cc = aux_engine._build_codex({"model": "gpt-5.5"}, _Vo(), "suggest", "loop")
 check("loop mode suggest + cờ off → CodexCLI không nhận cờ --sandbox", cc.sandbox is None)
 check("argv không còn --sandbox, và dùng đường bypass", "--sandbox" not in cc._build_args()
       and "--dangerously-bypass-approvals-and-sandbox" in cc._build_args())
-os.environ["NAOTA_CODEX_SANDBOX"] = "auto"
+os.environ["VANHANH_CODEX_SANDBOX"] = "auto"
 cc2 = aux_engine._build_codex({"model": "gpt-5.5"}, _Vo(), "suggest", "loop")
 check("cờ auto → loop suggest vẫn chạy read-only như cũ", cc2.sandbox == "read-only")
 check("argv có --sandbox read-only kèm không hỏi duyệt",
       "--sandbox" in cc2._build_args() and "read-only" in cc2._build_args()
       and "never" in cc2._build_args())
-os.environ.pop("NAOTA_CODEX_SANDBOX", None)
+os.environ.pop("VANHANH_CODEX_SANDBOX", None)
 
 
 # ---- 3. Ảnh Docker phải THẬT SỰ tắt rào, không thì bản vá chỉ nằm trên giấy ----
 DOCKERFILE = (ROOT / "Dockerfile").read_text(encoding="utf-8")
-check("Dockerfile đặt NAOTA_CODEX_SANDBOX=off", "ENV NAOTA_CODEX_SANDBOX=off" in DOCKERFILE)
+check("Dockerfile đặt VANHANH_CODEX_SANDBOX=off", "ENV VANHANH_CODEX_SANDBOX=off" in DOCKERFILE)
 check("Dockerfile nói rõ vì sao (bubblewrap không chạy nổi trong container)",
       "bubblewrap" in DOCKERFILE and "CAP_SYS_ADMIN" in DOCKERFILE)
 check("Dockerfile nói rõ ĐÁNH ĐỔI, không lặng lẽ hạ rào",
       "suggest" in DOCKERFILE and "MCP Hub" in DOCKERFILE)
 # Chú thích phải nằm NGOÀI khối ENV nối dòng: chen vào giữa các dòng nối bằng "\" là trò may
 # rủi theo phiên bản trình dựng, mà hỏng Dockerfile thì VPS không cập nhật được nữa.
-_khoi_env = DOCKERFILE[DOCKERFILE.index("ENV NAOTA_HOST"):DOCKERFILE.index("ENV NAOTA_CODEX_SANDBOX")]
+_khoi_env = DOCKERFILE[DOCKERFILE.index("ENV VANHANH_HOST"):DOCKERFILE.index("ENV VANHANH_CODEX_SANDBOX")]
 _noi_dong = _khoi_env[:_khoi_env.rindex("\\") + 1] if "\\" in _khoi_env else ""
 check("không chen chú thích vào giữa khối ENV nối dòng",
       not any(d.strip().startswith("#") for d in _noi_dong.split("\n")))
@@ -125,7 +125,7 @@ NOTE = claude_cli._NOTE_SANDBOX_HONG
 check("lời giải thích nói đúng thủ phạm chứ không đổ cho lượt chạy",
       "container" in NOTE and "không phải lỗi của lượt chạy" in NOTE)
 check("lời giải thích chỉ đủ HAI lối ra thật",
-      "NAOTA_CODEX_SANDBOX=off" in NOTE and "Claude" in NOTE)
+      "VANHANH_CODEX_SANDBOX=off" in NOTE and "Claude" in NOTE)
 check("lời giải thích không dùng em dash (luật CLAUDE.md)", "—" not in NOTE)
 
 SRC = (SERVER / "claude_cli.py").read_text(encoding="utf-8")

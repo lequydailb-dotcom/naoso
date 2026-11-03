@@ -1,7 +1,7 @@
 {
-  "name": "NAOTA",
-  "short_name": "Naota",
-  "description": "Naota - trợ lý AI cá nhân báo cáo kinh doanh và cuộc sống",
+  "name": "VANHANH",
+  "short_name": "Vanhanh",
+  "description": "Vanhanh - trợ lý AI cá nhân báo cáo kinh doanh và cuộc sống",
   "id": "/",
   "start_url": "/",
   "scope": "/",

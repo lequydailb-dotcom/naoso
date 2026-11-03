@@ -16,9 +16,9 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-auth-disable-test-")
-os.environ["NAOTA_REQUIRE_LOGIN"] = "0"
-os.environ.pop("NAOTA_ADMIN_PASSWORD", None)
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-auth-disable-test-")
+os.environ["VANHANH_REQUIRE_LOGIN"] = "0"
+os.environ.pop("VANHANH_ADMIN_PASSWORD", None)
 
 from fastapi.testclient import TestClient   # noqa: E402
 import config as c   # noqa: E402
@@ -100,10 +100,10 @@ check("through a proxy/tunnel (forwarding header) -> 403", r.status_code == 403 
 r = cl.post("/auth/disable", data={"password": PW, "code": next_code()},
             headers={"CF-Connecting-IP": "203.0.113.9"})
 check("through a cloudflared tunnel -> 403", r.status_code == 403 and c.auth_enabled())
-os.environ["NAOTA_REQUIRE_LOGIN"] = "1"
+os.environ["VANHANH_REQUIRE_LOGIN"] = "1"
 r = disable(password=PW, code=next_code())
 check("public server (require_login) -> 403", r.status_code == 403 and c.auth_enabled())
-os.environ["NAOTA_REQUIRE_LOGIN"] = "0"
+os.environ["VANHANH_REQUIRE_LOGIN"] = "0"
 lan = TestClient(main.app, client=("192.168.1.20", 50000), base_url="http://localhost:7777")
 for k, v in dict(cl.cookies).items():
     lan.cookies.set(k, v)
@@ -119,7 +119,7 @@ cfg = c.read_settings()
 check("login is off (no password left)", not c.auth_enabled(cfg))
 check("CANARY: 2FA config is KEPT (enabled + same secret)",
       c.totp_enabled(cfg) and c.totp_secret(cfg) == SEC)
-check("old sessions are dropped", not c.valid_session(dict(cl.cookies).get("naota_session", "")))
+check("old sessions are dropped", not c.valid_session(dict(cl.cookies).get("vanhanh_session", "")))
 
 # Setting a password again brings 2FA back in force.
 r = cl.post("/auth/setup", data={"username": "admin", "password": PW})
@@ -137,11 +137,11 @@ r = disable(password=PW, code=REC[0])
 check("recovery code accepted to turn login off", r.json().get("ok") is True)
 check("and that recovery code is spent", c.totp_recovery_left() == len(REC) - 1)
 
-# NAOTA_ADMIN_PASSWORD creating the account at boot must not drop the kept 2FA either.
-os.environ["NAOTA_ADMIN_PASSWORD"] = "envpass123"
+# VANHANH_ADMIN_PASSWORD creating the account at boot must not drop the kept 2FA either.
+os.environ["VANHANH_ADMIN_PASSWORD"] = "envpass123"
 check("env admin is created", c.provision_admin_from_env() == "created")
 check("CANARY: 2FA kept when the env creates the account", c.totp_enabled() and c.totp_secret() == SEC)
-os.environ.pop("NAOTA_ADMIN_PASSWORD", None)
+os.environ.pop("VANHANH_ADMIN_PASSWORD", None)
 
 # Turning 2FA off for real still works and still wipes it.
 c.totp_tat()

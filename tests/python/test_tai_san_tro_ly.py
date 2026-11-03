@@ -27,7 +27,7 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-tsag-state-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-tsag-state-"))
 
 from fastapi.testclient import TestClient  # noqa: E402
 import agent_assets  # noqa: E402
@@ -84,9 +84,9 @@ check("và hàng thiếu id vẫn được cấp id để gỡ được", bool(d
 # ============================================================
 # 1. Route: brain riêng trong thư mục tạm
 # ============================================================
-BRAIN = tempfile.mkdtemp(prefix="naota-brain-tsag-")
+BRAIN = tempfile.mkdtemp(prefix="vanhanh-brain-tsag-")
 broot = Path(BRAIN)
-os.environ["NAOTA_FILES_ROOT"] = BRAIN     # khoá trần duyệt vào đúng brain này
+os.environ["VANHANH_FILES_ROOT"] = BRAIN     # khoá trần duyệt vào đúng brain này
 (broot / "sources").mkdir(parents=True, exist_ok=True)
 (broot / "sources" / "bang-gia.md").write_text("Nước mắm 500ml: 120k", encoding="utf-8")
 (broot / "sources" / "anh.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 16)

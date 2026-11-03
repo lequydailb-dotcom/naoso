@@ -26,7 +26,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-agy-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-agy-"))
 
 from fastapi import WebSocketDisconnect  # noqa: E402
 
@@ -188,7 +188,7 @@ if __name__ == "__main__":
                 setattr(obj, name, old)
 
     mp = _Patch()
-    tmp = pathlib.Path(tempfile.mkdtemp(prefix="naota-agy-run-"))
+    tmp = pathlib.Path(tempfile.mkdtemp(prefix="vanhanh-agy-run-"))
     try:
         main_test(mp, tmp)
     finally:

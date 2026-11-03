@@ -71,7 +71,7 @@ class TeamApiDeps:
     check_command: Optional[Callable[[str, Any], dict]] = None
     brain_root: Optional[Callable[[dict], Any]] = None   # team -> Path of its brain (acceptance product paths)
     work_dir: Optional[Callable[[dict], str]] = None     # team -> pinned working folder, "" when none
-    # report a job Naota Core gave the team back where it was asked (main._notify_owner):
+    # report a job Vanhanh Core gave the team back where it was asked (main._notify_owner):
     # (owner_chat, text, *, kind, label, source, ngan, brain, dedup) -> (ok, error), sync or async. None: no reports.
     report: Optional[Callable[..., Any]] = None
 
@@ -315,7 +315,7 @@ class TeamApi:
         return dict(m, sources_state=team_mandate.sources_view(st, m), observing=self.deps.mandate_deps is not None)
 
     def creator(self, team: dict) -> dict:
-        """Người tạo, quản lý nhóm: người thật, không phải trợ lý. Naota có một tài khoản chủ máy nên mọi nhóm,
+        """Người tạo, quản lý nhóm: người thật, không phải trợ lý. Vanhanh có một tài khoản chủ máy nên mọi nhóm,
         kể cả nhóm tạo trước đây, thuộc chủ đó; tên lấy từ cấu hình đăng nhập của server, không từ client."""
         name = ""
         if self.deps.owner_name is not None:
@@ -390,7 +390,7 @@ class TeamApi:
         await self.core_reports()
 
     async def core_reports(self) -> int:
-        """Jobs Naota Core gave a team report back to the chat that asked, once per state worth
+        """Jobs Vanhanh Core gave a team report back to the chat that asked, once per state worth
         reporting (done, cancelled, stopped for the owner). A failed send is retried next tick; the inbox copy dedupes."""
         if self.deps.report is None:
             return 0
@@ -435,7 +435,7 @@ class TeamApi:
 
 
 class OpError(Exception):
-    """Lỗi của một thao tác nhóm, có mã HTTP và câu hai thứ tiếng (route trả JSON, công cụ `naota_team` trả chữ)."""
+    """Lỗi của một thao tác nhóm, có mã HTTP và câu hai thứ tiếng (route trả JSON, công cụ `vanhanh_team` trả chữ)."""
 
     def __init__(self, code: int, vi: str, en: str, **extra):
         super().__init__(vi)
@@ -443,8 +443,8 @@ class OpError(Exception):
 
 
 class TeamOps:
-    """Thao tác quản lý nhóm dùng chung cho route `/teams/*` và công cụ `naota_team`: một chỗ duy nhất giữ luật
-    (kiểm trợ lý có thật, khoá `accept_lock`, huỷ việc khi lưu trữ, chạy lại khi mở lại), nên trang web và Naota trong chat
+    """Thao tác quản lý nhóm dùng chung cho route `/teams/*` và công cụ `vanhanh_team`: một chỗ duy nhất giữ luật
+    (kiểm trợ lý có thật, khoá `accept_lock`, huỷ việc khi lưu trữ, chạy lại khi mở lại), nên trang web và Vanhanh trong chat
     làm y như nhau. Mọi hàm chạy ở luồng phụ (route qua `api.io`, công cụ qua `asyncio.to_thread`). Lỗi: `OpError` hay
     `TeamError` của kho."""
 
@@ -508,7 +508,7 @@ class TeamOps:
         keys = {slug: self.api.register_agent(root, slug)["agent_key"] for slug in dict.fromkeys(members)}
         tid = team_store.new_team_id()
         sid = self.deps.session_store().create_session(brain=brain, channel=f"team:{tid}", title=name[:120])
-        # Người tạo: luôn là chủ máy đã qua cổng đăng nhập của server (Naota có một tài khoản), không đọc từ client.
+        # Người tạo: luôn là chủ máy đã qua cổng đăng nhập của server (Vanhanh có một tài khoản), không đọc từ client.
         try:
             team = teams.create_team(root, name, str(description or ""), sid, team_id=tid,
                                      members=[(keys[s], s) for s in keys], leader_key=keys[leader] if leader else None,
@@ -594,7 +594,7 @@ _CURRENT: list = [None]
 
 
 def current() -> Optional[TeamOps]:
-    """`TeamOps` của tiến trình (đặt trong `register`), cho plugin `naota_team` gọi mà không import main. None khi chưa
+    """`TeamOps` của tiến trình (đặt trong `register`), cho plugin `vanhanh_team` gọi mà không import main. None khi chưa
     đăng ký (test không dựng host)."""
     return _CURRENT[0]
 
@@ -1178,7 +1178,7 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
     @app.post("/teams/{team_id}/authority")
     async def teams_authority(team_id: str, request: Request, brain: str = "brain"):
         """Chủ bật, sửa hay thu hồi Toàn quyền cho trưởng nhóm `{mode: "full"|"limited", grant}`. Route của dashboard
-        (auth, CSRF); không lệnh NAOTA_TEAM nào gọi tới đây, nên trưởng nhóm không tự nâng mình lên Toàn quyền."""
+        (auth, CSRF); không lệnh VANHANH_TEAM nào gọi tới đây, nên trưởng nhóm không tự nâng mình lên Toàn quyền."""
         body = await _body(request)
 
         def _do():
@@ -1263,7 +1263,7 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
         """The owner's decision on one approval card: `decision` approve | reject | changes | revoke, `note`,
         `decision_key` (one per click: a retry replays the first answer, a second tab gets already_decided) and
         `expected_rev` (the job revision the card showed). Owner-only by construction: the dashboard's login and CSRF
-        stand in front of this route, and no NAOTA_TEAM directive or chat text reaches it."""
+        stand in front of this route, and no VANHANH_TEAM directive or chat text reaches it."""
         body = await _body(request)
         decision = str(body.get("decision") or "").strip().lower()
         note = str(body.get("note") or "")[:2000]
@@ -1420,7 +1420,7 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
 
     @app.put("/teams/{team_id}/tasks/{task_id}/acceptance")
     async def teams_acceptance_put(team_id: str, task_id: str, request: Request, brain: str = "brain"):
-        """Owner sets the job's acceptance criteria (owner only: no NAOTA_TEAM directive reaches this)."""
+        """Owner sets the job's acceptance criteria (owner only: no VANHANH_TEAM directive reaches this)."""
         body = await _body(request)
 
         def _do():
@@ -1496,7 +1496,7 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
 
     @app.put("/teams/{team_id}/mandate")
     async def teams_mandate_put(team_id: str, request: Request, brain: str = "brain"):
-        """Owner writes or edits the team's mandate (a new version). Never reachable from a NAOTA_TEAM directive."""
+        """Owner writes or edits the team's mandate (a new version). Never reachable from a VANHANH_TEAM directive."""
         body = await _body(request)
 
         def _do():

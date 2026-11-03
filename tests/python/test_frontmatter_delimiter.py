@@ -17,7 +17,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-fm-state-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-fm-state-"))
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -110,12 +110,12 @@ for f in corpus:
         texts.append((f.relative_to(ROOT).as_posix(), f.read_text(encoding="utf-8", errors="replace")))
     except OSError:
         pass
-# The repo ships few frontmatter files, so add the shapes Naota itself writes (_write_md).
+# The repo ships few frontmatter files, so add the shapes Vanhanh itself writes (_write_md).
 for i, (meta, body) in enumerate((
         ({"name": "a", "steps": [{"agent": "x", "task": "y"}]}, "Body\n\n---\n\nAfter a rule."),
         ({"description": "dài: có dấu hai chấm", "tags": ["Sales", "AI"]}, ""),
         ({"name": "Viết email"}, "# Tiêu đề\n- [ ] việc\n"))):
-    p = Path(tempfile.mkdtemp(prefix="naota-fm-")) / f"s{i}.md"
+    p = Path(tempfile.mkdtemp(prefix="vanhanh-fm-")) / f"s{i}.md"
     main._write_md(p, meta, body)
     texts.append((f"synthetic-{i}", p.read_text(encoding="utf-8")))
 n_same, differ = 0, []

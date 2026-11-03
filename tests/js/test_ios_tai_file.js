@@ -4,7 +4,7 @@
 
    Lỗi đã gặp: app cài ra màn hình chính iPhone, bấm "Tải ảnh PNG" trong chat thì
    cả app biến thành trang "Open in Preview / More..." của iOS, không có nút Back, không còn
-   đường về Naota. Nguyên nhân: link tải (<a download>, /files/raw, /files/zip) đi trong CÙNG
+   đường về Vanhanh. Nguyên nhân: link tải (<a download>, /files/raw, /files/zip) đi trong CÙNG
    cửa sổ; máy tính và Android thì tải xuống, iOS thì mở trang xem file thay cho app.
 
    Test này khoá: (1) nhận diện đúng mọi kiểu link tải và không nhận nhầm link thường, (2) nhận
@@ -22,7 +22,7 @@ function check(name, cond, extra) {
   if (!cond) fails.push(name);
 }
 
-global.window = { location: { href: "https://naota.example/", origin: "https://naota.example" } };
+global.window = { location: { href: "https://vanhanh.example/", origin: "https://vanhanh.example" } };
 // Node 22 có sẵn `navigator` CHỈ ĐỌC: gán thẳng không ăn, phải định nghĩa lại.
 const datNav = (v) => Object.defineProperty(globalThis, "navigator", { value: v, configurable: true, writable: true });
 datNav({ userAgent: "", platform: "", maxTouchPoints: 0 });
@@ -40,12 +40,12 @@ for (const [href, dl, mong, ten] of [
   ["/files/raw?brain=brain&path=a.docx", null, true, "link /files/raw không có thuộc tính download"],
   ["/files/zip?brain=brain&path=exports", null, true, "tải cả thư mục (trang Tệp tin)"],
   ["/upload/raw?name=x.pdf", null, true, "file vừa dán vào chat"],
-  ["https://naota.example/files/raw?path=x.png", null, true, "URL đầy đủ cùng origin"],
-  ["blob:https://naota.example/123", "code.html", true, "tải khối code (blob)"],
+  ["https://vanhanh.example/files/raw?path=x.png", null, true, "URL đầy đủ cùng origin"],
+  ["blob:https://vanhanh.example/123", "code.html", true, "tải khối code (blob)"],
   ["#open=wiki%2Fa.md", null, false, "link mở trình sửa trong app"],
   ["https://google.com/files/raw?x=1", null, false, "link ngoài trùng đường dẫn"],
   ["/files/list?path=x", null, false, "API liệt kê file, không phải tải"],
-  ["blob:https://naota.example/9", null, false, "blob không có download (ảnh xem trước)"],
+  ["blob:https://vanhanh.example/9", null, false, "blob không có download (ảnh xem trước)"],
 ]) check((mong ? "nhận là link tải: " : "KHÔNG nhận nhầm: ") + ten, CR.laLinkTaiFile(a(href, dl)) === mong);
 
 // ---- 2. Nhận diện iOS ----

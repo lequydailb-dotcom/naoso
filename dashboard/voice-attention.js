@@ -3,11 +3,11 @@
    Không có công tắc "Tập trung" và không có luật phải gọi tên. Rào chỉ còn
    bật ở đường Live (app.js đặt enabled theo đường gọi): im IDLE_MS thì ngắt nhà cung cấp cho đỡ
    tốn hạn mức, rồi CÂU NÓI THẬT đầu tiên (wakes) là nối lại. Đường Cơ bản không có gì để ngắt nên
-   nghe suốt cuộc gọi. Không dùng Groq: chữ "Naota" trình duyệt hay chép thành "Nau ta", bắt buộc gọi
+   nghe suốt cuộc gọi. Không dùng Groq: chữ "Vanhanh" trình duyệt hay chép thành "Nau ta", bắt buộc gọi
    tên là đúng khâu từng làm cuộc gọi không nối lại được. */
 (function (root) {
   "use strict";
-  const wake = /^(?:(?:hey|hi|hello|ê|này|alo|chào)\s+)?(?:naota|nauta|naôta)(?=$|[\s,.!?:;])/iu;
+  const wake = /^(?:(?:hey|hi|hello|ê|này|alo|chào)\s+)?(?:vanhanh|nauta|naôta)(?=$|[\s,.!?:;])/iu;
   // Câu mở đầu GẦN GIỐNG tên gọi mà Web Speech hay chép lệch ("Nau ta ơi", "Nota"). KHÔNG mở
   // rào: chỉ cho phép đưa âm thanh cho tai nghe lại, rồi rào xét lại trên chữ của tai.
   const IDLE_MS = 30000;      // 20 giây hơi ít
@@ -70,5 +70,5 @@
   }
   const api = { Attention, SpeechLevel, IDLE_MS };
   if (typeof module === 'object' && module.exports) module.exports = api;
-  else root.NaotaVoiceAttention = api;
+  else root.VanhanhVoiceAttention = api;
 })(typeof window !== 'undefined' ? window : globalThis);

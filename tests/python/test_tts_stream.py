@@ -15,7 +15,7 @@ import sys
 import tempfile
 import types
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-tts-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-tts-"))
 
 _fails = []
 

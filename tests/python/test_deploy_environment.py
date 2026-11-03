@@ -23,7 +23,7 @@ def compose(name):
     return yaml.safe_load((ROOT / name).read_text(encoding="utf-8"))
 
 
-hostinger = compose("docker-compose.hostinger.yml")["services"]["naota"]
+hostinger = compose("docker-compose.hostinger.yml")["services"]["vanhanh"]
 hostinger_env = set((hostinger.get("environment") or {}).keys())
 # WATCHTOWER_TOKEN nằm trong khối này (app cần đọc để gọi Watchtower) nhưng ĐÓNG CỨNG chứ
 # không lấy từ `${...}`, nên nó KHÔNG đẻ thêm ô nhập trong Docker Manager. Đó là chỗ phân biệt
@@ -31,7 +31,7 @@ hostinger_env = set((hostinger.get("environment") or {}).keys())
 check(
     "Hostinger chỉ hiện ba trường nhập có ý nghĩa",
     hostinger_env
-    == {"DOMAIN_NAME", "NAOTA_ADMIN_USER", "NAOTA_ADMIN_PASSWORD", "WATCHTOWER_TOKEN"},
+    == {"DOMAIN_NAME", "VANHANH_ADMIN_USER", "VANHANH_ADMIN_PASSWORD", "WATCHTOWER_TOKEN"},
 )
 check(
     "CANARY: token Watchtower đóng cứng, không thành một ô nhập nữa",
@@ -39,19 +39,19 @@ check(
 )
 check(
     "biến target Hostinger được giấu khỏi form Environment",
-    "NAOTA_DEPLOY_TARGET=hostinger" in " ".join(hostinger.get("command") or []),
+    "VANHANH_DEPLOY_TARGET=hostinger" in " ".join(hostinger.get("command") or []),
 )
 
 internal = {
-    "NAOTA_HOST",
-    "NAOTA_PORT",
-    "NAOTA_REQUIRE_LOGIN",
-    "NAOTA_STATE_DIR",
+    "VANHANH_HOST",
+    "VANHANH_PORT",
+    "VANHANH_REQUIRE_LOGIN",
+    "VANHANH_STATE_DIR",
     "BRAIN_PATH",
     "BRAINS_DIR",
     "OBSIDIAN_VAULT_PATH",
     "CLAUDE_CWD",
-    "NAOTA_DEPLOY_TARGET",
+    "VANHANH_DEPLOY_TARGET",
 }
 check("Hostinger không lộ biến kỹ thuật", not (hostinger_env & internal))
 check(
@@ -60,62 +60,62 @@ check(
 )
 hostinger_src = (ROOT / "docker-compose.hostinger.yml").read_text(encoding="utf-8")
 hostinger_vars = set(re.findall(r"\$\{([A-Z0-9_]+)", hostinger_src))
-# Có thêm HAI núm deploy để cài được nhiều bản Naota trên cùng một VPS: NAOTA_NAME
-# (tên container + tên router/service Traefik) và NAOTA_HOST_PORT (cổng máy chủ). Chúng KHÔNG
+# Có thêm HAI núm deploy để cài được nhiều bản Vanhanh trên cùng một VPS: VANHANH_NAME
+# (tên container + tên router/service Traefik) và VANHANH_HOST_PORT (cổng máy chủ). Chúng KHÔNG
 # phải biến của app - app không đọc chúng - nên không nằm trong khối `environment`, nhưng Docker
 # Manager vẫn hiện thành ô nhập vì có `${...}` trong file.
 #
 # Đây là đánh đổi có chủ ý và là mức tối thiểu: cả hai thứ này Traefik/Docker định danh theo
 # phạm vi TOÀN MÁY, nên không có cách nào suy chúng ra từ ba trường cũ. Bù lại cả hai đều có
 # mặc định, nên người cài bản ĐẦU TIÊN vẫn bỏ trống cả hai và mọi thứ y như trước.
-deploy_knobs = {"NAOTA_NAME", "NAOTA_HOST_PORT"}
-# Núm thứ ba, thêm cùng lúc với service watchtower: NAOTA_AUTO_UPDATE. Nó nằm trong
+deploy_knobs = {"VANHANH_NAME", "VANHANH_HOST_PORT"}
+# Núm thứ ba, thêm cùng lúc với service watchtower: VANHANH_AUTO_UPDATE. Nó nằm trong
 # khối environment của WATCHTOWER chứ không phải của app, nên không có trong `hostinger_env`.
 #
 # Vì sao nó xứng đáng một ô nhập, trong khi token thì không: đây là một LỰA CHỌN thật của người
-# cài (để Naota tự khởi động lại khi có bản mới, hay tự bấm nút), đúng loại với ba trường kia.
+# cài (để Vanhanh tự khởi động lại khi có bản mới, hay tự bấm nút), đúng loại với ba trường kia.
 # Token thì không ai cần đổi nên đã đóng cứng. Giữ nguyên tinh thần cũ: mỗi ô phải kiếm được
 # chỗ của nó, không phải cứ tiện tay là thêm.
-update_knobs = {"NAOTA_AUTO_UPDATE"}
+update_knobs = {"VANHANH_AUTO_UPDATE"}
 check(
     "Hostinger chỉ tham chiếu ba biến nhập liệu + hai núm cài nhiều bản + núm tự cập nhật",
     hostinger_vars == (hostinger_env - {"WATCHTOWER_TOKEN"}) | deploy_knobs | update_knobs,
 )
 check(
-    "NAOTA_AUTO_UPDATE có mặc định TẮT → bỏ trống là hành vi cũ, không ai bị tự restart bất ngờ",
-    "${NAOTA_AUTO_UPDATE:-false}" in hostinger_src,
+    "VANHANH_AUTO_UPDATE có mặc định TẮT → bỏ trống là hành vi cũ, không ai bị tự restart bất ngờ",
+    "${VANHANH_AUTO_UPDATE:-false}" in hostinger_src,
 )
-for knob, mac_dinh in (("NAOTA_NAME", "naota"), ("NAOTA_HOST_PORT", "7777")):
+for knob, mac_dinh in (("VANHANH_NAME", "vanhanh"), ("VANHANH_HOST_PORT", "7777")):
     check(
         f"{knob} có mặc định ({mac_dinh}) → cài bản đầu bỏ trống vẫn chạy y như trước",
         f"${{{knob}:-{mac_dinh}}}" in hostinger_src,
     )
 
-vps = compose("docker-compose.yml")["services"]["naota"]
+vps = compose("docker-compose.yml")["services"]["vanhanh"]
 vps_env = set((vps.get("environment") or {}).keys())
 # Trước đây khối này CHỈ có WATCHTOWER_TOKEN, và hệ quả là người deploy bằng compose thường
-# không có đường nào đặt sẵn admin: họ luôn phải `docker compose logs naota` đọc MÃ THIẾT LẬP
+# không có đường nào đặt sẵn admin: họ luôn phải `docker compose logs vanhanh` đọc MÃ THIẾT LẬP
 # rồi dán vào trình duyệt. Hai biến admin là ĐẦU VÀO CỦA NGƯỜI DÙNG, cùng loại với ba trường
 # của Hostinger, không phải mặc định kỹ thuật của image - nên chúng thuộc về đây.
 check(
     "VPS production giữ token Watchtower + hai trường tài khoản quản trị",
-    vps_env == {"WATCHTOWER_TOKEN", "NAOTA_ADMIN_USER", "NAOTA_ADMIN_PASSWORD"},
+    vps_env == {"WATCHTOWER_TOKEN", "VANHANH_ADMIN_USER", "VANHANH_ADMIN_PASSWORD"},
 )
 check("VPS production vẫn không lặp lại biến kỹ thuật của image", not (vps_env & internal))
 check(
     "và hai trường admin đọc từ .env cạnh compose, có mặc định rỗng",
-    "${NAOTA_ADMIN_USER:-}" in (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
-    and "${NAOTA_ADMIN_PASSWORD:-}" in (ROOT / "docker-compose.yml").read_text(encoding="utf-8"),
+    "${VANHANH_ADMIN_USER:-}" in (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    and "${VANHANH_ADMIN_PASSWORD:-}" in (ROOT / "docker-compose.yml").read_text(encoding="utf-8"),
 )
 
-build = compose("docker-compose.build.yml")["services"]["naota"]
+build = compose("docker-compose.build.yml")["services"]["vanhanh"]
 check("compose build không lặp mặc định Docker image", not build.get("environment"))
 
 dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 for key in (
-    "NAOTA_HOST=0.0.0.0",
-    "NAOTA_PORT=7777",
-    "NAOTA_STATE_DIR=/data/state",
+    "VANHANH_HOST=0.0.0.0",
+    "VANHANH_PORT=7777",
+    "VANHANH_STATE_DIR=/data/state",
     "BRAINS_DIR=/brains",
     "OBSIDIAN_VAULT_PATH=/data/vault",
     "CLAUDE_CWD=/app",
@@ -128,7 +128,7 @@ docs = "\n".join(
 )
 check(
     "tài liệu nói rõ ba trường Hostinger",
-    all(k in docs for k in ("DOMAIN_NAME", "NAOTA_ADMIN_USER", "NAOTA_ADMIN_PASSWORD"))
+    all(k in docs for k in ("DOMAIN_NAME", "VANHANH_ADMIN_USER", "VANHANH_ADMIN_PASSWORD"))
     and "chỉ còn 3 trường" in docs,
 )
 

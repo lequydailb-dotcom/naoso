@@ -12,10 +12,10 @@ import os
 import tempfile
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="naota-brain-filter-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="vanhanh-brain-filter-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
 os.environ["BRAINS_DIR"] = str(Path(_STATE) / "brains")
-os.environ["NAOTA_SESSIONS_DB"] = str(Path(_STATE) / "sessions.db")
+os.environ["VANHANH_SESSIONS_DB"] = str(Path(_STATE) / "sessions.db")
 
 import main  # noqa: E402
 import brain_ident  # noqa: E402

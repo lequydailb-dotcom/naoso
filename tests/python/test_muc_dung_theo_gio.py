@@ -17,12 +17,12 @@ import re
 import tempfile
 from datetime import timedelta
 
-_TMP = tempfile.mkdtemp(prefix="naota-tg-")
-os.environ["NAOTA_STATE_DIR"] = _TMP
-os.environ["NAOTA_CLAUDE_PROJECTS_DIR"] = os.path.join(_TMP, "claude-projects")
-os.environ["NAOTA_CODEX_SESSIONS_DIR"] = os.path.join(_TMP, "codex-sessions")
-os.makedirs(os.environ["NAOTA_CLAUDE_PROJECTS_DIR"], exist_ok=True)
-os.makedirs(os.environ["NAOTA_CODEX_SESSIONS_DIR"], exist_ok=True)
+_TMP = tempfile.mkdtemp(prefix="vanhanh-tg-")
+os.environ["VANHANH_STATE_DIR"] = _TMP
+os.environ["VANHANH_CLAUDE_PROJECTS_DIR"] = os.path.join(_TMP, "claude-projects")
+os.environ["VANHANH_CODEX_SESSIONS_DIR"] = os.path.join(_TMP, "codex-sessions")
+os.makedirs(os.environ["VANHANH_CLAUDE_PROJECTS_DIR"], exist_ok=True)
+os.makedirs(os.environ["VANHANH_CODEX_SESSIONS_DIR"], exist_ok=True)
 
 import usage_index as ui  # noqa: E402
 from datetime import datetime  # noqa: E402

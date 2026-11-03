@@ -6,7 +6,7 @@ Không gọi model, không cần Claude CLI hay đăng nhập. Kiểm hai chỗ 
 file Cộng hưởng nào:
 
 1. `claude_sdk_engine._mcp_servers`: phiên có `allowed_tools` giờ được nạp plugin tool khi danh sách nêu ĐÍCH DANH
-   `mcp__naota-plugins__<tên>`. Lượt việc nền A5 dựng bằng `main._resonance_engine` (thư mục trống, MCP rỗng strict,
+   `mcp__vanhanh-plugins__<tên>`. Lượt việc nền A5 dựng bằng `main._resonance_engine` (thư mục trống, MCP rỗng strict,
    `allowed_tools` là một tên canh gác không khớp công cụ nào, swap theo model việc nền, `strip_tools`,
    `pick_text_only_link`). Test dựng ĐÚNG đường đó cho system prompt của vai làm và vai review, thay
    `ClaudeSDKClient` bằng client giả để bắt `options` thật mà engine đưa cho SDK, rồi kiểm: không hub, không plugin,
@@ -26,8 +26,8 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="naota-a5-engine-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="vanhanh-a5-engine-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
 Path(_STATE, "settings.json").write_text(json.dumps({
     "model": {"auxiliary": {"provider": "anthropic-cli", "model": "sonnet"},
               "main": {"provider": "anthropic-cli", "model": "sonnet"}},
@@ -53,7 +53,7 @@ def check(name, cond, extra=""):
         fails.append(name)
 
 
-SENTINEL = "naota_reply_policy_khong_cong_cu"
+SENTINEL = "vanhanh_reply_policy_khong_cong_cu"
 captured = []
 
 
@@ -123,8 +123,8 @@ try:
         check(f"{role}: công cụ native bị cấm sẵn",
               set(main.BOT_CAM_NATIVE) <= set(opt.disallowed_tools or []), repr(opt.disallowed_tools))
         probe = (["Bash", "Write", "Edit", "Read", "WebFetch", "WebSearch", "Task", "Skill", "NotebookEdit",
-                  "mcp__naota__naota_goal", "mcp__naota__pos_order", f"mcp__naota-plugins__{plugin_names[0]}",
-                  plugin_names[0], "mcp__naota-plugins"] if plugin_names else ["Bash"])
+                  "mcp__vanhanh__vanhanh_goal", "mcp__vanhanh__pos_order", f"mcp__vanhanh-plugins__{plugin_names[0]}",
+                  plugin_names[0], "mcp__vanhanh-plugins"] if plugin_names else ["Bash"])
         denied = [n for n in probe if isinstance(asyncio.run(opt.can_use_tool(n, {}, None)), PermissionResultDeny)]
         check(f"{role}: cổng từ chối mọi lời gọi công cụ ({len(probe)} tên)", denied == probe,
               f"lọt: {sorted(set(probe) - set(denied))}")

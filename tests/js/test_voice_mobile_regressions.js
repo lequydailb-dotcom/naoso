@@ -12,7 +12,7 @@ const context = {
   }
 };
 vm.runInNewContext(fs.readFileSync('dashboard/voice.js', 'utf8'), context);
-const Voice = context.window.NaotaVoice;
+const Voice = context.window.VanhanhVoice;
 const v = new Voice();
 v.isSpeaking = () => false;
 let shown;

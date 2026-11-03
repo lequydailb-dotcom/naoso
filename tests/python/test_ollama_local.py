@@ -2,13 +2,13 @@
 
     python tests/run.py ollama_local
 
-Test này dựng một Ollama GIẢ bằng http.server rồi cho Naota nói chuyện thật với nó. Không có
+Test này dựng một Ollama GIẢ bằng http.server rồi cho Vanhanh nói chuyện thật với nó. Không có
 cách nào khác: máy chạy CI không có Ollama, mà đây lại là tính năng mà toàn bộ giá trị nằm ở
 chỗ nói chuyện đúng giao thức với một tiến trình bên ngoài.
 
 Thứ được canh kỹ nhất là GIẢ ĐỊNH NỀN mà bản thiết kế đầu tiên làm sai: nút "Cài Ollama" tự
-chạy script và tự đọc RAM/GPU "máy này" chỉ đúng khi Naota và Ollama cùng một máy vật lý.
-Phần đông người dùng chạy Naota trong Docker/VPS, nơi `localhost` là chính cái container.
+chạy script và tự đọc RAM/GPU "máy này" chỉ đúng khi Vanhanh và Ollama cùng một máy vật lý.
+Phần đông người dùng chạy Vanhanh trong Docker/VPS, nơi `localhost` là chính cái container.
 Đó đúng là lý do provider ollama local bị chặn cố ý từ đầu (server/config.py), nên mọi thứ ở
 đây phải chứng minh là nó không lặp lại giả định cũ.
 """
@@ -20,7 +20,7 @@ import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-ollama-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-ollama-"))
 
 from fastapi.testclient import TestClient  # noqa: E402
 import main  # noqa: E402
@@ -36,7 +36,7 @@ def check(name, cond, them=""):
         fails.append(name)
 
 
-# ---- Ollama giả: đủ bốn endpoint Naota dùng ----------------------------------
+# ---- Ollama giả: đủ bốn endpoint Vanhanh dùng ----------------------------------
 DA_XOA = []
 
 
@@ -118,7 +118,7 @@ check("gõ thiếu http:// vẫn hiểu được",
 check("cắt đường dẫn thừa", ollama_local.chuan_hoa_endpoint("http://a.vn:11434/") == "http://a.vn:11434")
 
 # ---- 1b. Thiếu CỔNG: vụ thật -------------------------------------------
-# Người dùng gõ mỗi IP máy chủ VPS, không cổng. Naota hiểu thành cổng 80, đi trúng web server
+# Người dùng gõ mỗi IP máy chủ VPS, không cổng. Vanhanh hiểu thành cổng 80, đi trúng web server
 # của chính VPS đó và nhận 301 - một mã lỗi không nói gì về Ollama, không có đường lần ra.
 check("CANARY: gõ thiếu cổng thì thêm 11434, KHÔNG rơi về cổng 80",
       ollama_local.chuan_hoa_endpoint("45.77.10.20") == "http://45.77.10.20:11434")
@@ -296,8 +296,8 @@ check("không để một họ model chiếm quá nửa danh sách",
       max(_ho.count(h) for h in set(_ho)) <= 3, _ho)
 
 # ---- 5b. Đọc cấu hình máy: hụt thì phải NÓI là hụt ----------------------------
-# psutil KHÔNG phải dependency của Naota. Bản đầu chỉ có đường Linux (/proc) và Mac (sysctl),
-# nên máy Windows luôn trả 0 GB - mà "máy cá nhân cài Naota" thì Windows là ca thường gặp
+# psutil KHÔNG phải dependency của Vanhanh. Bản đầu chỉ có đường Linux (/proc) và Mac (sysctl),
+# nên máy Windows luôn trả 0 GB - mà "máy cá nhân cài Vanhanh" thì Windows là ca thường gặp
 # nhất. Tệ hơn: nó vẫn khai source="auto", tức máy 64GB bị mời toàn model dưới 8GB mà không
 # có dấu hiệu nào cho thấy sai. Đó là hỏng lặng lẽ, loại khó phát hiện nhất.
 import unittest.mock as _mock  # noqa: E402
@@ -314,7 +314,7 @@ check("và gợi ý lúc đó nói rõ là đang đoán ở mức an toàn",
       [m.get("note") for m in _goi_y_khi_hut[:2]])
 
 # ---- 5c. Địa chỉ máy chủ nhìn từ trong Docker: DÒ chứ không đoán --------------
-# 172.17.0.1 là cổng của mạng bridge MẶC ĐỊNH, chỉ đúng với `docker run` trần. Naota cài bằng
+# 172.17.0.1 là cổng của mạng bridge MẶC ĐỊNH, chỉ đúng với `docker run` trần. Vanhanh cài bằng
 # docker-compose thì nằm trên mạng RIÊNG của project (dải cấp phát từ 172.18.0.0/16 trở đi vì
 # 172.17 đã bị docker0 chiếm). Nên con số viết cứng đó SAI với gần như mọi bản cài theo đúng
 # hướng dẫn - người dùng điền y như bảo mà vẫn không nối được.

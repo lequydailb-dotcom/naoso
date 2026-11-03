@@ -78,25 +78,25 @@ const mo = CR.slice(CR.indexOf("function moFileVault(rel)"), CR.indexOf("functio
 // được lúc thì bị quăng về thư mục. Chuỗi rơi cũ giữ nguyên bên dưới làm đường lui cho bản
 // console.js cũ, nên hai check kế tiếp vẫn còn nguyên giá trị.
 check("CANARY: quyết định mở ở đâu nằm ở MỘT chỗ dùng chung, không phải bản sao trong chat-render",
-  mo.indexOf("window.NaotaOpenVaultPath(rel)") >= 0
-  && mo.indexOf("window.NaotaOpenVaultPath(rel)") < mo.indexOf("window.NaotaOpenNote(rel)"));
-check("CANARY: đường lui vẫn ưu tiên NaotaOpenNote (khung dính) chứ không phải popup",
-  mo.indexOf("window.NaotaOpenNote(rel)") < mo.indexOf("window.NaotaEditFile(rel)"));
+  mo.indexOf("window.VanhanhOpenVaultPath(rel)") >= 0
+  && mo.indexOf("window.VanhanhOpenVaultPath(rel)") < mo.indexOf("window.VanhanhOpenNote(rel)"));
+check("CANARY: đường lui vẫn ưu tiên VanhanhOpenNote (khung dính) chứ không phải popup",
+  mo.indexOf("window.VanhanhOpenNote(rel)") < mo.indexOf("window.VanhanhEditFile(rel)"));
 check("màn hẹp thì vẫn dùng popup (không đủ chỗ cho khung dính)",
   /matchMedia\("\(max-width: 860px\)"\)/.test(mo));
-check("popup vẫn còn làm đường lui khi console.js chưa nạp", mo.indexOf("NaotaEditFile") !== -1);
+check("popup vẫn còn làm đường lui khi console.js chưa nạp", mo.indexOf("VanhanhEditFile") !== -1);
 check("wikilink cũng đi qua đúng hàm đó", /moFileVault\(hit\.rel\)/.test(CR));
 check("link file cũng đi qua đúng hàm đó", /moFileVault\(trimmed\)/.test(CR));
 // Không được quay lại gọi thẳng popup từ nhánh link - đó chính là hành vi cũ.
-check("CANARY: nhánh link file không còn gọi thẳng NaotaEditFile",
-  CR.indexOf("window.NaotaEditFile(trimmed)") === -1);
+check("CANARY: nhánh link file không còn gọi thẳng VanhanhEditFile",
+  CR.indexOf("window.VanhanhEditFile(trimmed)") === -1);
 
 // ============================================================
 // 6. Cây thư mục tự sổ tới file vừa mở
 // ============================================================
-check("console.js phơi hàm xổ cây ra ngoài", /window\.NaotaRevealInTree = /.test(CONSOLE));
+check("console.js phơi hàm xổ cây ra ngoài", /window\.VanhanhRevealInTree = /.test(CONSOLE));
 check("CANARY: đi tới file bằng link thì cây sổ theo",
-  /window\.NaotaOpenNote = function \(brainRel\)[\s\S]{0,1600}_vtRevealInTree\(ceilingRel\)/.test(CONSOLE));
+  /window\.VanhanhOpenNote = function \(brainRel\)[\s\S]{0,1600}_vtRevealInTree\(ceilingRel\)/.test(CONSOLE));
 // Đặt trong openNote thì chính cây gọi openNote khi bấm node cũng dựng lại cây - thừa và chớp.
 check("KHÔNG nhét lệnh xổ cây vào trong openNote",
   !/async function openNote\(rel, it\)[\s\S]{0,1200}_vtRevealInTree/.test(CONSOLE));

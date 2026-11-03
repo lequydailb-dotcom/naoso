@@ -14,9 +14,9 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 TEST_ROOT = Path(tempfile.mkdtemp(prefix="improvement-usage-"))
-for key, name in {"NAOTA_STATE_DIR": "state", "BRAINS_DIR": "brains", "OBSIDIAN_VAULT_PATH": "vault",
-                  "BRAIN_PATH": "brain", "SOURCES_PATH": "sources", "NAOTA_CLAUDE_PROJECTS_DIR": "empty-claude",
-                  "NAOTA_CODEX_SESSIONS_DIR": "empty-codex"}.items():
+for key, name in {"VANHANH_STATE_DIR": "state", "BRAINS_DIR": "brains", "OBSIDIAN_VAULT_PATH": "vault",
+                  "BRAIN_PATH": "brain", "SOURCES_PATH": "sources", "VANHANH_CLAUDE_PROJECTS_DIR": "empty-claude",
+                  "VANHANH_CODEX_SESSIONS_DIR": "empty-codex"}.items():
     os.environ[key] = str(TEST_ROOT / name)
 
 import turn_context as TC

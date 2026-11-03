@@ -1,13 +1,13 @@
-"""Connector cần trình duyệt trên máy chạy Naota không được để user domain public đâm ngõ cụt.
+"""Connector cần trình duyệt trên máy chạy Vanhanh không được để user domain public đâm ngõ cụt.
 
     python tests/run.py can_trinh_duyet_local
 
 Connector google-workspace chạy workspace-mcp, thư viện đó tự làm OAuth với
-callback CỨNG http://localhost:8000/oauth2callback. Truy cập Naota qua domain public thì
+callback CỨNG http://localhost:8000/oauth2callback. Truy cập Vanhanh qua domain public thì
 Google chuyển trình duyệt của NGƯỜI DÙNG về localhost của họ - không có gì nghe ở đó,
 ERR_CONNECTION_REFUSED, và không một dòng nào nói cho họ biết vì sao. Nay /connect/add
 chặn kèm lời giải thích (khuôn can_force như POST /reminders), còn LAN/localhost thì cho
-qua vì máy chạy Naota thường là desktop có màn hình.
+qua vì máy chạy Vanhanh thường là desktop có màn hình.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
 import json
@@ -35,7 +35,7 @@ import web_security  # noqa: E402
 
 for h, mong in [("localhost", True), ("127.0.0.1:7777", True), ("[::1]:7777", True),
                 ("192.168.1.5:7777", True), ("10.0.0.2", True), ("mymac.local", True),
-                ("naota.example.com", False), ("https://naota.shop-mau.vn", False),
+                ("vanhanh.example.com", False), ("https://vanhanh.shop-mau.vn", False),
                 ("8.8.8.8:7777", False)]:
     check(f"host_kieu_local({h!r}) == {mong}", web_security.host_kieu_local(h) is mong)
 

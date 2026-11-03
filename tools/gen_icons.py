@@ -32,7 +32,7 @@ OUT = ROOT / "dashboard" / "vendor" / "lucide-icons.js"
 OUT_CSS = ROOT / "dashboard" / "vendor" / "lucide-icons.css"
 
 LUCIDE_VERSION = "1.27.0"
-# NAOTA draws its own look with Tabler Icons (MIT): the manifest's "tabler" map names, for each
+# VANHANH draws its own look with Tabler Icons (MIT): the manifest's "tabler" map names, for each
 # key the app calls ic() with, the Tabler outline icon to draw. Keys without an entry stay Lucide.
 TABLER_VERSION = "3.31.0"
 TABLER_CDN = "https://cdn.jsdelivr.net/npm/@tabler/icons@{ver}/icons/outline/{name}.svg"

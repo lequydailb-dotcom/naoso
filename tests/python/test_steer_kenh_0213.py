@@ -1,4 +1,4 @@
-"""send more while Naota is working, on the chat channels (Telegram, Discord, Slack, Lark, Messenger, Zalo).
+"""send more while Vanhanh is working, on the chat channels (Telegram, Discord, Slack, Lark, Messenger, Zalo).
 
 Before, an owner bot answered "busy, send /stop" and the message was lost. Now bot_gateway hands it to the running
 turn (the same steer_inbox as the web dashboard); what that turn never reads runs right after.
@@ -15,7 +15,7 @@ import asyncio
 import os
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-steer-kenh-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-steer-kenh-"))
 
 import steer_inbox as si  # noqa: E402
 from telegram_bot import TelegramBot  # noqa: E402

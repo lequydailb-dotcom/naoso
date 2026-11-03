@@ -3,9 +3,9 @@
 
     python packaging/make_icons.py
 
-Writes packaging/assets/naota.ico (Windows installer and shortcuts) and
-packaging/assets/naota.icns (macOS app bundle and the .dmg volume icon), plus a copy of
-the .icns inside the in-repo "NAOTA.app", and the Windows setup wizard pictures:
+Writes packaging/assets/vanhanh.ico (Windows installer and shortcuts) and
+packaging/assets/vanhanh.icns (macOS app bundle and the .dmg volume icon), plus a copy of
+the .icns inside the in-repo "VANHANH.app", and the Windows setup wizard pictures:
 wizard-<pct>.bmp (the tall panel on the first and last page) and wizard-small-<pct>.bmp
 (the corner logo on the pages between), one per display scale Inno Setup picks from.
 The outputs are committed, so CI and users never need Pillow for this; rerun it only when
@@ -48,7 +48,7 @@ def _wizard_big(logo: Image.Image, pct: int) -> Image.Image:
     top = round(h * 0.22)
     img.paste(mark, ((w - side) // 2, top), mark)
     font = _font(round(w * 0.15))
-    text = "NAOTA"
+    text = "VANHANH"
     tw = d.textlength(text, font=font)
     d.text(((w - tw) / 2, top + side + round(h * 0.05)), text, font=font, fill=(255, 255, 255))
     return img
@@ -66,15 +66,15 @@ def _wizard_small(logo: Image.Image, pct: int) -> Image.Image:
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     img = Image.open(SRC).convert("RGBA")
-    img.save(OUT / "naota.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
-    img.save(OUT / "naota.icns")
-    res = ROOT / "NAOTA.app" / "Contents" / "Resources"
+    img.save(OUT / "vanhanh.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+    img.save(OUT / "vanhanh.icns")
+    res = ROOT / "VANHANH.app" / "Contents" / "Resources"
     res.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(OUT / "naota.icns", res / "naota.icns")
+    shutil.copyfile(OUT / "vanhanh.icns", res / "vanhanh.icns")
     for pct in SCALES:
         _wizard_big(img, pct).save(OUT / f"wizard-{pct}.bmp")
         _wizard_small(img, pct).save(OUT / f"wizard-small-{pct}.bmp")
-    print("wrote", OUT / "naota.ico", OUT / "naota.icns", f"and {2 * len(SCALES)} wizard pictures")
+    print("wrote", OUT / "vanhanh.ico", OUT / "vanhanh.icns", f"and {2 * len(SCALES)} wizard pictures")
 
 
 if __name__ == "__main__":

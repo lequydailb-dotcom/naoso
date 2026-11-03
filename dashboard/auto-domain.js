@@ -3,7 +3,7 @@
 // Goal: the install should come with a ready link for the customer to open (like a Hostinger
 // catalog app that opens on <app>.srv<id>.hstgr.cloud). A pasted compose cannot learn the VPS name at install time, so
 // hPanel's Open button lands on http://<ip>:7777. This page then asks /domain/auto; the server answers with the https
-// link only when that link already answers as THIS Naota over a valid certificate (routes/domain.py), so the move never
+// link only when that link already answers as THIS Vanhanh over a valid certificate (routes/domain.py), so the move never
 // lands on a dead or foreign page. Only from a bare IP over http, never on localhost or a domain. Add ?stay=1 to stay.
 (function () {
   "use strict";
@@ -12,10 +12,10 @@
     var ip = /^\d{1,3}(\.\d{1,3}){3}$/.test(h) || h.indexOf(":") !== -1;
     if (!ip || location.protocol !== "http:" || h === "127.0.0.1") return;
     if (/[?&]stay=1(&|$)/.test(location.search)) {
-      try { sessionStorage.setItem("naota.stayIp", "1"); } catch (e) { /* private mode */ }
+      try { sessionStorage.setItem("vanhanh.stayIp", "1"); } catch (e) { /* private mode */ }
       return;
     }
-    try { if (sessionStorage.getItem("naota.stayIp")) return; } catch (e) { /* private mode */ }
+    try { if (sessionStorage.getItem("vanhanh.stayIp")) return; } catch (e) { /* private mode */ }
     fetch("/domain/auto", { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {

@@ -7,7 +7,7 @@ const _events = [];
 global.window.dispatchEvent = (e) => { _events.push(e && e.type); };
 
 require("../../dashboard/graph.js");
-const NaotaGraph = window.NaotaGraph;
+const VanhanhGraph = window.VanhanhGraph;
 
 let fails = 0;
 function check(name, cond) {
@@ -41,7 +41,7 @@ const links = [
 ];
 
 (async () => {
-  const g = new NaotaGraph({}, {});
+  const g = new VanhanhGraph({}, {});
   g.graph = stubGraph({ nodes, links });
 
   check("chưa chạy: timelapseRunning=false", g.timelapseRunning === false);
@@ -54,7 +54,7 @@ const links = [
   await sleep(800);   // đợi hết phim (6 nhịp x 60ms + dư an toàn)
 
   check("hết phim: timelapseRunning=false", g.timelapseRunning === false);
-  check("bắn sự kiện naota-timelapse-end", _events.includes("naota-timelapse-end"));
+  check("bắn sự kiện vanhanh-timelapse-end", _events.includes("vanhanh-timelapse-end"));
 
   // Trình tự thời gian: mỗi khung node phải là PREFIX của [a,b,c,d,e,f] (xếp theo t tăng)
   const wantOrder = ["a", "b", "c", "d", "e", "f"];
@@ -88,7 +88,7 @@ const links = [
   g.stopTimelapse();
   const afterStop = g.graph.graphData();
   check("dừng giữa chừng: trả lại đủ mạng ngay", afterStop.nodes.length === 6 && afterStop.links.length === 4);
-  check("dừng giữa chừng: có sự kiện end", _events.includes("naota-timelapse-end"));
+  check("dừng giữa chừng: có sự kiện end", _events.includes("vanhanh-timelapse-end"));
   check("dừng xong: timelapseRunning=false", g.timelapseRunning === false);
 
   console.log();

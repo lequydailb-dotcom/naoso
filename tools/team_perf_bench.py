@@ -33,8 +33,8 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default="")
     a = ap.parse_args(argv)
 
-    state = Path(tempfile.mkdtemp(prefix="naota-team-bench-"))
-    os.environ["NAOTA_STATE_DIR"] = str(state / "state")
+    state = Path(tempfile.mkdtemp(prefix="vanhanh-team-bench-"))
+    os.environ["VANHANH_STATE_DIR"] = str(state / "state")
     (state / "state").mkdir()
     brain = state / "brain"
     (brain / "agents").mkdir(parents=True)

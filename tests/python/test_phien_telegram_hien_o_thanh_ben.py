@@ -25,8 +25,8 @@ import os
 import sys
 import tempfile
 
-_TMP = tempfile.mkdtemp(prefix="naota-tgside-")
-os.environ.setdefault("NAOTA_STATE_DIR", _TMP)
+_TMP = tempfile.mkdtemp(prefix="vanhanh-tgside-")
+os.environ.setdefault("VANHANH_STATE_DIR", _TMP)
 os.environ.setdefault("BRAINS_DIR", os.path.join(_TMP, "brains"))
 
 try:
@@ -100,7 +100,7 @@ st.append_message(moi, "user", "chot don gium anh")
 
 # Và một phiên web bình thường.
 web = st.get_or_create(None, brain=main._brain_key("brain"), engine="cli", model="opus")
-st.append_message(web, "user", "chao Naota")
+st.append_message(web, "user", "chao Vanhanh")
 
 thay = {s["id"] for s in st.list_sessions(brain=main._brain_keys("brain"))}
 check("thanh bên (brain='brain') thấy phiên Telegram CŨ", cu in thay)

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# NAOTA - cập nhật lên bản mới nhất từ GitHub.
+# VANHANH - cập nhật lên bản mới nhất từ GitHub.
 #   ./update.sh            (tự nhận Docker hay native)
 #   ./update.sh docker     (ép chế độ Docker)
 #   ./update.sh native     (ép chế độ native/systemd)
@@ -10,12 +10,12 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 MODE="${1:-auto}"
 SUDO=""; [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
 
-# Tên bản Naota Ở THƯ MỤC NÀY. Nhiều bản trên cùng VPS thì mỗi bản một .env riêng; không đọc
+# Tên bản Vanhanh Ở THƯ MỤC NÀY. Nhiều bản trên cùng VPS thì mỗi bản một .env riêng; không đọc
 # .env ở đây thì `./update.sh` của bản này đi restart container/dịch vụ của bản khác.
-if [ -z "${NAOTA_NAME:-}" ] && [ -f .env ]; then
-  NAOTA_NAME="$(sed -n 's/^[[:space:]]*NAOTA_NAME[[:space:]]*=[[:space:]]*//p' .env | tail -1)"
+if [ -z "${VANHANH_NAME:-}" ] && [ -f .env ]; then
+  VANHANH_NAME="$(sed -n 's/^[[:space:]]*VANHANH_NAME[[:space:]]*=[[:space:]]*//p' .env | tail -1)"
 fi
-NAME="${NAOTA_NAME:-naota}"
+NAME="${VANHANH_NAME:-vanhanh}"
 
 echo "==> Pulling the latest code from GitHub..."
 git pull --ff-only
@@ -35,9 +35,9 @@ if [ "$MODE" = "docker" ] || { [ "$MODE" = "auto" ] && is_docker; }; then
   fi
   # Đứng sau proxy dùng chung (nhiều bản, mỗi bản một tên miền) thì giữ luôn override multi,
   # không thì lượt cập nhật này gỡ mất nhãn Caddy và bản đó rơi khỏi proxy.
-  if [ -f docker-compose.multi.yml ] && docker network inspect naota-web >/dev/null 2>&1; then
+  if [ -f docker-compose.multi.yml ] && docker network inspect vanhanh-web >/dev/null 2>&1; then
     HTTPS_ARGS="-f docker-compose.yml -f docker-compose.multi.yml"
-    echo "==> Shared proxy (naota-web) detected → keeping the multi-instance setup."
+    echo "==> Shared proxy (vanhanh-web) detected → keeping the multi-instance setup."
   fi
   # Đã mở cổng 8000 cho đăng nhập Google Workspace (docker-compose.google.yml)? Giữ lại.
   if [ -f docker-compose.google.yml ] && docker port "$NAME" 8000 >/dev/null 2>&1; then
@@ -62,24 +62,24 @@ else
     $SUDO systemctl restart "$NAME"
     echo "==> Restarted. Follow the logs:  journalctl -u $NAME -f"
   elif [ "$(uname)" = "Darwin" ] && \
-       launchctl print "gui/$(id -u)/${NAOTA_LAUNCHD_LABEL:-com.naota.os}" >/dev/null 2>&1; then
+       launchctl print "gui/$(id -u)/${VANHANH_LAUNCHD_LABEL:-com.vanhanh.os}" >/dev/null 2>&1; then
     # Mac chạy dưới launchd (KeepAlive): kill PID rồi tự chạy nohup là đua bind cổng với bản
     # launchd respawn ([Errno 48]). Để launchd tự đổi ca bằng kickstart -k.
-    TARGET="gui/$(id -u)/${NAOTA_LAUNCHD_LABEL:-com.naota.os}"
+    TARGET="gui/$(id -u)/${VANHANH_LAUNCHD_LABEL:-com.vanhanh.os}"
     echo "==> launchd ($TARGET) detected → kickstart -k..."
     launchctl kickstart -k "$TARGET"
-    echo "==> Asked launchd to restart Naota. Logs: server/naota.log"
+    echo "==> Asked launchd to restart Vanhanh. Logs: server/vanhanh.log"
   else
     # Mac / Linux không systemd: kill tiến trình đang giữ cổng rồi chạy lại nền (như install.sh)
-    PORT="${NAOTA_PORT:-7777}"
+    PORT="${VANHANH_PORT:-7777}"
     PIDS="$(lsof -ti tcp:"$PORT" 2>/dev/null || true)"
     if [ -n "$PIDS" ]; then
       echo "==> Stopping the old process (PID: $PIDS)..."
       kill $PIDS 2>/dev/null || true
       sleep 2
     fi
-    ( cd server && NAOTA_STATE_DIR="$PWD" nohup ../.venv/bin/python -m uvicorn main:app \
-        --host "${NAOTA_HOST:-127.0.0.1}" --port "$PORT" > naota.log 2>&1 & )
-    echo "==> Restarted (nohup). Logs: server/naota.log"
+    ( cd server && VANHANH_STATE_DIR="$PWD" nohup ../.venv/bin/python -m uvicorn main:app \
+        --host "${VANHANH_HOST:-127.0.0.1}" --port "$PORT" > vanhanh.log 2>&1 & )
+    echo "==> Restarted (nohup). Logs: server/vanhanh.log"
   fi
 fi

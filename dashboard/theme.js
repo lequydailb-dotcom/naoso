@@ -1,10 +1,10 @@
 // ============================================
-// NAOTA - Bộ đổi tông: TỐI ↔ SÁNG, chọn tay hoặc tự động theo giờ
+// VANHANH - Bộ đổi tông: TỐI ↔ SÁNG, chọn tay hoặc tự động theo giờ
 // ============================================
-// Chế độ lưu ở localStorage "naota.theme" với 3 giá trị: "dark" | "light" | "auto".
-// Máy chưa từng chọn (không có khoá) dùng tông SÁNG từ NAOTA 1.0.0 (anh Vương chốt 31/10/2026).
+// Chế độ lưu ở localStorage "vanhanh.theme" với 3 giá trị: "dark" | "light" | "auto".
+// Máy chưa từng chọn (không có khoá) dùng tông SÁNG từ VANHANH 1.0.0 (anh Vương chốt 31/10/2026).
 // Ai đã bấm chọn tay thì khoá đã có giá trị, nên không bị đổi theo.
-// "auto" đọc thêm khung giờ ở "naota.theme.schedule" dạng "06:00-18:00": từ giờ
+// "auto" đọc thêm khung giờ ở "vanhanh.theme.schedule" dạng "06:00-18:00": từ giờ
 // đầu tới trước giờ sau là tông sáng, còn lại là tông tối. Cả hai là lựa chọn THEO THIẾT BỊ
 // (điện thoại để tự động, máy bàn ghim tối là hợp lệ), nên không lưu lên server.
 //
@@ -17,10 +17,10 @@
 // lại vào localStorage để lần sau không phải quy đổi nữa.
 //
 // Các lớp vẽ bằng canvas (starfield, knowledge graph) KHÔNG đọc được biến CSS,
-// nên chúng nghe sự kiện "naota-theme-change" rồi tự vẽ lại bằng bảng màu tương ứng.
+// nên chúng nghe sự kiện "vanhanh-theme-change" rồi tự vẽ lại bằng bảng màu tương ứng.
 (function () {
-  var KEY = "naota.theme";
-  var KEY_SCHED = "naota.theme.schedule";
+  var KEY = "vanhanh.theme";
+  var KEY_SCHED = "vanhanh.theme.schedule";
   var DEFAULT_SCHED = { light: "06:00", dark: "18:00" };
   var root = document.documentElement;
 
@@ -42,7 +42,7 @@
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function fromMin(n) { return pad(Math.floor(n / 60)) + ":" + pad(n % 60); }
 
-  // NAOTA 1.0.0 (anh Vương thích nền sáng): máy chưa từng chọn dùng tông SÁNG, không còn
+  // VANHANH 1.0.0 (anh Vương thích nền sáng): máy chưa từng chọn dùng tông SÁNG, không còn
   // tự đổi theo giờ. "auto" chỉ chạy khi người dùng tự chọn nó (setMode ghi đúng chữ "auto").
   function mode() {
     var v = read(KEY);
@@ -90,7 +90,7 @@
     if (!b) return;
     b.setAttribute("aria-pressed", light ? "true" : "false");
     // Tooltip lấy từ từ điển i18n khi nó đã nạp; chưa nạp (theme.js chạy rất sớm) thì dùng
-    // tiếng Anh tại chỗ - cùng nấc suy biến đầu của i18n/index.js - và nghe "naota:i18n" bên
+    // tiếng Anh tại chỗ - cùng nấc suy biến đầu của i18n/index.js - và nghe "vanhanh:i18n" bên
     // dưới để tự sửa lại ngay khi từ điển về. Chữ gốc tiếng Việt nằm ở vi.json, không chép ra đây.
     var auto = mode() === "auto";
     var key = auto ? (light ? "top.theme_auto_light" : "top.theme_auto_dark")
@@ -106,16 +106,16 @@
     b.title = txt;
     b.setAttribute("aria-label", b.title);
   }
-  window.addEventListener("naota:i18n", function () { syncButton(isLight()); });
+  window.addEventListener("vanhanh:i18n", function () { syncButton(isLight()); });
 
   function emit(light) {
     try {
-      window.dispatchEvent(new CustomEvent("naota-theme-change", { detail: { light: light, mode: mode() } }));
+      window.dispatchEvent(new CustomEvent("vanhanh-theme-change", { detail: { light: light, mode: mode() } }));
     } catch (e) {
       // Trình duyệt cũ không có CustomEvent constructor
       try {
         var ev = document.createEvent("Event");
-        ev.initEvent("naota-theme-change", false, false);
+        ev.initEvent("vanhanh-theme-change", false, false);
         window.dispatchEvent(ev);
       } catch (e2) {}
     }
@@ -166,7 +166,7 @@
   // dùng phải bấm hai lần mới ra tông mình muốn.
   function toggle() { apply(!isLight(), true); }
 
-  window.naotaTheme = {
+  window.vanhanhTheme = {
     isLight: isLight,
     apply: apply,
     toggle: toggle,
@@ -179,7 +179,7 @@
     // Đăng ký hàm vẽ lại; gọi luôn một lần để lớp canvas nhận tông hiện tại ngay khi khởi tạo.
     on: function (fn) {
       if (typeof fn !== "function") return;
-      window.addEventListener("naota-theme-change", function (e) {
+      window.addEventListener("vanhanh-theme-change", function (e) {
         fn(!!(e && e.detail ? e.detail.light : isLight()));
       });
       try { fn(isLight()); } catch (err) {}
@@ -206,7 +206,7 @@
     });
     window.addEventListener("focus", tick);
 
-    // Mở Naota ở nhiều tab: đổi tông hay khung giờ ở tab này thì tab kia đổi theo.
+    // Mở Vanhanh ở nhiều tab: đổi tông hay khung giờ ở tab này thì tab kia đổi theo.
     window.addEventListener("storage", function (e) {
       if (e.key === KEY || e.key === KEY_SCHED) paint(wantLight(), true);
     });

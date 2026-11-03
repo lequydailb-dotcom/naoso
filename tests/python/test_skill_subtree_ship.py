@@ -27,7 +27,7 @@ import shutil
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-subtree-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-subtree-"))
 
 import system_sync  # noqa: E402
 
@@ -55,7 +55,7 @@ def _fake_source(tmp):
 
 def main():
     from pathlib import Path
-    tmp = Path(tempfile.mkdtemp(prefix="naota-subtree-run-"))
+    tmp = Path(tempfile.mkdtemp(prefix="vanhanh-subtree-run-"))
     try:
         src = _fake_source(tmp)
         system_sync.SYSTEM_SKILLS_DIR = src
@@ -85,7 +85,7 @@ def main():
               (sk / "tools" / "run.js").read_text(encoding="utf-8").strip() == "console.log('v1');")
         check("2f. bao cao installed du 4 muc", len(res["installed"]) == 4)
 
-        man = json.loads((brain / ".naota" / "system-manifest.json").read_text(encoding="utf-8"))
+        man = json.loads((brain / ".vanhanh" / "system-manifest.json").read_text(encoding="utf-8"))
         check("3. khoa manifest cua SKILL.md GIU nguyen dang cu 'skills/<slug>'",
               "skills/demo-skill" in man["files"] and "skills/demo-skill/SKILL.md" not in man["files"])
         check("3b. file con co khoa rieng", "skills/demo-skill/tools/run.js" in man["files"])

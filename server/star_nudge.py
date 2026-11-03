@@ -1,4 +1,4 @@
-"""Lời mời tặng sao Naota trên GitHub.
+"""Lời mời tặng sao Vanhanh trên GitHub.
 
 Mục tiêu là tăng sao cho dự án bằng một lời mời hiện "thi thoảng, đúng lúc", viết cho người
 không biết GitHub là gì. Ba quyết định nằm ở đây:
@@ -10,7 +10,7 @@ không biết GitHub là gì. Ba quyết định nằm ở đây:
   ngày một lần, mốc kế tiếp tự tính theo bước tròn. Không đọc được thì không hiện số nào.
 
 Trạng thái (đã tặng, để sau, đừng hỏi nữa) nằm trong settings.json của server chứ không trong
-trình duyệt: người dùng Naota trên cả máy tính lẫn điện thoại không bị hỏi hai lần.
+trình duyệt: người dùng Vanhanh trên cả máy tính lẫn điện thoại không bị hỏi hai lần.
 
 Module này không biết gì về FastAPI: mọi hàm nhận thời điểm `now` và dữ liệu đầu vào, để test
 gọi thẳng. Route nằm ở routes/star_nudge.py.
@@ -20,7 +20,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-REPO = "vuongtex/naota"
+REPO = "lequydailb-dotcom/vanhanh"
 REPO_URL = "https://github.com/" + REPO
 API_URL = "https://api.github.com/repos/" + REPO
 
@@ -158,7 +158,7 @@ def _hoi_github(timeout: float = 5.0) -> int:
     """Gọi API công khai của GitHub (không cần đăng nhập, 60 lượt/giờ mỗi IP - dư cho một lần
     mỗi ngày). urllib tự đi qua HTTPS_PROXY của máy nếu có."""
     req = urllib.request.Request(API_URL, headers={
-        "Accept": "application/vnd.github+json", "User-Agent": "naota"})
+        "Accept": "application/vnd.github+json", "User-Agent": "vanhanh"})
     with urllib.request.urlopen(req, timeout=timeout) as r:      # noqa: S310 - URL cố định https
         n = json.loads(r.read().decode("utf-8")).get("stargazers_count")
     if not isinstance(n, int) or n < 0:

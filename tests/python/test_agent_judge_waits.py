@@ -8,7 +8,7 @@ mỗi (agent, tin gốc) xét lại tối đa một lần; hết hạn thì im c
 """
 import os
 
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
 
 from _judge_world import World, batch, check, finish, keys_in  # noqa: E402
 

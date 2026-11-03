@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-files-raw-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-files-raw-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -30,7 +30,7 @@ def check(name, cond, extra=""):
         _fails.append(name)
 
 
-tmp = Path(tempfile.mkdtemp(prefix="naota-files-raw-brain-"))
+tmp = Path(tempfile.mkdtemp(prefix="vanhanh-files-raw-brain-"))
 
 
 def serve(name, dl=False):

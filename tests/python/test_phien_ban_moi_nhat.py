@@ -12,7 +12,7 @@ import asyncio
 import os
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-banmoi-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-banmoi-"))
 
 import httpx  # noqa: E402
 import main  # noqa: E402

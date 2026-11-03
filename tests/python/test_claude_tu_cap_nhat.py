@@ -1,9 +1,9 @@
-"""Claude Code phải tự lên bản mới, để model mới tự hiện trong Naota.
+"""Claude Code phải tự lên bản mới, để model mới tự hiện trong Vanhanh.
 
     python tests/run.py claude_tu_cap_nhat
 
-Lỗi thật: Naota chưa cập nhật model mới (vd Sonnet 5.5) dù tưởng đã tự cập nhật. Đường đọc danh mục model từ binary `claude` vẫn chạy
-đúng; cái kẹt là chính binary. Claude Code chỉ tự cập nhật khi người ta mở nó gõ tay, còn Naota
+Lỗi thật: Vanhanh chưa cập nhật model mới (vd Sonnet 5.5) dù tưởng đã tự cập nhật. Đường đọc danh mục model từ binary `claude` vẫn chạy
+đúng; cái kẹt là chính binary. Claude Code chỉ tự cập nhật khi người ta mở nó gõ tay, còn Vanhanh
 gọi nó chạy ngầm, nên máy đứng ở 2.1.232 suốt sáu tuần. Bản Docker kẹt theo kiểu khác:
 cache gha giữ nguyên lớp `npm install -g @anthropic-ai/claude-code@latest` vì chuỗi lệnh
 không đổi.
@@ -16,7 +16,7 @@ import sys
 import tempfile
 import time
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-claude-upd-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-claude-upd-")
 
 import claude_cli  # noqa: E402
 import claude_update as cu  # noqa: E402
@@ -82,7 +82,7 @@ try:
     deploy_info.deploy_mode = lambda: "docker"
     cu._chay, _t = _gia_chay("1", "2")
     _kq = cu.cap_nhat()
-    check("Docker không chạy `claude update` (CLI của root, user naota không ghi được)",
+    check("Docker không chạy `claude update` (CLI của root, user vanhanh không ghi được)",
           _kq.get("docker") and not _t["lenh"], _kq)
     deploy_info.deploy_mode = lambda: "windows"
 
@@ -99,9 +99,9 @@ check("gỡ DISABLE_AUTOUPDATER khỏi môi trường của lệnh con", _r.stdo
 os.environ.pop("DISABLE_AUTOUPDATER", None)
 
 # 7. Tắt được bằng biến môi trường
-os.environ["NAOTA_CLAUDE_AUTO_UPDATE"] = "0"
-check("NAOTA_CLAUDE_AUTO_UPDATE=0 tắt vòng hằng ngày", not cu.bat())
-os.environ.pop("NAOTA_CLAUDE_AUTO_UPDATE")
+os.environ["VANHANH_CLAUDE_AUTO_UPDATE"] = "0"
+check("VANHANH_CLAUDE_AUTO_UPDATE=0 tắt vòng hằng ngày", not cu.bat())
+os.environ.pop("VANHANH_CLAUDE_AUTO_UPDATE")
 check("mặc định bật", cu.bat())
 
 # 7b. On/off switch on the Models page. The env var stays an
@@ -111,13 +111,13 @@ import json  # noqa: E402
 check("the switch defaults to on in config", cfgmod._DEFAULT["model"].get(cu.SETTING_KEY) is True)
 cfgmod.update_settings({"model": {cu.SETTING_KEY: False}})
 check("the saved switch turns the daily update off", not cu.bat())
-os.environ["NAOTA_CLAUDE_AUTO_UPDATE"] = "1"
+os.environ["VANHANH_CLAUDE_AUTO_UPDATE"] = "1"
 check("env set to 1 does not override a switch the user turned off", not cu.bat())
 cfgmod.update_settings({"model": {cu.SETTING_KEY: True}})
 check("switch on and env 1 means on", cu.bat())
-os.environ["NAOTA_CLAUDE_AUTO_UPDATE"] = "off"
+os.environ["VANHANH_CLAUDE_AUTO_UPDATE"] = "off"
 check("env off still forces it off over a switch that is on", not cu.bat() and cu.env_off())
-os.environ.pop("NAOTA_CLAUDE_AUTO_UPDATE")
+os.environ.pop("VANHANH_CLAUDE_AUTO_UPDATE")
 check("no env var: env_off is False", not cu.env_off())
 
 # POST /settings has a per-key allowlist: the new key needs its own branch or it is dropped.
@@ -136,10 +136,10 @@ try:
     _st = main.claude_status()
     check("/claude/status reports auto_update=false and no env lock",
           _st.get("auto_update") is False and _st.get("auto_update_env_off") is False, _st)
-    os.environ["NAOTA_CLAUDE_AUTO_UPDATE"] = "0"
+    os.environ["VANHANH_CLAUDE_AUTO_UPDATE"] = "0"
     _st = main.claude_status()
     check("/claude/status reports the env lock", _st.get("auto_update_env_off") is True, _st)
-    os.environ.pop("NAOTA_CLAUDE_AUTO_UPDATE")
+    os.environ.pop("VANHANH_CLAUDE_AUTO_UPDATE")
 finally:
     main.claude_auth_status = _goc_st
 

@@ -1,6 +1,6 @@
 """Login vault (server/login_vault.py).
 
-The owner pastes the cookies of a site they signed in to; Naota reuses that sign-in to read pages behind it
+The owner pastes the cookies of a site they signed in to; Vanhanh reuses that sign-in to read pages behind it
 and to watch them. These tests keep what makes it safe and usable: the four paste formats, cookies only go
 to the host they belong to (every redirect hop is checked again), values are encrypted and never come back
 out of the API or a tool, routes need a real dashboard session, and an expired sign-in is said plainly.
@@ -218,10 +218,10 @@ def test_fetch_sends_cookies_only_to_their_host_on_every_hop(monkeypatch):
     assert final == "https://tracker.example/next" and "ok" in text
     assert seen[0] == ("https://shop.vn/a", "sid=SECRET")
     assert seen[1] == ("https://tracker.example/next", "")
-    assert "Chrome/" in ua[0] and "NaotaWatch" not in ua[0]           # a signed-in fetch looks like a browser
+    assert "Chrome/" in ua[0] and "VanhanhWatch" not in ua[0]           # a signed-in fetch looks like a browser
     seen.clear(); ua.clear()
     asyncio.run(ww.fetch("https://shop.vn/a"))
-    assert "NaotaWatch" in ua[0] and seen[0][1] == ""                 # an anonymous watch still says who it is
+    assert "VanhanhWatch" in ua[0] and seen[0][1] == ""                 # an anonymous watch still says who it is
 
 
 # ---------------------------------------------------------------- routes
@@ -327,8 +327,8 @@ def test_old_watch_database_gets_the_login_column(tmp_path):
 
 
 def _plugin():
-    p = ROOT / "system" / "plugins" / "naota-login" / "plugin.py"
-    spec = importlib.util.spec_from_file_location("naota_login_plugin", p)
+    p = ROOT / "system" / "plugins" / "vanhanh-login" / "plugin.py"
+    spec = importlib.util.spec_from_file_location("vanhanh_login_plugin", p)
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     return m
@@ -357,7 +357,7 @@ def test_tool_returns_page_text_never_cookies(tmp_path, monkeypatch):
 
 def test_bots_never_get_the_tool():
     import mcp_hub
-    assert "naota_login" in mcp_hub.OWNER_ONLY_TOOLS
+    assert "vanhanh_login" in mcp_hub.OWNER_ONLY_TOOLS
 
 
 if __name__ == "__main__":

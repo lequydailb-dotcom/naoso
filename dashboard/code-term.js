@@ -1,8 +1,8 @@
 // ============================================================
-// NAOTA - Nhóm Code trên rail
+// VANHANH - Nhóm Code trên rail
 //
-// console.js gọi window.NaotaCode.render(el, id) khi vào một trang thuộc nhóm Code, và
-// window.NaotaCode.roi() khi rời.
+// console.js gọi window.VanhanhCode.render(el, id) khi vào một trang thuộc nhóm Code, và
+// window.VanhanhCode.roi() khi rời.
 //
 // "Code" là một KHU VỰC trên rail chứ không phải một trang: mỗi chức năng là MỘT MỤC trong
 // nhóm đó. Hôm nay có Terminal; thêm chức năng sau (trình sửa code, git, chạy test) = thêm
@@ -16,8 +16,8 @@
   "use strict";
 
   var WS_GOC = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host;
-  var KHOA_TABS = "naota.code.tabs";      // các tab terminal của TAB TRÌNH DUYỆT này (JSON {ds, chon})
-  var KHOA_PHIEN = "naota.code.phien";    // khoá CŨ thời một-phiên; chỉ còn để di cư sang KHOA_TABS
+  var KHOA_TABS = "vanhanh.code.tabs";      // các tab terminal của TAB TRÌNH DUYỆT này (JSON {ds, chon})
+  var KHOA_PHIEN = "vanhanh.code.phien";    // khoá CŨ thời một-phiên; chỉ còn để di cư sang KHOA_TABS
 
   // ---- Các chức năng của nhóm Code. Thêm chức năng mới = thêm một dòng ở đây. ----
   // `id` phải khớp id mục trên rail (console.js RAIL_ITEMS + CODE_PAGES).
@@ -113,10 +113,10 @@
     });
   }
 
-  // Bảng màu theo tông của Naota. xterm vẽ bằng canvas nên KHÔNG đọc được biến CSS - phải
+  // Bảng màu theo tông của Vanhanh. xterm vẽ bằng canvas nên KHÔNG đọc được biến CSS - phải
   // truyền màu vào tay, và đổi lại mỗi khi người dùng lật tông.
   function bangMau() {
-    var sang = !!(window.naotaTheme && window.naotaTheme.isLight());
+    var sang = !!(window.vanhanhTheme && window.vanhanhTheme.isLight());
     return sang
       ? { background: "#ffffff", foreground: "#1c1a24", cursor: "#c2410c", cursorAccent: "#ffffff",
           selectionBackground: "rgba(232,93,31,0.22)",
@@ -144,8 +144,8 @@
     fetch("/terminal/status?brain=" + encodeURIComponent(brain()))
       .then(function (r) {
         // Lỗi HTTP vẫn kèm JSON hợp lệ ({"detail":"Not Found"}) nên r.json() không ném gì;
-        // st.bat khi đó là undefined và màn hình báo nhầm rằng admin đã đặt NAOTA_TERMINAL=0.
-        // Hay gặp nhất khi server còn chạy code cũ chưa có route này -> phải restart Naota.
+        // st.bat khi đó là undefined và màn hình báo nhầm rằng admin đã đặt VANHANH_TERMINAL=0.
+        // Hay gặp nhất khi server còn chạy code cũ chưa có route này -> phải restart Vanhanh.
         if (!r.ok) throw new Error(window.t("term.http_err", { status: r.status }));
         return r.json();
       })
@@ -169,7 +169,7 @@
   function khungTat() {
     return '<div class="code-empty">' + ic("lock", { cls: "ic-xl ic-dim" }) +
       "<div><b>" + esc(window.t("term.off_title")) + "</b></div>" +
-      '<div class="code-dim">' + esc(window.t("term.off_env")) + ' <code>NAOTA_TERMINAL=0</code>. ' +
+      '<div class="code-dim">' + esc(window.t("term.off_env")) + ' <code>VANHANH_TERMINAL=0</code>. ' +
       esc(window.t("term.off_hint")) + "</div></div>";
   }
 
@@ -427,7 +427,7 @@
       var mau = bangMau();
       tabs.forEach(function (tb) { tb.term.options.theme = mau; });
     };
-    window.addEventListener("naota-theme-change", doiTong);
+    window.addEventListener("vanhanh-theme-change", doiTong);
 
     // ---- nút ----
     panel.querySelector("#termClear").onclick = function () {
@@ -475,7 +475,7 @@
 
     return {
       huy: function () {
-        window.removeEventListener("naota-theme-change", doiTong);
+        window.removeEventListener("vanhanh-theme-change", doiTong);
         if (ro) { try { ro.disconnect(); } catch (e) {} }
         tabs.forEach(function (tb) {
           tb.dong = true;
@@ -490,5 +490,5 @@
     };
   }
 
-  window.NaotaCode = { render: render, roi: roi, CHUC_NANG: CHUC_NANG };
+  window.VanhanhCode = { render: render, roi: roi, CHUC_NANG: CHUC_NANG };
 })();

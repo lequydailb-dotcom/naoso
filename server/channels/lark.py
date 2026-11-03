@@ -1,12 +1,12 @@
 """Lark / Feishu channel: a dedicated bot answers customers through `lark_bot.LarkBot`.
 
-Same transport as the owner's Lark control channel: a long connection (WebSocket) that Naota
+Same transport as the owner's Lark control channel: a long connection (WebSocket) that Vanhanh
 opens OUT to Lark, so it works on a laptop or behind NAT with no public URL.
 
 The account secret is the App ID and App Secret of one Lark custom app in one string,
 "cli_... SECRET", because the channel-account store keeps exactly one encrypted secret per account
 (the same trick as Slack's two tokens). An optional third word "lark" or "feishu" pins the cloud;
-without it Naota tries Lark (international) first and then Feishu (mainland China), because an app
+without it Vanhanh tries Lark (international) first and then Feishu (mainland China), because an app
 made on one platform does not exist on the other and the owner rarely knows which API host it is.
 """
 from __future__ import annotations

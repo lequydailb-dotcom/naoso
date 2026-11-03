@@ -5,7 +5,7 @@ import os
 import tempfile
 from unittest.mock import patch
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-oc-connect-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-oc-connect-")
 
 import config as cfg  # noqa: E402
 import main  # noqa: E402

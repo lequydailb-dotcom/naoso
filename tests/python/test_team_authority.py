@@ -2,7 +2,7 @@
 
     python tests/run.py team_authority -v
 
-Kho và bộ chạy thật trên SQLite tạm, engine giả theo kịch bản, lệnh quản trị qua khối NAOTA_TEAM. Thao tác của host
+Kho và bộ chạy thật trên SQLite tạm, engine giả theo kịch bản, lệnh quản trị qua khối VANHANH_TEAM. Thao tác của host
 (tạo agent, sửa lời nhắc, bật Cộng hưởng, cấp mã) là bản giả ghi lại lời gọi. Không gọi model.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
@@ -13,8 +13,8 @@ import tempfile
 import threading
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-auth-")
-TEMP = Path(tempfile.mkdtemp(prefix="naota-team-auth-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-auth-")
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-team-auth-w-"))
 
 import sessions  # noqa: E402
 import task_store  # noqa: E402
@@ -31,7 +31,7 @@ def check(name, cond, extra=""):
 
 
 def directive(**op):
-    return f"\n<!-- NAOTA_TEAM: {json.dumps(op, ensure_ascii=False)} -->"
+    return f"\n<!-- VANHANH_TEAM: {json.dumps(op, ensure_ascii=False)} -->"
 
 
 class Admin:

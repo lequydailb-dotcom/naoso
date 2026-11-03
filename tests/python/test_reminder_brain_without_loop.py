@@ -23,9 +23,9 @@ import tempfile
 from pathlib import Path
 
 # BRAINS_DIR and STATE_DIR must point at temp folders BEFORE main is imported (read at import).
-_STATE = tempfile.mkdtemp(prefix="naota-rem-noloop-state-")
-_BRAINS = tempfile.mkdtemp(prefix="naota-rem-noloop-brains-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="vanhanh-rem-noloop-state-")
+_BRAINS = tempfile.mkdtemp(prefix="vanhanh-rem-noloop-brains-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
 os.environ["BRAINS_DIR"] = _BRAINS
 
 import main  # noqa: E402
@@ -54,7 +54,7 @@ feature.deps.send_file = None
 
 
 def status_of(brain, rid):
-    data = json.loads((Path(brain) / "Naota" / "reminders.json").read_text(encoding="utf-8"))
+    data = json.loads((Path(brain) / "Vanhanh" / "reminders.json").read_text(encoding="utf-8"))
     return next(r for r in data["reminders"] if r["id"] == rid)["status"]
 
 
@@ -70,12 +70,12 @@ def make_due(brain, text):
 
 # A brain inside BRAINS_DIR with no loop folder at all.
 no_loop = Path(_BRAINS) / "TEST-NoLoop"
-(no_loop / "Naota").mkdir(parents=True)
+(no_loop / "Vanhanh").mkdir(parents=True)
 check("setup: the loop-free brain has no loop", not main.loop_feature.list_loops(str(no_loop)))
 
 # A brain folder outside BRAINS_DIR, also with no loop.
-outside = Path(tempfile.mkdtemp(prefix="naota-rem-noloop-outside-"))
-(outside / "Naota").mkdir(parents=True)
+outside = Path(tempfile.mkdtemp(prefix="vanhanh-rem-noloop-outside-"))
+(outside / "Vanhanh").mkdir(parents=True)
 
 rid_in = make_due(str(no_loop), "call the supplier")
 rid_out = make_due(str(outside), "pay the rent")

@@ -14,9 +14,9 @@ import tempfile
 import time
 from pathlib import Path
 
-_STATE = Path(tempfile.mkdtemp(prefix="naota-res-a5perf-"))
-os.environ["NAOTA_STATE_DIR"] = str(_STATE)
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
+_STATE = Path(tempfile.mkdtemp(prefix="vanhanh-res-a5perf-"))
+os.environ["VANHANH_STATE_DIR"] = str(_STATE)
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
 
 import resonance as R  # noqa: E402
 import _resonance_team as T  # noqa: E402

@@ -1,7 +1,7 @@
-/* chat-card.js - interactive cards inside a Naota answer.
+/* chat-card.js - interactive cards inside a Vanhanh answer.
 
    Idea borrowed from OpenMausBot's chat widgets. An answer may carry hidden blocks
-       <!-- NAOTA_CARD: {"type": "chart" | "stats" | "buttons", ...} -->
+       <!-- VANHANH_CARD: {"type": "chart" | "stats" | "buttons", ...} -->
    and the chat draws them in place:
      chart    {"title", "kind": "bar"|"line", "labels": [..], "series": [{"name", "data": [numbers]}]}
      stats    {"title", "items": [{"label", "value", "delta"}]}        a row of number tiles
@@ -16,7 +16,7 @@
 (function () {
   "use strict";
 
-  var RE = /<!--\s*NAOTA_CARD:\s*([\s\S]*?)\s*-->/g;
+  var RE = /<!--\s*VANHANH_CARD:\s*([\s\S]*?)\s*-->/g;
   var MAX_POINTS = 24, MAX_SERIES = 3, MAX_TILES = 6, MAX_BUTTONS = 4, MAX_TEXT = 80;
   var SECRET = /\b(?:(?:sk|gsk|rk|xai)[_-][A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,}|AIza[0-9A-Za-z_-]{20,}|eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}|\d{8,}:[-A-Za-z0-9_]{30,})/g;
 
@@ -125,7 +125,7 @@
     return '<div class="nt-card" style="margin:8px 0;padding:10px 12px;border:1px solid var(--hairline);border-radius:10px">' + head + inner + "</div>";
   }
 
-  /* Replaces every NAOTA_CARD block in `raw` with put(html) (chat-render.js placeholder), keeping the rest. */
+  /* Replaces every VANHANH_CARD block in `raw` with put(html) (chat-render.js placeholder), keeping the rest. */
   function replaceIn(raw, put) {
     return String(raw == null ? "" : raw).replace(RE, function (_m, json) {
       var c = parse(json);
@@ -133,7 +133,7 @@
     });
   }
 
-  /* Where a button press goes. By default the main chat (window.NaotaSend). A page with its own chat registers its root:
+  /* Where a button press goes. By default the main chat (window.VanhanhSend). A page with its own chat registers its root:
      onSend(root, fn) sends presses of buttons inside `root` to fn(text, button) instead (the Team chat answers in the
      team). Returns a function that removes the registration. The newest registration that contains the button wins. */
   var senders = [];
@@ -160,11 +160,11 @@
       b.classList.add("nt-ask-picked");
       var own = senderFor(b);
       if (own) { own(b.getAttribute("data-reply"), b); return; }
-      if (typeof window.NaotaSend === "function") window.NaotaSend(b.getAttribute("data-reply"));
+      if (typeof window.VanhanhSend === "function") window.VanhanhSend(b.getAttribute("data-reply"));
     });
   }
 
   var API = { parse: parse, html: html, replaceIn: replaceIn, onSend: onSend, senderFor: senderFor };
-  if (typeof window !== "undefined") window.NaotaCard = API;
+  if (typeof window !== "undefined") window.VanhanhCard = API;
   if (typeof module !== "undefined" && module.exports) module.exports = API;
 })();

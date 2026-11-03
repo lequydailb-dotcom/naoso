@@ -28,7 +28,7 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-capsule-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-capsule-"))
 
 import context_compiler as cc  # noqa: E402
 

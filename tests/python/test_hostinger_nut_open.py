@@ -16,7 +16,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-open-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-open-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -46,7 +46,7 @@ def interp(s, env):
     return re.sub(r"\$\{([A-Z_]+)(?:(:[+-])([^}]*))?\}", one, s)
 
 
-labels = yaml.safe_load((ROOT / "docker-compose.hostinger.yml").read_text(encoding="utf-8"))["services"]["naota"]["labels"]
+labels = yaml.safe_load((ROOT / "docker-compose.hostinger.yml").read_text(encoding="utf-8"))["services"]["vanhanh"]["labels"]
 
 
 def rendered(env):
@@ -59,27 +59,27 @@ def rendered(env):
 
 no = rendered({})
 check("no DOMAIN_NAME: no localhost anywhere in the labels", not any("localhost" in v for v in no.values()), no)
-check("no DOMAIN_NAME: router rule empty (no concrete Host for Open)", no.get("traefik.http.routers.naota.rule") == "", no)
+check("no DOMAIN_NAME: router rule empty (no concrete Host for Open)", no.get("traefik.http.routers.vanhanh.rule") == "", no)
 check("no DOMAIN_NAME: traefik.enable empty (Traefik skips the container)", no.get("traefik.enable") == "", no)
-yes = rendered({"DOMAIN_NAME": "naota.srv1.hstgr.cloud"})
+yes = rendered({"DOMAIN_NAME": "vanhanh.srv1.hstgr.cloud"})
 check("DOMAIN_NAME set: Host rule for exactly that name",
-      yes.get("traefik.http.routers.naota.rule") == "Host(`naota.srv1.hstgr.cloud`)" and yes.get("traefik.enable") == "true", yes)
-two = rendered({"DOMAIN_NAME": "b.srv1.hstgr.cloud", "NAOTA_NAME": "naota-b"})
-check("second instance keeps its own router name", two.get("traefik.http.routers.naota-b.rule") == "Host(`b.srv1.hstgr.cloud`)", two)
+      yes.get("traefik.http.routers.vanhanh.rule") == "Host(`vanhanh.srv1.hstgr.cloud`)" and yes.get("traefik.enable") == "true", yes)
+two = rendered({"DOMAIN_NAME": "b.srv1.hstgr.cloud", "VANHANH_NAME": "vanhanh-b"})
+check("second instance keeps its own router name", two.get("traefik.http.routers.vanhanh-b.rule") == "Host(`b.srv1.hstgr.cloud`)", two)
 check("the rest of the Traefik labels unchanged",
-      yes.get("traefik.http.routers.naota.entrypoints") == "websecure"
-      and yes.get("traefik.http.services.naota.loadbalancer.server.port") == "7777")
+      yes.get("traefik.http.routers.vanhanh.entrypoints") == "websecure"
+      and yes.get("traefik.http.services.vanhanh.loadbalancer.server.port") == "7777")
 
 # ---- 2. the free name ----
 from routes import domain as dom   # noqa: E402
 
 S = dom.hostinger_suggestion
-check("reverse DNS under .hstgr.cloud gives naota.<name>", S("1.2.3.4", lambda ip: "srv1234567.hstgr.cloud.") == "naota.srv1234567.hstgr.cloud")
+check("reverse DNS under .hstgr.cloud gives vanhanh.<name>", S("1.2.3.4", lambda ip: "srv1234567.hstgr.cloud.") == "vanhanh.srv1234567.hstgr.cloud")
 check("any other reverse name gives nothing", S("1.2.3.4", lambda ip: "static.vnpt.vn") == "")
 check("no IP or a failing lookup gives nothing", S("", lambda ip: "x") == "" and S("1.2.3.4", lambda ip: 1 / 0) == "")
-os.environ["NAOTA_NAME"] = "naota-shop"
-check("a second instance gets its own sub-name", S("1.2.3.4", lambda ip: "srv1.hstgr.cloud") == "naota-shop.srv1.hstgr.cloud")
-os.environ.pop("NAOTA_NAME")
+os.environ["VANHANH_NAME"] = "vanhanh-shop"
+check("a second instance gets its own sub-name", S("1.2.3.4", lambda ip: "srv1.hstgr.cloud") == "vanhanh-shop.srv1.hstgr.cloud")
+os.environ.pop("VANHANH_NAME")
 
 src = (ROOT / "server" / "routes" / "domain.py").read_text(encoding="utf-8")
 check("/domain/status returns suggested_domain only while no domain is set",
@@ -93,14 +93,14 @@ check("/domain/status returns gateway and auto_url", '"gateway": gateway, "auto_
 
 # ---- 3. the names the gateway serves, and its status file ----
 H = dom.hostinger_names
-check("default instance: naota.<vps> first, then <vps>", H("srv1.hstgr.cloud", "naota") == ["naota.srv1.hstgr.cloud", "srv1.hstgr.cloud"])
-check("second instance: only its own sub-name", H("srv1.hstgr.cloud", "naota-b") == ["naota-b.srv1.hstgr.cloud"])
-check("no VPS name: nothing", H("", "naota") == [])
+check("default instance: vanhanh.<vps> first, then <vps>", H("srv1.hstgr.cloud", "vanhanh") == ["vanhanh.srv1.hstgr.cloud", "srv1.hstgr.cloud"])
+check("second instance: only its own sub-name", H("srv1.hstgr.cloud", "vanhanh-b") == ["vanhanh-b.srv1.hstgr.cloud"])
+check("no VPS name: nothing", H("", "vanhanh") == [])
 import tempfile  # noqa: E402
 _st = Path(tempfile.mkdtemp()) / "gateway.txt"
-_st.write_text("state=serving\nnames=naota.srv1.hstgr.cloud srv1.hstgr.cloud\n")
+_st.write_text("state=serving\nnames=vanhanh.srv1.hstgr.cloud srv1.hstgr.cloud\n")
 G = dom.read_gateway_status
-check("status file read", G(str(_st)) == {"state": "serving", "names": ["naota.srv1.hstgr.cloud", "srv1.hstgr.cloud"]}, G(str(_st)))
+check("status file read", G(str(_st)) == {"state": "serving", "names": ["vanhanh.srv1.hstgr.cloud", "srv1.hstgr.cloud"]}, G(str(_st)))
 _st.write_text("state=weird\n")
 check("unknown state ignored", G(str(_st)) == {})
 check("no file (older compose): empty", G(str(_st) + ".none") == {})
@@ -108,17 +108,17 @@ _st.write_text("state=serving\nnames=ok.srv1.hstgr.cloud bad;name\n")
 check("only valid names kept", G(str(_st))["names"] == ["ok.srv1.hstgr.cloud"])
 C = dom.auto_candidates
 check("serving gateway: exactly its names, in order",
-      C("1.2.3.4", {"state": "serving", "names": ["naota.srv1.hstgr.cloud", "srv1.hstgr.cloud"]}) == ["naota.srv1.hstgr.cloud", "srv1.hstgr.cloud"])
+      C("1.2.3.4", {"state": "serving", "names": ["vanhanh.srv1.hstgr.cloud", "srv1.hstgr.cloud"]}) == ["vanhanh.srv1.hstgr.cloud", "srv1.hstgr.cloud"])
 check("Traefik has the ports and no DOMAIN_NAME: nothing to probe", C("1.2.3.4", {"state": "busy", "names": []}) == [])
 _ptr = dom._hostinger_base
 dom._hostinger_base = lambda ip, *a: "srv1.hstgr.cloud" if ip == "1.2.3.4" else ""
-check("no gateway status: the reverse-DNS names", C("1.2.3.4", {}) == ["naota.srv1.hstgr.cloud", "srv1.hstgr.cloud"])
+check("no gateway status: the reverse-DNS names", C("1.2.3.4", {}) == ["vanhanh.srv1.hstgr.cloud", "srv1.hstgr.cloud"])
 os.environ["DOMAIN_NAME"] = "shop.example.com"
 check("DOMAIN_NAME set: only that", C("1.2.3.4", {"state": "serving", "names": ["x.srv1.hstgr.cloud"]}) == ["shop.example.com"])
 os.environ.pop("DOMAIN_NAME")
 dom._hostinger_base = _ptr
 
-# ---- 4. /domain/auto: only a link that answers as THIS Naota, Hostinger only ----
+# ---- 4. /domain/auto: only a link that answers as THIS Vanhanh, Hostinger only ----
 import asyncio  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 import main  # noqa: E402
@@ -127,13 +127,13 @@ cl = TestClient(main.app, base_url="http://127.0.0.1:7777")
 who = cl.get("/domain/whoami")
 check("/domain/whoami is public and returns this process's id", who.status_code == 200 and who.json().get("id") == dom._WHOAMI)
 check("auth middleware lists both paths as public", '"/domain/auto", "/domain/whoami"' in (ROOT / "server" / "main.py").read_text(encoding="utf-8"))
-os.environ.pop("NAOTA_DEPLOY_TARGET", None)
+os.environ.pop("VANHANH_DEPLOY_TARGET", None)
 dom._AUTO.update(url="", ts=0.0)
 check("not a Hostinger stack: no link", cl.get("/domain/auto").json() == {"url": ""})
-os.environ["NAOTA_DEPLOY_TARGET"] = "hostinger"
+os.environ["VANHANH_DEPLOY_TARGET"] = "hostinger"
 seen = []
 dom._detect_public_ip = lambda: "1.2.3.4"
-dom.read_gateway_status = lambda *a: {"state": "serving", "names": ["naota.srv1.hstgr.cloud", "srv1.hstgr.cloud"]}
+dom.read_gateway_status = lambda *a: {"state": "serving", "names": ["vanhanh.srv1.hstgr.cloud", "srv1.hstgr.cloud"]}
 
 
 async def _me(url):
@@ -145,12 +145,12 @@ async def _me(url):
 ANSWER = {"v": False}  # False, True, or the one name that answers
 dom._answers_as_me = _me
 dom._AUTO.update(url="", ts=0.0)
-check("no link answers as this Naota: no move, both names tried",
-      cl.get("/domain/auto").json() == {"url": ""} and seen == ["https://naota.srv1.hstgr.cloud", "https://srv1.hstgr.cloud"], seen)
+check("no link answers as this Vanhanh: no move, both names tried",
+      cl.get("/domain/auto").json() == {"url": ""} and seen == ["https://vanhanh.srv1.hstgr.cloud", "https://srv1.hstgr.cloud"], seen)
 ANSWER["v"] = True
 check("the miss is cached a little while (no probe per page load)", cl.get("/domain/auto").json() == {"url": ""} and len(seen) == 2)
 dom._AUTO.update(url="", ts=0.0)
-check("verified link: the page is told to move there", cl.get("/domain/auto").json() == {"url": "https://naota.srv1.hstgr.cloud"})
+check("verified link: the page is told to move there", cl.get("/domain/auto").json() == {"url": "https://vanhanh.srv1.hstgr.cloud"})
 ANSWER["v"] = "https://srv1.hstgr.cloud"
 dom._AUTO.update(url="", ts=0.0)
 check("only the bare VPS name has a certificate (no wildcard DNS): that one",
@@ -160,7 +160,7 @@ os.environ["DOMAIN_NAME"] = "shop.example.com"
 dom._AUTO.update(url="", ts=0.0)
 check("DOMAIN_NAME set: that link is the one checked", cl.get("/domain/auto").json() == {"url": "https://shop.example.com"} and seen[-1] == "https://shop.example.com")
 os.environ.pop("DOMAIN_NAME")
-os.environ.pop("NAOTA_DEPLOY_TARGET")
+os.environ.pop("VANHANH_DEPLOY_TARGET")
 
 # ---- 5. the page side ----
 ad = (ROOT / "dashboard" / "auto-domain.js").read_text(encoding="utf-8")

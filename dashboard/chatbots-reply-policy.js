@@ -1,5 +1,5 @@
 // ============================================================
-// Naota - Bộ phán xử hội thoại nhóm: phần giao diện.
+// Vanhanh - Bộ phán xử hội thoại nhóm: phần giao diện.
 //
 // KHÔNG còn ô cài đặt nào cho bộ phán xử. Chọn "Tự đánh giá" ở phần Bot trả lời ai là xong: máy tự
 // chọn mức hăng hái, tự tra tài liệu hay dựa vào vai, tự học từ phản ứng trong nhóm. Chủ chỉ còn hai việc, đều
@@ -23,12 +23,12 @@
   function el(html) { var d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstChild; }
   function tt(k, v) { return window.t(k, v); }
   // (i) button (info-tip.js): explanations sit behind it; without the helper (Node tests) they draw open.
-  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(tt("info.more")) : ""; }
+  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(tt("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.NaotaInfo;
+    var J = typeof window !== "undefined" && window.VanhanhInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
-  function loc() { return (window.NaotaI18n && window.NaotaI18n.locale()) || "vi-VN"; }
+  function loc() { return (window.VanhanhI18n && window.VanhanhI18n.locale()) || "vi-VN"; }
   function gio(ts) {
     if (!ts) return "";
     try { return new Date(ts * 1000).toLocaleString(loc()); } catch (e) { return ""; }
@@ -211,5 +211,5 @@
     await tai();
   }
 
-  window.NaotaReplyPolicy = { formHtml: formHtml, summary: summary, openPanel: openPanel, codeLabel: codeLabel };
+  window.VanhanhReplyPolicy = { formHtml: formHtml, summary: summary, openPanel: openPanel, codeLabel: codeLabel };
 })();

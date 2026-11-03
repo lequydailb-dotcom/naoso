@@ -1,9 +1,9 @@
-"""Text form of a NAOTA_CARD block, for channels that cannot draw it.
+"""Text form of a VANHANH_CARD block, for channels that cannot draw it.
 
-The dashboard draws `<!-- NAOTA_CARD: {...} -->` as a chart, a row of number tiles or buttons
+The dashboard draws `<!-- VANHANH_CARD: {...} -->` as a chart, a row of number tiles or buttons
 (dashboard/chat-card.js). Telegram, Zalo and the other text channels get this plain version instead:
 a chart becomes one line per label, tiles become "label: value (delta)", buttons become a numbered
-list the person answers with a number, the same way a NAOTA_ASK block degrades.
+list the person answers with a number, the same way a VANHANH_ASK block degrades.
 """
 from __future__ import annotations
 

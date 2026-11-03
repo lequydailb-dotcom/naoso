@@ -22,7 +22,7 @@ import tempfile
 
 from _paths import ROOT, SERVER  # noqa: E402,F401  - nạp server/ vào sys.path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-agentmodel-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-agentmodel-"))
 
 import aux_engine  # noqa: E402
 import main  # noqa: E402

@@ -9,7 +9,7 @@ lần hết 97M token trên 4 brain, trong đó 1 brain là đường dẫn khô
 người dùng đã bỏ gần 3 tuần.
 
 Bẫy đã tránh: KHÔNG đo độ mới bằng mtime thư mục brain, vì chính curator ghi
-Naota/learn-log mỗi vòng - lấy mtime thư mục thì brain nào cũng "vừa hoạt động" và
+Vanhanh/learn-log mỗi vòng - lấy mtime thư mục thì brain nào cũng "vừa hoạt động" và
 curator tự nuôi lý do chạy tiếp mãi. Chỉ đọc Memory/conversations (dấu vết người thật).
 
 Phủ:
@@ -27,8 +27,8 @@ import tempfile
 import time
 from pathlib import Path
 
-_TMP = tempfile.mkdtemp(prefix="naota-curator-")
-os.environ["NAOTA_STATE_DIR"] = _TMP
+_TMP = tempfile.mkdtemp(prefix="vanhanh-curator-")
+os.environ["VANHANH_STATE_DIR"] = _TMP
 
 import learn  # noqa: E402
 
@@ -47,7 +47,7 @@ ROOT = Path(_TMP) / "brains"
 def make_brain(name, conv_days_ago=None, learnlog_days_ago=None):
     """Dựng brain giả. conv_days_ago=None → không có Memory/conversations."""
     root = ROOT / name
-    (root / "Naota").mkdir(parents=True, exist_ok=True)
+    (root / "Vanhanh").mkdir(parents=True, exist_ok=True)
     if conv_days_ago is not None:
         d = root / "Memory" / "conversations"
         d.mkdir(parents=True, exist_ok=True)
@@ -56,7 +56,7 @@ def make_brain(name, conv_days_ago=None, learnlog_days_ago=None):
         t = time.time() - conv_days_ago * 86400
         os.utime(f, (t, t))
     if learnlog_days_ago is not None:
-        d = root / "Naota" / "learn-log"
+        d = root / "Vanhanh" / "learn-log"
         d.mkdir(parents=True, exist_ok=True)
         f = d / "2026-07-25.md"
         f.write_text("curator ghi", encoding="utf-8")

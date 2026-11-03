@@ -1,15 +1,15 @@
 /* Local, deterministic turn policy. Never rewrites the transcript. */
 (function(root) {
   'use strict';
-  const legacy = typeof module === 'object' && module.exports ? require('./voice-turn.js') : root.NaotaVoiceTurn;
+  const legacy = typeof module === 'object' && module.exports ? require('./voice-turn.js') : root.VanhanhVoiceTurn;
   function classify(text) {
     const s = legacy.normalize(text);
     if (/^(vâng )?anh hiểu rồi$|^(được rồi )?cảm ơn$|^vâng cảm ơn$/.test(s)) return 'normal';
     if (legacy.isStopPhrase(text)) return 'stop';
     if (legacy.isWaitPhrase(text) || /^(?:khoan|đợi chút) (?:để )?(?:anh|em|tôi|mình) nghĩ(?: đã| nhé)?$/.test(s)) return 'wait';
-    if (/^(naota|nauta)( ơi)?$/.test(s)) return 'wake';
+    if (/^(vanhanh|nauta)( ơi)?$/.test(s)) return 'wake';
     if (legacy.looksUnfinished(text) || /^(em|anh|ý là|có phải là|anh muốn em|để anh)$/.test(s) || /(?:muốn|nhờ|bảo) (?:anh|em|bạn)$/.test(s)) return 'unfinished';
-    if (/^(?:naota(?: ơi)? )?(?:mở|đóng|chuyển|bật|tắt|tìm|đọc|xem|kiểm tra) .+/.test(s)) return 'command';
+    if (/^(?:vanhanh(?: ơi)? )?(?:mở|đóng|chuyển|bật|tắt|tìm|đọc|xem|kiểm tra) .+/.test(s)) return 'command';
     return 'normal';
   }
   const bounds = {command:[900,800,1400], normal:[1200,1000,2200], unfinished:[2800,2200,4000], wake:[2200,2200,2200]};
@@ -20,5 +20,5 @@
     return Math.max(min,Math.min(max,Math.max(base,learned)+(pace==='fast'?-200:pace==='patient'?400:0)));
   }
   const api={classify,target,bounds};
-  if(typeof module==='object'&&module.exports) module.exports=api; else root.NaotaVoiceTurnPolicy=api;
+  if(typeof module==='object'&&module.exports) module.exports=api; else root.VanhanhVoiceTurnPolicy=api;
 })(typeof window!=='undefined'?window:globalThis);

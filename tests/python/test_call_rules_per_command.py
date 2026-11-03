@@ -20,7 +20,7 @@ import asyncio
 import os
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-call-rules-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-call-rules-"))
 
 import config  # noqa: E402
 import mcp_catalog  # noqa: E402

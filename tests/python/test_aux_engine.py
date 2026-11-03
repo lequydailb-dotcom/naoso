@@ -27,7 +27,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-aux-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-aux-")
 
 import aux_engine  # noqa: E402
 
@@ -46,8 +46,8 @@ class FakeClaude:
     def __init__(self):
         self.system_prompt = "SYS"
         self.cwd = "/vault"
-        self.naota_vault = "/vault"
-        self.naota_mode = "suggest"
+        self.vanhanh_vault = "/vault"
+        self.vanhanh_mode = "suggest"
         self.tag = "loop"
         self.model = None
         self.kind = "claude"
@@ -83,7 +83,7 @@ check("API: da doi engine", api is not c3)
 check("API: dung provider/model", api.provider == "openrouter" and api.model == "x/cheap")
 check("API: thua huong system_prompt", api.system_prompt == "SYS")
 check("API: thua huong vault", api.vault_root == "/vault")
-check("API: thua huong mode (quyet dinh an toan dau kia)", api.naota_mode == "suggest")
+check("API: thua huong mode (quyet dinh an toan dau kia)", api.vanhanh_mode == "suggest")
 
 # ---- swap: hỏng cấu hình thì KHÔNG được làm chết việc nền ----
 c4 = FakeClaude()
@@ -144,7 +144,7 @@ check("deps moi -> goi aux_swap kem mode/tag", getattr(c7, "swapped", None) == (
 # ---- Engine API gom text -> đúng một final ----
 async def _fake_stream():
     yield {"type": "meta", "model": "m"}
-    yield {"type": "tool_call", "name": "naota_read_file"}
+    yield {"type": "tool_call", "name": "vanhanh_read_file"}
     yield {"type": "text", "content": "phan 1 "}
     yield {"type": "text", "content": "phan 2"}
 

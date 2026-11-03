@@ -1,18 +1,18 @@
 <!-- translated-from: README.en.md sha256:a4092d38f233 -->
 <div align="center">
 
-<img src="../../../dashboard/logo.svg" width="88" alt="Logo de NAOTA">
+<img src="../../../dashboard/logo.svg" width="88" alt="Logo de VANHANH">
 
-# NAOTA
+# VANHANH
 
 ### Votre agent IA auto-hébergé, avec un cerveau interchangeable et un Second Brain qui devient plus intelligent chaque jour.
 
 Lancez-le sur votre ordinateur portable ou sur un petit VPS. Parlez-lui à voix haute. Branchez Claude, ChatGPT, Grok, Gemini ou n'importe lequel de 12 fournisseurs, gardez tous vos outils quand vous en changez, et laissez-le travailler en arrière-plan pendant que vous dormez.
 
-[![GitHub stars](https://img.shields.io/github/stars/vuongtex/naota?style=flat&logo=github&label=stars)](https://github.com/vuongtex/naota/stargazers)
-[![Last commit](https://img.shields.io/github/last-commit/vuongtex/naota?color=f97316)](https://github.com/vuongtex/naota/commits/main)
+[![GitHub stars](https://img.shields.io/github/stars/lequydailb-dotcom/vanhanh?style=flat&logo=github&label=stars)](https://github.com/lequydailb-dotcom/vanhanh/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/lequydailb-dotcom/vanhanh?color=f97316)](https://github.com/lequydailb-dotcom/vanhanh/commits/main)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white)](../../../requirements.txt)
-[![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ed?logo=docker&logoColor=white)](https://github.com/vuongtex/naota/pkgs/container/naota)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ed?logo=docker&logoColor=white)](https://github.com/lequydailb-dotcom/vanhanh/pkgs/container/vanhanh)
 [![MCP](https://img.shields.io/badge/tools-Model%20Context%20Protocol-8b5cf6)](https://modelcontextprotocol.io)
 
 <!-- flags:start -->
@@ -35,39 +35,39 @@ Lancez-le sur votre ordinateur portable ou sur un petit VPS. Parlez-lui à voix 
 
 [🇬🇧 English](../../../README.en.md) · [🇻🇳 Tiếng Việt](../vi/README.md) · [🇨🇳 简体中文](../zh/README.md) · [🇪🇸 Español](../es/README.md) · [🇯🇵 日本語](../ja/README.md) · [🇮🇳 हिन्दी](../hi/README.md) · [🇧🇷 Português](../pt-BR/README.md) · [🇰🇷 한국어](../ko/README.md) · [🇷🇺 Русский](../ru/README.md) · [🇩🇪 Deutsch](../de/README.md) · 🇫🇷 **Français** · [🇮🇩 Bahasa Indonesia](../id/README.md) · [🌍 Aider à traduire](../../../CONTRIBUTING.md#translations)
 
-[Démarrage rapide](#-démarrage-rapide) · [Pourquoi Naota](#-pourquoi-naota-) · [Cerveaux](#-12-cerveaux-une-seule-boîte-à-outils) · [Fonctionnalités](#-fonctionnalités) · [Installation](#-installation) · [Documentation](../../../docs/en/README.md)
+[Démarrage rapide](#-démarrage-rapide) · [Pourquoi Vanhanh](#-pourquoi-vanhanh-) · [Cerveaux](#-12-cerveaux-une-seule-boîte-à-outils) · [Fonctionnalités](#-fonctionnalités) · [Installation](#-installation) · [Documentation](../../../docs/en/README.md)
 
 
 </div>
 
-> 🌍 Ceci est une traduction automatique du README anglais. Naota vous répond dans la langue dans laquelle vous lui écrivez ; l'interface est pour l'instant disponible en anglais et en vietnamien. La documentation complète est en anglais ([docs/en](../../../docs/en/README.md)). Les corrections sont les bienvenues ([CONTRIBUTING](../../../CONTRIBUTING.md#translations)).
+> 🌍 Ceci est une traduction automatique du README anglais. Vanhanh vous répond dans la langue dans laquelle vous lui écrivez ; l'interface est pour l'instant disponible en anglais et en vietnamien. La documentation complète est en anglais ([docs/en](../../../docs/en/README.md)). Les corrections sont les bienvenues ([CONTRIBUTING](../../../CONTRIBUTING.md#translations)).
 
 ---
 
 ## ⚡ Démarrage rapide
 
-**La méthode simple : laissez votre propre IA l'installer.** Donnez le lien de ce dépôt à Claude Code ou à Codex sur votre machine et dites *"installe-moi NAOTA"*. Il lui suffit d'exécuter une seule commande :
+**La méthode simple : laissez votre propre IA l'installer.** Donnez le lien de ce dépôt à Claude Code ou à Codex sur votre machine et dites *"installe-moi VANHANH"*. Il lui suffit d'exécuter une seule commande :
 
 | Machine | Une seule commande installe tout |
 |---|---|
-| **Linux / macOS** | `git clone https://github.com/vuongtex/naota.git naota && cd naota && chmod +x install.sh && ./install.sh` |
-| **Windows** | `git clone https://github.com/vuongtex/naota.git naota; cd naota; powershell -ExecutionPolicy Bypass -File install.ps1` |
-| **Docker** | `curl -fsSLO https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.yml && docker compose up -d` |
+| **Linux / macOS** | `git clone https://github.com/lequydailb-dotcom/vanhanh.git vanhanh && cd vanhanh && chmod +x install.sh && ./install.sh` |
+| **Windows** | `git clone https://github.com/lequydailb-dotcom/vanhanh.git vanhanh; cd vanhanh; powershell -ExecutionPolicy Bypass -File install.ps1` |
+| **Docker** | `curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml && docker compose up -d` |
 
 Ouvrez ensuite **http://localhost:7777**. L'installateur met en place Python, les quatre cerveaux CLI par abonnement (`claude`, `codex`, `agy`, `grok`) et un `.env`, puis démarre le serveur. Vous vous connectez à chaque cerveau **depuis la page Models du tableau de bord**, sans plus taper de commandes.
 
 > [!NOTE]
-> Vous avez installé une CLI supplémentaire **après** le démarrage de Naota ? **Redémarrez Naota.** Un processus en cours d'exécution garde le PATH avec lequel il a démarré, il ne peut donc pas voir une CLI installée plus tard.
+> Vous avez installé une CLI supplémentaire **après** le démarrage de Vanhanh ? **Redémarrez Vanhanh.** Un processus en cours d'exécution garde le PATH avec lequel il a démarré, il ne peut donc pas voir une CLI installée plus tard.
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/install-terminal.svg" width="100%" alt="Terminal animé : l'installateur en une ligne met en place Python, les quatre cerveaux CLI par abonnement et un .env, puis indique que Naota tourne sur http://localhost:7777">
+<img src="../../../docs/assets/diagrams/install-terminal.svg" width="100%" alt="Terminal animé : l'installateur en une ligne met en place Python, les quatre cerveaux CLI par abonnement et un .env, puis indique que Vanhanh tourne sur http://localhost:7777">
 </p>
 
 ---
 
-## 🤔 Pourquoi Naota ?
+## 🤔 Pourquoi Vanhanh ?
 
-NAOTA **n'est pas** un chatbot. C'est une **IA agentique auto-hébergée** qui tourne sur votre propre machine ou votre VPS : elle lit et écrit des fichiers, appelle des outils via MCP, exécute des skills, met du travail en file d'attente en arrière-plan et se programme elle-même. Tout cela se trouve derrière un **tableau de bord pilotable à la voix**, avec un **Second Brain** (mémoire + wiki) qui accumule des connaissances au fil du temps.
+VANHANH **n'est pas** un chatbot. C'est une **IA agentique auto-hébergée** qui tourne sur votre propre machine ou votre VPS : elle lit et écrit des fichiers, appelle des outils via MCP, exécute des skills, met du travail en file d'attente en arrière-plan et se programme elle-même. Tout cela se trouve derrière un **tableau de bord pilotable à la voix**, avec un **Second Brain** (mémoire + wiki) qui accumule des connaissances au fil du temps.
 
 ### Le verrouillage dont personne ne vous parle
 
@@ -82,9 +82,9 @@ Tout cela se trouve sur les serveurs du fournisseur, dans le format du fournisse
 
 Alors vous restez. Non pas parce que l'ancien modèle est toujours le meilleur, mais parce que partir signifie repartir de zéro. Et le jour où le fournisseur augmente ses prix, resserre ses limites, retire un modèle ou bloque votre compte, il n'y a pas de plan B.
 
-### Naota renverse la logique : louez le modèle, possédez le Brain
+### Vanhanh renverse la logique : louez le modèle, possédez le Brain
 
-Dans Naota, le modèle est une pièce que vous pouvez remplacer. Tout ce que vous construisez reste chez vous, sous forme de fichiers que vous pouvez ouvrir :
+Dans Vanhanh, le modèle est une pièce que vous pouvez remplacer. Tout ce que vous construisez reste chez vous, sous forme de fichiers que vous pouvez ouvrir :
 
 | Ce que vous construisez | Où ça se trouve | Format |
 |---|---|---|
@@ -93,19 +93,19 @@ Dans Naota, le modèle est une pièce que vous pouvez remplacer. Tout ce que vou
 | **Connaissances** | les dossiers Wiki et Sources de votre Brain | Markdown, compatible Obsidian |
 | **Skills** | `skills/<name>/SKILL.md` | Markdown |
 | **Agents et workflows** | `agents/*.md`, `workflows/*.md` | Markdown avec front matter |
-| **Loops et rappels** | `Naota/loops/*.md`, `Naota/reminders.json` | Markdown, JSON |
+| **Loops et rappels** | `Vanhanh/loops/*.md`, `Vanhanh/reminders.json` | Markdown, JSON |
 
 Ce que cela vous apporte :
 
 - **Un nouveau modèle sort ? Changez-en sur la page Models et continuez.** Il lit la même mémoire, exécute les mêmes skills, agents et workflows, et appelle les mêmes connexions via le MCP Hub. Rien à migrer, rien à reconstruire.
 - **Utilisez plusieurs cerveaux à la fois.** Un modèle puissant pour la conversation, un moins cher pour le travail en arrière-plan, un modèle Ollama local pour les notes privées, tous au travail sur le même Brain.
-- **Lisible sans Naota.** Votre Brain est un dossier de fichiers markdown. Ouvrez-le dans Obsidian ou dans n'importe quel éditeur. Si Naota disparaissait demain, vos connaissances seraient toujours là, en texte brut.
+- **Lisible sans Vanhanh.** Votre Brain est un dossier de fichiers markdown. Ouvrez-le dans Obsidian ou dans n'importe quel éditeur. Si Vanhanh disparaissait demain, vos connaissances seraient toujours là, en texte brut.
 - **Versionné et portable.** Chaque passe d'apprentissage est un commit git que vous pouvez annuler d'un geste, et tout le Brain peut se synchroniser avec votre propre dépôt GitHub privé, partagé entre votre ordinateur portable et votre VPS.
-- **Vos données restent sur votre matériel.** Aucun cloud Naota ne s'intercale. Une requête ne part que vers le fournisseur de modèle que vous avez choisi pour elle, et avec un modèle Ollama local, elle ne quitte jamais votre machine.
+- **Vos données restent sur votre matériel.** Aucun cloud Vanhanh ne s'intercale. Une requête ne part que vers le fournisseur de modèle que vous avez choisi pour elle, et avec un modèle Ollama local, elle ne quitte jamais votre machine.
 
-### Naota face à un chatbot ordinaire
+### Vanhanh face à un chatbot ordinaire
 
-| | Un chatbot ordinaire | **NAOTA** |
+| | Un chatbot ordinaire | **VANHANH** |
 |---|---|---|
 | **Cerveau** | Lié à un seul modèle, un appel d'API sans état par message | **Interchangeable** : 12 fournisseurs, chacun avec l'ensemble complet des outils, MCP, skills et sessions, y compris des modèles qui tournent sur votre propre machine via Ollama |
 | **Mémoire** | Oublie tout après chaque session | **Un Second Brain vivant** qui se souvient de vous et s'enrichit à chaque conversation |
@@ -115,20 +115,20 @@ Ce que cela vous apporte :
 | **Votre travail** | Reste sur les serveurs du fournisseur, dans le format du fournisseur | **De simples fichiers sur votre machine** : historique, mémoire, skills, agents et workflows vous suivent vers n'importe quel nouveau modèle |
 | **Déploiement** | Le cloud de quelqu'un d'autre | **Auto-hébergé** : [Hostinger](https://www.hostinger.com) en un clic, Docker, ou n'importe quel VPS |
 
-> 💡 **La philosophie : les capacités vivent dans Naota, pas dans le modèle.** Chaque cerveau reçoit la même boîte à outils via un hub de connexions partagé unique (le MCP Hub). Passer de Claude à Gemini ne vous coûte rien, sauf l'accès au shell, que seuls les moteurs CLI possèdent.
+> 💡 **La philosophie : les capacités vivent dans Vanhanh, pas dans le modèle.** Chaque cerveau reçoit la même boîte à outils via un hub de connexions partagé unique (le MCP Hub). Passer de Claude à Gemini ne vous coûte rien, sauf l'accès au shell, que seuls les moteurs CLI possèdent.
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/chat-to-action.svg" width="100%" alt="Schéma animé : un message de chat arrive dans Naota, qui choisit le plus petit outil capable de faire le travail, de la réponse directe à la mise en file d'une tâche, en passant par la création d'un agent, d'un workflow, d'un rappel ou d'une loop">
+<img src="../../../docs/assets/diagrams/chat-to-action.svg" width="100%" alt="Schéma animé : un message de chat arrive dans Vanhanh, qui choisit le plus petit outil capable de faire le travail, de la réponse directe à la mise en file d'une tâche, en passant par la création d'un agent, d'un workflow, d'un rappel ou d'une loop">
 </p>
 
 ---
 
 ## 🧠 12 cerveaux, une seule boîte à outils
 
-Choisissez le cerveau sur la page **Models** et changez-en quand vous voulez. Naota prend en charge **12 fournisseurs** aujourd'hui.
+Choisissez le cerveau sur la page **Models** et changez-en quand vous voulez. Vanhanh prend en charge **12 fournisseurs** aujourd'hui.
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/swappable-brain.svg" width="100%" alt="Schéma animé : le cœur de Naota au centre avec sa boîte à outils (MCP Hub, Skills, Second Brain, tâches, planifications, Plugins) autour, pendant que les 12 cerveaux se branchent à tour de rôle et que chaque outil reste allumé">
+<img src="../../../docs/assets/diagrams/swappable-brain.svg" width="100%" alt="Schéma animé : le cœur de Vanhanh au centre avec sa boîte à outils (MCP Hub, Skills, Second Brain, tâches, planifications, Plugins) autour, pendant que les 12 cerveaux se branchent à tour de rôle et que chaque outil reste allumé">
 </p>
 
 | Cerveau | Comment vous payez | Shell, web, sous-agents |
@@ -137,15 +137,15 @@ Choisissez le cerveau sur la page **Models** et changez-en quand vous voulez. Na
 | **ChatGPT** (via Codex) | Votre abonnement ChatGPT | ✅ |
 | **Grok Build** | Votre abonnement SuperGrok ou X Premium+ | ✅ |
 | **Antigravity CLI** | Votre abonnement Google (même gamme de modèles que l'IDE Antigravity, Claude compris) | Shell ✅ |
-| **OpenRouter** | Clé d'API (des centaines de modèles derrière une seule clé) | via les outils de Naota |
-| **OpenAI API** · **Anthropic API** · **Google Gemini** · **Groq** | Clé d'API | via les outils de Naota |
-| **Ollama Cloud** · **Ollama sur cette machine** | Clé d'API, ou gratuit sur votre propre matériel | via les outils de Naota |
-| **Tout endpoint compatible OpenAI** | Ce que cet endpoint exige | via les outils de Naota |
+| **OpenRouter** | Clé d'API (des centaines de modèles derrière une seule clé) | via les outils de Vanhanh |
+| **OpenAI API** · **Anthropic API** · **Google Gemini** · **Groq** | Clé d'API | via les outils de Vanhanh |
+| **Ollama Cloud** · **Ollama sur cette machine** | Clé d'API, ou gratuit sur votre propre matériel | via les outils de Vanhanh |
+| **Tout endpoint compatible OpenAI** | Ce que cet endpoint exige | via les outils de Vanhanh |
 
 Chaque cerveau peut appeler vos serveurs MCP connectés, lire et écrire dans le Brain, exécuter des skills, mettre du travail en file dans le Kanban, et créer des agents, des workflows, des loops et des rappels. Les moteurs CLI peuvent en plus exécuter des **commandes shell**, **récupérer des pages et chercher sur le web**, et **lancer des sous-agents en parallèle**.
 
 > [!WARNING]
-> **Une remarque avant de laisser un abonnement exécuter du travail en arrière-plan.** Anthropic limite Claude Pro/Max à un **usage personnel ordinaire** de Claude Code. L'exécution continue en arrière-plan (loops, rappels, tâches Kanban, chatbots), l'exécution sur un VPS ou le partage d'un même compte entre plusieurs personnes sortent de ce cadre, il existe donc un risque que le compte **soit bloqué**, même si Naota n'a recensé aucun cas jusqu'ici. Si cela vous arrive, prévenez le développeur via [Issues](https://github.com/vuongtex/naota/issues/new/choose). Naota ne lit jamais votre jeton de connexion : il exécute le vrai binaire `claude`, mais cela ne rend pas légitime un usage en arrière-plan 24 h sur 24. Par précaution, configurez Claude Code pour qu'il tourne avec une **clé d'API** sur la page Models, ou dirigez le **modèle de travail en arrière-plan** vers un autre fournisseur. La même prudence s'applique à l'abonnement xAI. Voir `server/claude_auth.py`.
+> **Une remarque avant de laisser un abonnement exécuter du travail en arrière-plan.** Anthropic limite Claude Pro/Max à un **usage personnel ordinaire** de Claude Code. L'exécution continue en arrière-plan (loops, rappels, tâches Kanban, chatbots), l'exécution sur un VPS ou le partage d'un même compte entre plusieurs personnes sortent de ce cadre, il existe donc un risque que le compte **soit bloqué**, même si Vanhanh n'a recensé aucun cas jusqu'ici. Si cela vous arrive, prévenez le développeur via [Issues](https://github.com/lequydailb-dotcom/vanhanh/issues/new/choose). Vanhanh ne lit jamais votre jeton de connexion : il exécute le vrai binaire `claude`, mais cela ne rend pas légitime un usage en arrière-plan 24 h sur 24. Par précaution, configurez Claude Code pour qu'il tourne avec une **clé d'API** sur la page Models, ou dirigez le **modèle de travail en arrière-plan** vers un autre fournisseur. La même prudence s'applique à l'abonnement xAI. Voir `server/claude_auth.py`.
 
 ---
 
@@ -160,15 +160,15 @@ Chaque cerveau peut appeler vos serveurs MCP connectés, lire et écrire dans le
 <td width="50%" valign="top">
 
 ### 🗣️ Parlez-lui
-- **Voix mains libres** : vous parlez, Naota écoute et répond à voix haute (Edge TTS gratuit par défaut, ou OpenAI et ElevenLabs).
+- **Voix mains libres** : vous parlez, Vanhanh écoute et répond à voix haute (Edge TTS gratuit par défaut, ou OpenAI et ElevenLabs).
 - **Sessions de chat** que vous pouvez enregistrer, rouvrir et parcourir en recherche plein texte. Les longues sessions sont condensées en résumés au lieu d'être coupées.
-- **Telegram, Slack, WhatsApp, Zalo, une CLI et un tableau de bord web**, qui parlent tous au même Naota ([configuration de Slack et WhatsApp](../../../docs/en/29-slack-whatsapp.md)).
-- **N'importe quelle langue** : Naota répond dans la langue dans laquelle vous écrivez. L'interface est livrée en anglais et en vietnamien.
+- **Telegram, Slack, WhatsApp, Zalo, une CLI et un tableau de bord web**, qui parlent tous au même Vanhanh ([configuration de Slack et WhatsApp](../../../docs/en/29-slack-whatsapp.md)).
+- **N'importe quelle langue** : Vanhanh répond dans la langue dans laquelle vous écrivez. L'interface est livrée en anglais et en vietnamien.
 
 ### 🧠 Retenez tout
 - **Second Brain** : un coffre markdown (compatible Obsidian) avec une mémoire à long terme, un Wiki et des Sources brutes.
 - **Graphe de connaissances** de vos notes reliées par `[[wikilink]]`, sur un canevas clair qui fonctionne hors ligne.
-- **Auto-apprentissage** : après chaque conversation, Naota distille des souvenirs, des connaissances de wiki et des skills. Chaque passe d'apprentissage est un commit git, donc **annulable d'un geste**.
+- **Auto-apprentissage** : après chaque conversation, Vanhanh distille des souvenirs, des connaissances de wiki et des skills. Chaque passe d'apprentissage est un commit git, donc **annulable d'un geste**.
 - **Sauvegarde sur GitHub** : synchronisation bidirectionnelle de chaque Brain vers un dépôt privé, partagé entre votre ordinateur portable et votre VPS.
 
 </td>
@@ -181,7 +181,7 @@ Chaque cerveau peut appeler vos serveurs MCP connectés, lire et écrire dans le
 - **Chatbots** : placez un agent face à vos clients sur son propre bot Telegram, Slack, WhatsApp ou Zalo, avec une boîte de réception partagée dont vous pouvez reprendre la main.
 
 ### 🔌 Connectez tout
-- **Boutique de connexions MCP** avec plusieurs comptes par service et trois niveaux de permission que Naota **applique strictement**.
+- **Boutique de connexions MCP** avec plusieurs comptes par service et trois niveaux de permission que Vanhanh **applique strictement**.
 - **Skills et plugins** : déposez un dossier pour ajouter un savoir-faire (skill) ou un outil Python natif (plugin) pour tous les moteurs.
 - **Génération d'images** sur l'abonnement ChatGPT auquel vous êtes déjà connecté.
 - **Suivi de la consommation** : tokens et coût par jour, par fournisseur, en distinguant ce que vous avez tapé de ce qui a tourné tout seul.
@@ -202,10 +202,10 @@ flowchart LR
     subgraph You
         W[Web dashboard<br>voice + graph]
         T[Telegram]
-        C[Naota CLI]
+        C[Vanhanh CLI]
         Z[Zalo / bot channels]
     end
-    subgraph Naota["NAOTA (FastAPI, self-hosted)"]
+    subgraph Vanhanh["VANHANH (FastAPI, self-hosted)"]
         R[Engine router]
         H[MCP Hub<br>shared toolbox]
         B[(Second Brain<br>Memory + Wiki + Sources)]
@@ -232,30 +232,30 @@ flowchart LR
 ## 🚀 Installation
 
 > [!IMPORTANT]
-> Naota fait tourner un cerveau d'IA avec **tous les droits** sur la machine. Lorsqu'il est exposé publiquement (Docker, VPS, Hostinger), Naota **impose la connexion de lui-même** : à l'ouverture de l'application, un écran de création de compte ou de connexion s'affiche, et personne ne peut le piloter sans mot de passe.
+> Vanhanh fait tourner un cerveau d'IA avec **tous les droits** sur la machine. Lorsqu'il est exposé publiquement (Docker, VPS, Hostinger), Vanhanh **impose la connexion de lui-même** : à l'ouverture de l'application, un écran de création de compte ou de connexion s'affiche, et personne ne peut le piloter sans mot de passe.
 
 <details open>
 <summary><b>Option 1 : Hostinger Docker Manager (domaine + HTTPS, en un clic)</b></summary>
 
-> 🛒 **Pas encore de VPS ?** [Prenez un VPS Hostinger ici](https://www.hostinger.com). Docker Manager est intégré, donc Naota s'installe en un clic. Une fois prêt, revenez aux étapes ci-dessous.
+> 🛒 **Pas encore de VPS ?** [Prenez un VPS Hostinger ici](https://www.hostinger.com). Docker Manager est intégré, donc Vanhanh s'installe en un clic. Une fois prêt, revenez aux étapes ci-dessous.
 
 VPS Hostinger → **Docker Manager → Compose → URL** → collez le fichier Hostinger et cliquez sur **Deploy** :
 
 ```
-https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.yml
+https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.hostinger.yml
 ```
 
-Le champ **Environment** n'a besoin que de trois valeurs : `DOMAIN_NAME`, `NAOTA_ADMIN_USER`, `NAOTA_ADMIN_PASSWORD`, plus un `NAOTA_AUTO_UPDATE` facultatif (mettez-le à `true` et Naota se met à jour tout seul chaque jour).
+Le champ **Environment** n'a besoin que de trois valeurs : `DOMAIN_NAME`, `VANHANH_ADMIN_USER`, `VANHANH_ADMIN_PASSWORD`, plus un `VANHANH_AUTO_UPDATE` facultatif (mettez-le à `true` et Vanhanh se met à jour tout seul chaque jour).
 
 Renseignez `DOMAIN_NAME` pour que le Traefik de Hostinger délivre le HTTPS :
-- **Lien gratuit** (sans acheter de domaine) : `DOMAIN_NAME=naota.<vps-hostname>.hstgr.cloud` (le hostname se trouve dans hPanel → VPS, par ex. `naota.srv1234567.hstgr.cloud`).
+- **Lien gratuit** (sans acheter de domaine) : `DOMAIN_NAME=vanhanh.<vps-hostname>.hstgr.cloud` (le hostname se trouve dans hPanel → VPS, par ex. `vanhanh.srv1234567.hstgr.cloud`).
 - **Votre propre domaine :** `DOMAIN_NAME=example.com` et faites pointer un enregistrement A vers l'IP du VPS.
 
 Attendez 1-3 minutes pour le certificat, puis ouvrez `https://<DOMAIN_NAME>`.
 
 **Trois étapes à faire une seule fois :**
-1. **Rendre l'image GHCR publique :** GitHub → dépôt → **Packages** → `naota` → *Package settings* → Visibility = **Public**.
-2. **Créer le compte administrateur :** renseignez `NAOTA_ADMIN_USER` + `NAOTA_ADMIN_PASSWORD` (recommandé), ou ouvrez l'application juste après le déploiement et créez-en un vous-même. Tant qu'aucun administrateur n'existe, la première personne qui ouvre le lien peut le créer. Ensuite, **activez la 2FA** ([Sécurité et comptes](../../../docs/en/14-security-and-accounts.md)).
+1. **Rendre l'image GHCR publique :** GitHub → dépôt → **Packages** → `vanhanh` → *Package settings* → Visibility = **Public**.
+2. **Créer le compte administrateur :** renseignez `VANHANH_ADMIN_USER` + `VANHANH_ADMIN_PASSWORD` (recommandé), ou ouvrez l'application juste après le déploiement et créez-en un vous-même. Tant qu'aucun administrateur n'existe, la première personne qui ouvre le lien peut le créer. Ensuite, **activez la 2FA** ([Sécurité et comptes](../../../docs/en/14-security-and-accounts.md)).
 3. **Se connecter à un cerveau** sur la page **Models**.
 
 Détails et dépannage : [DEPLOY.en.md](../../../DEPLOY.en.md).
@@ -269,14 +269,14 @@ Détails et dépannage : [DEPLOY.en.md](../../../DEPLOY.en.md).
 
 ```bash
 # Docker required (don't have it?  curl -fsSL https://get.docker.com | sh)
-mkdir naota && cd naota
-curl -fsSLO https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.yml
+mkdir vanhanh && cd vanhanh
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
 
-docker compose run --rm naota claude auth login --claudeai   # sign in to Claude once (optional)
+docker compose run --rm vanhanh claude auth login --claudeai   # sign in to Claude once (optional)
 docker compose up -d                                          # pull the image and run
 ```
 
-Ouvrez `http://<vps-ip>:7777` et définissez tout de suite le nom d'utilisateur et le mot de passe administrateur (au moins 8 caractères), ou prédéfinissez `NAOTA_ADMIN_USER` + `NAOTA_ADMIN_PASSWORD` dans l'environnement. Activez ensuite la 2FA.
+Ouvrez `http://<vps-ip>:7777` et définissez tout de suite le nom d'utilisateur et le mot de passe administrateur (au moins 8 caractères), ou prédéfinissez `VANHANH_ADMIN_USER` + `VANHANH_ADMIN_PASSWORD` dans l'environnement. Activez ensuite la 2FA.
 
 Accès à distance sans domaine : `docker compose --profile tunnel up -d`, puis `docker compose logs tunnel | grep trycloudflare` affiche un lien HTTPS.
 
@@ -286,13 +286,13 @@ Accès à distance sans domaine : `docker compose --profile tunnel up -d`, puis 
 <summary><b>Option 3 : Linux ou macOS, sans Docker</b></summary>
 
 ```bash
-git clone https://github.com/vuongtex/naota.git naota && cd naota
+git clone https://github.com/lequydailb-dotcom/vanhanh.git vanhanh && cd vanhanh
 chmod +x install.sh && ./install.sh
 ```
 
 Le script installe Python, Node et les cerveaux CLI, crée un venv, enregistre un service qui démarre au boot et affiche l'adresse.
 
-🍎 **macOS, l'ouvrir comme une application :** double-cliquez sur `NAOTA.app` (ou `Start NAOTA.command`). Démarrage à l'ouverture de session : `./bin/naota-autostart.sh install`. Détails : [bin/README.md](../../../bin/README.md).
+🍎 **macOS, l'ouvrir comme une application :** double-cliquez sur `VANHANH.app` (ou `Start VANHANH.command`). Démarrage à l'ouverture de session : `./bin/vanhanh-autostart.sh install`. Détails : [bin/README.md](../../../bin/README.md).
 
 </details>
 
@@ -300,7 +300,7 @@ Le script installe Python, Node et les cerveaux CLI, crée un venv, enregistre u
 <summary><b>Option 4 : Windows (machine personnelle)</b></summary>
 
 ```powershell
-git clone https://github.com/vuongtex/naota.git naota; cd naota
+git clone https://github.com/lequydailb-dotcom/vanhanh.git vanhanh; cd vanhanh
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
@@ -308,23 +308,23 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 
 ```
 Run with a visible window (live log):  setup.bat
-Run silently from then on:             start-naota.vbs   (log at server\naota.log)
-Stop:                                  stop-naota.bat
+Run silently from then on:             start-vanhanh.vbs   (log at server\vanhanh.log)
+Stop:                                  stop-vanhanh.bat
 Dashboard:                             http://localhost:7777
 ```
 
-🪟 **L'ouvrir comme une application :** après le premier lancement, double-cliquez sur **`NAOTA.bat`**. Le serveur démarre en arrière-plan et le tableau de bord s'ouvre dans **sa propre fenêtre**, avec sa propre entrée dans la barre des tâches. Démarrage à l'ouverture de session : `naota-autostart.bat install` (pour le retirer : `uninstall`).
+🪟 **L'ouvrir comme une application :** après le premier lancement, double-cliquez sur **`VANHANH.bat`**. Le serveur démarre en arrière-plan et le tableau de bord s'ouvre dans **sa propre fenêtre**, avec sa propre entrée dans la barre des tâches. Démarrage à l'ouverture de session : `vanhanh-autostart.bat install` (pour le retirer : `uninstall`).
 
 </details>
 
 <details>
-<summary><b>Plusieurs instances de Naota sur un même VPS</b></summary>
+<summary><b>Plusieurs instances de Vanhanh sur un même VPS</b></summary>
 
-Les Brains, les réglages et les comptes restent entièrement séparés d'une instance à l'autre. Seules trois valeurs diffèrent entre elles : `NAOTA_NAME`, `NAOTA_HOST_PORT`, `DOMAIN_NAME`.
+Les Brains, les réglages et les comptes restent entièrement séparés d'une instance à l'autre. Seules trois valeurs diffèrent entre elles : `VANHANH_NAME`, `VANHANH_HOST_PORT`, `DOMAIN_NAME`.
 
 - **Hostinger :** déployez de nouveau `docker-compose.hostinger.yml` comme deuxième stack et renseignez ces trois champs.
 - **VPS géré par vous-même :** lancez une fois pour toute la machine le proxy partagé `docker-compose.proxy.yml`, puis donnez à chaque instance son propre dossier avec `docker-compose.multi.yml`. Le proxy détecte les nouvelles instances et demande les certificats SSL tout seul.
-- **Natif :** `NAOTA_NAME=naota-shop NAOTA_PORT=7778 ./install.sh`.
+- **Natif :** `VANHANH_NAME=vanhanh-shop VANHANH_PORT=7778 ./install.sh`.
 
 Pas à pas : [DEPLOY.en.md](../../../DEPLOY.en.md).
 
@@ -332,16 +332,16 @@ Pas à pas : [DEPLOY.en.md](../../../DEPLOY.en.md).
 
 ### 🎬 Premier lancement
 
-Ouvrez Naota et l'assistant de configuration vous guide, dans la langue de votre navigateur :
+Ouvrez Vanhanh et l'assistant de configuration vous guide, dans la langue de votre navigateur :
 
 1. **Compte administrateur** : obligatoire en cas d'exposition publique, pour tenir les inconnus à l'écart.
 2. **Choisir un cerveau** : connectez-vous une fois avec un abonnement, ou collez une clé d'API. La carte Claude Code dispose d'un sélecteur **"Runs on"** pour basculer entre votre abonnement connecté et une clé d'API Anthropic.
 3. **Choisir un modèle** : changer de fournisseur plus tard ne fait perdre aucune fonctionnalité (sauf les commandes shell, que seuls les moteurs CLI possèdent).
-4. **Brancher des connexions** (facultatif) : ouvrez **Connections** (Connexions), choisissez un service et collez une clé ou scannez un QR code. Naota s'appuie ensuite sur ses vrais chiffres pour ses rapports.
+4. **Brancher des connexions** (facultatif) : ouvrez **Connections** (Connexions), choisissez un service et collez une clé ou scannez un QR code. Vanhanh s'appuie ensuite sur ses vrais chiffres pour ses rapports.
 
 ---
 
-## 📖 Utiliser Naota
+## 📖 Utiliser Vanhanh
 
 Le rail de gauche regroupe les pages en **6 groupes**. Chaque page dispose d'un guide dans [docs/en/](../../../docs/en/README.md).
 
@@ -351,34 +351,34 @@ Le rail de gauche regroupe les pages en **6 groupes**. Chaque page dispose d'un 
 | **Code** | Terminal, Coding | [Terminal de code](../../../docs/en/27-code-terminal.md) |
 | **Capabilities** | Partners (agents et workflows), Chatbot, Skills, Plugins | [Agents et workflows](../../../docs/en/07-agents-and-workflows.md) · [Chatbots](../../../docs/en/25-chatbots.md) · [Conversations clients](../../../docs/en/28-customer-conversations.md) · [Skills](../../../docs/en/06-skills.md) · [Plugins](../../../docs/en/20-plugins.md) |
 | **Work** | Tasks, Scheduled | [Tâches (Kanban)](../../../docs/en/21-kanban-work.md) · [Tâches récurrentes et rappels](../../../docs/en/08-recurring-jobs.md) |
-| **Connections** | Connections, Naota Store, Channels, Models | [Connexions et données métier](../../../docs/en/09-connections-and-business-data.md) · [Telegram](../../../docs/en/11-telegram.md) · [Zalo](../../../docs/en/12-zalo-agent-mcp.md) · [Modèles et moteurs](../../../docs/en/10-models-and-engines.md) |
-| **System** | Settings, Share links, Account | [Prise en main](../../../docs/en/01-getting-started.md) · [Sécurité et comptes](../../../docs/en/14-security-and-accounts.md) · [Consommation et coût](../../../docs/en/23-usage-and-cost.md) · [Naota CLI](../../../docs/en/24-cli.md) |
+| **Connections** | Connections, Vanhanh Store, Channels, Models | [Connexions et données métier](../../../docs/en/09-connections-and-business-data.md) · [Telegram](../../../docs/en/11-telegram.md) · [Zalo](../../../docs/en/12-zalo-agent-mcp.md) · [Modèles et moteurs](../../../docs/en/10-models-and-engines.md) |
+| **System** | Settings, Share links, Account | [Prise en main](../../../docs/en/01-getting-started.md) · [Sécurité et comptes](../../../docs/en/14-security-and-accounts.md) · [Consommation et coût](../../../docs/en/23-usage-and-cost.md) · [Vanhanh CLI](../../../docs/en/24-cli.md) |
 
 Et aussi : [Second Brain : mémoire, Wiki et INGEST](../../../docs/en/13-second-brain.md) · [Sauvegarde GitHub](../../../docs/en/18-github-backup.md) · [Tâches et Dataview dans les notes](../../../docs/en/19-tasks-and-dataview.md) · [Personnalisation et domaines personnalisés](../../../docs/en/15-branding-and-domains.md) · [Dépannage](../../../docs/en/17-troubleshooting.md)
 
 ### Quelques idées à essayer
 
-- **Demander des chiffres :** *"Comment est le chiffre d'affaires aujourd'hui par rapport à hier ?"* Naota appelle la bonne connexion et répond avec de vrais chiffres, accompagnés de suggestions.
-- **Digérer des connaissances :** déposez un fichier ou une note. Naota le résume, en extrait les idées clés, les écrit dans le Wiki et propose des tâches.
+- **Demander des chiffres :** *"Comment est le chiffre d'affaires aujourd'hui par rapport à hier ?"* Vanhanh appelle la bonne connexion et répond avec de vrais chiffres, accompagnés de suggestions.
+- **Digérer des connaissances :** déposez un fichier ou une note. Vanhanh le résume, en extrait les idées clés, les écrit dans le Wiki et propose des tâches.
 - **Confier du travail en arrière-plan :** **Tasks** → **+ Assign goal** → *"résume les ventes de la semaine, repère les stocks qui tournent lentement, rédige trois légendes pour les écouler"*. L'IA en fait la spécification, l'exécute et vous rend compte.
 - **Planifier quelque chose :** *"rappelle-moi chaque jour de semaine à 8 h 30 de vérifier le budget publicitaire"*, dans le chat ou sur la page **Scheduled**.
-- **Utiliser votre voix :** appuyez sur le micro (ou activez le mode mains libres), parlez, et Naota répond à voix haute.
+- **Utiliser votre voix :** appuyez sur le micro (ou activez le mode mains libres), parlez, et Vanhanh répond à voix haute.
 
 
 ## ⚙️ Configuration (`.env`)
 
-Chaque ligne peut rester vide, Naota fonctionne quand même. Copiez `env.example` → `.env` et ajoutez ce dont vous avez besoin. La liste complète, avec une explication pour chaque variable, se trouve dans [docs/en/16-env-configuration.md](../../../docs/en/16-env-configuration.md).
+Chaque ligne peut rester vide, Vanhanh fonctionne quand même. Copiez `env.example` → `.env` et ajoutez ce dont vous avez besoin. La liste complète, avec une explication pour chaque variable, se trouve dans [docs/en/16-env-configuration.md](../../../docs/en/16-env-configuration.md).
 
 | Variable | Signification | Valeur par défaut |
 |---|---|---|
-| `NAOTA_HOST` | Adresse d'écoute. `127.0.0.1` = cette machine uniquement, `0.0.0.0` = public | `127.0.0.1` |
-| `NAOTA_PORT` | Port | `7777` |
-| `NAOTA_REQUIRE_LOGIN` | `1`/`0` pour forcer l'activation ou la désactivation de la connexion (par défaut : activée en cas d'écoute publique) | *(auto)* |
-| `NAOTA_ADMIN_USER` / `NAOTA_ADMIN_PASSWORD` | Crée l'administrateur au moment du déploiement | - |
-| `NAOTA_ALLOWED_HOSTS` | Noms d'hôte supplémentaires dans la liste autorisée (protection CSRF et contre le DNS rebinding) | localhost + votre domaine |
-| `NAOTA_STATE_DIR` | Emplacement des réglages, des sessions et de la clé de chiffrement | `server/` (Docker : `/data/state`) |
+| `VANHANH_HOST` | Adresse d'écoute. `127.0.0.1` = cette machine uniquement, `0.0.0.0` = public | `127.0.0.1` |
+| `VANHANH_PORT` | Port | `7777` |
+| `VANHANH_REQUIRE_LOGIN` | `1`/`0` pour forcer l'activation ou la désactivation de la connexion (par défaut : activée en cas d'écoute publique) | *(auto)* |
+| `VANHANH_ADMIN_USER` / `VANHANH_ADMIN_PASSWORD` | Crée l'administrateur au moment du déploiement | - |
+| `VANHANH_ALLOWED_HOSTS` | Noms d'hôte supplémentaires dans la liste autorisée (protection CSRF et contre le DNS rebinding) | localhost + votre domaine |
+| `VANHANH_STATE_DIR` | Emplacement des réglages, des sessions et de la clé de chiffrement | `server/` (Docker : `/data/state`) |
 | `BRAINS_DIR` | Dossier parent contenant tous les Brains | `brains/` (Docker : `/brains`) |
-| `NAOTA_ENABLE_USER_PLUGINS` | `false` désactive vos propres plugins (ils exécutent du vrai Python dans le serveur) | *(activé)* |
+| `VANHANH_ENABLE_USER_PLUGINS` | `false` désactive vos propres plugins (ils exécutent du vrai Python dans le serveur) | *(activé)* |
 | `TTS_VOICE` / `TTS_RATE` | Voix et vitesse pour Edge TTS | `en-US-EmmaMultilingualNeural` / `+5%` |
 
 ---
@@ -389,7 +389,7 @@ Chaque ligne peut rester vide, Naota fonctionne quand même. Copiez `env.example
 - **2FA (TOTP)**, limitation du nombre de tentatives de connexion, mots de passe d'au moins 8 caractères, cookies `Secure` sous HTTPS, sessions qui expirent au bout de 30 jours.
 - **Protection CSRF et contre le DNS rebinding** : toute requête d'écriture provenant d'une origine inconnue est rejetée.
 - **Les secrets sont chiffrés** dans `settings.json` (clés d'API, jetons OAuth, jetons de bot) avec une clé propre à chaque machine.
-- **Vos propres plugins sont chargés par défaut, mais chacun reste éteint tant que vous ne l'activez pas** dans l'app ; définissez `NAOTA_ENABLE_USER_PLUGINS=false` pour tous les désactiver.
+- **Vos propres plugins sont chargés par défaut, mais chacun reste éteint tant que vous ne l'activez pas** dans l'app ; définissez `VANHANH_ENABLE_USER_PLUGINS=false` pour tous les désactiver.
 - **Les permissions des connexions sont appliquées** par le hub, pas par le modèle : un compte en lecture seule ne peut pas servir à envoyer, payer ou publier.
 
 Vous avez trouvé une vulnérabilité ? Merci de suivre [SECURITY.md](../../../SECURITY.md) plutôt que d'ouvrir une issue publique.
@@ -398,7 +398,7 @@ Vous avez trouvé une vulnérabilité ? Merci de suivre [SECURITY.md](../../../S
 
 ## 🔄 Mise à jour
 
-Dans l'application : **Settings → Updates → Update now**, avec une barre de progression et un bouton de retour arrière si la nouvelle version pose problème. Sur un VPS : `cd naota && ./update.sh` (récupère la nouvelle image et redémarre ; vos données dans les volumes sont conservées).
+Dans l'application : **Settings → Updates → Update now**, avec une barre de progression et un bouton de retour arrière si la nouvelle version pose problème. Sur un VPS : `cd vanhanh && ./update.sh` (récupère la nouvelle image et redémarre ; vos données dans les volumes sont conservées).
 
 ---
 
@@ -406,8 +406,8 @@ Dans l'application : **Settings → Updates → Update now**, avec une barre de 
 
 | Symptôme | Que faire |
 |---|---|
-| La page Models indique qu'une CLI n'est pas installée, alors qu'elle l'est | **Redémarrez Naota** : le processus en cours garde le PATH de son démarrage. |
-| Le port 7777 est occupé et la nouvelle version ne démarre pas | Arrêtez d'abord l'ancien processus (`stop-naota.bat`, ou tuez le PID), puis relancez. |
+| La page Models indique qu'une CLI n'est pas installée, alors qu'elle l'est | **Redémarrez Vanhanh** : le processus en cours garde le PATH de son démarrage. |
+| Le port 7777 est occupé et la nouvelle version ne démarre pas | Arrêtez d'abord l'ancien processus (`stop-vanhanh.bat`, ou tuez le PID), puis relancez. |
 | Hostinger n'arrive pas à récupérer l'image | Passez le paquet GHCR en **Public** et attendez la fin du build de la GitHub Action. |
 | Un cerveau indique qu'il n'est pas connecté | **Models** → la carte de ce fournisseur → connectez-vous. |
 
@@ -418,7 +418,7 @@ Plus d'informations dans [docs/en/17-troubleshooting.md](../../../docs/en/17-tro
 ## 📂 Structure du dépôt
 
 ```
-naota/
+vanhanh/
 ├── server/          # FastAPI backend: engines, connections, background work, channels, memory
 ├── dashboard/       # Frontend (plain JS, no build step)
 │   └── i18n/        # Interface strings, one JSON file per language
@@ -428,7 +428,7 @@ naota/
 ├── tests/           # Python + JS test suite (python tests/run.py)
 ├── install.sh · install.ps1 · update.sh
 ├── Dockerfile · docker-compose*.yml
-└── CLAUDE.md        # The system prompt Naota runs on
+└── CLAUDE.md        # The system prompt Vanhanh runs on
 ```
 
 ---
@@ -437,7 +437,7 @@ naota/
 
 | Quoi | Langues disponibles aujourd'hui |
 |---|---|
-| **Réponses de Naota** | N'importe quelle langue : il répond dans la langue dans laquelle vous écrivez, ou dans celle que vous fixez dans Settings |
+| **Réponses de Vanhanh** | N'importe quelle langue : il répond dans la langue dans laquelle vous écrivez, ou dans celle que vous fixez dans Settings |
 | **Tableau de bord et messages du serveur** | 🇬🇧 English · 🇻🇳 Tiếng Việt, par appareil : chaque navigateur a sa propre langue jusqu'à ce que vous en choisissiez une |
 | **Boutique de connexions, plugins, fichiers de départ d'un nouveau Brain** | 🇬🇧 English · 🇻🇳 Tiếng Việt |
 | **README et guide de démarrage rapide** | 🇬🇧 English · 🇻🇳 Tiếng Việt · 🇨🇳 简体中文 · 🇪🇸 Español · 🇯🇵 日本語 · 🇮🇳 हिन्दी · 🇧🇷 Português · 🇰🇷 한국어 · 🇷🇺 Русский · 🇩🇪 Deutsch · 🇫🇷 Français · 🇮🇩 Bahasa Indonesia |
@@ -455,28 +455,28 @@ Rapports de bugs, idées, traductions et pull requests sont tous les bienvenus, 
 |---|---|
 | [CONTRIBUTING.md](../../../CONTRIBUTING.md) | L'installation de l'environnement, l'exécution des tests (`python tests/run.py`), les conventions de code |
 | [ARCHITECTURE.md](../../../ARCHITECTURE.md) | Comment les éléments s'articulent, et une carte des modules du serveur |
-| [Modèles d'issues](https://github.com/vuongtex/naota/issues/new/choose) | Rapport de bug, demande de fonctionnalité, proposition de traduction |
+| [Modèles d'issues](https://github.com/lequydailb-dotcom/vanhanh/issues/new/choose) | Rapport de bug, demande de fonctionnalité, proposition de traduction |
 
 Merci de respecter le [Code de conduite](../../../CODE_OF_CONDUCT.md) et de signaler les problèmes de sécurité en privé, comme décrit dans [SECURITY.md](../../../SECURITY.md).
 
-Si Naota vous est utile, une ⭐ sur le dépôt aide d'autres personnes à le découvrir.
+Si Vanhanh vous est utile, une ⭐ sur le dépôt aide d'autres personnes à le découvrir.
 
-[![Star History Chart](https://api.star-history.com/svg?repos=vuongtex/naota&type=Date)](https://star-history.com/#vuongtex/naota&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=lequydailb-dotcom/vanhanh&type=Date)](https://star-history.com/#lequydailb-dotcom/vanhanh&Date)
 
 ---
 
 ## 🙏 Remerciements
 
 - **Cerveaux :** [Claude Code](https://claude.com/claude-code) et le [Claude Agent SDK](https://docs.claude.com/en/api/agent-sdk/overview) (Anthropic), [Codex CLI](https://developers.openai.com/codex/cli) (OpenAI), [Grok Build](https://x.ai) (xAI), [Antigravity](https://antigravity.google) (Google), ainsi que les API de [OpenRouter](https://openrouter.ai), OpenAI, [Google Gemini](https://ai.google.dev), Anthropic, [Groq](https://groq.com) et [Ollama](https://ollama.com).
-- **Standard d'outils :** [Model Context Protocol](https://modelcontextprotocol.io). Toute la boutique de connexions de Naota repose dessus.
+- **Standard d'outils :** [Model Context Protocol](https://modelcontextprotocol.io). Toute la boutique de connexions de Vanhanh repose dessus.
 - Les principes du Second Brain et du Bullet Journal numérique.
 
 ## 📄 Licence
 
-© 2026 Hoàng Ngọc Vương ([vuong.ai](https://vuong.ai)). Tous droits réservés. Les membres de la communauté NAOTA peuvent télécharger, installer et utiliser NAOTA gratuitement. Voir [LICENSE](../../../LICENSE).
+© 2026 Đại Lê ([lequydai.com](https://lequydai.com)). Tous droits réservés. Les membres de la communauté VANHANH peuvent télécharger, installer et utiliser VANHANH gratuitement. Voir [LICENSE](../../../LICENSE).
 
 
 <div align="center">
 <br>
-Fait avec ☕ au Vietnam par <b><a href="https://vuong.ai">Hoàng Ngọc Vương</a></b>
+Fait avec ☕ au Vietnam par <b><a href="https://lequydai.com">Đại Lê</a></b>
 </div>

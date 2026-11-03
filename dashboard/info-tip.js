@@ -5,15 +5,15 @@
  * câu giải thích nằm trong một khối `.info-body` ẩn ngay dưới tiêu đề, nút `.info-i` cạnh tiêu đề mở hoặc đóng nó.
  *
  * Cách dùng trong một mô-đun vẽ HTML:
- *   tiêu đề: '<div class="...">Tên mục' + NaotaInfo.btn(nhãn) + '</div>'
- *   ngay sau (anh em kế tiếp, có thể cách vài phần tử): NaotaInfo.body(htmlĐãEscape)
+ *   tiêu đề: '<div class="...">Tên mục' + VanhanhInfo.btn(nhãn) + '</div>'
+ *   ngay sau (anh em kế tiếp, có thể cách vài phần tử): VanhanhInfo.body(htmlĐãEscape)
  * Nút tìm khối `.info-body` ĐẦU TIÊN đứng sau phần tử chứa nó (hay sau tầng cha gần nhất có khối đó). Khối đó luôn ẩn:
  * bấm nút là mở một popup cạnh nút (điện thoại: bảng từ dưới lên) với đúng nội dung khối, xem cuối file.
  * Mô-đun nào chạy không có file này (test Node) thì tự vẽ lời giải thích ra luôn, không mất chữ.
  *
  * The rule now covers the whole dashboard (explanations are folded into the (i) button, not spread out in the open),
  * written in docs/quy-uoc-dev.md and enforced by tests/python/test_info_tip_rule.py.
- *   NaotaInfo.pair(html, label)  button and its hidden block side by side, for a spot with no title to sit next to.
+ *   VanhanhInfo.pair(html, label)  button and its hidden block side by side, for a spot with no title to sit next to.
  * In static HTML: <button type="button" class="info-i" aria-expanded="false" data-i18n-aria="info.more" data-i18n-title="info.more"><i data-ic="info"></i></button>
  * followed (as a sibling, or a sibling of a parent up to three levels) by <div class="info-body" hidden>...</div>. */
 (function () {
@@ -117,5 +117,5 @@
     // Any scroll (the page or a panel inside it) moves the button: follow it, or close when it left the page.
     document.addEventListener("scroll", place, true);
   }
-  window.NaotaInfo = { btn: btn, body: body, pair: pair, close: close };
+  window.VanhanhInfo = { btn: btn, body: body, pair: pair, close: close };
 })();

@@ -1,38 +1,38 @@
-# Cài đặt NAOTA trên server / VPS
+# Cài đặt VANHANH trên server / VPS
 
 ***Tiếng Việt** · [English](DEPLOY.en.md)*
 
-NAOTA là một AI agent cá nhân + Second Brain. "Bộ não" của nó là **Claude Code CLI**
+VANHANH là một AI agent cá nhân + Second Brain. "Bộ não" của nó là **Claude Code CLI**
 (đăng nhập một lần, không cần API key). Có 3 cách chạy - chọn 1.
 
-> ⚠️ **An toàn:** Naota chạy Claude với toàn quyền trên máy. Khi chạy public (Docker/VPS/Hostinger),
-> Naota **tự bật bắt buộc đăng nhập** - mở app ra là màn **tạo tài khoản admin / đăng nhập**, không
-> ai điều khiển được khi chưa đặt mật khẩu. (Chạy nội bộ muốn tắt: `NAOTA_REQUIRE_LOGIN=0`.)
+> ⚠️ **An toàn:** Vanhanh chạy Claude với toàn quyền trên máy. Khi chạy public (Docker/VPS/Hostinger),
+> Vanhanh **tự bật bắt buộc đăng nhập** - mở app ra là màn **tạo tài khoản admin / đăng nhập**, không
+> ai điều khiển được khi chưa đặt mật khẩu. (Chạy nội bộ muốn tắt: `VANHANH_REQUIRE_LOGIN=0`.)
 
 ---
 
 ## Cách 1 - Hostinger Docker Manager (1-click, nhanh nhất) ⚡
 
-> 🛒 **Chưa có VPS?** [Đăng ký VPS Hostinger tại đây](https://www.hostinger.com). VPS có sẵn Docker Manager nên cài Naota đúng một cú bấm. Thuê xong quay lại làm các bước dưới.
+> 🛒 **Chưa có VPS?** [Đăng ký VPS Hostinger tại đây](https://www.hostinger.com). VPS có sẵn Docker Manager nên cài Vanhanh đúng một cú bấm. Thuê xong quay lại làm các bước dưới.
 
 VPS Hostinger → **Docker Manager → Compose → URL** → dán link rồi **Deploy**:
 ```
-https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.yml
+https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
 ```
 Hostinger pull image + chạy. Mở app bằng `http://<ip-vps>:7777` (IP xem ở hPanel → VPS) → ra
 màn **tạo tài khoản admin**.
 
 > 🌐 **Muốn LINK RIÊNG có HTTPS (bỏ `:7777`, để mic/voice chạy) mà KHÔNG cần mua tên miền?** Dùng
-> `docker-compose.hostinger.yml` + đặt `DOMAIN_NAME=naota.<hostname-vps>.hstgr.cloud` - xem mục
+> `docker-compose.hostinger.yml` + đặt `DOMAIN_NAME=vanhanh.<hostname-vps>.hstgr.cloud` - xem mục
 > **"Link mặc định + HTTPS trên Hostinger"** ở phần HTTPS bên dưới. Compose gốc này chỉ vào được bằng IP:7777.
 
 **3 việc làm 1 lần:**
-1. **Để image GHCR ở chế độ Public:** GitHub → repo `naota` → **Packages** → `naota`
+1. **Để image GHCR ở chế độ Public:** GitHub → repo `vanhanh` → **Packages** → `vanhanh`
    → *Package settings* → Visibility = **Public** (để Hostinger pull không cần đăng nhập registry).
    Image do CI tự build mỗi lần push lên `main` (xem mục Cập nhật).
 2. **Tạo tài khoản admin an toàn** (Claude chạy full quyền nên không để ai cũng tạo được):
    - **Cách A (khuyến nghị):** trong compose Hostinger, điền hai trường có sẵn
-     `NAOTA_ADMIN_USER` + `NAOTA_ADMIN_PASSWORD` → admin tạo sẵn lúc khởi động,
+     `VANHANH_ADMIN_USER` + `VANHANH_ADMIN_PASSWORD` → admin tạo sẵn lúc khởi động,
      mở app ra **đăng nhập luôn**.
    - **Cách B:** bỏ trống → mở app **ngay sau khi deploy** và tự đặt tên đăng nhập + mật khẩu
      (tối thiểu 8 ký tự). Lưu ý: khi chưa có admin, **ai mở link trước sẽ tạo được admin**, nên đừng
@@ -49,10 +49,10 @@ màn **tạo tài khoản admin**.
 
 Cần Docker. Chưa có? `curl -fsSL https://get.docker.com | sh`
 ```bash
-mkdir naota && cd naota
-curl -fsSLO https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.yml
+mkdir vanhanh && cd vanhanh
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
 
-docker compose run --rm naota claude auth login --claudeai   # ĐĂNG NHẬP CLAUDE 1 LẦN (link + code)
+docker compose run --rm vanhanh claude auth login --claudeai   # ĐĂNG NHẬP CLAUDE 1 LẦN (link + code)
 docker compose up -d                                          # pull image GHCR + chạy
 ```
 Mở `http://<ip-vps>:7777` (hoặc qua tunnel ở dưới) → ra màn tạo tài khoản admin.
@@ -61,13 +61,13 @@ Muốn build từ source thay vì pull: `curl -O .../docker-compose.build.yml` r
 
 Lệnh hằng ngày:
 ```bash
-docker compose logs -f     # xem Naota đang làm gì
+docker compose logs -f     # xem Vanhanh đang làm gì
 docker compose restart     # khởi động lại
 docker compose down        # tắt
 docker compose build --pull && docker compose up -d   # cập nhật
 ```
 
-Mọi ghi chú / vault / settings nằm trong Docker volume (`naota-data`, `claude-auth`) →
+Mọi ghi chú / vault / settings nằm trong Docker volume (`vanhanh-data`, `claude-auth`) →
 **không mất** khi restart hay update.
 
 ### 🔒 HTTPS tự động
@@ -93,47 +93,47 @@ link riêng chạy HTTPS mà không cần mua tên miền. **Lưu ý (đã kiể
 1. Xem **hostname VPS** ở hPanel → VPS (vd `srv1234567.hstgr.cloud`).
 2. Docker Manager → Compose → URL:
    ```
-   https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.yml
+   https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.hostinger.yml
    ```
 3. Ô **Environment** của mẫu mới chỉ còn 3 trường có ý nghĩa:
-   - `DOMAIN_NAME`: đặt `naota.<hostname-vps>.hstgr.cloud`
-     (vd `naota.srv1234567.hstgr.cloud`), hoặc tên miền riêng đã trỏ DNS A về IP VPS.
-   - `NAOTA_ADMIN_USER`: tên đăng nhập, mặc định `admin`.
-   - `NAOTA_ADMIN_PASSWORD`: mật khẩu mạnh anh tự đặt; để trống thì phải tự tạo tài khoản trên
+   - `DOMAIN_NAME`: đặt `vanhanh.<hostname-vps>.hstgr.cloud`
+     (vd `vanhanh.srv1234567.hstgr.cloud`), hoặc tên miền riêng đã trỏ DNS A về IP VPS.
+   - `VANHANH_ADMIN_USER`: tên đăng nhập, mặc định `admin`.
+   - `VANHANH_ADMIN_PASSWORD`: mật khẩu mạnh anh tự đặt; để trống thì phải tự tạo tài khoản trên
      màn chạy lần đầu ngay sau khi deploy (ai mở link trước sẽ tạo được admin).
-   - `NAOTA_AUTO_UPDATE` (tuỳ chọn): đặt `true` thì Naota TỰ cập nhật mỗi ngày. Bỏ trống thì
+   - `VANHANH_AUTO_UPDATE` (tuỳ chọn): đặt `true` thì Vanhanh TỰ cập nhật mỗi ngày. Bỏ trống thì
      vẫn cập nhật được bằng nút **⬆ Cập nhật ngay** trong app - Stack Hostinger đã
      kèm sẵn Watchtower nên nút đó có ngay từ lần cài đầu.
 
-   Các trường kỹ thuật cũ như `NAOTA_HOST`, `NAOTA_PORT`, đường dẫn state/brain và
+   Các trường kỹ thuật cũ như `VANHANH_HOST`, `VANHANH_PORT`, đường dẫn state/brain và
    `CLAUDE_CWD` đã được dọn khỏi form; Docker image vẫn tự dùng đúng giá trị mặc định.
 4. **Deploy** → đợi 1-3 phút Traefik cấp SSL → mở `https://<DOMAIN_NAME>`.
 
 > **Mở ra là có link VPS:** trên VPS không có Traefik (Ubuntu 26 trắng), bỏ trống `DOMAIN_NAME` cũng
-> được. Gateway đọc tên VPS (`srvXXXX.hstgr.cloud`) và tự cấp HTTPS cho cả `naota.srvXXXX.hstgr.cloud` lẫn chính
+> được. Gateway đọc tên VPS (`srvXXXX.hstgr.cloud`) và tự cấp HTTPS cho cả `vanhanh.srvXXXX.hstgr.cloud` lẫn chính
 > `srvXXXX.hstgr.cloud` (tên nào trỏ về máy thì tên đó có chứng chỉ). **Cài đặt → Tên miền** cho biết
 > link đã chạy chưa, hay còn đang chờ chứng chỉ. Bấm **Open** ra `http://<ip>:7777`, trang tự chuyển sang link
-> HTTPS đó ngay khi nó chạy và đúng là Naota này. Thêm `?stay=1` vào link IP nếu muốn ở lại. Ứng dụng cài từ Catalog
+> HTTPS đó ngay khi nó chạy và đúng là Vanhanh này. Thêm `?stay=1` vào link IP nếu muốn ở lại. Ứng dụng cài từ Catalog
 > của Hostinger (vd `omniroute-xxxx.srv....hstgr.cloud`) được Hostinger báo sẵn tên VPS lúc cài; cài bằng
 > "Compose from URL" thì không, nên nút Open không tự ghi được link đó. Trên mẫu Ubuntu 24 có Traefik thì vẫn
-> phải đặt `DOMAIN_NAME` một lần: mở Naota bằng IP → **Cài đặt → Tên miền** có sẵn dòng để sao chép.
+> phải đặt `DOMAIN_NAME` một lần: mở Vanhanh bằng IP → **Cài đặt → Tên miền** có sẵn dòng để sao chép.
 >
 > **VPS Hostinger cài Ubuntu 26 (hoặc hệ điều hành trắng, không có Traefik):** vẫn dán ĐÚNG link trên,
-> không phải đổi gì. Compose có thêm container `naota-gateway` (Caddy): thấy cổng 80/443 trống là nó tự xin và tự gia
+> không phải đổi gì. Compose có thêm container `vanhanh-gateway` (Caddy): thấy cổng 80/443 trống là nó tự xin và tự gia
 > hạn SSL Let's Encrypt cho `DOMAIN_NAME`; máy có Traefik của Hostinger thì nó đứng yên nhường Traefik. Cần hai điều:
 > máy đã có Docker (Docker Manager cài sẵn, hoặc `curl -fsSL https://get.docker.com | sh`), và tường lửa mở cổng
-> 80 + 443. Trước khi Deploy, kiểm tra tên miền đã trỏ về VPS: `ping naota.<hostname-vps>.hstgr.cloud` phải ra
-> đúng IP VPS (tên miền riêng thì tạo bản ghi A về IP VPS). Xem log `naota-gateway` để biết nó đang làm gì.
+> 80 + 443. Trước khi Deploy, kiểm tra tên miền đã trỏ về VPS: `ping vanhanh.<hostname-vps>.hstgr.cloud` phải ra
+> đúng IP VPS (tên miền riêng thì tạo bản ghi A về IP VPS). Xem log `vanhanh-gateway` để biết nó đang làm gì.
 >
 > **Traefik không lo việc cập nhật.** Traefik (hay Caddy) chỉ lo HTTPS cho tên miền. Cập nhật là việc của container
-> `naota-watchtower` đi kèm, nên nút **⬆ Cập nhật ngay** trong app chạy như nhau trên Ubuntu 24 lẫn 26.
+> `vanhanh-watchtower` đi kèm, nên nút **⬆ Cập nhật ngay** trong app chạy như nhau trên Ubuntu 24 lẫn 26.
 
 > Thiếu `DOMAIN_NAME` thì vẫn deploy được (chạy tạm ở `:7777`, chưa có HTTPS), và nút **Open** mở
 > `http://<ip-vps>:7777` chứ không ra `localhost` nữa (nút Open đi theo tên miền trong nhãn Traefik, bản cũ ghi
-> `localhost` ở đó). Không biết hostname VPS? Mở Naota bằng IP → **Cài đặt → Tên miền**: Naota tự dò và hiện sẵn
-> dòng `DOMAIN_NAME=naota.srvXXXX.hstgr.cloud` kèm nút sao chép. Không thấy ô Environment? Bấm **Manage → sửa .yaml**,
+> `localhost` ở đó). Không biết hostname VPS? Mở Vanhanh bằng IP → **Cài đặt → Tên miền**: Vanhanh tự dò và hiện sẵn
+> dòng `DOMAIN_NAME=vanhanh.srvXXXX.hstgr.cloud` kèm nút sao chép. Không thấy ô Environment? Bấm **Manage → sửa .yaml**,
 > đổi hai dòng nhãn thành `- traefik.enable=true` và
-> `- traefik.http.routers.naota.rule=Host(\`naota.srv1234567.hstgr.cloud\`)`.
+> `- traefik.http.routers.vanhanh.rule=Host(\`vanhanh.srv1234567.hstgr.cloud\`)`.
 > **Điểm mấu chốt:** nhãn Traefik gắn thẳng vào service, **KHÔNG khai báo
 > `networks:` / `external: traefik-proxy`** (chỗ này trước đây làm deploy báo "network not found").
 > **Đừng ghép thêm `docker-compose.https.yml` trên Hostinger**: nó publish cổng 80/443, đụng Traefik của họ. Compose
@@ -145,10 +145,10 @@ link riêng chạy HTTPS mà không cần mua tên miền. **Lưu ý (đã kiể
 Không cần đặt `DOMAIN` lúc chạy nữa - bật Caddy một lần rồi khai báo tên miền trong giao diện.
 1. Bật Caddy (On-Demand TLS): `docker compose -f docker-compose.yml -f docker-compose.https.yml up -d`
    *(cần Docker Compose v2.23.1+ - kiểm tra `docker compose version`)*
-2. Mở `http://<ip-vps>:7777` → **Cài đặt → Giọng nói, thương hiệu & truy cập → Tên miền & SSL** → nhập `naota.tencuaban.com` → **Lưu & kiểm tra**.
-3. Wizard hiện đúng bản ghi DNS cần tạo (A: `naota.tencuaban.com → <ip-vps>`) và có nút sao chép.
+2. Mở `http://<ip-vps>:7777` → **Cài đặt → Giọng nói, thương hiệu & truy cập → Tên miền & SSL** → nhập `vanhanh.tencuaban.com` → **Lưu & kiểm tra**.
+3. Wizard hiện đúng bản ghi DNS cần tạo (A: `vanhanh.tencuaban.com → <ip-vps>`) và có nút sao chép.
    Trỏ DNS xong, đợi lan.
-4. Mở `https://naota.tencuaban.com` → Caddy **tự xin + gia hạn** chứng chỉ ở lần mở đầu, cookie
+4. Mở `https://vanhanh.tencuaban.com` → Caddy **tự xin + gia hạn** chứng chỉ ở lần mở đầu, cookie
    Secure tự bật. Xong.
 
 > An toàn: Caddy hỏi backend (`/tls-check`) trước khi xin cert → **chỉ** cấp cho đúng tên miền bạn đã
@@ -159,20 +159,20 @@ Không cần đặt `DOMAIN` lúc chạy nữa - bật Caddy một lần rồi k
 
 ---
 
-## 🏢 Chạy NHIỀU bản Naota trên cùng một VPS (mỗi bản một link riêng)
+## 🏢 Chạy NHIỀU bản Vanhanh trên cùng một VPS (mỗi bản một link riêng)
 
-Một VPS chạy được bao nhiêu bản Naota cũng được - mỗi bản một tên miền phụ, một kho dữ liệu
+Một VPS chạy được bao nhiêu bản Vanhanh cũng được - mỗi bản một tên miền phụ, một kho dữ liệu
 riêng, không bản nào thấy brain hay tài khoản của bản nào.
 
 **Ba thứ phải KHÁC NHAU giữa các bản.** Trùng cái nào là hỏng đúng cái đó:
 
 | Biến | Vì sao phải khác | Trùng thì bị gì |
 |---|---|---|
-| `NAOTA_NAME` | Docker đặt tên container theo phạm vi cả máy | `name is already in use`, bản sau không lên |
-| `NAOTA_HOST_PORT` | Một cổng máy chủ chỉ một container giữ được | `port is already allocated` |
+| `VANHANH_NAME` | Docker đặt tên container theo phạm vi cả máy | `name is already in use`, bản sau không lên |
+| `VANHANH_HOST_PORT` | Một cổng máy chủ chỉ một container giữ được | `port is already allocated` |
 | `DOMAIN_NAME` | Mỗi link phải trỏ về đúng một bản | Hai bản giành nhau một link |
 
-Bỏ trống cả ba = `naota` + cổng `7777`, tức **y hệt cách cài cũ** - đang chạy một bản thì không
+Bỏ trống cả ba = `vanhanh` + cổng `7777`, tức **y hệt cách cài cũ** - đang chạy một bản thì không
 phải sửa gì.
 
 ### Trên Hostinger Docker Manager
@@ -180,8 +180,8 @@ phải sửa gì.
 Deploy `docker-compose.hostinger.yml` **thêm một lần nữa** thành stack mới, điền Environment:
 
 ```
-Stack 1:  DOMAIN_NAME=shop.srv1234567.hstgr.cloud     (NAOTA_NAME, NAOTA_HOST_PORT bỏ trống)
-Stack 2:  DOMAIN_NAME=canhan.srv1234567.hstgr.cloud   NAOTA_NAME=naota-canhan   NAOTA_HOST_PORT=7778
+Stack 1:  DOMAIN_NAME=shop.srv1234567.hstgr.cloud     (VANHANH_NAME, VANHANH_HOST_PORT bỏ trống)
+Stack 2:  DOMAIN_NAME=canhan.srv1234567.hstgr.cloud   VANHANH_NAME=vanhanh-canhan   VANHANH_HOST_PORT=7778
 ```
 
 Wildcard DNS `*.hstgr.cloud` có sẵn nên tên miền phụ nào cũng trỏ được ngay, Traefik tự cấp SSL.
@@ -192,41 +192,41 @@ Một máy chỉ có **một cổng 443**, nên Caddy phải đứng NGOÀI mọ
 máy**:
 
 ```bash
-docker network create naota-web
-curl -fsSLO https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.proxy.yml
-docker compose -f docker-compose.proxy.yml -p naota-proxy up -d
+docker network create vanhanh-web
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.proxy.yml
+docker compose -f docker-compose.proxy.yml -p vanhanh-proxy up -d
 ```
 
 Rồi mỗi bản một **thư mục riêng**:
 
 ```bash
-mkdir -p ~/naota-shop && cd ~/naota-shop
-curl -fsSLO https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.multi.yml
+mkdir -p ~/vanhanh-shop && cd ~/vanhanh-shop
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.multi.yml
 cat > .env <<'EOF'
-NAOTA_NAME=naota-shop
-NAOTA_HOST_PORT=7777
-NAOTA_BIND=127.0.0.1
+VANHANH_NAME=vanhanh-shop
+VANHANH_HOST_PORT=7777
+VANHANH_BIND=127.0.0.1
 DOMAIN_NAME=shop.tencuaban.com
-NAOTA_ADMIN_USER=admin
-NAOTA_ADMIN_PASSWORD=matkhau-manh-cua-ban
+VANHANH_ADMIN_USER=admin
+VANHANH_ADMIN_PASSWORD=matkhau-manh-cua-ban
 EOF
 chmod 600 .env
 
 CF="-f docker-compose.yml -f docker-compose.multi.yml"
-docker compose $CF run --rm naota claude auth login --claudeai   # đăng nhập Claude cho BẢN NÀY
+docker compose $CF run --rm vanhanh claude auth login --claudeai   # đăng nhập Claude cho BẢN NÀY
 docker compose $CF up -d
 ```
 
-Bản thứ hai làm y hệt ở `~/naota-canhan`, đổi `.env` thành `naota-canhan` / `7778` /
+Bản thứ hai làm y hệt ở `~/vanhanh-canhan`, đổi `.env` thành `vanhanh-canhan` / `7778` /
 `canhan.tencuaban.com`. Trỏ DNS bản ghi A cho từng tên miền phụ về IP VPS là xong - proxy **tự
 phát hiện bản mới qua nhãn Docker**, không phải sửa gì ở proxy, cũng không phải restart nó.
 
-> Mỗi bản là một tài khoản admin riêng, nên đặt `NAOTA_ADMIN_*` cho **từng** `.env` (mật khẩu
+> Mỗi bản là một tài khoản admin riêng, nên đặt `VANHANH_ADMIN_*` cho **từng** `.env` (mật khẩu
 > khác nhau). Bỏ trống thì bản đó mở ra màn tạo tài khoản, ai vào link trước sẽ tạo được admin,
 > nên phải tạo ngay sau khi chạy.
 
-> `NAOTA_BIND=127.0.0.1` thu cổng về loopback vì đã có proxy lo HTTPS. Vẫn vào gỡ rối được bằng
+> `VANHANH_BIND=127.0.0.1` thu cổng về loopback vì đã có proxy lo HTTPS. Vẫn vào gỡ rối được bằng
 > `ssh -L 7777:localhost:7777 user@<ip-vps>` khi DNS chưa lan tới.
 
 **Cập nhật** vẫn là `./update.sh` trong từng thư mục - script đọc `.env` của thư mục đang đứng
@@ -239,11 +239,11 @@ Caddy tranh cổng 443.
 Clone vào thư mục khác rồi đặt hai biến trước khi chạy:
 
 ```bash
-NAOTA_NAME=naota-shop NAOTA_PORT=7778 ./install.sh
+VANHANH_NAME=vanhanh-shop VANHANH_PORT=7778 ./install.sh
 ```
 
-Dịch vụ systemd sẽ là `naota-shop.service` (`journalctl -u naota-shop -f`) thay vì ghi đè
-`naota.service` của bản trước. Phần HTTPS tự lo bằng nginx/Caddy sẵn có trên máy.
+Dịch vụ systemd sẽ là `vanhanh-shop.service` (`journalctl -u vanhanh-shop -f`) thay vì ghi đè
+`vanhanh.service` của bản trước. Phần HTTPS tự lo bằng nginx/Caddy sẵn có trên máy.
 
 ### Cái gì dùng chung, cái gì riêng
 
@@ -257,20 +257,20 @@ volume `claude-auth` - làm được nhưng tự chịu trách nhiệm, vì hai 
 
 ### 🌐 Truy cập từ xa (Hostinger / VPS bất kỳ) - Cloudflare Tunnel
 
-Mở giao diện Naota từ máy khác mà KHÔNG cần mở port / không cần tên miền:
+Mở giao diện Vanhanh từ máy khác mà KHÔNG cần mở port / không cần tên miền:
 
-1. **Đặt mật khẩu TRƯỚC (bắt buộc):** mở Naota (qua SSH tunnel ở bước 5) → Dashboard → **Tài khoản** → đặt mật khẩu admin. Naota chạy Claude toàn quyền trên máy → TUYỆT ĐỐI không phơi ra Internet khi chưa có mật khẩu. (Server cũng in cảnh báo nếu chạy public mà chưa đặt.)
+1. **Đặt mật khẩu TRƯỚC (bắt buộc):** mở Vanhanh (qua SSH tunnel ở bước 5) → Dashboard → **Tài khoản** → đặt mật khẩu admin. Vanhanh chạy Claude toàn quyền trên máy → TUYỆT ĐỐI không phơi ra Internet khi chưa có mật khẩu. (Server cũng in cảnh báo nếu chạy public mà chưa đặt.)
 2. Bật tunnel: `docker compose --profile tunnel up -d`
-3. Lấy URL: `docker compose logs tunnel | grep trycloudflare` → mở `https://<ngẫu-nhiên>.trycloudflare.com` trên trình duyệt bất kỳ, đăng nhập mật khẩu. Giờ xem & thao tác Naota từ xa.
+3. Lấy URL: `docker compose logs tunnel | grep trycloudflare` → mở `https://<ngẫu-nhiên>.trycloudflare.com` trên trình duyệt bất kỳ, đăng nhập mật khẩu. Giờ xem & thao tác Vanhanh từ xa.
 
-**URL cố định (tên miền riêng, kiểu `*.hstgr.cloud`):** tạo *named tunnel* ở Cloudflare Zero Trust (miễn phí) → lấy token → `TUNNEL_TOKEN=...` vào `.env` → đổi dòng `command` của service `tunnel` sang bản `run --token` (comment sẵn trong `docker-compose.yml`), trỏ tới `http://naota:7777`. Quick tunnel đổi URL mỗi lần restart; named tunnel cho URL ổn định.
+**URL cố định (tên miền riêng, kiểu `*.hstgr.cloud`):** tạo *named tunnel* ở Cloudflare Zero Trust (miễn phí) → lấy token → `TUNNEL_TOKEN=...` vào `.env` → đổi dòng `command` của service `tunnel` sang bản `run --token` (comment sẵn trong `docker-compose.yml`), trỏ tới `http://vanhanh:7777`. Quick tunnel đổi URL mỗi lần restart; named tunnel cho URL ổn định.
 
 ---
 
 ## Cách 2 - Cài trực tiếp lên Linux/macOS (không Docker)
 
 ```bash
-git clone https://github.com/vuongtex/naota.git naota && cd naota
+git clone https://github.com/lequydailb-dotcom/vanhanh.git vanhanh && cd vanhanh
 chmod +x install.sh && ./install.sh
 ```
 
@@ -279,14 +279,14 @@ boot (systemd) và in ra địa chỉ. Nếu nó báo Claude chưa đăng nhập
 ```bash
 claude auth login --claudeai
 ```
-Quản lý dịch vụ: `journalctl -u naota -f` · `sudo systemctl restart naota`
+Quản lý dịch vụ: `journalctl -u vanhanh -f` · `sudo systemctl restart vanhanh`
 
 ---
 
 ## Cách 3 - Windows (máy cá nhân)
 
-Double-click `setup.bat` (chạy hiện cửa sổ) hoặc `start-naota.vbs` (chạy ngầm).
-Dừng bằng `stop-naota.bat`. Mở http://localhost:7777
+Double-click `setup.bat` (chạy hiện cửa sổ) hoặc `start-vanhanh.vbs` (chạy ngầm).
+Dừng bằng `stop-vanhanh.bat`. Mở http://localhost:7777
 
 ---
 
@@ -294,9 +294,9 @@ Dừng bằng `stop-naota.bat`. Mở http://localhost:7777
 
 | Biến | Ý nghĩa | Mặc định |
 |---|---|---|
-| `NAOTA_HOST` | Địa chỉ nghe. `127.0.0.1` = chỉ máy này; `0.0.0.0` = mọi nơi (Docker tự đặt) | `127.0.0.1` |
-| `NAOTA_PORT` | Cổng | `7777` |
-| `NAOTA_STATE_DIR` | Nơi Naota ghi state (settings, sessions, loop config) | `server/` (Docker: `/data/state`) |
+| `VANHANH_HOST` | Địa chỉ nghe. `127.0.0.1` = chỉ máy này; `0.0.0.0` = mọi nơi (Docker tự đặt) | `127.0.0.1` |
+| `VANHANH_PORT` | Cổng | `7777` |
+| `VANHANH_STATE_DIR` | Nơi Vanhanh ghi state (settings, sessions, loop config) | `server/` (Docker: `/data/state`) |
 | `OBSIDIAN_VAULT_PATH` | Vault Second Brain chính | `vault/` trong repo (Docker: `/data/vault`) |
 | `BRAIN_PATH` | Thư mục brain | `brain/` trong repo (Docker: `/data/brain`) |
 | `CLAUDE_CWD` | Thư mục dự phòng của Claude CLI (chat chạy trong thư mục brain) | repo root |
@@ -305,7 +305,7 @@ Dừng bằng `stop-naota.bat`. Mở http://localhost:7777
 
 ## 🔄 Cập nhật khi có code mới
 
-> **Nhanh nhất - bấm ngay trong app:** mở **Cập nhật** (rail trái) → khung **NAOTA** hiện
+> **Nhanh nhất - bấm ngay trong app:** mở **Cập nhật** (rail trái) → khung **VANHANH** hiện
 > phiên bản đang chạy + tự kiểm tra bản mới trên GitHub. Có bản mới → bấm **⬆ Cập nhật ngay**,
 > app tự kéo bản mới + khởi động lại (~20-40s), khỏi vào terminal.
 > - **Docker/VPS:** nút này chạy nhờ service **watchtower**, và nó **đi kèm sẵn**
@@ -313,37 +313,37 @@ Dừng bằng `stop-naota.bat`. Mở http://localhost:7777
 >   Máy nào còn thiếu nút là đang chạy bằng file compose cũ (trước đó Watchtower nằm trong
 >   `profiles: ["update"]` nên `docker compose up -d` không bật nó). Lấy bản mới rồi dựng lại:
 >   ```bash
->   curl -fsSLO https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.yml
+>   curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
 >   docker compose up -d --pull always
 >   ```
 >   Chưa muốn đổi file compose thì bật riêng cũng được: `docker compose --profile update up -d`.
->   Chỉ Watchtower được cấp quyền Docker (socket); app Naota KHÔNG → an toàn. Không có nó cũng
+>   Chỉ Watchtower được cấp quyền Docker (socket); app Vanhanh KHÔNG → an toàn. Không có nó cũng
 >   được, khung sẽ chỉ *báo có bản mới* + chỉ cách cập nhật tay.
-> - **Có nút mà bấm không chạy, container `naota-watchtower` cứ Restarting:** stack dựng bằng
+> - **Có nút mà bấm không chạy, container `vanhanh-watchtower` cứ Restarting:** stack dựng bằng
 >   compose của bản cũ dùng image `containrrr/watchtower` (đã ngừng phát triển), log báo
 >   `client version 1.25 is too old`. Docker mới từ chối bản đó. Dựng lại MỘT LẦN bằng compose
 >   mới (Hostinger: Docker Manager, dán lại URL compose rồi Deploy; VPS: hai lệnh ở trên), compose
 >   mới dùng bản fork `ghcr.io/nicholas-fedor/watchtower:1` tự thương lượng phiên bản với Docker.
 > - **Bấm cập nhật mà vẫn đứng ở bản cũ, `image:` trong file compose là một tên lạ** (ví dụ
->   `naota-cwi:pc-1.0.0`, không có `ghcr.io/...`): đây là image tự đóng gói, thường gặp khi nhờ
->   AI chuyển Naota từ máy tính lên VPS bằng `docker save` rồi `docker load`. Image đó không nằm trên
+>   `vanhanh-cwi:pc-1.0.0`, không có `ghcr.io/...`): đây là image tự đóng gói, thường gặp khi nhờ
+>   AI chuyển Vanhanh từ máy tính lên VPS bằng `docker save` rồi `docker load`. Image đó không nằm trên
 >   kho nào nên kéo lại hay Redeploy vẫn ra đúng bản cũ (trang Cập nhật nói thẳng điều này).
 >   Đổi sang image chính thức MỘT LẦN, dữ liệu giữ nguyên vì nó nằm trong các thư mục gắn vào:
 >   ```bash
->   cd /opt/naota                      # thư mục có file compose
+>   cd /opt/vanhanh                      # thư mục có file compose
 >   cp compose.yml compose.yml.bak     # tên file có thể là docker-compose.yml
 >   docker compose config | grep -A1 "target:"   # đường dẫn bên trong phải là /data, /brains,
->                                                 # /home/naota/.claude, /home/naota/.codex
->   sed -i 's#^\(\s*image:\s*\).*#\1ghcr.io/vuongtex/naota:latest#' compose.yml
+>                                                 # /home/vanhanh/.claude, /home/vanhanh/.codex
+>   sed -i 's#^\(\s*image:\s*\).*#\1ghcr.io/lequydailb-dotcom/vanhanh:latest#' compose.yml
 >   docker compose up -d --pull always
 >   ```
 >   Dòng `sed` đổi MỌI dòng `image:` trong file, nên chỉ dùng khi file có đúng một service; có nhiều
->   service thì mở file sửa tay đúng dòng của Naota. Muốn có nút cập nhật trong app thì thêm service
+>   service thì mở file sửa tay đúng dòng của Vanhanh. Muốn có nút cập nhật trong app thì thêm service
 >   `watchtower` y như trong [`docker-compose.yml`](docker-compose.yml). Lỗi quyền ghi sau khi đổi: thư
 >   mục gắn vào phải thuộc user 10001 của container, chạy `sudo chown -R 10001:10001 brains data claude-auth codex-auth`.
-> - **Muốn TỰ cập nhật, khỏi bấm nút:** đặt `NAOTA_AUTO_UPDATE=true` trong `.env` (Hostinger: ô
+> - **Muốn TỰ cập nhật, khỏi bấm nút:** đặt `VANHANH_AUTO_UPDATE=true` trong `.env` (Hostinger: ô
 >   Environment) rồi dựng lại. Mặc định tắt vì tự cập nhật là app tự khởi động lại bất cứ lúc
->   nào có bản mới, cắt ngang việc nền. Chu kỳ đổi bằng `NAOTA_AUTO_UPDATE_INTERVAL` (giây).
+>   nào có bản mới, cắt ngang việc nền. Chu kỳ đổi bằng `VANHANH_AUTO_UPDATE_INTERVAL` (giây).
 > - **Native/Windows:** nút chạy `update.sh` (git pull + restart) giúp bạn.
 
 Repo & image GHCR đều **Public** → `git clone`/`pull` và `docker pull` không cần đăng nhập.
@@ -351,17 +351,17 @@ Repo & image GHCR đều **Public** → `git clone`/`pull` và `docker pull` kh�
 Mỗi khi bạn push code mới, trên VPS chỉ cần:
 
 ```bash
-cd naota && ./update.sh
+cd vanhanh && ./update.sh
 ```
 
 Script tự `git pull` rồi:
 - **Docker**: `docker compose build && docker compose up -d` - dữ liệu trong volume KHÔNG mất.
-- **Native (systemd)**: `pip install -r requirements.txt` + `systemctl restart naota`.
+- **Native (systemd)**: `pip install -r requirements.txt` + `systemctl restart vanhanh`.
 
 Ép chế độ: `./update.sh docker` hoặc `./update.sh native`. Làm tay tương đương:
 ```bash
 git pull && docker compose build && docker compose up -d          # Docker
-git pull && ./.venv/bin/pip install -r requirements.txt && sudo systemctl restart naota   # Native
+git pull && ./.venv/bin/pip install -r requirements.txt && sudo systemctl restart vanhanh   # Native
 ```
 
 Trên máy Windows của bạn, đẩy code lên GitHub: `git add -A && git commit -m "..." && git push`
@@ -372,7 +372,7 @@ Trên máy Windows của bạn, đẩy code lên GitHub: `git add -A && git comm
 
 ## Đăng nhập Claude là bước duy nhất bắt buộc
 
-"Bộ não" của Naota là Claude Code CLI. Token đăng nhập nằm trong `~/.claude`
+"Bộ não" của Vanhanh là Claude Code CLI. Token đăng nhập nằm trong `~/.claude`
 (Docker: volume `claude-auth`). Đăng nhập 1 lần → tồn tại qua mọi restart/update.
 Nếu đã đăng nhập trên máy khác, có thể copy thư mục `~/.claude` sang.
 

@@ -3,8 +3,8 @@
     python tests/run.py anthropic_compat     (no network: a fake gateway runs on localhost)
 
 Case: a reseller told a customer their Claude access is more stable over the
-"Anthropic compatible" endpoint than the "OpenAI compatible" one, and Naota had no way to use it.
-Naota sent every Anthropic request to a hard-coded https://api.anthropic.com/v1/messages.
+"Anthropic compatible" endpoint than the "OpenAI compatible" one, and Vanhanh had no way to use it.
+Vanhanh sent every Anthropic request to a hard-coded https://api.anthropic.com/v1/messages.
 
 The fake gateway below behaves like the real ones this targets:
 - `/anthropic/...` has no /v1/models (DeepSeek's and Kimi's "anthropic" endpoints, most resellers);
@@ -18,12 +18,12 @@ import json
 import os
 # vòng tool mặc định gọi model dạng stream. File này thử logic vòng tool trên đường non-stream
 # (giả lập client.post / máy chủ trả JSON), đường đó vẫn là đường lui. Đường stream: test_api_stream_vong.py.
-os.environ["NAOTA_API_STREAM_TOOLS"] = "0"
+os.environ["VANHANH_API_STREAM_TOOLS"] = "0"
 import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-ac-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-ac-")
 
 import config as cfgmod  # noqa: E402
 import engine  # noqa: E402

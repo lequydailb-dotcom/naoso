@@ -1,9 +1,9 @@
 """
-share_bundle.py - Xuất/Nhập năng lực Naota (agent / skill / workflow) dưới dạng gói .zip để
+share_bundle.py - Xuất/Nhập năng lực Vanhanh (agent / skill / workflow) dưới dạng gói .zip để
 CHIA SẺ giữa các brain / người dùng.
 
-Gói "naota-bundle" = 1 file .zip:
-  naota-bundle.json          - manifest (kind, primary, items, app_version)
+Gói "vanhanh-bundle" = 1 file .zip:
+  vanhanh-bundle.json          - manifest (kind, primary, items, app_version)
   agents/<slug>.md           - agent (1 file)
   workflows/<slug>.md        - workflow (1 file)
   skills/<slug>/...          - skill (cả thư mục: SKILL.md + asset)
@@ -11,7 +11,7 @@ Gói "naota-bundle" = 1 file .zip:
 Gói KÈM PHỤ THUỘC để bên nhận chạy được ngay:
   workflow -> các agent nó tham chiếu (step.agent + verify_agent) -> skill của các agent đó
   agent    -> skill của agent
-Skill HỆ THỐNG (naota-builder/ingest/query/lint...) KHÔNG gói (bên nhận đã có sẵn theo app).
+Skill HỆ THỐNG (vanhanh-builder/ingest/query/lint...) KHÔNG gói (bên nhận đã có sẵn theo app).
 
 Nhập: đọc gói .zip (hoặc 1 file .md lẻ cho agent/workflow), ghi vào đúng thư mục brain. Rào an toàn:
   - chống zip-slip / path traversal (chỉ nhận agents/ workflows/ skills/, chặn '..', path tuyệt đối).
@@ -83,7 +83,7 @@ def build_bundle(kind, slug, *, agents_dir, workflows_dir, skills_root,
     """Trả (zip_bytes, filename) cho MỘT hoặc NHIỀU năng lực cùng loại + phụ thuộc.
 
     `slug` nhận str (một cái, như cũ) hoặc list/tuple (chọn nhiều - trang Studio
-    thêm chọn tất cả / tải về đã chọn). Nhiều cái vẫn ra MỘT gói naota-bundle duy nhất:
+    thêm chọn tất cả / tải về đã chọn). Nhiều cái vẫn ra MỘT gói vanhanh-bundle duy nhất:
     manifest.items đã là danh sách từ đầu nên phía NHẬP không cần biết gì mới - gói 5
     workflow nhập y như gói 1 workflow kèm 4 phụ thuộc. (None, None) nếu không có gì.
     """
@@ -152,11 +152,11 @@ def build_bundle(kind, slug, *, agents_dir, workflows_dir, skills_root,
         return None, None
 
     # primary = cái ĐẦU TIÊN tìm thấy - giữ nguyên hình dạng manifest v1 để gói chọn-nhiều
-    # mở được bằng mọi bản Naota cũ (import chỉ đọc items + file, không đọc primary).
+    # mở được bằng mọi bản Vanhanh cũ (import chỉ đọc items + file, không đọc primary).
     goc = [i for i in items if i["type"] == kind and i["slug"] in slugs]
     prim = goc[0] if goc else None
     manifest = {
-        "format": "naota-bundle", "version": 1, "kind": kind,
+        "format": "vanhanh-bundle", "version": 1, "kind": kind,
         "primary": {"type": kind, "slug": (prim or {}).get("slug", slugs[0]),
                     "name": (prim or {}).get("name", slugs[0])},
         "items": items, "app_version": app_version,
@@ -164,11 +164,11 @@ def build_bundle(kind, slug, *, agents_dir, workflows_dir, skills_root,
     }
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-        z.writestr("naota-bundle.json", json.dumps(manifest, ensure_ascii=False, indent=1))
+        z.writestr("vanhanh-bundle.json", json.dumps(manifest, ensure_ascii=False, indent=1))
         for arc, data in files.items():
             z.writestr(arc, data)
-    ten = (f"{_safe_name((prim or {}).get('name') or slugs[0])}.naota.zip" if len(goc) <= 1
-           else f"naota-{kind}-x{len(goc)}.naota.zip")
+    ten = (f"{_safe_name((prim or {}).get('name') or slugs[0])}.vanhanh.zip" if len(goc) <= 1
+           else f"vanhanh-{kind}-x{len(goc)}.vanhanh.zip")
     return buf.getvalue(), ten
 
 
@@ -206,9 +206,9 @@ def import_bundle(data: bytes, filename, *, agents_dir, workflows_dir, skills_ro
 
     def write_one(target: Path, blob: bytes, typ, slug, arc=None):
         key = f"{typ}:{slug}"
-        # Naota Core is the platform's system assistant: its slug is reserved, and a bundled
-        # `agents/naota-core.md` would only shadow it.
-        if typ == "agent" and str(slug).lower() == "naota-core":
+        # Vanhanh Core is the platform's system assistant: its slug is reserved, and a bundled
+        # `agents/vanhanh-core.md` would only shadow it.
+        if typ == "agent" and str(slug).lower() == "vanhanh-core":
             skp.add(key); return
         try:
             if target.exists() and not overwrite:
@@ -272,13 +272,13 @@ def import_bundle(data: bytes, filename, *, agents_dir, workflows_dir, skills_ro
             return False
 
         arcs = [i.filename.replace("\\", "/") for i in infos]
-        is_naota = "naota-bundle.json" in arcs or any(a.startswith(_ALLOWED_TOP) for a in arcs)
+        is_vanhanh = "vanhanh-bundle.json" in arcs or any(a.startswith(_ALLOWED_TOP) for a in arcs)
 
-        if is_naota:
+        if is_vanhanh:
             skip_skill = set()   # slug skill đã có (bỏ qua cả thư mục khi không ghi đè)
             for i in infos:
                 arc = i.filename.replace("\\", "/")
-                if arc == "naota-bundle.json" or _bad(arc, i):
+                if arc == "vanhanh-bundle.json" or _bad(arc, i):
                     continue
                 dst = _dst_for(arc, agents_dir, workflows_dir, skills_root)
                 if not dst:
@@ -298,8 +298,8 @@ def import_bundle(data: bytes, filename, *, agents_dir, workflows_dir, skills_ro
             cand = sorted([a for a in arcs if a.rsplit("/", 1)[-1] == "SKILL.md" and "__MACOSX/" not in a],
                           key=lambda a: (a.count("/"), a))
             if not cand:
-                res["errors"].append(localefmt.chu("Gói .zip không phải naota-bundle và không có SKILL.md - không rõ nhập gì.",
-                                                   "The .zip is not a naota-bundle and has no SKILL.md - unclear what to import."))
+                res["errors"].append(localefmt.chu("Gói .zip không phải vanhanh-bundle và không có SKILL.md - không rõ nhập gì.",
+                                                   "The .zip is not a vanhanh-bundle and has no SKILL.md - unclear what to import."))
                 return res
             sau = cand[0].count("/")
             # SKILL.md ngay ở gốc gói = cả gói là MỘT skill. Ngược lại mọi SKILL.md CÙNG CẤP nông

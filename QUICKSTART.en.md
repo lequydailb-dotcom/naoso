@@ -1,50 +1,50 @@
-# NAOTA - Quick start
+# VANHANH - Quick start
 
 ***English** · [Tiếng Việt](QUICKSTART.md) · [简体中文](docs/i18n/zh/QUICKSTART.md) · [Español](docs/i18n/es/QUICKSTART.md) · [日本語](docs/i18n/ja/QUICKSTART.md) · [हिन्दी](docs/i18n/hi/QUICKSTART.md) · [Português](docs/i18n/pt-BR/QUICKSTART.md) · [한국어](docs/i18n/ko/QUICKSTART.md) · [Русский](docs/i18n/ru/QUICKSTART.md) · [Deutsch](docs/i18n/de/QUICKSTART.md) · [Français](docs/i18n/fr/QUICKSTART.md) · [Bahasa Indonesia](docs/i18n/id/QUICKSTART.md)*
 
-Get NAOTA running in a few minutes. Full guides: [docs/en/](docs/en/README.md).
+Get VANHANH running in a few minutes. Full guides: [docs/en/](docs/en/README.md).
 
 ## Personal computer (Windows, macOS) - download the installer
 
-Install Naota like any other app: download one file, open it, and you get a NAOTA icon to click every day. The installer checks what the computer is missing (Git, Python, Node, the AI brains) and installs only that.
+Install Vanhanh like any other app: download one file, open it, and you get a VANHANH icon to click every day. The installer checks what the computer is missing (Git, Python, Node, the AI brains) and installs only that.
 
-- **Windows 10/11:** download [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), double-click it and press Next to the end. A black window shows the install progress (a few minutes). When it is done there is a NAOTA icon on the Desktop and in the Start menu.
-- **macOS 11 or newer:** download [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), open it, drag **NAOTA** into **Applications**, then open it from Launchpad. The first time, Terminal opens to install (it may ask you to set a Naota admin account and for your Mac password once).
+- **Windows 10/11:** download [Vanhanh-Setup.exe](https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/Vanhanh-Setup.exe), double-click it and press Next to the end. A black window shows the install progress (a few minutes). When it is done there is a VANHANH icon on the Desktop and in the Start menu.
+- **macOS 11 or newer:** download [Vanhanh-macOS.dmg](https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/Vanhanh-macOS.dmg), open it, drag **VANHANH** into **Applications**, then open it from Launchpad. The first time, Terminal opens to install (it may ask you to set a Vanhanh admin account and for your Mac password once).
 
-Clicking the icon opens Naota in its own window (no address bar), Naota starts with the computer, and the in-app **Update** button works as usual. Your data lives in the `Naota` folder in your user folder; uninstalling the app keeps that folder.
+Clicking the icon opens Vanhanh in its own window (no address bar), Vanhanh starts with the computer, and the in-app **Update** button works as usual. Your data lives in the `Vanhanh` folder in your user folder; uninstalling the app keeps that folder.
 
-**Install without the warning screen (recommended).** Both installers are not code-signed yet, so a browser download gets blocked the first time. Paste one line instead and you get the same installer with the Naota logo, unblocked:
+**Install without the warning screen (recommended).** Both installers are not code-signed yet, so a browser download gets blocked the first time. Paste one line instead and you get the same installer with the Vanhanh logo, unblocked:
 - **Windows:** press Start, type `PowerShell`, open it, paste this line and press Enter:
   ```
-  irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-naota.ps1 | iex
+  irm https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/packaging/windows/get-vanhanh.ps1 | iex
   ```
 - **macOS:** open **Terminal** (Launchpad, type Terminal), paste this line and press Enter:
   ```
-  curl -fsSL https://raw.githubusercontent.com/vuongtex/naota/main/packaging/macos/get-naota.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/packaging/macos/get-vanhanh.sh | bash
   ```
 
 If you already downloaded the file with the browser and it was blocked:
 - Windows shows "Windows protected your PC": click **More info**, then **Run anyway**.
-- macOS says it cannot open the app: go to **System Settings → Privacy & Security**, scroll down, click **Open Anyway**, then open NAOTA again.
+- macOS says it cannot open the app: go to **System Settings → Privacy & Security**, scroll down, click **Open Anyway**, then open VANHANH again.
 
 ## Option 1 - Hostinger VPS (Docker Manager, one click)
 
-> 🛒 **No VPS yet?** [Get a Hostinger VPS here](https://www.hostinger.com). Docker Manager comes built in, so Naota installs in one click. Once it is ready, come back to the steps below.
+> 🛒 **No VPS yet?** [Get a Hostinger VPS here](https://www.hostinger.com). Docker Manager comes built in, so Vanhanh installs in one click. Once it is ready, come back to the steps below.
 
 1. hPanel → VPS → **Docker Manager** → **Compose** → **Compose from URL**.
 2. Paste this URL:
    ```
-   https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.yml
+   https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.hostinger.yml
    ```
 3. (Optional, for HTTPS + a domain) set this in the **Environment** box:
    ```
-   DOMAIN_NAME=naota.<vps-hostname>.hstgr.cloud
+   DOMAIN_NAME=vanhanh.<vps-hostname>.hstgr.cloud
    ```
-   (Find the hostname under hPanel → VPS, e.g. `naota.srv1234567.hstgr.cloud`.)
+   (Find the hostname under hPanel → VPS, e.g. `vanhanh.srv1234567.hstgr.cloud`.)
 4. **Deploy**. Wait 1-3 minutes. Open the app with the **Open** button (or `https://<DOMAIN_NAME>`).
 5. On first run the screen asks you to create an admin account. After that, sign in to Claude Code once inside the container terminal: `claude auth login --claudeai`.
 
-VPS on **Ubuntu 26** or a plain OS without Hostinger's Traefik: paste the same link, `DOMAIN_NAME` may stay empty: **Open** moves you to `https://naota.srvXXXX.hstgr.cloud` or `https://srvXXXX.hstgr.cloud`. **Settings → Domain** says whether the link works yet. The bundled `naota-gateway` container issues HTTPS for `DOMAIN_NAME` when ports 80/443 are free; open ports 80 and 443 in the firewall.
+VPS on **Ubuntu 26** or a plain OS without Hostinger's Traefik: paste the same link, `DOMAIN_NAME` may stay empty: **Open** moves you to `https://vanhanh.srvXXXX.hstgr.cloud` or `https://srvXXXX.hstgr.cloud`. **Settings → Domain** says whether the link works yet. The bundled `vanhanh-gateway` container issues HTTPS for `DOMAIN_NAME` when ports 80/443 are free; open ports 80 and 443 in the firewall.
 
 To update: press **⬆ Update now** in the app (Updates page), or **Redeploy** in Docker Manager (image `:latest`, `pull_policy: always`). Brain data stays in the volume.
 
@@ -61,7 +61,7 @@ Open http://localhost:7777. For HTTPS through Caddy, add `-f docker-compose.http
 
 1. Install Python 3.12 + Node 22.
 2. In the project folder run `setup.bat` once - it creates .venv, installs dependencies, and installs the two CLI engines (Claude Code, Codex) for you.
-3. `start-naota.bat` to run in the background (`stop-naota.bat` to stop).
+3. `start-vanhanh.bat` to run in the background (`stop-vanhanh.bat` to stop).
 4. Open http://localhost:7777.
 
 ## Once it is running
@@ -77,6 +77,6 @@ See [docs/en/README.md](docs/en/README.md) - a guide per feature (chat/voice, kn
 
 ## Common problems
 
-- **The in-app update button does not work on Hostinger**: it needs the bundled `naota-watchtower` container (included). If the stack shows "Partially running", open that container's log; if it cannot be fixed, update with **Redeploy** in Docker Manager.
+- **The in-app update button does not work on Hostinger**: it needs the bundled `vanhanh-watchtower` container (included). If the stack shows "Partially running", open that container's log; if it cannot be fixed, update with **Redeploy** in Docker Manager.
 - **ChatGPT/Codex says "model not supported"**: pick a valid Codex model on the Models page (e.g. `gpt-5.5`). Do not use `gpt-5-mini` or `gpt-4o` - those are API models and a Codex account cannot run them.
 - More: [docs/17 - Troubleshooting](docs/en/17-troubleshooting.md).

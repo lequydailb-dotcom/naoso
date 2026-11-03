@@ -14,7 +14,7 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-agychot-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-agychot-"))
 
 from antigravity_cli import _chot_van, AntigravityCLI  # noqa: E402
 

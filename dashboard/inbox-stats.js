@@ -17,10 +17,10 @@
   var C = null, _body = null, _data = null, _err = "";
   // The period: a quick range ({preset}) or days picked on the calendar ({from, to}), date-range.js. Remembered in this
   // browser so the tab opens on the period the owner last looked at.
-  var KEY = "naota.stats.range", _range = { preset: "d7" };
+  var KEY = "vanhanh.stats.range", _range = { preset: "d7" };
   try { var saved = JSON.parse(window.localStorage.getItem(KEY) || "null"); if (saved && (saved.preset || saved.from)) _range = saved; } catch (e) { /* no storage */ }
   // The account picked ("" = every account), an inbox account key "<channel>:<id>".
-  var ACC_KEY = "naota.stats.account", _acc = "";
+  var ACC_KEY = "vanhanh.stats.account", _acc = "";
   try { _acc = window.localStorage.getItem(ACC_KEY) || ""; } catch (e) { /* no storage */ }
 
   function t(k, v) { return window.t(k, v); }
@@ -154,8 +154,8 @@
       '<div class="st-body"><div class="ht-empty">' + esc(t("common.loading")) + '</div></div></div>';
     var rb = body.querySelector(".st-range");
     rb.onclick = function () {
-      if (!window.NaotaDateRange) return;
-      window.NaotaDateRange.open(rb, _range, function (r) {
+      if (!window.VanhanhDateRange) return;
+      window.VanhanhDateRange.open(rb, _range, function (r) {
         _range = r || { preset: "d7" };
         try { window.localStorage.setItem(KEY, JSON.stringify(_range)); } catch (e) { /* no storage */ }
         load();
@@ -177,7 +177,7 @@
 
   async function load() {
     if (!_body) return;
-    var DR = window.NaotaDateRange, d = DR ? DR.dates(_range) : null;
+    var DR = window.VanhanhDateRange, d = DR ? DR.dates(_range) : null;
     var rb = _body.querySelector(".st-range"), sd = _body.querySelector(".st-dates");
     if (rb) rb.innerHTML = C.ic("calendar") + ' <span>' + esc(DR ? DR.label(_range) : t("ib.st_period")) + '</span> ' + C.ic("chevron-down");
     if (sd) sd.textContent = d && _range.preset ? DR.label({ from: d.from, to: d.to }) : "";
@@ -214,6 +214,6 @@
       '<p class="ib-hint">' + esc(t("ib.st_note")) + ' ' + esc(t("ib.st_est")) + '</p>';
   }
 
-  window.NaotaInboxStats = { render: render, heroHtml: heroHtml, tilesHtml: tilesHtml, hoursHtml: hoursHtml, barsHtml: barsHtml, fmtWait: fmtWait,
+  window.VanhanhInboxStats = { render: render, heroHtml: heroHtml, tilesHtml: tilesHtml, hoursHtml: hoursHtml, barsHtml: barsHtml, fmtWait: fmtWait,
     delta: delta, savedText: savedText, accountsHtml: accountsHtml, accountPickerHtml: accountPickerHtml, shareOf: shareOf, vsText: vsText };
 })();

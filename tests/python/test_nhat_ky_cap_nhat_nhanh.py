@@ -22,7 +22,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-changelog-test-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-changelog-test-")
 
 import main  # noqa: E402
 

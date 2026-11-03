@@ -73,16 +73,16 @@ check("nút Bỏ qua lần thử gọi route quyết định bài học",
 check("lệnh quay lại cách cũ đi đường lệnh của thẻ",
   RS.requestFor("revert_method", base, null, {}, "n").url === "/goals/g/commands");
 
-// ── mục Bài học: bỏ khỏi cột của trợ lý, bài học làm qua chat (naota_memory) ──
+// ── mục Bài học: bỏ khỏi cột của trợ lý, bài học làm qua chat (vanhanh_memory) ──
 const RASRC = fs.readFileSync(path.join(ROOT, "dashboard", "resonance-agent.js"), "utf8");
 const RSSRC = fs.readFileSync(path.join(ROOT, "dashboard", "chat-resonance.js"), "utf8");
 check("cột trợ lý không còn tải hay vẽ mục Bài học, không nút Áp dụng/Thu hồi",
   !/\/resonance\/lessons\?/.test(RASRC) && !/lessonsHtml|rsa-lesson-act|lessonNote/.test(RASRC) && !("lessonsHtml" in RA));
 check("UI4 hàng phản hồi không đoán phiên đang mở: gửi phiên trống, server tra biên nhận theo khoá báo cáo",
   /row\._ctx = \{ session_id: "", report: card\.report, goal_id: card\.goal_id \}/.test(RSSRC)
-  && !/NaotaSessions/.test(RSSRC));
+  && !/VanhanhSessions/.test(RSSRC));
 check("không còn sự kiện tải lại mục Bài học (không ai nghe)",
-  !/naota:resonance-lessons/.test(RSSRC) && !/naota:resonance-lessons/.test(RASRC));
+  !/vanhanh:resonance-lessons/.test(RSSRC) && !/vanhanh:resonance-lessons/.test(RASRC));
 
 // ── khoá từ điển ──
 const used = new Set();

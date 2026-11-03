@@ -3,7 +3,7 @@
 from _paths import ROOT, SERVER  # noqa: E402,F401  - nạp server/ vào sys.path (xem tests/python/_paths.py)
 import os, sys, asyncio, tempfile
 from pathlib import Path
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="nt-del-state-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="nt-del-state-"))
 import main  # noqa: E402
 import git_brain as gb  # noqa: E402
 

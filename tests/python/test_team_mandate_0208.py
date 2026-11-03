@@ -12,8 +12,8 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-mandate-")
-STATE = Path(os.environ["NAOTA_STATE_DIR"])
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-mandate-")
+STATE = Path(os.environ["VANHANH_STATE_DIR"])
 
 import sessions  # noqa: E402
 import task_store  # noqa: E402

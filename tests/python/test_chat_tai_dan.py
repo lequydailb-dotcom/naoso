@@ -9,7 +9,7 @@ Hai chỗ dễ làm sai, và test này canh đúng hai chỗ đó:
 
 1. `limit` PHẢI không bắt buộc. Rất nhiều đường khác trong server vẫn gọi get_messages để
    dựng ngữ cảnh cho engine; đổi mặc định thành "chỉ 30 tin cuối" là im lặng cắt trí nhớ
-   của Naota giữa cuộc mà không ai thấy lỗi nào.
+   của Vanhanh giữa cuộc mà không ai thấy lỗi nào.
 
 2. Con trỏ phải là CẶP (ts, id) chứ không chỉ mỗi id. Thứ tự hiển thị là `ORDER BY ts, id`,
    mà tin ghi bù (bot, việc nền) có id lớn trong khi mốc giờ nhỏ. Con trỏ chỉ có id sẽ nhảy
@@ -20,7 +20,7 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-taidan-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-taidan-"))
 
 from fastapi.testclient import TestClient  # noqa: E402
 import main  # noqa: E402
@@ -35,7 +35,7 @@ def check(name, cond, them=""):
         fails.append(name)
 
 
-BRAIN = tempfile.mkdtemp(prefix="naota-brain-taidan-")
+BRAIN = tempfile.mkdtemp(prefix="vanhanh-brain-taidan-")
 st = get_store()
 SID = "cuoc-sieu-dai"
 st.get_or_create(SID, brain=BRAIN, engine="cli", model="x")

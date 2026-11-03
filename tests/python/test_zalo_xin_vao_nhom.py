@@ -1,9 +1,9 @@
-"""Duyệt người xin vào nhóm Zalo (naota-zalo 1.2.0).
+"""Duyệt người xin vào nhóm Zalo (vanhanh-zalo 1.2.0).
 
     python tests/run.py zalo_xin_vao_nhom      (KHÔNG mạng, MCP giả)
 
-Hướng thiết kế "chủ ra lệnh, Naota làm": hỏi Naota ai đang xin vào nhóm, bảo duyệt hay từ chối thì Naota làm,
-có người mới xin vào thì Naota báo chủ. Bot chuyên trách KHÔNG được tự quyết ai vào nhóm.
+Hướng thiết kế "chủ ra lệnh, Vanhanh làm": hỏi Vanhanh ai đang xin vào nhóm, bảo duyệt hay từ chối thì Vanhanh làm,
+có người mới xin vào thì Vanhanh báo chủ. Bot chuyên trách KHÔNG được tự quyết ai vào nhóm.
 
 File này canh:
   1. Quyền: liệt kê là ĐỌC, duyệt/từ chối là NGUY HIỂM (đổi thành viên nhóm, không hoàn tác được).
@@ -17,7 +17,7 @@ import sys
 import tempfile
 import time
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-zpxin-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-zpxin-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -46,14 +46,14 @@ check("CANARY: duyệt hay từ chối là NGUY HIỂM (đổi thành viên nhó
 # ============================================================
 # 2 + 3. Vòng đọc: sự kiện vào Hộp thư, không tới bot, chủ được báo
 # ============================================================
-CONN = {"id": "zalo-1", "label": "Naota An", "connector_id": "zalo"}
+CONN = {"id": "zalo-1", "label": "Vanhanh An", "connector_id": "zalo"}
 NHOM = "9990001"
 KHO_TIN, BAO, BOT = [], [], []
 
 
 async def _goi_gia(conn, tool, args):
     if tool == "zalo_list_threads":
-        return {"threads": [{"threadId": NHOM, "name": "Zoom | NAOTA", "type": "group"}]}
+        return {"threads": [{"threadId": NHOM, "name": "Zoom | VANHANH", "type": "group"}]}
     if tool == "zalo_get_messages":
         tin = list(KHO_TIN)
         KHO_TIN.clear()
@@ -94,7 +94,7 @@ async def doc():
 
 
 async def chay():
-    TEN = {NHOM: {"name": "Zoom | NAOTA", "type": "group"}}
+    TEN = {NHOM: {"name": "Zoom | VANHANH", "type": "group"}}
     ev = zc.chuan_hoa_tin(dict(CONN), xin("7301", "Lan", "x"), TEN)
     md = (ev or {}).get("metadata", {})
     check("tin group.join_request thành sự kiện xin vào nhóm, người gửi là người xin",
@@ -110,7 +110,7 @@ async def chay():
     check("chủ được báo đúng MỘT lần cho cả lô của nhóm", len(BAO) == 1, BAO)
     cau = BAO[0]["text"] if BAO else ""
     check("câu báo có tên cả hai người và tên nhóm",
-          "Lan" in cau and "Minh" in cau and "Zoom | NAOTA" in cau, cau)
+          "Lan" in cau and "Minh" in cau and "Zoom | VANHANH" in cau, cau)
     check("câu báo chỉ cách xử lý và điều kiện trưởng/phó nhóm",
           ("duyệt" in cau or "approve" in cau) and ("phó nhóm" in cau or "deputy" in cau), cau)
     check("báo vào hòm thư chung của chủ (không gắn hội thoại nào), loại hệ thống",

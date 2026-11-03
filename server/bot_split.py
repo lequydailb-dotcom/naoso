@@ -1,7 +1,7 @@
 """A bot answer sent as several short chat messages instead of one long block.
 
 Requirement: the bot can decide to send several short messages to a customer instead of one long, hard-to-read message. The Agent decides: it writes a line holding only `SPLIT_MARK` between the
-messages, the channel sends each part as its own message. Naota never splits on its own (a blank line inside one
+messages, the channel sends each part as its own message. Vanhanh never splits on its own (a blank line inside one
 message is normal writing), it only honours the marker.
 
 Only channels in `SPLIT_CHANNELS` send parts separately; everywhere else (and in the inbox, the bot log, a draft for

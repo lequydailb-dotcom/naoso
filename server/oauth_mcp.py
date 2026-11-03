@@ -1,5 +1,5 @@
 """
-OAuth 2.1 cho remote MCP server (chuẩn MCP Authorization) - Naota TỰ giữ token,
+OAuth 2.1 cho remote MCP server (chuẩn MCP Authorization) - Vanhanh TỰ giữ token,
 mọi engine dùng chung, KHÔNG cần mở terminal gõ /mcp như trước.
 Luồng: discovery (RFC 9728 / .well-known) → DCR (RFC 7591, nếu server hỗ trợ)
 → authorize PKCE S256 → callback → token → tự refresh.
@@ -50,9 +50,9 @@ def _conn(conn_id):
 # Vì sao tồn tại: Google cấp token theo TỪNG scope, và mỗi tool của server MCP chỉ nhận một
 # danh sách scope nhất định. Token thiếu một scope vẫn đăng nhập xanh, tools/list vẫn chạy,
 # validate cũng có thể xanh (list_calendars chỉ cần scope danh sách lịch) - nhưng đúng tool cần
-# scope đó thì Google trả ACCESS_TOKEN_SCOPE_INSUFFICIENT. Trước đây Naota không lưu scope thật
+# scope đó thì Google trả ACCESS_TOKEN_SCOPE_INSUFFICIENT. Trước đây Vanhanh không lưu scope thật
 # nên không phân biệt nổi "chưa đăng nhập" với "đăng nhập rồi mà thiếu quyền", và người dùng xoá
-# đi cài lại mãi vẫn dính vì bản thân danh sách scope Naota xin mới là chỗ sai.
+# đi cài lại mãi vẫn dính vì bản thân danh sách scope Vanhanh xin mới là chỗ sai.
 _SCOPE_ALIAS = {   # xin bằng tên ngắn, Google trả về dạng URL đầy đủ
     "email": "https://www.googleapis.com/auth/userinfo.email",
     "profile": "https://www.googleapis.com/auth/userinfo.profile",
@@ -146,7 +146,7 @@ async def _discover(url):
         try:
             r = await client.post(url, json={"jsonrpc": "2.0", "id": 1, "method": "initialize",
                                              "params": {"protocolVersion": "2025-06-18", "capabilities": {},
-                                                        "clientInfo": {"name": "naota", "version": "1.0"}}},
+                                                        "clientInfo": {"name": "vanhanh", "version": "1.0"}}},
                                   headers={"Accept": "application/json, text/event-stream"})
             www = r.headers.get("www-authenticate") or ""
             m = None
@@ -213,7 +213,7 @@ async def _discover(url):
     return None
 
 
-# Chọn phạm vi (scope) cho nhánh DISCOVERY. Trước đây Naota xin NGUYÊN danh sách `scopes_supported` của máy chủ
+# Chọn phạm vi (scope) cho nhánh DISCOVERY. Trước đây Vanhanh xin NGUYÊN danh sách `scopes_supported` của máy chủ
 # đăng nhập, tức mọi phạm vi máy đó BIẾT, không phải phạm vi ứng dụng được phép xin. Higgsfield đăng nhập qua Clerk: danh sách
 # có `private_metadata`, ứng dụng tự đăng ký (DCR) không được xin, Clerk trả invalid_scope và không kết nối được. Thứ tự theo chuẩn MCP: scope trong WWW-Authenticate của máy chủ MCP, rồi `scopes_supported` của protected
 # resource metadata (RFC 9728), cuối cùng mới tới danh sách của máy chủ đăng nhập. Phạm vi nhà cung cấp đã từ chối một lần
@@ -255,11 +255,11 @@ def canonical_resource(url, prm_resource=""):
 
 
 def _dcr_redirect_mismatch(reg, redirect_uri):
-    """True when a registration answer lists its callbacks and Naota's is not among them.
+    """True when a registration answer lists its callbacks and Vanhanh's is not among them.
 
     Some providers answer DCR with a shared, pre-registered client (Spacemail: client_id "starlight.mcp") whose
-    allowlist does not hold the callback Naota asked for. Their sign-in page then fails with a generic error and never
-    returns to Naota, so the only honest place to say so is here, before sending the owner there."""
+    allowlist does not hold the callback Vanhanh asked for. Their sign-in page then fails with a generic error and never
+    returns to Vanhanh, so the only honest place to say so is here, before sending the owner there."""
     uris = (reg or {}).get("redirect_uris")
     if not isinstance(uris, list) or not uris:
         return False
@@ -330,7 +330,7 @@ async def start_auth(conn_id, redirect_uri, _retry=0):
             try:
                 async with httpx.AsyncClient(timeout=20) as client:
                     r = await client.post(md["registration_endpoint"], json={
-                        "client_name": "NAOTA", "redirect_uris": [redirect_uri],
+                        "client_name": "VANHANH", "redirect_uris": [redirect_uri],
                         "grant_types": ["authorization_code", "refresh_token"],
                         "response_types": ["code"], "token_endpoint_auth_method": "none",
                     })
@@ -349,11 +349,11 @@ async def start_auth(conn_id, redirect_uri, _retry=0):
                 print(f"[oauth dcr] {e}", file=sys.stderr)
         if dcr_mismatch:
             return {"ok": False, "error": localefmt.chu(
-                "Nhà cung cấp trả về một ứng dụng đăng nhập dùng chung không chấp nhận địa chỉ quay về của Naota ("
+                "Nhà cung cấp trả về một ứng dụng đăng nhập dùng chung không chấp nhận địa chỉ quay về của Vanhanh ("
                 + redirect_uri + "). Trang đăng nhập của họ sẽ báo lỗi dù bạn nhập đúng mật khẩu, nên đừng thử lại "
                 "mật khẩu. Đây là giới hạn phía nhà cung cấp: cần họ cho tự đăng ký đúng địa chỉ này. Trong lúc chờ, "
                 "dùng API key hoặc cách kết nối khác nếu nhà cung cấp có.",
-                "The provider answered with a shared sign-in app that does not accept Naota's return address ("
+                "The provider answered with a shared sign-in app that does not accept Vanhanh's return address ("
                 + redirect_uri + "). Their sign-in page will fail even with the right password, so retrying the "
                 "password will not help. This is a provider-side limit: they need to allow registering this address. "
                 "Meanwhile, use an API key or another way to connect if the provider offers one.")}
@@ -436,7 +436,7 @@ async def handle_callback(state, code, error="", error_description=""):
         return {"ok": False, "error": localefmt.chu("Phiên OAuth không hợp lệ hoặc đã hết hạn - thử lại từ đầu",
                                                     "The OAuth session is invalid or has expired - start again")}
     if error:
-        # Nhà cung cấp báo lỗi ngay ở bước xin quyền: KHÔNG có code để đổi. Trước đây Naota vẫn đem chuỗi rỗng đi đổi
+        # Nhà cung cấp báo lỗi ngay ở bước xin quyền: KHÔNG có code để đổi. Trước đây Vanhanh vẫn đem chuỗi rỗng đi đổi
         # và chỉ hiện "invalid_grant", che mất lỗi thật.
         if error == "invalid_scope" and p.get("discovery") and p.get("retry", 0) < _SCOPE_THU_LAI:
             store = _load()

@@ -1,6 +1,6 @@
 """Short in-memory trace of the MCP hub's startup requests.
 
-When Claude Code starts it connects to the Naota hub (`/hub/mcp`) and asks `initialize` and
+When Claude Code starts it connects to the Vanhanh hub (`/hub/mcp`) and asks `initialize` and
 `tools/list` before it takes any work. If that startup times out, the question that decides
 where to look is whether Claude ever reached the hub at all:
 

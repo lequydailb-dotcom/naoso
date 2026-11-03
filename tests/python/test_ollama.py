@@ -2,7 +2,7 @@
 
     python tests/run.py ollama
 
-Bản trước đấu CẢ hai đường của Ollama: chạy trên máy nhà và chạy trên Cloud. Naota chạy
+Bản trước đấu CẢ hai đường của Ollama: chạy trên máy nhà và chạy trên Cloud. Vanhanh chạy
 trên VPS nên chỉ cần Cloud, nên phần máy nhà đã được gỡ hẳn.
 
 Gỡ đi là được nhiều hơn mất về mặt mã: đường máy nhà đòi một ô ĐỊA CHỈ riêng, tức là
@@ -22,7 +22,7 @@ import sys
 import tempfile
 import types
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-ollama-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-ollama-")
 
 import config as cfg  # noqa: E402
 import engine  # noqa: E402

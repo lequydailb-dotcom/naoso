@@ -26,8 +26,8 @@ from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-t3-loop-"))
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-t3-loop-"))
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
 
 from _judge_world import World, batch, check, finish  # noqa: E402
 import agent_ledger as AL  # noqa: E402
@@ -208,7 +208,7 @@ check("huỷ lô sau khi giữ chỗ: lô bị huỷ, dòng judge_batch được
 check("huỷ lô: event loop vẫn không bị giữ", gap < LIMIT_MS, gap)
 
 # ═════ 3. nhịp pulse với mọi hàm của host chậm ═════
-TEMP = Path(tempfile.mkdtemp(prefix="naota-t3-loop-pulse-"))
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-t3-loop-pulse-"))
 st = RS.GoalStore(TEMP / "resonance.sqlite3")
 owner = RS.Principal("owner", "owner", str(TEMP))
 pkey = st.agent_set_enabled(owner, "a0", True)["agent_key"]

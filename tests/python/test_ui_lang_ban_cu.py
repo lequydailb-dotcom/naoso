@@ -13,8 +13,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-_tmp = Path(tempfile.mkdtemp(prefix="naota-uilang-"))
-os.environ["NAOTA_STATE_DIR"] = str(_tmp)
+_tmp = Path(tempfile.mkdtemp(prefix="vanhanh-uilang-"))
+os.environ["VANHANH_STATE_DIR"] = str(_tmp)
 import config as cfgmod  # noqa: E402
 
 cfgmod.SETTINGS_PATH = _tmp / "settings.json"

@@ -6,7 +6,7 @@ Yêu cầu: trong khung mở file cần một nút Chia sẻ, cho ra đường l
 họ cũng xem được, và xem được BẢN HOÀN THIỆN - .html chạy thật, .md hiện đậm nghiêng với ảnh.
 Mục đích là làm vài ứng dụng nhỏ rồi gửi cho người khác xem ngay.
 
-Đây là mặt tiền CÔNG KHAI đầu tiên của Naota chạm vào file trong brain, nên phần lớn test này
+Đây là mặt tiền CÔNG KHAI đầu tiên của Vanhanh chạm vào file trong brain, nên phần lớn test này
 là test an toàn chứ không phải test tính năng:
 
   1. "/s/" trong danh sách đường công khai PHẢI có gạch chéo cuối. Hàng rào so bằng
@@ -21,9 +21,9 @@ import os
 import sys
 import tempfile
 
-_STATE = tempfile.mkdtemp(prefix="naota-share-")
-_BRAINS = tempfile.mkdtemp(prefix="naota-share-brains-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="vanhanh-share-")
+_BRAINS = tempfile.mkdtemp(prefix="vanhanh-share-brains-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
 os.environ["BRAINS_DIR"] = _BRAINS
 
 BRAIN = os.path.join(_BRAINS, "brain")
@@ -43,7 +43,7 @@ with open(os.path.join(BRAIN, "rieng", "kin.md"), "w", encoding="utf-8") as f:
 with open(os.path.join(BRAIN, "hang-xom.md"), "w", encoding="utf-8") as f:
     f.write("ghi chu khac, cung thu muc")
 # Ghi chú nằm trong THƯ MỤC CON, ảnh nằm ngay cạnh nó. Đây là cách người ta viết note thật
-# (và là chỗ Naota từng hỏng: mọi đường dẫn tương đối bị tính theo GỐC BRAIN).
+# (và là chỗ Vanhanh từng hỏng: mọi đường dẫn tương đối bị tính theo GỐC BRAIN).
 os.makedirs(os.path.join(BRAIN, "06 - Sources", "hinh"), exist_ok=True)
 with open(os.path.join(BRAIN, "06 - Sources", "bai-viet.md"), "w", encoding="utf-8") as f:
     f.write("# Bài\n\n![cạnh note](anh-canh-note.png)\n\n![thư mục con](hinh/trong-hinh.png)\n")
@@ -219,7 +219,7 @@ if _tok_sub:
     check("ghi chú ở thư mục khác vẫn không đọc được", _d.status_code == 404, _d.status_code)
     _e = cl.get(f"/s/{_tok_sub}/asset", params={"p": "../../../etc/passwd"})
     check("không vượt được ra ngoài brain", _e.status_code == 404, _e.status_code)
-    # Đường lui về attachments vẫn còn: note ở thư mục con trỏ tới ảnh Naota tự cất.
+    # Đường lui về attachments vẫn còn: note ở thư mục con trỏ tới ảnh Vanhanh tự cất.
     _f = cl.get(f"/s/{_tok_sub}/asset", params={"p": "a.png"})
     check("vẫn lui được về attachments/ khi ảnh không nằm cạnh note",
           _f.status_code == 200, _f.status_code)

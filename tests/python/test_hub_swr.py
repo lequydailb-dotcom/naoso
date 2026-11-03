@@ -13,8 +13,8 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-hub-swr-")
-BRAIN = Path(tempfile.mkdtemp(prefix="naota-hub-swr-brain-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-hub-swr-")
+BRAIN = Path(tempfile.mkdtemp(prefix="vanhanh-hub-swr-brain-"))
 
 import mcp_client  # noqa: E402
 import mcp_hub  # noqa: E402

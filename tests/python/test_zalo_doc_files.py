@@ -17,7 +17,7 @@ import time
 import zipfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-zalo-docs-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-zalo-docs-")
 
 import chatbot_runtime  # noqa: E402
 import chatbot_store  # noqa: E402

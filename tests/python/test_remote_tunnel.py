@@ -2,7 +2,7 @@
 
     python tests/run.py remote_tunnel      (no network: a fake cloudflared script stands in for the real one)
 
-Request: someone running Naota on Windows or macOS fills in a form in Settings and reaches Naota from
+Request: someone running Vanhanh on Windows or macOS fills in a form in Settings and reaches Vanhanh from
 anywhere. This file pins what that must and must not do:
 
 1. the token is found inside whatever the owner pastes (bare, or Cloudflare's install command), the right release file
@@ -27,11 +27,11 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-remote-tunnel-test-")
-os.environ["NAOTA_REQUIRE_LOGIN"] = "0"
-os.environ.pop("NAOTA_ADMIN_PASSWORD", None)
-os.environ.pop("NAOTA_HOST", None)
-os.environ.pop("NAOTA_PORT", None)
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-remote-tunnel-test-")
+os.environ["VANHANH_REQUIRE_LOGIN"] = "0"
+os.environ.pop("VANHANH_ADMIN_PASSWORD", None)
+os.environ.pop("VANHANH_HOST", None)
+os.environ.pop("VANHANH_PORT", None)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -101,34 +101,34 @@ check("quick link read from the box cloudflared prints", rt.parse_quick_url(box)
 check("the request to api.trycloudflare.com is not taken for the link",
       rt.parse_quick_url('failed to request quick Tunnel: Post "https://api.trycloudflare.com/tunnel"') == "")
 cfg_line = ('2026-10-20T03:47:15Z INF Updated to new configuration config="{\\"ingress\\":[{\\"hostname\\":'
-            '\\"Naota.Example.com\\", \\"service\\":\\"http://localhost:7777\\"}, {\\"service\\":\\"http_status:404\\"}],'
+            '\\"Vanhanh.Example.com\\", \\"service\\":\\"http://localhost:7777\\"}, {\\"service\\":\\"http_status:404\\"}],'
             ' \\"warp-routing\\":{\\"enabled\\":false}}" version=3')
 check("hostname and service read from a token tunnel's config line",
-      rt.parse_ingress(cfg_line) == [("naota.example.com", "http://localhost:7777")])
+      rt.parse_ingress(cfg_line) == [("vanhanh.example.com", "http://localhost:7777")])
 check("an unrelated line is not a config line", rt.parse_ingress("INF Starting tunnel") is None)
-check("localhost:7777 points at this Naota", rt.service_points_here("http://localhost:7777"))
-check("127.0.0.1:7777 points at this Naota", rt.service_points_here("http://127.0.0.1:7777"))
+check("localhost:7777 points at this Vanhanh", rt.service_points_here("http://localhost:7777"))
+check("127.0.0.1:7777 points at this Vanhanh", rt.service_points_here("http://127.0.0.1:7777"))
 check("another port does not", not rt.service_points_here("http://localhost:8080"))
 check("another machine does not", not rt.service_points_here("http://192.168.1.5:7777"))
-check("default target is loopback on the Naota port", rt.local_target() == "http://127.0.0.1:7777")
+check("default target is loopback on the Vanhanh port", rt.local_target() == "http://127.0.0.1:7777")
 
 # ============================================================
 # 2. Settings: encrypted at rest, hidden from GET /settings, forces login
 # ============================================================
-check("login not required before the tunnel is on (NAOTA_REQUIRE_LOGIN=0)", c.require_login() is False)
+check("login not required before the tunnel is on (VANHANH_REQUIRE_LOGIN=0)", c.require_login() is False)
 c.update_settings({"remote_tunnel": {"enabled": False, "mode": "token", "token": TOKEN}})
 raw = json.loads(c.SETTINGS_PATH.read_text(encoding="utf-8"))
 check("token stored encrypted on disk", str(raw.get("remote_tunnel", {}).get("token", "")).startswith("enc:"))
 check("token decrypts back", c.read_settings()["remote_tunnel"]["token"] == TOKEN)
 check("GET /settings does not carry the token", TOKEN not in json.dumps(main.settings_get()))
 c.update_settings({"remote_tunnel": {"enabled": True}})
-check("tunnel on -> login required, even over NAOTA_REQUIRE_LOGIN=0", c.require_login() is True)
+check("tunnel on -> login required, even over VANHANH_REQUIRE_LOGIN=0", c.require_login() is True)
 c.update_settings({"remote_tunnel": {"enabled": False, "token": ""}})
 
 # ============================================================
 # 3. Routes and supervisor, with a fake cloudflared
 # ============================================================
-work = Path(tempfile.mkdtemp(prefix="naota-fake-cf-"))
+work = Path(tempfile.mkdtemp(prefix="vanhanh-fake-cf-"))
 calls = work / "calls.log"
 fake = work / "cloudflared"
 fake.write_text(f"""#!{sys.executable}
@@ -188,7 +188,7 @@ r = cl.post("/remote-access/enable", data={"mode": "token", "token": f"cloudflar
 check("token mode accepted from the pasted install command", r.status_code == 200 and r.json().get("ok"), r.text)
 check("the quick tunnel was stopped before the named one started", wait_for(lambda: not alive(pid_quick), 5))
 check("token mode reaches running with the owner's hostname",
-      wait_for(lambda: rt.MANAGER.status()["url"] == "https://naota.example.com"
+      wait_for(lambda: rt.MANAGER.status()["url"] == "https://vanhanh.example.com"
                and rt.MANAGER.status()["state"] == "running"))
 last = calls.read_text().splitlines()[-1]
 argv, env_token = last.split("|", 1)
@@ -197,7 +197,7 @@ check("token NOT on the command line", TOKEN not in argv and argv.startswith("tu
 st = rt.MANAGER.status()
 check("status shows the tunnel id, never the token", st["has_token"] and st["tunnel_id"] == "1234abcd"
       and TOKEN not in json.dumps(st))
-check("service matches this Naota: no mismatch warning", st["service_mismatch"] == [])
+check("service matches this Vanhanh: no mismatch warning", st["service_mismatch"] == [])
 
 r = cl.post("/remote-access/enable", data={"mode": "token"})
 check("re-enable with an empty box keeps the saved token", r.status_code == 200 and c.read_settings()["remote_tunnel"]["token"] == TOKEN)
@@ -293,7 +293,7 @@ check("HTTPS not enabled yet -> waiting with the enable link",
       wait_for(lambda: rt.MANAGER.status()["enable_url"] == "https://login.tailscale.com/f/serve?node=n123abc"
                and rt.MANAGER.status()["state"] == "waiting", 10))
 ts_set(backend="Running", https=True)
-check("owner enables HTTPS -> Naota retries by itself and runs on the ts.net link",
+check("owner enables HTTPS -> Vanhanh retries by itself and runs on the ts.net link",
       wait_for(lambda: rt.MANAGER.status()["state"] == "running"
                and rt.MANAGER.status()["url"] == "https://may-cua-lan.tail1234.ts.net", 15))
 check("serve points tailscaled at this server on :443",

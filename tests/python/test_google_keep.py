@@ -11,7 +11,7 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-keeptest-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-keeptest-"))
 
 import mcp_catalog  # noqa: E402
 
@@ -64,7 +64,7 @@ check("ô unsafe -> UNSAFE_MODE", (fields.get("unsafe_mode") or {}).get("env") =
 check("ô unsafe là TUỲ CHỌN (bỏ trống vẫn đấu được)",
       bool((fields.get("unsafe_mode") or {}).get("optional")))
 check("email là BẮT BUỘC", not fields.get("google_email", {}).get("optional"))
-# Có ô App Password và Naota tự đổi ra token, nên master_token KHÔNG còn bắt buộc.
+# Có ô App Password và Vanhanh tự đổi ra token, nên master_token KHÔNG còn bắt buộc.
 # Luật "phải có ÍT NHẤT MỘT trong hai" do cred_exchange kiểm phía server (xem test_cred_exchange),
 # vì schema field hiện chỉ diễn đạt được bắt-buộc/tuỳ-chọn cho TỪNG ô, không diễn đạt được "một trong hai".
 check("app_password và master_token đều TUỲ CHỌN (một trong hai là đủ)",

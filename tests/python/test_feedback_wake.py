@@ -17,9 +17,9 @@ import time
 from contextlib import closing
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-fb-wake-")
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
-TEMP = Path(tempfile.mkdtemp(prefix="naota-fb-wake-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-fb-wake-")
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-fb-wake-w-"))
 
 import agent_ledger as AL  # noqa: E402
 import feedback_projector as FP  # noqa: E402

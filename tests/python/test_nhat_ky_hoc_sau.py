@@ -17,7 +17,7 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-hoclog-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-hoclog-"))
 
 fails = []
 
@@ -34,8 +34,8 @@ from starlette.testclient import TestClient  # noqa: E402
 # 30 ngày nhật ký, mỗi ngày 2 mục -> 60 mục. Bản cũ (3 file) chỉ thấy được 6.
 from pathlib import Path  # noqa: E402
 
-VAULT = Path(tempfile.mkdtemp(prefix="naota-hocvault-")) / "brain"
-log_dir = VAULT / "Naota" / "learn-log"
+VAULT = Path(tempfile.mkdtemp(prefix="vanhanh-hocvault-")) / "brain"
+log_dir = VAULT / "Vanhanh" / "learn-log"
 log_dir.mkdir(parents=True)
 for ngay in range(1, 31):
     (log_dir / f"2026-07-{ngay:02d}.md").write_text(
@@ -75,7 +75,7 @@ ma, e0 = lay(0)
 check("limit 0 hay âm thì kẹp về mức tối thiểu, không trả rỗng khó hiểu", len(e0) >= 1, len(e0))
 
 # Brain chưa từng học thì không được nổ.
-trong = Path(tempfile.mkdtemp(prefix="naota-hocrong-"))
+trong = Path(tempfile.mkdtemp(prefix="vanhanh-hocrong-"))
 main.learn_feature.deps.brain_root = lambda brain="brain": str(trong)
 ma, e = lay(50)
 check("brain chưa có nhật ký thì trả rỗng êm", ma == 200 and e == [], (ma, e))

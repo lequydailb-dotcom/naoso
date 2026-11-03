@@ -6,16 +6,16 @@ background and puts ONE notice in the bell (the inbox) listing what can be updat
 the banner and the "Có bản mới" filter take it from there.
 
 No background scan (it wastes resources; notify only when a new version exists). An earlier version ran a timer on the 30-second scheduler loop that fetched the catalog every six hours
-whether anyone used Naota or not. Now nothing runs on its own: the check rides on the dashboard opening (the
+whether anyone used Vanhanh or not. Now nothing runs on its own: the check rides on the dashboard opening (the
 `/version` call it already makes for the version label), at most once per `INTERVAL`, and reads the catalog through
-`packs_store.lay`, whose cache answers without any network for six hours. A Naota nobody opens does no work at all.
+`packs_store.lay`, whose cache answers without any network for six hours. A Vanhanh nobody opens does no work at all.
 
 Rules:
   - Only packs installed from the Store or a zip (they have a row in the install ledger, `pack_install.doc_so`); the
     connectors that ship with the app update with the app.
   - Each version is announced once: `STATE` remembers the last version told per pack, so the bell does not ring every
     six hours for the same update, and the next version rings again.
-  - Naota never updates anything on its own: an update installs new code and goes through the same confirm screen as
+  - Vanhanh never updates anything on its own: an update installs new code and goes through the same confirm screen as
     a first install.
   - A stale catalog (the last fetch failed) is not used: better one notice late than a notice built from old data.
 """
@@ -101,17 +101,17 @@ def notify(updates: List[dict]) -> Optional[dict]:
     if n > MAX_LINES:
         lines.append(localefmt.chu(f"- và {n - MAX_LINES} gói khác", f"- and {n - MAX_LINES} more"))
     body = "\n".join(lines) + "\n\n" + localefmt.chu(
-        "Bấm để mở Naota Store và cập nhật. Naota không tự cập nhật: mỗi bản mới vẫn qua màn hình xác nhận.",
-        "Press to open the Naota Store and update. Naota never updates on its own: each new version still goes "
+        "Bấm để mở Vanhanh Store và cập nhật. Vanhanh không tự cập nhật: mỗi bản mới vẫn qua màn hình xác nhận.",
+        "Press to open the Vanhanh Store and update. Vanhanh never updates on its own: each new version still goes "
         "through the confirm screen.")
-    # an update is an "info" notice of the group "update"; Naota Core's rules decide if it rings.
+    # an update is an "info" notice of the group "update"; Vanhanh Core's rules decide if it rings.
     import notify_policy
     dec = notify_policy.decide("update", "info", title)
     if dec["verdict"] == "drop":
         told.update({u["id"]: u["to"] for u in fresh})
         _save(told)
         return None
-    item = inbox.add(body, kind="system", title=title, label="Naota Store", source="store", channel=CHANNEL,
+    item = inbox.add(body, kind="system", title=title, label="Vanhanh Store", source="store", channel=CHANNEL,
                      dedup="pack-updates:" + ",".join(sorted(f"{u['id']}@{u['to']}" for u in fresh)),
                      group=dec["group"], level=dec["level"], sig=dec["sig"], filtered=dec["verdict"] != "loud",
                      why=dec["why"])

@@ -6,7 +6,7 @@
 
    Gửi tin bằng POST /teams/{id}/messages kèm `client_msg_id`: rớt mạng thì gửi lại ĐÚNG mã cũ, server trả tin cũ, không
    thêm lượt hay việc. Câu trả lời và trạng thái về qua WebSocket chung (app.js đổi gói `team_message` / `team_state`
-   thành sự kiện `naota:team-event`).
+   thành sự kiện `vanhanh:team-event`).
 
    @: chọn từ gợi ý chèn "@Tên " vào chữ; lúc gửi, người được gọi là các "@Tên" CÒN trong chữ (xoá chữ là bỏ gọi).
 
@@ -30,10 +30,10 @@
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
-  // the (i) button and its hidden block (info-tip.js); in Node tests (no NaotaInfo) the text is drawn open.
-  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(tw("info.more")) : ""; }
+  // the (i) button and its hidden block (info-tip.js); in Node tests (no VanhanhInfo) the text is drawn open.
+  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(tw("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.NaotaInfo;
+    var J = typeof window !== "undefined" && window.VanhanhInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
   // Icon lấy từ bộ Lucide của dashboard; chạy trong Node (test) thì không có, trả chuỗi rỗng.
@@ -111,7 +111,7 @@
     { n: 3, key: "teams.level_3", desc: "teams.level_3_desc" }];
   // Sáu reaction, lý do, trục nói/im, chip, bộ chọn và trạng thái nằm ở reactions.js (bảng sáu emoji duy nhất của repo,
   // dùng chung với chat riêng; hợp đồng T2 mục 6). File này chỉ giữ tên hàm cũ làm lớp mỏng với họ class "tm".
-  var JR = (typeof window !== "undefined" && window.NaotaReactions) || require("./reactions.js");
+  var JR = (typeof window !== "undefined" && window.VanhanhReactions) || require("./reactions.js");
   var REACTIONS = JR.EMOJI;
   var COMMENT_MAX = JR.COMMENT_MAX;
   var INPUT_MAX_PX = 132;   // khung soạn tự cao theo chữ, tối đa khoảng năm dòng
@@ -134,7 +134,7 @@
   // Time, reply (quote), copy and pin in one row UNDER the bubble, like the main chat (beside the
   // bubble it looked cluttered). Shown on hover (mouse); touch screens use swipe left (reply) and long press.
   function actsApi() {
-    if (typeof window !== "undefined" && window.NaotaActs) return window.NaotaActs;
+    if (typeof window !== "undefined" && window.VanhanhActs) return window.VanhanhActs;
     try { return require("./chat-acts.js"); } catch (e) { return null; }
   }
 
@@ -175,7 +175,7 @@
   // accent colour, lists, code, tables), so the two chats read the same. Owner text stays plain like the main chat's
   // user bubble, with a reply quote block on top when the message quotes an earlier one.
   function quoteApi() {
-    if (typeof window !== "undefined" && window.NaotaQuote) return window.NaotaQuote;
+    if (typeof window !== "undefined" && window.VanhanhQuote) return window.VanhanhQuote;
     try { return require("./chat-quote.js"); } catch (e) { return null; }
   }
 
@@ -252,7 +252,7 @@
       // anhV: the message's own time is the version of the pictures it shows, like the main chat, so a picture the AI
       // overwrote under the same name shows the new one in a newer message instead of the browser's cached copy.
       try {
-        return '<div class="tm-text msg-naota tm-mdwrap"><div class="bubble">' + md(text, brain(), m.ts ? { anhV: String(m.ts) } : undefined) +
+        return '<div class="tm-text msg-vanhanh tm-mdwrap"><div class="bubble">' + md(text, brain(), m.ts ? { anhV: String(m.ts) } : undefined) +
           "</div></div>";
       }
       catch (e) { /* fall through to plain text */ }
@@ -283,7 +283,7 @@
     var Q = quoteApi();
     var s = String(text == null ? "" : text);
     if (Q) s = Q.tach(s).rest;
-    // Hidden blocks (NAOTA_CARD, NAOTA_ASK... are HTML comments) never show in a preview or a quote.
+    // Hidden blocks (VANHANH_CARD, VANHANH_ASK... are HTML comments) never show in a preview or a quote.
     s = s.replace(/<!--[\s\S]*?-->/g, " ").replace(/<!--[\s\S]*$/, " ");
     // a preview reads as text: pictures dropped, [label](path) and [[note|label]] become their label.
     s = s.replace(/!\[[^\]]*\]\([^)]*\)/g, " ").replace(/!\[\[[^\]]*\]\]/g, " ")
@@ -308,12 +308,12 @@
     return '<span class="' + avaClass(name) + '" aria-hidden="true">' + esc(initial(name)) + "</span>";
   }
 
-  // Ảnh trợ lý: ĐÚNG ảnh trợ lý đang dùng (bộ vẽ NaotaAvatar của trang Cộng sự, theo slug và `avatar` trong file trợ
+  // Ảnh trợ lý: ĐÚNG ảnh trợ lý đang dùng (bộ vẽ VanhanhAvatar của trang Cộng sự, theo slug và `avatar` trong file trợ
   // lý; trợ lý chưa chọn ảnh thì bộ vẽ tự suy từ slug, giống mọi trang khác). Chưa có bộ vẽ (test dưới node) thì về chữ
   // đầu trên nền màu.
   function agentAva(m, size) {
     m = m || {};
-    var A = typeof window !== "undefined" && window.NaotaAvatar;
+    var A = typeof window !== "undefined" && window.VanhanhAvatar;
     // `avatar_seed`: tác giả cũ không còn xác nhận được nhân dạng thì ảnh suy từ chính mã của họ, không suy từ slug (slug
     // có thể đã thuộc trợ lý mới; review 4f6268bd #1).
     if (A && A.html && m.slug) {
@@ -477,7 +477,7 @@
     return g ? g.ten : key;
   }
 
-  // The filter bar on top of the list: the Partners page's bar (NaotaTagPicker.barHtml).
+  // The filter bar on top of the list: the Partners page's bar (VanhanhTagPicker.barHtml).
   function tagBarHtml(teams, key) {
     var TP = tagPicker();
     if (!TP) return "";
@@ -485,7 +485,7 @@
                         canClear: !!key, pickTitle: tw("teams.tag_pick_title"), clearTitle: tw("ws.tag_clear_title") });
   }
 
-  // Rows of the filter dropdown (NaotaChatSide.menu, the same dropdown the Partners page opens).
+  // Rows of the filter dropdown (VanhanhChatSide.menu, the same dropdown the Partners page opens).
   function tagMenuRows(teams, key, pick) {
     var tags = allTags(teams);
     var none = (teams || []).filter(function (t) { return !(t.tags || []).length; }).length;
@@ -511,7 +511,7 @@
   }
 
   function tagPicker() {
-    if (typeof window !== "undefined" && window.NaotaTagPicker) return window.NaotaTagPicker;
+    if (typeof window !== "undefined" && window.VanhanhTagPicker) return window.VanhanhTagPicker;
     try { return require("./tag-picker.js"); } catch (e) { return null; }
   }
 
@@ -684,7 +684,7 @@
     } else if (mine && meta.as_job) {
       head.push('<span class="tm-tag tm-tag-new">' + ic("list-todo") + esc(tw("teams.as_job")) + "</span>");
     }
-    // a job Naota Core gave the team on the owner's behalf (naota_team op=dispatch).
+    // a job Vanhanh Core gave the team on the owner's behalf (vanhanh_team op=dispatch).
     if (mine && meta.via_core) head.push('<span class="tm-role">' + esc(tw("teams.via_core")) + "</span>");
     if (meta.job_result) head.push('<span class="tm-result">' + esc(tw("teams.job_result")) + "</span>");
     var late = !mine && LATE.indexOf(meta.status) >= 0;
@@ -1049,7 +1049,7 @@
     });
     var md = typeof window !== "undefined" && window.mdToHtml;
     var res = String(j.result || "").trim();
-    var resHtml = res ? (md ? (function () { try { return '<div class="msg-naota tm-mdwrap"><div class="bubble">' + md(res, brain()) + "</div></div>"; }
+    var resHtml = res ? (md ? (function () { try { return '<div class="msg-vanhanh tm-mdwrap"><div class="bubble">' + md(res, brain()) + "</div></div>"; }
       catch (e) { return esc(res); } })() : esc(res).replace(/\n/g, "<br>")) : '<p class="tm-sub">' + esc(tw("teams.fin_no_result")) + "</p>";
     var when = j.updated_at ? new Date(Number(j.updated_at) * 1000).toLocaleString() : "";
     return '<div class="tm-report">' +
@@ -1372,7 +1372,7 @@
         "><span>" + esc(tw(TEAM_STATUS_KEY[s])) + "</span></label>";
     }).join("");
     // Ảnh nhóm: mặc định ghép từ gương mặt thành viên; "Tải ảnh lên" thay bằng ảnh riêng, lưu ngay không chờ nút Lưu.
-    var A = typeof window !== "undefined" && window.NaotaAvatar;
+    var A = typeof window !== "undefined" && window.VanhanhAvatar;
     var ava = A && A.uploadRowHtml ? '<div class="tm-field tm-ava-set"><span>' + esc(tw("teams.avatar")) + '</span><div class="tm-ava-row">' +
       teamAvatarHtml(team, 56) + '<div class="tm-ava-acts">' + A.uploadRowHtml(!!team.avatar_image, tw("teams.avatar_use_faces")) +
       "</div></div></div>" : "";
@@ -1838,7 +1838,7 @@
 
   function brain() {
     try {
-      if (window.NaotaSessions && window.NaotaSessions.brain) return window.NaotaSessions.brain();
+      if (window.VanhanhSessions && window.VanhanhSessions.brain) return window.VanhanhSessions.brain();
       return (window.currentBrainPath && window.currentBrainPath()) || "brain";
     } catch (e) { return "brain"; }
   }
@@ -2322,7 +2322,7 @@
   // ───────────── mic: speak, the words land in the input (dictate.js) ─────────────
 
   function toggleMic() {
-    var D = typeof window !== "undefined" && window.NaotaDictate;
+    var D = typeof window !== "undefined" && window.VanhanhDictate;
     if (!D) { setNote(tw("teams.mic_unsupported")); return; }
     if (S.dict && S.dict.active()) { S.dict.stop(); return; }
     if (S.dictState === "transcribing") return;
@@ -2383,7 +2383,7 @@
       key: !mine && active && (!active.status || active.status === "active") ? m.author_ref : "" };
   }
 
-  // A button of a NAOTA_CARD in an assistant's message (chat-card.js): its words are sent as the owner's reply to that
+  // A button of a VANHANH_CARD in an assistant's message (chat-card.js): its words are sent as the owner's reply to that
   // message, in this team (they used to go to the hidden main chat).
   function sendCardReply(btn, text) {
     var host = btn && btn.closest && btn.closest(".tm-msg");
@@ -2431,7 +2431,7 @@
       var Q = quoteApi();
       return Q ? Q.tach(text).rest : text;
     }
-    var vm = typeof window !== "undefined" && window.NaotaVisibleMarkdown;
+    var vm = typeof window !== "undefined" && window.VanhanhVisibleMarkdown;
     return vm ? vm(text) : text;
   }
 
@@ -2502,12 +2502,12 @@
   function openAgentSettings(slug) {
     if (!slug) return;
     S.picker = null;
-    var St = typeof window !== "undefined" && window.NaotaStudio;
+    var St = typeof window !== "undefined" && window.VanhanhStudio;
     if (St && St.editAgent) {
       St.editAgent({ slug: slug }, { chatButton: true, onSaved: function () { loadTeam(); loadMsgs(false); } });
       return;
     }
-    if (window.NaotaWorkspace && window.NaotaWorkspace.openCommand) window.NaotaWorkspace.openCommand("agent", slug);
+    if (window.VanhanhWorkspace && window.VanhanhWorkspace.openCommand) window.VanhanhWorkspace.openCommand("agent", slug);
   }
 
   // Khung soạn một dòng, tự cao theo chữ tới khoảng năm dòng rồi cuộn trong.
@@ -2730,15 +2730,15 @@
     var nb = side.querySelector(".tm-side-body");
     if (nb && keep) nb.scrollTop = top;
     attachSideResize(side);
-    if (window.NaotaPulse) {
+    if (window.VanhanhPulse) {
       Array.prototype.forEach.call(side.querySelectorAll(".tm-pulse[data-pulse-slug]"), function (el) {
         var names = {};
         names[S.team.team_id] = S.team.name || "";
-        window.NaotaPulse.mount(el, { slug: el.getAttribute("data-pulse-slug"), brain: brain(),
+        window.VanhanhPulse.mount(el, { slug: el.getAttribute("data-pulse-slug"), brain: brain(),
           only: el.getAttribute("data-pulse-ctx"), teamNames: names });
       });
     }
-    if (window.NaotaAgentJudge && window.NaotaAgentJudge.hydrate) window.NaotaAgentJudge.hydrate(side);
+    if (window.VanhanhAgentJudge && window.VanhanhAgentJudge.hydrate) window.VanhanhAgentJudge.hydrate(side);
   }
 
   function drawAll(stick) {
@@ -2762,12 +2762,12 @@
   // Nút xử lý trên dòng lỗi của lượt trả lời.
   function replyAct(kind, slug, btn) {
     if (kind === "models") {
-      if (typeof window !== "undefined" && window.NaotaNav && window.NaotaNav.go) window.NaotaNav.go("models");
+      if (typeof window !== "undefined" && window.VanhanhNav && window.VanhanhNav.go) window.VanhanhNav.go("models");
       return;
     }
     if (kind === "agent") {
-      if (typeof window !== "undefined" && window.NaotaWorkspace && window.NaotaWorkspace.openCommand) {
-        window.NaotaWorkspace.openCommand("agent", slug);
+      if (typeof window !== "undefined" && window.VanhanhWorkspace && window.VanhanhWorkspace.openCommand) {
+        window.VanhanhWorkspace.openCommand("agent", slug);
       }
       return;
     }
@@ -2831,7 +2831,7 @@
       openTeam(teamId, taskId);
       return;
     }
-    if (typeof window !== "undefined" && window.NaotaNav && window.NaotaNav.go) window.NaotaNav.go("teams");
+    if (typeof window !== "undefined" && window.VanhanhNav && window.VanhanhNav.go) window.VanhanhNav.go("teams");
   }
 
   function loadAgents() {
@@ -2851,7 +2851,7 @@
     });
   }
 
-  // Nhóm đang mở vừa bị xoá (Naota xoá bằng công cụ naota_team, hay tab khác bấm xoá): đóng khung chat về trạng
+  // Nhóm đang mở vừa bị xoá (Vanhanh xoá bằng công cụ vanhanh_team, hay tab khác bấm xoá): đóng khung chat về trạng
   // thái trống thay vì giữ một nhóm không còn, ô soạn vẫn mở mà gửi tin nào cũng lỗi.
   function closeGone(id) {
     if (!S || S.activeId !== id) return;
@@ -2972,7 +2972,7 @@
   }
 
   // The chosen tag filter is a per-device convenience (localStorage); a blocked storage only forgets it.
-  var TAG_FILTER_KEY = "naota.teams.tagFilter";
+  var TAG_FILTER_KEY = "vanhanh.teams.tagFilter";
   function readTagFilter() {
     try { return (typeof localStorage !== "undefined" && localStorage.getItem(TAG_FILTER_KEY)) || ""; } catch (e) { return ""; }
   }
@@ -3020,7 +3020,7 @@
   // Send is never blocked for good (it waits for busy chips). Resolves { code, j } like call(); rejects an Error with
   // `kind` once the retries are spent.
   function upload(file, a) {
-    var U = typeof window !== "undefined" && window.NaotaUpload;
+    var U = typeof window !== "undefined" && window.VanhanhUpload;
     if (!U) {
       var fd0 = new FormData();
       fd0.append("file", file);
@@ -3138,7 +3138,7 @@
     // paste inline / attach .txt / cancel, like the main chat (chat-paste.js).
     var input = e.target;
     if (!(input && input.classList && input.classList.contains("tm-input"))) return;
-    var paste = typeof window !== "undefined" ? window.NaotaPaste : null;
+    var paste = typeof window !== "undefined" ? window.VanhanhPaste : null;
     var txt = (cd && cd.getData("text/plain")) || "";
     if (!paste || !paste.isLong(txt)) return;
     e.preventDefault(); e.stopPropagation();
@@ -3230,7 +3230,7 @@
   function folderOutside(e) { if (!(e.target.closest && e.target.closest(".tm-folder-pop"))) closeFolderPanel(); }
   function folderEsc(e) { if (e.key === "Escape") closeFolderPanel(); }
   function openFolderPanel() {
-    var P = window.NaotaPinnedFolder && window.NaotaPinnedFolder.panelFor;
+    var P = window.VanhanhPinnedFolder && window.VanhanhPinnedFolder.panelFor;
     var comp = S.el.querySelector(".tm-composer");
     if (!P || !comp || !S.team) return;
     closeFolderPanel();
@@ -3725,7 +3725,7 @@
 
   // ───────────── hộp chọn thành viên kiểu Zalo (team-picker.js) ─────────────
 
-  function TP() { return (typeof window !== "undefined" && window.NaotaTeamPicker) || null; }
+  function TP() { return (typeof window !== "undefined" && window.VanhanhTeamPicker) || null; }
 
   // Trợ lý của trang Cộng sự (tên, vai, tag, ảnh): cùng nguồn với cột trái trang Cộng sự để chip tag khớp.
   function loadRoster() {
@@ -3875,7 +3875,7 @@
       drawMsgs(false);
     }
     if (!t || !(S.el.contains(t) || (S.pickHost && S.pickHost.contains(t)))) return;
-    // A NAOTA_CARD button carries data-reply too (its words, not a message id): chat-card.js sends it (sendCardReply).
+    // A VANHANH_CARD button carries data-reply too (its words, not a message id): chat-card.js sends it (sendCardReply).
     if (t.classList && t.classList.contains("nt-card-btn")) return;
     // "Show more" on a long owner message: chat-acts.js toggles it (document listener, after this one). Remember the
     // state so a redraw of the list keeps the message open.
@@ -3893,7 +3893,7 @@
     if (d.renameTeam) { S.rowMenu = null; S.renaming = d.renameTeam; drawList(); return; }
     if (d.tagTeam) { S.tagMenu = d.tagTeam; S.tagFocus = null; drawList(); return; }
     if (t.classList && t.classList.contains("cs-proj-cur") && t.closest(".tm-tagbar")) {
-      var cs = typeof window !== "undefined" && window.NaotaChatSide;
+      var cs = typeof window !== "undefined" && window.VanhanhChatSide;
       if (cs && cs.menu) cs.menu(t, tagMenuRows(S.teams, S.tagFilter, function (k) { setTagFilter(k); drawList(); }));
       return;
     }
@@ -3912,7 +3912,7 @@
     }
     if (d.agentEdit) return openAgentSettings(d.agentEdit);
     // message a member privately, straight from the team (the Partners page chat with that assistant).
-    if (d.agentChat) { if (window.NaotaWorkspace && window.NaotaWorkspace.openCommand) window.NaotaWorkspace.openCommand("agent", d.agentChat); return; }
+    if (d.agentChat) { if (window.VanhanhWorkspace && window.VanhanhWorkspace.openCommand) window.VanhanhWorkspace.openCommand("agent", d.agentChat); return; }
     if (d.rxToggle) {
       var rm = msgById(Number(d.rxToggle));
       return sendReaction(Number(d.rxToggle), JR.cornerToggle(rm && rm.reaction));
@@ -4384,10 +4384,10 @@
     var msg = box && box.querySelector(".aa-upload-msg");
     var btn = box && box.querySelector("[data-aa-upload]");
     inp.value = "";
-    if (!f || !window.NaotaAvatar) return;
+    if (!f || !window.VanhanhAvatar) return;
     if (btn) btn.disabled = true;
     if (msg) { msg.textContent = tw("ws.avatar_uploading"); msg.classList.remove("loi"); }
-    window.NaotaAvatar.uploadImage(f).then(function (name) {
+    window.VanhanhAvatar.uploadImage(f).then(function (name) {
       return call("PATCH", teamUrl(), { avatar_image: name }).then(function (r) { act(r, drawAll); });
     }).catch(function (err) {
       if (btn) btn.disabled = false;
@@ -4446,7 +4446,7 @@
       var on = box.checked;
       box.checked = !on;
       box.disabled = true;
-      var RA = window.NaotaResonanceAgent;
+      var RA = window.VanhanhResonanceAgent;
       var p = RA && RA.toggleAgent ? RA.toggleAgent(box.getAttribute("data-slug"), on)
         : call("POST", "/resonance/agents/toggle", { slug: box.getAttribute("data-slug"), enabled: on }).then(function (r) {
           return { ok: r.code === 200, error: r.j && r.j.error };
@@ -4584,15 +4584,15 @@
   // ───────────── column widths ─────────────
   // Drag a column edge like the Partners page; past a point the list folds into a strip of team
   // pictures (hover shows the team card) and the side panel folds away. Same helper and card as every other page
-  // (col-resize.js: NaotaColResize.attach with snap/collapse, NaotaColResize.miniTip).
+  // (col-resize.js: VanhanhColResize.attach with snap/collapse, VanhanhColResize.miniTip).
   var LIST_MINI_W = 72;   // the Partners page's avatar strip width (workspace.js MINI_W)
 
-  function colResize() { return typeof window !== "undefined" ? window.NaotaColResize : null; }
+  function colResize() { return typeof window !== "undefined" ? window.VanhanhColResize : null; }
 
   function listResizeOpts(page) {
     var CR = colResize();
     var side = function () { var x = page.querySelector(".tm-side"); return x && !x.hidden ? x.getBoundingClientRect().width : 0; };
-    return { host: page, varName: "--tm-list-w", key: "naota_tm_list_w", min: 220, max: 480, edge: "right",
+    return { host: page, varName: "--tm-list-w", key: "vanhanh_tm_list_w", min: 220, max: 480, edge: "right",
       label: "teams.resize_list", keep: 420, total: function () { return page.clientWidth; }, other: side,
       snap: { below: CR.FOLD_AT(220), to: LIST_MINI_W, onSnap: function (on) {
         page.classList.toggle("tm-mini", !!on);
@@ -4603,7 +4603,7 @@
   function sideResizeOpts(page) {
     var CR = colResize();
     var list = function () { var x = page.querySelector(".tm-list"); return x ? x.getBoundingClientRect().width : 0; };
-    return { host: page, varName: "--tm-side-w", key: "naota_tm_side_w", min: 300, max: 640, edge: "left",
+    return { host: page, varName: "--tm-side-w", key: "vanhanh_tm_side_w", min: 300, max: 640, edge: "left",
       label: "teams.resize_side", keep: 420, total: function () { return page.clientWidth; }, other: list,
       collapse: { below: CR.FOLD_AT(300), run: function () { closeSide(); } } };
   }
@@ -4646,7 +4646,7 @@
     if (S && S.scroll) S.scroll.detach();
     S = fresh(el);
     shell();
-    var CS = typeof window !== "undefined" && window.NaotaChatScroll;
+    var CS = typeof window !== "undefined" && window.VanhanhChatScroll;
     var msgsBox = el.querySelector(".tm-msgs");
     S.scroll = CS && msgsBox ? CS.attach(msgsBox, { buttonClass: "nt-new-msg tm-new-msg", msg: ".tm-msg",
       hold: ".tm-hacts:hover, .tm-rx:hover", key: "data-mid", followLoads: true }) : null;
@@ -4717,10 +4717,10 @@
     // Phone: swipe a message to the left to reply to it, like Zalo, with the same gesture as the main chat (msg-swipe.js:
     // the bubble follows the finger, a quote mark shows once far enough, vertical moves keep scrolling, a wide code block
     // or table scrolls sideways instead). Own and assistant messages both reply, as before.
-    // NAOTA_CARD buttons inside this page answer in this team, not in the hidden main chat (chat-card.js).
-    var JC = typeof window !== "undefined" && window.NaotaCard;
+    // VANHANH_CARD buttons inside this page answer in this team, not in the hidden main chat (chat-card.js).
+    var JC = typeof window !== "undefined" && window.VanhanhCard;
     if (JC && JC.onSend) S.uncard = JC.onSend(el, function (text, btn) { sendCardReply(btn, text); });
-    var SW = typeof window !== "undefined" && window.NaotaMsgSwipe;
+    var SW = typeof window !== "undefined" && window.VanhanhMsgSwipe;
     if (SW) {
       S.unswipe = SW.bind(el, {
         selector: ".tm-msg",
@@ -4731,7 +4731,7 @@
     }
     // Phone: hold a message for the msg-press.js menu, emoji above the finger (slide to pick, assistant
     // messages) and Reply / Copy / Pin at the bottom.
-    var MP = typeof window !== "undefined" && window.NaotaMsgPress;
+    var MP = typeof window !== "undefined" && window.VanhanhMsgPress;
     if (MP) {
       S.unpress = MP.bind(el, {
         selector: ".tm-msg",
@@ -4771,11 +4771,11 @@
   }
 
   if (typeof window !== "undefined" && window.addEventListener) {
-    window.addEventListener("naota:team-event", onTeamEvent);
+    window.addEventListener("vanhanh:team-event", onTeamEvent);
     // back to this tab with a team open: what arrived while away is read now.
     if (typeof document !== "undefined" && document.addEventListener) document.addEventListener("visibilitychange", onVisible);
     // Auto bật/tắt ở trang Cộng sự hay tab khác: danh sách thành viên của nhóm đang mở đọc lại trạng thái.
-    window.addEventListener("naota:resonance-agents-changed", function () {
+    window.addEventListener("vanhanh:resonance-agents-changed", function () {
       if (!S || !S.el || !S.el.isConnected || !S.activeId) return;
       loadTeam();
       if (S.side && S.tab === "team") loadAgents().then(function () { if (S.side && S.tab === "team") drawSide(); });
@@ -4801,6 +4801,6 @@
     typingHtml: typingHtml, pinsHtml: pinsHtml, markMentions: markMentions, replyRefHtml: replyRefHtml,
     allTags: allTags, filterTeams: filterTeams, tagBarHtml: tagBarHtml, tagMenuRows: tagMenuRows, tagPickRows: tagPickRows,
     lastWorkedTeam: lastWorkedTeam, TAG_NONE: TAG_NONE, unreadHtml: unreadHtml };
-  if (typeof window !== "undefined") window.NaotaTeams = api;
+  if (typeof window !== "undefined") window.VanhanhTeams = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })();

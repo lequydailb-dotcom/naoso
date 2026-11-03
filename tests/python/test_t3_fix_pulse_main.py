@@ -13,9 +13,9 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-fix-pm-")
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
-BR = Path(tempfile.mkdtemp(prefix="naota-fix-pm-brain-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-fix-pm-")
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
+BR = Path(tempfile.mkdtemp(prefix="vanhanh-fix-pm-brain-"))
 (BR / "agents").mkdir()
 (BR / "agents" / "lan.md").write_text("---\nname: Lan\nrole: Trợ lý\n---\nBạn là Lan.\n", encoding="utf-8", newline="\n")
 

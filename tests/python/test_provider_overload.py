@@ -1,4 +1,4 @@
-"""A model overloaded on the provider's side reads as such, and Naota waits long enough between tries.
+"""A model overloaded on the provider's side reads as such, and Vanhanh waits long enough between tries.
 
     python tests/run.py provider_overload      (no network)
 
@@ -12,7 +12,7 @@ import asyncio
 import os
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-overload-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-overload-")
 
 import engine  # noqa: E402
 

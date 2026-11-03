@@ -14,9 +14,9 @@ import sys
 import tempfile
 import time
 
-_STATE = tempfile.mkdtemp(prefix="naota-taidan-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
-os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
+_STATE = tempfile.mkdtemp(prefix="vanhanh-taidan-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
+os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

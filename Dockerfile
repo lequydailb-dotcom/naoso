@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # ============================================================================
-# NAOTA - container image
+# VANHANH - container image
 # "Brain" = Claude Code CLI (npm global). FastAPI app served by uvicorn.
 # Code tree is immutable; ALL mutable state lives on the /data volume and the
 # Claude auth volume (~/.claude). Node comes from the official image (Debian's
@@ -19,14 +19,14 @@ FROM python:3.12-slim
 
 # OCI image labels: Docker Manager (Hostinger) + registry đọc để hiện cột "Guide"
 # (Documentation / Quick start / Source). Trỏ về docs trên GitHub.
-LABEL org.opencontainers.image.title="NAOTA" \
+LABEL org.opencontainers.image.title="VANHANH" \
       org.opencontainers.image.description="AI operating layer: chat + voice + second brain + tự động hoá, xây trên CLI của nhà cung cấp AI (Claude Code, ChatGPT/Codex)." \
-      org.opencontainers.image.url="https://github.com/vuongtex/naota" \
-      org.opencontainers.image.source="https://github.com/vuongtex/naota" \
-      org.opencontainers.image.documentation="https://github.com/vuongtex/naota/blob/main/docs/README.md" \
+      org.opencontainers.image.url="https://github.com/lequydailb-dotcom/vanhanh" \
+      org.opencontainers.image.source="https://github.com/lequydailb-dotcom/vanhanh" \
+      org.opencontainers.image.documentation="https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/README.md" \
       org.opencontainers.image.licenses="LicenseRef-Proprietary" \
-      com.hostinger.documentation="https://github.com/vuongtex/naota/blob/main/docs/README.md" \
-      com.hostinger.quickstart="https://github.com/vuongtex/naota/blob/main/QUICKSTART.md"
+      com.hostinger.documentation="https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/README.md" \
+      com.hostinger.quickstart="https://github.com/lequydailb-dotcom/vanhanh/blob/main/QUICKSTART.md"
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -48,12 +48,12 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 
 # Thư viện hệ thống cho Chromium (kiểm thử giao diện bằng Playwright).
 #
-# Vì sao phải nằm TRONG ẢNH chứ không cài lúc chạy: container chạy bằng user `naota` không
+# Vì sao phải nằm TRONG ẢNH chứ không cài lúc chạy: container chạy bằng user `vanhanh` không
 # phải root và mã nguồn để chỉ đọc, nên một nút bấm trong app KHÔNG THỂ `apt-get` được. Đây là
 # phần duy nhất bắt buộc phải có sẵn.
 #
 # Còn BẢN THÂN trình duyệt thì KHÔNG nằm trong ảnh: nó nặng và phần lớn người dùng không cần.
-# Ai cần thì bấm nút trong trang Công cụ, Naota tải về `<state>/browsers` - thư mục nằm trên
+# Ai cần thì bấm nút trong trang Công cụ, Vanhanh tải về `<state>/browsers` - thư mục nằm trên
 # ổ gắn ngoài nên sống qua mỗi lần cập nhật, không phải tải lại.
 #
 # Để riêng MỘT lớp để đo được nó tốn bao nhiêu (`docker history`), và để tắt được bằng
@@ -62,7 +62,7 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 # The server downloads the browser itself on first start when nothing is there
 # (server/optional_tools.py). Without the libraries it could not run, so tell the server.
 ARG WITH_BROWSER_DEPS=1
-ENV NAOTA_BROWSER_DEPS=${WITH_BROWSER_DEPS}
+ENV VANHANH_BROWSER_DEPS=${WITH_BROWSER_DEPS}
 RUN if [ "$WITH_BROWSER_DEPS" = "1" ]; then \
         npx -y playwright@latest install-deps chromium \
         && rm -rf /var/lib/apt/lists/* /root/.npm; \
@@ -78,7 +78,7 @@ RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CLI_VERSION}" \
 # (token lưu ở volume .codex).
 #
 # HẾT best-effort: lối `|| echo` cũ nuốt lỗi cài, và nó đã xảy ra thật - có image phát
-# hành ra ngoài KHÔNG có codex, người mới cài đăng nhập ChatGPT xanh (OAuth do Naota tự lo, không
+# hành ra ngoài KHÔNG có codex, người mới cài đăng nhập ChatGPT xanh (OAuth do Vanhanh tự lo, không
 # cần binary) rồi vào chat mới vỡ, không có lấy một dòng lỗi chỉ đường. Thiếu
 # codex thì build phải ĐỎ để CI chặn lại, không được ship image què.
 # CI resolves latest to a concrete version before building: a new CLI version
@@ -90,7 +90,7 @@ RUN npm install -g @openai/codex@${CODEX_CLI_VERSION} && npm cache clean --force
 #
 # có cài, nhưng lúc đó chưa ai biết Google đã ngừng phục vụ Gemini CLI cho MỌI tài khoản
 # cá nhân từ 18/06/2026 (miễn phí, AI Pro, Ultra - mã UNSUPPORTED_CLIENT). Với gần như mọi
-# người cài Naota, gói đó nay tải về một CLI không dùng được: phình image, chậm build, và tệ
+# người cài Vanhanh, gói đó nay tải về một CLI không dùng được: phình image, chậm build, và tệ
 # hơn là làm thẻ đã chết trông như đã sẵn sàng.
 #
 # Engine đó đã GỠ HẲN khỏi repo. Đường Google cho tài khoản cá nhân hiện nay là
@@ -98,7 +98,7 @@ RUN npm install -g @openai/codex@${CODEX_CLI_VERSION} && npm cache clean --force
 # Cả hai đều là script tải về chạy thẳng, không cài qua npm nên không nằm trong image: nhúng
 # binary của Google/xAI vào image công khai là phân phối lại phần mềm của họ. Thay vào đó
 # docker/entrypoint.sh tự cài chúng lúc container khởi động, vào thư mục đã link sang
-# volume /data nên chỉ cài một lần. Tắt bằng NAOTA_AUTO_INSTALL_CLIS=0.
+# volume /data nên chỉ cài một lần. Tắt bằng VANHANH_AUTO_INSTALL_CLIS=0.
 
 WORKDIR /app
 
@@ -110,19 +110,19 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Non-root runtime user. Code stays root-owned + read-only; state on volumes.
-RUN useradd -u 10001 -m -d /home/naota naota \
-    && mkdir -p /data/state /data/vault /brains /home/naota/.claude /home/naota/.codex \
-    && chown -R naota:naota /data /brains /home/naota
+RUN useradd -u 10001 -m -d /home/vanhanh vanhanh \
+    && mkdir -p /data/state /data/vault /brains /home/vanhanh/.claude /home/vanhanh/.codex \
+    && chown -R vanhanh:vanhanh /data /brains /home/vanhanh
 
 # Writable state under /data; ALL second brains under /brains (mount riêng → git-backup được).
-ENV NAOTA_HOST=0.0.0.0 \
-    NAOTA_PORT=7777 \
-    NAOTA_STATE_DIR=/data/state \
+ENV VANHANH_HOST=0.0.0.0 \
+    VANHANH_PORT=7777 \
+    VANHANH_STATE_DIR=/data/state \
     BRAIN_PATH=/data/brain \
     BRAINS_DIR=/brains \
     OBSIDIAN_VAULT_PATH=/data/vault \
     CLAUDE_CWD=/app \
-    HOME=/home/naota \
+    HOME=/home/vanhanh \
     PATH=/usr/local/bin:$PATH
 
 # Codex (ChatGPT) bọc mọi lệnh đọc/ghi file của nó bằng bubblewrap. Bubblewrap cần tạo được user
@@ -136,27 +136,27 @@ ENV NAOTA_HOST=0.0.0.0 \
 # Đánh đổi phải nói rõ: Codex không có allowlist per-call như Claude, nên với cờ này thì loop
 # mức `suggest` chạy bằng Codex không còn thứ gì chặn nó ghi file trong container. Các rào về
 # tiền/đơn/đăng bài/gửi tin KHÔNG bị ảnh hưởng - chúng nằm ở MCP Hub chứ không ở sandbox.
-# Muốn bật lại rào: đặt NAOTA_CODEX_SANDBOX=auto và cấp quyền cho container (vd
+# Muốn bật lại rào: đặt VANHANH_CODEX_SANDBOX=auto và cấp quyền cho container (vd
 # `security_opt: [apparmor:unconfined]`) để bubblewrap khởi động được.
-ENV NAOTA_CODEX_SANDBOX=off
+ENV VANHANH_CODEX_SANDBOX=off
 
-# the release workflow stamps where this image is published (ghcr.io/vuongtex/naota). An image built
+# the release workflow stamps where this image is published (ghcr.io/lequydailb-dotcom/vanhanh). An image built
 # somewhere else (a PC's `docker build`, then `docker save` / `docker load` onto a VPS) leaves it empty, and the Update
 # page then says that pulling cannot update it, instead of telling the owner to Redeploy (a user's VPS ran
 # such an image and stayed on an old version). Declared last so the stamp never invalidates the layers above.
-ARG NAOTA_IMAGE_SOURCE=""
-ENV NAOTA_IMAGE_SOURCE=${NAOTA_IMAGE_SOURCE}
+ARG VANHANH_IMAGE_SOURCE=""
+ENV VANHANH_IMAGE_SOURCE=${VANHANH_IMAGE_SOURCE}
 
-USER naota
+USER vanhanh
 
 # Persist state (/data) + brains (/brains) + Claude auth + Codex auth (login ChatGPT).
-VOLUME ["/data", "/brains", "/home/naota/.claude", "/home/naota/.codex"]
+VOLUME ["/data", "/brains", "/home/vanhanh/.claude", "/home/vanhanh/.codex"]
 
 EXPOSE 7777
 
 # Healthcheck hits the public /health endpoint with stdlib only (no curl).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
-    CMD python -c "import urllib.request,os,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:'+os.getenv('NAOTA_PORT','7777')+'/health',timeout=4).status==200 else 1)" || exit 1
+    CMD python -c "import urllib.request,os,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:'+os.getenv('VANHANH_PORT','7777')+'/health',timeout=4).status==200 else 1)" || exit 1
 
 # tini reaps node subprocesses; entrypoint.sh links ~/.local, ~/.antigravity, ~/.config
 # into /data/home first so CLI người dùng tự cài (agy) + đăng nhập của nó SỐNG QUA UPDATE
@@ -164,4 +164,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
 # uvicorn launched with --app-dir server because main.py uses the "main:app" import
 # string and `from claude_cli import ...`.
 ENTRYPOINT ["/usr/bin/tini", "--", "/app/docker/entrypoint.sh"]
-CMD ["sh", "-c", "python -m uvicorn main:app --app-dir server --host ${NAOTA_HOST} --port ${NAOTA_PORT}"]
+CMD ["sh", "-c", "python -m uvicorn main:app --app-dir server --host ${VANHANH_HOST} --port ${VANHANH_PORT}"]

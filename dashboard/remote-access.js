@@ -26,8 +26,8 @@
   }
   function icon(name) { return typeof window.ic === "function" ? window.ic(name) : ""; }
   // The (i) helpers; without info-tip.js (Node tests) the text is drawn open so nothing is lost.
-  function infoBtn() { return window.NaotaInfo ? window.NaotaInfo.btn(t("info.more")) : ""; }
-  function infoBody(html) { return window.NaotaInfo ? window.NaotaInfo.body(html) : "<div>" + html + "</div>"; }
+  function infoBtn() { return window.VanhanhInfo ? window.VanhanhInfo.btn(t("info.more")) : ""; }
+  function infoBody(html) { return window.VanhanhInfo ? window.VanhanhInfo.body(html) : "<div>" + html + "</div>"; }
 
   function injectCss() {
     if ($("raCss")) return;
@@ -216,15 +216,15 @@
       if (e.key === "Enter" && e.target && e.target.id === "raToken") { e.preventDefault(); turnOn(); }
     });
     document.addEventListener("visibilitychange", function () { if (!document.hidden) schedule(); });
-    // Settings calls __naotaRefreshExtras (branding.js) when its General tab opens: refresh this block with it.
-    var prev = window.__naotaRefreshExtras;
-    window.__naotaRefreshExtras = function () {
+    // Settings calls __vanhanhRefreshExtras (branding.js) when its General tab opens: refresh this block with it.
+    var prev = window.__vanhanhRefreshExtras;
+    window.__vanhanhRefreshExtras = function () {
       try { if (prev) prev.apply(this, arguments); } finally { load(); }
     };
     load();
   }
 
-  window.addEventListener("naota:i18n", function () { if (_st) render(); });
+  window.addEventListener("vanhanh:i18n", function () { if (_st) render(); });
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
   else bind();

@@ -1,15 +1,15 @@
 """Sửa chữ NGHE NHẦM theo ngữ cảnh, trước khi câu nói đi vào bộ não.
 
 Vì sao có lớp này: người dùng nói lẫn tiếng Việt và tiếng Anh, và máy nghe (Web
-Speech của trình duyệt lẫn Whisper) chép tên lạ thành từ gần âm: "Naota" thành "Nauta",
+Speech của trình duyệt lẫn Whisper) chép tên lạ thành từ gần âm: "Vanhanh" thành "Nauta",
 "Nota", "Nau ta"; tên công cụ, tên dự án cũng cùng số phận. Câu đến bộ não mang
-từ sai đó, Naota trả lời bám nghĩa đen ("Nauta là ai?") nghe rất buồn cười. Sửa ở tầng máy
+từ sai đó, Vanhanh trả lời bám nghĩa đen ("Nauta là ai?") nghe rất buồn cười. Sửa ở tầng máy
 nghe thì không được: Web Speech không nhận từ điển riêng, còn Whisper chỉ nhận một gợi ý.
 
 Cách làm, ba lớp bổ trợ nhau:
   1. `goi_y_whisper` - đưa bộ từ vựng vào tham số `prompt` của Whisper để nó ưu tiên viết
      đúng những tên này (hotwords). Chỉ Groq Whisper có, Web Speech không.
-  2. `sua` - so khớp MỜ THEO ÂM: mỗi từ (hoặc cặp từ, vì "Naota" hay bị tách thành "Nau ta")
+  2. `sua` - so khớp MỜ THEO ÂM: mỗi từ (hoặc cặp từ, vì "Vanhanh" hay bị tách thành "Nau ta")
      được rút về một khoá âm (bỏ dấu, gộp những âm máy nghe hay lẫn: j/gi/d/z, v/w, đuôi
      s/t/d) rồi so với khoá âm của từng từ trong bộ từ vựng. Trùng gần như hoàn toàn thì sửa ở
      mọi vị trí; trùng vừa phải thì CHỈ sửa khi từ đứng ở vị trí GỌI TÊN (đầu câu, trước "ơi",
@@ -38,7 +38,7 @@ import unicodedata
 
 # Tên trợ lý luôn có mặt, không cần người dùng khai. Bộ từ vựng người dùng thêm nằm ở
 # settings `voice.hotwords` (chuỗi, ngăn bằng dấu phẩy hoặc xuống dòng).
-TU_VUNG_GOC = ("Naota",)
+TU_VUNG_GOC = ("Vanhanh",)
 MAX_TU_VUNG = 60          # Whisper chỉ nhìn ~224 token cuối của prompt; hơn nữa là vô ích
 MAX_GHEP = 3              # ghép tối đa 3 tiếng liền nhau làm một ứng viên ("Nau ta", "Open Router")
 MAX_GOI_Y = 600           # trần độ dài prompt gửi Whisper (stt.groq_nghe cũng cắt ở mức này)
@@ -65,11 +65,11 @@ NGUONG_GOI_TEN = 0.8
 # được 0,75, đủ để một câu lệnh bình thường mất chữ cuối.
 KHOA_MIN_MO = 4
 
-# Từ đứng TRƯỚC vị trí gọi tên: "hey Naota", "ok Naota", "này Naota", "cảm ơn Naota".
+# Từ đứng TRƯỚC vị trí gọi tên: "hey Vanhanh", "ok Vanhanh", "này Vanhanh", "cảm ơn Vanhanh".
 _MO_DAU = frozenset("""
 hey hi hello ok okay alo alô này ê ơi à ừ ờ ừm um rồi thôi nào chào ơn xin cám cảm thanks thank
 """.split())
-# Từ đứng SAU vị trí gọi tên: "Naota ơi", "Naota à", "Naota này".
+# Từ đứng SAU vị trí gọi tên: "Vanhanh ơi", "Vanhanh à", "Vanhanh này".
 _KET_GOI = frozenset("ơi à ạ nhé nha này ei ê hey".split())
 # Từ đứng trước cho biết đang nói về NGƯỜI THỨ BA, không phải gọi trợ lý.
 _NGOI_THU_BA = frozenset("""
@@ -89,9 +89,9 @@ one two three four five six seven eight nine ten hundred thousand million
 """.split())
 # Khối ngữ cảnh dashboard chèn TRƯỚC lời nói: FILE ĐANG MỞ (đang mở file trong trình sửa) rồi
 # NGỮ CẢNH GIAO DIỆN. Cả hai không phải lời nói. Trước đây chỉ nhận khối sau, nên khi đang mở
-# file thì khối FILE bị tính là lời nói; dòng NAOTA_NGHE (chỉ có lời nói) bị coi là cắt chữ, và
+# file thì khối FILE bị tính là lời nói; dòng VANHANH_NGHE (chỉ có lời nói) bị coi là cắt chữ, và
 # cả lượt lặng lẽ rơi sang bộ não chính dù đã chọn bộ não trả lời nhanh.
-_UI_CONTEXT = re.compile(r"\A(?:\s*\[(?:FILE ĐANG MỞ trong trình sửa của Naota:|NGỮ CẢNH GIAO DIỆN:)"
+_UI_CONTEXT = re.compile(r"\A(?:\s*\[(?:FILE ĐANG MỞ trong trình sửa của Vanhanh:|NGỮ CẢNH GIAO DIỆN:)"
                          r"[^\]]*\]\s*)+")
 # Speech can contain literal identifiers. Do not rewrite pieces of paths, URLs or email.
 VERBATIM = re.compile(r"\S*(?:[/\\@:_]|\w\.\w)\S*")
@@ -123,7 +123,7 @@ def bo_dau(s: str) -> str:
 def khoa_am(tu: str) -> str:
     """Rút một từ (hay cụm đã ghép liền) về khoá âm để so mờ.
 
-    Ví dụ: Naota, Naôta, Na ô ta -> đều là "naota"; Nauta, Nau ta -> đều là "nauta".
+    Ví dụ: Vanhanh, Naôta, Na ô ta -> đều là "vanhanh"; Nauta, Nau ta -> đều là "nauta".
     """
     s = re.sub(r"[^a-z]", "", bo_dau(tu))
     if not s:
@@ -177,7 +177,7 @@ def goi_y_whisper(tv, ky_thuat=TU_TIENG_ANH_MOI) -> str:
 
     Whisper coi prompt là "đoạn trước" của bản ghi và bắt chước cách viết trong đó, nên chỉ cần
     tên xuất hiện là nó ưu tiên chép đúng chính tả ấy. Cố ý KHÔNG viết thành câu ("Nói chuyện
-    với Naota") vì gặp im lặng Whisper hay chép lại chính câu mồi.
+    với Vanhanh") vì gặp im lặng Whisper hay chép lại chính câu mồi.
 
     `ky_thuat` (mặc định `TU_TIENG_ANH_MOI`) đứng TRƯỚC bộ từ vựng: Whisper chỉ giữ phần cuối
     prompt, nên từ người dùng khai phải ở sát audio nhất; cắt độ dài thì bỏ từ mồi chung trước.

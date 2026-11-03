@@ -12,7 +12,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-plugtest-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-plugtest-")
 
 import plugins_host  # noqa: E402
 
@@ -30,11 +30,11 @@ async def main():
 
     # 2) tool datetime-vn xuất hiện + chạy đúng
     tools, route = plugins_host.plugin_tools("full", None)
-    assert {"naota_now", "naota_date_add"} <= _names(tools)
-    assert "naota_tool_stats" not in _names(tools)
-    now = json.loads(await route["naota_now"]["call"]({}))
+    assert {"vanhanh_now", "vanhanh_date_add"} <= _names(tools)
+    assert "vanhanh_tool_stats" not in _names(tools)
+    now = json.loads(await route["vanhanh_now"]["call"]({}))
     assert now["tz"].startswith("Asia/Ho_Chi_Minh")
-    add = json.loads(await route["naota_date_add"]["call"]({"days": 3, "from": "2026-07-09"}))
+    add = json.loads(await route["vanhanh_date_add"]["call"]({"days": 3, "from": "2026-07-09"}))
     assert add["date"] == "2026-07-12", add
 
     # 3) gate min_mode theo mode chạy
@@ -48,22 +48,22 @@ async def main():
     assert plugins_host.set_enabled("tool-audit", True, None)["ok"]
     assert plugins_host.has_tool_hooks(None)
     tools2, route2 = plugins_host.plugin_tools("full", None)
-    assert "naota_tool_stats" in _names(tools2)
-    wrapped = plugins_host.wrap_with_hooks("naota_now", route2["naota_now"]["call"], "full", None)
+    assert "vanhanh_tool_stats" in _names(tools2)
+    wrapped = plugins_host.wrap_with_hooks("vanhanh_now", route2["vanhanh_now"]["call"], "full", None)
     await wrapped({})
     await wrapped({})
-    stats = json.loads(await route2["naota_tool_stats"]["call"]({}))
+    stats = json.loads(await route2["vanhanh_tool_stats"]["call"]({}))
     assert stats["total_calls"] >= 2, stats
-    assert any(t["tool"] == "naota_now" for t in stats["top"]), stats
+    assert any(t["tool"] == "vanhanh_now" for t in stats["top"]), stats
 
     # 5) reserved / collision: plugin không được đè tool lõi
-    assert "naota_read_file" not in _names(tools2)  # không do plugin cung cấp
+    assert "vanhanh_read_file" not in _names(tools2)  # không do plugin cung cấp
     # 6) tắt lại → biến mất
     plugins_host.set_enabled("tool-audit", False, None)
-    assert "naota_tool_stats" not in _names(plugins_host.plugin_tools("full", None)[0])
+    assert "vanhanh_tool_stats" not in _names(plugins_host.plugin_tools("full", None)[0])
 
-    # 7) user plugins LOAD BY DEFAULT; NAOTA_ENABLE_USER_PLUGINS=false opts out
-    vault = tempfile.mkdtemp(prefix="naota-vault-")
+    # 7) user plugins LOAD BY DEFAULT; VANHANH_ENABLE_USER_PLUGINS=false opts out
+    vault = tempfile.mkdtemp(prefix="vanhanh-vault-")
     pdir = os.path.join(vault, "plugins", "demo-x")
     os.makedirs(pdir)
     with open(os.path.join(pdir, "plugin.yaml"), "w", encoding="utf-8") as f:
@@ -71,23 +71,23 @@ async def main():
     with open(os.path.join(pdir, "plugin.py"), "w", encoding="utf-8") as f:
         f.write("def register(ctx):\n"
                 "    ctx.register_tool('demo_ping','ping',lambda a,c:'pong',min_mode='readonly')\n")
-    os.environ.pop("NAOTA_ENABLE_USER_PLUGINS", None)
-    os.environ.pop("NAOTA_ENABLE_VAULT_PLUGINS", None)   # nothing set: loads by default
+    os.environ.pop("VANHANH_ENABLE_USER_PLUGINS", None)
+    os.environ.pop("VANHANH_ENABLE_VAULT_PLUGINS", None)   # nothing set: loads by default
     plugins_host.invalidate()
     assert "demo_ping" in _names(plugins_host.plugin_tools("full", vault)[0]), "an enabled vault plugin did not load by default"
     d = {x["slug"]: x for x in plugins_host.describe(vault)}
     assert d["demo-x"]["gated"] is False
-    os.environ["NAOTA_ENABLE_VAULT_PLUGINS"] = "false"  # the old alias can still opt out
+    os.environ["VANHANH_ENABLE_VAULT_PLUGINS"] = "false"  # the old alias can still opt out
     plugins_host.invalidate()
     assert "demo_ping" not in _names(plugins_host.plugin_tools("full", vault)[0]), "opt-out through the old alias was ignored"
     assert {x["slug"]: x for x in plugins_host.describe(vault)}["demo-x"]["gated"] is True
-    os.environ["NAOTA_ENABLE_USER_PLUGINS"] = "true"    # the new name wins over the old alias
+    os.environ["VANHANH_ENABLE_USER_PLUGINS"] = "true"    # the new name wins over the old alias
     plugins_host.invalidate()
-    assert "demo_ping" in _names(plugins_host.plugin_tools("full", vault)[0]), "NAOTA_ENABLE_USER_PLUGINS=true must win"
-    os.environ.pop("NAOTA_ENABLE_USER_PLUGINS", None)
+    assert "demo_ping" in _names(plugins_host.plugin_tools("full", vault)[0]), "VANHANH_ENABLE_USER_PLUGINS=true must win"
+    os.environ.pop("VANHANH_ENABLE_USER_PLUGINS", None)
 
     # 8) GLOBAL plugin (STATE_DIR/plugins) - CHUNG mọi brain + nạp cả khi vault_root=None (đường Claude/Codex)
-    os.environ.pop("NAOTA_ENABLE_VAULT_PLUGINS", None)
+    os.environ.pop("VANHANH_ENABLE_VAULT_PLUGINS", None)
     gdir = os.path.join(plugins_host.GLOBAL_DIR, "demo-global")
     os.makedirs(gdir, exist_ok=True)
     with open(os.path.join(gdir, "plugin.yaml"), "w", encoding="utf-8") as f:
@@ -96,13 +96,13 @@ async def main():
         f.write("def register(ctx):\n"
                 "    ctx.register_tool('demo_global','g',lambda a,c:'G',min_mode='readonly')\n")
     # opted out with =false: not loaded, reported as gated
-    os.environ["NAOTA_ENABLE_USER_PLUGINS"] = "false"
+    os.environ["VANHANH_ENABLE_USER_PLUGINS"] = "false"
     plugins_host.invalidate()
     assert "demo_global" not in _names(plugins_host.plugin_tools("full", None)[0]), "global plugin ran despite the opt-out"
     dg = {x["slug"]: x for x in plugins_host.describe(None)}
     assert dg["demo-global"]["source"] == "user" and dg["demo-global"]["gated"] is True
     # empty value counts as "not set": loads by default, and DESPITE vault_root=None (every brain + Claude/Codex)
-    os.environ["NAOTA_ENABLE_USER_PLUGINS"] = ""
+    os.environ["VANHANH_ENABLE_USER_PLUGINS"] = ""
     plugins_host.invalidate()
     names_none = _names(plugins_host.plugin_tools("full", None)[0])          # đường hub (Claude/Codex)
     names_brainA = _names(plugins_host.plugin_tools("full", tempfile.mkdtemp())[0])  # brain bất kỳ

@@ -154,7 +154,7 @@
     area.addEventListener("mousemove", onMove);
     area.addEventListener("mouseleave", onLeave);
     btn.addEventListener("click", onClick);
-    if (win && win.addEventListener) win.addEventListener("naota:i18n", onLang);
+    if (win && win.addEventListener) win.addEventListener("vanhanh:i18n", onLang);
     draw(false);
 
     return {
@@ -174,13 +174,13 @@
         area.removeEventListener("mousemove", onMove);
         area.removeEventListener("mouseleave", onLeave);
         btn.removeEventListener("click", onClick);
-        if (win && win.removeEventListener) win.removeEventListener("naota:i18n", onLang);
+        if (win && win.removeEventListener) win.removeEventListener("vanhanh:i18n", onLang);
         if (ro) { ro.disconnect(); ro = null; }
       }
     };
   }
 
   var API = { attach: attach, HOLD_MOVE_MS: HOLD_MOVE_MS, NEAR_PX: NEAR_PX };
-  if (typeof window !== "undefined") window.NaotaChatScroll = API;
+  if (typeof window !== "undefined") window.VanhanhChatScroll = API;
   if (typeof module !== "undefined" && module.exports) module.exports = API;
 })();

@@ -21,8 +21,8 @@ import tempfile
 import time
 from pathlib import Path
 
-_TMP = Path(tempfile.mkdtemp(prefix="naota-npx-cache-"))
-os.environ["NAOTA_STATE_DIR"] = str(_TMP / "state")
+_TMP = Path(tempfile.mkdtemp(prefix="vanhanh-npx-cache-"))
+os.environ["VANHANH_STATE_DIR"] = str(_TMP / "state")
 os.environ["HOME"] = str(_TMP / "home")
 for _d in ("state", "home"):
     (_TMP / _d).mkdir(parents=True, exist_ok=True)

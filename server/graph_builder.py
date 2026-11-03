@@ -38,7 +38,7 @@ def doc_wikilink(text: str):
         if ten:
             yield ten
 
-# Màu mặc định theo thư mục gốc (giao diện tô lại theo danh mục): vàng, xanh thương hiệu NAOTA + vài tông phụ
+# Màu mặc định theo thư mục gốc (giao diện tô lại theo danh mục): vàng, xanh thương hiệu VANHANH + vài tông phụ
 FOLDER_COLORS = {
     "00": "#fccb1d", "01": "#33b5f0", "02": "#3fdc9a", "03": "#f0a24a",
     "04": "#ff7a9c", "05": "#e07ad1", "06": "#5ad1c4", "07": "#7ed957",
@@ -61,7 +61,7 @@ def _top_folder(rel_path: str) -> str:
 # Lỗi đã gặp: khi tải bộ não mới hoặc sang 1 bộ não khác, phần tải note rất chậm. Đo trên bộ não 2000 note:
 # mỗi lần đổi brain là đọc lại TRỌN 2000 file (20 MB) để dò wikilink, dù không file nào đổi, rồi gửi gần 1 MB JSON
 # không nén. Giờ mỗi file chỉ đọc lại khi mtime hoặc kích thước của nó đổi; phần dò được lưu xuống
-# `<NAOTA_STATE_DIR>/cache/graph/` nên khởi động lại server cũng không phải đọc lại; và cả kết quả được nhớ theo
+# `<VANHANH_STATE_DIR>/cache/graph/` nên khởi động lại server cũng không phải đọc lại; và cả kết quả được nhớ theo
 # chữ ký của vault (ETag), không đổi gì thì trình duyệt nhận 304 trống.
 _CACHE_VER = 1
 _locks_lock = threading.Lock()
@@ -72,7 +72,7 @@ _RESULT_MAX = 16
 
 
 def _cache_dir() -> Path:
-    return Path(os.getenv("NAOTA_STATE_DIR", str(Path(__file__).parent))) / "cache" / "graph"
+    return Path(os.getenv("VANHANH_STATE_DIR", str(Path(__file__).parent))) / "cache" / "graph"
 
 
 def _cache_file(root: str) -> Path:

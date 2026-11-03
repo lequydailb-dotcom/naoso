@@ -24,8 +24,8 @@ import tempfile
 import time
 from pathlib import Path
 
-_TMP = tempfile.mkdtemp(prefix="naota-cscope-")
-os.environ["NAOTA_STATE_DIR"] = _TMP
+_TMP = tempfile.mkdtemp(prefix="vanhanh-cscope-")
+os.environ["VANHANH_STATE_DIR"] = _TMP
 
 import learn  # noqa: E402
 

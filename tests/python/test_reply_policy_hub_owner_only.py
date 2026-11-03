@@ -11,7 +11,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-rp-hub-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-rp-hub-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -34,11 +34,11 @@ def run(c):
     return asyncio.run(c)
 
 
-VAULT = tempfile.mkdtemp(prefix="naota-rp-vault-")
+VAULT = tempfile.mkdtemp(prefix="vanhanh-rp-vault-")
 OWN = mcp_hub.OWNER_ONLY_TOOLS
-check("both judge tools are owner-only", {"naota_reply_policy", "naota_reply_policy_tune"} <= OWN)
+check("both judge tools are owner-only", {"vanhanh_reply_policy", "vanhanh_reply_policy_tune"} <= OWN)
 # the team-chat tool (creates/deletes teams, writes assistant files) is owner-only too.
-check("naota_team is owner-only", "naota_team" in OWN)
+check("vanhanh_team is owner-only", "vanhanh_team" in OWN)
 
 
 def names(tools):
@@ -46,7 +46,7 @@ def names(tools):
 
 
 # ---- discover_all ----
-# With few tools the hub lists them all; with many it hides them behind naota_search_tools/naota_run_tool. Check
+# With few tools the hub lists them all; with many it hides them behind vanhanh_search_tools/vanhanh_run_tool. Check
 # the plain list first (lazy forced off), then the lazy tier separately below.
 _lazy_on = mcp_hub._lazy_on
 mcp_hub._lazy_on = lambda n, chars: False
@@ -54,27 +54,27 @@ tools, route = run(mcp_hub.discover_all("full", vault_root=VAULT, force_refresh=
 check("the owner's session sees both tools", OWN <= names(tools) and OWN <= set(route), sorted(names(tools)))
 tools_b, route_b = run(mcp_hub.discover_all("full", vault_root=VAULT, force_refresh=True, for_bot=True))
 check("a bot session sees neither", not (OWN & names(tools_b)) and not (OWN & set(route_b)))
-check("a bot still gets the rest of the plugin tools", "naota_task" in names(tools_b) or "naota_task" in route_b
+check("a bot still gets the rest of the plugin tools", "vanhanh_task" in names(tools_b) or "vanhanh_task" in route_b
       or mcp_hub._LAZY_RUN in route_b)
 tools_o, _ = run(mcp_hub.discover_all("full", vault_root=VAULT))
 check("the cache keeps owner and bot lists apart", OWN <= names(tools_o))
 
-# lazy tier: the bot's naota_run_tool must not dispatch them either
+# lazy tier: the bot's vanhanh_run_tool must not dispatch them either
 _tl, route_lb = run(mcp_hub.discover_all("full", vault_root=VAULT, force_refresh=True, for_bot=True, force_lazy=True))
-out = run(route_lb[mcp_hub._LAZY_RUN]["call"]({"name": "naota_reply_policy", "args": {"op": "bots"}}))
+out = run(route_lb[mcp_hub._LAZY_RUN]["call"]({"name": "vanhanh_reply_policy", "args": {"op": "bots"}}))
 check("lazy run on a bot cannot reach the judge tool", str(out).startswith("ERROR"), out)
 _tl, route_lo = run(mcp_hub.discover_all("full", vault_root=VAULT, force_refresh=True, force_lazy=True))
-out = run(route_lo[mcp_hub._LAZY_RUN]["call"]({"name": "naota_reply_policy", "args": {"op": "bots"}}))
+out = run(route_lo[mcp_hub._LAZY_RUN]["call"]({"name": "vanhanh_reply_policy", "args": {"op": "bots"}}))
 check("lazy run for the owner reaches it", not str(out).startswith("ERROR"), out)
 
 # ---- Claude Code config for a bot ----
 mcp_hub._has_connections = lambda: True
 p_owner = mcp_hub.claude_config_path("full", vault_root=VAULT)
 p_bot = mcp_hub.claude_config_path("full", vault_root=VAULT, bot=True)
-h_owner = json.loads(Path(p_owner).read_text(encoding="utf-8"))["mcpServers"]["naota"]["headers"]
-h_bot = json.loads(Path(p_bot).read_text(encoding="utf-8"))["mcpServers"]["naota"]["headers"]
+h_owner = json.loads(Path(p_owner).read_text(encoding="utf-8"))["mcpServers"]["vanhanh"]["headers"]
+h_bot = json.loads(Path(p_bot).read_text(encoding="utf-8"))["mcpServers"]["vanhanh"]["headers"]
 check("bot config is a separate file", p_owner != p_bot)
-check("bot config carries X-Naota-Bot, the owner's does not", h_bot.get("X-Naota-Bot") == "1" and "X-Naota-Bot" not in h_owner)
+check("bot config carries X-Vanhanh-Bot, the owner's does not", h_bot.get("X-Vanhanh-Bot") == "1" and "X-Vanhanh-Bot" not in h_owner)
 
 
 # ---- the HTTP hub honours the header ----
@@ -101,24 +101,24 @@ def http_call(headers, name, arguments):
     return json.loads(resp.body)["result"]["content"][0]["text"]
 
 
-base = {"X-Naota-Mode": "full", "X-Naota-Vault": VAULT}
+base = {"X-Vanhanh-Mode": "full", "X-Vanhanh-Vault": VAULT}
 check("hub over HTTP lists them for the owner", OWN <= http_tools(base))
-check("hub over HTTP hides them for a bot", not (OWN & http_tools(dict(base, **{"X-Naota-Bot": "1"}))))
+check("hub over HTTP hides them for a bot", not (OWN & http_tools(dict(base, **{"X-Vanhanh-Bot": "1"}))))
 check("hub over HTTP refuses a bot's direct call",
-      "ERROR" in http_call(dict(base, **{"X-Naota-Bot": "1"}), "naota_reply_policy", {"op": "bots"}))
+      "ERROR" in http_call(dict(base, **{"X-Vanhanh-Bot": "1"}), "vanhanh_reply_policy", {"op": "bots"}))
 
 # ---- the plugin itself ----
-spec = importlib.util.spec_from_file_location("naota_reply_policy_plugin",
-                                              ROOT / "system" / "plugins" / "naota-reply-policy" / "plugin.py")
+spec = importlib.util.spec_from_file_location("vanhanh_reply_policy_plugin",
+                                              ROOT / "system" / "plugins" / "vanhanh-reply-policy" / "plugin.py")
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
-ctx = plugins_host.PluginContext("naota-reply-policy", "bundled", ROOT / "system/plugins/naota-reply-policy", VAULT)
+ctx = plugins_host.PluginContext("vanhanh-reply-policy", "bundled", ROOT / "system/plugins/vanhanh-reply-policy", VAULT)
 m.register(ctx)
 by = {t["name"]: t for t in ctx._tools}
 check("read tool is readonly, tune tool is safe",
-      by["naota_reply_policy"]["min_mode"] == "readonly" and by["naota_reply_policy_tune"]["min_mode"] == "safe")
-m._bots = lambda: [{"id": "A", "name": "Naota An", "channel": "zalo"}, {"id": "B", "name": "Nhi Mai", "channel": "zalo"}]
-R, T = by["naota_reply_policy"]["handler"], by["naota_reply_policy_tune"]["handler"]
+      by["vanhanh_reply_policy"]["min_mode"] == "readonly" and by["vanhanh_reply_policy_tune"]["min_mode"] == "safe")
+m._bots = lambda: [{"id": "A", "name": "Vanhanh An", "channel": "zalo"}, {"id": "B", "name": "Nhi Mai", "channel": "zalo"}]
+R, T = by["vanhanh_reply_policy"]["handler"], by["vanhanh_reply_policy_tune"]["handler"]
 
 import time  # noqa: E402
 now = time.time()
@@ -128,8 +128,8 @@ d1 = st.log_decision({"bot_id": "A", "chat_id": "g1", "ts": now - 600, "text": "
 st.log_decision({"bot_id": "B", "chat_id": "g2", "ts": now - 500, "text": "bí mật của bot B", "verdict": "silent",
                  "silence_code": "judge_silent", "candidate": True}, now - 500)
 
-check("bots lists both with numbers", "Naota An" in run(R({"op": "bots"}, ctx)) and "Nhi Mai" in run(R({"op": "bots"}, ctx)))
-rep = run(R({"op": "report", "bot": "naota an"}, ctx))
+check("bots lists both with numbers", "Vanhanh An" in run(R({"op": "bots"}, ctx)) and "Nhi Mai" in run(R({"op": "bots"}, ctx)))
+rep = run(R({"op": "report", "bot": "vanhanh an"}, ctx))
 check("report by name without diacritics, own data only", "lịch học" in rep and "bí mật" not in rep, rep[:200])
 dec = run(R({"op": "decisions", "bot": "A", "code": "addressed_other"}, ctx))
 check("decisions filter by code, fenced as data", f"#{d1}" in dec and "<chat_data>" in dec)

@@ -20,11 +20,11 @@ import sys
 import tempfile
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="naota-cbv5-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
-os.environ["NAOTA_SESSIONS_DB"] = str(Path(_STATE) / "sessions.db")
+_STATE = tempfile.mkdtemp(prefix="vanhanh-cbv5-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
+os.environ["VANHANH_SESSIONS_DB"] = str(Path(_STATE) / "sessions.db")
 os.environ["BRAINS_DIR"] = str(Path(_STATE) / "brains")
-os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
+os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

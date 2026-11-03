@@ -1,39 +1,39 @@
 <!-- translated-from: QUICKSTART.en.md sha256:c04efec7ce47 -->
-# NAOTA - Início rápido
+# VANHANH - Início rápido
 
 *[English](../../../QUICKSTART.en.md) · [Tiếng Việt](../../../QUICKSTART.md) · [简体中文](../zh/QUICKSTART.md) · [Español](../es/QUICKSTART.md) · [日本語](../ja/QUICKSTART.md) · [हिन्दी](../hi/QUICKSTART.md) · **Português** · [한국어](../ko/QUICKSTART.md) · [Русский](../ru/QUICKSTART.md) · [Deutsch](../de/QUICKSTART.md) · [Français](../fr/QUICKSTART.md) · [Bahasa Indonesia](../id/QUICKSTART.md)*
 
 > Esta é uma tradução automática do guia de início rápido em inglês.
 
-Coloque o NAOTA para rodar em poucos minutos. Guias completos: [docs/en/](../../../docs/en/README.md).
+Coloque o VANHANH para rodar em poucos minutos. Guias completos: [docs/en/](../../../docs/en/README.md).
 
 ## Computador pessoal (Windows, macOS) - baixe o instalador
 
-Instale o Naota como qualquer outro app: baixe um arquivo, abra e pronto, você ganha um ícone NAOTA para clicar todo dia. O instalador verifica o que falta no computador (Git, Python, Node, os cérebros de IA) e instala só isso.
+Instale o Vanhanh como qualquer outro app: baixe um arquivo, abra e pronto, você ganha um ícone VANHANH para clicar todo dia. O instalador verifica o que falta no computador (Git, Python, Node, os cérebros de IA) e instala só isso.
 
-- **Windows 10/11:** baixe [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), dê dois cliques e aperte Next até o fim. Uma janela preta mostra o progresso (alguns minutos). No final aparece um ícone NAOTA na Área de Trabalho e no menu Iniciar.
-- **macOS 11 ou mais novo:** baixe [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), abra, arraste **NAOTA** para **Applications** e abra pelo Launchpad. Na primeira vez o Terminal abre para instalar (pode pedir para criar uma conta de administrador do Naota e a senha do Mac uma vez).
+- **Windows 10/11:** baixe [Vanhanh-Setup.exe](https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/Vanhanh-Setup.exe), dê dois cliques e aperte Next até o fim. Uma janela preta mostra o progresso (alguns minutos). No final aparece um ícone VANHANH na Área de Trabalho e no menu Iniciar.
+- **macOS 11 ou mais novo:** baixe [Vanhanh-macOS.dmg](https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/Vanhanh-macOS.dmg), abra, arraste **VANHANH** para **Applications** e abra pelo Launchpad. Na primeira vez o Terminal abre para instalar (pode pedir para criar uma conta de administrador do Vanhanh e a senha do Mac uma vez).
 
-Ao clicar no ícone, o Naota abre em uma janela própria (sem barra de endereço), inicia junto com o computador e o botão **Update** do app funciona normalmente. Seus dados ficam na pasta `Naota` dentro da sua pasta de usuário; desinstalar o app mantém essa pasta.
+Ao clicar no ícone, o Vanhanh abre em uma janela própria (sem barra de endereço), inicia junto com o computador e o botão **Update** do app funciona normalmente. Seus dados ficam na pasta `Vanhanh` dentro da sua pasta de usuário; desinstalar o app mantém essa pasta.
 
 Os dois instaladores ainda não têm assinatura de código, então o computador pergunta uma vez:
 - O Windows mostra "Windows protected your PC": clique em **More info** e depois em **Run anyway**.
-- O macOS diz que não consegue abrir o app: vá em **System Settings → Privacy & Security**, role para baixo, clique em **Open Anyway** e abra o NAOTA de novo.
+- O macOS diz que não consegue abrir o app: vá em **System Settings → Privacy & Security**, role para baixo, clique em **Open Anyway** e abra o VANHANH de novo.
 
 ## Opção 1 - VPS da Hostinger (Docker Manager, em um clique)
 
-> 🛒 **Ainda não tem VPS?** [Contrate uma VPS da Hostinger aqui](https://www.hostinger.com). Ela já vem com o Docker Manager, então o Naota instala em um clique. Quando estiver pronta, volte aos passos abaixo.
+> 🛒 **Ainda não tem VPS?** [Contrate uma VPS da Hostinger aqui](https://www.hostinger.com). Ela já vem com o Docker Manager, então o Vanhanh instala em um clique. Quando estiver pronta, volte aos passos abaixo.
 
 1. hPanel → VPS → **Docker Manager** → **Compose** → **Compose from URL**.
 2. Cole esta URL:
    ```
-   https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.yml
+   https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.hostinger.yml
    ```
 3. (Opcional, para HTTPS + um domínio) defina isto na caixa **Environment**:
    ```
-   DOMAIN_NAME=naota.<vps-hostname>.hstgr.cloud
+   DOMAIN_NAME=vanhanh.<vps-hostname>.hstgr.cloud
    ```
-   (O hostname fica em hPanel → VPS, ex.: `naota.srv1234567.hstgr.cloud`.)
+   (O hostname fica em hPanel → VPS, ex.: `vanhanh.srv1234567.hstgr.cloud`.)
 4. **Deploy**. Espere 1-3 minutos. Abra o app pelo botão **Open** (ou em `https://<DOMAIN_NAME>`).
 5. Na primeira execução, a tela pede para você criar uma conta de admin. Depois disso, faça login no Claude Code uma vez pelo terminal do container: `claude auth login --claudeai`.
 
@@ -52,7 +52,7 @@ Abra http://localhost:7777. Para ter HTTPS via Caddy, adicione `-f docker-compos
 
 1. Instale o Python 3.12 + Node 22.
 2. Na pasta do projeto, rode `setup.bat` uma vez: ele cria o .venv, instala as dependências e instala para você os dois motores CLI (Claude Code, Codex).
-3. `start-naota.bat` para rodar em segundo plano (`stop-naota.bat` para parar).
+3. `start-vanhanh.bat` para rodar em segundo plano (`stop-vanhanh.bat` para parar).
 4. Abra http://localhost:7777.
 
 ## Depois que estiver rodando

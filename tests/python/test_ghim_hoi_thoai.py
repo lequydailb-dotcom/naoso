@@ -3,7 +3,7 @@
     python tests/run.py ghim_hoi_thoai      (KHÔNG mạng)
 
 Yêu cầu: thêm nút ghim ở tất cả các màn có lịch sử hội thoại, kể cả trong phần tìm và chọn hội thoại. Danh sách hội thoại thường đã có ghim từ trước, còn thiếu hai chỗ:
-  1. Kết quả TÌM của cột Lịch sử (trang Trò chuyện, lịch sử của trợ lý / Naota Core, trang Coding: cùng một cột
+  1. Kết quả TÌM của cột Lịch sử (trang Trò chuyện, lịch sử của trợ lý / Vanhanh Core, trang Coding: cùng một cột
      `sessions-ui.js`) không có nút ghim, và server không trả trạng thái ghim của kết quả.
   2. Hòm thư bot (trang Hội thoại) chưa có ghim ở đâu cả.
 """
@@ -14,11 +14,11 @@ import sys
 import tempfile
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="naota-ghim-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
-os.environ["NAOTA_SESSIONS_DB"] = str(Path(_STATE) / "sessions.db")
+_STATE = tempfile.mkdtemp(prefix="vanhanh-ghim-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
+os.environ["VANHANH_SESSIONS_DB"] = str(Path(_STATE) / "sessions.db")
 os.environ["BRAINS_DIR"] = str(Path(_STATE) / "brains")
-os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
+os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -41,7 +41,7 @@ if _STATE not in str(conversations.DB_PATH):
     sys.exit(1)
 
 # ---- 1. Kết quả tìm hội thoại mang trạng thái ghim, cuộc đã ghim đứng trước ----
-st = sessions.SessionStore(os.environ["NAOTA_SESSIONS_DB"])
+st = sessions.SessionStore(os.environ["VANHANH_SESSIONS_DB"])
 cu = st.create_session(title="Đăng ký sở hữu trí tuệ")
 st.append_message(cu, "user", "hỏi về sở hữu trí tuệ")
 moi = st.create_session(title="Zoom sở khoa học")
@@ -69,7 +69,7 @@ check("bấm ghim không mở hội thoại", "ev.stopPropagation();" in tim)
 check("ghim từ kết quả tìm thì tìm lại đúng câu đó", "togglePin({ id: h.session_id, pinned: h.pinned }, q);" in tim
       and "if (q) doSearch(q); else loadList();" in ui)
 check("cả trang Trò chuyện, lịch sử trợ lý và Coding cùng dùng cột này",
-      all("NaotaChatSide.mount(" in (ROOT / "dashboard" / f).read_text(encoding="utf-8")
+      all("VanhanhChatSide.mount(" in (ROOT / "dashboard" / f).read_text(encoding="utf-8")
           for f in ("console.js", "workspace.js", "coding.js")))
 
 # ---- 2. Hòm thư bot: kho cũ được thêm cột pinned ----

@@ -8,8 +8,8 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-id-")
-BR = Path(tempfile.mkdtemp(prefix="naota-team-id-brain-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-id-")
+BR = Path(tempfile.mkdtemp(prefix="vanhanh-team-id-brain-"))
 (BR / "agents").mkdir()
 
 import main  # noqa: E402

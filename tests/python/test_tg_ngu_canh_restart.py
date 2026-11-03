@@ -21,7 +21,7 @@ Hai nửa đó phải vá cả hai mới hết bệnh, nên test này canh cả 
   1. Nối lại ĐÚNG phiên cũ sau restart (`_TG_SID_MAP` ghi xuống đĩa).
   2. Dựng lại ĐÚNG nội dung đã nói (`_tg_lich_su_kho` đọc transcript SQLite).
 
-Vá được nửa một mà quên nửa hai thì thanh bên dashboard trông liền mạch nhưng Naota vẫn hỏi
+Vá được nửa một mà quên nửa hai thì thanh bên dashboard trông liền mạch nhưng Vanhanh vẫn hỏi
 lại "bạn là ai" ở tin nhắn kế - đúng thứ người dùng đang than.
 
 Và canh cả CHIỀU NGƯỢC LẠI: /reset, đổi brain, phiên đã nguội quá 12 tiếng hay đã dài quá 200
@@ -34,7 +34,7 @@ import sys
 import tempfile
 import time
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-tgsid-test-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-tgsid-test-")
 
 import main                     # noqa: E402
 from sessions import get_store  # noqa: E402
@@ -49,8 +49,8 @@ def check(name, cond, them=""):
         _fails.append(name)
 
 
-BRAIN = tempfile.mkdtemp(prefix="naota-tgsid-brain-")
-BRAIN2 = tempfile.mkdtemp(prefix="naota-tgsid-brain2-")
+BRAIN = tempfile.mkdtemp(prefix="vanhanh-tgsid-brain-")
+BRAIN2 = tempfile.mkdtemp(prefix="vanhanh-tgsid-brain2-")
 CHAT = "999000111"
 store = get_store()
 

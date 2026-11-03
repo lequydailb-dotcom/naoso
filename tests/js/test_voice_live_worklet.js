@@ -59,7 +59,7 @@ function setup({ worklet, addModuleFails = false }) {
     Float32Array, Int16Array, ArrayBuffer, Promise, JSON, Math, Date, Array, String, console,
   };
   vm.runInNewContext(fs.readFileSync('dashboard/voice-live.js', 'utf8'), context);
-  return { live: window.NaotaVoiceLive, FakeWS, log };
+  return { live: window.VanhanhVoiceLive, FakeWS, log };
 }
 
 async function startPcm(h) {
@@ -75,7 +75,7 @@ test('worklet available: capture runs on the worklet and its frames go to the so
   assert.equal(h.log.scriptProcessors, 0);
   assert.equal(h.log.workletNodes.length, 1);
   const node = h.log.workletNodes[0];
-  assert.equal(node.name, 'naota-mic');
+  assert.equal(node.name, 'vanhanh-mic');
   assert.ok(h.log.modules[0].startsWith('/static/voice-live-worklet.js'));
   const frame = new Int16Array([1, 2, 3]).buffer;
   node.port.onmessage({ data: frame });

@@ -366,13 +366,13 @@ class WritePathCanary:
             return self._reject(
                 trace, policy, bucket, "write_compile_rejected",
                 "Yêu cầu vượt context budget đã xác minh cho vòng lập tham số. "
-                "Naota chưa gửi model call và chưa gọi tool.",
+                "Vanhanh chưa gửi model call và chưa gọi tool.",
             )
         estimate = max(1, _int(report.get("estimated_input_tokens"), 1))
         if estimate > rule.hard_max_input_tokens:
             return self._reject(
                 trace, policy, bucket, "hard_input_limit",
-                "Yêu cầu vượt hard context limit. Naota chưa gửi model call nào.",
+                "Yêu cầu vượt hard context limit. Vanhanh chưa gửi model call nào.",
             )
         reserved_input = int(math.ceil(estimate * policy.estimator_safety_factor))
         path = self.runtime.pin_execution_path(
@@ -386,7 +386,7 @@ class WritePathCanary:
         if not admission.allowed:
             return self._plan(
                 "reject", admission.reason, policy, bucket, "write",
-                "Model hiện tại không còn đủ ngân sách token. Naota chưa gửi request nào.",
+                "Model hiện tại không còn đủ ngân sách token. Vanhanh chưa gửi request nào.",
             )
         lease = self.executor.issue_lease(
             trace, actor_id, brain, capability, profile, allow_write=True)
@@ -394,7 +394,7 @@ class WritePathCanary:
             self.runtime.release_quota(trace, admission.reservation_id, "lease_issue_failed")
             return self._plan(
                 "reject", "lease_issue_failed", policy, bucket, "write",
-                "Capability không đạt policy lease write. Naota chưa gọi model hoặc tool.",
+                "Capability không đạt policy lease write. Vanhanh chưa gọi model hoặc tool.",
             )
         rendered = compiled.capsule.rendered_request
         return WritePlan(

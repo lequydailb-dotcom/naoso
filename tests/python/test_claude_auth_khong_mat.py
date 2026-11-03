@@ -26,7 +26,7 @@ import subprocess
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-cauth-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-cauth-")
 
 import claude_cli   # noqa: E402
 

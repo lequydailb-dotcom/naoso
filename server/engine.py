@@ -4,7 +4,7 @@ Lớp engine cho CHAT qua API nhà cung cấp: OpenRouter, OpenAI, Anthropic API
 
 Mỗi provider có HAI đường vào:
 - `*_chat`            : chat trần, không tool. Chỉ dùng khi hub không tìm được tool nào.
-- `*_chat_with_mcp`   : vòng gọi tool đầy đủ với MCP Naota + tool file brain + skill. Đây là
+- `*_chat_with_mcp`   : vòng gọi tool đầy đủ với MCP Vanhanh + tool file brain + skill. Đây là
                         đường MẶC ĐỊNH mà main.py::_api_stream_mcp chọn, nên "engine API =
                         chat thuần" KHÔNG còn đúng từ 0.9.
 Stream token-by-token; trả các event {"type":"text"|"error","content":...} giống ClaudeCLI.query.
@@ -108,7 +108,7 @@ def _sanitize_surrogates(text: str) -> str:
 # "Độ ẩm 70-99%. ␣cite␣turn4view0␣".
 #
 # Bóc chứ không dịch, vì bên trong KHÔNG có gì để giữ: nó chỉ là mã tham chiếu nội bộ
-# ("turn4view0"), không kèm URL. Chính Naota cũng mắc bẫy này - được hỏi lấy tin ở đâu thì
+# ("turn4view0"), không kèm URL. Chính Vanhanh cũng mắc bẫy này - được hỏi lấy tin ở đâu thì
 # trả lời "mình chỉ còn mã tham chiếu turn4view0, không có URL nguồn gốc". Để nguyên là vừa
 # bẩn màn hình vừa dạy model rằng đó là một nguồn có thật.
 #
@@ -340,7 +340,7 @@ def ev_loi_exc(nhan, exc):
     và mỗi lần chạy lại là một lượt gọi model thật đã trả tiền.
     """
     ev = {"type": "error", "content": f"{nhan}: {_describe_exc(exc)}"}
-    da_thu = getattr(exc, "_naota_da_thu", 0)
+    da_thu = getattr(exc, "_vanhanh_da_thu", 0)
     if da_thu:
         # `_gui_vong` đã gửi lại vòng này đủ số lần. Không gắn `tam_thoi` nữa, kẻo tầng
         # `thu_lai_khi_tam_thoi` chạy lại cả lượt và số lần gọi nở thành cấp số nhân.
@@ -380,7 +380,7 @@ async def _gui_vong(gui, nhan=""):
             return await gui()
         except _MANG_GAY as e:
             if lan >= _LAN_GUI_VONG:
-                e._naota_da_thu = lan
+                e._vanhanh_da_thu = lan
                 raise
             cho = _jittered_backoff(lan)
             print(f"[thử lại vòng {nhan or '?'}] lần {lan} rớt mạng, chờ {cho:.1f}s: {_describe_exc(e)[:160]}",
@@ -394,14 +394,14 @@ async def _gui_vong(gui, nhan=""):
 # Nay mỗi vòng gọi `stream: true`, nhả chữ ra thành sự kiện `delta` (CHỈ để xem trước:
 # nơi nào không biết `delta` thì bỏ qua, nên bot khách, việc nền, Telegram y như cũ), rồi gom lại thành
 # đúng hình dạng của câu trả lời non-stream để phần còn lại của vòng tool chạy y nguyên.
-# Tắt bằng NAOTA_API_STREAM_TOOLS=0. Endpoint nào từ chối stream thì tự lui về non-stream.
+# Tắt bằng VANHANH_API_STREAM_TOOLS=0. Endpoint nào từ chối stream thì tự lui về non-stream.
 _KHONG_STREAM_VONG: set = set()   # nhãn provider đã từ chối vòng stream (trong tiến trình này)
 
 
 def stream_vong_bat(label: str = "") -> bool:
     if label and label in _KHONG_STREAM_VONG:
         return False
-    return (os.environ.get("NAOTA_API_STREAM_TOOLS") or "1").strip().lower() not in ("0", "false", "off", "no")
+    return (os.environ.get("VANHANH_API_STREAM_TOOLS") or "1").strip().lower() not in ("0", "false", "off", "no")
 
 
 def _stream_bi_tu_choi(status, body_text) -> bool:
@@ -663,7 +663,7 @@ async def _vong_stream(client_or_none, url, headers, payload, kieu):
                     await client.aclose()
         except _MANG_GAY as e:
             if da_nha or lan >= _LAN_GUI_VONG:
-                e._naota_da_thu = lan
+                e._vanhanh_da_thu = lan
                 raise
             cho = _jittered_backoff(lan)
             print(f"[thử lại vòng stream] lần {lan} rớt mạng, chờ {cho:.1f}s: {_describe_exc(e)[:160]}",
@@ -751,9 +751,9 @@ async def thu_lai_khi_tam_thoi(tao_stream, *, so_lan=3, nhan=""):
                 )
             elif _qua_tai(loi_hoan):
                 cuoi["content"] += _c(
-                    " - model này đang quá tải phía nhà cung cấp, không phải lỗi của Naota hay của bạn. Thường hết sau "
+                    " - model này đang quá tải phía nhà cung cấp, không phải lỗi của Vanhanh hay của bạn. Thường hết sau "
                     "vài phút: gửi lại sau ít phút, hoặc bấm chip model ở ô chat để đổi sang model khác.",
-                    " - this model is overloaded on the provider's side; it is not a fault in Naota or on your end. It "
+                    " - this model is overloaded on the provider's side; it is not a fault in Vanhanh or on your end. It "
                     "usually passes within minutes: send again shortly, or press the model chip in the chat box to "
                     "switch to another model.")
             yield cuoi
@@ -821,7 +821,7 @@ def _is_claude_model(model):
 
 def _or_mark_system(messages):
     """Copy messages, đánh cache_control lên system message ĐẦU (định dạng OpenAI-style của
-    OpenRouter). System của Naota ~26k ký tự và bất biến trong phiên - cache được là lãi nhất.
+    OpenRouter). System của Vanhanh ~26k ký tự và bất biến trong phiên - cache được là lãi nhất.
     KHÔNG mutate list gốc: or_messages sống qua nhiều lượt, mutate là marker dính vĩnh viễn."""
     out = []
     marked = False
@@ -836,7 +836,7 @@ def _or_mark_system(messages):
 
 # Một số model OpenRouter (qwen, deepseek-r1, minimax...) nhét reasoning INLINE vào
 # content dưới dạng <think>...</think> thay vì field "reasoning" riêng → nếu yield
-# thẳng thì tag lậu lên chat, bẩn conversation log và phá parse NAOTA_METRICS.
+# thẳng thì tag lậu lên chat, bẩn conversation log và phá parse VANHANH_METRICS.
 # Scrubber stateful gỡ block khỏi text hiển thị, giữ đuôi tag chẻ đôi giữa 2 delta
 # lại tới delta sau mới quyết định. Port rút gọn từ Hermes agent/think_scrubber.py.
 _THINK_OPEN = ("<think>", "<thinking>")
@@ -933,9 +933,9 @@ DEFAULT_MODELS = {
 #   2. Địa chỉ KHÔNG cố định. Người dùng có thể chạy trên máy khác trong mạng, hoặc đổi cổng,
 #      nên URL phải dựng từ host trong cấu hình chứ không hằng số hoá được như bốn cái trên.
 # Ollama Cloud - model của Ollama chạy trên máy chủ của họ, xác thực bằng API key lấy ở
-# ollama.com. Naota CỐ Ý chỉ đấu bản Cloud: bản chạy trên máy nhà đòi một ô địa chỉ riêng,
+# ollama.com. Vanhanh CỐ Ý chỉ đấu bản Cloud: bản chạy trên máy nhà đòi một ô địa chỉ riêng,
 # tức một ca đặc biệt duy nhất xuyên suốt lớp nhà cung cấp, trong khi phần đông người dùng
-# Naota chạy nó trên VPS - nơi "localhost" là chính cái container chứ không phải máy họ.
+# Vanhanh chạy nó trên VPS - nơi "localhost" là chính cái container chứ không phải máy họ.
 OLLAMA_BASE = "https://ollama.com"
 OLLAMA_URL = OLLAMA_BASE + "/v1/chat/completions"
 
@@ -1014,7 +1014,7 @@ _ADAPTIVE_THINKING = ("opus-5", "opus-4-8", "opus-4-7", "opus-4-6", "opus-4-5",
                       "sonnet-5", "sonnet-4-6", "fable-5", "mythos-5")
 
 
-# Thang độ sâu suy nghĩ của Naota, sáu nấc.
+# Thang độ sâu suy nghĩ của Vanhanh, sáu nấc.
 REASONING_LEVELS = ("off", "low", "medium", "high", "xhigh", "ultra")
 # Giá trị effort GỬI LÊN API kiểu OpenAI (OpenAI, Groq, Gemini, OpenRouter, Codex). Mấy nhà đó
 # chỉ nhận low|medium|high; gửi "ultra" là ăn 400 và hỏng cả lượt chat, nên hai nấc trên cùng
@@ -1027,7 +1027,7 @@ _API_EFFORT = {"low": "low", "medium": "medium", "high": "high", "xhigh": "high"
 
 
 def api_effort(reasoning):
-    """Mức Naota -> giá trị effort AN TOÀN để nhét vào payload của nhà cung cấp.
+    """Mức Vanhanh -> giá trị effort AN TOÀN để nhét vào payload của nhà cung cấp.
 
     Nơi gọi phải TỰ chặn mức "off" trước (không gửi trường effort gì cả); hàm này chỉ lo dịch
     mức đã bật. Giá trị lạ rơi về "medium" để một chỗ ghi sai config không làm hỏng cả lượt chat.
@@ -1043,10 +1043,10 @@ _EFFORT_CO_MAX = ("opus-4-6", "sonnet-4-6")
 
 
 def _anthropic_effort(model, reasoning):
-    """Mức Naota -> mức effort của Messages API, theo đúng thứ model đó nhận được.
+    """Mức Vanhanh -> mức effort của Messages API, theo đúng thứ model đó nhận được.
 
     Vì sao không dùng chung `api_effort`: bảng kia bóp "xhigh" và "ultra" xuống "high" cho hợp
-    với các nhà kiểu OpenAI, nên trên Anthropic thì ba nấc trên cùng của Naota ra cùng một kết
+    với các nhà kiểu OpenAI, nên trên Anthropic thì ba nấc trên cùng của Vanhanh ra cùng một kết
     quả. Người dùng chọn "Tối đa" và không có gì thay đổi - hỏng kiểu im lặng nhất.
     """
     m = (model or "").lower()
@@ -1089,7 +1089,7 @@ def _groq_is_reasoning(model):
     return any(s in m for s in ("qwen3", "deepseek-r1", "gpt-oss", "thinking", "reasoning"))
 
 
-# Naota level -> DeepSeek `reasoning_effort`. DeepSeek only knows low|high|max (it maps
+# Vanhanh level -> DeepSeek `reasoning_effort`. DeepSeek only knows low|high|max (it maps
 # medium/xhigh to high on its own), so send the values it names instead of relying on that.
 _DEEPSEEK_EFFORT = {"low": "low", "medium": "high", "high": "high", "xhigh": "max", "ultra": "max"}
 _DEEPSEEK_THINKING_OFF = {"thinking": {"type": "disabled"}}
@@ -1127,7 +1127,7 @@ def _gemini_is_reasoning(model):
 # ── Ollama (Local): its OWN thinking level, not the shared Effort button ─────────────────
 # qwen3 and most local reasoning models think BY DEFAULT when the request says nothing. On a home machine one long think can
 # eat the whole turn: a user counted CSV rows with qwen3 and got "Ollama (Local) returned nothing" after 69 s of thinking, and
-# a rerun was still thinking after 5 minutes. Naota never sent a thinking switch to this provider, so nothing could stop it.
+# a rerun was still thinking after 5 minutes. Vanhanh never sent a thinking switch to this provider, so nothing could stop it.
 # And the Effort button is one setting for every model: "Medium" suits Claude but makes a local model ramble, "Off" tames the
 # local model but takes thinking away from Claude. So Ollama (Local) reads its own level, `model.ollama_local_reasoning`,
 # default "off", and the Effort button no longer reaches it.
@@ -1323,7 +1323,7 @@ async def openai_compat_chat_with_mcp(api_key, model, messages, reasoning, mcp_t
 
 async def ollama_local_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp_route):
     """Ollama máy nhà + vòng tool-calling MCP. Model local biết gọi tool (qwen3, mistral...)
-    thì có đủ đồ nghề của Naota y như mọi provider API khác."""
+    thì có đủ đồ nghề của Vanhanh y như mọi provider API khác."""
     url = ollama_local_url()
     if not url:
         yield {"type": "error", "content": _c("Chưa đặt địa chỉ Ollama trong trang Models.", "No Ollama address set on the Models page.")}
@@ -1387,7 +1387,7 @@ async def _anthropic_stream_once(api_key, model, messages, reasoning="off", fast
     gỡ (xem claude_auth.py). Gói Claude Code nay đi qua binary `claude`, không qua đây.
     """
     sys_parts = [m.get("content", "") for m in messages if m.get("role") == "system"]
-    # Ảnh khách gửi đi theo khuôn OpenAI trong Naota; Anthropic có khuôn riêng, đổi ở đây.
+    # Ảnh khách gửi đi theo khuôn OpenAI trong Vanhanh; Anthropic có khuôn riêng, đổi ở đây.
     conv = [{"role": m["role"], "content": vision_input.to_anthropic(m.get("content", ""))}
             for m in messages if m.get("role") in ("user", "assistant")]
     headers = anthropic_headers(api_key, compat)
@@ -1556,7 +1556,7 @@ async def single_tool_plan(provider, api_key, model, messages, reasoning, tool_s
     url, actual_model = endpoints[provider]
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     if provider == "openrouter":
-        headers.update({"HTTP-Referer": "http://localhost:7777", "X-Title": "NAOTA"})
+        headers.update({"HTTP-Referer": "http://localhost:7777", "X-Title": "VANHANH"})
     payload = {
         "model": actual_model, "messages": list(messages), "tools": [tool_spec],
         "tool_choice": {"type": "function", "function": {"name": fn}},
@@ -1615,7 +1615,7 @@ async def _openrouter_stream_once(api_key, model, messages, reasoning="off", fas
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         "HTTP-Referer": "http://localhost:7777",
-        "X-Title": "NAOTA",
+        "X-Title": "VANHANH",
     }
     if _is_claude_model(model):
         messages = _or_mark_system(messages)   # cache system ~26k cho model Claude qua OpenRouter
@@ -1783,7 +1783,7 @@ async def _openai_responses_stream_once(access_token, account_id, model, message
         "session_id": str(uuid.uuid4()),
         "Content-Type": "application/json",
         "Accept": "text/event-stream",
-        "User-Agent": "naota/0.3 (codex)",
+        "User-Agent": "vanhanh/0.3 (codex)",
     }
     if not (account_id or ""):
         headers.pop("chatgpt-account-id", None)
@@ -1851,7 +1851,7 @@ async def _openai_responses_stream_once(access_token, account_id, model, message
 
 
 # ============================================================
-# MCP đa-model - vòng tool-calling để model API/OAuth dùng MCP của Naota (qua mcp_client)
+# MCP đa-model - vòng tool-calling để model API/OAuth dùng MCP của Vanhanh (qua mcp_client)
 # ============================================================
 def _clip_tool_result(result, max_chars: int = 0, head_ratio: float = 0.6, ten: str = "") -> str:
     """Cắt kết quả tool quá dài kiểu head+tail KÈM marker, thay cho hard-cut `[:max]`.
@@ -1937,7 +1937,7 @@ def _direct_schedule_cancel_request(messages):
 
     # Các tiền tố hội thoại/phép lịch sự thường gặp trước động từ chính.
     lead = (
-        r"^\s*(?:(?:naota|em|bạn|ban|ơi|oi|hãy|hay|please)\b[\s,;:!\-]*"
+        r"^\s*(?:(?:vanhanh|em|bạn|ban|ơi|oi|hãy|hay|please)\b[\s,;:!\-]*"
         r"|(?:vui\s+lòng|vui\s+long|làm\s+ơn|lam\s+on)\b[\s,;:!\-]*"
         r"|(?:giúp|giup|nhờ|nho)\s*(?:anh|em|tôi|toi|mình|minh)?\b[\s,;:!\-]*"
         r"|cho\s+(?:anh|em|tôi|toi|mình|minh)\b[\s,;:!\-]*"
@@ -1977,7 +1977,7 @@ def _tool_requirement(messages, mcp_tools):
             "cron", "nhac", "nhac hen", "nhac thuoc", "lich thuoc", "lich nhac", "uong thuoc",
             "viec dinh ky", "morning briefing", "reminder",
         ))
-        if schedule_action and schedule and "naota_schedule" in names:
+        if schedule_action and schedule and "vanhanh_schedule" in names:
             # Phân loại theo ý định đã siết chặt thay vì chỉ dựa vào việc câu có chữ "lịch/nhắc".
             # Nhờ vậy câu bàn về "đặt lịch tư vấn 1-1 có ổn không?" không bị ép function-call.
             if (
@@ -1985,7 +1985,7 @@ def _tool_requirement(messages, mcp_tools):
                 or _schedule_create_request(messages)
                 or _schedule_cancel_request(messages)
             ):
-                return "naota_schedule"
+                return "vanhanh_schedule"
 
     live_source = any(x in q for x in (
         "google", "gmail", "drive", "calendar", "keep", "task", "mcp", "pos",
@@ -2024,7 +2024,7 @@ def _schedule_read_request(messages):
 def _schedule_create_request(messages):
     """Chỉ nhận lệnh TẠO reminder/cron trực tiếp, không nhận câu đang bàn về khái niệm "đặt lịch".
 
-    ``naota_schedule`` là lịch tự động nội bộ của Naota, khác booking/cuộc hẹn/Calendar. Model có
+    ``vanhanh_schedule`` là lịch tự động nội bộ của Vanhanh, khác booking/cuộc hẹn/Calendar. Model có
     thể chủ động function-call ngay cả khi gateway không ép tool, nên điều kiện này còn được dùng
     làm cổng chặn trước mọi lần thực thi tool.
     """
@@ -2047,7 +2047,7 @@ def _schedule_create_request(messages):
 
     # Chỉ chấp nhận động từ mệnh lệnh ở đầu câu, sau vài tiền tố lịch sự thường gặp.
     lead = (
-        r"^\s*(?:(?:naota|em|ban|oi|hay|please)\b[\s,;:!\-]*"
+        r"^\s*(?:(?:vanhanh|em|ban|oi|hay|please)\b[\s,;:!\-]*"
         r"|(?:vui\s+long|lam\s+on)\b[\s,;:!\-]*"
         r"|(?:giup|nho)\s*(?:anh|em|toi|minh)?\b[\s,;:!\-]*"
         r"|cho\s+(?:anh|em|toi|minh)\b[\s,;:!\-]*"
@@ -2076,7 +2076,7 @@ def _schedule_create_request(messages):
 
 
 def _schedule_cancel_request(messages):
-    """Nhận diện yêu cầu huỷ/xoá lịch, không nhầm với câu chỉ hỏi hoặc lịch ngoài Naota."""
+    """Nhận diện yêu cầu huỷ/xoá lịch, không nhầm với câu chỉ hỏi hoặc lịch ngoài Vanhanh."""
     last, command = _direct_schedule_cancel_request(messages)
     if last is None or command is None:
         return False
@@ -2087,7 +2087,7 @@ def _schedule_cancel_request(messages):
     )) or bool(re.search(r"\bhen\b", q))
     # Người dùng thường nói gọn "huỷ lịch Làm việc tại cafe", không nhắc lại chữ cron/reminder.
     # Trước đây câu này lọt khỏi gateway, model tự đoán DELETE/JSON rồi có thể sửa thẳng
-    # reminders.json. Chỉ nhận chữ "lịch" độc lập và tránh lịch ngoài Naota (Google Calendar,
+    # reminders.json. Chỉ nhận chữ "lịch" độc lập và tránh lịch ngoài Vanhanh (Google Calendar,
     # cuộc họp/sự kiện) để không cướp yêu cầu của tool Calendar.
     plain_schedule = bool(re.search(r"\blich\b", q))
     external_calendar = any(x in q for x in (
@@ -2098,7 +2098,7 @@ def _schedule_cancel_request(messages):
 
 def _schedule_tool_allowed(messages, name, args):
     """Rào cuối: model không được tự ý đọc/sửa lịch khi user chỉ nhắc tới chữ "lịch"."""
-    if name != "naota_schedule":
+    if name != "vanhanh_schedule":
         return True
     op = str((args or {}).get("op") or "").strip().lower()
     if op == "list":
@@ -2117,13 +2117,13 @@ def _schedule_tool_allowed(messages, name, args):
 def _schedule_tool_blocked_result():
     return (
         "BỊ CHẶN: user chỉ đang hỏi hoặc thảo luận về việc đặt lịch, không yêu cầu đọc hay thay đổi "
-        "lịch tự động của Naota. Hãy trả lời trực tiếp câu hỏi; không liệt kê cron/reminder và không "
+        "lịch tự động của Vanhanh. Hãy trả lời trực tiếp câu hỏi; không liệt kê cron/reminder và không "
         "khẳng định đã tạo, sửa hoặc huỷ lịch."
     )
 
 
 def _schedule_candidates(result):
-    """Đọc các dòng ``- [id] tên - ...`` do naota_schedule(op=list) trả về."""
+    """Đọc các dòng ``- [id] tên - ...`` do vanhanh_schedule(op=list) trả về."""
     out = []
     for line in str(result or "").splitlines():
         match = re.match(r"^\s*-\s*\[([^\]]+)\]\s*(.+?)\s*$", line)
@@ -2187,23 +2187,23 @@ async def schedule_cancel_gateway(messages, mcp_tools, mcp_route):
     if not _schedule_cancel_request(messages):
         return None
     names = {t.get("fn") for t in (mcp_tools or [])}
-    if "naota_schedule" not in names:
+    if "vanhanh_schedule" not in names:
         return {
             "handled": False,
-            "error": "naota_schedule không có trong MCP của phiên",
+            "error": "vanhanh_schedule không có trong MCP của phiên",
             "calls": [],
         }
     import mcp_client
-    listed = await mcp_client.call_route(mcp_route, "naota_schedule", {"op": "list"})
+    listed = await mcp_client.call_route(mcp_route, "vanhanh_schedule", {"op": "list"})
     listed = _clip_tool_result(listed)
     if listed.startswith("ERROR:"):
-        return {"handled": False, "error": listed, "calls": ["naota_schedule:list"]}
+        return {"handled": False, "error": listed, "calls": ["vanhanh_schedule:list"]}
     if not _schedule_candidates(listed):
         return {
             "handled": False,
             "not_found": True,
             "list_result": listed,
-            "calls": ["naota_schedule:list"],
+            "calls": ["vanhanh_schedule:list"],
         }
     item_id = _resolve_schedule_cancel_id(messages, listed)
     if not item_id:
@@ -2211,10 +2211,10 @@ async def schedule_cancel_gateway(messages, mcp_tools, mcp_route):
             "handled": False,
             "needs_choice": True,
             "list_result": listed,
-            "calls": ["naota_schedule:list"],
+            "calls": ["vanhanh_schedule:list"],
         }
     cancelled = await mcp_client.call_route(
-        mcp_route, "naota_schedule", {"op": "cancel", "id": item_id}
+        mcp_route, "vanhanh_schedule", {"op": "cancel", "id": item_id}
     )
     cancelled = _clip_tool_result(cancelled)
     return {
@@ -2222,7 +2222,7 @@ async def schedule_cancel_gateway(messages, mcp_tools, mcp_route):
         "error": cancelled if cancelled.startswith("ERROR:") else "",
         "result": cancelled,
         "id": item_id,
-        "calls": ["naota_schedule:list", "naota_schedule:cancel"],
+        "calls": ["vanhanh_schedule:list", "vanhanh_schedule:cancel"],
     }
 
 
@@ -2238,7 +2238,7 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
         answers 400 when a thinking request with tools is missing it;
       - a turn that must force a tool runs with thinking off from the start, because a forced
         tool_choice is also a 400 in thinking mode;
-      - a 400 about thinking itself (Naota history never stored `reasoning_content` for older
+      - a 400 about thinking itself (Vanhanh history never stored `reasoning_content` for older
         turns) drops to thinking off for the rest of the turn instead of failing it."""
     import mcp_client
     tools = _mcp_to_openai_tools(mcp_tools)
@@ -2268,7 +2268,7 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
             msgs.append({
                 "role": "system",
                 "content": (
-                    "Naota gateway đã thao tác lịch bằng dữ liệu thật. Xác nhận ngắn gọn kết quả sau, "
+                    "Vanhanh gateway đã thao tác lịch bằng dữ liệu thật. Xác nhận ngắn gọn kết quả sau, "
                     "không nói rằng thiếu tool:\n\n" + cancel_gate.get("result", "")
                 ),
             })
@@ -2277,7 +2277,7 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
             msgs.append({
                 "role": "system",
                 "content": (
-                    "Naota đã đọc kho lịch thật và không có lịch đang chạy để xoá. "
+                    "Vanhanh đã đọc kho lịch thật và không có lịch đang chạy để xoá. "
                     "Báo đúng kết quả này, không nói thiếu tool:\n\n"
                     + cancel_gate.get("list_result", "")
                 ),
@@ -2287,7 +2287,7 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
             msgs.append({
                 "role": "system",
                 "content": (
-                    "Naota đã đọc danh sách lịch thật nhưng có nhiều mục và chưa đủ chắc chắn để xoá. "
+                    "Vanhanh đã đọc danh sách lịch thật nhưng có nhiều mục và chưa đủ chắc chắn để xoá. "
                     "Hãy hỏi user chọn đúng tên hoặc ID trong danh sách dưới đây; KHÔNG nói thiếu tool "
                     "và KHÔNG xác nhận đã xoá:\n\n" + cancel_gate.get("list_result", "")
                 ),
@@ -2296,9 +2296,9 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
     # Đây là đường quan trọng nhất của cron/lịch thuốc: op=list là read-only và args xác định hoàn
     # toàn, nên server tự dispatch trước. OpenRouter/free dù route tới model không có function calling
     # vẫn nhận dữ liệu thật để tóm tắt, thay vì rơi về memory hoặc nói "không có tool".
-    if requirement == "naota_schedule" and _schedule_read_request(messages):
-        yield {"type": "tool_call", "name": "naota_schedule"}
-        result = await mcp_client.call_route(mcp_route, "naota_schedule", {"op": "list"})
+    if requirement == "vanhanh_schedule" and _schedule_read_request(messages):
+        yield {"type": "tool_call", "name": "vanhanh_schedule"}
+        result = await mcp_client.call_route(mcp_route, "vanhanh_schedule", {"op": "list"})
         clipped = _clip_tool_result(result)
         if clipped.startswith("ERROR:"):
             yield {"type": "error", "content": clipped}
@@ -2306,7 +2306,7 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
         msgs.append({
             "role": "system",
             "content": (
-                "DỮ LIỆU THẬT vừa đọc bằng naota_schedule(op=list). Trả lời dựa trên dữ liệu này, "
+                "DỮ LIỆU THẬT vừa đọc bằng vanhanh_schedule(op=list). Trả lời dựa trên dữ liệu này, "
                 "không dùng memory để thay thế:\n\n" + clipped
             ),
         })
@@ -2372,7 +2372,7 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
                     for _m in msgs:
                         if isinstance(_m, dict):
                             _m.pop("reasoning_content", None)
-                    yield {"type": "tool_call", "name": "naota_thinking_off",
+                    yield {"type": "tool_call", "name": "vanhanh_thinking_off",
                            "content": _c(f"⚙ {label} không nhận chế độ suy nghĩ cho cuộc trò chuyện này, trả lời ở chế độ thường...",
                                          f"⚙ {label} refused thinking mode for this conversation, answering in normal mode...")}
                     continue
@@ -2390,7 +2390,7 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
                         tools = []          # nấc 2: bỏ hẳn tool, cứu lấy câu trả lời
                         # Còn ép gọi một tool vừa bị gỡ thì request sau lại 400 ngay.
                         requirement_pending = False
-                        yield {"type": "tool_call", "name": "naota_no_tools",
+                        yield {"type": "tool_call", "name": "vanhanh_no_tools",
                                "content": _c("⚙ Model vấp cú pháp gọi công cụ, trả lời không dùng công cụ...",
                                              "⚙ The model fumbled the tool-call syntax, answering without tools...")}
                     continue
@@ -2404,7 +2404,7 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
                             and _fact.retry_after <= _WINDOW_WAIT_MAX
                             and not waited_for_window):
                         waited_for_window = True
-                        yield {"type": "tool_call", "name": "naota_wait_quota",
+                        yield {"type": "tool_call", "name": "vanhanh_wait_quota",
                                "content": _c(f"⚙ Hạn mức phút này đã đầy, chờ "
                                              f"{_fact.retry_after:.0f}s rồi thử lại...",
                                              f"⚙ This minute's rate limit is full, waiting "
@@ -2476,9 +2476,9 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
             yield {
                 "type": "error",
                 "content": _c(
-                    f"{label} model '{model}' đã bỏ qua tool bắt buộc nên Naota không dùng câu trả lời "
+                    f"{label} model '{model}' đã bỏ qua tool bắt buộc nên Vanhanh không dùng câu trả lời "
                     "có nguy cơ bịa dữ liệu. Hãy chọn model có hỗ trợ tool/function calling.",
-                    f"{label} model '{model}' skipped a required tool, so Naota did not use an answer "
+                    f"{label} model '{model}' skipped a required tool, so Vanhanh did not use an answer "
                     "that risks made-up data. Pick a model that supports tool/function calling."
                 ),
             }
@@ -2503,15 +2503,15 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
 # trong khi ca kẹt thật thì đặc điểm không phải "nhiều vòng" mà là "lặp Y HỆT": gọi lại
 # đúng tool với đúng tham số hết vòng này sang vòng khác. Nên phanh chính là
 # _LapGuard (soi đúng bệnh, cắt sớm hơn nhiều so với 8), còn trần đếm số chỉ là lưới đỡ
-# xa: mặc định 30, kẹp 1-120, chỉnh bằng NAOTA_MAX_TOOL_ROUNDS.
+# xa: mặc định 30, kẹp 1-120, chỉnh bằng VANHANH_MAX_TOOL_ROUNDS.
 #
 # Phiên Coding có trần RIÊNG, mặc định 150, kẹp 1-500, chỉnh bằng
-# NAOTA_MAX_TOOL_ROUNDS_CODING: sửa một lỗi là đọc, sửa, chạy test, sửa lại, dễ quá 30 vòng mà
+# VANHANH_MAX_TOOL_ROUNDS_CODING: sửa một lỗi là đọc, sửa, chạy test, sửa lại, dễ quá 30 vòng mà
 # không hề kẹt. main bật cờ `_PHIEN_CODING` cho đúng lượt của phiên Coding (`chay_trong_phien_coding`).
-_PHIEN_CODING: contextvars.ContextVar = contextvars.ContextVar("naota_phien_coding", default=False)
+_PHIEN_CODING: contextvars.ContextVar = contextvars.ContextVar("vanhanh_phien_coding", default=False)
 CAT_KET_QUA_CODING = 60_000
-CAT_RONG = frozenset({"naota_read_file", "naota_terminal", "naota_process", "naota_search_files",
-                      "naota_edit_file", "naota_web_fetch", "naota_web_search", "naota_run_command"})
+CAT_RONG = frozenset({"vanhanh_read_file", "vanhanh_terminal", "vanhanh_process", "vanhanh_search_files",
+                      "vanhanh_edit_file", "vanhanh_web_fetch", "vanhanh_web_search", "vanhanh_run_command"})
 # Còn ngần này vòng thì nhắc model chốt việc, để lượt kết thúc bằng một bản tóm tắt chứ không bị
 # cắt ngang giữa chừng.
 NHAC_KHI_CON = 10
@@ -2520,12 +2520,12 @@ NHAC_KHI_CON = 10
 def _max_tool_rounds() -> int:
     if _PHIEN_CODING.get():
         try:
-            n = int(os.getenv("NAOTA_MAX_TOOL_ROUNDS_CODING", "150"))
+            n = int(os.getenv("VANHANH_MAX_TOOL_ROUNDS_CODING", "150"))
         except (TypeError, ValueError):
             return 150
         return max(1, min(n, 500))
     try:
-        n = int(os.getenv("NAOTA_MAX_TOOL_ROUNDS", "30"))
+        n = int(os.getenv("VANHANH_MAX_TOOL_ROUNDS", "30"))
     except (TypeError, ValueError):
         return 30
     return max(1, min(n, 120))   # kẹp: 0 thì không tool nào chạy, quá to thì mất ý nghĩa của trần
@@ -2535,7 +2535,7 @@ def _nhac_sap_het(vong: int, tong: int) -> str:
     """Câu nối vào kết quả tool khi lượt chỉ còn NHAC_KHI_CON vòng. "" ở mọi vòng khác."""
     if tong <= NHAC_KHI_CON * 2 or tong - vong - 1 != NHAC_KHI_CON:
         return ""
-    return (f"\n\n⚠ [Naota] Lượt này chỉ còn {NHAC_KHI_CON} vòng gọi tool. Chốt việc: làm nốt bước "
+    return (f"\n\n⚠ [Vanhanh] Lượt này chỉ còn {NHAC_KHI_CON} vòng gọi tool. Chốt việc: làm nốt bước "
             "quan trọng nhất, rồi trả lời người dùng bằng bản tóm tắt đã làm gì, còn gì dở, và bước "
             "tiếp theo nên là gì.")
 
@@ -2563,14 +2563,14 @@ def _het_vong_msg() -> str:
     """Chạm trần phải nói ĐƯỢC VIỆC CẦN LÀM. Bản cũ chỉ báo con số rồi im, người dùng không
     biết mình vừa mất gì hay chỉnh ở đâu."""
     n = _max_tool_rounds()
-    bien, tran = (("NAOTA_MAX_TOOL_ROUNDS_CODING", 500) if _PHIEN_CODING.get()
-                  else ("NAOTA_MAX_TOOL_ROUNDS", 120))
+    bien, tran = (("VANHANH_MAX_TOOL_ROUNDS_CODING", 500) if _PHIEN_CODING.get()
+                  else ("VANHANH_MAX_TOOL_ROUNDS", 120))
     return _c(f"\n\n⚠ Đã chạy hết {n} vòng gọi tool cho lượt này nên phải dừng, câu trả lời ở "
               f"trên có thể còn dở. Cách xử lý: chia nhỏ yêu cầu thành từng bước, hoặc nâng trần "
-              f"bằng biến môi trường {bien} (tối đa {tran}) rồi khởi động lại Naota.",
+              f"bằng biến môi trường {bien} (tối đa {tran}) rồi khởi động lại Vanhanh.",
               f"\n\n⚠ All {n} tool-call rounds for this turn were used, so it had to stop; the answer "
               f"above may be incomplete. To fix: split the request into steps, or raise the limit "
-              f"with the environment variable {bien} (up to {tran}) and restart Naota.")
+              f"with the environment variable {bien} (up to {tran}) and restart Vanhanh.")
 
 
 class _LapGuard:
@@ -2602,7 +2602,7 @@ class _LapGuard:
     def loi_nhac(self) -> str:
         if self.lap != self.NHAC:
             return ""
-        return (f"\n\n⚠ [Naota] Bạn vừa gọi đúng tool này với đúng tham số này {self.NHAC} vòng "
+        return (f"\n\n⚠ [Vanhanh] Bạn vừa gọi đúng tool này với đúng tham số này {self.NHAC} vòng "
                 "liên tiếp - kết quả sẽ không đổi. ĐỪNG gọi lại nữa: trả lời ngay bằng dữ liệu "
                 "đã có, hoặc đổi tham số nếu thật sự cần dữ liệu khác.")
 
@@ -2612,10 +2612,10 @@ class _LapGuard:
 
 def _loi_ket_vong() -> str:
     return _c(f"\n\n⚠ Model gọi lại cùng tool với cùng tham số {_LapGuard.DUNG} vòng liên tiếp "
-              "(kẹt vòng lặp) nên Naota dừng lượt này để không đốt token vô ích. Câu trả lời ở "
+              "(kẹt vòng lặp) nên Vanhanh dừng lượt này để không đốt token vô ích. Câu trả lời ở "
               "trên có thể còn dở - thử hỏi lại, nói rõ hơn yêu cầu, hoặc đổi model ở trang Models.",
               f"\n\n⚠ The model called the same tool with the same arguments {_LapGuard.DUNG} rounds in a row "
-              "(stuck in a loop), so Naota stopped this turn to avoid burning tokens. The answer "
+              "(stuck in a loop), so Vanhanh stopped this turn to avoid burning tokens. The answer "
               "above may be incomplete - ask again, state the request more clearly, or switch model on the Models page.")
 
 
@@ -2632,7 +2632,7 @@ async def openai_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, m
 
 async def groq_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp_route):
     """Groq (endpoint OpenAI-compat) + vòng tool-calling MCP - Groq cũng là agent đủ đồ nghề
-    của Naota y như OpenAI/Gemini. Non-stream từng vòng (dùng _cc_tool_loop chung)."""
+    của Vanhanh y như OpenAI/Gemini. Non-stream từng vòng (dùng _cc_tool_loop chung)."""
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     extra = {}
     if reasoning not in (None, "", "off") and _groq_is_reasoning(model):
@@ -2643,7 +2643,7 @@ async def groq_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp
 
 
 async def deepseek_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp_route):
-    """DeepSeek + vòng tool-calling MCP - đủ đồ nghề của Naota như các provider API khác.
+    """DeepSeek + vòng tool-calling MCP - đủ đồ nghề của Vanhanh như các provider API khác.
 
     Thinking is on by default at DeepSeek, so "off" sends an explicit switch. When the user
     asks for thinking, `_cc_tool_loop` gets `thinking_fallback` and handles DeepSeek's two
@@ -2659,7 +2659,7 @@ async def deepseek_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools,
 
 
 async def ollama_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp_route):
-    """Ollama Cloud + vòng tool-calling MCP - cũng là agent đủ đồ nghề của Naota y như các
+    """Ollama Cloud + vòng tool-calling MCP - cũng là agent đủ đồ nghề của Vanhanh y như các
     provider API khác, miễn model biết gọi tool (gpt-oss, qwen3-coder, deepseek... đều biết)."""
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     yield {"type": "meta", "model": model}
@@ -2670,7 +2670,7 @@ async def ollama_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, m
 
 async def gemini_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp_route):
     """Google Gemini (endpoint OpenAI-compat) + vòng tool-calling MCP - Gemini cũng thành
-    agent dùng MCP của Naota, y như OpenAI. Non-stream từng vòng (dùng _cc_tool_loop chung)."""
+    agent dùng MCP của Vanhanh, y như OpenAI. Non-stream từng vòng (dùng _cc_tool_loop chung)."""
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     extra = {}
     if reasoning not in (None, "", "off") and _gemini_is_reasoning(model):
@@ -2683,7 +2683,7 @@ async def gemini_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, m
 
 async def openrouter_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp_route):
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json",
-               "HTTP-Referer": "http://localhost:7777", "X-Title": "NAOTA"}
+               "HTTP-Referer": "http://localhost:7777", "X-Title": "VANHANH"}
     extra = {}
     if reasoning not in (None, "", "off"):
         extra["reasoning"] = {"effort": api_effort(reasoning)}
@@ -2713,7 +2713,7 @@ async def responses_with_mcp(access_token, account_id, model, messages, reasonin
         "Authorization": f"Bearer {access_token}", "chatgpt-account-id": account_id or "",
         "OpenAI-Beta": "responses=experimental", "originator": "codex_cli_rs",
         "session_id": str(uuid.uuid4()), "Content-Type": "application/json", "Accept": "text/event-stream",
-        "User-Agent": "naota/0.3 (codex)",
+        "User-Agent": "vanhanh/0.3 (codex)",
     }
     # Không có account_id thì BỎ HẲN header, đừng gửi chuỗi rỗng. `openai_responses_stream` -
     # đường không-tool đang chạy thật của gói này - làm đúng vậy, và hàm này thiếu đúng dòng đó.

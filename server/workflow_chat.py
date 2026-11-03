@@ -24,7 +24,7 @@ import re
 import unicodedata
 from typing import Any, Awaitable, Callable, Dict, Optional, Tuple
 
-import naota_core
+import vanhanh_core
 import localefmt
 
 TRAN_KET_QUA_TRUOC = 8000
@@ -33,8 +33,8 @@ _LOAI = ("agent", "workflow")
 
 def persona_cua_phien(row: Optional[dict]) -> Optional[Tuple[str, str]]:
     ch = str((row or {}).get("channel") or "")
-    # Naota Core is not a persona: its chat is a normal Naota turn plus a role block.
-    if naota_core.is_core_channel(ch):
+    # Vanhanh Core is not a persona: its chat is a normal Vanhanh turn plus a role block.
+    if vanhanh_core.is_core_channel(ch):
         return None
     for loai in _LOAI:
         tien_to = loai + ":"

@@ -2,7 +2,7 @@
 
     python tests/run.py anh_dan_vao_chat      (KHÔNG mạng)
 
-Lỗi đã gặp: gửi ảnh vào Naota để đọc thì ảnh không được lưu lại ở đoạn chat, và khi dán ảnh vào cũng không phóng to lên được.
+Lỗi đã gặp: gửi ảnh vào Vanhanh để đọc thì ảnh không được lưu lại ở đoạn chat, và khi dán ảnh vào cũng không phóng to lên được.
 
 Bong bóng tin của người dùng hiện ảnh bằng `URL.createObjectURL(file)` - một URL chỉ sống
 trong tab đang mở, mà `clearAttachments()` lại thu hồi nó NGAY sau khi gửi. Thêm nữa lịch sử
@@ -18,7 +18,7 @@ from _paths import ROOT, SERVER  # noqa: E402,F401
 import os
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-anhchat-test-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-anhchat-test-")
 
 import main  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402

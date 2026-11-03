@@ -21,8 +21,8 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-goal-")
-TEMP = Path(tempfile.mkdtemp(prefix="naota-team-goal-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-goal-")
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-team-goal-w-"))
 
 import sessions  # noqa: E402
 import task_store  # noqa: E402
@@ -40,7 +40,7 @@ def check(name, cond, extra=""):
 
 
 def directive(**op):
-    return f"\n<!-- NAOTA_TEAM: {json.dumps(op, ensure_ascii=False)} -->"
+    return f"\n<!-- VANHANH_TEAM: {json.dumps(op, ensure_ascii=False)} -->"
 
 
 class Admin:

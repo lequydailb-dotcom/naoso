@@ -1,12 +1,12 @@
-"""Antigravity CLI (`agy`) phải tự lên bản mới, để model mới tự hiện trong Naota.
+"""Antigravity CLI (`agy`) phải tự lên bản mới, để model mới tự hiện trong Vanhanh.
 
     python tests/run.py agy_tu_cap_nhat
 
-Báo lỗi: Gemini 4 Argon ra rồi mà Naota không có. Danh sách model của Antigravity lấy
+Báo lỗi: Gemini 4 Argon ra rồi mà Vanhanh không có. Danh sách model của Antigravity lấy
 thẳng từ `agy models`, nên thứ kẹt là chính binary: bản Docker cài `agy` một lần vào ổ dữ liệu lúc
 khởi động rồi không bao giờ cập nhật, bản cài trên máy thì chỉ tự cập nhật khi người ta mở `agy` gõ
 tay. Cùng bệnh Claude Code đã chữa ở `claude_update`, khác một điều: đường này chạy cả trong Docker
-vì `agy` nằm ở thư mục của chính user chạy Naota.
+vì `agy` nằm ở thư mục của chính user chạy Vanhanh.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
 import asyncio
@@ -16,7 +16,7 @@ import sys
 import tempfile
 import time
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-agy-upd-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-agy-upd-")
 
 import agy_update as au  # noqa: E402
 import antigravity_cli  # noqa: E402
@@ -65,7 +65,7 @@ try:
     check("vừa thử xong thì chưa tới hạn chạy lại", not au.den_han())
     check("qua 24 giờ thì tới hạn", au.den_han(time.time() + au.CHU_KY + 1))
 
-    # 2. Docker vẫn cập nhật (khác Claude Code): agy nằm ở thư mục của user chạy Naota
+    # 2. Docker vẫn cập nhật (khác Claude Code): agy nằm ở thư mục của user chạy Vanhanh
     deploy_info.deploy_mode = lambda: "docker"
     claude_update._chay, _t = _gia_chay("1.3.5", "1.4.0")
     _kq = au.cap_nhat("tu_dong")
@@ -102,9 +102,9 @@ try:
     check("không đổi bản thì giữ cache", "antigravity-cli" in main._PROV_MODELS_CACHE)
 
     # 7. Tắt được, và có vòng chạy lúc khởi động
-    os.environ["NAOTA_AGY_AUTO_UPDATE"] = "0"
-    check("NAOTA_AGY_AUTO_UPDATE=0 thì tắt", not au.bat())
-    os.environ.pop("NAOTA_AGY_AUTO_UPDATE", None)
+    os.environ["VANHANH_AGY_AUTO_UPDATE"] = "0"
+    check("VANHANH_AGY_AUTO_UPDATE=0 thì tắt", not au.bat())
+    os.environ.pop("VANHANH_AGY_AUTO_UPDATE", None)
     check("mặc định bật", au.bat())
     src = (SERVER / "main.py").read_text(encoding="utf-8")
     check("server có vòng tự cập nhật agy lúc khởi động, không chặn Docker",

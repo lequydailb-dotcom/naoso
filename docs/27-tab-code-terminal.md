@@ -2,7 +2,7 @@
 
 ***Tiếng Việt** · [English](en/27-code-terminal.md)*
 
-**Terminal** nằm trong nhóm **Năng lực** trên thanh điều hướng: một dòng lệnh thật, chạy trên đúng máy đang chạy Naota, mở ngay trong trình duyệt. Không cần mở SSH ở cửa sổ khác nữa. (nhóm Code riêng đã bỏ, vì mọi khung chat đều gắn được thư mục và viết code được.)
+**Terminal** nằm trong nhóm **Năng lực** trên thanh điều hướng: một dòng lệnh thật, chạy trên đúng máy đang chạy Vanhanh, mở ngay trong trình duyệt. Không cần mở SSH ở cửa sổ khác nữa. (nhóm Code riêng đã bỏ, vì mọi khung chat đều gắn được thư mục và viết code được.)
 
 ## Tính năng này là gì
 
@@ -13,15 +13,15 @@ Terminal ở đây là **pseudo-terminal thật của hệ điều hành**, khô
 - Có màu, có gợi ý Tab, có lịch sử lệnh (mũi tên lên/xuống), có `Ctrl+C` giết đúng lệnh đang chạy chứ không giết cả phiên.
 - Đổi cỡ cửa sổ thì shell biết ngay, nên chữ không bị gãy dòng lung tung.
 
-Muốn viết code thì không cần trang riêng: gắn một thư mục vào bất kỳ khung chat nào là Naota đọc, sửa và chạy được trong thư mục đó.
+Muốn viết code thì không cần trang riêng: gắn một thư mục vào bất kỳ khung chat nào là Vanhanh đọc, sửa và chạy được trong thư mục đó.
 
-## Mở ở đâu trong Naota
+## Mở ở đâu trong Vanhanh
 
-1. Mở dashboard Naota (mặc định cổng 7777).
+1. Mở dashboard Vanhanh (mặc định cổng 7777).
 2. Rail điều hướng bên trái, mở nhóm **Code**, bấm mục **Terminal**.
 3. Terminal tự mở và tự nối. Bấm vào khung đen rồi gõ như terminal bình thường.
 
-Shell mở sẵn ở **thư mục HOME của user đang chạy Naota** - đúng như một terminal bình thường của máy, hợp nhất cho việc chính của tab này: cài và đăng nhập CLI (`agy`, `codex login`...). Cần vào brain thì gõ `cd "$NAOTA_BRAIN"` - biến này luôn trỏ về gốc brain đang chọn.
+Shell mở sẵn ở **thư mục HOME của user đang chạy Vanhanh** - đúng như một terminal bình thường của máy, hợp nhất cho việc chính của tab này: cài và đăng nhập CLI (`agy`, `codex login`...). Cần vào brain thì gõ `cd "$VANHANH_BRAIN"` - biến này luôn trỏ về gốc brain đang chọn.
 
 ## Nhiều tab, mỗi tab một shell riêng
 
@@ -29,7 +29,7 @@ Ngay trên khung terminal có một dải tab, giống tab của trình duyệt:
 
 - Bấm nút **+** để mở thêm tab - mỗi tab là một shell hoàn toàn riêng, việc tab này không đụng tab kia. Tiện khi vừa `tail -f` log ở một tab, vừa gõ lệnh ở tab khác.
 - Bấm vào tên tab để chuyển qua lại. Tab đang khuất vẫn chạy bình thường: lệnh không dừng, output không mất.
-- Bấm dấu **x** trên tab là đóng hẳn phiên đó (giết shell). Đóng tab cuối cùng thì Naota tự mở một tab sạch thay vào.
+- Bấm dấu **x** trên tab là đóng hẳn phiên đó (giết shell). Đóng tab cuối cùng thì Vanhanh tự mở một tab sạch thay vào.
 - Tối đa **4 tab** (đúng trần số phiên của server, tính chung mọi cửa sổ trình duyệt). Chạm trần thì nút **+** tự khoá.
 - F5 hay đổi trang rồi quay lại: nguyên dàn tab được mở lại, tab nào đang xem vẫn đang xem.
 
@@ -37,7 +37,7 @@ Ngay trên khung terminal có một dải tab, giống tab của trình duyệt:
 
 | Thứ | Ý nghĩa |
 |---|---|
-| Chấm tròn + chữ trạng thái | Của tab đang xem. Xanh = đang chạy. Đỏ = mất kết nối (Naota tự nối lại). Xám = shell đã thoát. |
+| Chấm tròn + chữ trạng thái | Của tab đang xem. Xanh = đang chạy. Đỏ = mất kết nối (Vanhanh tự nối lại). Xám = shell đã thoát. |
 | Đường dẫn | Thư mục shell đang đứng lúc mở. Màn hình hẹp thì ẩn đi để nhường chỗ cho nút. |
 | **Xoá** | Xoá màn hình của tab đang xem, giống lệnh `clear`. |
 | **Khởi động lại** | Đóng hẳn phiên của tab đang xem (giết shell) rồi mở một phiên sạch trong cùng tab. Dùng khi shell treo hoặc muốn bắt đầu lại. |
@@ -47,11 +47,11 @@ Ngay trên khung terminal có một dải tab, giống tab của trình duyệt:
 Đây là điểm quan trọng nhất khi dùng hằng ngày: **đổi trang hay tải lại trang KHÔNG giết shell.**
 
 - Đang `npm install` mà bấm sang trang Trò chuyện: lệnh vẫn chạy - ở MỌI tab, không riêng tab đang xem. Quay lại tab Code là thấy nguyên dàn tab cũ, chạy tới đâu hiện tới đó.
-- Mất mạng, đóng máy, F5: Naota tự nối lại vào đúng các phiên đó.
-- Không ai quay lại trong **30 phút** thì Naota mới đóng phiên để khỏi bỏ quên tiến trình chạy hoài.
+- Mất mạng, đóng máy, F5: Vanhanh tự nối lại vào đúng các phiên đó.
+- Không ai quay lại trong **30 phút** thì Vanhanh mới đóng phiên để khỏi bỏ quên tiến trình chạy hoài.
 - Muốn đóng ngay thì bấm dấu **x** trên tab, bấm **Khởi động lại**, hoặc gõ `exit`.
 
-Mở tối đa **4 phiên** cùng lúc (tính chung mọi cửa sổ trình duyệt). Chạm trần thì Naota báo rõ thay vì im lặng mở thêm.
+Mở tối đa **4 phiên** cùng lúc (tính chung mọi cửa sổ trình duyệt). Chạm trần thì Vanhanh báo rõ thay vì im lặng mở thêm.
 
 ## Chế độ đơn giản trên Windows
 
@@ -67,38 +67,38 @@ Linux, macOS và mọi bản Docker đều chạy chế độ đầy đủ.
 Terminal là chỗ chạy lệnh tuỳ ý trên máy chủ, tức là quyền cao nhất dashboard có thể cấp. Vì thế:
 
 - Chỉ **trình duyệt đã đăng nhập** vào được. Token API (loại `nts_...` dùng cho script và CLI) **không** mở được terminal, kể cả token quyền `full`.
-- Khi Naota chạy public (VPS, Docker) thì bắt buộc đăng nhập, nên terminal cũng được che sau đúng hàng rào đó. Xem [Bảo mật & tài khoản](14-bao-mat-tai-khoan.md).
+- Khi Vanhanh chạy public (VPS, Docker) thì bắt buộc đăng nhập, nên terminal cũng được che sau đúng hàng rào đó. Xem [Bảo mật & tài khoản](14-bao-mat-tai-khoan.md).
 - Shell thừa kế biến môi trường của server, trong đó có các khoá trong `.env`. Đúng như terminal của chủ máy, nhưng nên biết là nó ở đó khi cho người khác mượn màn hình.
-- Muốn tắt hẳn tính năng: đặt `NAOTA_TERMINAL=0` rồi khởi động lại Naota. Vào tab Code sẽ thấy thông báo đã tắt thay vì khung trống.
+- Muốn tắt hẳn tính năng: đặt `VANHANH_TERMINAL=0` rồi khởi động lại Vanhanh. Vào tab Code sẽ thấy thông báo đã tắt thay vì khung trống.
 
 ## Biến môi trường
 
 | Biến | Ý nghĩa | Mặc định |
 |---|---|---|
-| `NAOTA_TERMINAL` | `0`/`off`/`false`/`no` = tắt hẳn terminal | Bật |
-| `NAOTA_TERMINAL_SHELL` | Đường dẫn shell muốn chạy | `$SHELL`, không có thì `bash`/`sh`. Windows: `powershell.exe` rồi `cmd.exe` |
-| `NAOTA_TERMINAL_CWD` | Thư mục shell mở ra | HOME của user chạy Naota |
-| `NAOTA_TERMINAL_REMOTE` | Khai với các CLI rằng người dùng ngồi ở máy khác (`SSH_CONNECTION`), để đăng nhập Google/Anthropic hỏi chỗ dán mã thay vì chờ trình duyệt cùng máy | Tự đoán: bật trên máy chủ không có màn hình (VPS, Docker), tắt trên Windows/macOS chạy thẳng và Linux có màn hình |
+| `VANHANH_TERMINAL` | `0`/`off`/`false`/`no` = tắt hẳn terminal | Bật |
+| `VANHANH_TERMINAL_SHELL` | Đường dẫn shell muốn chạy | `$SHELL`, không có thì `bash`/`sh`. Windows: `powershell.exe` rồi `cmd.exe` |
+| `VANHANH_TERMINAL_CWD` | Thư mục shell mở ra | HOME của user chạy Vanhanh |
+| `VANHANH_TERMINAL_REMOTE` | Khai với các CLI rằng người dùng ngồi ở máy khác (`SSH_CONNECTION`), để đăng nhập Google/Anthropic hỏi chỗ dán mã thay vì chờ trình duyệt cùng máy | Tự đoán: bật trên máy chủ không có màn hình (VPS, Docker), tắt trên Windows/macOS chạy thẳng và Linux có màn hình |
 
 Chi tiết cách đặt biến xem [Cấu hình .env](16-cau-hinh-env.md).
 
 ## Sự cố thường gặp
 
-**Vào mục Terminal thấy "Terminal đang tắt trên máy này".** Máy chủ có `NAOTA_TERMINAL=0`. Bỏ biến đó trong `.env` rồi khởi động lại Naota.
+**Vào mục Terminal thấy "Terminal đang tắt trên máy này".** Máy chủ có `VANHANH_TERMINAL=0`. Bỏ biến đó trong `.env` rồi khởi động lại Vanhanh.
 
-**Báo "Đang mở 4 phiên terminal rồi".** Trần 4 phiên tính chung mọi cửa sổ trình duyệt. Đóng bớt một tab (dấu **x**) ở cửa sổ đang mở nó, hoặc chờ 30 phút để Naota tự dọn phiên không ai xem.
+**Báo "Đang mở 4 phiên terminal rồi".** Trần 4 phiên tính chung mọi cửa sổ trình duyệt. Đóng bớt một tab (dấu **x**) ở cửa sổ đang mở nó, hoặc chờ 30 phút để Vanhanh tự dọn phiên không ai xem.
 
 **Chữ gãy dòng, viền bảng lệch.** Bấm vào khung terminal rồi đổi cỡ cửa sổ trình duyệt một nhát để nó đo lại. Nếu vẫn lệch, gõ `clear`.
 
 **Gõ Tab mà không có gợi ý.** Bạn đang ở chế độ đơn giản (Windows). Đó là giới hạn của hệ điều hành, không phải lỗi cấu hình.
 
-**Shell thoát ngay khi vừa mở.** Xem `NAOTA_TERMINAL_SHELL` có trỏ đúng file thực thi không, và thư mục ở `NAOTA_TERMINAL_CWD` có tồn tại không.
+**Shell thoát ngay khi vừa mở.** Xem `VANHANH_TERMINAL_SHELL` có trỏ đúng file thực thi không, và thư mục ở `VANHANH_TERMINAL_CWD` có tồn tại không.
 
 **Gõ `agy` (Antigravity) ra link rồi đứng im, không có chỗ dán mã.** `agy` nhận mã về qua một cổng loopback trên chính máy chạy nó, mà trình duyệt của bạn lại ở máy khác nên không với tới. Terminal tự khai là phiên từ xa nên `agy` hỏi chỗ dán: đăng nhập Google xong, copy nguyên địa chỉ `http://localhost:...` mà trình duyệt báo không mở được rồi dán vào terminal. Bản `agy` cũ không hỏi thì mở thêm một phiên terminal và chạy `curl "<địa chỉ vừa copy>"`.
 
 ## Liên quan
 
 - [05 - Quản lý tệp tin](05-quan-ly-tep-tin.md) - duyệt và sửa cùng thư mục đó bằng giao diện.
-- [24 - Naota CLI (terminal)](24-cli-terminal.md) - chiều ngược lại: gõ `naota "..."` từ terminal của máy bạn.
+- [24 - Vanhanh CLI (terminal)](24-cli-terminal.md) - chiều ngược lại: gõ `vanhanh "..."` từ terminal của máy bạn.
 - [14 - Bảo mật & tài khoản](14-bao-mat-tai-khoan.md) - hàng rào đăng nhập che Terminal.
 - [16 - Cấu hình .env](16-cau-hinh-env.md) - mọi biến môi trường.

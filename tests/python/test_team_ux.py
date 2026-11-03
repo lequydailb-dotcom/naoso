@@ -12,8 +12,8 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-ux-")
-TEMP = Path(tempfile.mkdtemp(prefix="naota-team-ux-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-ux-")
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-team-ux-w-"))
 
 import sessions  # noqa: E402
 import task_store  # noqa: E402
@@ -94,7 +94,7 @@ job = r.submit(T["team_id"], "Việc nhiều bước", as_job=True, client_msg_i
 
 async def planner(req):
     if req["role"] == "plan":
-        return {"text": 'Chia.\n<!-- NAOTA_TEAM: {"op": "assign", "agent": "minh", "brief": "a"} -->'}
+        return {"text": 'Chia.\n<!-- VANHANH_TEAM: {"op": "assign", "agent": "minh", "brief": "a"} -->'}
     return {"text": "Bài"}
 r.engine_for = lambda team, key, role: ("fake", "fake", planner)
 run(r.dispatch_once())
@@ -113,8 +113,8 @@ tm.set_caps(T["team_id"], {"task_steps": 2})
 
 async def two_assign(req):
     if req["role"] == "plan":
-        return {"text": 'Chia.\n<!-- NAOTA_TEAM: {"op": "assign", "agent": "minh", "brief": "a"} -->\n'
-                        '<!-- NAOTA_TEAM: {"op": "assign", "agent": "lan", "brief": "b"} -->'}
+        return {"text": 'Chia.\n<!-- VANHANH_TEAM: {"op": "assign", "agent": "minh", "brief": "a"} -->\n'
+                        '<!-- VANHANH_TEAM: {"op": "assign", "agent": "lan", "brief": "b"} -->'}
     return {"text": "Phần " + req["role"]}
 r.engine_for = lambda team, key, role: ("fake", "fake", two_assign)
 job = r.submit(T["team_id"], "Việc hai người", as_job=True, client_msg_id="s1")["task_id"]

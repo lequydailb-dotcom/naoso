@@ -28,7 +28,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-ghim-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-ghim-"))
 
 import main  # noqa: E402
 
@@ -41,7 +41,7 @@ def check(name, cond):
         _fails.append(name)
 
 
-BRAIN = tempfile.mkdtemp(prefix="naota-brain-ghim-")
+BRAIN = tempfile.mkdtemp(prefix="vanhanh-brain-ghim-")
 (Path(BRAIN) / "agents").mkdir(parents=True, exist_ok=True)
 (Path(BRAIN) / "workflows").mkdir(parents=True, exist_ok=True)
 

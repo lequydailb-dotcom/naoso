@@ -1,7 +1,7 @@
 /* Font tự chứa (0.416.0): Be Vietnam Pro và Montserrat, giấy phép SIL Open Font License 1.1 (OFL.txt cạnh file này).
-   Lấy nguyên từ Google Fonts, chỉ giữ ba bộ chữ Naota dùng: latin, latin-ext, vietnamese. Trước đây trang gọi
+   Lấy nguyên từ Google Fonts, chỉ giữ ba bộ chữ Vanhanh dùng: latin, latin-ext, vietnamese. Trước đây trang gọi
    fonts.googleapis.com rồi fonts.gstatic.com lúc mở: hai tên miền ngoài, chặn việc vẽ chữ, và chết hẳn khi máy chạy
-   Naota không ra được Google. unicode-range giữ nguyên nên trình duyệt chỉ tải bộ chữ nó thật sự cần. */
+   Vanhanh không ra được Google. unicode-range giữ nguyên nên trình duyệt chỉ tải bộ chữ nó thật sự cần. */
 @font-face {
   font-family: 'Be Vietnam Pro';
   font-style: normal;
@@ -195,7 +195,7 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* Oswald cho tiêu đề (NAOTA 1.0.0, bộ chữ thương hiệu của anh Vương): lấy từ Google Fonts 01/11/2026,
+/* Oswald cho tiêu đề (VANHANH 1.0.0, bộ chữ thương hiệu của anh Vương): lấy từ Google Fonts 01/11/2026,
    bản biến thiên độ đậm 400-700, cùng giấy phép OFL 1.1, giữ ba bộ chữ như trên. */
 /* vietnamese */
 @font-face {

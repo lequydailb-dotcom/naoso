@@ -17,7 +17,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-learnwiki-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-learnwiki-"))
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -46,7 +46,7 @@ def _write(path, text):
 
 
 def brain(wiki_name="wiki"):
-    root = Path(tempfile.mkdtemp(prefix="naota-brain-"))
+    root = Path(tempfile.mkdtemp(prefix="vanhanh-brain-"))
     git(root, "init", "-q")
     git(root, "config", "user.email", "t@t")
     git(root, "config", "user.name", "t")
@@ -67,7 +67,7 @@ def feature(root):
         aux_model=lambda: None,
         atomic_write_text=_write,
         sessions_store=None,
-        state_dir=Path(tempfile.mkdtemp(prefix="naota-learnstate-")),
+        state_dir=Path(tempfile.mkdtemp(prefix="vanhanh-learnstate-")),
         readonly_tools=["Read"],
     )
     return LearnFeature(deps)

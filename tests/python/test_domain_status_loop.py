@@ -2,10 +2,10 @@
 
     python tests/run.py domain_status_loop      (no network: the lookups are stubbed with slow fakes)
 
-"Bị mất kết nối khi 1 người khác truy cập vào naota ở máy khác": every dashboard load asks /domain/status
+"Bị mất kết nối khi 1 người khác truy cập vào vanhanh ở máy khác": every dashboard load asks /domain/status
 (branding.js loadExtras), and the route looked up the server's public IP (three HTTPS services, DNS + 4s timeout
 each, not cached when they failed) and resolved the saved domain ON THE EVENT LOOP. On a server whose DNS or outbound
-HTTPS is slow, one visitor opening Naota froze the whole server for 12 to 24 seconds (measured with Playwright: the
+HTTPS is slow, one visitor opening Vanhanh froze the whole server for 12 to 24 seconds (measured with Playwright: the
 other open page's ping went unanswered past its 20s wait and it dropped with code "ping"). This file pins:
 
 1. while /domain/status waits on slow lookups, the event loop keeps running (other pages get their pong);
@@ -22,10 +22,10 @@ import threading
 import time
 import urllib.request
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-domain-loop-test-")
-os.environ["NAOTA_REQUIRE_LOGIN"] = "0"
-os.environ.pop("NAOTA_ADMIN_PASSWORD", None)
-os.environ.pop("NAOTA_DEPLOY_TARGET", None)
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-domain-loop-test-")
+os.environ["VANHANH_REQUIRE_LOGIN"] = "0"
+os.environ.pop("VANHANH_ADMIN_PASSWORD", None)
+os.environ.pop("VANHANH_DEPLOY_TARGET", None)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -72,7 +72,7 @@ async def probe_ok(domain, hostinger=False):
 urllib.request.urlopen = slow_urlopen
 socket.gethostbyname = slow_gethostbyname
 dom._probe_https = probe_ok
-c.update_settings({"domain": {"custom": "naota.example.com"}})
+c.update_settings({"domain": {"custom": "vanhanh.example.com"}})
 
 
 async def run(n_requests):

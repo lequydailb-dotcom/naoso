@@ -1,11 +1,11 @@
-"""Desktop installers: Naota-Setup.exe (Windows) and Naota-macOS.dmg (macOS).
+"""Desktop installers: Vanhanh-Setup.exe (Windows) and Vanhanh-macOS.dmg (macOS).
 
     python tests/run.py desktop_installer
 
 The .exe and .dmg are only built on Windows and macOS runners (desktop-installers.yml, which
 also does a real install on Windows). This Linux test guards the invariants whose breakage
 installs fine and fails later, where nobody looks:
-- the shortcut must open Naota WITHOUT restarting it (start-naota.vbs always kills first);
+- the shortcut must open Vanhanh WITHOUT restarting it (start-vanhanh.vbs always kills first);
 - the code must be a git clone in a folder the app and the uninstaller agree on, or the
   Update button stops working and the uninstaller loses track of the brain;
 - Windows script files must stay ASCII (PowerShell 5.1 and wscript read them as ANSI), and the
@@ -29,16 +29,16 @@ def check(name, cond, extra=""):
 
 
 PK = ROOT / "packaging"
-ISS = PK / "windows" / "naota-setup.iss"
+ISS = PK / "windows" / "vanhanh-setup.iss"
 BOOT_PS1 = PK / "windows" / "bootstrap.ps1"
-OPEN_VBS = ROOT / "open-naota.vbs"
+OPEN_VBS = ROOT / "open-vanhanh.vbs"
 LAUNCHER = PK / "macos" / "launcher.sh"
 BOOT_SH = PK / "macos" / "bootstrap.sh"
 BUILD_DMG = PK / "macos" / "build-dmg.sh"
 WF = ROOT / ".github" / "workflows" / "desktop-installers.yml"
 
 for f in (ISS, BOOT_PS1, OPEN_VBS, LAUNCHER, BOOT_SH, BUILD_DMG, WF,
-          PK / "assets" / "naota.ico", PK / "assets" / "naota.icns"):
+          PK / "assets" / "vanhanh.ico", PK / "assets" / "vanhanh.icns"):
     check(f"exists: {f.relative_to(ROOT)}", f.exists())
 
 iss_raw = ISS.read_bytes()
@@ -55,31 +55,31 @@ main_py = (ROOT / "server" / "main.py").read_text(encoding="utf-8")
 # ---- encodings ----
 for f in (BOOT_PS1, OPEN_VBS, ROOT / "install.ps1"):
     check(f"{f.name} is pure ASCII (read as ANSI on Windows)", f.read_bytes().isascii())
-check("naota-setup.iss starts with a UTF-8 BOM (Vietnamese messages)", iss_raw.startswith(b"\xef\xbb\xbf"))
+check("vanhanh-setup.iss starts with a UTF-8 BOM (Vietnamese messages)", iss_raw.startswith(b"\xef\xbb\xbf"))
 
 # ---- open without restarting ----
 server_up = vbs.split("Function ServerUp()", 1)[-1].split("End Function", 1)[0]
-check("CANARY: open-naota.vbs only calls start-naota.vbs (which kills the running server) when /health fails",
-      re.search(r'If ServerUp\(\) Then\s+OpenWindow\s+Else\s+sh\.Run "wscript\.exe //nologo """ & root & "\\start-naota\.vbs"" /open"',
+check("CANARY: open-vanhanh.vbs only calls start-vanhanh.vbs (which kills the running server) when /health fails",
+      re.search(r'If ServerUp\(\) Then\s+OpenWindow\s+Else\s+sh\.Run "wscript\.exe //nologo """ & root & "\\start-vanhanh\.vbs"" /open"',
                 vbs) is not None and "/health" in server_up and "http.Status = 200" in server_up)
-check("open-naota.vbs opens an app window (--app=) with a default-browser fallback",
+check("open-vanhanh.vbs opens an app window (--app=) with a default-browser fallback",
       "--app=" in vbs and "sh.Run url, 1, False" in vbs)
-check("open-naota.vbs honours NAOTA_PORT", "NAOTA_PORT" in vbs)
+check("open-vanhanh.vbs honours VANHANH_PORT", "VANHANH_PORT" in vbs)
 shortcut_lines = [ln for ln in iss.splitlines() if ln.startswith("Name: \"{auto") and "wscript.exe" in ln]
-check("every wscript shortcut in the installer runs open-naota.vbs, never start-naota.vbs",
-      len(shortcut_lines) == 2 and all("open-naota.vbs" in ln and "start-naota.vbs" not in ln for ln in shortcut_lines),
+check("every wscript shortcut in the installer runs open-vanhanh.vbs, never start-vanhanh.vbs",
+      len(shortcut_lines) == 2 and all("open-vanhanh.vbs" in ln and "start-vanhanh.vbs" not in ln for ln in shortcut_lines),
       shortcut_lines)
-check("the 'open now' checkbox also uses open-naota.vbs and only after a good bootstrap",
-      re.search(r'^Filename: "\{sys\}\\wscript\.exe";.*open-naota\.vbs.*postinstall.*Check: BootstrapOk', iss, re.M) is not None)
-check("CANARY: macOS launcher hands an installed Naota to bin/naota-start.sh (opens, never restarts)",
-      'exec "${NAOTA_HOME}/bin/naota-start.sh"' in launcher)
+check("the 'open now' checkbox also uses open-vanhanh.vbs and only after a good bootstrap",
+      re.search(r'^Filename: "\{sys\}\\wscript\.exe";.*open-vanhanh\.vbs.*postinstall.*Check: BootstrapOk', iss, re.M) is not None)
+check("CANARY: macOS launcher hands an installed Vanhanh to bin/vanhanh-start.sh (opens, never restarts)",
+      'exec "${VANHANH_HOME}/bin/vanhanh-start.sh"' in launcher)
 
 # ---- one folder, agreed on everywhere ----
-check("installer CodeDir and bootstrap.ps1 default agree on %USERPROFILE%\\Naota",
-      "ExpandConstant('{%USERPROFILE}') + '\\Naota'" in iss
-      and '(Join-Path $env:USERPROFILE "Naota")' in boot)
-check("macOS launcher and bootstrap.sh agree on ~/Naota",
-      'NAOTA_HOME="${NAOTA_HOME:-$HOME/Naota}"' in launcher and 'NAOTA_HOME="${NAOTA_HOME:-$HOME/Naota}"' in boot_sh)
+check("installer CodeDir and bootstrap.ps1 default agree on %USERPROFILE%\\Vanhanh",
+      "ExpandConstant('{%USERPROFILE}') + '\\Vanhanh'" in iss
+      and '(Join-Path $env:USERPROFILE "Vanhanh")' in boot)
+check("macOS launcher and bootstrap.sh agree on ~/Vanhanh",
+      'VANHANH_HOME="${VANHANH_HOME:-$HOME/Vanhanh}"' in launcher and 'VANHANH_HOME="${VANHANH_HOME:-$HOME/Vanhanh}"' in boot_sh)
 check("Windows wizard does not ask for a folder (the clone path is fixed)", "DisableDirPage=yes" in iss)
 check("per-user install, no admin prompt from the wizard", "PrivilegesRequired=lowest" in iss)
 
@@ -90,7 +90,7 @@ for name, src in (("bootstrap.ps1", boot), ("bootstrap.sh", boot_sh)):
     check(f"{name} does not shallow-clone (--depth breaks the updater merge)",
           not any("git clone" in ln and "--depth" in ln for ln in src.splitlines()))
     check(f"{name} leaves an existing clone alone (it holds the brain)", ".git" in src and "giu nguyen" in src)
-    check(f"{name} refuses to clone over a non-empty folder", "khong phai ban Naota" in src)
+    check(f"{name} refuses to clone over a non-empty folder", "khong phai ban Vanhanh" in src)
 check("bootstrap.ps1 hands over to install.ps1 -NoStart and checks its exit code",
       '"-NoStart"' in boot and "$LASTEXITCODE -ne 0" in boot.split("install.ps1")[-1])
 check("bootstrap.sh runs install.sh", "bash ./install.sh" in boot_sh)
@@ -99,9 +99,9 @@ check("bootstrap.sh runs install.sh", "bash ./install.sh" in boot_sh)
 m = re.search(r'_AUTOSTART_NAME = "([^"]+)"', main_py)
 check("uninstaller removes the same Run entry the app writes",
       m is not None and f"CurrentVersion\\Run', '{m.group(1)}'" in iss, m and m.group(1))
-check("uninstaller stops Naota first", "stop-naota.ps1" in iss and "usUninstall" in iss)
+check("uninstaller stops Vanhanh first", "stop-vanhanh.ps1" in iss and "usUninstall" in iss)
 check("uninstaller keeps the brain folder and says where it is", "DataKept" in iss and "[UninstallDelete]" in iss
-      and "Naota" not in iss.split("[UninstallDelete]")[1].split("[Code]")[0])
+      and "Vanhanh" not in iss.split("[UninstallDelete]")[1].split("[Code]")[0])
 
 # ---- install.ps1 / install.sh fixes the installers rely on ----
 check("install.ps1 no longer trusts a bare `python` (Microsoft Store stub)", '(Have "python")' not in install_ps1
@@ -131,9 +131,9 @@ check("CI installs the CLIs on Windows (no -SkipCli) and checks all four brains"
 check("CI runs the macOS first-run path and checks all four brains",
       "packaging/macos/bootstrap.sh" in mac_job and "check_brains.py" in mac_job)
 check("macOS launcher has a fallback when Terminal automation is denied",
-      "if ! osascript" in launcher and "pbcopy" in launcher and "printf 'NAOTA_HOME=%q bash %q" in launcher)
+      "if ! osascript" in launcher and "pbcopy" in launcher and "printf 'VANHANH_HOME=%q bash %q" in launcher)
 
-# ---- Naota logo in the installers, optional signing ----
+# ---- Vanhanh logo in the installers, optional signing ----
 import struct  # noqa: E402
 
 
@@ -155,8 +155,8 @@ for pct in (100, 125, 150, 175, 200, 225, 250):
               info == (*want, 24), info)
         check(f"installer lists {name}", f"..\\assets\\{name}" in iss)
 check("installer shows the pictures unstretched", "WizardImageStretch=no" in iss)
-check("signing is opt-in: SignTool only under #ifdef Sign", "#ifdef Sign\r\nSignTool=naota" in iss_raw.decode("utf-8-sig")
-      or "#ifdef Sign\nSignTool=naota" in iss)
+check("signing is opt-in: SignTool only under #ifdef Sign", "#ifdef Sign\r\nSignTool=vanhanh" in iss_raw.decode("utf-8-sig")
+      or "#ifdef Sign\nSignTool=vanhanh" in iss)
 check("the uninstaller is signed together with the setup", "SignedUninstaller=yes" in iss)
 check("CI signs only with the certificate secrets and checks the signature",
       "secrets.WINDOWS_CERT_PFX_BASE64" in wf and "/DSign" in wf and "Get-AuthenticodeSignature" in wf
@@ -164,38 +164,38 @@ check("CI signs only with the certificate secrets and checks the signature",
 check("CI never prints the certificate to the log (written to a file, removed after)",
       "WriteAllBytes($pfx" in wf and "Remove-Item $pfx" in wf)
 build_dmg = BUILD_DMG.read_text(encoding="utf-8")
-check(".dmg mounts with the Naota icon (.VolumeIcon.icns + custom-icon flag)",
+check(".dmg mounts with the Vanhanh icon (.VolumeIcon.icns + custom-icon flag)",
       ".VolumeIcon.icns" in build_dmg and "-a C" in build_dmg and "UDRW" in build_dmg)
 
 # ---- one-line installs, no SmartScreen / Gatekeeper block ----
-REL = "https://github.com/vuongtex/naota/releases/download/desktop/"
-GET_PS1 = PK / "windows" / "get-naota.ps1"
-GET_SH = PK / "macos" / "get-naota.sh"
+REL = "https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/"
+GET_PS1 = PK / "windows" / "get-vanhanh.ps1"
+GET_SH = PK / "macos" / "get-vanhanh.sh"
 gps = GET_PS1.read_text(encoding="utf-8")
 gsh = GET_SH.read_text(encoding="utf-8")
-check("get-naota.ps1 is pure ASCII (piped into Windows PowerShell 5.1)", GET_PS1.read_bytes().isascii())
-check("get-naota.ps1 runs inside & { } so `irm | iex` leaves no settings in the person's session",
+check("get-vanhanh.ps1 is pure ASCII (piped into Windows PowerShell 5.1)", GET_PS1.read_bytes().isascii())
+check("get-vanhanh.ps1 runs inside & { } so `irm | iex` leaves no settings in the person's session",
       gps.split("# ===", 2)[-1].lstrip().split("\n", 1)[-1].lstrip().startswith("& {"))
-check("get-naota.ps1 downloads the published setup and opens it",
-      REL + "Naota-Setup.exe" in gps and "Start-Process -FilePath $out" in gps)
-check("get-naota.sh downloads the published .dmg", REL + "Naota-macOS.dmg" in gsh)
-check("get-naota.sh gives the installer the keyboard back (stdin is the curl pipe)", "< /dev/tty" in gsh)
-check("get-naota.sh only replaces the app bundle, never ~/Naota (the brain)",
-      'rm -rf "${DEST}/NAOTA.app"' in gsh and not any("rm -rf" in ln and "Naota" in ln and ".app" not in ln
+check("get-vanhanh.ps1 downloads the published setup and opens it",
+      REL + "Vanhanh-Setup.exe" in gps and "Start-Process -FilePath $out" in gps)
+check("get-vanhanh.sh downloads the published .dmg", REL + "Vanhanh-macOS.dmg" in gsh)
+check("get-vanhanh.sh gives the installer the keyboard back (stdin is the curl pipe)", "< /dev/tty" in gsh)
+check("get-vanhanh.sh only replaces the app bundle, never ~/Vanhanh (the brain)",
+      'rm -rf "${DEST}/VANHANH.app"' in gsh and not any("rm -rf" in ln and "Vanhanh" in ln and ".app" not in ln
                                                          for ln in gsh.splitlines()))
-check("get-naota.sh is executable", os.access(GET_SH, os.X_OK))
-raw = "https://raw.githubusercontent.com/vuongtex/naota/main/"
+check("get-vanhanh.sh is executable", os.access(GET_SH, os.X_OK))
+raw = "https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/"
 for doc in ("QUICKSTART.md", "QUICKSTART.en.md"):
     d = (ROOT / doc).read_text(encoding="utf-8")
-    check(f"{doc} gives the Windows one-liner", f"irm {raw}packaging/windows/get-naota.ps1 | iex" in d)
-    check(f"{doc} gives the macOS one-liner", f"curl -fsSL {raw}packaging/macos/get-naota.sh | bash" in d)
+    check(f"{doc} gives the Windows one-liner", f"irm {raw}packaging/windows/get-vanhanh.ps1 | iex" in d)
+    check(f"{doc} gives the macOS one-liner", f"curl -fsSL {raw}packaging/macos/get-vanhanh.sh | bash" in d)
 
 # ---- the .app bundle actually assembles ----
 dist = ROOT / "dist" / "dmg-stage"
 if shutil.which("bash") and os.name != "nt":
     r = subprocess.run(["bash", str(BUILD_DMG)], env={**os.environ, "NO_DMG": "1"}, capture_output=True, text=True)
     check("build-dmg.sh NO_DMG=1 assembles the app", r.returncode == 0, r.stderr[-400:])
-    app = dist / "NAOTA.app" / "Contents"
+    app = dist / "VANHANH.app" / "Contents"
     if r.returncode == 0:
         info = plistlib.loads((app / "Info.plist").read_bytes())
         ver = (ROOT / "VERSION").read_text().strip()
@@ -203,24 +203,24 @@ if shutil.which("bash") and os.name != "nt":
         check("Info.plist executable and icon exist",
               (app / "MacOS" / info["CFBundleExecutable"]).exists()
               and (app / "Resources" / (info["CFBundleIconFile"] + ".icns")).exists())
-        check("app executable is executable", os.access(app / "MacOS" / "naota", os.X_OK))
+        check("app executable is executable", os.access(app / "MacOS" / "vanhanh", os.X_OK))
     shutil.rmtree(ROOT / "dist", ignore_errors=True)
-for f in (LAUNCHER, BOOT_SH, BUILD_DMG, PK / "macos" / "get-naota.sh", ROOT / "install.sh", ROOT / "bin" / "naota-start.sh"):
+for f in (LAUNCHER, BOOT_SH, BUILD_DMG, PK / "macos" / "get-vanhanh.sh", ROOT / "install.sh", ROOT / "bin" / "vanhanh-start.sh"):
     r = subprocess.run(["bash", "-n", str(f)], capture_output=True, text=True)
     check(f"bash -n {f.relative_to(ROOT)}", r.returncode == 0, r.stderr)
-check("in-repo NAOTA.app now has the icon its Info.plist names",
-      (ROOT / "NAOTA.app" / "Contents" / "Resources" / "naota.icns").exists())
+check("in-repo VANHANH.app now has the icon its Info.plist names",
+      (ROOT / "VANHANH.app" / "Contents" / "Resources" / "vanhanh.icns").exists())
 
 # ---- publishing and docs agree on the download links ----
-base = "https://github.com/vuongtex/naota/releases/download/desktop/"
+base = "https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/"
 check("workflow publishes both files on the fixed 'desktop' release",
-      "gh release upload desktop out/Naota-Setup.exe out/Naota-macOS.dmg --clobber" in wf)
+      "gh release upload desktop out/Vanhanh-Setup.exe out/Vanhanh-macOS.dmg --clobber" in wf)
 check("workflow publishes only from main", "github.ref == 'refs/heads/main'" in wf)
 check("the desktop release never becomes 'latest'", "--latest=false" in wf)
 for doc in ("QUICKSTART.md", "QUICKSTART.en.md"):
     s = (ROOT / doc).read_text(encoding="utf-8")
-    check(f"{doc} links the Windows installer", base + "Naota-Setup.exe" in s)
-    check(f"{doc} links the macOS installer", base + "Naota-macOS.dmg" in s)
+    check(f"{doc} links the Windows installer", base + "Vanhanh-Setup.exe" in s)
+    check(f"{doc} links the macOS installer", base + "Vanhanh-macOS.dmg" in s)
 
 # ---- repo rule: no long dashes ----
 for f in (ISS, BOOT_PS1, OPEN_VBS, LAUNCHER, BOOT_SH, BUILD_DMG, WF, PK / "make_icons.py", PK / "check_brains.py"):

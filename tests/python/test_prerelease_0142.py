@@ -11,8 +11,8 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-prerelease-0142-")
-TEMP = Path(tempfile.mkdtemp(prefix="naota-prerelease-0142-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-prerelease-0142-")
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-prerelease-0142-w-"))
 
 import agent_jobs  # noqa: E402
 import resonance_store as RS  # noqa: E402

@@ -11,10 +11,10 @@ import os
 import tempfile
 from pathlib import Path
 
-state = tempfile.mkdtemp(prefix="naota-pet-test-")
-os.environ["NAOTA_STATE_DIR"] = state
+state = tempfile.mkdtemp(prefix="vanhanh-pet-test-")
+os.environ["VANHANH_STATE_DIR"] = state
 os.environ["BRAINS_DIR"] = str(Path(state) / "brains")
-os.environ["NAOTA_SESSIONS_DB"] = str(Path(state) / "sessions.db")
+os.environ["VANHANH_SESSIONS_DB"] = str(Path(state) / "sessions.db")
 
 import main
 import config as cfgmod

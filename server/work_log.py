@@ -1,10 +1,10 @@
 """Append-only log of finished background work, one file per brain.
 
-The Tasks page stats (task_stats.py) count what Naota did over any date range. Kanban jobs keep their own events and
+The Tasks page stats (task_stats.py) count what Vanhanh did over any date range. Kanban jobs keep their own events and
 loops keep a markdown log, but a reminder keeps only its last run and a page watch only counters, so each finished
 reminder run and each page-watch alert adds one JSON line here:
 
-    <brain>/Naota/work-log.jsonl   {"ts": epoch, "kind": "reminder"|"watch", "ref": id, "title": "...",
+    <brain>/Vanhanh/work-log.jsonl   {"ts": epoch, "kind": "reminder"|"watch", "ref": id, "title": "...",
                                     "status": "ok"|"fail"|"retry"|"stopped", "seconds": n, "mode": "task"|"notify"|...}
 
 Writing never raises (stats must not break the work they count). The file is cut back to its last KEEP lines when it
@@ -22,7 +22,7 @@ KEEP = 20000
 
 
 def path(brain_root: str) -> Path:
-    return Path(brain_root) / "Naota" / FILE
+    return Path(brain_root) / "Vanhanh" / FILE
 
 
 def append(brain_root: str, kind: str, ref: str, title: str, status: str, seconds: float = 0, mode: str = "",

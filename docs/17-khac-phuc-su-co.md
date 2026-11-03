@@ -2,18 +2,18 @@
 
 ***Tiếng Việt** · [English](en/17-troubleshooting.md)*
 
-Trang này gom các trục trặc hay gặp khi dùng NAOTA và cách xử lý từng bước. Phần lớn sự cố chỉ cần một trong hai thao tác: khởi động lại server, hoặc tải lại trình duyệt bằng Ctrl+Shift+R. Cuối trang có mục Câu hỏi thường gặp (FAQ) ngắn gọn.
+Trang này gom các trục trặc hay gặp khi dùng VANHANH và cách xử lý từng bước. Phần lớn sự cố chỉ cần một trong hai thao tác: khởi động lại server, hoặc tải lại trình duyệt bằng Ctrl+Shift+R. Cuối trang có mục Câu hỏi thường gặp (FAQ) ngắn gọn.
 
-Nếu bạn mới cài Naota lần đầu, xem trước [Bắt đầu & thiết lập lần đầu](01-bat-dau-thiet-lap.md). Nếu bạn đang chỉnh biến môi trường, xem [Cấu hình .env](16-cau-hinh-env.md).
+Nếu bạn mới cài Vanhanh lần đầu, xem trước [Bắt đầu & thiết lập lần đầu](01-bat-dau-thiet-lap.md). Nếu bạn đang chỉnh biến môi trường, xem [Cấu hình .env](16-cau-hinh-env.md).
 
 ## Trước khi đọc: hai thao tác cứu hộ hay dùng nhất
 
 Rất nhiều lỗi biến mất sau một trong hai việc này, nên thử trước khi lo lắng:
 
 1. **Khởi động lại server (khi bạn hoặc bản cập nhật vừa đổi code Python `.py`).**
-   - Trên **Windows**: chạy `stop-naota.bat` để tắt, rồi chạy `start-naota.vbs` (chạy ngầm) hoặc `setup.bat` (hiện cửa sổ) để bật lại.
+   - Trên **Windows**: chạy `stop-vanhanh.bat` để tắt, rồi chạy `start-vanhanh.vbs` (chạy ngầm) hoặc `setup.bat` (hiện cửa sổ) để bật lại.
    - Trên **Docker / VPS**: `docker compose restart`.
-   - Trên **Linux (systemd)**: `sudo systemctl restart naota`.
+   - Trên **Linux (systemd)**: `sudo systemctl restart vanhanh`.
 2. **Tải lại giao diện sạch bộ nhớ đệm (khi màn hình hiện sai, thiếu nút, hoặc bạn vừa đổi giao diện).** Nhấn **Ctrl+Shift+R** trên trình duyệt (Mac: Cmd+Shift+R). Đây là "hard refresh", buộc trình duyệt tải lại toàn bộ file giao diện thay vì dùng bản cũ trong cache.
 
 > Quy tắc đơn giản để nhớ: đổi phần lõi (file `.py`) thì **restart server**; giao diện hiển thị sai thì **Ctrl+Shift+R**.
@@ -22,54 +22,54 @@ Rất nhiều lỗi biến mất sau một trong hai việc này, nên thử tr�
 
 | Hiện tượng | Cách xử lý |
 |---|---|
-| Sửa code (hoặc vừa cập nhật) mà **không thấy đổi** | Nếu đổi file `.py`: **khởi động lại server** (Windows: `stop-naota.bat` rồi `start-naota.vbs`; Docker: `docker compose restart`). Nếu chỉ đổi giao diện: nhấn **Ctrl+Shift+R**. |
-| **Cổng 7777 bị giữ**, bản mới không lên được | Tắt tiến trình cũ TRƯỚC rồi mới bật lại. Windows: chạy `stop-naota.bat`, hoặc `taskkill /F /PID <pid>` với PID đang giữ cổng. Docker: `docker compose down` rồi `docker compose up -d`. |
-| **Hostinger không pull được image** | Đặt package GHCR ở chế độ **Public** (GitHub, repo, mục Packages, chọn `naota`, Package settings, Visibility = Public). Sau đó đợi GitHub Action build xong (xem tab Actions của repo) rồi Deploy lại. |
-| Mở app ra **màn tạo tài khoản admin** trên server public | Chưa có admin nên ai mở link trước sẽ tạo được admin. Tạo tài khoản ngay (mật khẩu tối thiểu 8 ký tự), hoặc lần sau đặt sẵn env `NAOTA_ADMIN_USER` và `NAOTA_ADMIN_PASSWORD` lúc deploy để đăng nhập luôn. Vào được rồi thì bật 2FA. |
-| **Claude báo chưa đăng nhập** (Naota không trả lời được) | Đăng nhập lại "bộ não" Claude 1 lần. Cách trong app: mở **Models**, ở thẻ Claude Code bấm **Đăng nhập Claude**, mở link, dán code nếu được yêu cầu. Cách bằng lệnh: `claude auth login --claudeai` (Docker: chạy trong App terminal). |
+| Sửa code (hoặc vừa cập nhật) mà **không thấy đổi** | Nếu đổi file `.py`: **khởi động lại server** (Windows: `stop-vanhanh.bat` rồi `start-vanhanh.vbs`; Docker: `docker compose restart`). Nếu chỉ đổi giao diện: nhấn **Ctrl+Shift+R**. |
+| **Cổng 7777 bị giữ**, bản mới không lên được | Tắt tiến trình cũ TRƯỚC rồi mới bật lại. Windows: chạy `stop-vanhanh.bat`, hoặc `taskkill /F /PID <pid>` với PID đang giữ cổng. Docker: `docker compose down` rồi `docker compose up -d`. |
+| **Hostinger không pull được image** | Đặt package GHCR ở chế độ **Public** (GitHub, repo, mục Packages, chọn `vanhanh`, Package settings, Visibility = Public). Sau đó đợi GitHub Action build xong (xem tab Actions của repo) rồi Deploy lại. |
+| Mở app ra **màn tạo tài khoản admin** trên server public | Chưa có admin nên ai mở link trước sẽ tạo được admin. Tạo tài khoản ngay (mật khẩu tối thiểu 8 ký tự), hoặc lần sau đặt sẵn env `VANHANH_ADMIN_USER` và `VANHANH_ADMIN_PASSWORD` lúc deploy để đăng nhập luôn. Vào được rồi thì bật 2FA. |
+| **Claude báo chưa đăng nhập** (Vanhanh không trả lời được) | Đăng nhập lại "bộ não" Claude 1 lần. Cách trong app: mở **Models**, ở thẻ Claude Code bấm **Đăng nhập Claude**, mở link, dán code nếu được yêu cầu. Cách bằng lệnh: `claude auth login --claudeai` (Docker: chạy trong App terminal). |
 | **Trang Tệp tin báo lỗi ở "Đang tải..."** | Máy chủ chưa có endpoint Tệp tin (báo lỗi 404). **Khởi động lại server** để nạp endpoint mới, rồi nhấn **Ctrl+Shift+R**. |
 | Ảnh trong hội thoại cũ hiện ô xám **Ảnh đã hết hạn** | Đúng thiết kế: `attachments/` và `inbox/` là vùng cache, file quá 30 ngày (hoặc khi vượt trần 300MB) bị dọn. Xem mục "Ảnh và file cũ biến mất" bên dưới để biết cách giữ lại hoặc tắt hẳn. |
 | Voice / micro không bật được | Trình duyệt chỉ cấp quyền micro trên **HTTPS** (hoặc localhost). Mở qua `http://<ip>:7777` sẽ luôn bị chặn. Dùng URL `https://` (Hostinger `*.hstgr.cloud`, Cloudflare Tunnel, hoặc tên miền riêng có SSL). Xem [Thương hiệu & tên miền riêng](15-thuong-hieu-ten-mien.md). |
 | Cập nhật trong app xong mà **phiên bản không đổi** | Đợi thêm; nếu vẫn báo bản cũ, kiểm tra log cập nhật: `update.log` trong thư mục state (`server/update.log` khi chạy local, `/data/state/update.log` trên Docker), hoặc `docker compose logs`. |
-| **`naota` báo 401** hoặc "token không hợp lệ" | Token sai hoặc đã bị thu hồi. Tạo cái mới ở **Tài khoản > Token API** rồi `naota login <địa-chỉ>` lại. Xem [Naota CLI](24-cli-terminal.md). |
-| **`naota task add` / `naota brain ls` báo 403** | Token của bạn là loại **chỉ chat**. Những lệnh này cần token **toàn quyền** - tạo thêm một cái ở Tài khoản > Token API. |
-| **`naota up` báo không thấy bản cài Naota** | Đúng như nó nói: gói CLI KHÔNG chứa server bên trong. Đặt `NAOTA_HOME` trỏ tới thư mục Naota, chạy lệnh từ trong thư mục đó, hoặc `naota login <địa-chỉ>` để nối tới một Naota đang chạy nơi khác. |
+| **`vanhanh` báo 401** hoặc "token không hợp lệ" | Token sai hoặc đã bị thu hồi. Tạo cái mới ở **Tài khoản > Token API** rồi `vanhanh login <địa-chỉ>` lại. Xem [Vanhanh CLI](24-cli-terminal.md). |
+| **`vanhanh task add` / `vanhanh brain ls` báo 403** | Token của bạn là loại **chỉ chat**. Những lệnh này cần token **toàn quyền** - tạo thêm một cái ở Tài khoản > Token API. |
+| **`vanhanh up` báo không thấy bản cài Vanhanh** | Đúng như nó nói: gói CLI KHÔNG chứa server bên trong. Đặt `VANHANH_HOME` trỏ tới thư mục Vanhanh, chạy lệnh từ trong thư mục đó, hoặc `vanhanh login <địa-chỉ>` để nối tới một Vanhanh đang chạy nơi khác. |
 
 Các mục dưới đây giải thích chi tiết hơn từng dòng trong bảng.
 
 ## Sửa code mà không thấy đổi
 
-Naota gồm hai phần chạy khác nhau, nên cách làm mới cũng khác:
+Vanhanh gồm hai phần chạy khác nhau, nên cách làm mới cũng khác:
 
 1. **Đổi phần lõi (file Python `.py` trong `server/`)**: server đang chạy vẫn giữ bản cũ trong bộ nhớ. Bạn phải **tắt và bật lại server**:
-   - Windows: chạy `stop-naota.bat`, đợi vài giây, rồi chạy `start-naota.vbs`.
+   - Windows: chạy `stop-vanhanh.bat`, đợi vài giây, rồi chạy `start-vanhanh.vbs`.
    - Docker / VPS: `docker compose restart`.
-   - Linux systemd: `sudo systemctl restart naota`.
+   - Linux systemd: `sudo systemctl restart vanhanh`.
 2. **Đổi phần giao diện (HTML/CSS/JS trong `dashboard/`)**: server không cần restart, nhưng trình duyệt hay giữ bản cũ trong cache. Nhấn **Ctrl+Shift+R** để tải lại sạch.
 
 Nếu làm cả hai vẫn không đổi, kiểm tra bạn có đang mở đúng cổng và đúng brain hay không.
 
 ## Cổng 7777 bị giữ, bản mới không lên
 
-Cổng mặc định của Naota là **7777**. Khi một tiến trình cũ chưa tắt hẳn mà bạn bật bản mới, bản mới sẽ báo lỗi vì cổng đang bận. Xử lý theo thứ tự:
+Cổng mặc định của Vanhanh là **7777**. Khi một tiến trình cũ chưa tắt hẳn mà bạn bật bản mới, bản mới sẽ báo lỗi vì cổng đang bận. Xử lý theo thứ tự:
 
-1. Tắt tiến trình cũ trước. Windows: chạy `stop-naota.bat`. Nếu vẫn còn, tìm PID đang giữ cổng rồi `taskkill /F /PID <pid>`. Docker: `docker compose down`.
-2. Bật lại. Windows: `start-naota.vbs`. Docker: `docker compose up -d`.
+1. Tắt tiến trình cũ trước. Windows: chạy `stop-vanhanh.bat`. Nếu vẫn còn, tìm PID đang giữ cổng rồi `taskkill /F /PID <pid>`. Docker: `docker compose down`.
+2. Bật lại. Windows: `start-vanhanh.vbs`. Docker: `docker compose up -d`.
 
-Muốn đổi sang cổng khác (khi 7777 đụng phần mềm khác), đặt biến `NAOTA_PORT` trong file `.env`; xem [Cấu hình .env](16-cau-hinh-env.md).
+Muốn đổi sang cổng khác (khi 7777 đụng phần mềm khác), đặt biến `VANHANH_PORT` trong file `.env`; xem [Cấu hình .env](16-cau-hinh-env.md).
 
 ## Hostinger không pull được image
 
 Khi deploy bằng Hostinger Docker Manager mà nó không tải được image, thường do hai nguyên nhân:
 
-1. **Image ở chế độ riêng tư (Private).** Vào GitHub, mở repo, chọn mục **Packages**, chọn `naota`, vào **Package settings**, đặt **Visibility = Public**. Có vậy Hostinger mới pull được mà không cần đăng nhập registry.
+1. **Image ở chế độ riêng tư (Private).** Vào GitHub, mở repo, chọn mục **Packages**, chọn `vanhanh`, vào **Package settings**, đặt **Visibility = Public**. Có vậy Hostinger mới pull được mà không cần đăng nhập registry.
 2. **Image chưa build xong.** Mỗi lần đẩy code mới lên nhánh `main`, GitHub Action mới bắt đầu build. Mở tab **Actions** của repo, đợi lượt build gần nhất chạy xong (dấu tích xanh), rồi bấm Deploy lại trên Hostinger.
 
 ## Mở app ra màn tạo tài khoản admin trên server public
 
-Khi Naota chạy public (Docker/VPS/Hostinger) mà chưa có admin, lần đầu mở app sẽ ra màn tạo tài khoản, chỉ hỏi tên đăng nhập và mật khẩu. Nghĩa là **ai mở link trước sẽ tạo được admin** (mà engine chạy toàn quyền trên máy), nên:
+Khi Vanhanh chạy public (Docker/VPS/Hostinger) mà chưa có admin, lần đầu mở app sẽ ra màn tạo tài khoản, chỉ hỏi tên đăng nhập và mật khẩu. Nghĩa là **ai mở link trước sẽ tạo được admin** (mà engine chạy toàn quyền trên máy), nên:
 
-1. **Đặt sẵn admin lúc deploy (khuyến nghị)**: hai env `NAOTA_ADMIN_USER` và `NAOTA_ADMIN_PASSWORD` trong compose hoặc `.env`. Khi đó mở app là đăng nhập luôn.
+1. **Đặt sẵn admin lúc deploy (khuyến nghị)**: hai env `VANHANH_ADMIN_USER` và `VANHANH_ADMIN_PASSWORD` trong compose hoặc `.env`. Khi đó mở app là đăng nhập luôn.
 2. **Không đặt env**: tạo tài khoản ngay sau khi deploy, mật khẩu tối thiểu 8 ký tự.
 3. **Vào được rồi**: bật xác thực 2 lớp (2FA) ở trang **Tài khoản**.
 
@@ -77,7 +77,7 @@ Chi tiết bảo mật và cách đặt mật khẩu xem [Bảo mật & tài kho
 
 ## Claude báo chưa đăng nhập
 
-Khi bạn chạy engine Claude, Naota mượn đúng phiên đăng nhập của `claude` CLI trên máy: đăng nhập 1 lần và giữ qua mọi restart/update. Nếu Naota không trả lời hoặc báo chưa đăng nhập:
+Khi bạn chạy engine Claude, Vanhanh mượn đúng phiên đăng nhập của `claude` CLI trên máy: đăng nhập 1 lần và giữ qua mọi restart/update. Nếu Vanhanh không trả lời hoặc báo chưa đăng nhập:
 
 1. **Cách trong giao diện:** mở **Models** (nhóm **Kết nối** trên thanh nav trái). Ở thẻ Claude Code, dòng trạng thái sẽ hiện **○ Chưa đăng nhập**. Bấm **Đăng nhập Claude**, app hiện một link; mở link để đăng nhập claude.ai; nếu trang hiện một mã code thì dán vào ô rồi bấm **Gửi code**. Khi xong, trạng thái đổi thành **● Đã kết nối**. Có nút **↻ Kiểm tra lại** để làm mới trạng thái.
 2. **Cách bằng lệnh:** chạy `claude auth login --claudeai` một lần (trên Docker thì chạy trong **App terminal**), mở link, dán code.
@@ -86,7 +86,7 @@ Token đăng nhập nằm trong `~/.claude` (Docker: volume `claude-auth`) nên 
 
 ## Trang Tệp tin báo lỗi ở "Đang tải..."
 
-Nếu vào **Tệp tin** (nhóm **Bộ não**) mà chỗ danh sách file báo lỗi thay vì lên danh sách, thường do máy chủ đang chạy bản cũ chưa có endpoint Tệp tin (lỗi 404). Bản thân giao diện sẽ nhắc: hãy **khởi động lại server** (Windows: `stop-naota.bat` rồi `start-naota.vbs`) rồi **tải lại trang** bằng Ctrl+Shift+R.
+Nếu vào **Tệp tin** (nhóm **Bộ não**) mà chỗ danh sách file báo lỗi thay vì lên danh sách, thường do máy chủ đang chạy bản cũ chưa có endpoint Tệp tin (lỗi 404). Bản thân giao diện sẽ nhắc: hãy **khởi động lại server** (Windows: `stop-vanhanh.bat` rồi `start-vanhanh.vbs`) rồi **tải lại trang** bằng Ctrl+Shift+R.
 
 Nếu hiện dòng báo phiên đăng nhập hết hạn (lỗi 401), chỉ cần tải lại trang và đăng nhập lại. Hướng dẫn dùng Tệp tin đầy đủ ở [Quản lý tệp tin](05-quan-ly-tep-tin.md).
 
@@ -94,7 +94,7 @@ Nếu hiện dòng báo phiên đăng nhập hết hạn (lỗi 401), chỉ cầ
 
 Cuộn lại một hội thoại cũ mà thấy chỗ ảnh chỉ còn một ô xám ghi **Ảnh đã hết hạn**, hoặc file bạn từng gửi lên không mở được nữa: đây là hành vi cố ý, không phải lỗi.
 
-Hai thư mục `attachments/` và `inbox/` của brain (ảnh Naota tạo, file bạn gửi qua chat hoặc Telegram) được coi là **vùng cache**, không phải tri thức. Tri thức là file `.md`. Naota tự dọn chúng theo hai luật:
+Hai thư mục `attachments/` và `inbox/` của brain (ảnh Vanhanh tạo, file bạn gửi qua chat hoặc Telegram) được coi là **vùng cache**, không phải tri thức. Tri thức là file `.md`. Vanhanh tự dọn chúng theo hai luật:
 
 | Luật | Mặc định | Ý nghĩa |
 |---|---|---|
@@ -118,70 +118,70 @@ Lưu ý nếu bạn đang bật đồng bộ GitHub: `attachments/` và `inbox/`
 
 ## Nhà cung cấp báo vượt hạn mức
 
-Gói miễn phí của các nhà cung cấp API (Groq rõ nhất) siết **bốn thứ song song**, và chúng đòi bốn cách xử lý khác hẳn nhau. Naota đọc câu báo lỗi rồi tự phân loại, nên đọc thông báo trong chat là biết mình đang dính cái nào:
+Gói miễn phí của các nhà cung cấp API (Groq rõ nhất) siết **bốn thứ song song**, và chúng đòi bốn cách xử lý khác hẳn nhau. Vanhanh đọc câu báo lỗi rồi tự phân loại, nên đọc thông báo trong chat là biết mình đang dính cái nào:
 
-- **Token mỗi phút, lượt này quá to.** Naota tự rút gọn ngữ cảnh rồi gửi lại. Không vừa nữa thì bật mức **Tối ưu** ở đầu trang Mức dùng, hoặc hỏi câu ngắn hơn.
-- **Token mỗi phút, cửa sổ đang đầy.** Các lượt trước chưa trôi qua. Naota tự chờ đúng số giây nhà cung cấp nói rồi gửi lại. Rút gọn câu hỏi không giúp gì.
+- **Token mỗi phút, lượt này quá to.** Vanhanh tự rút gọn ngữ cảnh rồi gửi lại. Không vừa nữa thì bật mức **Tối ưu** ở đầu trang Mức dùng, hoặc hỏi câu ngắn hơn.
+- **Token mỗi phút, cửa sổ đang đầy.** Các lượt trước chưa trôi qua. Vanhanh tự chờ đúng số giây nhà cung cấp nói rồi gửi lại. Rút gọn câu hỏi không giúp gì.
 - **Số lượt mỗi phút.** Gọi quá dày. Chờ một lát rồi hỏi lại.
 - **Hạn mức theo NGÀY** (token hoặc số lượt). Hết quota ngày. Rút gọn câu hỏi hoàn toàn không giúp. Phải chờ sang ngày mới, đổi tạm sang bộ não khác ở trang **Models**, hoặc nâng gói với nhà cung cấp.
 
-Nếu Naota không nhận ra loại nào, nó sẽ **đưa nguyên văn câu báo lỗi của nhà cung cấp** ra thay vì đoán. Gửi nguyên câu đó khi báo lỗi thì dễ lần ra hơn nhiều.
+Nếu Vanhanh không nhận ra loại nào, nó sẽ **đưa nguyên văn câu báo lỗi của nhà cung cấp** ra thay vì đoán. Gửi nguyên câu đó khi báo lỗi thì dễ lần ra hơn nhiều.
 
-Mẹo giảm hẳn tần suất gặp: chọn mức **Tối ưu** hoặc **Siêu tiết kiệm** ở đầu trang **Mức dùng** (máy mới đã mặc định ở Siêu tiết kiệm). Sau lần đầu bị từ chối, Naota nhớ luôn hạn mức thật của tài khoản đó (do chính nhà cung cấp nói ra) và tự canh ngữ cảnh dưới ngưỡng cho các lượt sau, không cần khai gì cả.
+Mẹo giảm hẳn tần suất gặp: chọn mức **Tối ưu** hoặc **Siêu tiết kiệm** ở đầu trang **Mức dùng** (máy mới đã mặc định ở Siêu tiết kiệm). Sau lần đầu bị từ chối, Vanhanh nhớ luôn hạn mức thật của tài khoản đó (do chính nhà cung cấp nói ra) và tự canh ngữ cảnh dưới ngưỡng cho các lượt sau, không cần khai gì cả.
 
-### Nhà cung cấp gãy một nhịp thì Naota tự hỏi lại
+### Nhà cung cấp gãy một nhịp thì Vanhanh tự hỏi lại
 
-Lượt gọi model gãy vì lỗi **tạm thời** (429 gọi quá dày, 5xx quá tải, mạng chớp tắt) được tự chạy lại tối đa ba lần, cách nhau vài giây. Nhà cung cấp có gửi kèm `Retry-After` thì Naota nghe theo đúng số giây đó. Bạn thường không thấy gì cả, chỉ là câu trả lời tới chậm hơn một hai giây.
+Lượt gọi model gãy vì lỗi **tạm thời** (429 gọi quá dày, 5xx quá tải, mạng chớp tắt) được tự chạy lại tối đa ba lần, cách nhau vài giây. Nhà cung cấp có gửi kèm `Retry-After` thì Vanhanh nghe theo đúng số giây đó. Bạn thường không thấy gì cả, chỉ là câu trả lời tới chậm hơn một hai giây.
 
-Hai trường hợp Naota **cố ý không** chạy lại:
+Hai trường hợp Vanhanh **cố ý không** chạy lại:
 
 - **Câu trả lời đã bắt đầu hiện ra.** Chạy lại là bạn đọc câu trả lời hai lần.
 - **Lượt đó đã chạy công cụ** (gửi tin, ghi file, đặt lịch). Chạy lại cả vòng là làm những việc đó lần thứ hai. Thà báo lỗi.
 
-Hết ba lần vẫn hỏng thì Naota báo nguyên văn lỗi của nhà cung cấp, kèm chữ *(đã thử lại 3 lần)* để bạn biết đây không phải sự cố chớp nhoáng. Lỗi **không** tạm thời (sai khoá, sai tên model, hết quota ngày, vượt kích thước ngữ cảnh) thì báo ngay từ lần đầu, vì thử lại y nguyên chỉ tốn thêm một lượt gọi để nhận lại đúng lỗi đó.
+Hết ba lần vẫn hỏng thì Vanhanh báo nguyên văn lỗi của nhà cung cấp, kèm chữ *(đã thử lại 3 lần)* để bạn biết đây không phải sự cố chớp nhoáng. Lỗi **không** tạm thời (sai khoá, sai tên model, hết quota ngày, vượt kích thước ngữ cảnh) thì báo ngay từ lần đầu, vì thử lại y nguyên chỉ tốn thêm một lượt gọi để nhận lại đúng lỗi đó.
 
 ## Xem nhật ký (log) ở đâu
 
 Có vài nơi xem "nhật ký" tùy loại thông tin:
 
-1. **Nhật ký Naota tự chạy nền**: mở nhóm **Việc** ở thanh nav trái, chọn **Việc định kỳ**, kéo xuống mục **Nhật ký gần đây**. Đây là nơi ghi lại các lượt Naota tự thức làm nhiệm vụ, lọc được theo từng loop. Xem [Việc định kỳ & Nhắc hẹn](08-viec-dinh-ky.md).
-2. **Nhật ký tự học**: trang **Tự học** (nhóm **Bộ não**) có hai khung riêng là **Naota đã tự học gì (commit gần nhất)** và **Nhật ký học**. Xem [Tự học](22-tu-hoc.md).
+1. **Nhật ký Vanhanh tự chạy nền**: mở nhóm **Việc** ở thanh nav trái, chọn **Việc định kỳ**, kéo xuống mục **Nhật ký gần đây**. Đây là nơi ghi lại các lượt Vanhanh tự thức làm nhiệm vụ, lọc được theo từng loop. Xem [Việc định kỳ & Nhắc hẹn](08-viec-dinh-ky.md).
+2. **Nhật ký tự học**: trang **Tự học** (nhóm **Bộ não**) có hai khung riêng là **Vanhanh đã tự học gì (commit gần nhất)** và **Nhật ký học**. Xem [Tự học](22-tu-hoc.md).
 3. **Trang Cập nhật** (nhóm **Hệ thống**, tiêu đề trang là **Nhật ký cập nhật**): đây là nơi xem phiên bản đang chạy và lịch sử tính năng mới theo từng bản. Không còn trang "Logs" hay "Nhật ký hoạt động" riêng nào nữa; mục `logs` trên rail chính là trang này.
 4. **Log kỹ thuật của server** (khi cần soi lỗi sâu):
-   - Windows chạy ngầm bằng `start-naota.vbs`: log ghi ở `server\naota.log`.
-   - Docker / VPS: `docker compose logs naota` (thêm `-f` để xem trực tiếp: `docker compose logs -f`).
-   - Linux systemd: `journalctl -u naota -f`.
-5. **Log cập nhật** khi bấm nút cập nhật trong app: file `update.log` nằm trong thư mục state, tức `server/update.log` khi chạy local và `/data/state/update.log` trên Docker (đường dẫn theo biến `NAOTA_STATE_DIR`). Thường bạn không cần mở tệp: khi cập nhật lỗi, giao diện đã hiện sẵn thông báo và app cũng đọc 50 dòng cuối của tệp này để báo trạng thái.
+   - Windows chạy ngầm bằng `start-vanhanh.vbs`: log ghi ở `server\vanhanh.log`.
+   - Docker / VPS: `docker compose logs vanhanh` (thêm `-f` để xem trực tiếp: `docker compose logs -f`).
+   - Linux systemd: `journalctl -u vanhanh -f`.
+5. **Log cập nhật** khi bấm nút cập nhật trong app: file `update.log` nằm trong thư mục state, tức `server/update.log` khi chạy local và `/data/state/update.log` trên Docker (đường dẫn theo biến `VANHANH_STATE_DIR`). Thường bạn không cần mở tệp: khi cập nhật lỗi, giao diện đã hiện sẵn thông báo và app cũng đọc 50 dòng cuối của tệp này để báo trạng thái.
 
 ## Câu hỏi thường gặp (FAQ)
 
 ### Dữ liệu có mất khi cập nhật không?
 
-Không, nếu chạy bằng Docker. Mọi ghi chú, brain, settings và cả token đăng nhập Claude nằm trong **Docker volume** (`naota-data`, `claude-auth`), tách khỏi image. Khi bạn cập nhật (bấm **⬆ Cập nhật ngay** trong **Cập nhật**, Redeploy trên Hostinger, hoặc chạy `./update.sh` trên VPS), image được thay mới nhưng volume giữ nguyên nên dữ liệu **không mất**. Với bản cài native, dữ liệu nằm trong thư mục `brains/` của repo, cũng không bị `git pull` xoá.
+Không, nếu chạy bằng Docker. Mọi ghi chú, brain, settings và cả token đăng nhập Claude nằm trong **Docker volume** (`vanhanh-data`, `claude-auth`), tách khỏi image. Khi bạn cập nhật (bấm **⬆ Cập nhật ngay** trong **Cập nhật**, Redeploy trên Hostinger, hoặc chạy `./update.sh` trên VPS), image được thay mới nhưng volume giữ nguyên nên dữ liệu **không mất**. Với bản cài native, dữ liệu nằm trong thư mục `brains/` của repo, cũng không bị `git pull` xoá.
 
 ### Cập nhật trong app hoạt động thế nào?
 
-Mở **Hệ thống → Cài đặt → Cập nhật**; thẻ **NAOTA** hiện phiên bản đang chạy và tự kiểm tra bản mới trên GitHub. Nếu có bản mới, dòng trạng thái hiện **🆕 Có bản mới** kèm khung **Bản mới có gì**, và nút **⬆ Cập nhật ngay** xuất hiện khi môi trường hỗ trợ. Bấm nút, xác nhận, app chạy qua 6 bước hiện trên thanh tiến trình (Chuẩn bị, Tải code, Cài thư viện, Khởi động lại, Kiểm tra sức khoẻ, Xong) rồi tự tải lại trang. Nếu bản mới lỗi, Naota **tự quay về bản cũ** và báo **↩ Bản mới lỗi, đã tự quay về bản cũ**. Bên dưới thẻ là timeline nhật ký cập nhật của các bản đã ra.
+Mở **Hệ thống → Cài đặt → Cập nhật**; thẻ **VANHANH** hiện phiên bản đang chạy và tự kiểm tra bản mới trên GitHub. Nếu có bản mới, dòng trạng thái hiện **🆕 Có bản mới** kèm khung **Bản mới có gì**, và nút **⬆ Cập nhật ngay** xuất hiện khi môi trường hỗ trợ. Bấm nút, xác nhận, app chạy qua 6 bước hiện trên thanh tiến trình (Chuẩn bị, Tải code, Cài thư viện, Khởi động lại, Kiểm tra sức khoẻ, Xong) rồi tự tải lại trang. Nếu bản mới lỗi, Vanhanh **tự quay về bản cũ** và báo **↩ Bản mới lỗi, đã tự quay về bản cũ**. Bên dưới thẻ là timeline nhật ký cập nhật của các bản đã ra.
 
 Bản cài trực tiếp trên máy (Windows, Linux, macOS) luôn tự cập nhật được. Bản Docker chỉ tự cập nhật tại chỗ khi container **Watchtower** đang chạy.
 
-Watchtower **đi kèm sẵn** trong cả compose VPS lẫn compose Hostinger, nên cài mới là có nút. Còn thiếu nút nghĩa là stack đang chạy bằng file compose cũ: trước đó Watchtower nằm trong `profiles: ["update"]` (lệnh `docker compose up -d` không bật nó) và stack Hostinger thì không kèm nó. Cách ra là lấy compose mới rồi dựng lại - VPS chạy `curl -fsSLO https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.yml` rồi `docker compose up -d --pull always`, Hostinger bấm **Redeploy** trong Docker Manager. Chưa muốn đổi file thì bật riêng bằng `docker compose --profile update up -d`. Khung Cập nhật tự nói máy bạn rơi vào trường hợp nào.
+Watchtower **đi kèm sẵn** trong cả compose VPS lẫn compose Hostinger, nên cài mới là có nút. Còn thiếu nút nghĩa là stack đang chạy bằng file compose cũ: trước đó Watchtower nằm trong `profiles: ["update"]` (lệnh `docker compose up -d` không bật nó) và stack Hostinger thì không kèm nó. Cách ra là lấy compose mới rồi dựng lại - VPS chạy `curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml` rồi `docker compose up -d --pull always`, Hostinger bấm **Redeploy** trong Docker Manager. Chưa muốn đổi file thì bật riêng bằng `docker compose --profile update up -d`. Khung Cập nhật tự nói máy bạn rơi vào trường hợp nào.
 
-**Muốn khỏi bấm nút, để Naota tự cập nhật**: thêm `NAOTA_AUTO_UPDATE=true` vào `.env` (Hostinger: ô Environment) rồi dựng lại stack. Mặc định tắt, vì tự cập nhật nghĩa là app tự khởi động lại bất cứ lúc nào có bản mới, cắt ngang việc nền đang chạy. Chu kỳ mặc định 24 giờ, đổi bằng `NAOTA_AUTO_UPDATE_INTERVAL` (giây).
+**Muốn khỏi bấm nút, để Vanhanh tự cập nhật**: thêm `VANHANH_AUTO_UPDATE=true` vào `.env` (Hostinger: ô Environment) rồi dựng lại stack. Mặc định tắt, vì tự cập nhật nghĩa là app tự khởi động lại bất cứ lúc nào có bản mới, cắt ngang việc nền đang chạy. Chu kỳ mặc định 24 giờ, đổi bằng `VANHANH_AUTO_UPDATE_INTERVAL` (giây).
 
-**Stack báo "Partially running" sau khi cập nhật compose**: gần như luôn là container `<tên>-watchtower` không đụng được Docker socket của host (Hostinger từng dính đúng lỗi này). App Naota KHÔNG bị ảnh hưởng - nó là container riêng, vẫn chạy bình thường; chỉ là nút "Cập nhật ngay" không dùng được và bạn quay lại cách Redeploy. Xem lý do thật trong log: `docker logs naota-watchtower`.
+**Stack báo "Partially running" sau khi cập nhật compose**: gần như luôn là container `<tên>-watchtower` không đụng được Docker socket của host (Hostinger từng dính đúng lỗi này). App Vanhanh KHÔNG bị ảnh hưởng - nó là container riêng, vẫn chạy bình thường; chỉ là nút "Cập nhật ngay" không dùng được và bạn quay lại cách Redeploy. Xem lý do thật trong log: `docker logs vanhanh-watchtower`.
 
 **Gõ lệnh compose mà báo `not found`** - ba kiểu, ba nguyên nhân khác hẳn:
 
 | Báo lỗi | Nguyên nhân | Cách xử lý |
 |---|---|---|
-| `no configuration file provided: not found` | Đứng sai thư mục. Tên thư mục tuỳ lúc clone: `naota` nếu theo đúng lệnh trong DEPLOY.md, `naota` nếu clone thẳng không đổi tên | `cd` vào đúng thư mục chứa `docker-compose.yml`. Không nhớ nó đâu thì hỏi Docker: `docker ps --format '{{.Names}}\t{{.Label "com.docker.compose.project.working_dir"}}'` |
-| `docker: command not found` | Đang gõ **bên trong** container Naota (terminal của app) chứ không phải trên máy chủ | SSH vào VPS rồi gõ |
+| `no configuration file provided: not found` | Đứng sai thư mục. Tên thư mục tuỳ lúc clone: `vanhanh` nếu theo đúng lệnh trong DEPLOY.md, `vanhanh` nếu clone thẳng không đổi tên | `cd` vào đúng thư mục chứa `docker-compose.yml`. Không nhớ nó đâu thì hỏi Docker: `docker ps --format '{{.Names}}\t{{.Label "com.docker.compose.project.working_dir"}}'` |
+| `docker: command not found` | Đang gõ **bên trong** container Vanhanh (terminal của app) chứ không phải trên máy chủ | SSH vào VPS rồi gõ |
 | `docker: 'compose' is not a docker command` | Compose bản cũ (v1) | Viết có gạch nối: `docker-compose --profile update up -d` |
 
 ### Chạy nhiều brain (second brain) được không?
 
-Được. Naota quản lý nhiều brain trong thư mục `brains/`. Ở dropdown chọn brain trên giao diện, bạn có thể:
+Được. Vanhanh quản lý nhiều brain trong thư mục `brains/`. Ở dropdown chọn brain trên giao diện, bạn có thể:
 
 1. Tạo brain mới: bấm nút thêm brain, đặt tên khi được hỏi.
 2. Chuyển brain: chọn brain khác trong dropdown; mọi thao tác Tệp tin, đồ thị và bộ nhớ sẽ theo brain đang chọn.
@@ -191,15 +191,15 @@ Xem chi tiết ở [Second Brain: bộ nhớ, Wiki, INGEST](13-second-brain-bo-n
 
 ### Lỡ xoá brain thì cứu được không?
 
-Được, trong 30 ngày. Xoá brain không phải là xoá vĩnh viễn: Naota chuyển cả thư mục brain vào **thùng rác cục bộ** `brain-trash` nằm trong thư mục state (`server/brain-trash` khi chạy local, `/data/state/brain-trash` trên Docker), đặt tên dạng `<tên brain>__<ngày giờ>`. Bản sao này được giữ 30 ngày rồi mới bị dọn, và nó **không** đi lên repo đồng bộ. Muốn cứu, copy thư mục đó trở lại `brains/` rồi tải lại trang.
+Được, trong 30 ngày. Xoá brain không phải là xoá vĩnh viễn: Vanhanh chuyển cả thư mục brain vào **thùng rác cục bộ** `brain-trash` nằm trong thư mục state (`server/brain-trash` khi chạy local, `/data/state/brain-trash` trên Docker), đặt tên dạng `<tên brain>__<ngày giờ>`. Bản sao này được giữ 30 ngày rồi mới bị dọn, và nó **không** đi lên repo đồng bộ. Muốn cứu, copy thư mục đó trở lại `brains/` rồi tải lại trang.
 
-Ngược lại, việc xoá sẽ được **lan sang các máy khác** đang đồng bộ chung repo (Naota ghi một "giấy báo tử" để máy kia không hồi sinh brain đã xoá). Nên nếu muốn phục hồi, làm sớm và làm trên máy còn giữ bản trong thùng rác.
+Ngược lại, việc xoá sẽ được **lan sang các máy khác** đang đồng bộ chung repo (Vanhanh ghi một "giấy báo tử" để máy kia không hồi sinh brain đã xoá). Nên nếu muốn phục hồi, làm sớm và làm trên máy còn giữ bản trong thùng rác.
 
 ### Ảnh và file gửi lên có được giữ mãi không?
 
 Không. `attachments/` và `inbox/` là vùng cache: mặc định file quá **30 ngày** hoặc phần vượt trần **300 MB** sẽ bị dọn, thư mục stage tạm thì **3 ngày**. Ảnh đã bị dọn hiện thành ô xám **Ảnh đã hết hạn** trong hội thoại cũ. Cách giữ lại hoặc tắt hẳn xem mục "Ảnh và file cũ biến mất" ở trên.
 
-### Đổi giọng nói của Naota thế nào?
+### Đổi giọng nói của Vanhanh thế nào?
 
 Giọng đọc mặc định là `en-US-EmmaMultilingualNeural` (Edge TTS đa ngôn ngữ), tốc độ `+5%`. Muốn đổi giọng hoặc tốc độ, đặt hai biến trong file `.env` rồi khởi động lại server:
 

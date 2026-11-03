@@ -23,14 +23,14 @@ Khế ước một module kênh (hàm thiếu = năng lực đó không có, s�
     bat(account_id, on) -> dict                      kind="account": bật/tắt ghi vào hộp thư
     async gui(tk: dict, chat_id, text, chat_type)    gửi MỘT tin chữ từ tài khoản `tk` tới cuộc
                                                      chat. Trả (ok, loi). Có hàm này = kênh có
-                                                     năng lực "trả lời từ Naota".
+                                                     năng lực "trả lời từ Vanhanh".
 
 Ba LOẠI kênh (`kind`), khác nhau ở cách có tài khoản chứ không ở cách hiện ra:
     bot      - tài khoản là một TOKEN bot (Telegram Bot API, Zalo Bot API). Lưu ở
                `channel_accounts`, long-poll bằng `Transport`.
     account  - tài khoản là một PHIÊN đăng nhập sẵn có ở nơi khác (Zalo cá nhân qua MCP). Module
                tự liệt kê qua `tai_khoan()`, có công tắc ghi.
-    webhook  - nền tảng GỌI NGƯỢC vào Naota (chừa chỗ, chưa kênh nào dùng). WhatsApp, Messenger và Zalo OA
+    webhook  - nền tảng GỌI NGƯỢC vào Vanhanh (chừa chỗ, chưa kênh nào dùng). WhatsApp, Messenger và Zalo OA
                cũng nhận tin qua webhook nhưng khai kind "bot": tài khoản vẫn là token lưu ở kho tài
                khoản, module khai thêm `WEBHOOK_PATH` để form thêm tài khoản hiện địa chỉ cần dán sang nền tảng.
 
@@ -51,7 +51,7 @@ NANG_LUC_MAC_DINH = {
     "nhom": False,            # bot đứng được trong nhóm
     "gui_chu": False,         # gửi được chữ ra ngoài
     "gui_file": False,        # gửi được ảnh/tài liệu ra ngoài
-    "tra_loi_tu_naota": False,   # chủ trả lời khách ngay từ Hộp thư (cần hàm `gui`)
+    "tra_loi_tu_vanhanh": False,   # chủ trả lời khách ngay từ Hộp thư (cần hàm `gui`)
     "bot": False,             # gắn được một Bot chuyên trách (kind == "bot")
     "ghi_theo_cong_tac": False,  # ghi vào hộp thư khi chủ BẬT (kind == "account")
     "nhap_lich_su": False,    # nhập lại tin cũ vào hộp thư khi chủ bấm (cần hàm `nhap_lich_su`)
@@ -124,7 +124,7 @@ def _nap() -> Dict[str, KenhSpec]:
         nl = dict(NANG_LUC_MAC_DINH)
         nl.update(spec.nang_luc or {})
         # Hai năng lực suy ra từ chính module, không tin lời khai: có hàm mới có năng lực.
-        nl["tra_loi_tu_naota"] = bool(nl.get("gui_chu")) and callable(getattr(m, "gui", None))
+        nl["tra_loi_tu_vanhanh"] = bool(nl.get("gui_chu")) and callable(getattr(m, "gui", None))
         # Kênh nào có lớp vận chuyển thì gắn được bot. Gồm cả kind "account" (Zalo cá
         # nhân): nó không có token nhưng tin đi vào qua vòng đọc của chính module, và bot trả lời
         # bằng `gui`. Cái khác nhau giữa hai loại là NGUỒN tài khoản (token ở kho tài khoản, hay
@@ -233,8 +233,8 @@ async def gui(kenh: str, tk: dict, chat_id: str, text: str, chat_type: str = "pr
     m = module(kenh)
     if not s or not m:
         return False, f"kênh '{kenh}' không có trong sổ đăng ký"
-    if not s.nl("tra_loi_tu_naota"):
-        return False, f"{s.nhan} chưa gửi được tin từ Naota"
+    if not s.nl("tra_loi_tu_vanhanh"):
+        return False, f"{s.nhan} chưa gửi được tin từ Vanhanh"
     try:
         return await m.gui(tk, str(chat_id), str(text or ""), chat_type or "private", **extra)
     except Exception as e:

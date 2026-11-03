@@ -12,9 +12,9 @@ import os
 import sys
 import tempfile
 
-_STATE = tempfile.mkdtemp(prefix="naota-ht-media-")
-_BRAINS = tempfile.mkdtemp(prefix="naota-ht-media-brains-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="vanhanh-ht-media-")
+_BRAINS = tempfile.mkdtemp(prefix="vanhanh-ht-media-brains-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
 os.environ["BRAINS_DIR"] = _BRAINS
 
 BRAIN = os.path.join(_BRAINS, "brain")

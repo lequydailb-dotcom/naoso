@@ -3,12 +3,12 @@
     python tests/run.py hostinger_khong_traefik      (no Docker needed: the gateway script runs under sh with stubs)
 
 Background: the "Ubuntu 24 + Docker" template on Hostinger ships Traefik on ports 80/443, a plain
-Ubuntu 26 does not, so the same link gave Naota but never HTTPS. The `gateway` service in docker-compose.hostinger.yml
+Ubuntu 26 does not, so the same link gave Vanhanh but never HTTPS. The `gateway` service in docker-compose.hostinger.yml
 runs Caddy only when 80/443 are free. Checks:
   1. the service shape: host networking (never publishes 80/443, so a Traefik VPS never gets "port is already
      allocated"), no new Environment field, Traefik ignores it, certificates kept in a volume;
   2. the script itself, run with stubs: no DOMAIN_NAME -> idle; a bad DOMAIN_NAME -> idle; ports busy -> idle and says
-     Traefik has it; ports free -> writes a Caddyfile for exactly DOMAIN_NAME to NAOTA_HOST_PORT and starts Caddy.
+     Traefik has it; ports free -> writes a Caddyfile for exactly DOMAIN_NAME to VANHANH_HOST_PORT and starts Caddy.
 Verified once by hand on Docker 29: idle without a domain, Caddy answering 308 then 200 through to the
 app when the ports were free, idle next to a container holding 80/443.
 """
@@ -44,15 +44,15 @@ gw = doc["services"].get("gateway") or {}
 check("the Hostinger compose has a gateway service", bool(gw))
 check("host networking, never publishes ports (no clash with Traefik)", gw.get("network_mode") == "host" and "ports" not in gw)
 check("Caddy image", str(gw.get("image", "")).startswith("caddy:2"))
-check("only DOMAIN_NAME, NAOTA_HOST_PORT, NAOTA_NAME, all already in the form",
-      set((gw.get("environment") or {}).keys()) == {"DOMAIN_NAME", "NAOTA_HOST_PORT", "NAOTA_NAME"})
-check("named after the instance like the other containers", gw.get("container_name") == "${NAOTA_NAME:-naota}-gateway")
+check("only DOMAIN_NAME, VANHANH_HOST_PORT, VANHANH_NAME, all already in the form",
+      set((gw.get("environment") or {}).keys()) == {"DOMAIN_NAME", "VANHANH_HOST_PORT", "VANHANH_NAME"})
+check("named after the instance like the other containers", gw.get("container_name") == "${VANHANH_NAME:-vanhanh}-gateway")
 check("Traefik ignores it", "traefik.enable=false" in (gw.get("labels") or []))
 check("certificates kept in a volume across Redeploy",
       any(str(v).startswith("gateway-data:/data") for v in gw.get("volumes") or []) and "gateway-data" in (doc.get("volumes") or {}))
 check("restarts with the stack", gw.get("restart") == "unless-stopped")
-check("the naota service still carries the Traefik labels for Ubuntu 24",
-      any("traefik.http.routers" in str(x) for x in doc["services"]["naota"].get("labels") or []))
+check("the vanhanh service still carries the Traefik labels for Ubuntu 24",
+      any("traefik.http.routers" in str(x) for x in doc["services"]["vanhanh"].get("labels") or []))
 
 # ---- 2. the script, with stubs ----
 script = gw["entrypoint"][2].replace("$$", "$")
@@ -79,11 +79,11 @@ def run(env_domain, busy=False, port="7777", host="vm", dns=None, name=None):
     s = (script.replace("/proc/net/tcp6", str(d / "none")).replace("/proc/net/tcp", str(tcp))
          .replace("/config/Caddyfile", str(d / "config" / "Caddyfile")).replace("/status", str(d / "status")))
     s = s.replace("while :; do sleep 3600; done", "sleep 3600; exit 0").replace("sleep 600", "sleep 600; exit 0")
-    env = dict(os.environ, PATH=f"{d}/bin:" + os.environ.get("PATH", ""), NAOTA_HOST_PORT=port)
+    env = dict(os.environ, PATH=f"{d}/bin:" + os.environ.get("PATH", ""), VANHANH_HOST_PORT=port)
     if env_domain is not None:
         env["DOMAIN_NAME"] = env_domain
     if name is not None:
-        env["NAOTA_NAME"] = name
+        env["VANHANH_NAME"] = name
     p = subprocess.run([SH, "-c", s], env=env, capture_output=True, text=True, timeout=20)
     caddyfile = (d / "config" / "Caddyfile").read_text() if (d / "config" / "Caddyfile").exists() else ""
     caddy = (d / "caddy.log").read_text() if (d / "caddy.log").exists() else ""
@@ -97,36 +97,36 @@ STATUS = {"v": ""}
 
 if SH:
     out, cf, cd = run(None)
-    check("no DOMAIN_NAME: idle, says how to reach Naota", "DOMAIN_NAME chua dat" in out and not cd, out)
+    check("no DOMAIN_NAME: idle, says how to reach Vanhanh", "DOMAIN_NAME chua dat" in out and not cd, out)
     out, cf, cd = run("localhost")
     check("DOMAIN_NAME=localhost (the default): idle", "DOMAIN_NAME chua dat" in out and not cd)
     out, cf, cd = run("bad domain;rm")
     check("a DOMAIN_NAME with odd characters never reaches the Caddyfile", "khong hop le" in out and not cf and not cd, out)
-    out, cf, cd = run("naota.srv1.hstgr.cloud", busy=True)
+    out, cf, cd = run("vanhanh.srv1.hstgr.cloud", busy=True)
     check("80/443 held by another proxy: idle and says Traefik has it", "Traefik" in out and not cd, out)
-    check("busy: the status file says so, with the name", STATUS["v"] == "state=busy\nnames=naota.srv1.hstgr.cloud\n", STATUS["v"])
-    out, cf, cd = run("naota.srv1.hstgr.cloud", port="7778")
+    check("busy: the status file says so, with the name", STATUS["v"] == "state=busy\nnames=vanhanh.srv1.hstgr.cloud\n", STATUS["v"])
+    out, cf, cd = run("vanhanh.srv1.hstgr.cloud", port="7778")
     check("ports free: Caddyfile for exactly DOMAIN_NAME to the instance's host port",
-          cf.strip() == "naota.srv1.hstgr.cloud {\n\treverse_proxy 127.0.0.1:7778\n}", repr(cf))
+          cf.strip() == "vanhanh.srv1.hstgr.cloud {\n\treverse_proxy 127.0.0.1:7778\n}", repr(cf))
     check("ports free: Caddy starts with that file", "run --config" in cd and "--adapter caddyfile" in cd, cd)
-    check("serving: the status file lists the name", STATUS["v"] == "state=serving\nnames=naota.srv1.hstgr.cloud\n", STATUS["v"])
+    check("serving: the status file lists the name", STATUS["v"] == "state=serving\nnames=vanhanh.srv1.hstgr.cloud\n", STATUS["v"])
     check("serving: the log names the firewall as the thing to check", "Tuong lua" in out, out)
-    # No DOMAIN_NAME on a Hostinger VPS -> the VPS link. It serves BOTH naota.<vps> and <vps> and
+    # No DOMAIN_NAME on a Hostinger VPS -> the VPS link. It serves BOTH vanhanh.<vps> and <vps> and
     # never asks DNS, because getent read the VPS's /etc/hosts (hostname -> 127.0.1.1) and picked a different name
-    # from the one Naota checked (seen on Ubuntu 26: still IP, no https).
+    # from the one Vanhanh checked (seen on Ubuntu 26: still IP, no https).
     out, cf, cd = run(None, host="srv1234567.hstgr.cloud", dns={"srv1234567.hstgr.cloud": "127.0.1.1"})
-    check("no DOMAIN_NAME: Caddy serves naota.<vps> and <vps>, /etc/hosts makes no difference",
-          cf.startswith("naota.srv1234567.hstgr.cloud, srv1234567.hstgr.cloud {") and "run --config" in cd, (out, cf))
-    check("the status file lists both, naota.<vps> first",
-          STATUS["v"] == "state=serving\nnames=naota.srv1234567.hstgr.cloud srv1234567.hstgr.cloud\n", STATUS["v"])
+    check("no DOMAIN_NAME: Caddy serves vanhanh.<vps> and <vps>, /etc/hosts makes no difference",
+          cf.startswith("vanhanh.srv1234567.hstgr.cloud, srv1234567.hstgr.cloud {") and "run --config" in cd, (out, cf))
+    check("the status file lists both, vanhanh.<vps> first",
+          STATUS["v"] == "state=serving\nnames=vanhanh.srv1234567.hstgr.cloud srv1234567.hstgr.cloud\n", STATUS["v"])
     out, cf, cd = run("localhost", host="srv1234567.hstgr.cloud")
-    check("DOMAIN_NAME=localhost acts as unset", cf.startswith("naota.srv1234567.hstgr.cloud, srv1234567.hstgr.cloud {"), (out, cf))
+    check("DOMAIN_NAME=localhost acts as unset", cf.startswith("vanhanh.srv1234567.hstgr.cloud, srv1234567.hstgr.cloud {"), (out, cf))
     out, cf, cd = run(None, host="SRV1234567")
     check("a short srv<id> hostname gets .hstgr.cloud (and lower case)",
-          cf.startswith("naota.srv1234567.hstgr.cloud, srv1234567.hstgr.cloud {"), (out, cf))
-    out, cf, cd = run(None, host="srv1234567.hstgr.cloud", name="naota-shop")
+          cf.startswith("vanhanh.srv1234567.hstgr.cloud, srv1234567.hstgr.cloud {"), (out, cf))
+    out, cf, cd = run(None, host="srv1234567.hstgr.cloud", name="vanhanh-shop")
     check("second instance: only its own sub-name, never the bare VPS name",
-          cf.startswith("naota-shop.srv1234567.hstgr.cloud {"), (out, cf))
+          cf.startswith("vanhanh-shop.srv1234567.hstgr.cloud {"), (out, cf))
     out, cf, cd = run(None, host="srv1234567.hstgr.cloud", busy=True)
     check("Traefik holding 80/443: idle even with a VPS name", not cd and "Traefik" in out, out)
     check("Traefik holding 80/443: status busy", STATUS["v"].startswith("state=busy\n"), STATUS["v"])
@@ -134,9 +134,9 @@ if SH:
     check("not a Hostinger hostname: idle", not cd and "DOMAIN_NAME chua dat" in out, out)
     check("idle: status file says idle", STATUS["v"] == "state=idle\nnames=\n", STATUS["v"])
     check("gateway shares the VPS hostname (uts: host)", gw.get("uts") == "host")
-    naota_svc = doc["services"]["naota"]
-    check("the status volume: gateway writes, naota reads only",
-          "gateway-status:/status" in (gw.get("volumes") or []) and "gateway-status:/gateway:ro" in (naota_svc.get("volumes") or [])
+    vanhanh_svc = doc["services"]["vanhanh"]
+    check("the status volume: gateway writes, vanhanh reads only",
+          "gateway-status:/status" in (gw.get("volumes") or []) and "gateway-status:/gateway:ro" in (vanhanh_svc.get("volumes") or [])
           and "gateway-status" in (doc.get("volumes") or {}))
 else:
     print("skip script run (no sh)")

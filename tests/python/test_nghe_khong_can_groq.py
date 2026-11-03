@@ -16,7 +16,7 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-ear-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-ear-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -80,20 +80,20 @@ r = run(stt.listen_any(b"x", "a.ogg", {"gemini": "m"}))
 check("only a Gemini key -> Gemini hears it", r.get("ear") == "gemini" and r.get("text") == "nghe bằng gemini", r)
 
 CALLS.clear()
-REPLIES["groq"] = {"ok": False, "ly_do": "loi", "noi_voi_naota": "x"}
-REPLIES["openai"] = {"ok": False, "ly_do": "loi", "noi_voi_naota": "x"}
+REPLIES["groq"] = {"ok": False, "ly_do": "loi", "noi_voi_vanhanh": "x"}
+REPLIES["openai"] = {"ok": False, "ly_do": "loi", "noi_voi_vanhanh": "x"}
 r = run(stt.listen_any(b"x", "a.ogg", ALL, local=fake_local))
 check("CANARY: a failing ear hands over to the next (Groq, OpenAI down -> Gemini)",
       r.get("ear") == "gemini" and CALLS == ["groq", "openai", "gemini"], CALLS)
 
 CALLS.clear()
-REPLIES["gemini"] = {"ok": False, "ly_do": "qua_lon", "noi_voi_naota": "x"}
+REPLIES["gemini"] = {"ok": False, "ly_do": "qua_lon", "noi_voi_vanhanh": "x"}
 r = run(stt.listen_any(b"x", "a.ogg", ALL, local=fake_local))
 check("every key failing -> the offline Whisper hears it", r.get("ear") == "local" and CALLS[-1] == "local", CALLS)
 
 CALLS.clear()
 REPLIES.clear()
-REPLIES["groq"] = {"ok": False, "ly_do": "khong_nghe_ro", "noi_voi_naota": "x"}
+REPLIES["groq"] = {"ok": False, "ly_do": "khong_nghe_ro", "noi_voi_vanhanh": "x"}
 r = run(stt.listen_any(b"x", "a.ogg", ALL, local=fake_local))
 check("silence stays silence: 'nothing heard' does not try every other ear", CALLS == ["groq"]
       and r.get("ly_do") == "khong_nghe_ro", CALLS)
@@ -218,7 +218,7 @@ check("the temporary audio file is deleted", not list(local_stt.TMP_DIR.glob("*"
 r = run(local_stt.transcribe(b"audio-bytes", "voice.m4a", "vi"))
 check("a broken model is 'loi', never a crash", r.get("ly_do") == "loi" and not r.get("ok"), r)
 r = ot.go("local_ear")
-check("Remove deletes everything Naota downloaded for it", r.get("ok") and not local_stt.ROOT.exists(), r)
+check("Remove deletes everything Vanhanh downloaded for it", r.get("ok") and not local_stt.ROOT.exists(), r)
 
 # ============================================================
 # 4. main wires the chain for every voice message and video
@@ -239,7 +239,7 @@ raw = {"id": "m1", "threadId": "t1", "threadType": "dm", "senderId": "t1", "send
        "timestamp": int(time.time() * 1000), "type": "chat.voice",
        "attachment": {"type": "chat.voice", "url": URL, "description": ""}}
 e = zc.chuan_hoa_tin(CONN, raw, {"t1": {"name": "Khách", "type": "dm"}})
-check("a naota-zalo voice message keeps its link", e and e["message_type"] == "audio"
+check("a vanhanh-zalo voice message keeps its link", e and e["message_type"] == "audio"
       and e["metadata"].get("audio_url") == URL, e)
 
 
@@ -288,7 +288,7 @@ check("a voice message that cannot be fetched -> honest line, no guess", "không
 
 
 async def no_ear(data, name):
-    return {"ok": False, "ly_do": "thieu_key", "noi_voi_naota": "x"}
+    return {"ok": False, "ly_do": "thieu_key", "noi_voi_vanhanh": "x"}
 
 cr._deps["transcribe"] = no_ear
 n = run(cr.nghe_cho_bot({"audio_urls": [URL]}, {}))

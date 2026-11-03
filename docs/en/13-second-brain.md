@@ -2,9 +2,9 @@
 
 *[Tiếng Việt](../13-second-brain-bo-nho-wiki.md) · **English***
 
-The Second Brain is Naota's "external brain": a folder of Markdown notes that Naota reads, accumulates and remembers long term. Because of it, Naota does not just answer questions during a chat but remembers you, remembers your business, and understands you better over time.
+The Second Brain is Vanhanh's "external brain": a folder of Markdown notes that Vanhanh reads, accumulates and remembers long term. Because of it, Vanhanh does not just answer questions during a chat but remembers you, remembers your business, and understands you better over time.
 
-This page covers: what the Second Brain contains, how to create and switch between several "brains", how to make Naota remember (long-term memory), and how to "digest" documents (INGEST) so raw files become reusable knowledge.
+This page covers: what the Second Brain contains, how to create and switch between several "brains", how to make Vanhanh remember (long-term memory), and how to "digest" documents (INGEST) so raw files become reusable knowledge.
 
 ## What this feature is
 
@@ -14,41 +14,41 @@ A Second Brain (a "brain" or "vault" for short) is a folder on your machine or V
 |---|---|---|
 | Sources | `sources/` | Raw notes: articles, screenshots, files you drop in. These are the "originals". |
 | Wiki | `wiki/` | Distilled knowledge: concepts, frameworks, procedures, cross-linked with `[[...]]`. |
-| Memory | `memory/` | Living memory: what Naota remembers about you and the business. |
+| Memory | `memory/` | Living memory: what Vanhanh remembers about you and the business. |
 | Agents / Workflows | `agents/`, `workflows/` | The operating layer (see [Agents and Workflows](07-agents-and-workflows.md)). |
-| Skills | `skills/` | The canonical copy of each skill, one folder per skill at `skills/<slug>/SKILL.md`. Naota mirrors them into `.claude/skills` so Claude Code loads them natively (see [Skills](06-skills.md)). |
-| Operating layer | `Naota/` | Whatever chat creates: loops at `Naota/loops/<slug>.md`, per-chat Zalo rules at `Naota/zalo/<slug>.md`, reminders at `Naota/reminders.json`, and the capability index `Naota/index.md` (auto-generated from files, do not edit by hand). |
+| Skills | `skills/` | The canonical copy of each skill, one folder per skill at `skills/<slug>/SKILL.md`. Vanhanh mirrors them into `.claude/skills` so Claude Code loads them natively (see [Skills](06-skills.md)). |
+| Operating layer | `Vanhanh/` | Whatever chat creates: loops at `Vanhanh/loops/<slug>.md`, per-chat Zalo rules at `Vanhanh/zalo/<slug>.md`, reminders at `Vanhanh/reminders.json`, and the capability index `Vanhanh/index.md` (auto-generated from files, do not edit by hand). |
 | Bullet journal | `00 - Dashboard/`, `01 - Daily Log/`, `02 - Weekly Log/`... | Where daily notes and tasks live; Dataview blocks pull from here (see [Tasks and Dataview in notes](19-tasks-and-dataview.md)). |
 | Cache area | `attachments/`, `inbox/` | Images and attachments; `inbox/telegram/` is where files sent over Telegram land. **Both folders are caches and expire on their own**, read the dedicated section below before leaving anything valuable here. |
 
 The three core layers of a "second brain" in the proper sense are **Sources + Wiki + Memory**:
 
 - **Sources** holds raw, unprocessed material.
-- **Wiki** is refined knowledge, linked into a network, which is exactly what Naota draws in the [Knowledge graph](03-knowledge-graph.md).
-- **Memory** is the long-term memory that lets Naota "remember you".
+- **Wiki** is refined knowledge, linked into a network, which is exactly what Vanhanh draws in the [Knowledge graph](03-knowledge-graph.md).
+- **Memory** is the long-term memory that lets Vanhanh "remember you".
 
 The operating principle: **Sources -> (INGEST) -> Wiki**. Knowledge accumulates gradually, thickening the brain, instead of being rediscovered on every question.
 
 ## Where a brain lives on disk
 
-Every brain sits under one parent folder named `brains/`, one subfolder per brain. On a local install that is `brains/` inside the Naota folder; on Docker/VPS it defaults to `/brains` (mounted separately so it can be backed up). Move it with the `BRAINS_DIR` environment variable, see [.env configuration](16-env-configuration.md).
+Every brain sits under one parent folder named `brains/`, one subfolder per brain. On a local install that is `brains/` inside the Vanhanh folder; on Docker/VPS it defaults to `/brains` (mounted separately so it can be backed up). Move it with the `BRAINS_DIR` environment variable, see [.env configuration](16-env-configuration.md).
 
 The starting brain is named **Brain Default** and lives at `brains/Brain Default`.
 
-`BRAIN_PATH` is only a legacy variable from when Naota had a single brain, kept around to migrate data into the new structure. Do not use it to point at the working brain.
+`BRAIN_PATH` is only a legacy variable from when Vanhanh had a single brain, kept around to migrate data into the new structure. Do not use it to point at the working brain.
 
-## Where to open it in Naota
+## Where to open it in Vanhanh
 
 The Second Brain does not live on one dedicated page but is spread across several places on the dashboard (default port `7777`). The left navigation rail groups pages, so you have to open a group to see its items:
 
 1. **Top bar, left corner**: the brain selector plus 3 small buttons ➕ 🗑 📁. This is where you create, choose and delete brains.
-2. **The chat box** (the **Naota** screen or the **Chat** page, **Assistant** group): where you drop files to INGEST and say "remember this".
+2. **The chat box** (the **Vanhanh** screen or the **Chat** page, **Assistant** group): where you drop files to INGEST and say "remember this".
 3. **The Self-learning page** (**Brain** group): number of memories learned, the learn-now button, the Curator cleanup, and the block that syncs the brain to GitHub. See [Self-learning](22-self-learning.md).
 4. **The Files page** (**Brain** group): browse, edit, upload and download every file in the brain. See [File manager](05-file-manager.md).
-5. **The Recurring jobs page** (**Work** group): set up a loop so Naota digests sources on a schedule. See [Recurring jobs and reminders](08-recurring-jobs.md).
+5. **The Recurring jobs page** (**Work** group): set up a loop so Vanhanh digests sources on a schedule. See [Recurring jobs and reminders](08-recurring-jobs.md).
 6. **The Settings page** (**System** group): the **Interface and Brain** group, item **Brain structure**, to normalise the folders.
 
-## Multi-brain: several brains in one Naota
+## Multi-brain: several brains in one Vanhanh
 
 You can keep several separate brains, for example one for the business and one for personal study. Each brain is an independent second brain: sources, wiki, memory, skills and agents are all its own.
 
@@ -65,14 +65,14 @@ The starting brain is named **Brain Default** and cannot be deleted (it is the "
 ### Choosing the working brain
 
 1. Click the brain selector in the left corner of the top bar.
-2. Pick the brain you want. Each row shows the brain's name with its note count underneath (the `.md` notes Naota counted). If the count hits the counting ceiling (5000) a `+` is appended, meaning "at least this many" rather than the true total. On a computer the list drops down under the button; on a phone it slides up from the bottom of the screen. A long list gets a search box.
-3. All of Naota (chat, graph, memory, agents) switches to that brain immediately. No page reload needed.
+2. Pick the brain you want. Each row shows the brain's name with its note count underneath (the `.md` notes Vanhanh counted). If the count hits the counting ceiling (5000) a `+` is appended, meaning "at least this many" rather than the true total. On a computer the list drops down under the button; on a phone it slides up from the bottom of the screen. A long list gets a search box.
+3. All of Vanhanh (chat, graph, memory, agents) switches to that brain immediately. No page reload needed.
 
 ### Ordering your brains
 
 1. Open the brain selector and press **Reorder**.
 2. Drag the handle (the two-way arrow at the start of a row), or press the up / down arrow at the end of a row.
-3. Press **Done**. The order is saved on the Naota server, so your phone and computer show the same list.
+3. Press **Done**. The order is saved on the Vanhanh server, so your phone and computer show the same list.
 
 Until you set an order, brains sort by their shown name with numbers read by value: "2-..." comes before "10-...". A brain created after you set an order goes to the end of the list.
 
@@ -80,7 +80,7 @@ Until you set an order, brains sort by their shown name with numbers read by val
 
 1. Click the ➕ button next to the brain selector.
 2. Type a name in the prompt that appears ("New brain name:") and confirm.
-3. Naota creates a new subfolder in `brains/` with the standard structure ready (sources, agents, workflows, memory, skills, wiki, attachments and the bullet journal set) and immediately switches to the brain you just created.
+3. Vanhanh creates a new subfolder in `brains/` with the standard structure ready (sources, agents, workflows, memory, skills, wiki, attachments and the bullet journal set) and immediately switches to the brain you just created.
 
 The brain name has special characters stripped (`: * ? " < > |`), leading and trailing dots removed, and is cut to at most 60 characters for safety.
 
@@ -90,20 +90,20 @@ If you already have a store of `.md` notes somewhere on the machine (an Obsidian
 
 1. Click the 📁 button.
 2. Pick the folder that holds the `.md` files.
-3. Naota uses that folder as a brain. Note: an external folder is only "pointed at", the 🗑 button will not delete it from disk (it only removes it from the list).
+3. Vanhanh uses that folder as a brain. Note: an external folder is only "pointed at", the 🗑 button will not delete it from disk (it only removes it from the list).
 
-Naota tidies the external-folder list itself: any entry whose path collides with a real brain, or that points at a folder deleted from disk, disappears from the menu on its own. When it cannot verify (the server hiccuped) the entry is kept, so nothing is removed by mistake.
+Vanhanh tidies the external-folder list itself: any entry whose path collides with a real brain, or that points at a folder deleted from disk, disappears from the menu on its own. When it cannot verify (the server hiccuped) the entry is kept, so nothing is removed by mistake.
 
 ### Deleting a brain (to the trash, kept 30 days)
 
-Deleting a brain is **not permanent loss**. Naota moves the whole folder to a local trash and only clears it after 30 days. At the same time Naota writes a "tombstone" so the deletion propagates to every machine syncing along, and if you have GitHub backup on, the delete is pushed to the remote right away rather than waiting for the next cycle.
+Deleting a brain is **not permanent loss**. Vanhanh moves the whole folder to a local trash and only clears it after 30 days. At the same time Vanhanh writes a "tombstone" so the deletion propagates to every machine syncing along, and if you have GitHub backup on, the delete is pushed to the remote right away rather than waiting for the next cycle.
 
 1. Select the brain you want to delete in the brain selector.
 2. Click the 🗑 button.
 3. The dialog that appears states clearly: the brain will be moved to the TRASH (kept 30 days, then deleted for good), and the deletion will SYNC to every other machine. It requires you to **type the brain name EXACTLY** to confirm.
-4. Type it correctly and the brain goes to the trash, Naota returns to Brain Default, and a notice says the brain was deleted (moved to the 30-day trash, deletion synced to other machines). Type it wrong and you get "the name does not match, deletion cancelled".
+4. Type it correctly and the brain goes to the trash, Vanhanh returns to Brain Default, and a notice says the brain was deleted (moved to the 30-day trash, deletion synced to other machines). Type it wrong and you get "the name does not match, deletion cancelled".
 
-The trash is the `brain-trash` folder inside Naota's state folder (`NAOTA_STATE_DIR`; the local install uses the `server/` folder, Docker uses the state volume). Each deletion creates a subfolder shaped like `Brain name__20260729-153012`. Clearing trash older than 30 days runs alongside each brain sync to GitHub.
+The trash is the `brain-trash` folder inside Vanhanh's state folder (`VANHANH_STATE_DIR`; the local install uses the `server/` folder, Docker uses the state volume). Each deletion creates a subfolder shaped like `Brain name__20260729-153012`. Clearing trash older than 30 days runs alongside each brain sync to GitHub.
 
 **Brain Default** cannot be deleted; clicking 🗑 while it is selected reports that the default brain (the starting brain) cannot be removed.
 
@@ -111,50 +111,50 @@ For an external folder (📁), the 🗑 button behaves entirely differently: it 
 
 ### Normalising a brain's structure
 
-If a brain has the old structure (notes under `Naota/agents`, `Memory` capitalised, skills in `.claude/skills`), you can collapse it into the uniform flat layout:
+If a brain has the old structure (notes under `Vanhanh/agents`, `Memory` capitalised, skills in `.claude/skills`), you can collapse it into the uniform flat layout:
 
 1. Go to **Settings** (**System** group on the rail).
 2. Open the **Interface and Brain** group and scroll to **Brain structure**.
-3. Click **Normalise the selected brain**, then confirm the dialog, which explains it moves `Naota/agents`→`agents`, `Naota/workflows`→`workflows`, `Memory`→`memory`, with a git backup.
+3. Click **Normalise the selected brain**, then confirm the dialog, which explains it moves `Vanhanh/agents`→`agents`, `Vanhanh/workflows`→`workflows`, `Memory`→`memory`, with a git backup.
 
-The operation is safe: it only moves when the destination folder does not exist yet, never overwriting. It folds `Naota/agents` into `agents/`, `Naota/workflows` into `workflows/`, `Memory` into `memory/`, and moves old skills from `.claude/skills` into `skills/` (including the disabled-skill branch, so skills you turned off do not come back on).
+The operation is safe: it only moves when the destination folder does not exist yet, never overwriting. It folds `Vanhanh/agents` into `agents/`, `Vanhanh/workflows` into `workflows/`, `Memory` into `memory/`, and moves old skills from `.claude/skills` into `skills/` (including the disabled-skill branch, so skills you turned off do not come back on).
 
 ## `attachments/` and `inbox/` are cache, not storage
 
-This is the rule most likely to lose data if you do not know it in advance. Naota treats these two folders as a **cache**: material passing through, not knowledge.
+This is the rule most likely to lose data if you do not know it in advance. Vanhanh treats these two folders as a **cache**: material passing through, not knowledge.
 
-- Files in those two folders older than **30 days** are cleared automatically. If total size exceeds the **300MB** ceiling, Naota clears oldest first until it is back under the ceiling.
+- Files in those two folders older than **30 days** are cleared automatically. If total size exceeds the **300MB** ceiling, Vanhanh clears oldest first until it is back under the ceiling.
 - `.md` notes that happen to sit in those folders are spared and never cleared.
-- Naota sweeps every 6 hours. The temporary stage folder (where a file you just pasted into the chat box lands) has its own shorter limit: **3 days**.
+- Vanhanh sweeps every 6 hours. The temporary stage folder (where a file you just pasted into the chat box lands) has its own shorter limit: **3 days**.
 - Both folders are **outside the brain's git**, so they do not travel with the GitHub backup and do not bloat repo history.
 - An expired image reappearing in a conversation shows as a grey dashed box reading **"Image expired"** instead of a broken-image icon.
 - To turn automatic clearing off entirely, set `enabled: false` under the `media` key in `settings.json`. The day and size thresholds are configured there too.
 
 The practical conclusion: move documents you want to keep long term into `sources/` or `wiki/`, do not leave them in `attachments/` or `inbox/`. Details in [File manager](05-file-manager.md).
 
-## Long-term memory: making Naota "remember you"
+## Long-term memory: making Vanhanh "remember you"
 
 The living memory sits at `memory/` inside the selected brain and contains:
 
-- `memory/MEMORY.md`: the index, one line per memory. This file is preloaded ahead of every question, so Naota always has a baseline memory of you.
+- `memory/MEMORY.md`: the index, one line per memory. This file is preloaded ahead of every question, so Vanhanh always has a baseline memory of you.
 - `memory/facts/*.md`: the detail of each memory, one file per fact.
 - `memory/conversations/YYYY-MM-DD.md`: raw conversation logs, the raw material for learning.
 
-Naota sorts memories into 4 kinds: information about you (`user`), how you like to work (`preference`), facts about the business (`business`), and settled decisions (`decision`).
+Vanhanh sorts memories into 4 kinds: information about you (`user`), how you like to work (`preference`), facts about the business (`business`), and settled decisions (`decision`).
 
 ### The MEMORY.md index has a context ceiling
 
-Because `MEMORY.md` is loaded into **every** chat turn, it has a ceiling of about **20,000 characters** (change it with the `NAOTA_MEMORY_INDEX_MAX` environment variable). When a thickening brain goes over the ceiling, Naota steps down gradually, favouring keeping the memory count intact:
+Because `MEMORY.md` is loaded into **every** chat turn, it has a ceiling of about **20,000 characters** (change it with the `VANHANH_MEMORY_INDEX_MAX` environment variable). When a thickening brain goes over the ceiling, Vanhanh steps down gradually, favouring keeping the memory count intact:
 
 1. Shorten each line's description to 100 characters, then to 60.
 2. Keep only the title and file path, dropping the description.
-3. Only as a last resort drop lines, and when it does Naota states how many memories are not listed plus where to read on in `Memory/facts/`.
+3. Only as a last resort drop lines, and when it does Vanhanh states how many memories are not listed plus where to read on in `Memory/facts/`.
 
-So no memory is lost, the index just displays more tersely; the full detail stays in `memory/facts/` and Naota can read it at any time.
+So no memory is lost, the index just displays more tersely; the full detail stays in `memory/facts/` and Vanhanh can read it at any time.
 
 ### Conversation logs are masked for secrets before being written
 
-Before writing into `memory/conversations/`, Naota masks anything that looks like a secret you happened to paste into chat: API keys (`sk-`, `xai-`, `gsk_`, `hf_`, `tvly-`), GitHub tokens (`ghp_`, `gho_`, `github_pat_`), Google keys (`AIza`), JWTs, Telegram bot tokens, the `Authorization` header, and passwords inside database connection strings. They are replaced by a shortened form like `sk-abc...wxyz` or `***`.
+Before writing into `memory/conversations/`, Vanhanh masks anything that looks like a secret you happened to paste into chat: API keys (`sk-`, `xai-`, `gsk_`, `hf_`, `tvly-`), GitHub tokens (`ghp_`, `gho_`, `github_pat_`), Google keys (`AIza`), JWTs, Telegram bot tokens, the `Authorization` header, and passwords inside database connection strings. They are replaced by a shortened form like `sk-abc...wxyz` or `***`.
 
 On top of that, any message longer than 4,000 characters has its middle cut out (keeping the first 2,800 and last 1,000 characters) with a line stating how much was cut, so the log does not balloon.
 
@@ -169,53 +169,53 @@ The memory count is on the **Metrics** line of the **Self-learning** page (**Bra
 
 The old "LONG-TERM MEMORY" widget in the chat column has been removed; everything about learning and memory now lives on the Self-learning page.
 
-### Forcing Naota to remember something
+### Forcing Vanhanh to remember something
 
 While chatting, just say it plainly:
 
 - "remember this"
 - "make a note that ..."
 
-When you use those phrases, Naota is required to create a new memory immediately: it writes a file in `memory/facts/` and adds a line to `MEMORY.md`. For example "Remember this: my shop is closed on Sundays" is stored as a `business` fact.
+When you use those phrases, Vanhanh is required to create a new memory immediately: it writes a file in `memory/facts/` and adds a line to `MEMORY.md`. For example "Remember this: my shop is closed on Sundays" is stored as a `business` fact.
 
-Naota only records durable, memorable things. It skips the transient and does not duplicate an existing memory (a duplicate updates the old file).
+Vanhanh only records durable, memorable things. It skips the transient and does not duplicate an existing memory (a duplicate updates the old file).
 
 ### Learning from conversations (the consolidation loop)
 
-This is the loop that makes Naota smarter over time: re-read recent conversations, extract new facts, merge duplicates, drop memories that are now wrong, and **distil reusable concepts into the Wiki**.
+This is the loop that makes Vanhanh smarter over time: re-read recent conversations, extract new facts, merge duplicates, drop memories that are now wrong, and **distil reusable concepts into the Wiki**.
 
 The loop now runs automatically at the server layer after each chat turn (with a debounce delay), through a read-only, isolated learning process; the writer is trusted code, not the AI. It is on by default.
 
-The key point of this loop: Naota clearly separates two things. Facts about you and the business go to `memory/facts/`. Reusable concepts, frameworks and procedures are distilled into Wiki pages (with `[[wikilink]]`). Each in its own place, which is how the knowledge graph thickens rather than getting mixed up with personal notes.
+The key point of this loop: Vanhanh clearly separates two things. Facts about you and the business go to `memory/facts/`. Reusable concepts, frameworks and procedures are distilled into Wiki pages (with `[[wikilink]]`). Each in its own place, which is how the knowledge graph thickens rather than getting mixed up with personal notes.
 
-Turning it on and off, choosing the write mode, choosing what to learn, learning now, seeing "what Naota taught itself", and undoing one learning run: all on the **Self-learning** page. See [Self-learning](22-self-learning.md).
+Turning it on and off, choosing the write mode, choosing what to learn, learning now, seeing "what Vanhanh taught itself", and undoing one learning run: all on the **Self-learning** page. See [Self-learning](22-self-learning.md).
 
 ## INGEST: digesting documents into knowledge
 
-INGEST is the process that turns a raw file (an article, a screenshot, a note) into a source in `sources/`, and from there distils it up into the Wiki. The result: Naota summarises, extracts insight, writes the Wiki and may suggest tasks.
+INGEST is the process that turns a raw file (an article, a screenshot, a note) into a source in `sources/`, and from there distils it up into the Wiki. The result: Vanhanh summarises, extracts insight, writes the Wiki and may suggest tasks.
 
 ### How to use it (step by step)
 
-1. Open the chat box (the **Naota** screen or the **Chat** page).
+1. Open the chat box (the **Vanhanh** screen or the **Chat** page).
 2. Drop a file into the chat input (drag and drop, the drop zone reads "📎 Drop files here → saved to Sources"), or click the paperclip attach button next to the input (tooltip "Attach a file (image, text, document) → saved to Sources"). Images and text files both work. The file uploads and waits in the staging area.
-3. By default Naota **only reads the file and answers**, saving nothing anywhere. If you just want a quick summary, type your question normally.
-4. To make Naota save and digest it, say one of these phrases in the message: **"save to source"**, **"ingest"**, or **"write to the second brain"**.
-5. Naota then:
+3. By default Vanhanh **only reads the file and answers**, saving nothing anywhere. If you just want a quick summary, type your question normally.
+4. To make Vanhanh save and digest it, say one of these phrases in the message: **"save to source"**, **"ingest"**, or **"write to the second brain"**.
+5. Vanhanh then:
    - For a text file: reads it fully and creates a clean `.md` file in `sources/` with source frontmatter.
    - For an image: reads and describes the image content, creates the `.md` in `sources/`, moves the original image into `attachments/` and embeds it back.
-6. From that source, Naota extracts insight and updates the Wiki, and may propose tasks if the document opens up work to do.
+6. From that source, Vanhanh extracts insight and updates the Wiki, and may propose tasks if the document opens up work to do.
 
 Remember the cache rule above: the original image in `attachments/` expires after 30 days, while the `.md` in `sources/` stays forever. That is exactly why you should ingest rather than just drop a file and leave it.
 
-### Letting Naota process a batch of sources on a schedule
+### Letting Vanhanh process a batch of sources on a schedule
 
-If you have piled up unprocessed sources, you can hand Naota a **loop** running in the background:
+If you have piled up unprocessed sources, you can hand Vanhanh a **loop** running in the background:
 
 1. Go to **Recurring jobs** (**Work** group on the rail).
 2. Click **+ Add job**.
 3. Under **Job type**, keep **🔁 Loop**.
 4. Set a **Name** (for example "Digest new sources").
-5. Fill in **Task description (each cycle Naota does exactly this)**, for example: "Each cycle read 1 unprocessed source in sources and propose the Wiki page to create".
+5. Fill in **Task description (each cycle Vanhanh does exactly this)**, for example: "Each cycle read 1 unprocessed source in sources and propose the Wiki page to create".
 6. Choose the **Mode**: **Full power** (the default) lets it act for real, **Auto (drafts)** limits it to writing draft files in the brain, **Suggest (read only)** gives suggestions only.
 7. Set the **Cycle (minutes, minimum 5)**, choose the **Brain (where the job is stored)**, then click **💾 Save**.
 
@@ -229,9 +229,9 @@ The standalone "LINT Wiki" button of old is gone. LINT now runs inside the **Cur
 
 1. Go to **Self-learning** in the **Brain** group on the rail.
 2. Click **🧹 Curator now** to run one pass immediately. The button changes to "Cleaning...".
-3. Or click the status button under **Curator (periodic maintenance)** to flip it from "○ Off" to "● On", then click **💾 Save configuration** so Naota runs it on a cycle (the Curator is off by default, and the cycle when on is 24 hours).
+3. Or click the status button under **Curator (periodic maintenance)** to flip it from "○ Off" to "● On", then click **💾 Save configuration** so Vanhanh runs it on a cycle (the Curator is off by default, and the cycle when on is 24 hours).
 
-The result changes nothing, it only pours into the **Learning log** block as "Wiki LINT (suggestions, nothing changed)". It looks for: duplicate pages, pages nobody links to (orphans), broken `[[...]]` links, unresolved contradictions, and thin areas of knowledge (gaps). Read the list and decide yourself what to fix, do not let Naota fix everything at once.
+The result changes nothing, it only pours into the **Learning log** block as "Wiki LINT (suggestions, nothing changed)". It looks for: duplicate pages, pages nobody links to (orphans), broken `[[...]]` links, unresolved contradictions, and thin areas of knowledge (gaps). Read the list and decide yourself what to fix, do not let Vanhanh fix everything at once.
 
 ## Quick reference of buttons and states
 
@@ -254,20 +254,20 @@ The result changes nothing, it only pours into the **Learning log** block as "Wi
 ## Tips
 
 - **Split brains by purpose.** One brain for business and one for personal keeps the knowledge graph and the memory tidy and less noisy.
-- **Say "remember this" for what is durable.** Product niche, main sales channel, pricing decisions. Do not record the transient (busy today, a message just sent), which Naota skips anyway.
-- **To digest a document you must say so.** Dropping a file is not enough to save it, you have to add "save to source" or "ingest". Ask an ordinary question and Naota just reads and moves on.
-- **Memory travels with the folder.** Change machines or move to a VPS and you only need to point Naota at the right brain folder for every memory and Wiki page to be intact.
-- **Do not hand-roll git to sync.** Naota already has the **⇅ Sync brain with GitHub (two-way)** block on the Self-learning page: it pushes the whole brains folder to a private repo and pulls changes back from another machine. Step by step in [Backing the brain up to GitHub](18-github-backup.md).
+- **Say "remember this" for what is durable.** Product niche, main sales channel, pricing decisions. Do not record the transient (busy today, a message just sent), which Vanhanh skips anyway.
+- **To digest a document you must say so.** Dropping a file is not enough to save it, you have to add "save to source" or "ingest". Ask an ordinary question and Vanhanh just reads and moves on.
+- **Memory travels with the folder.** Change machines or move to a VPS and you only need to point Vanhanh at the right brain folder for every memory and Wiki page to be intact.
+- **Do not hand-roll git to sync.** Vanhanh already has the **⇅ Sync brain with GitHub (two-way)** block on the Self-learning page: it pushes the whole brains folder to a private repo and pulls changes back from another machine. Step by step in [Backing the brain up to GitHub](18-github-backup.md).
 - **See the knowledge visually** in the [Knowledge graph](03-knowledge-graph.md): every source and Wiki page is a node, `[[...]]` links are the edges.
 
 ## Common problems
 
 - **The "LONG-TERM MEMORY" section or the "Learn from conversation now" button is missing from the chat column.** That widget was removed. Everything about learning and memory is now on the **Self-learning** page (**Brain** group): the memory count on the **Metrics** line, manual learning through **▶ Learn now**.
 - **The memory count is still 0 after a lot of chatting.** A memory is only written when durable, memorable information appears, or when you say "remember this", or after a learning pass runs. Small talk creates no memories. Also check on the Self-learning page whether self-learning is on and whether the write mode is **Write automatically**.
-- **A dropped file never appears in Sources.** That is by design: reading only is the default. You have to include "save to source" or "ingest" in the message for Naota to create the `.md` in `sources/`.
+- **A dropped file never appears in Sources.** That is by design: reading only is the default. You have to include "save to source" or "ingest" in the message for Vanhanh to create the `.md` in `sources/`.
 - **Old images in a conversation turn into a grey "Image expired" box.** By design: `attachments/` is a cache and images over 30 days are cleared. Content already extracted into an `.md` in `sources/` at ingest time is still there.
-- **You deleted the wrong brain.** It is not lost right away: the folder is in `brain-trash` inside Naota's state folder, named like `Brain name__20260729-153012`, kept 30 days. The safe way to recover: click ➕ and recreate the brain with **exactly the old name** (this removes the tombstone so the brain is not deleted again on sync), then copy the contents from the trash into that folder.
-- **A brain reports a non-standard structure.** Go to Settings, the Interface and Brain group, the Brain structure item, and click **Normalise the selected brain** so Naota collapses the folders.
+- **You deleted the wrong brain.** It is not lost right away: the folder is in `brain-trash` inside Vanhanh's state folder, named like `Brain name__20260729-153012`, kept 30 days. The safe way to recover: click ➕ and recreate the brain with **exactly the old name** (this removes the tombstone so the brain is not deleted again on sync), then copy the contents from the trash into that folder.
+- **A brain reports a non-standard structure.** Go to Settings, the Interface and Brain group, the Brain structure item, and click **Normalise the selected brain** so Vanhanh collapses the folders.
 - **Memories did not follow to a new machine.** Check that you pointed at the right brain folder, the one containing `memory/`. Memory lives in the folder, not in the account. To keep two machines matched automatically, turn on GitHub sync, see [Backing the brain up to GitHub](18-github-backup.md).
 - **After a GitHub backup, conversation logs and images are missing.** By design: `memory/conversations/`, `attachments/` and `inbox/` are all outside the brain's git. The backup only keeps distilled knowledge.
 
@@ -281,4 +281,4 @@ The result changes nothing, it only pours into the **Learning log** block as "Wi
 - [Agents and Workflows](07-agents-and-workflows.md) - the operating layer in `agents/` and `workflows/`.
 - [Recurring jobs and reminders](08-recurring-jobs.md) - assigning a loop that digests sources on a schedule.
 - [Tasks and Dataview in notes](19-tasks-and-dataview.md) - the bullet journal set inside the brain.
-- [.env configuration](16-env-configuration.md) - the `BRAINS_DIR`, `NAOTA_STATE_DIR` and `NAOTA_MEMORY_INDEX_MAX` variables.
+- [.env configuration](16-env-configuration.md) - the `BRAINS_DIR`, `VANHANH_STATE_DIR` and `VANHANH_MEMORY_INDEX_MAX` variables.

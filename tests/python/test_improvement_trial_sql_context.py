@@ -16,7 +16,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 SCRATCH = Path(tempfile.mkdtemp(prefix="trial-sql-context-"))
-for key, name in {"NAOTA_STATE_DIR": "state", "BRAINS_DIR": "brains", "OBSIDIAN_VAULT_PATH": "vault",
+for key, name in {"VANHANH_STATE_DIR": "state", "BRAINS_DIR": "brains", "OBSIDIAN_VAULT_PATH": "vault",
                   "BRAIN_PATH": "brain", "SOURCES_PATH": "sources"}.items():
     os.environ[key] = str(SCRATCH / name)
 
@@ -348,7 +348,7 @@ class SqlContextTests(unittest.TestCase):
             self.capture()
 
     def test_non_dashboard_archived_and_unknown_surface_columns_are_unsupported(self):
-        for channel in ("agent:writer", "agent:naota-core", "coding:phien", "team:one", "workflow:one", "telegram:one", "adaptive", "dashboard", ""):
+        for channel in ("agent:writer", "agent:vanhanh-core", "coding:phien", "team:one", "workflow:one", "telegram:one", "adaptive", "dashboard", ""):
             self.writer.execute("UPDATE sessions SET channel=?", (channel,))
             with self.subTest(channel=channel), self.assertRaises(ValueError):
                 self.capture()

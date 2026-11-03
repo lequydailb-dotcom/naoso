@@ -19,7 +19,7 @@ import sys
 import tempfile
 import threading
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-usagenho-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-usagenho-"))
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -45,7 +45,7 @@ def chen(n, path="/p/a"):
     for i in range(n):
         w.execute("INSERT INTO file_daily(path,day,provider,source,activity,model,project,"
                   "input,output,cache_read,cache_create) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-                  (f"{path}/{i}", HOM_NAY, "claude", "naota", "chat", "claude-opus-5", "prj", 100, 50, 0, 0))
+                  (f"{path}/{i}", HOM_NAY, "claude", "vanhanh", "chat", "claude-opus-5", "prj", 100, 50, 0, 0))
     w.commit()
     w.close()
 

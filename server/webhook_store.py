@@ -293,9 +293,9 @@ def _loads(t, fallback):
 
 
 def _crash(point: str) -> None:
-    """Fault injection for the crash tests (run in a child process). Does nothing unless NAOTA_WH_CRASH_AT names this
+    """Fault injection for the crash tests (run in a child process). Does nothing unless VANHANH_WH_CRASH_AT names this
     exact point."""
-    if os.environ.get("NAOTA_WH_CRASH_AT") == point:
+    if os.environ.get("VANHANH_WH_CRASH_AT") == point:
         os._exit(77)
 
 

@@ -4,9 +4,9 @@ Purpose: copying or moving a brain to another machine, or restoring it from its 
 keep what a chatbot's reply-policy judge and the agents have learned. That knowledge lives in SQLite stores under
 STATE_DIR, keyed by machine-local random ids (`bot_<uuid>`, `ag_<hex>`, `tm_<hex>`), so it never travelled with the
 brain. The SQLite stores stay the source of truth; this module writes a JSON mirror next to the brain's other files and
-imports it on a machine whose stores do not have it yet (same idea as `Naota/kanban.json`, see server/tasks.py).
+imports it on a machine whose stores do not have it yet (same idea as `Vanhanh/kanban.json`, see server/tasks.py).
 
-Layout, under `<brain>/Naota/learned/`:
+Layout, under `<brain>/Vanhanh/learned/`:
 
   bots/<bot-slug>.json            judge knowledge WITHOUT customer chat text: role profile, tuning knobs, lessons,
                                   per-chat threshold offsets, bootstrap cases (model-written from the Agent text).
@@ -16,7 +16,7 @@ Layout, under `<brain>/Naota/learned/`:
   agents/<agent-slug>.private.json  per-agent judge cases (they keep a chat excerpt in their features).
 
 Privacy (kept apart on purpose): files without chat text go to the GitHub brain backup; every
-`*.private.json` under `Naota/learned/` never does (git_brain `_backup_skip` and the managed brain `.gitignore` block).
+`*.private.json` under `Vanhanh/learned/` never does (git_brain `_backup_skip` and the managed brain `.gitignore` block).
 Copying the brain folder keeps everything; a GitHub restore keeps everything except the private files.
 
 Ids are remapped on import:
@@ -79,7 +79,7 @@ def _log(msg: str) -> None:
 # ───────────── paths, hashing, state ─────────────
 
 def learned_dir(root: Any) -> Path:
-    return Path(root) / "Naota" / "learned"
+    return Path(root) / "Vanhanh" / "learned"
 
 
 def _paths(root: str, kind: str, name: str) -> Tuple[Path, Path]:
@@ -88,7 +88,7 @@ def _paths(root: str, kind: str, name: str) -> Tuple[Path, Path]:
 
 
 def _safe_name(slug: Any) -> str:
-    """A slug usable as a file name inside `Naota/learned/<kind>/`, or "" when it could escape the folder."""
+    """A slug usable as a file name inside `Vanhanh/learned/<kind>/`, or "" when it could escape the folder."""
     s = str(slug or "").strip()
     if not s or len(s) > 120 or s.startswith(".") or any(ch in s for ch in "/\\\0:") or ".." in s:
         return ""
@@ -162,7 +162,7 @@ class _State:
         out = []
         for k in self.files:
             try:
-                out.append(str(Path(k).parents[3]))     # <root>/Naota/learned/<kind>/<file>
+                out.append(str(Path(k).parents[3]))     # <root>/Vanhanh/learned/<kind>/<file>
             except IndexError:
                 continue
         return out

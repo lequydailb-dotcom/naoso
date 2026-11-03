@@ -19,12 +19,12 @@ To see where this data comes from, read [Second Brain: memory, Wiki, INGEST](13-
 ## Opening the graph
 
 1. Open the dashboard, by default at `http://<machine-address>:7777`.
-2. In the left navigation rail, open the **Assistant** group and select **Naota**.
+2. In the left navigation rail, open the **Assistant** group and select **Vanhanh**.
 3. The graph occupies the middle of the screen.
 
-When you move to another page or open the note editor, the graph pauses itself. Returning to the **Naota** page or closing the editor resumes it.
+When you move to another page or open the note editor, the graph pauses itself. Returning to the **Vanhanh** page or closing the editor resumes it.
 
-On screens narrower than 860px, Naota prefers the light interface and opens the **Chat** page directly.
+On screens narrower than 860px, Vanhanh prefers the light interface and opens the **Chat** page directly.
 
 ## Turning the graph on or off
 
@@ -33,11 +33,11 @@ On screens narrower than 860px, Naota prefers the light interface and opens the 
 3. Find the **Brain graph** card.
 4. Click **Disable graph** or **Enable graph**.
 
-While disabled, Naota does not build the graph and opens the **Chat** page directly. The choice is stored in the server settings.
+While disabled, Vanhanh does not build the graph and opens the **Chat** page directly. The choice is stored in the server settings.
 
 ## Choosing a brain
 
-The brain picker sits in the top bar next to the NAOTA wordmark. Switching brains updates the graph, the memory, the agent/skill/workflow counts, the file tree and the conversation panel together.
+The brain picker sits in the top bar next to the VANHANH wordmark. Switching brains updates the graph, the memory, the agent/skill/workflow counts, the file tree and the conversation panel together.
 
 Three small buttons sit next to the picker:
 
@@ -58,7 +58,7 @@ External folders are remembered in the list so you can pick them again. Clicking
 - **Click a node** to open the note in the editor.
 - **Click a category label** to spotlight that folder's cluster. Click the label again or click the background to clear the filter.
 
-Once the physics settle, Naota fits the whole network to the frame automatically.
+Once the physics settle, Vanhanh fits the whole network to the frame automatically.
 
 ## Opening and editing a note from a node
 
@@ -79,7 +79,7 @@ For `.md` files the editor has two modes, **Edit** and **Source**. The toolbar h
 | ⛶ | Enlarge or shrink the editor. |
 | ✕ | Close the editor. |
 
-Clicking a node only opens the file; it does not send a question into the chat. To have Naota summarise or analyse it, ask in the conversation panel.
+Clicking a node only opens the file; it does not send a question into the chat. To have Vanhanh summarise or analyse it, ask in the conversation panel.
 
 ## Hiding the overlay
 
@@ -101,7 +101,7 @@ The clock button under the eye replays how the brain grew:
 
 ## Node colours by folder
 
-Naota uses a high-contrast palette and assigns colours to direct parent folders in turn. Numeric prefixes such as `07 - ` are ignored when comparing names, so `07 - Wiki` and `Wiki` count as the same category.
+Vanhanh uses a high-contrast palette and assigns colours to direct parent folders in turn. Numeric prefixes such as `07 - ` are ignored when comparing names, so `07 - Wiki` and `Wiki` count as the same category.
 
 The node colour is also used for the "% of Vault" part of the category label. Switching between light and dark themes swaps to a matching palette while keeping each folder's colour group.
 
@@ -125,29 +125,29 @@ The graph watches the brain and updates itself when a note or a link appears:
 1. A new node pops in and shrinks to its normal size.
 2. The statistics line updates with a soft flash.
 
-If the watch connection drops, Naota reconnects. A periodic scan also catches anything the watch missed.
+If the watch connection drops, Vanhanh reconnects. A periodic scan also catches anything the watch missed.
 
 ## Reacting to voice and status
 
-- While you speak or Naota reads an answer, nodes swell slightly with the volume.
-- When Naota switches to **THINKING**, the network changes rhythm.
+- While you speak or Vanhanh reads an answer, nodes swell slightly with the volume.
+- When Vanhanh switches to **THINKING**, the network changes rhythm.
 - At rest, nodes breathe gently with offset phases.
 
 ## How the graph is built
 
-1. Naota scans up to 2,000 `.md` files in the selected source.
+1. Vanhanh scans up to 2,000 `.md` files in the selected source.
 2. Each file becomes a node; the node name is the filename without its extension.
-3. Naota finds `[[...]]` wikilinks; each link to another file becomes an edge.
-4. The `[[folder/Name|alias]]` form is supported; Naota takes the filename part to connect.
-5. Naota counts notes per parent folder and picks up to the 8 largest folders as labels.
+3. Vanhanh finds `[[...]]` wikilinks; each link to another file becomes an edge.
+4. The `[[folder/Name|alias]]` form is supported; Vanhanh takes the filename part to connect.
+5. Vanhanh counts notes per parent folder and picks up to the 8 largest folders as labels.
 
 ## Common problems
 
 - **The graph is empty or has few nodes**: check which brain is selected and whether the source contains `.md` files.
-- **The graph library will not load**: reload the page. The library is served from the Naota server itself, so the error usually means a partial page load or static files not being served.
+- **The graph library will not load**: reload the page. The library is served from the Vanhanh server itself, so the error usually means a partial page load or static files not being served.
 - **The statistics line reads "Error"**: an external source may have moved or lost read permission.
 - **The graph is frozen**: check whether you are on another page, have the editor open, are on a narrow screen, or have disabled the graph in Settings.
-- **Opening Naota jumps straight to Chat**: the screen is narrow or the graph is disabled.
+- **Opening Vanhanh jumps straight to Chat**: the screen is narrow or the graph is disabled.
 - **A new node has not appeared**: wait for the watch connection to reconnect, or switch brains and back to reload.
 
 ## Related

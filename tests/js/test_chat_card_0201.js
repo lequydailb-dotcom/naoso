@@ -1,4 +1,4 @@
-// interactive cards in a Naota answer. Model output is escaped, capped and secret-masked; a broken block
+// interactive cards in a Vanhanh answer. Model output is escaped, capped and secret-masked; a broken block
 // disappears instead of eating the answer; buttons only carry a reply text.
 const path = require("path");
 const C = require(path.join(__dirname, "../../dashboard/chat-card.js"));
@@ -36,10 +36,10 @@ check("button without reply sends its label", bh.includes('data-reply="Sửa"'))
 check("broken JSON is no card", C.parse("{oops") === null);
 check("unknown type is no card", C.parse(JSON.stringify({ type: "script", src: "x" })) === null);
 const ph = [];
-const out = C.replaceIn('Trước <!-- NAOTA_CARD: {"type":"stats","items":[{"label":"A","value":"1"}]} --> sau'
-  + ' <!-- NAOTA_CARD: {broken} --> hết', h => { ph.push(h); return "@@" + (ph.length - 1) + "@@"; });
+const out = C.replaceIn('Trước <!-- VANHANH_CARD: {"type":"stats","items":[{"label":"A","value":"1"}]} --> sau'
+  + ' <!-- VANHANH_CARD: {broken} --> hết', h => { ph.push(h); return "@@" + (ph.length - 1) + "@@"; });
 check("good block replaced by a placeholder", out.includes("@@0@@") && ph.length === 1);
-check("broken block removed, text kept", !out.includes("NAOTA_CARD") && out.includes("Trước") && out.includes("hết"));
+check("broken block removed, text kept", !out.includes("VANHANH_CARD") && out.includes("Trước") && out.includes("hết"));
 
 if (fails) { console.log(`\n${fails} FAILED`); process.exit(1); }
 console.log("\nPASS");

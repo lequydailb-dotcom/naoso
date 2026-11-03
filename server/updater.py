@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Updater tách rời của Naota cho bản GIT checkout (Windows + systemd + launchd + nohup).
+"""Updater tách rời của Vanhanh cho bản GIT checkout (Windows + systemd + launchd + nohup).
 Server spawn DETACHED:
 
     python updater.py --old-sha <sha> --old-version <v> --target <v> --port <p> --server-pid <pid>
@@ -28,7 +28,7 @@ import winproc  # noqa: E402
 # Updater được server spawn DETACHED, tức nó chạy KHÔNG CÓ console. Trên Windows, một tiến trình
 # không console mà gọi chương trình console (git, pip, systemctl...) thì hệ điều hành tự cấp cho
 # đứa con một cửa sổ mới - người dùng thấy màn hình nháy đen liên tục suốt lượt cập nhật. Nên
-# mọi lời gọi dưới đây đều truyền cờ này. Hai chỗ CỐ Ý không truyền là lúc khởi động lại Naota,
+# mọi lời gọi dưới đây đều truyền cờ này. Hai chỗ CỐ Ý không truyền là lúc khởi động lại Vanhanh,
 # vì tiến trình đó phải sống lâu hơn updater.
 _CAM = winproc.no_window()
 
@@ -86,7 +86,7 @@ def has_systemd():
 
 def systemd_service_name(env_name=None, cgroup=None):
     """Resolve this installation's unit, including instances installed under a custom name."""
-    name = os.getenv("NAOTA_NAME", "") if env_name is None else env_name
+    name = os.getenv("VANHANH_NAME", "") if env_name is None else env_name
     if name and re.fullmatch(r"[A-Za-z0-9._-]+", name):
         return name
     if cgroup is None:
@@ -95,10 +95,10 @@ def systemd_service_name(env_name=None, cgroup=None):
         except OSError:
             cgroup = ""
     match = re.search(r"(?:^|/)([A-Za-z0-9._-]+)\.service(?:/|$)", cgroup or "", re.MULTILINE)
-    return match.group(1) if match else "naota"
+    return match.group(1) if match else "vanhanh"
 
 
-LAUNCHD_LABEL = os.getenv("NAOTA_LAUNCHD_LABEL", "com.naota.os")
+LAUNCHD_LABEL = os.getenv("VANHANH_LAUNCHD_LABEL", "com.vanhanh.os")
 
 
 def _launchd_target():
@@ -106,12 +106,12 @@ def _launchd_target():
 
 
 def has_launchd_job():
-    """Mac chạy Naota dưới launchd (job KeepAlive) thì restart PHẢI qua launchd.
+    """Mac chạy Vanhanh dưới launchd (job KeepAlive) thì restart PHẢI qua launchd.
 
     Bài học: updater kill PID server -> launchd KeepAlive respawn ngay tức thì,
     trong khi updater cũng Popen một bản uvicorn của riêng nó -> hai tiến trình giành cổng
-    7777, naota.log đầy "[Errno 48] address already in use". Nhãn job đổi được qua env
-    NAOTA_LAUNCHD_LABEL (mặc định com.naota.os)."""
+    7777, vanhanh.log đầy "[Errno 48] address already in use". Nhãn job đổi được qua env
+    VANHANH_LAUNCHD_LABEL (mặc định com.vanhanh.os)."""
     if sys.platform != "darwin":
         return False
     try:
@@ -193,7 +193,7 @@ def stop_server(mode, server_pid=0, port=""):
         # and installed; start_server swaps it by signal and systemd's Restart= brings up the new code.
         log("Không có quyền dừng service hệ thống: server cũ chạy tiếp tới bước khởi động lại.")
     elif mode == "windows":
-        run(["cmd", "/c", str(ROOT / "stop-naota.bat")])
+        run(["cmd", "/c", str(ROOT / "stop-vanhanh.bat")])
     elif mode == "systemd":
         subprocess.run(["systemctl", "stop", systemd_service_name()], capture_output=True, text=True,
                        creationflags=_CAM)
@@ -225,7 +225,7 @@ def start_server(mode, port=""):
             log(f"Khởi động lại {name}.service bằng tín hiệu (PID {p})…")
             _kill_pid(p, 30)
     elif mode == "windows":
-        subprocess.Popen(["wscript.exe", "//nologo", str(ROOT / "start-naota.vbs")],
+        subprocess.Popen(["wscript.exe", "//nologo", str(ROOT / "start-vanhanh.vbs")],
                          cwd=str(ROOT), creationflags=0x00000008)  # DETACHED_PROCESS
     elif mode == "systemd":
         subprocess.run(["systemctl", "start", systemd_service_name()], capture_output=True, text=True,
@@ -235,13 +235,13 @@ def start_server(mode, port=""):
         # không còn cửa cho hai tiến trình cùng bind cổng.
         run(["launchctl", "kickstart", "-k", _launchd_target()])
     else:  # nohup: chạy lại uvicorn nền y như install.sh (fallback không systemd)
-        host = os.getenv("NAOTA_HOST", "127.0.0.1")
-        logf = open(us.STATE_DIR / "naota.log", "a", encoding="utf-8")
-        subprocess.Popen(   # noqa: NAOTA_CONSOLE - server mới phải sống lâu hơn updater
+        host = os.getenv("VANHANH_HOST", "127.0.0.1")
+        logf = open(us.STATE_DIR / "vanhanh.log", "a", encoding="utf-8")
+        subprocess.Popen(   # noqa: VANHANH_CONSOLE - server mới phải sống lâu hơn updater
             [venv_python(), "-m", "uvicorn", "main:app", "--host", host, "--port", str(port or "7777")],
             cwd=str(ROOT / "server"), stdout=logf, stderr=subprocess.STDOUT,
             start_new_session=True,
-            env={**os.environ, "NAOTA_STATE_DIR": os.getenv("NAOTA_STATE_DIR", str(us.STATE_DIR))})
+            env={**os.environ, "VANHANH_STATE_DIR": os.getenv("VANHANH_STATE_DIR", str(us.STATE_DIR))})
 
 
 def git_dirty():
@@ -263,7 +263,7 @@ def stash_local_changes():
     if not (status.stdout or "").strip():
         return "", ""
     previous = _stash_head()
-    saved = run(["git", "stash", "push", "-m", "naota-auto-update"])
+    saved = run(["git", "stash", "push", "-m", "vanhanh-auto-update"])
     current = _stash_head()
     if saved.returncode != 0 or not current or current == previous:
         return "", _chu("Không cất được sửa đổi cục bộ; dừng cập nhật. Kiểm tra git stash list "
@@ -296,7 +296,7 @@ def drop_update_stash(stash_oid, restored):
 
 def release_source():
     """The same official release branch that /version checks in main.py."""
-    return "https://github.com/vuongtex/naota.git", "main"
+    return "https://github.com/lequydailb-dotcom/vanhanh.git", "main"
 
 
 def _clean_tracked_tree():
@@ -410,7 +410,7 @@ def pip_install():
     """Cài thư viện. Mã lỗi TRẢ VỀ CHO NƠI GỌI KIỂM - trước đây không ai kiểm.
 
     pip hỏng (mất mạng giữa chừng, một gói bị gỡ khỏi PyPI, xung đột phiên bản giữa hai bản
-    Naota) là một trong hai đường dẫn thẳng tới cảnh "cập nhật xong máy chết hẳn": server mới
+    Vanhanh) là một trong hai đường dẫn thẳng tới cảnh "cập nhật xong máy chết hẳn": server mới
     thiếu thư viện nên không lên, rồi đường lùi cũng chạy pip và cũng hỏng y hệt. Nuốt mã lỗi
     thì cả hai lần đều im lặng, và người dùng chỉ nhận được một câu chung chung."""
     r = run([venv_python(), "-m", "pip", "install", "-r", "requirements.txt", "-q"])
@@ -447,17 +447,17 @@ def poll_health(port, timeout_s=90):
 def _systemd_worker_command(a, service_name, user=False):
     """`user=True`: a unit of the user's own systemd manager, for a service running as a normal user, who may not
     create system units ("Interactive authentication required"). It lives outside the service's cgroup all the same."""
-    unit = f"naota-update-{os.getpid()}"
+    unit = f"vanhanh-update-{os.getpid()}"
     command = ["systemd-run", "--user"] if user else ["systemd-run"]
     command += ["--quiet", "--collect", f"--unit={unit}", "--property=Type=exec"]
     if not user:
         command += [f"--property=User={os.getuid()}", f"--property=Group={os.getgid()}"]
     command += [
         f"--working-directory={ROOT}",
-        f"--setenv=NAOTA_NAME={service_name}",
-        f"--setenv=NAOTA_PORT={a.port}",
-        f"--setenv=NAOTA_STATE_DIR={us.STATE_DIR}",
-        f"--setenv=NAOTA_HOST={os.getenv('NAOTA_HOST', '127.0.0.1')}",
+        f"--setenv=VANHANH_NAME={service_name}",
+        f"--setenv=VANHANH_PORT={a.port}",
+        f"--setenv=VANHANH_STATE_DIR={us.STATE_DIR}",
+        f"--setenv=VANHANH_HOST={os.getenv('VANHANH_HOST', '127.0.0.1')}",
         f"--setenv=HOME={os.getenv('HOME', str(Path.home()))}",
         f"--setenv=PATH={os.getenv('PATH', '')}",
         sys.executable, str(Path(__file__).resolve()),
@@ -497,7 +497,7 @@ def _run_worker(command, env=None):
 
 
 def _launch_systemd_worker(a):
-    """Move the updater out of Naota's cgroup before stopping the systemd service."""
+    """Move the updater out of Vanhanh's cgroup before stopping the systemd service."""
     service_name = systemd_service_name()
     command = _systemd_worker_command(a, service_name)
     log(f"Tách updater khỏi {service_name}.service bằng systemd-run…")
@@ -506,7 +506,7 @@ def _launch_systemd_worker(a):
         return True
     log(f"  systemd-run: {error[:400]}")
     # A service running as a normal user (User= in the unit) may neither create system units nor stop its own
-    # service. Its own user manager can host the worker, which then restarts Naota by signal. Only Restart=always
+    # service. Its own user manager can host the worker, which then restarts Vanhanh by signal. Only Restart=always
     # brings the unit back after a SIGTERM: on-failure and friends count SIGTERM as a clean exit and leave it down.
     hint = ""
     if hasattr(os, "geteuid") and os.geteuid() != 0:
@@ -523,8 +523,8 @@ def _launch_systemd_worker(a):
             f"&& sudo systemctl restart {service_name}. Để nút Cập nhật chạy được: sudo loginctl enable-linger {user}.",
             f" Update by hand: cd {ROOT} && git pull --ff-only && .venv/bin/python -m pip install -r requirements.txt "
             f"&& sudo systemctl restart {service_name}. To make the Update button work: sudo loginctl enable-linger {user}.")
-    reason = _chu("Không chạy được updater độc lập; Naota vẫn được giữ nguyên. ",
-                  "Could not start an independent updater; Naota has been left running. ")
+    reason = _chu("Không chạy được updater độc lập; Vanhanh vẫn được giữ nguyên. ",
+                  "Could not start an independent updater; Vanhanh has been left running. ")
     if error:
         reason += error[:400]
     reason += hint
@@ -539,11 +539,11 @@ def main():
     ap.add_argument("--old-sha", default="")
     ap.add_argument("--old-version", default="")
     ap.add_argument("--target", default="")
-    ap.add_argument("--port", default=os.getenv("NAOTA_PORT", "7777"))
+    ap.add_argument("--port", default=os.getenv("VANHANH_PORT", "7777"))
     ap.add_argument("--server-pid", type=int, default=0,
                     help="PID server đang chạy (để chế độ nohup kill đúng tiến trình)")
     ap.add_argument("--systemd-worker", action="store_true",
-                    help="Updater đã được tách khỏi cgroup của Naota")
+                    help="Updater đã được tách khỏi cgroup của Vanhanh")
     ap.add_argument("--restart-by-signal", action="store_true",
                     help="Worker under the user's systemd: restart the service by signal, not systemctl")
     ap.add_argument("--dry-run", action="store_true")
@@ -562,8 +562,8 @@ def main():
             return 0 if _launch_systemd_worker(a) else 1
         except Exception as e:
             # Any surprise here must still end the update on screen; a dead launcher left "preparing" forever.
-            reason = _chu("Không chạy được updater độc lập; Naota vẫn được giữ nguyên. ",
-                          "Could not start an independent updater; Naota has been left running. ")
+            reason = _chu("Không chạy được updater độc lập; Vanhanh vẫn được giữ nguyên. ",
+                          "Could not start an independent updater; Vanhanh has been left running. ")
             reason += f"{type(e).__name__}: {e}"[:400]
             log(reason)
             us.write_state({"phase": "error", "result": "error", "error": reason, "finished_at": _now()})
@@ -629,8 +629,8 @@ def main():
         # Merge đã hủy hoặc fetch thất bại; xác nhận server cũ thật sự lên lại.
         start_server(mode, a.port)
         them = "" if poll_health(a.port, 60) else _chu(
-            " Server cũ CŨNG chưa lên lại - mở Naota bằng tay để chạy tiếp.",
-            " The old server has NOT come back up either - start Naota by hand to continue.")
+            " Server cũ CŨNG chưa lên lại - mở Vanhanh bằng tay để chạy tiếp.",
+            " The old server has NOT come back up either - start Vanhanh by hand to continue.")
         ly_do = chan_doan_pull_hong(git_error, merge_aborted=tree_safe)
         log("Chẩn đoán: " + (ly_do or "(không nhận ra nguyên nhân quen thuộc)"))
         tho = (git_error or _chu("Không hợp nhất được bản phát hành", "Could not merge the release")).strip()
@@ -767,7 +767,7 @@ def main():
             return 1
         us.write_state({"phase": "done", "result": "rolled_back",
                         "error": _chu("Bản mới lỗi, đã tự quay về bản cũ.",
-                                      "The new version failed, so Naota rolled back to the old one."),
+                                      "The new version failed, so Vanhanh rolled back to the old one."),
                         "finished_at": _now()})
         return 0
 

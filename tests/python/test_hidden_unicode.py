@@ -13,7 +13,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-hidden-unicode-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-hidden-unicode-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -56,7 +56,7 @@ check("a run of emoji presentation selectors is removed", rp.clean_chat_text("ok
 # Removing (not replacing with a space) means a marker split by a hidden character is put back together
 # and then caught by the marker filter, instead of slipping past it in two halves.
 check("an internal marker split by a zero-width space is still removed",
-      "NAOTA" not in rp.clean_chat_text("a NAOTA​_TASK b"), rp.clean_chat_text("a NAOTA​_TASK b"))
+      "VANHANH" not in rp.clean_chat_text("a VANHANH​_TASK b"), rp.clean_chat_text("a VANHANH​_TASK b"))
 check("clean_block removes hidden characters too and keeps its line breaks",
       rp.clean_block("dòng 1" + tags("x") + "\ndòng‮ 2") == "dòng 1\ndòng 2",
       rp.clean_block("dòng 1" + tags("x") + "\ndòng‮ 2"))
@@ -70,7 +70,7 @@ check("a skin-tone emoji is kept", rp.clean_chat_text("\U0001F44D\U0001F3FD") ==
 check("Arabic and Chinese text is kept", rp.clean_chat_text("مرحبا 你好") == "مرحبا 你好")
 
 check("strip_hidden keeps line breaks and markers (it is for the message the bot answers, not for chat_data)",
-      rp.strip_hidden("dòng​ 1\nNAOTA_TASK" + tags("x")) == "dòng 1\nNAOTA_TASK")
+      rp.strip_hidden("dòng​ 1\nVANHANH_TASK" + tags("x")) == "dòng 1\nVANHANH_TASK")
 
 # ---- The message the bot answers: the shared entry of every channel ----
 # `clean_chat_text` only guards the reply judge and the group context. The customer's own message goes

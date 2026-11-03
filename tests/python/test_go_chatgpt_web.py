@@ -2,7 +2,7 @@
 
     python tests/run.py go_chatgpt_web
 
-Vì sao gỡ: model này lái một trình duyệt vào chatgpt.com, mà Naota chạy trên máy chủ thuê nên
+Vì sao gỡ: model này lái một trình duyệt vào chatgpt.com, mà Vanhanh chạy trên máy chủ thuê nên
 Cloudflare chặn theo IP. Người dùng đưa hai dự án làm cùng việc để đối chiếu
 (`miuuyy/codex-chatgpt-web`, `XiaoDuoYa/codex-with-chatgpt`): CẢ HAI đều chạy trình duyệt
 trên máy của người dùng, không dự án nào có đường qua Cloudflare từ máy chủ. Quyết định gỡ.
@@ -24,7 +24,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-gocgw-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-gocgw-")
 
 import config as cfg  # noqa: E402
 import main  # noqa: E402
@@ -122,8 +122,8 @@ _docker = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 check("ảnh Docker không còn cài xvfb (chỉ ChatGPT Web cần)", "xvfb" not in _docker)
 
 for _doc in ("docs/16-cau-hinh-env.md", "docs/en/16-env-configuration.md"):
-    check(f"{_doc} không còn biến NAOTA_ENABLE_WEB_CHAT",
-          "NAOTA_ENABLE_WEB_CHAT" not in (ROOT / _doc).read_text(encoding="utf-8"))
+    check(f"{_doc} không còn biến VANHANH_ENABLE_WEB_CHAT",
+          "VANHANH_ENABLE_WEB_CHAT" not in (ROOT / _doc).read_text(encoding="utf-8"))
 check("tài liệu hướng dẫn cũ đã xoá", not (ROOT / "docs" / "29-chatgpt-web.md").exists())
 
 # main.py có một regex CỐ Ý khớp ký tự gạch dài trong nội dung người dùng; đó là mã nhận diện,

@@ -13,9 +13,9 @@ import tempfile
 from contextlib import closing
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-pulse-policy-")
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
-TEMP = Path(tempfile.mkdtemp(prefix="naota-pulse-policy-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-pulse-policy-")
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-pulse-policy-w-"))
 
 import agent_pulse as AP  # noqa: E402
 import resonance_store as RS  # noqa: E402

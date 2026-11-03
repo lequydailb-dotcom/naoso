@@ -4,7 +4,7 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-upd-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-upd-"))
 import updater  # noqa: E402
 
 fails = []
@@ -18,7 +18,7 @@ def check(name, condition):
 
 message = updater.chan_doan_pull("Already up to date.")
 check("đã mới nhất: nêu đúng nguồn phát hành chính thức",
-      "github.com/vuongtex/naota.git/main" in message)
+      "github.com/lequydailb-dotcom/vanhanh.git/main" in message)
 check("đã mới nhất: hướng dẫn Docker nếu cần", "Docker" in message)
 check("không khuyên bỏ nhánh riêng", "checkout main" not in message and "reset --hard" not in message)
 
@@ -49,12 +49,12 @@ check("file cục bộ chặn merge: hướng dẫn kiểm tra",
 check("lỗi lạ không bịa nguyên nhân",
       updater.chan_doan_pull_hong("fatal: một lỗi chưa từng gặp") == "")
 
-os.environ["NAOTA_UPDATE_REMOTE"] = "some-fork"
-os.environ["NAOTA_UPDATE_BRANCH"] = "stable"
+os.environ["VANHANH_UPDATE_REMOTE"] = "some-fork"
+os.environ["VANHANH_UPDATE_BRANCH"] = "stable"
 check("nút cập nhật luôn dùng cùng nguồn với /version",
-      updater.release_source() == ("https://github.com/vuongtex/naota.git", "main"))
-os.environ.pop("NAOTA_UPDATE_REMOTE", None)
-os.environ.pop("NAOTA_UPDATE_BRANCH", None)
+      updater.release_source() == ("https://github.com/lequydailb-dotcom/vanhanh.git", "main"))
+os.environ.pop("VANHANH_UPDATE_REMOTE", None)
+os.environ.pop("VANHANH_UPDATE_BRANCH", None)
 
 if fails:
     print(f"THẤT BẠI {len(fails)}: {fails}")

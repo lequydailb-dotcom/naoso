@@ -107,7 +107,7 @@ MATRIX = [
                                       "đối soát idempotent: lần hai không đổi gì"]),
       ("test_feedback_projector.py", ["lỗi kho resonance: project không ném, reaction vẫn lưu, dòng giữ pending"]),
       ("test_team_t1_review.py", ["R4 phục hồi sau restart: lượt chưa tới mốc hoàn đúng một lần"])], None, None),
-    ("14", "T1/T3", "Khôi phục nhiều kho lỗi trước/trong/sau ghi vẫn nhất quán hoặc báo rõ cần cứu hộ (CHƯA có test: bài kiểm cũ chạy mã bản trước nên đã bỏ ở NAOTA 1.0.0)",
+    ("14", "T1/T3", "Khôi phục nhiều kho lỗi trước/trong/sau ghi vẫn nhất quán hoặc báo rõ cần cứu hộ (CHƯA có test: bài kiểm cũ chạy mã bản trước nên đã bỏ ở VANHANH 1.0.0)",
      "chưa có",
      [], None, None),
     ("15", "T3", "Heartbeat mục tiêu, lịch chủ động, lease không tạo ba lượt cho một lý do; nghĩa vụ vẫn chạy",

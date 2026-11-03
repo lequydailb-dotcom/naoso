@@ -3,8 +3,8 @@
     python tests/run.py ollama_local_thinking      (NO network, NO Ollama: httpx MockTransport)
 
 Seen on a Mac mini (qwen3 on Ollama):
-  1. qwen3 thinks BY DEFAULT. Naota sent no thinking switch to Ollama (Local), with or without tools, so a CSV row count spent
-     the whole turn thinking (69 s) and Naota said "Ollama (Local) returned nothing"; a rerun was still thinking after 5 min.
+  1. qwen3 thinks BY DEFAULT. Vanhanh sent no thinking switch to Ollama (Local), with or without tools, so a CSV row count spent
+     the whole turn thinking (69 s) and Vanhanh said "Ollama (Local) returned nothing"; a rerun was still thinking after 5 min.
   2. The Effort button is shared by every model: "Medium" for Claude made the local model ramble, "Off" for the local model
      took thinking away from Claude.
   3. A turn that only thought said "returned nothing", which points at a broken connection instead of the real cause.
@@ -17,7 +17,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-ollama-think-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-ollama-think-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -82,7 +82,7 @@ class _Client(_RealClient):
 
 engine.httpx.AsyncClient = _Client
 MSGS = [{"role": "user", "content": "file khách có bao nhiêu dòng?"}]
-TOOLS = [{"fn": "naota_read_file", "description": "đọc file", "schema": {"type": "object", "properties": {}}}]
+TOOLS = [{"fn": "vanhanh_read_file", "description": "đọc file", "schema": {"type": "object", "properties": {}}}]
 
 
 def stream(reasoning):

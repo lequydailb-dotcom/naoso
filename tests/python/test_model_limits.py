@@ -15,7 +15,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-limits-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-limits-")
 
 import config as cfg  # noqa: E402
 import fast_path_runtime  # noqa: E402

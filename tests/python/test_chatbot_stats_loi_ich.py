@@ -13,9 +13,9 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="naota-stats-loi-ich-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
-os.environ["NAOTA_SESSIONS_DB"] = str(Path(_STATE) / "sessions.db")
+_STATE = tempfile.mkdtemp(prefix="vanhanh-stats-loi-ich-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
+os.environ["VANHANH_SESSIONS_DB"] = str(Path(_STATE) / "sessions.db")
 os.environ["BRAINS_DIR"] = str(Path(_STATE) / "brains")
 try:
     sys.stdout.reconfigure(encoding="utf-8")

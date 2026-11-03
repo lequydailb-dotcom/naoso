@@ -1,9 +1,9 @@
-/* ui-actions.js - dashboard NHẬN lệnh từ tool naota_ui và trả kết quả (Voice V1, spec mục 6).
+/* ui-actions.js - dashboard NHẬN lệnh từ tool vanhanh_ui và trả kết quả (Voice V1, spec mục 6).
 
    Server bắn frame {"type":"ui_action","id","action","target","session_id"} qua /ws khi model
-   gọi tool naota_ui. File này: kiểm lại target (không tin server tuyệt đối vì đây là bên thực
-   hiện), chạy bằng đúng những hàm dashboard đã có (NaotaNav.go, NaotaOpenVaultPath,
-   NaotaTasks.show), rồi gửi {"action":"ui_result","id","ok","detail"} về để tool trả lời model
+   gọi tool vanhanh_ui. File này: kiểm lại target (không tin server tuyệt đối vì đây là bên thực
+   hiện), chạy bằng đúng những hàm dashboard đã có (VanhanhNav.go, VanhanhOpenVaultPath,
+   VanhanhTasks.show), rồi gửi {"action":"ui_result","id","ok","detail"} về để tool trả lời model
    ngay trong lượt.
 
    Tab đang xem phiên KHÁC với session_id trong frame thì trả `skipped=true` (server bỏ qua,
@@ -13,12 +13,12 @@
 (function () {
   "use strict";
 
-  // Cùng danh sách với RAIL_ITEMS trong console.js và PAGES trong plugin naota-ui.
+  // Cùng danh sách với RAIL_ITEMS trong console.js và PAGES trong plugin vanhanh-ui.
   var PAGES = ["home", "chat", "settings", "workspace", "teams", "skills", "chatbots", "conversations", "files",
                "terminal", "coding", "tasks", "webhooks", "learn", "models", "channels", "mcp", "plugins",
                "packs", "logs", "account", "usage", "logins", "pet", "share"];
   // Nhóm trên thanh bên (accordion). Cùng danh sách với RAIL_GROUPS trong console.js và GROUPS
-  // trong plugin naota-ui. Mở một NHÓM khác với mở một TRANG: người dùng hay muốn bung phần
+  // trong plugin vanhanh-ui. Mở một NHÓM khác với mở một TRANG: người dùng hay muốn bung phần
   // đang gập lại để nhìn xem có gì, chứ chưa chọn trang nào.
   // "code" left the rail (Terminal now sits in nang_cao); an old "code" still opens nang_cao.
   var GROUPS = ["bo_nao", "nang_luc", "viec", "ket_noi", "nang_cao", "he_thong"];
@@ -31,7 +31,7 @@
   // Hàm rào dịch. validate() chạy cả dưới node (test_ui_actions.js require thẳng file này), nơi
   // `window` CHƯA KHAI BÁO: đọc thẳng là ReferenceError, nên phải hỏi bằng typeof. Ngoài trình
   // duyệt thì tra vi.json để câu báo lỗi vẫn là chữ đọc được chứ không phải mã khoá.
-  // `detail`/`error` ở đây quay về model qua tool naota_ui, theo cùng ngôn ngữ giao diện như
+  // `detail`/`error` ở đây quay về model qua tool vanhanh_ui, theo cùng ngôn ngữ giao diện như
   // mấy câu ui.scroll_* bên dưới.
   function tw(k, v) {
     if (typeof window !== "undefined" && window.t) return window.t(k, v);
@@ -107,19 +107,19 @@
 
   async function execute(v) {
     if (v.action === "open_page") {
-      if (window.NaotaNav && typeof window.NaotaNav.go === "function") { window.NaotaNav.go(v.target); return { ok: true, detail: "" }; }
+      if (window.VanhanhNav && typeof window.VanhanhNav.go === "function") { window.VanhanhNav.go(v.target); return { ok: true, detail: "" }; }
       return { ok: false, detail: tw("ui.err_nav_not_ready") };
     }
     if (v.action === "open_file") {
-      if (typeof window.NaotaOpenVaultPath === "function") { window.NaotaOpenVaultPath(v.target); return { ok: true, detail: "" }; }
-      if (typeof window.NaotaEditFile === "function") { window.NaotaEditFile(v.target); return { ok: true, detail: "" }; }
+      if (typeof window.VanhanhOpenVaultPath === "function") { window.VanhanhOpenVaultPath(v.target); return { ok: true, detail: "" }; }
+      if (typeof window.VanhanhEditFile === "function") { window.VanhanhEditFile(v.target); return { ok: true, detail: "" }; }
       return { ok: false, detail: tw("ui.err_opener_not_ready") };
     }
     if (v.action === "open_task") {
-      if (window.NaotaNav && typeof window.NaotaNav.go === "function") window.NaotaNav.go("tasks");
+      if (window.VanhanhNav && typeof window.VanhanhNav.go === "function") window.VanhanhNav.go("tasks");
       // Kanban jobs live on the Tasks page (tasks.js, lazy). Wait up to ~3 s for it to load its data.
       for (var i = 0; i < 30; i++) {
-        var nv = window.NaotaTasks;
+        var nv = window.VanhanhTasks;
         if (nv && typeof nv.ready === "function" && nv.ready()) {
           var shown = false;
           try { shown = await nv.show(v.target); } catch (e) {}
@@ -130,15 +130,15 @@
       return { ok: false, detail: tw("ui.err_kanban_slow") };
     }
     if (v.action === "open_group") {
-      if (window.NaotaNav && typeof window.NaotaNav.openGroup === "function") {
-        return window.NaotaNav.openGroup(v.target)
+      if (window.VanhanhNav && typeof window.VanhanhNav.openGroup === "function") {
+        return window.VanhanhNav.openGroup(v.target)
           ? { ok: true, detail: "" } : { ok: false, detail: tw("ui.err_group_missing") };
       }
       return { ok: false, detail: tw("ui.err_nav_not_ready") };
     }
     if (v.action === "sidebar") {
-      if (window.NaotaNav && typeof window.NaotaNav.setCollapsed === "function") {
-        window.NaotaNav.setCollapsed(v.target === "close");
+      if (window.VanhanhNav && typeof window.VanhanhNav.setCollapsed === "function") {
+        window.VanhanhNav.setCollapsed(v.target === "close");
         return { ok: true, detail: "" };
       }
       return { ok: false, detail: tw("ui.err_nav_not_ready") };
@@ -173,11 +173,11 @@
   }
 
   function send(obj) {
-    try { if (typeof window.NaotaWsSend === "function") window.NaotaWsSend(obj); } catch (e) {}
+    try { if (typeof window.VanhanhWsSend === "function") window.VanhanhWsSend(obj); } catch (e) {}
   }
 
   function currentSid() {
-    try { return (window.NaotaSessions && window.NaotaSessions.current()) || ""; } catch (e) { return ""; }
+    try { return (window.VanhanhSessions && window.VanhanhSessions.current()) || ""; } catch (e) { return ""; }
   }
 
   async function handle(frame) {
@@ -191,8 +191,8 @@
     var r;
     try { r = await execute(v); } catch (e) { r = { ok: false, detail: String(e && e.message || e) }; }
     send({ action: "ui_result", id: id, ok: !!r.ok, detail: r.detail || "" });
-    try { if (window.NaotaUiActions && typeof window.NaotaUiActions.onDone === "function") window.NaotaUiActions.onDone(v, r); } catch (e) {}
+    try { if (window.VanhanhUiActions && typeof window.VanhanhUiActions.onDone === "function") window.VanhanhUiActions.onDone(v, r); } catch (e) {}
   }
 
-  window.NaotaUiActions = { validate: validate, handle: handle, PAGES: PAGES, GROUPS: GROUPS, onDone: null };
+  window.VanhanhUiActions = { validate: validate, handle: handle, PAGES: PAGES, GROUPS: GROUPS, onDone: null };
 })();

@@ -1,13 +1,13 @@
-"""Bot chuyên trách không được để lộ một dòng trạng thái nào của Naota.
+"""Bot chuyên trách không được để lộ một dòng trạng thái nào của Vanhanh.
 
     python tests/run.py bot_noi_nhu_nguoi      (KHÔNG mạng, Telegram giả lập)
 
 Lỗi đã gặp trong một nhóm Telegram: bot đang nói chuyện như người, rồi giữa
 cuộc hiện ra "⏳ Đang xử lý câu trước. Gửi /stop để dừng rồi hỏi lại." trước mặt cả nhóm. Một
-câu như vậy khai ngay đây là máy, và còn dạy người lạ một lệnh quản trị. Yêu cầu: ẩn các phần trạng thái của Naota để giống người thật nói chứ không phải bot.
+câu như vậy khai ngay đây là máy, và còn dạy người lạ một lệnh quản trị. Yêu cầu: ẩn các phần trạng thái của Vanhanh để giống người thật nói chứ không phải bot.
 
 Bốn chỗ rò, canh cả bốn:
-  1. tin "🤔 Naota đang xử lý…" gửi trước mỗi lượt (và các bản cập nhật "⏳ …" của nó)
+  1. tin "🤔 Vanhanh đang xử lý…" gửi trước mỗi lượt (và các bản cập nhật "⏳ …" của nó)
   2. câu "⏳ Đang xử lý câu trước. Gửi /stop…" khi có tin tới lúc bot đang bận
   3. "⚠ Lỗi: <TênLớpNgoạiLệ>: …" khi một lượt gãy
   4. "(không có nội dung)" khi câu trả lời rỗng
@@ -24,7 +24,7 @@ from pathlib import Path
 
 from _paths import ROOT, SERVER  # noqa: E402,F401  - nạp server/ vào sys.path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-botnguoi-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-botnguoi-"))
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -110,7 +110,7 @@ async def t_khong_tin_trang_thai():
     await asyncio.sleep(0)
 
     gui = tg.texts()
-    check("khách: KHÔNG có tin '🤔 Naota đang xử lý…'",
+    check("khách: KHÔNG có tin '🤔 Vanhanh đang xử lý…'",
           not any("đang xử lý" in t.lower() for t in gui))
     check("khách: KHÔNG có tin trạng thái '⏳' nào", not any("⏳" in t for t in gui))
     check("khách: không đụng tới editMessageText/deleteMessage của tin trạng thái",
@@ -119,11 +119,11 @@ async def t_khong_tin_trang_thai():
           "sendChatAction" in tg.methods())
     check("khách: câu trả lời thật vẫn tới", gui == ["Dạ bên em còn hàng ạ."])
 
-    # Bot của CHỦ giữ nguyên: chủ cần nhìn thấy Naota đang chạy tới đâu.
+    # Bot của CHỦ giữ nguyên: chủ cần nhìn thấy Vanhanh đang chạy tới đâu.
     tg2 = FakeTelegram()
     await bot_chu(answer)._handle_turn(tg2, "42", "còn hàng không em")
     check("chủ: vẫn gửi tin trạng thái như cũ",
-          any("Naota đang xử lý" in t for t in tg2.texts()))
+          any("Vanhanh đang xử lý" in t for t in tg2.texts()))
     # Tin trạng thái KHÔNG bị xoá nữa, nó ở lại thành dòng vết công cụ. Chi tiết và
     # lý do ở tests/python/test_tin_trang_thai_telegram.py.
     check("chủ: KHÔNG xoá tin trạng thái nữa", "deleteMessage" not in tg2.methods())
@@ -144,7 +144,7 @@ async def t_ban_thi_xep_hang():
 
     tg = FakeTelegram()
     b = bot_khach(answer)
-    await b._dispatch(tg, "42", "anh có nói chuyện được với em không naota an", {})
+    await b._dispatch(tg, "42", "anh có nói chuyện được với em không vanhanh an", {})
     await b._dispatch(tg, "42", ":)", {})
     await b._dispatch(tg, "42", "alo", {})
 
@@ -157,7 +157,7 @@ async def t_ban_thi_xep_hang():
     cong.set()
     await cho_xong(b, "42")
     check("khách: trả lời xong lượt đầu thì gộp mấy câu chờ thành MỘT lượt",
-          thay == ["anh có nói chuyện được với em không naota an", ":)\nalo"])
+          thay == ["anh có nói chuyện được với em không vanhanh an", ":)\nalo"])
     check("khách: cả hai lượt đều có câu trả lời gửi đi", len(tg.texts()) == 2)
 
     # Owner bot: it used to answer "busy, send /stop" and the message was lost. The message is
@@ -287,7 +287,7 @@ async def t_khong_goi_ten_thi_im():
     # Chặn KÈM một câu (nhóm chưa được bật) thì vẫn nói câu đó, nhưng vẫn không tốn lượt.
     tg2 = FakeTelegram()
     b2 = bot_khach(answer, precheck_fn=lambda text, meta: {"reply": "Em chưa được bật ạ."})
-    await b2._dispatch(tg2, "-100", "naota ơi", {})
+    await b2._dispatch(tg2, "-100", "vanhanh ơi", {})
     await cho_xong(b2, "-100")
     check("nhóm chưa bật: nói đúng một câu, không gọi engine",
           goi == [] and tg2.texts() == ["Em chưa được bật ạ."])
@@ -295,10 +295,10 @@ async def t_khong_goi_ten_thi_im():
     # None = cho chạy. Đây là ca duy nhất được phép hiện "đang nhập…".
     tg3 = FakeTelegram()
     b3 = bot_khach(answer, precheck_fn=lambda text, meta: None)
-    await b3._dispatch(tg3, "-100", "@naota giá bao nhiêu", {})
+    await b3._dispatch(tg3, "-100", "@vanhanh giá bao nhiêu", {})
     await cho_xong(b3, "-100")
     check("có gọi tên bot: mới chạy lượt và mới hiện 'đang nhập…'",
-          goi == ["@naota giá bao nhiêu"] and "sendChatAction" in tg3.methods())
+          goi == ["@vanhanh giá bao nhiêu"] and "sendChatAction" in tg3.methods())
 
     # precheck NỔ thì phải chạy tiếp, không được nuốt câu của khách.
     def _no(text, meta):
@@ -309,7 +309,7 @@ async def t_khong_goi_ten_thi_im():
     await b4._dispatch(tg4, "-100", "câu của khách", {})
     await cho_xong(b4, "-100")
     check("precheck hỏng thì vẫn trả lời, không nuốt câu của khách",
-          goi == ["@naota giá bao nhiêu", "câu của khách"])
+          goi == ["@vanhanh giá bao nhiêu", "câu của khách"])
 
 
 def t_precheck_hop_dong():

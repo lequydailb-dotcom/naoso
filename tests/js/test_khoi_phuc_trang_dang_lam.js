@@ -36,7 +36,7 @@ function navCase(seed, expected) {
     Alpine: { store: () => route },
     RAIL_BY_ID: { home: {}, chat: {}, workspace: {}, settings: {} },
     TRANG_GOP: { agents: "workspace" },
-    TRANG_CUOI_KEY: "naota_last_page",
+    TRANG_CUOI_KEY: "vanhanh_last_page",
     groupLabelOf: id => "group:" + id,
     document: { body: { classList: {
       toggle: (c, on) => on ? classes.add(c) : classes.delete(c),
@@ -54,44 +54,44 @@ function navCase(seed, expected) {
   assert.equal(route.openGroup, "group:" + expected);
   assert.equal(classes.has("in-console"), expected !== "home");
   ctx.navigateTo("chat");
-  assert.equal(localStorage.data.naota_last_page, "chat");
+  assert.equal(localStorage.data.vanhanh_last_page, "chat");
   ctx.navigateTo("settings");
-  assert.equal(localStorage.data.naota_last_page, "chat", "settings must not replace last conversation");
+  assert.equal(localStorage.data.vanhanh_last_page, "chat", "settings must not replace last conversation");
   ctx.khoiPhucTrang();
   assert.equal(route.active, "chat");
   ctx.navigateTo("workspace");
   ctx.navigateTo("settings");
   ctx.navigateTo("home");
-  assert.equal(localStorage.data.naota_last_page, "workspace");
+  assert.equal(localStorage.data.vanhanh_last_page, "workspace");
   ctx.khoiPhucTrang();
   assert.equal(route.active, "workspace", "graph/settings must not replace last assistant");
 }
 navCase({}, "home");
-navCase({ naota_last_page: "chat" }, "chat");
-navCase({ naota_last_page: "workspace" }, "workspace");
-navCase({ naota_last_page: "agents" }, "workspace");
-navCase({ naota_last_page: "settings" }, "home");
-navCase({ naota_last_page: "home" }, "home");
-navCase({ naota_last_page: "not-a-page" }, "home");
+navCase({ vanhanh_last_page: "chat" }, "chat");
+navCase({ vanhanh_last_page: "workspace" }, "workspace");
+navCase({ vanhanh_last_page: "agents" }, "workspace");
+navCase({ vanhanh_last_page: "settings" }, "home");
+navCase({ vanhanh_last_page: "home" }, "home");
+navCase({ vanhanh_last_page: "not-a-page" }, "home");
 
 // An assistant's selected conversation can be older than the latest one. Reopening the
 // workspace must use its exact id, while keeping the main chat id for the return path.
 {
-  const localStorage = storage({ naota_workspace_view: JSON.stringify({
+  const localStorage = storage({ vanhanh_workspace_view: JSON.stringify({
     brain: "brain-a", kind: "agent", slug: "writer", sessionId: "older-chat", mainSessionId: "main-chat",
   }) });
   let opened = null;
   const ctx = {
     localStorage,
     brain: () => "brain-a",
-    VI_TRI_KEY: "naota_workspace_view",
+    VI_TRI_KEY: "vanhanh_workspace_view",
     S: { loai: "agent", chon: { agent: "writer", workflow: "review" }, sessionCuaPhien: {} },
     _phienTruoc: null,
     danhSach: () => [{ slug: "writer" }],
     dangChon: () => ctx.danhSach().find(x => x.slug === ctx.S.chon[ctx.S.loai]),
     veDanhSach() {},
     moPhien: (...args) => { opened = args; },
-    window: { NaotaSessions: { current: () => "older-chat" } },
+    window: { VanhanhSessions: { current: () => "older-chat" } },
   };
   vm.createContext(ctx);
   vm.runInContext(fn(workspaceJs, "docViTri") + "\n" + fn(workspaceJs, "luuViTri") + "\n" + fn(workspaceJs, "nhoPhienTruoc") + "\n" + fn(workspaceJs, "chonMacDinh"), ctx);
@@ -100,7 +100,7 @@ navCase({ naota_last_page: "not-a-page" }, "home");
   assert.equal(ctx._phienTruoc, "main-chat");
   assert.equal(opened[2], "older-chat");
   ctx.luuViTri("selected-older");
-  assert.deepEqual(JSON.parse(localStorage.data.naota_workspace_view), {
+  assert.deepEqual(JSON.parse(localStorage.data.vanhanh_workspace_view), {
     brain: "brain-a", kind: "agent", slug: "writer", sessionId: "selected-older", mainSessionId: "main-chat",
   });
   ctx.S.loai = "workflow";

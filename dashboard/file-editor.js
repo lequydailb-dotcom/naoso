@@ -1,5 +1,5 @@
 /* file-editor.js - Khung sua file bung GIUA MAN HINH, goi tu link file trong chat.
-   window.NaotaEditFile(brainRelPath): mo modal doc /files/read, sua text (.md co nut gat
+   window.VanhanhEditFile(brainRelPath): mo modal doc /files/read, sua text (.md co nut gat
    Nguon/Xem), luu /files/write, xem truoc anh/pdf, file khac cho tai.
 
    Doc lap: tu chen CSS, gan modal vao <body> nen chay duoc tu MOI trang (chat toan trang,
@@ -28,9 +28,9 @@
   }
 
   // (i) button from info-tip.js; without it (node tests) the explanation is drawn inline.
-  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(tw("info.more")) : ""; }
+  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(tw("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.NaotaInfo;
+    var J = typeof window !== "undefined" && window.VanhanhInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
 
@@ -197,7 +197,7 @@
     modal.addEventListener("mousedown", function (e) { if (e.target === modal) close(); });
     modal.addEventListener("click", function (e) { if (e.target === modal) close(); });
     // Nut Back cua dien thoai (va cu vuot canh man hinh) phai dong trinh sua, khong phai thoat
-    // ca app. Truoc day khong co nhanh nay nen nguoi dung bam Back la bay ra khoi Naota - mot
+    // ca app. Truoc day khong co nhanh nay nen nguoi dung bam Back la bay ra khoi Vanhanh - mot
     // duong "lui" ma khong ai muon. Ca app khong dung History API o cho nao khac, nen chen mot
     // buoc o day khong dam vao dieu huong nao.
     window.addEventListener("popstate", function () {
@@ -437,9 +437,9 @@
 
   function renderEditor(b, ceil, brainRel, d) {
     var isMd = extOf(brainRel) === ".md";
-    // .md + du bo may WYSIWYG (mdToHtml + NaotaNoteEditor) -> soan nhu Word; con lai -> textarea nguon.
-    if (isMd && typeof window.mdToHtml === "function" && window.NaotaNoteEditor) renderMdEditor(b, ceil, d);
-    else if (window.NaotaHtmlPreview && window.NaotaHtmlPreview.isHtmlPath(ceil)) renderHtmlEditor(b, ceil, d);
+    // .md + du bo may WYSIWYG (mdToHtml + VanhanhNoteEditor) -> soan nhu Word; con lai -> textarea nguon.
+    if (isMd && typeof window.mdToHtml === "function" && window.VanhanhNoteEditor) renderMdEditor(b, ceil, d);
+    else if (window.VanhanhHtmlPreview && window.VanhanhHtmlPreview.isHtmlPath(ceil)) renderHtmlEditor(b, ceil, d);
     else renderPlainEditor(b, ceil, d);
   }
 
@@ -447,7 +447,7 @@
   // highlighted editor. The preview draws the code currently in the editor (html-preview.js), so an
   // edit shows on the next switch back without saving first. Save and Ctrl+S work from either tab.
   function renderHtmlEditor(b, ceil, d) {
-    var HP = window.NaotaHtmlPreview;
+    var HP = window.VanhanhHtmlPreview;
     elActions.innerHTML = "";
     elBody.innerHTML = '<div class="jvfe-html mode-preview">' +
       '<div class="jvfe-html-prev"></div>' +
@@ -456,7 +456,7 @@
     var prev = box.querySelector(".jvfe-html-prev");
     var ta = box.querySelector(".jvfe-text");
     ta.value = d.content || "";
-    try { if (window.NaotaCodeHL) window.NaotaCodeHL.attach(ta, "html"); } catch (e) {}
+    try { if (window.VanhanhCodeHL) window.VanhanhCodeHL.attach(ta, "html"); } catch (e) {}
     var shown = null;   // the code the preview last drew, so switching tabs does not reload it for nothing
     function draw() {
       if (shown === ta.value) return;
@@ -490,11 +490,11 @@
     // .html, .css, .js, .json, .py... -> lop mau chong khit ben duoi (code-hl.js). Khong nhan
     // ra ngon ngu hoac file qua to thi attach tra null va o sua chay y nhu cu.
     try {
-      var lang = window.NaotaCodeHL ? window.NaotaCodeHL.langFromPath(ceil) : "";
-      if (lang) window.NaotaCodeHL.attach(ta, lang);
+      var lang = window.VanhanhCodeHL ? window.VanhanhCodeHL.langFromPath(ceil) : "";
+      if (lang) window.VanhanhCodeHL.attach(ta, lang);
     } catch (e) {}
     // Bo dem tu + ky tu, dung chung ham cua trinh sua dinh (console.js).
-    var NE0 = window.NaotaNoteEditor;
+    var NE0 = window.VanhanhNoteEditor;
     if (NE0 && NE0.ganDemTu) NE0.ganDemTu(elActions, function () { return { text: ta.value, md: false }; }, [ta]);
     appendSaveAndClose(b, ceil, function () { return ta.value; });
     focusNeuDuocPhep(ta);
@@ -502,7 +502,7 @@
 
   // .md: WYSIWYG 2 khung (ban render sua truc tiep + nguon markdown) dung LAI bo may editor cay.
   function renderMdEditor(b, ceil, d) {
-    var NE = window.NaotaNoteEditor;
+    var NE = window.VanhanhNoteEditor;
     elActions.innerHTML = "";
     elBody.innerHTML =
       '<div class="ne-body ne-md mode-source" id="jvfeNe">' +
@@ -563,11 +563,11 @@
   }
 
   if (typeof window !== "undefined") {
-    window.NaotaEditFile = open;
-    window.NaotaFileEditor = { open: open, close: close };
+    window.VanhanhEditFile = open;
+    window.VanhanhFileEditor = { open: open, close: close };
     // Trinh sua dinh (console.js) dung lai DUNG cai nut nay, khong chep lai logic:
     // mot cho sua la ca hai khung cung doi.
-    window.NaotaShareBtn = shareBtn;
+    window.VanhanhShareBtn = shareBtn;
   }
   if (typeof module !== "undefined" && module.exports) {
     module.exports = { ceilPath: ceilPath };

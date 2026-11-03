@@ -1,6 +1,6 @@
-# NAOTA - macOS launchers
+# VANHANH - macOS launchers
 
-Portable helpers to run NAOTA natively on macOS (no Docker), so you can
+Portable helpers to run VANHANH natively on macOS (no Docker), so you can
 start it like a normal app.
 
 ## Prereqs (once)
@@ -14,23 +14,23 @@ start it like a normal app.
 
 ## Run
 
-- **`NAOTA.app`** (repo root) - double-click in Finder to start the server and
+- **`VANHANH.app`** (repo root) - double-click in Finder to start the server and
   open `http://127.0.0.1:7777`. Keep the `.app` inside the repo folder (it finds
   the repo relative to its own location).
-- **`Start NAOTA.command`** / **`Stop NAOTA.command`** - double-clickable
+- **`Start VANHANH.command`** / **`Stop VANHANH.command`** - double-clickable
   Finder alternatives.
-- **`bin/naota-start.sh`** / **`bin/naota-stop.sh`** - the underlying scripts.
-- **`bin/naota-autostart.sh [install|uninstall]`** - run the server at login via a
+- **`bin/vanhanh-start.sh`** / **`bin/vanhanh-stop.sh`** - the underlying scripts.
+- **`bin/vanhanh-autostart.sh [install|uninstall]`** - run the server at login via a
   macOS LaunchAgent, and open the dashboard in the browser once it is up (a second,
-  run-once agent; `NAOTA_AUTOSTART_OPEN=0` skips it). `./install.sh` turns this on by
-  default (`NAOTA_NO_AUTOSTART=1` to skip). The plists are generated with
+  run-once agent; `VANHANH_AUTOSTART_OPEN=0` skips it). `./install.sh` turns this on by
+  default (`VANHANH_NO_AUTOSTART=1` to skip). The plists are generated with
   paths for your machine; nothing is hardcoded in the repo.
 
 ## Notes
 
 - Every script resolves the repo location from its own path, so the repo can live
   anywhere.
-- Default port is `7777`; override with the `NAOTA_PORT` environment variable.
+- Default port is `7777`; override with the `VANHANH_PORT` environment variable.
 - Bound to `127.0.0.1` (local only). Because it's `localhost`, the browser allows
   the microphone, so voice works without HTTPS. Use Chrome or Edge for speech
   recognition.

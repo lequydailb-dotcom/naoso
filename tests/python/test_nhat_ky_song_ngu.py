@@ -14,7 +14,7 @@ import re
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-cl-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-cl-"))
 import localefmt  # noqa: E402
 import main  # noqa: E402
 

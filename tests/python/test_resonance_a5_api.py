@@ -12,9 +12,9 @@ import os
 import tempfile
 from pathlib import Path
 
-_STATE = Path(tempfile.mkdtemp(prefix="naota-res-a5api-"))
-os.environ["NAOTA_STATE_DIR"] = str(_STATE)
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
+_STATE = Path(tempfile.mkdtemp(prefix="vanhanh-res-a5api-"))
+os.environ["VANHANH_STATE_DIR"] = str(_STATE)
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
 
 from fastapi import FastAPI  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

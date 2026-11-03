@@ -9,12 +9,12 @@ import json
 import os
 # vòng tool mặc định gọi model dạng stream. File này thử logic vòng tool trên đường non-stream
 # (giả lập client.post / máy chủ trả JSON), đường đó vẫn là đường lui. Đường stream: test_api_stream_vong.py.
-os.environ["NAOTA_API_STREAM_TOOLS"] = "0"
+os.environ["VANHANH_API_STREAM_TOOLS"] = "0"
 import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-tool-reliability-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-tool-reliability-")
 
 import engine  # noqa: E402
 import mcp_client  # noqa: E402
@@ -30,21 +30,21 @@ def check(name, cond):
         fails.append(name)
 
 
-schedule_tool = [{"fn": "naota_schedule", "description": "lịch", "schema": {
+schedule_tool = [{"fn": "vanhanh_schedule", "description": "lịch", "schema": {
     "type": "object", "properties": {"op": {"type": "string"}},
 }}]
 
-check("intent cron tiếng Việt -> ép đúng naota_schedule",
+check("intent cron tiếng Việt -> ép đúng vanhanh_schedule",
       engine._tool_requirement(
           [{"role": "user", "content": "Kiểm tra toàn bộ cron/nhắc hẹn đang chạy và lịch thuốc hôm nay"}],
-          schedule_tool) == "naota_schedule")
+          schedule_tool) == "vanhanh_schedule")
 check("chat kiến thức thuần -> không ép tool",
       engine._tool_requirement(
           [{"role": "user", "content": "Cron expression là gì?"}], schedule_tool) is None)
 check("dữ liệu Google hiện tại -> ép ít nhất một tool",
       engine._tool_requirement(
           [{"role": "user", "content": "Xem Google Tasks hiện có giúp anh"}],
-          [{"fn": "naota_search_tools"}]) == "required")
+          [{"fn": "vanhanh_search_tools"}]) == "required")
 check("câu chỉ xem lịch -> nhận ra đường read-only",
       engine._schedule_read_request(
           [{"role": "user", "content": "Kiểm tra cron đang chạy và lịch thuốc hôm nay"}]))
@@ -59,22 +59,22 @@ check("câu nhắc sau 30 phút -> nhận đúng create",
           [{"role": "user", "content": "30 phút nữa nhắc anh gọi khách"}]))
 _booking_question = [{"role": "user", "content":
     "Cái khung hơi xấu và giá trị ưu tiên hỏi đáp quá đắt, liệu thay bằng việc đặt lịch tư vấn 1-1 có ok không?"}]
-check("bàn phương án đặt lịch tư vấn -> không phải lệnh tạo lịch Naota",
+check("bàn phương án đặt lịch tư vấn -> không phải lệnh tạo lịch Vanhanh",
       not engine._schedule_create_request(_booking_question))
-check("bàn phương án đặt lịch tư vấn -> không ép naota_schedule",
+check("bàn phương án đặt lịch tư vấn -> không ép vanhanh_schedule",
       engine._tool_requirement(_booking_question, schedule_tool) is None)
 check("model tự xin list trong câu tư vấn -> cổng thực thi chặn",
-      not engine._schedule_tool_allowed(_booking_question, "naota_schedule", {"op": "list"}))
+      not engine._schedule_tool_allowed(_booking_question, "vanhanh_schedule", {"op": "list"}))
 check("hỏi có nên xem lịch nhắc -> không tự đọc kho lịch",
       not engine._schedule_read_request(
           [{"role": "user", "content": "Có nên xem lịch nhắc mỗi ngày để tối ưu quy trình không?"}]))
 check("hỏi ý kiến về tạo reminder -> không tự tạo",
       not engine._schedule_create_request(
           [{"role": "user", "content": "Tạo reminder như vậy có hợp lý không?"}]))
-check("câu XÓA cron -> ép đúng naota_schedule",
+check("câu XÓA cron -> ép đúng vanhanh_schedule",
       engine._tool_requirement(
           [{"role": "user", "content": "Xóa cron brainstorm cách làm việc giúp anh"}],
-          schedule_tool) == "naota_schedule")
+          schedule_tool) == "vanhanh_schedule")
 check("câu XÓA cron -> nhận đúng mutation cancel",
       engine._schedule_cancel_request(
           [{"role": "user", "content": "Xóa cron brainstorm cách làm việc giúp anh"}]))
@@ -103,7 +103,7 @@ check("'đừng huỷ lịch' -> không chạy mutation",
 check("'tất cả lịch nhắc' không bị hiểu chữ tất thành tắt",
       not engine._schedule_cancel_request(
           [{"role": "user", "content": "Tất cả lịch nhắc hẹn hoạt động như thế nào?"}]))
-check("bài nội dung không bị ép gọi naota_schedule",
+check("bài nội dung không bị ép gọi vanhanh_schedule",
       engine._tool_requirement(
           [{"role": "user", "content": "Viết hướng dẫn về cách hủy reminder trong một ứng dụng"}],
           schedule_tool) is None)
@@ -164,9 +164,9 @@ async def tool_loop_tests():
         events = [e async for e in engine._cc_tool_loop(
             "https://fake", {}, "free-model",
             [{"role": "user", "content": "Kiểm tra cron đang chạy và lịch thuốc hôm nay"}],
-            schedule_tool, {"naota_schedule": {}}, {}, "OpenRouter")]
+            schedule_tool, {"vanhanh_schedule": {}}, {}, "OpenRouter")]
         check("op=list được server dispatch trước khi gọi model",
-              any(e.get("type") == "tool_call" and e.get("name") == "naota_schedule" for e in events))
+              any(e.get("type") == "tool_call" and e.get("name") == "vanhanh_schedule" for e in events))
         check("sau preflight list không còn ép model function-calling",
               "tool_choice" not in FakeClient.payloads[0])
         check("sau tool model được trả kết quả", any(e.get("content") == "Đã đọc lịch thật." for e in events))
@@ -179,10 +179,10 @@ async def tool_loop_tests():
         ignored = [e async for e in engine._cc_tool_loop(
             "https://fake", {}, "free-model",
             [{"role": "user", "content": "Tạo cron nhắc thuốc lúc 8h"}],
-            schedule_tool, {"naota_schedule": {}}, {}, "OpenRouter")]
+            schedule_tool, {"vanhanh_schedule": {}}, {}, "OpenRouter")]
         first_choice = FakeClient.payloads[0].get("tool_choice", {})
-        check("thao tác tạo vẫn ép named tool_choice=naota_schedule",
-              first_choice.get("function", {}).get("name") == "naota_schedule")
+        check("thao tác tạo vẫn ép named tool_choice=vanhanh_schedule",
+              first_choice.get("function", {}).get("name") == "vanhanh_schedule")
         check("model bỏ tool hai lần -> chặn câu trả lời bịa",
               any(e.get("type") == "error" and "bỏ qua tool bắt buộc" in e.get("content", "")
                   for e in ignored))
@@ -199,7 +199,7 @@ async def tool_loop_tests():
                 "tool_calls": [{
                     "id": "call_bad_schedule",
                     "type": "function",
-                    "function": {"name": "naota_schedule", "arguments": '{"op":"list"}'},
+                    "function": {"name": "vanhanh_schedule", "arguments": '{"op":"list"}'},
                 }],
             }}]}),
             FakeResponse({"choices": [{"message": {
@@ -208,7 +208,7 @@ async def tool_loop_tests():
         ]
         blocked = [e async for e in engine._cc_tool_loop(
             "https://fake", {}, "free-model", _booking_question,
-            schedule_tool, {"naota_schedule": {}}, {}, "OpenRouter")]
+            schedule_tool, {"vanhanh_schedule": {}}, {}, "OpenRouter")]
         check("function-call lịch sai ý định không được thực thi", actual_calls == [])
         check("function-call lịch bị chặn không hiện như một tool đã chạy",
               not any(e.get("type") == "tool_call" for e in blocked))
@@ -243,33 +243,33 @@ async def schedule_cancel_gateway_tests():
     try:
         action = await engine.schedule_cancel_gateway(
             [{"role": "user", "content": "Xóa cron brainstorm cách làm việc quan trọng hôm nay"}],
-            schedule_tool, {"naota_schedule": {}},
+            schedule_tool, {"vanhanh_schedule": {}},
         )
         check("gateway chọn đúng cron theo tên duy nhất",
               action.get("handled") and action.get("id") == "rem_b")
         check("gateway tự gọi list rồi cancel, không phụ thuộc function-calling",
               calls == [
-                  ("naota_schedule", {"op": "list"}),
-                  ("naota_schedule", {"op": "cancel", "id": "rem_b"}),
+                  ("vanhanh_schedule", {"op": "list"}),
+                  ("vanhanh_schedule", {"op": "cancel", "id": "rem_b"}),
               ])
 
         calls.clear()
         natural = await engine.schedule_cancel_gateway(
             [{"role": "user", "content": "Huỷ lịch Brainstorm cách làm việc quan trọng hôm nay"}],
-            schedule_tool, {"naota_schedule": {}},
+            schedule_tool, {"vanhanh_schedule": {}},
         )
         check("gateway huỷ đúng lịch khi user chỉ nói 'huỷ lịch <tên>'",
               natural.get("handled") and natural.get("id") == "rem_b")
         check("câu huỷ lịch tự nhiên vẫn chỉ gọi list rồi cancel",
               calls == [
-                  ("naota_schedule", {"op": "list"}),
-                  ("naota_schedule", {"op": "cancel", "id": "rem_b"}),
+                  ("vanhanh_schedule", {"op": "list"}),
+                  ("vanhanh_schedule", {"op": "cancel", "id": "rem_b"}),
               ])
 
         calls.clear()
         ambiguous = await engine.schedule_cancel_gateway(
             [{"role": "user", "content": "Xóa cron giúp anh"}],
-            schedule_tool, {"naota_schedule": {}},
+            schedule_tool, {"vanhanh_schedule": {}},
         )
         check("nhiều cron mà user không chỉ rõ -> không xoá nhầm",
               ambiguous.get("needs_choice") and
@@ -281,7 +281,7 @@ async def schedule_cancel_gateway_tests():
         mcp_client.call_route = fake_empty
         empty = await engine.schedule_cancel_gateway(
             [{"role": "user", "content": "Xóa cron giúp anh"}],
-            schedule_tool, {"naota_schedule": {}},
+            schedule_tool, {"vanhanh_schedule": {}},
         )
         check("kho lịch trống -> báo không có, không nói mơ hồ/thiếu tool",
               empty.get("not_found") and not empty.get("needs_choice"))
@@ -293,7 +293,7 @@ asyncio.run(schedule_cancel_gateway_tests())
 
 
 async def hub_vault_test():
-    vault = tempfile.mkdtemp(prefix="naota-brain-")
+    vault = tempfile.mkdtemp(prefix="vanhanh-brain-")
     seen = []
     old_discover = mcp_hub.discover_all
 
@@ -304,8 +304,8 @@ async def hub_vault_test():
     class FakeRequest:
         headers = {
             "authorization": f"Bearer {mcp_hub.hub_token()}",
-            "x-naota-mode": "full",
-            "x-naota-vault": vault,
+            "x-vanhanh-mode": "full",
+            "x-vanhanh-vault": vault,
         }
 
         async def json(self):
@@ -315,7 +315,7 @@ async def hub_vault_test():
     try:
         response = await mcp_hub.handle_http(FakeRequest())
         check("hub HTTP tools/list thành công", response.status_code == 200)
-        check("hub truyền X-Naota-Vault xuống plugin discovery",
+        check("hub truyền X-Vanhanh-Vault xuống plugin discovery",
               seen and Path(seen[0]).resolve() == Path(vault).resolve())
     finally:
         mcp_hub.discover_all = old_discover
@@ -323,15 +323,15 @@ async def hub_vault_test():
 
 asyncio.run(hub_vault_test())
 
-vault = tempfile.mkdtemp(prefix="naota-codex-brain-")
+vault = tempfile.mkdtemp(prefix="vanhanh-codex-brain-")
 override = mcp_hub.codex_vault_override(vault)
 cli = CodexCLI(cwd=vault)
 cli.cli_path = "codex"
-cli.profile = "naota"
+cli.profile = "vanhanh"
 cli.extra_config.append(override)
 args = cli._build_args()
-check("Codex argv mang override X-Naota-Vault theo từng phiên",
-      "-c" in args and override in args and "X-Naota-Vault" in override)
+check("Codex argv mang override X-Vanhanh-Vault theo từng phiên",
+      "-c" in args and override in args and "X-Vanhanh-Vault" in override)
 
 main_src = (SERVER / "main.py").read_text(encoding="utf-8")
 tg_src = main_src.split("async def _tg_answer", 1)[1].split("async def _tg_help_text", 1)[0]

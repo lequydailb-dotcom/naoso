@@ -15,8 +15,8 @@ import os
 import tempfile
 from pathlib import Path
 
-STATE = Path(tempfile.mkdtemp(prefix="naota-webhooks-state-"))
-os.environ["NAOTA_STATE_DIR"] = str(STATE)
+STATE = Path(tempfile.mkdtemp(prefix="vanhanh-webhooks-state-"))
+os.environ["VANHANH_STATE_DIR"] = str(STATE)
 
 import webhook_triggers as wt  # noqa: E402
 
@@ -50,7 +50,7 @@ async def send(chat_id, text, viec=None, web="", brain="", dedup=""):
 
 feat = wt.WebhookFeature(wt.WebhookDeps(
     state_dir=lambda: STATE, run_task=run_task, run_workflow=run_workflow, send=send,
-    base_url=lambda _r: "https://naota.example",
+    base_url=lambda _r: "https://vanhanh.example",
     workflow_exists=lambda brain, slug: slug == "cham-soc-lead"))
 
 
@@ -206,7 +206,7 @@ async def main():
 
     # token sources
     check("bearer header read", wt.token_from_request({"authorization": "Bearer abc"}, "") == "abc")
-    check("X-Naota-Token read", wt.token_from_request({"x-naota-token": "def"}, "") == "def")
+    check("X-Vanhanh-Token read", wt.token_from_request({"x-vanhanh-token": "def"}, "") == "def")
     check("query token read (older hooks only: see the security tests)", wt.token_from_request({}, "token=ghi&x=1") == "ghi")
 
 

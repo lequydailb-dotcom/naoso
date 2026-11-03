@@ -3,7 +3,7 @@ free mạnh nhất (ca thật: Codex hết quota ChatGPT làm nhắc hẹn chế
 Chạy:  python tests/run.py aux_fallback    (KHÔNG mạng)."""
 from _paths import ROOT, SERVER  # noqa: E402,F401  - nạp server/ vào sys.path (xem tests/python/_paths.py)
 import os, sys, tempfile, asyncio
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-auxfb-test-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-auxfb-test-")
 
 _fails = []
 def check(name, cond):

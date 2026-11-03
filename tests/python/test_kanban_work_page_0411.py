@@ -378,7 +378,7 @@ def test_a_finished_run_records_how_long_it_took(tmp_path):
     feature.store.close()
 
 
-# ---------------------------------------------------------------- "Naota is asking you" vs "Naota is handling it"
+# ---------------------------------------------------------------- "Vanhanh is asking you" vs "Vanhanh is handling it"
 # Why: "Needs you" made low-tech owners anxious about stopped jobs they could not fix, and need not.
 
 def _stopped_board(tmp_path):

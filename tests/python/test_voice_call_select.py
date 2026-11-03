@@ -15,7 +15,7 @@ import json
 import os
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-call-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-call-"))
 
 import codex_realtime  # noqa: E402
 import main  # noqa: E402

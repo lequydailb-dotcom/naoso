@@ -16,8 +16,8 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-review-")
-TEMP = Path(tempfile.mkdtemp(prefix="naota-team-review-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-review-")
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-team-review-w-"))
 
 import main  # noqa: E402
 import sessions  # noqa: E402
@@ -296,7 +296,7 @@ def section_r2():
 
 # ═════════════ R3: đầu ra không hợp lệ không ghi bộ nhớ bền ═════════════
 def section_r3():
-    LESSON = "\nNAOTA_LESSON: {}"
+    LESSON = "\nVANHANH_LESSON: {}"
 
 
     def lesson_events(mark):
@@ -306,14 +306,14 @@ def section_r3():
     w = job_via_factory("r3-control", lesson_events("GOOD_LESSON_101"))
     check("R3 đối chứng: đầu ra hợp lệ ghi bài học vào bộ nhớ agent, tin sạch marker",
           "GOOD_LESSON_101" in memory_text(w["d"]) and w["task"]["status"] == "done"
-          and "NAOTA_LESSON" not in w["msgs"][0]["content"])
+          and "VANHANH_LESSON" not in w["msgs"][0]["content"])
     good = [x for x in scoped_lessons() if x["text"] == "GOOD_LESSON_101"]
     check("R3 + T3: bài học của lượt nhóm vào phạm vi team:<id> (nguồn self, gắn lượt), không vào MEMORY.md",
           len(good) == 1 and good[0]["scope"] == f"team:{w['t']['team_id']}" and good[0]["source"] == "self"
           and '"turn:' in good[0]["source_refs_json"] and "GOOD_LESSON_101" not in memory_files_text(w["d"]), good)
-    w = job_via_factory("r3-rule", [{"type": "final", "content": "Kết quả\nNAOTA_RULE: RULE_202 luôn viết ngắn"}])
-    check("R3 NAOTA_RULE trong lượt nhóm hạ thành bài học (không có chủ nói trực tiếp), ghi khi hợp lệ",
-          "RULE_202" in memory_text(w["d"]) and "NAOTA_RULE" not in w["msgs"][0]["content"])
+    w = job_via_factory("r3-rule", [{"type": "final", "content": "Kết quả\nVANHANH_RULE: RULE_202 luôn viết ngắn"}])
+    check("R3 VANHANH_RULE trong lượt nhóm hạ thành bài học (không có chủ nói trực tiếp), ghi khi hợp lệ",
+          "RULE_202" in memory_text(w["d"]) and "VANHANH_RULE" not in w["msgs"][0]["content"])
 
     LATE = {
         "member_left": lambda r, tm, ts, ss, t, job: tm.remove_member(t["team_id"], "agent-one"),

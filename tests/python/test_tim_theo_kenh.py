@@ -12,9 +12,9 @@ import os
 import tempfile
 from pathlib import Path
 
-_TMP = tempfile.mkdtemp(prefix="naota-timkenh-")
-os.environ["NAOTA_STATE_DIR"] = _TMP
-os.environ["NAOTA_SESSIONS_DB"] = str(Path(_TMP) / "conv.db")
+_TMP = tempfile.mkdtemp(prefix="vanhanh-timkenh-")
+os.environ["VANHANH_STATE_DIR"] = _TMP
+os.environ["VANHANH_SESSIONS_DB"] = str(Path(_TMP) / "conv.db")
 
 import sessions  # noqa: E402
 

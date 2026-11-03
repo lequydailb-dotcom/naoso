@@ -20,7 +20,7 @@ with only the model engines faked:
      revived; a conversation in no project stays in none.
   5. The fast path (whose capsule has no project block) is skipped for a project with rules, and
      still offered to a conversation without one.
-  6. `naota --project X "..."` sends the `project` field; without it no field is sent.
+  6. `vanhanh --project X "..."` sends the `project` field; without it no field is sent.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
 import asyncio
@@ -31,8 +31,8 @@ import time
 from pathlib import Path
 from types import SimpleNamespace
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-cli-project-")
-os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="naota-cli-project-brains-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-cli-project-")
+os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="vanhanh-cli-project-brains-")
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -128,7 +128,7 @@ c = TestClient(main.app, base_url="http://127.0.0.1:8080")
 st = main.get_store()
 
 DEFAULT = str(main._default_brain_dir())
-OTHER = tempfile.mkdtemp(prefix="naota-cli-project-other-")
+OTHER = tempfile.mkdtemp(prefix="vanhanh-cli-project-other-")
 PID = st.create_project("Execution Block", brain="brain")
 st.update_project(PID, instructions=RULE)
 OTHER_PID = st.create_project("Other brain project", brain=OTHER)
@@ -302,8 +302,8 @@ check("CANARY: both dashboard fast-path offers check the project",
 # 7. The CLI client: --project sends the field
 # ============================================================
 sys.path.insert(0, str(ROOT / "cli"))
-import naota_cli.__main__ as cli_main  # noqa: E402
-import naota_cli.commands as cli_cmd  # noqa: E402
+import vanhanh_cli.__main__ as cli_main  # noqa: E402
+import vanhanh_cli.commands as cli_cmd  # noqa: E402
 
 _seen = {}
 _orig_hoi, _orig_chat = cli_main.cmd.hoi, cli_main.cmd.chat
@@ -313,9 +313,9 @@ cli_main.main(["--project", "Execution Block", "write the report"])
 check("--project before the question: the value goes to the option, not into the question",
       _seen.get("project") == "Execution Block" and _seen.get("cau") == "write the report", _seen)
 cli_main.main(["chat", "--project", "p1"])
-check("naota chat --project keeps the project", _seen.get("chat_project") == "p1", _seen)
+check("vanhanh chat --project keeps the project", _seen.get("chat_project") == "p1", _seen)
 cli_main.main(["--project", "p2", "chat"])
-check("naota --project X chat keeps the project", _seen.get("chat_project") == "p2", _seen)
+check("vanhanh --project X chat keeps the project", _seen.get("chat_project") == "p2", _seen)
 cli_main.cmd.hoi, cli_main.cmd.chat = _orig_hoi, _orig_chat
 
 

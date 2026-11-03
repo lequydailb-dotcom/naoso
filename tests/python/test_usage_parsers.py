@@ -30,7 +30,7 @@ def check(name, cond):
 # 01:30 (+7) NGAY HOM SAU (30) - de bat loi doi mui gio.
 line_bg = {
     "type": "assistant", "entrypoint": "sdk-cli", "isSidechain": False,
-    "sessionId": "sess-bg", "cwd": "D:\\Project\\naota",
+    "sessionId": "sess-bg", "cwd": "D:\\Project\\vanhanh",
     "timestamp": "2026-06-29T18:30:00.000Z",
     "message": {"model": "claude-opus-4-8", "usage": {
         "input_tokens": 10, "output_tokens": 300,
@@ -38,12 +38,12 @@ line_bg = {
 }
 ev = up.parse_claude_line(line_bg, set())
 check("claude: provider=claude", bool(ev) and ev["provider"] == "claude")
-check("claude: source=naota (sdk)", ev["source"] == "naota")
+check("claude: source=vanhanh (sdk)", ev["source"] == "vanhanh")
 check("claude: activity=background (session ngoai chat set)", ev["activity"] == "background")
 check("claude: giu du input+cache", ev["input"] == 10 and ev["cache_read"] == 14447 and ev["cache_create"] == 18184)
 check("claude: output", ev["output"] == 300)
 check("claude: day doi sang UTC+7 (hom sau)", ev["day"] == "2026-06-30")
-check("claude: project = basename cwd", ev["project"] == "naota")
+check("claude: project = basename cwd", ev["project"] == "vanhanh")
 check("claude: model giu nguyen", ev["model"] == "claude-opus-4-8")
 
 ev_chat = up.parse_claude_line(line_bg, {"sess-bg"})
@@ -79,7 +79,7 @@ _CODEX_LINES = [
     {"timestamp": "2026-07-05T18:30:00.000Z", "type": "event_msg", "payload": {"type": "token_count",
      "info": {"total_token_usage": {"input_tokens": 3000, "cached_input_tokens": 800, "output_tokens": 150, "total_tokens": 3150}}}},
 ]
-_tmp = Path(tempfile.mkdtemp(prefix="naota-codextest-"))
+_tmp = Path(tempfile.mkdtemp(prefix="vanhanh-codextest-"))
 _rollout = _tmp / "rollout-2026-07-05T02-00-00-abc.jsonl"
 _rollout.write_text("\n".join(json.dumps(x) for x in _CODEX_LINES), encoding="utf-8")
 
@@ -92,7 +92,7 @@ check("codex: cache_create = 0", cev["cache_create"] == 0)
 check("codex: model tu payload", cev["model"] == "gpt-5.5")
 check("codex: project tu session_meta cwd", cev["project"] == "Demo")
 check("codex: day UTC+7 (18:30Z -> hom sau)", cev["day"] == "2026-07-06")
-check("codex: source=naota", cev["source"] == "naota")
+check("codex: source=vanhanh", cev["source"] == "vanhanh")
 
 _no = _tmp / "rollout-empty.jsonl"
 _no.write_text(json.dumps({"type": "session_meta", "payload": {"id": "x"}}), encoding="utf-8")

@@ -2,7 +2,7 @@
 
     python tests/run.py codex_hub_mode      (no network, no codex binary needed)
 
-The shared Codex profile is written with `X-Naota-Mode: full` (the chat path). Before the change a
+The shared Codex profile is written with `X-Vanhanh-Mode: full` (the chat path). Before the change a
 reminder, loop or Kanban job at suggest or auto that ran on Codex reached hub tools at full through
 that profile, while Grok and Antigravity already got the job's level. Now `aux_engine._build_codex`
 adds a per-process `-c` override, the same way the brain header is pinned.
@@ -14,8 +14,8 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
-_TMP = Path(tempfile.mkdtemp(prefix="naota-codex-mode-"))
-os.environ["NAOTA_STATE_DIR"] = str(_TMP / "state")
+_TMP = Path(tempfile.mkdtemp(prefix="vanhanh-codex-mode-"))
+os.environ["VANHANH_STATE_DIR"] = str(_TMP / "state")
 (_TMP / "state").mkdir(parents=True, exist_ok=True)
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -38,16 +38,16 @@ def _mode_overrides(cfg):
     return [x for x in cfg if str(x).startswith(mcp_hub.CODEX_MODE_KEY + "=")]
 
 
-base = SimpleNamespace(cwd=str(_TMP), tag="dispatch:t1", system_prompt="", naota_vault=str(_TMP),
-                       naota_mode="full")
+base = SimpleNamespace(cwd=str(_TMP), tag="dispatch:t1", system_prompt="", vanhanh_vault=str(_TMP),
+                       vanhanh_mode="full")
 for mode, want in (("suggest", '"suggest"'), ("auto", '"auto"'), ("full", '"full"')):
     cc = aux_engine._build_codex({"provider": "codex", "model": ""}, base, mode, "dispatch:t1")
     ov = _mode_overrides(cc.extra_config)
-    check(f"CANARY: a {mode} job pins X-Naota-Mode={mode}", ov == [f"{mcp_hub.CODEX_MODE_KEY}={want}"], ov)
+    check(f"CANARY: a {mode} job pins X-Vanhanh-Mode={mode}", ov == [f"{mcp_hub.CODEX_MODE_KEY}={want}"], ov)
 
-cc = aux_engine._build_codex({"provider": "codex"}, SimpleNamespace(**{**vars(base), "naota_mode": "auto"}),
+cc = aux_engine._build_codex({"provider": "codex"}, SimpleNamespace(**{**vars(base), "vanhanh_mode": "auto"}),
                              None, "reminder")
-check("no explicit mode: the engine's own naota_mode is used",
+check("no explicit mode: the engine's own vanhanh_mode is used",
       _mode_overrides(cc.extra_config) == [f'{mcp_hub.CODEX_MODE_KEY}="auto"'], cc.extra_config)
 
 cfg = []

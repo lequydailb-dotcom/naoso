@@ -1,7 +1,7 @@
 // Tai nghe lại dạng tải lên: ba chỗ khiến câu không tới được tai.
 //   1. Lượt ĐẦU sau khi tải trang trên máy tính: bộ ghi bắt đầu sau Web Speech nên bị coi là
 //      thiếu tiếng. Nay chờ luồng mic rồi mới mở nhận dạng; lệnh dừng trong lúc chờ vẫn có hiệu lực.
-//   2. Rào chú ý chặn "Nau ta ơi..." trước khi tai kịp nghe lại "Naota ơi...".
+//   2. Rào chú ý chặn "Nau ta ơi..." trước khi tai kịp nghe lại "Vanhanh ơi...".
 //   3. Chế độ tự nhiên chốt câu bằng cách huỷ phiên, huỷ luôn bản ghi (commitWithEar).
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -27,7 +27,7 @@ function setup(onTranscript = () => {}, opts = {}, ua = 'Chrome desktop') {
     setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {},
   };
   vm.runInNewContext(fs.readFileSync('dashboard/voice.js', 'utf8'), context);
-  const voice = new context.window.NaotaVoice({ onTranscript, ...opts });
+  const voice = new context.window.VanhanhVoice({ onTranscript, ...opts });
   voice.isSpeaking = () => false;
   voice.stopSpeaking = () => {};
   return { voice, context, calls };
@@ -74,16 +74,16 @@ test('a near-wake draft rejected by focus is re-checked on the ear text', async 
   const received = [];
   const accepted = [];
   const { voice, context } = setup(t => received.push(t), {
-    acceptTranscript: t => { accepted.push(t); return /^naota/i.test(t); },
+    acceptTranscript: t => { accepted.push(t); return /^vanhanh/i.test(t); },
     wakeCandidate: t => /^nau ta/i.test(t),
   });
   voice.sttUpload = true; voice._recComplete = true;
   voice._stopRecorder = async () => new Blob(['x'.repeat(3000)]);
-  context.fetch = async () => ({ ok: true, json: async () => ({ ok: true, text: 'Naota ơi mở trang kết nối' }) });
+  context.fetch = async () => ({ ok: true, json: async () => ({ ok: true, text: 'Vanhanh ơi mở trang kết nối' }) });
   voice.onTranscript('Nau ta ơi mở trang kết nối');
   await voice._sttDelivery;
-  assert.deepEqual(received, ['Naota ơi mở trang kết nối']);
-  assert.deepEqual(accepted, ['Nau ta ơi mở trang kết nối', 'Naota ơi mở trang kết nối']);
+  assert.deepEqual(received, ['Vanhanh ơi mở trang kết nối']);
+  assert.deepEqual(accepted, ['Nau ta ơi mở trang kết nối', 'Vanhanh ơi mở trang kết nối']);
 });
 
 test('ordinary noise rejected by focus is never uploaded', async () => {
@@ -103,7 +103,7 @@ test('ordinary noise rejected by focus is never uploaded', async () => {
 test('the ear still rejects when it also hears no wake word', async () => {
   const received = [];
   const { voice, context } = setup(t => received.push(t), {
-    acceptTranscript: t => /^naota/i.test(t), wakeCandidate: () => true,
+    acceptTranscript: t => /^vanhanh/i.test(t), wakeCandidate: () => true,
   });
   voice.sttUpload = true; voice._recComplete = true;
   voice._stopRecorder = async () => new Blob(['x'.repeat(3000)]);

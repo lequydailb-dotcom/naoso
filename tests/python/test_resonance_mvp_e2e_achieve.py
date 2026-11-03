@@ -1,8 +1,8 @@
 """Resonance MVP: pilot đầu-cuối lần 3, mục tiêu ACHIEVE sửa qua phản hồi, qua ĐƯỜNG CHAT THẬT.
 
-    NAOTA_RESONANCE_E2E_ACHIEVE=dry  python tests/python/test_resonance_mvp_e2e_achieve.py   # KHÔNG gọi model
-    NAOTA_RESONANCE_E2E_ACHIEVE=real NAOTA_RESONANCE_PILOT_SETTINGS=<settings.json thật> \\
-        NAOTA_RESONANCE_E2E_OUT=<báo cáo.json> python tests/python/test_resonance_mvp_e2e_achieve.py  # cần người dùng duyệt
+    VANHANH_RESONANCE_E2E_ACHIEVE=dry  python tests/python/test_resonance_mvp_e2e_achieve.py   # KHÔNG gọi model
+    VANHANH_RESONANCE_E2E_ACHIEVE=real VANHANH_RESONANCE_PILOT_SETTINGS=<settings.json thật> \\
+        VANHANH_RESONANCE_E2E_OUT=<báo cáo.json> python tests/python/test_resonance_mvp_e2e_achieve.py  # cần người dùng duyệt
 
 Không đặt biến thì bỏ qua (CI và tests/run.py không gọi gì). Kịch bản, hạn mức, hợp đồng: resonance-mvp-e2e
 pilot-plan.md, mục "Đề xuất lần chạy 3". Bộ chạy maintain cũ (test_resonance_mvp_e2e_pilot.py) giữ nguyên làm hồ sơ hai
@@ -10,7 +10,7 @@ lần chạy trước; phần hạ tầng (server thật, cổng xác thực) ch
 
 Hạn mức chia theo GIAI ĐOẠN (review đường công cụ, điểm 1), tối đa 4 lượt engine cấp host:
 - lượt chat: sổ TurnLedger, tối đa 2, giữ chỗ TRƯỚC mỗi lần gửi, hết giờ hay lỗi vẫn tính, không thử lại;
-- việc nền: trần TÍCH LUỸ NAOTA_RESONANCE_CALL_CEILING=1 cho mọi server tới hết lượt chat góp ý (S0 tới S4), =2 cho
+- việc nền: trần TÍCH LUỸ VANHANH_RESONANCE_CALL_CEILING=1 cho mọi server tới hết lượt chat góp ý (S0 tới S4), =2 cho
   server sau đó (S5, S6). Sổ không bao giờ đặt lại. Lượt chat góp ý chạy trên server có nhịp TẠM DỪNG, nên lịch làm lại
   chỉ được nhận sau khi server giai đoạn 2 lên.
 
@@ -43,9 +43,9 @@ import tempfile
 import time
 from pathlib import Path
 
-MODE = os.environ.get("NAOTA_RESONANCE_E2E_ACHIEVE", "").strip().lower()
+MODE = os.environ.get("VANHANH_RESONANCE_E2E_ACHIEVE", "").strip().lower()
 if MODE not in ("dry", "real"):
-    print("pilot achieve: bỏ qua (đặt NAOTA_RESONANCE_E2E_ACHIEVE=dry hoặc real để chạy)")
+    print("pilot achieve: bỏ qua (đặt VANHANH_RESONANCE_E2E_ACHIEVE=dry hoặc real để chạy)")
     print("\nOK")
     sys.exit(0)
 
@@ -53,14 +53,14 @@ sys.path.insert(0, str(Path(__file__).parent))
 import _e2e_pilot_guard as G  # noqa: E402
 import _e2e_achieve_harness as H  # noqa: E402
 
-PORT = int(os.environ.get("NAOTA_RESONANCE_E2E_PORT", "7792"))
+PORT = int(os.environ.get("VANHANH_RESONANCE_E2E_PORT", "7792"))
 CHAT_LIMIT = 2 if MODE == "real" else 0
 PHASE_CEILING = {1: 1, 2: 2}            # trần TÍCH LUỸ việc nền theo giai đoạn
 MAX_CALLS = CHAT_LIMIT + PHASE_CEILING[2]
 BASE = Path(tempfile.mkdtemp(prefix="rsach-", dir=os.environ.get("TEMP") or None)).resolve()
 STATE, BRAINS = BASE / "state", BASE / "brains"
 BRAIN = BRAINS / "Brain Default"
-for d in (STATE, BRAIN / "Naota", BRAIN / "agents"):
+for d in (STATE, BRAIN / "Vanhanh", BRAIN / "agents"):
     d.mkdir(parents=True, exist_ok=True)
 # A1: không bật công tắc brain cũ (nó không còn cấp quyền). Trợ lý tạm: vai trung lập, không chọn model riêng.
 AGENT_SLUG = "tro-ly-tai-lieu"
@@ -68,15 +68,15 @@ AGENT_MD = ("---\nname: Trợ lý tài liệu\nrole: Soạn và sửa tài liệ
             "Bạn soạn và sửa tài liệu hướng dẫn nội bộ theo lời chủ dặn.\n")
 (BRAIN / "agents" / f"{AGENT_SLUG}.md").write_text(AGENT_MD, encoding="utf-8", newline="\n")
 
-OUT = os.environ.get("NAOTA_RESONANCE_E2E_OUT", "")
+OUT = os.environ.get("VANHANH_RESONANCE_E2E_OUT", "")
 if MODE == "real" and not OUT:
-    print("FAIL pilot: chế độ real cần NAOTA_RESONANCE_E2E_OUT (báo cáo và bản lưu sản phẩm cho người review)")
+    print("FAIL pilot: chế độ real cần VANHANH_RESONANCE_E2E_OUT (báo cáo và bản lưu sản phẩm cho người review)")
     sys.exit(1)
 
 if MODE == "real":
-    src = os.environ.get("NAOTA_RESONANCE_PILOT_SETTINGS", "")
+    src = os.environ.get("VANHANH_RESONANCE_PILOT_SETTINGS", "")
     if not src or not Path(src).is_file():
-        print("FAIL pilot: thiếu NAOTA_RESONANCE_PILOT_SETTINGS trỏ tới settings.json thật")
+        print("FAIL pilot: thiếu VANHANH_RESONANCE_PILOT_SETTINGS trỏ tới settings.json thật")
         sys.exit(1)
     _m = (json.loads(Path(src).read_text(encoding="utf-8")).get("model") or {})
     MODEL = {k: _m[k] for k in ("auxiliary", "main", "engine", "claude_model") if k in _m}
@@ -85,13 +85,13 @@ else:
 assert not any(k in MODEL for k in ("claude_auth", "anthropic_api_key")), "settings sandbox không được có chế độ API key"
 (STATE / "settings.json").write_text(json.dumps({"model": MODEL}, ensure_ascii=False), encoding="utf-8", newline="\n")
 
-os.environ["NAOTA_STATE_DIR"] = str(STATE)
+os.environ["VANHANH_STATE_DIR"] = str(STATE)
 import resonance as R  # noqa: E402
 import resonance_store as RS  # noqa: E402
 import sessions as SS  # noqa: E402
 
 KEY = str(BRAIN.resolve())
-P = RS.Principal("agent", "naota", KEY)
+P = RS.Principal("agent", "vanhanh", KEY)
 ORIGIN = f"http://127.0.0.1:{PORT}"
 
 # ───────────── Đầu vào ĐÓNG BĂNG (review đường công cụ, điểm 2): không chọn dữ liệu lúc chạy ─────────────
@@ -119,14 +119,14 @@ REVIEW_CHECKLIST = {
     "draft2": ["bước đối chiếu phiếu giao có một ví dụ cụ thể", "có bước chụp ảnh hàng hỏng, đặt TRƯỚC bước ký",
                "vẫn giữ mọi yêu cầu của bản đầu"]}
 
-APPROVED = (json.loads(os.environ["NAOTA_RESONANCE_E2E_APPROVED"]) if os.environ.get("NAOTA_RESONANCE_E2E_APPROVED")
+APPROVED = (json.loads(os.environ["VANHANH_RESONANCE_E2E_APPROVED"]) if os.environ.get("VANHANH_RESONANCE_E2E_APPROVED")
             else {"main": {"provider": "anthropic-cli", "model": "claude-opus-5-5"},
                   "aux": {"provider": "anthropic-cli", "model": "sonnet"}, "claude_model": "claude-opus-5-5"}
             if MODE == "real" else {"aux": {"provider": "grok-cli"}})
 BG_CWD = STATE / "resonance_cwd"
 BG_CWD.mkdir(parents=True, exist_ok=True)
-PILOT_VARS = ("NAOTA_RESONANCE_TICK_PAUSED", "NAOTA_RESONANCE_CALL_CEILING", "NAOTA_CLAUDE_CLI", "NAOTA_CLAUDE_BIN",
-              "NAOTA_STATE_DIR", "BRAINS_DIR", "NAOTA_PORT")
+PILOT_VARS = ("VANHANH_RESONANCE_TICK_PAUSED", "VANHANH_RESONANCE_CALL_CEILING", "VANHANH_CLAUDE_CLI", "VANHANH_CLAUDE_BIN",
+              "VANHANH_STATE_DIR", "BRAINS_DIR", "VANHANH_PORT")
 TURNS = G.TurnLedger(STATE / "pilot-chat-turns.json", CHAT_LIMIT)
 
 # Kiểm và CỔNG CHI PHÍ (review bộ chạy achieve, P2-1): mọi kiểm hỏng, kỹ thuật hay hợp đồng, đóng cổng; dựng server,
@@ -148,7 +148,7 @@ def resolve_engines() -> dict:
             "m = (config.read_settings().get('model') or {}); "
             "print(json.dumps({'main': aux_engine.main_spec(), 'aux': aux_engine.read_spec(), "
             "'claude_model': m.get('claude_model')}))")
-    cp = subprocess.run([sys.executable, "-c", code], cwd=str(ROOT), env={**ENV0, "NAOTA_STATE_DIR": str(STATE)},
+    cp = subprocess.run([sys.executable, "-c", code], cwd=str(ROOT), env={**ENV0, "VANHANH_STATE_DIR": str(STATE)},
                         capture_output=True, text=True, timeout=120)
     try:
         return json.loads((cp.stdout or "").strip().splitlines()[-1])
@@ -210,7 +210,7 @@ def auth_gate(cli: str) -> dict:
 
 
 def start_server(phase: int, tick_paused: bool):
-    return SRV.start(phase, tick_paused, {"NAOTA_STATE_DIR": str(STATE), "BRAINS_DIR": str(BRAINS)})
+    return SRV.start(phase, tick_paused, {"VANHANH_STATE_DIR": str(STATE), "BRAINS_DIR": str(BRAINS)})
 
 
 def goal_store():
@@ -427,8 +427,8 @@ def _routing_versions():
     out = {}
     out["agent_file"] = _sha_file(BRAIN / "agents" / f"{AGENT_SLUG}.md")[:16]
     for name, p in (("repo_CLAUDE.md", Path(ROOT) / "CLAUDE.md"), ("main.py", Path(ROOT) / "server" / "main.py"),
-                    ("naota_goal_plugin", Path(ROOT) / "system" / "plugins" / "naota-goal" / "plugin.py"),
-                    ("naota_task_plugin", Path(ROOT) / "system" / "plugins" / "naota-task" / "plugin.py")):
+                    ("vanhanh_goal_plugin", Path(ROOT) / "system" / "plugins" / "vanhanh-goal" / "plugin.py"),
+                    ("vanhanh_task_plugin", Path(ROOT) / "system" / "plugins" / "vanhanh-task" / "plugin.py")):
         out[name] = _sha_file(p)[:16]
     return out
 
@@ -553,7 +553,7 @@ try:
             "constraints": [], "budget_calls": 4, "proposal": prop,
             "agent_key": _ag["agent_key"], "agent_version": _ag["config_version"]},
             R.GoalDeps(engine_factory=lambda s, t: (None, {}), budget=R.CallBudget(0), store=goal_store())))
-        rep["stages"]["S1"] = {"dry": "mục tiêu lập bằng form_goal như tool naota_goal, gắn trợ lý của phiên"}
+        rep["stages"]["S1"] = {"dry": "mục tiêu lập bằng form_goal như tool vanhanh_goal, gắn trợ lý của phiên"}
     rep["session_id_hash"] = hashlib.sha256(str(sid).encode()).hexdigest()[:12]
     rep["artifacts"]["after_S1"] = preserve("s1-chat")
     gs = [x for x in all_goals() if x.session_id == sid]
@@ -657,7 +657,7 @@ try:
                            "agent_version": (goal_store().agent(KEY, AGENT_SLUG) or {}).get("config_version")})
         except Exception as e:  # noqa: BLE001
             check(f"S4 dry: revise_goal nhận góp ý ({type(e).__name__}: {e})", False)
-        rep["stages"]["S4"] = {"dry": "góp ý nối bằng revise_goal như naota_goal op=update"}
+        rep["stages"]["S4"] = {"dry": "góp ý nối bằng revise_goal như vanhanh_goal op=update"}
     g4 = goal_store().get(P, g.id)
     gs4 = [x for x in all_goals() if x.session_id == sid]
     new_tasks = kanban_tasks()[len(kanban1):]
@@ -775,7 +775,7 @@ finally:
             rep["work_outputs"], _work_saved = {"error": f"{type(e).__name__}: {e}"}, False
         if not _work_saved:
             # Không lưu được bản duy nhất của một lượt việc nền thì KHÔNG dọn sandbox: báo rõ chỗ còn giữ.
-            os.environ["NAOTA_RESONANCE_E2E_KEEP"] = "1"
+            os.environ["VANHANH_RESONANCE_E2E_KEEP"] = "1"
             print("CẢNH BÁO: chưa lưu được đầu ra việc nền; giữ nguyên sandbox để lấy lại bằng tay.")
     rep["host_engine_turns"] = {"chat": TURNS.used(), "chat_ledger": TURNS.entries(), "background": background_calls(),
                                 "total": TURNS.used() + background_calls()}
@@ -804,7 +804,7 @@ finally:
         for secret_path in (str(BASE), str(Path.home())):
             txt = txt.replace(json.dumps(secret_path)[1:-1], "<path>")
         Path(OUT).write_text(txt, encoding="utf-8", newline="\n")
-    if not os.environ.get("NAOTA_RESONANCE_E2E_KEEP"):
+    if not os.environ.get("VANHANH_RESONANCE_E2E_KEEP"):
         shutil.rmtree(BASE, ignore_errors=True)
 
 if rep.get("acceptance") == "pending_content_review":

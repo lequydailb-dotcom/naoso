@@ -4,7 +4,7 @@
 
    Lỗi đã gặp: trong khung chat hiện ra một câu anh KHÔNG hề gõ, nội dung như
    lời bài hát nghe nhầm, nằm ở bong bóng bên phải (tức là tin của NGƯỜI DÙNG). Câu hỏi đi
-   kèm: "Naota có tự nhập liệu vào chat được không?".
+   kèm: "Vanhanh có tự nhập liệu vào chat được không?".
 
    Câu trả lời của code: server KHÔNG bao giờ ghi được tin vai "user" - mọi kết quả việc nền
    đẩy về đều là "assistant". Chỗ duy nhất sinh ra tin của người dùng là dashboard, và ngoài
@@ -15,7 +15,7 @@
      1. Đua trạng thái ở stopListening: bấm rồi thả Space thật nhanh thì onstart chưa chạy,
         isListening còn false, lệnh dừng rơi vào hư không -> mic kẹt mở, onend còn tự khởi
         động lại, và 1.5 giây im lặng sau khi nghe được gì đó là tự gửi.
-     2. Barge-in rình suốt đời trang: micStream không bao giờ được đóng, nên mỗi lần Naota đọc
+     2. Barge-in rình suốt đời trang: micStream không bao giờ được đóng, nên mỗi lần Vanhanh đọc
         thành tiếng là bộ rình ngắt lời chạy, và một tiếng động đủ to sẽ TỰ mở mic. */
 const fs = require("fs");
 const path = require("path");
@@ -54,7 +54,7 @@ check("onerror hạ cờ _starting", /onerror = \(event\) => \{\s*\n\s*this\._st
 // kịp đọc, nên tới lượt đọc thì isListening đã false, _muteRecognition thoát ngay và cờ không
 // bao giờ bật. Ngắt lời vì thế chưa từng chạy một lần nào (đã thử thật).
 // Chốt đúng là cờ `handsFree` do app.js đồng bộ. Ý ĐỊNH của mục này giữ nguyên: rảnh tay tắt
-// thì Naota đọc trong im lặng, không được tự nghe rồi biến tiếng TV thành tin nhắn.
+// thì Vanhanh đọc trong im lặng, không được tự nghe rồi biến tiếng TV thành tin nhắn.
 check("_startBargeMonitor thoát sớm khi KHÔNG trong cuộc nói chuyện bằng giọng",
   /_startBargeMonitor\(\) \{[\s\S]{0,1800}if \(!this\._resumeAfterTTS && !this\.handsFree\) return;/.test(voice));
 check("app.js đồng bộ handsFree sang voice.js (và tắt ngay khi mic hỏng)",
@@ -70,18 +70,18 @@ check("onTranscript vẫn gửi thẳng, không qua bước xác nhận",
 // Chỗ thứ 5 là sendMessage TỰ GỌI LẠI CHÍNH NÓ sau khi file đính kèm tải lên
 // xong - cùng một lượt Enter của người dùng bị hoãn, không phải một đường gửi mới.
 // Chỗ thứ 6 cùng kiểu HOÃN chứ không phải đường mới: người dùng nói chen ngang lúc
-// Naota đang trả lời thì phải dừng lượt cũ trước, mà server chỉ nhận tin mới khi job cũ đã
+// Vanhanh đang trả lời thì phải dừng lượt cũ trước, mà server chỉ nhận tin mới khi job cũ đã
 // dừng hẳn, nên câu ấy được gửi lại khi `turn_done` về (guiTinCho).
 // Chỗ thứ 7 VẪN là hoãn: mất WebSocket thì câu được giữ lại rồi gửi khi nối lại
 // (guiTinDutMang). Trước đó chỗ này vứt tin lặng lẽ - trên iPhone là câu nói bốc hơi.
-// Chỗ thứ 10 VẪN là hoãn: trong cuộc gọi, câu nói lúc Naota đang trả lời không dừng
+// Chỗ thứ 10 VẪN là hoãn: trong cuộc gọi, câu nói lúc Vanhanh đang trả lời không dừng
 // lượt cũ nữa mà xếp hàng, gửi khi lượt xong và loa đọc xong (guiCauChoLuot).
 const goiGui = (app.match(/(?<!function )\bsendMessage\(/g) || []).length;
 // nút "Gửi lại câu này" nhường chỗ cho nút Tua lại, vốn chỉ đưa câu hỏi về ô nhập, không tự gửi: bớt một chỗ.
 check("có 10 chỗ gọi sendMessage (giọng nói, Enter, nút gửi, sau khi tải file xong, sau khi dừng lượt cũ, sau khi nối lại mạng, sau khi mở agent/workflow, adaptive commit, câu chờ lượt trong cuộc gọi, bấm Nghe cuộc gọi hẹn giờ)",
   goiGui === 10, goiGui);
 // Chỗ thứ 11 KHÔNG phải mic tự gửi: người dùng bấm Nghe trên thẻ cuộc gọi hẹn giờ, đường giọng cơ bản
-// gửi câu mở đầu nhờ Naota đọc nhắc hẹn (goiDenTheoLich, test_incoming_call_0203.js).
+// gửi câu mở đầu nhờ Vanhanh đọc nhắc hẹn (goiDenTheoLich, test_incoming_call_0203.js).
 // Reconnect sends and cancellation across chats execute in test_voice_app_session.js.
 check("chỗ thứ 5 nằm TRONG sendMessage và chỉ chạy sau Promise.all của file đang tải",
   /Promise\.all\(dangTai\.map\(a => a\.xong[\s\S]{0,300}sendMessage\(text, opts\);/.test(app));
@@ -89,7 +89,7 @@ check("chỗ thứ 6 là tin hoãn, chỉ gửi sau khi lượt cũ đã dừng"
   /function guiTinCho\(\) \{[\s\S]{0,550}if \(t\) sendMessage\(t,opts\);/.test(app)
   && /if \(isActive && _tinChoLuot\) guiTinCho\(\);/.test(app));
 
-// ---- 4. Server không tự nhập liệu: việc nền luôn là tin của Naota ----
+// ---- 4. Server không tự nhập liệu: việc nền luôn là tin của Vanhanh ----
 check("push_to_chat ghi vai assistant, không bao giờ là user",
   /def push_to_chat[\s\S]{0,1900}append_message\(sid, "assistant", clean\)/.test(server));
 // Năm chỗ ghi vai "user": bốn đường nhập liệu và một thao tác duyệt quy trình.
@@ -102,17 +102,17 @@ check("push_to_chat ghi vai assistant, không bao giờ là user",
 const ghiUser = (server.match(/append_message\([^)]*"user"/g) || []).length;
 // thêm chỗ thứ sáu: lượt nối tiếp sau khi việc chạy nền xong (_start_followup_turn)
 // ghi tin mở lượt, có đánh dấu "[Việc chạy nền đã xong]", để mở lại hội thoại vẫn hiểu vì sao
-// Naota tự nói tiếp. Không phải chữ của mic nên không đụng luật "mic không tự gửi".
+// Vanhanh tự nói tiếp. Không phải chữ của mic nên không đụng luật "mic không tự gửi".
 // thêm chỗ thứ bảy: tin GÕ thêm trong lúc lượt đang chạy (action "steer", steer_inbox.py), ghi ngay khi tới để
 // lịch sử đúng thứ tự. Người dùng tự gõ và bấm gửi, không phải mic tự gửi.
 // adds the eighth: a message typed on a chat channel (Telegram, Zalo...) while a turn runs is written to the
 // session when that turn reads it (steer_inbox sink in _tg_answer). Typed and sent by the owner, never the mic.
 // adds the ninth, inside voice_live_ws: a message with files TYPED in the chat during a Live call (the "ask"
 // frame) is stored there instead of by an ordinary chat turn. Typed and sent by the owner, never the mic.
-// adds the tenth, main._gate_luu_luot: a Naota Gate note (chat_bridge.ghi_chep) in which ChatGPT or Claude
+// adds the tenth, main._gate_luu_luot: a Vanhanh Gate note (chat_bridge.ghi_chep) in which ChatGPT or Claude
 // records what the OWNER said in that outside chat. It carries the Gate block naming its source, and no engine runs on
 // it. Written by an outside AI the owner connected and allowed (Draft or Full level), never the mic.
-check("chỉ 10 chỗ ghi vai user (web + bot + 3 Live + duyệt quy trình + nối tiếp việc nền + gửi thêm lúc đang chạy, web và kênh + ghi chép Naota Gate)", ghiUser === 10, ghiUser);
+check("chỉ 10 chỗ ghi vai user (web + bot + 3 Live + duyệt quy trình + nối tiếp việc nền + gửi thêm lúc đang chạy, web và kênh + ghi chép Vanhanh Gate)", ghiUser === 10, ghiUser);
 check("chỗ thứ sáu nằm TRONG _start_followup_turn",
   /async def _start_followup_turn[\s\S]{0,1600}store\.append_message\(conv_sid, "user", text\)/.test(server));
 const approvalBody = server.slice(server.indexOf('if action == "wf_resume":'), server.indexOf('if action == "resume_now":'));

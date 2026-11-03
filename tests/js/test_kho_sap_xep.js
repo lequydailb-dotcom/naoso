@@ -33,14 +33,14 @@ globalThis.localStorage = { getItem: (k) => (k in kho ? kho[k] : null), setItem:
 
 const goi = (o) => Object.assign({
   kind: "agent", description: { vi: "mo ta" }, tier: "data", verified: true, nguon: "kho",
-  author: { name: "Naota" }, version: "1.0.0", installed: false,
+  author: { name: "Vanhanh" }, version: "1.0.0", installed: false,
   download: { url: "https://x/y.zip", sha256: "a" }, nhom: "Lap trinh", upstream: {},
 }, o);
-const B = goi({ id: "naota.b", name: { vi: "Bao" }, updated: "2026-10-01" });
-const A = goi({ id: "naota.a", name: { vi: "An" }, updated: "2026-10-20" });
-const GOC = goi({ id: "naota.goc", name: { vi: "Cuong" }, updated: "2026-09-01",
+const B = goi({ id: "vanhanh.b", name: { vi: "Bao" }, updated: "2026-10-01" });
+const A = goi({ id: "vanhanh.a", name: { vi: "An" }, updated: "2026-10-20" });
+const GOC = goi({ id: "vanhanh.goc", name: { vi: "Cuong" }, updated: "2026-09-01",
   upstream: { repo: "tac-gia/repo", ref: "main", commit: "abc1234", synced: "2026-09-01" } });
-const DAI = goi({ id: "naota.dai", name: { vi: "Dung" }, updated: "2026-10-20",
+const DAI = goi({ id: "vanhanh.dai", name: { vi: "Dung" }, updated: "2026-10-20",
   description: { vi: "chu ".repeat(60) } });
 
 const danhMuc = { ok: true, fetched_at: Math.floor(Date.now() / 1000), packs: [B, A, GOC, DAI] };
@@ -49,9 +49,9 @@ globalThis.Alpine = win.Alpine;
 new Function("window", "document", "fetch",
   fs.readFileSync(path.join(ROOT, "dashboard", "packs.js"), "utf8"))(
   win, doc, () => Promise.resolve({ json: () => Promise.resolve(danhMuc) }));
-const P = win.NaotaPacks || {};
+const P = win.VanhanhPacks || {};
 
-const thuTu = () => ["naota.b", "naota.a", "naota.goc", "naota.dai"]
+const thuTu = () => ["vanhanh.b", "vanhanh.a", "vanhanh.goc", "vanhanh.dai"]
   .map(id => [id, host.innerHTML.indexOf('data-kho-id="' + id + '"')])
   .filter(x => x[1] >= 0).sort((x, y) => x[1] - y[1]).map(x => x[0]);
 const chon = (v) => { nut["#pkSap"].value = v; nut["#pkSap"].onchange(); };
@@ -63,18 +63,18 @@ const chon = (v) => { nut["#pkSap"].value = v; nut["#pkSap"].onchange(); };
     && h.includes('value="moi"') && h.includes('value="ten"'));
   check("chua co lua chon luot cai hay sao (cho may chu trung tam)", !/value="(cai|sao)"/.test(h));
   check("mac dinh De xuat: goi theo repo goc len dau, con lai giu thu tu kho",
-    thuTu().join() === "naota.goc,naota.b,naota.a,naota.dai");
+    thuTu().join() === "vanhanh.goc,vanhanh.b,vanhanh.a,vanhanh.dai");
 
   chon("moi");
   check("Moi cap nhat: ngay moi truoc, cung ngay giu thu tu kho",
-    thuTu().join() === "naota.a,naota.dai,naota.b,naota.goc");
-  check("lua chon duoc nho tren may", kho["naota.kho.sap"] === "moi");
+    thuTu().join() === "vanhanh.a,vanhanh.dai,vanhanh.b,vanhanh.goc");
+  check("lua chon duoc nho tren may", kho["vanhanh.kho.sap"] === "moi");
 
   chon("ten");
-  check("Ten A-Z", thuTu().join() === "naota.a,naota.b,naota.goc,naota.dai");
+  check("Ten A-Z", thuTu().join() === "vanhanh.a,vanhanh.b,vanhanh.goc,vanhanh.dai");
 
   chon("<script>");
-  check("gia tri la quay ve De xuat", thuTu()[0] === "naota.goc" && kho["naota.kho.sap"] === "de-xuat");
+  check("gia tri la quay ve De xuat", thuTu()[0] === "vanhanh.goc" && kho["vanhanh.kho.sap"] === "de-xuat");
 
   // ---- Description clamp ----
   check("moi mo ta tren the deu gon ba dong (lop kho-mo-ta)",
@@ -89,7 +89,7 @@ const chon = (v) => { nut["#pkSap"].value = v; nut["#pkSap"].onchange(); };
   // ---- No localStorage (private window): still works, default order ----
   globalThis.localStorage = { getItem() { throw new Error("blocked"); }, setItem() { throw new Error("blocked"); } };
   chon("ten");
-  check("khong co localStorage van sap xep duoc", thuTu()[0] === "naota.a");
+  check("khong co localStorage van sap xep duoc", thuTu()[0] === "vanhanh.a");
 
   if (fails.length) {
     console.log("\nFAIL - test_kho_sap_xep: " + fails.length);

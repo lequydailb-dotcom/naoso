@@ -22,9 +22,9 @@ import tempfile
 from contextlib import closing
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-fix-learn-")
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
-TEMP = Path(tempfile.mkdtemp(prefix="naota-fix-learn-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-fix-learn-")
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-fix-learn-w-"))
 
 import agent_budget as AB  # noqa: E402
 import agent_judge as AJ  # noqa: E402

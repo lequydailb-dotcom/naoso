@@ -10,7 +10,7 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-voice-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-voice-")
 
 import reminders  # noqa: E402
 import voice_note  # noqa: E402
@@ -24,7 +24,7 @@ def check(name, cond):
         fails.append(name)
 
 
-brain = Path(tempfile.mkdtemp(prefix="naota-voice-brain-"))
+brain = Path(tempfile.mkdtemp(prefix="vanhanh-voice-brain-"))
 said = []
 
 
@@ -82,7 +82,7 @@ async def main():
 asyncio.run(main())
 
 y = (ROOT / "system" / "plugins" / "voice-note" / "plugin.yaml").read_text(encoding="utf-8")
-check("plugin declared with safe min_mode", "naota_voice_note" in y and "min_mode: safe" in y)
+check("plugin declared with safe min_mode", "vanhanh_voice_note" in y and "min_mode: safe" in y)
 js = (ROOT / "dashboard" / "chat-render.js").read_text(encoding="utf-8")
 check("chat draws an audio player for audio links", "AUDIO_EXT_RE" in js and "<audio" in js)
 tg = (ROOT / "server" / "telegram_bot.py").read_text(encoding="utf-8")

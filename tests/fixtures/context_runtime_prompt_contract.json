@@ -6,7 +6,7 @@
       "id": "identity",
       "any_of": [
         "AI agentic ĐỔI ĐƯỢC BỘ NÃO",
-        "năng lực của Naota KHÔNG đổi theo model",
+        "năng lực của Vanhanh KHÔNG đổi theo model",
         "SWAPPABLE BRAIN",
         "capabilities do NOT change with the model"
       ]
@@ -41,7 +41,7 @@
     {
       "id": "brain-memory",
       "any_of": [
-        "Naota có bộ nhớ sống",
+        "Vanhanh có bộ nhớ sống",
         "MEMORY.md",
         "living memory"
       ]

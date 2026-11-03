@@ -5,7 +5,7 @@
 Bối cảnh:
 - Nhãn dự án: mọi engine Claude chạy với cwd = gốc project chứ không phải thư mục brain,
   mà log thô của Claude Code chỉ ghi cwd - nên chat Telegram, việc nền và job dashboard bị
-  gộp hết vào một dự án ("naota" ở máy, "app" trong Docker). Nay engine ghi riêng phiên
+  gộp hết vào một dự án ("vanhanh" ở máy, "app" trong Docker). Nay engine ghi riêng phiên
   nào thuộc brain nào (session_brain.py) để index lấy tên brain làm nhãn.
 - Gỡ bảng số liệu: bảng thẻ ở cột trái đã bỏ khỏi giao diện từ trước, nhưng máy móc phía sau
   (/metrics + job spawn agent kèm MCP) vẫn chạy để nuôi một stub ẩn - đo trên log VPS là
@@ -17,7 +17,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-sbrain-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-sbrain-")
 
 import session_brain       # noqa: E402
 import usage_parsers as up  # noqa: E402
@@ -32,10 +32,10 @@ def check(name, cond):
 
 
 # ---- 1. session_brain: ghi/đọc bản đồ phiên -> brain ----
-session_brain.record("sid-abc", r"D:\Project\naota\brains\My Second Brain")
+session_brain.record("sid-abc", r"D:\Project\vanhanh\brains\My Second Brain")
 check("ghi/doc duoc", session_brain.mapping().get("sid-abc", "").endswith("My Second Brain"))
 
-session_brain.record("sid-abc", r"D:\Project\naota\brains\Brain Default")
+session_brain.record("sid-abc", r"D:\Project\vanhanh\brains\Brain Default")
 check("ghi de cung session_id (khong nhan doi)", len(session_brain.mapping()) == 1)
 check("ghi de lay gia tri moi",
       session_brain.mapping()["sid-abc"].endswith("Brain Default"))
@@ -83,18 +83,18 @@ check("server: khong con endpoint /metrics", '@app.get("/metrics")' not in main_
 check("server: khong con cache metrics", "_METRICS_CACHE" not in main_src)
 check("dashboard: app.js sach", not any(
     k in app_src for k in ("loadMetrics", "renderMetrics", "metricCards",
-                           "savedMetrics", "NAOTA_METRICS")))
+                           "savedMetrics", "VANHANH_METRICS")))
 check("dashboard: index.html khong con stub", "metricsStub" not in html_src)
 check("dashboard: style.css khong con .metric-", ".metric-" not in css_src)
-check("system prompt: khong con bat nhung NAOTA_METRICS", "NAOTA_METRICS" not in claude_md)
+check("system prompt: khong con bat nhung VANHANH_METRICS", "VANHANH_METRICS" not in claude_md)
 
-# Khối điều khiển NAOTA_* vẫn phải bị bóc trước khi ra kênh chữ thuần: ký ức cũ trong brain
-# còn nhắc NAOTA_METRICS nên model vẫn có thể lỡ nhúng - không được lọt nguyên xi ra Telegram.
+# Khối điều khiển VANHANH_* vẫn phải bị bóc trước khi ra kênh chữ thuần: ký ức cũ trong brain
+# còn nhắc VANHANH_METRICS nên model vẫn có thể lỡ nhúng - không được lọt nguyên xi ra Telegram.
 import channel_context  # noqa: E402
 out = channel_context.strip_control_blocks(
-    'Báo cáo xong.\n\n<!-- NAOTA_METRICS: [{"label":"Doanh thu","value":"250k"}] -->')
+    'Báo cáo xong.\n\n<!-- VANHANH_METRICS: [{"label":"Doanh thu","value":"250k"}] -->')
 check("khoi la van bi boc khoi kenh chu thuan",
-      "NAOTA_METRICS" not in out and "<!--" not in out and "Báo cáo xong." in out)
+      "VANHANH_METRICS" not in out and "<!--" not in out and "Báo cáo xong." in out)
 
 print()
 if fails:

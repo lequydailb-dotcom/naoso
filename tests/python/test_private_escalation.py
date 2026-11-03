@@ -4,7 +4,7 @@
 
 Request: "Tự đánh giá" (reply_when=auto) judged group messages only; a private chat always got an
 answer, even a guessed one. In that mode a private chat now has a third outcome next to reply and [IM_LANG]: the
-Agent writes [BAO_CHU] plus a note, the customer receives nothing and the owner is told in the Naota bell. Checks:
+Agent writes [BAO_CHU] plus a note, the customer receives nothing and the owner is told in the Vanhanh bell. Checks:
   1. the 1-1 paragraph reaches the prompt ONLY for a private turn in auto mode (not mention mode, not a group);
   2. a [BAO_CHU] answer sends nothing, rings the bell with the customer's words and the note, logs `bot_bao_chu`;
   3. a second escalation in the same chat within the gap is logged but does not ring again; another chat rings;
@@ -18,7 +18,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-esc-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-esc-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

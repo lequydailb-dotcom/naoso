@@ -22,9 +22,9 @@
     });
   }
   var ic = function (n) { return (typeof window !== "undefined" && window.ic) ? window.ic(n) : ""; };
-  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(tw("info.more")) : ""; }
+  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(tw("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.NaotaInfo;
+    var J = typeof window !== "undefined" && window.VanhanhInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
 
@@ -133,7 +133,7 @@
       });
     }
 
-    // Sign-ins Naota may use (Login vault). /logins needs a dashboard session; any error just hides the field.
+    // Sign-ins Vanhanh may use (Login vault). /logins needs a dashboard session; any error just hides the field.
     (async function () {
       var d = await api("/logins");
       var list = (d && d.ok && d.logins || []).filter(function (x) { return x.allow_ai; });
@@ -164,6 +164,6 @@
   }
 
   var api_ = { mount: mount, watchHtml: watchHtml, formHtml: formHtml };
-  if (typeof window !== "undefined") window.NaotaWebWatch = api_;
+  if (typeof window !== "undefined") window.VanhanhWebWatch = api_;
   if (typeof module !== "undefined" && module.exports) module.exports = api_;
 })();

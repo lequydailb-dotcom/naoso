@@ -3,7 +3,7 @@
 The rule lives in docs/quy-uoc-dev.md ("Chữ giải thích gập vào nút (i)"); this file enforces it.
 
 Every dashboard string longer than LIMIT characters (Vietnamese text) that a page renders must either
-- sit inside the (i) block: passed to `NaotaInfo.body(...)` / `NaotaInfo.pair(...)`, or inside an element with class
+- sit inside the (i) block: passed to `VanhanhInfo.body(...)` / `VanhanhInfo.pair(...)`, or inside an element with class
   `info-body` in index.html, or
 - be listed in ALLOW below with the reason it is not an explanation (an error or confirm text shown after an action,
   a placeholder, content the user reads on purpose).
@@ -28,9 +28,9 @@ ALLOW = json.loads((Path(__file__).with_name("info_tip_allow.json")).read_text(e
 
 # `dam` = star-nudge.js: t() plus **bold**, so its long strings are checked like any other.
 REF = re.compile(r'(?:\b(?:t|tw|tt|T|tr|L|dam)\(\s*|data-i18n(?:-html)?=)"([A-Za-z0-9_.]+)"')
-# The (i) helpers as modules call them: NaotaInfo.body/pair directly, a local alias (JI, J), or the module's own
+# The (i) helpers as modules call them: VanhanhInfo.body/pair directly, a local alias (JI, J), or the module's own
 # infoBody/infoPair wrapper (which falls back to drawing the text open when info-tip.js is absent, as in Node tests).
-WRAP = ("NaotaInfo.body(", "NaotaInfo.pair(", "JI.body(", "JI.pair(", "J.body(", "J.pair(", "infoBody(", "infoPair(",
+WRAP = ("VanhanhInfo.body(", "VanhanhInfo.pair(", "JI.body(", "JI.pair(", "J.body(", "J.pair(", "infoBody(", "infoPair(",
         'class="info-body"', "class='info-body'")
 
 _fails = []
@@ -90,7 +90,7 @@ check("allowlist reasons are from the fixed set",
 
 # ---- The helper and its styles ----
 tip = (DASH / "info-tip.js").read_text(encoding="utf-8")
-check("NaotaInfo has btn, body and pair", all(f"{n}: {n}" in tip for n in ("btn", "body", "pair")))
+check("VanhanhInfo has btn, body and pair", all(f"{n}: {n}" in tip for n in ("btn", "body", "pair")))
 css = (DASH / "style.css").read_text(encoding="utf-8")
 m = re.search(r"\.info-body \{[^}]*font-size: (\d+)px", css)
 check("the opened explanation is at least 16px", m is not None and int(m.group(1)) >= 16, m and m.group(1))

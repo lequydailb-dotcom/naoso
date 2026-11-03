@@ -2,7 +2,7 @@
 
     python tests/run.py moi_lai_mach
 
-Lỗi thật (đã được báo): giữa hội thoại, Naota đột nhiên hỏi lại "bạn muốn
+Lỗi thật (đã được báo): giữa hội thoại, Vanhanh đột nhiên hỏi lại "bạn muốn
 so sánh cái gì?" như thể chưa từng nói chuyện. Nguyên nhân: nhánh anthropic-cli chỉ
 bootstrap_prompt khi `_cli_xoay_mach` (xoay mạch chủ động vì vượt ngưỡng token), trong khi
 mạch còn trống ở BA ca khác:

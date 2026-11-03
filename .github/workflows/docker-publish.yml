@@ -1,7 +1,7 @@
 name: Build & Publish Docker image (GHCR)
 
 # Mỗi lần push lên main → build image Docker và đẩy lên GitHub Container Registry
-# (ghcr.io/vuongtex/naota). Hostinger Docker Manager / VPS chỉ cần PULL image này.
+# (ghcr.io/lequydailb-dotcom/vanhanh). Hostinger Docker Manager / VPS chỉ cần PULL image này.
 on:
   push:
     branches: [main]
@@ -68,7 +68,7 @@ jobs:
           build-args: |
             CODEX_CLI_VERSION=${{ env.CODEX_CLI_VERSION }}
             CLAUDE_CLI_VERSION=${{ env.CLAUDE_CLI_VERSION }}
-            NAOTA_IMAGE_SOURCE=${{ env.IMAGE }}
+            VANHANH_IMAGE_SOURCE=${{ env.IMAGE }}
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.sha }}

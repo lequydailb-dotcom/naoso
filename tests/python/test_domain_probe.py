@@ -5,8 +5,8 @@
 Bug seen (Hostinger): the domain was saved and DNS checked green, but the domain did not open and
 Settings only said "SSL: qua Hostinger" with a hint that DNS might be wrong. This file pins:
 
-1. what each answer on https://<domain>/tls-check means: this Naota (valid or not-yet-valid certificate), Traefik's
-   "no route" 404, a 502, another Naota, another site, nothing at all;
+1. what each answer on https://<domain>/tls-check means: this Vanhanh (valid or not-yet-valid certificate), Traefik's
+   "no route" 404, a 502, another Vanhanh, another site, nothing at all;
 2. the reason names the Hostinger fix (DOMAIN_NAME / Host line + Redeploy) for "no route";
 3. a domain that already answers over HTTPS is never reported as "needs Redeploy", even when DOMAIN_NAME in the
    container env is still "localhost" (owners without an Environment box edit the Host line in the YAML directly).
@@ -18,9 +18,9 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-domain-probe-test-")
-os.environ["NAOTA_REQUIRE_LOGIN"] = "0"
-os.environ.pop("NAOTA_ADMIN_PASSWORD", None)
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-domain-probe-test-")
+os.environ["VANHANH_REQUIRE_LOGIN"] = "0"
+os.environ.pop("VANHANH_ADMIN_PASSWORD", None)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -43,13 +43,13 @@ def check(name, cond, detail=""):
 
 
 cl = TestClient(main.app, client=("127.0.0.1", 50000), base_url="http://localhost:7777")
-DOMAIN = "naota.mien-mau.com"
+DOMAIN = "vanhanh.mien-mau.com"
 c.update_settings({"domain": {"custom": DOMAIN}})
 
 # The real answers, taken from the app itself rather than typed by hand.
 mine = cl.get(f"/tls-check?domain={DOMAIN}")
 other = cl.get("/tls-check?domain=khac.example.com")
-check("this Naota answers 200 for its own domain", mine.status_code == 200, mine.text)
+check("this Vanhanh answers 200 for its own domain", mine.status_code == 200, mine.text)
 check("and 403 for a domain it does not hold", other.status_code == 403, other.text)
 TRAEFIK_404 = "404 page not found\n"   # Traefik's body when no router matches the Host
 
@@ -57,11 +57,11 @@ TRAEFIK_404 = "404 page not found\n"   # Traefik's body when no router matches t
 # 1. Classifier
 # ============================================================
 cases = [
-    ("this Naota, valid certificate -> ok", (200, mine.text, True), "ok"),
-    ("this Naota behind a bad certificate -> cert_pending", (200, mine.text, False), "cert_pending"),
+    ("this Vanhanh, valid certificate -> ok", (200, mine.text, True), "ok"),
+    ("this Vanhanh behind a bad certificate -> cert_pending", (200, mine.text, False), "cert_pending"),
     ("Traefik 404 -> no_route (verified)", (404, TRAEFIK_404, True), "no_route"),
     ("Traefik 404 behind its default certificate -> no_route", (404, TRAEFIK_404, False), "no_route"),
-    ("another Naota (403 JSON) -> other_naota", (403, other.text, True), "other_naota"),
+    ("another Vanhanh (403 JSON) -> other_vanhanh", (403, other.text, True), "other_vanhanh"),
     ("502 from the proxy -> bad_gateway", (502, "Bad Gateway", True), "bad_gateway"),
     ("some other web page -> other_site", (200, "<html>Welcome to nginx</html>", True), "other_site"),
     ("other page behind a bad certificate -> cert_invalid", (200, "<html>parked</html>", False), "cert_invalid"),
@@ -120,7 +120,7 @@ check("Traefik default cert + 404 behind it -> no_route (the customer's case)", 
 
 fake_network(ssl_err, (200, mine.text))
 active, why, code = probe()
-check("bad certificate but Naota behind it -> cert_pending", not active and code == "cert_pending", code)
+check("bad certificate but Vanhanh behind it -> cert_pending", not active and code == "cert_pending", code)
 
 fake_network(ssl_err, ssl_err)
 active, why, code = probe()
@@ -133,7 +133,7 @@ check("nothing on 443 -> unreachable, Caddy wording off Hostinger", code == "unr
 # ============================================================
 # 3. /domain/status on Hostinger
 # ============================================================
-os.environ["NAOTA_DEPLOY_TARGET"] = "hostinger"
+os.environ["VANHANH_DEPLOY_TARGET"] = "hostinger"
 os.environ["DOMAIN_NAME"] = "localhost"
 _real_probe = dom._probe_https
 

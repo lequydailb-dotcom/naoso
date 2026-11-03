@@ -3,14 +3,14 @@
     python tests/run.py workflow_runs
 
 Vì sao có kho này: trước đây bấm Chạy ở trang Quy trình thì kết quả stream vào một ngăn kéo
-tạm, đóng là mất. Hỏi Naota "quy trình chạy gần nhất ra sao" là không có gì để tra.
+tạm, đóng là mất. Hỏi Vanhanh "quy trình chạy gần nhất ra sao" là không có gì để tra.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
 import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-wfruns-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-wfruns-")
 
 import workflow_runs  # noqa: E402
 

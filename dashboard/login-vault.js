@@ -1,7 +1,7 @@
 /* Cookies page, formerly "Kho đăng nhập" / Login vault.
  *
  * The owner signs in on their own browser, exports that site's cookies and pastes them here. The server
- * (server/login_vault.py) encrypts them; Naota then opens pages behind that sign-in (tool naota_login) and
+ * (server/login_vault.py) encrypts them; Vanhanh then opens pages behind that sign-in (tool vanhanh_login) and
  * page watches can use it. This page adds, checks, updates, switches off and deletes sign-ins. It never
  * receives a cookie back from the server: the list carries names, domains and status only. A cookie file
  * (Cookie-Editor JSON, cookies.txt) is read in the browser and goes in as the same text a paste would.
@@ -27,7 +27,7 @@
   var ic = function (n) { return (typeof window !== "undefined" && window.ic) ? window.ic(n) : ""; };
   // (i) with its own words, for a spot with no title beside it (the page header already says Cookies).
   function infoPair(html, label) {
-    var J = typeof window !== "undefined" && window.NaotaInfo;
+    var J = typeof window !== "undefined" && window.VanhanhInfo;
     return J ? J.pair(html, label) : '<div class="info-body">' + html + "</div>";
   }
 
@@ -321,6 +321,6 @@
 
   var api_ = { mount: mount, introHtml: introHtml, cardHtml: cardHtml, expiryText: expiryText, needsSite: needsSite, pasteFormHtml: pasteFormHtml,
     nameFromFile: nameFromFile };
-  if (typeof window !== "undefined") window.NaotaLoginVault = api_;
+  if (typeof window !== "undefined") window.VanhanhLoginVault = api_;
   if (typeof module !== "undefined" && module.exports) module.exports = api_;
 })();

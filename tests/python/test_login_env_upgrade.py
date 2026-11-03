@@ -3,10 +3,10 @@
     python tests/run.py login_env_upgrade      (NO network)
 
 Past bug: "after the update I cannot sign in". Affected servers set the admin from the environment
-(Docker, Hostinger) and the message shown was "Wrong username or password ... the username is NAOTA_ADMIN_USER".
+(Docker, Hostinger) and the message shown was "Wrong username or password ... the username is VANHANH_ADMIN_USER".
 
 Cause, reproduced by booting an older version then the current code on the same state: the newer code started cleaning surrounding whitespace off
-NAOTA_ADMIN_PASSWORD, but the `env_applied` marker written by older versions is the hash of the value WITH its whitespace. The
+VANHANH_ADMIN_PASSWORD, but the `env_applied` marker written by older versions is the hash of the value WITH its whitespace. The
 first boot after the update compared only the cleaned value, read "the env changed", and reset the account to the env value:
 the owner's own password was overwritten and their username became "admin". This file pins:
   1. same env value with whitespace + password changed in the dashboard: nothing is overwritten (password, username, 2FA,
@@ -19,7 +19,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-login-upg-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-login-upg-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -52,8 +52,8 @@ def old_version_state(username, password_typed):
     c.write_settings(cfg)
 
 
-os.environ["NAOTA_ADMIN_USER"] = "admin"
-os.environ["NAOTA_ADMIN_PASSWORD"] = ENV_RAW
+os.environ["VANHANH_ADMIN_USER"] = "admin"
+os.environ["VANHANH_ADMIN_PASSWORD"] = ENV_RAW
 
 # ---- 1. owner changed username and password in the dashboard, env unchanged (with its space) ----
 old_version_state("long", "Mat-khau-rieng-1")
@@ -81,7 +81,7 @@ check("unchanged password: stored clean", c.hash_password("Hostinger-Pass-9", cf
 
 # ---- 3. a real change of the env value still resets ----
 old_version_state("long", "Mat-khau-rieng-1")
-os.environ["NAOTA_ADMIN_PASSWORD"] = "Mat-khau-moi-tren-Hostinger"
+os.environ["VANHANH_ADMIN_PASSWORD"] = "Mat-khau-moi-tren-Hostinger"
 CLEARED.clear()
 res = c.provision_admin_from_env()
 cfg = c.read_settings()
@@ -93,13 +93,13 @@ check("env really changed: the same new value next boot is a no-op", c.provision
 
 # ---- 4. a new env user name with the same password is a change too ----
 old_version_state("admin", ENV_RAW)
-os.environ["NAOTA_ADMIN_PASSWORD"] = ENV_RAW
-os.environ["NAOTA_ADMIN_USER"] = "quan-tri"
+os.environ["VANHANH_ADMIN_PASSWORD"] = ENV_RAW
+os.environ["VANHANH_ADMIN_USER"] = "quan-tri"
 check("env user name changed: reset to the new name", c.provision_admin_from_env() == "reset"
       and c.read_settings()["auth"]["username"] == "quan-tri")
 
-os.environ.pop("NAOTA_ADMIN_PASSWORD", None)
-os.environ.pop("NAOTA_ADMIN_USER", None)
+os.environ.pop("VANHANH_ADMIN_PASSWORD", None)
+os.environ.pop("VANHANH_ADMIN_USER", None)
 for f in (SERVER / "config.py", __import__("pathlib").Path(__file__)):
     check(f"no em dash in {f.name}", chr(0x2014) not in f.read_text(encoding="utf-8"))
 

@@ -1,7 +1,7 @@
-"""Stdio MCP processes that outlived the Naota server which started them.
+"""Stdio MCP processes that outlived the Vanhanh server which started them.
 
 Why this exists (a real incident): the bot stopped answering a Zalo group at
-21:09. The account had TWO `naota-zalo mcp start` processes: one from 20:49, one the server started
+21:09. The account had TWO `vanhanh-zalo mcp start` processes: one from 20:49, one the server started
 when it came back at 21:10. Zalo pushes each message to one socket only, the bot read the new process,
 and the new process received almost nothing (one sticker in two hours).
 
@@ -115,7 +115,7 @@ def forget(key: str, pid: int) -> None:
 
 def _markers(args: List[str]) -> List[str]:
     """Every string whose presence in a command line marks the process as ours: `_marker`, plus the package name of a
-    tarball URL (`.../naota-zalo/tar.gz/...` -> "/naota-zalo/"). npx runs the package as `node .../naota-zalo/...`, so
+    tarball URL (`.../vanhanh-zalo/tar.gz/...` -> "/vanhanh-zalo/"). npx runs the package as `node .../vanhanh-zalo/...`, so
     once its `npm exec` launcher is gone the URL is in no command line of the group."""
     out = []
     m = _marker(args)

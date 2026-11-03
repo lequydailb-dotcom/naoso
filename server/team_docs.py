@@ -154,7 +154,7 @@ def block(listed: List[str], loaded: List[str], folder: str, tools: bool = False
         # PDF, Word and Excel go through the hub reader (doc_text), never through shell commands a gated team
         # has to approve one by one (seen in practice).
         how = ("Lượt làm việc này có công cụ: mở thẳng file theo đường dẫn khi cần đọc hết hay sửa; phần nạp sẵn bên dưới "
-               "chỉ là bản đọc nhanh. File PDF, Word (.docx), Excel (.xlsx): đọc bằng tool naota_read_file (Naota bóc sẵn "
+               "chỉ là bản đọc nhanh. File PDF, Word (.docx), Excel (.xlsx): đọc bằng tool vanhanh_read_file (Vanhanh bóc sẵn "
                "chữ, mọi sheet, giá trị công thức và ô lỗi), ĐỪNG viết lệnh shell để giải nén hay chuyển đổi file. Trang PDF "
                "scan không có lớp chữ thì nói rõ trang nào chưa đọc được. Ảnh thì đọc tài liệu \"mô tả ảnh\" đi kèm hay mở "
                "ảnh nếu engine của bạn xem được ảnh."

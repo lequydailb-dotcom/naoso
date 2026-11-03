@@ -1,12 +1,12 @@
-"""Naota Core as the notification commander.
+"""Vanhanh Core as the notification commander.
 
-Spec: naota-core-chi-huy-thong-bao sections 3 to 6.
+Spec: vanhanh-core-chi-huy-thong-bao sections 3 to 6.
 
 Every notice that reaches the bell has a GROUP (what it is about) and a LEVEL (info, important, urgent). Each group has
 a MODE, the lowest level that still rings (all, important, urgent, off). The owner's default is "urgent": only urgent
-notices ring, the rest are kept in the bell as already read and marked `filtered`. Naota Core's judge tunes the modes
+notices ring, the rest are kept in the bell as already read and marked `filtered`. Vanhanh Core's judge tunes the modes
 and the per-kind rules from the owner's emoji feedback (the Resonance set, `reaction_values.REACTION_EMOJI`) and stops
-a notice that repeats itself. Naota Core never silences an urgent notice; only the owner can (mode "off", or "Not
+a notice that repeats itself. Vanhanh Core never silences an urgent notice; only the owner can (mode "off", or "Not
 needed" on that very kind).
 
 `decide` is the one place that turns (group, level, title) into loud / quiet / drop. The host (main.py) calls it from
@@ -286,7 +286,7 @@ def undo(change_id: str) -> Optional[dict]:
         return c
 
 
-# ── Naota Core's judge: learn from the owner's reactions ───────────────────────────────────────────────────────────
+# ── Vanhanh Core's judge: learn from the owner's reactions ───────────────────────────────────────────────────────────
 def score_of(value: str = "", axis: str = "") -> int:
     return int(EMOJI_SCORE.get(str(value or ""), 0)) + int(AXES.get(str(axis or ""), 0))
 
@@ -348,7 +348,7 @@ def react(item: dict, value: str = "", axis: str = "") -> List[dict]:
 
 
 def describe(c: dict, hint: bool = True) -> str:
-    """One sentence about a change, for Naota Core's chat and the chat tool (`hint`: say where to undo it)."""
+    """One sentence about a change, for Vanhanh Core's chat and the chat tool (`hint`: say where to undo it)."""
     vi = _vi()
     if c.get("kind") == "group":
         g = group_name(str(c.get("target")))

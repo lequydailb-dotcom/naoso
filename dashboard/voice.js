@@ -1,8 +1,8 @@
 // ============================================
-// NAOTA - Voice Layer (Web Speech API)
+// VANHANH - Voice Layer (Web Speech API)
 // ============================================
 
-class NaotaVoice {
+class VanhanhVoice {
   // Lỗi mic KHÔNG bao giờ tự khỏi khi thử lại. Thử lại chỉ đẻ ra đúng lỗi đó, và nếu nơi gọi
   // báo bằng alert thì thành vòng lặp chặn cứng cả trang.
   //   not-allowed         người dùng từ chối quyền, hoặc trang không chạy ở ngữ cảnh bảo mật
@@ -23,7 +23,7 @@ class NaotaVoice {
 
   // ---- Ngắt lời bằng giọng: mẹo NHÁ TIẾNG ----
   // Đo mức âm mic KHÔNG phân biệt nổi giọng người với tiếng LOA NGOÀI vọng lại, nên bản cũ
-  // kẹt giữa hai cái sai: ngưỡng thấp thì Naota nghe chính mình rồi tự câm, ngưỡng cao thì
+  // kẹt giữa hai cái sai: ngưỡng thấp thì Vanhanh nghe chính mình rồi tự câm, ngưỡng cao thì
   // nói kiểu gì nó cũng đọc tiếp. Cách thoát: đừng đoán, hãy THỬ. Nghi có người nói thì hạ
   // âm lượng loa xuống một nhá rồi đo lại. Tiếng vọng đi theo âm lượng nên tụt cả chục lần;
   // giọng người thì không tụt. So mức sau khi nhá với mức trước khi nhá là biết ngay, không
@@ -43,10 +43,10 @@ class NaotaVoice {
   // Mẫu đo trong lúc nhá tiếng có phải giọng NGƯỜI không. Thuần, không đụng DOM, để test
   // được bằng node: vọng của loa tụt theo âm lượng, giọng người giữ nguyên mức.
   static laNguoiThat(preLevel, samples) {
-    const nguong = Math.max((preLevel || 0) * NaotaVoice.NHA_TI_LE, NaotaVoice.NHA_SAN);
+    const nguong = Math.max((preLevel || 0) * VanhanhVoice.NHA_TI_LE, VanhanhVoice.NHA_SAN);
     let hit = 0;
     for (let i = 0; i < (samples || []).length; i++) if (samples[i] > nguong) hit++;
-    return hit >= NaotaVoice.NHA_MIN_HIT;
+    return hit >= VanhanhVoice.NHA_MIN_HIT;
   }
 
   constructor(opts = {}) {
@@ -79,7 +79,7 @@ class NaotaVoice {
     this.isListening = false;
     // Mỗi lần nạp trang đều bắt đầu TẮT, không nhớ lựa chọn cũ: mở trang lên mà máy tự nói là
     // điều không ai chờ đợi. Chỉ thao tác BẬT MIC mới bật đọc, và chỉ trong phiên trang này
-    // (quick-settings.js gọi window.NaotaTts.set theo mic).
+    // (quick-settings.js gọi window.VanhanhTts.set theo mic).
     this.ttsEnabled = false;
     this.vietnameseVoice = null;
 
@@ -114,7 +114,7 @@ class NaotaVoice {
     this.bargeMinTicks = 2;
     // Mức vọng của phòng, TỰ HỌC theo từng câu và nhớ qua các lần mở trang. Chặn trên 0.3 để
     // một giá trị rác trong localStorage không làm ngắt lời chết hẳn.
-    this._echoFloor = Math.min(0.3, parseFloat(localStorage.getItem("naota.nenVong")) || 0);
+    this._echoFloor = Math.min(0.3, parseFloat(localStorage.getItem("vanhanh.nenVong")) || 0);
     this._dangNha = false;                             // đang nhá tiếng để thăm dò
     this._nhaTimer = null;
     this._paused = false;                              // đang TẠM DỪNG vì nghi chen ngang
@@ -154,7 +154,7 @@ class NaotaVoice {
 
     // Audio analysis - cho hiệu ứng phát sáng theo âm thanh
     this.audioCtx = null;
-    this.outAnalyser = null;   // âm Naota đọc (TTS)
+    this.outAnalyser = null;   // âm Vanhanh đọc (TTS)
     this.inAnalyser = null;    // âm mic (khi nghe)
     this.micStream = null;
     this._freqData = new Uint8Array(64);
@@ -338,7 +338,7 @@ class NaotaVoice {
     // iPhone/iPad: WebKit KHÔNG nghe liên tục được. Đặt continuous=true thì nó vào một phiên
     // "ghi âm" không bao giờ tự kết thúc câu, và onend tự mở lại càng làm nó kéo dài - đúng
     // cảnh bật mic mà nó thành chế độ ghi âm. Trên iOS mỗi lượt nói là một
-    // phiên: nói xong -> gửi -> vòng rảnh tay bên app.js mở lại khi Naota đọc xong.
+    // phiên: nói xong -> gửi -> vòng rảnh tay bên app.js mở lại khi Vanhanh đọc xong.
     if (this._laIOS()) this.recognition.continuous = false;
     this.recognition.interimResults = true;
     this.recognition.maxAlternatives = 1;
@@ -362,7 +362,7 @@ class NaotaVoice {
       this._duoiTam = "";
       // Lệnh dừng tới TRƯỚC khi phiên kịp mở (bấm rồi thả Space thật nhanh, bấm nút mic hai
       // lần liền): lúc đó isListening còn false nên stopListening() không dừng được gì, mic ở
-      // lại MỞ vĩnh viễn và onend còn tự khởi động lại. Người dùng tưởng đã tắt, thực ra Naota
+      // lại MỞ vĩnh viễn và onend còn tự khởi động lại. Người dùng tưởng đã tắt, thực ra Vanhanh
       // vẫn nghe: tiếng nhạc hay TV trong phòng được chép thành chữ rồi TỰ GỬI như tin của họ.
       // Nợ đó trả ở đây - đóng phiên ngay khi nó vừa mở, không nhận chữ, không gửi gì.
       if (this._stopPending) {
@@ -375,9 +375,9 @@ class NaotaVoice {
     };
 
     this.recognition.onresult = (event) => {
-      // Đang phát TTS thì BỎ mọi kết quả nhận dạng: đó là mic nghe lại chính giọng Naota
+      // Đang phát TTS thì BỎ mọi kết quả nhận dạng: đó là mic nghe lại chính giọng Vanhanh
       // (SpeechRecognition thu riêng, KHÔNG được khử vọng như luồng đo mức âm), không phải
-      // user nói. Không chặn thì giọng Naota bị chép vào khung chat rồi tự gửi đi.
+      // user nói. Không chặn thì giọng Vanhanh bị chép vào khung chat rồi tự gửi đi.
       if ((this.isSpeaking() && !this._awaitingFirstAudio) || this._discardRecognition || (this._stopping && this._endpointText)) return;
       // DỰNG LẠI từ TOÀN BỘ event.results mỗi lần, KHÔNG cộng dồn qua từng sự kiện.
       // Bản cũ làm `accumulated += final` từ resultIndex trở đi. Chrome máy tính giao đúng
@@ -395,8 +395,8 @@ class NaotaVoice {
       let interim = "", final = "";
       for (let i = 0; i < event.results.length; i++) {
         const transcript = (event.results[i][0] || {}).transcript || "";
-        if (event.results[i].isFinal) final = NaotaVoice.ghepManh(final, transcript);
-        else interim = NaotaVoice.ghepManh(interim, transcript);
+        if (event.results[i].isFinal) final = VanhanhVoice.ghepManh(final, transcript);
+        else interim = VanhanhVoice.ghepManh(interim, transcript);
       }
       this.accumulatedTranscript = this._ghepChuyenBien(final.trim());
       // Nhớ ĐUÔI CHỮ TẠM của sự kiện cuối. WebKit trên iOS hay giao toàn chữ tạm rồi kết
@@ -406,13 +406,13 @@ class NaotaVoice {
       // máy tính chốt final trước onend nên tới đó đuôi này rỗng, không đổi gì.
       this._duoiTam = interim.trim();
       // Show user toàn bộ tích lũy + đoạn đang nghe
-      const display = NaotaVoice.ghepDuoiTam(this.accumulatedTranscript, interim);
+      const display = VanhanhVoice.ghepDuoiTam(this.accumulatedTranscript, interim);
       if (display) {
         this.onInterim(display);
         if (this.managedEndpoint) {
           clearTimeout(this._silenceTimer);
           if (!this._batDauLuot) this._batDauLuot = Date.now();
-          if (Date.now() - this._batDauLuot >= NaotaVoice.TRAN_LUOT_MS && !this.userStopped) {
+          if (Date.now() - this._batDauLuot >= VanhanhVoice.TRAN_LUOT_MS && !this.userStopped) {
             this._batDauLuot = Date.now();
             try { this.recognition.stop(); } catch (e) { this.onError('rollover-failed'); }
           }
@@ -424,11 +424,11 @@ class NaotaVoice {
         clearTimeout(this._silenceTimer);
         // TRẦN CHO MỘT LƯỢT. Đồng hồ trên được hẹn lại ở MỌI mẩu chữ tạm, nên tiếng TV hay hai
         // người nói chuyện trong phòng giữ nó không bao giờ nổ: chữ cứ dồn vào một lượt khổng
-        // lồ và Naota trông như điếc suốt cả đoạn đó (một lượt dài cả
+        // lồ và Vanhanh trông như điếc suốt cả đoạn đó (một lượt dài cả
         // trang, lẫn tiếng TV, mà cuối mới có câu hỏi thật). Quá trần thì chốt NGAY thay vì hẹn
         // tiếp: mỗi mẩu 30 giây đi qua cửa tạp âm ở bộ não giọng và bị bỏ nếu không nói với
-        // Naota, còn câu thật thì được trả lời trong vòng nửa phút chứ không phải hai phút.
-        if (Date.now() - this._batDauLuot >= NaotaVoice.TRAN_LUOT_MS) { this.stopListening(); return; }
+        // Vanhanh, còn câu thật thì được trả lời trong vòng nửa phút chứ không phải hai phút.
+        if (Date.now() - this._batDauLuot >= VanhanhVoice.TRAN_LUOT_MS) { this.stopListening(); return; }
         let ms = this.silenceMs;
         try { if (this.endpointDelay) ms = this.endpointDelay(display) || ms; } catch (e) {}
         this._silenceTimer = setTimeout(() => this.stopListening(), ms);
@@ -450,7 +450,7 @@ class NaotaVoice {
       // 'not-allowed'; app.js lại alert. Alert là hộp CHẶN, nên bấm OK xong là vòng kế tiếp
       // nổ ngay - không còn đường nào bấm vào trang nữa. Đánh dấu `userStopped` để chặn luôn
       // nhánh mở lại trong onend, chứ không chỉ ghi nhớ suông.
-      if (NaotaVoice.LOI_CHET.includes(event.error)) {
+      if (VanhanhVoice.LOI_CHET.includes(event.error)) {
         this._micHong = event.error;
         this.userStopped = true;
       }
@@ -467,7 +467,7 @@ class NaotaVoice {
           // Phiên mới thì event.results bắt đầu lại từ trống. Gói phần đã nghe vào
           // _committed trước (kể cả đuôi tạm chưa kịp chốt), không thì onstart xoá trắng và
           // nửa câu đầu biến mất.
-          this._committed = NaotaVoice.ghepDuoiTam(this.accumulatedTranscript || this._committed, this._duoiTam);
+          this._committed = VanhanhVoice.ghepDuoiTam(this.accumulatedTranscript || this._committed, this._duoiTam);
           this._duoiTam = "";
           this._chuyenLuc = Date.now();
           this._starting = true;
@@ -490,7 +490,7 @@ class NaotaVoice {
       // Gửi toàn bộ text đã tích luỹ khi user dừng. Đuôi chữ tạm chưa được chốt final thì
       // ghép vào (iOS không bao giờ chốt; Chrome hiếm khi để sót), cùng phép ghép chống lặp
       // với _committed: final đã phủ đuôi thì không ghép hai lần.
-      const finalText = NaotaVoice.ghepDuoiTam(
+      const finalText = VanhanhVoice.ghepDuoiTam(
         this.accumulatedTranscript || this._committed, this._duoiTam);
       this._endpointText = "";
       this._committed = "";
@@ -512,7 +512,7 @@ class NaotaVoice {
     if (!cu) return moi;
     if (moi.startsWith(cu)) return moi;
     if (cu.endsWith(moi)) return cu;
-    const sua = NaotaVoice.ghepSua(cu, moi);   // phiên mới giao lại BẢN SỬA của câu đã chốt
+    const sua = VanhanhVoice.ghepSua(cu, moi);   // phiên mới giao lại BẢN SỬA của câu đã chốt
     if (sua !== null) return sua;
     return (cu + " " + moi).trim();
   }
@@ -532,7 +532,7 @@ class NaotaVoice {
     const a = chuan(cu), b = chuan(moi);
     if (b.startsWith(a)) return moi;
     if (a.endsWith(b) && /\s/.test(b)) return cu;
-    const sua = NaotaVoice.ghepSua(cu, moi);
+    const sua = VanhanhVoice.ghepSua(cu, moi);
     if (sua !== null) return sua;
     return cu + " " + moi;
   }
@@ -588,7 +588,7 @@ class NaotaVoice {
     const chuan = (s) => s.toLowerCase().replace(/[.,!?;:…]+$/, "").trim();
     const a = chuan(cu), b = chuan(moi);
     if (a === b || a.endsWith(b) || b.startsWith(a)) return b.startsWith(a) && b.length > a.length ? moi : cu;
-    const sua = NaotaVoice.ghepSua(cu, moi);
+    const sua = VanhanhVoice.ghepSua(cu, moi);
     if (sua !== null) return sua;
     return (cu + " " + moi).trim();
   }
@@ -635,7 +635,7 @@ class NaotaVoice {
   // Ba triệu chứng đó là một nguyên nhân, và nó là cuộc đua giữa hai đường thu mic.
   //
   // Chữa: trên điện thoại, lúc NGHE thì chỉ để SpeechRecognition giữ mic. Luồng getUserMedia
-  // chỉ sống trong lúc Naota ĐỌC, là lúc nhận dạng đã bị abort (xem _muteRecognition), nên
+  // chỉ sống trong lúc Vanhanh ĐỌC, là lúc nhận dạng đã bị abort (xem _muteRecognition), nên
   // ngắt lời vẫn nguyên vẹn. Thứ mất đi trên điện thoại chỉ là hiệu ứng phát sáng theo giọng
   // lúc đang nghe, và bản ghi gửi Groq - hai thứ trang trí và tuỳ chọn, đổi lấy cái mic chạy.
   _nhaMicStream() {
@@ -759,7 +759,7 @@ class NaotaVoice {
     if (this._stopping) return;
     // Freeze only text already shown. If no result has arrived, stop() may deliver
     // the very first final, which still needs to reach the conversation.
-    this._endpointText = NaotaVoice.ghepDuoiTam(this.accumulatedTranscript || this._committed, this._duoiTam);
+    this._endpointText = VanhanhVoice.ghepDuoiTam(this.accumulatedTranscript || this._committed, this._duoiTam);
     if (this.recognition && this.isListening) {
       this.userStopped = true;     // đánh dấu user chủ động dừng → không auto-restart
       this._stopping = true;
@@ -886,7 +886,7 @@ class NaotaVoice {
     else this._speakBrowser(text);                   // fallback Web Speech
   }
 
-  // Naota bắt đầu đọc mà mic đang nghe → tạm NGỪNG nhận dạng (abort, bỏ kết quả dở),
+  // Vanhanh bắt đầu đọc mà mic đang nghe → tạm NGỪNG nhận dạng (abort, bỏ kết quả dở),
   // vì SpeechRecognition sẽ chép chính giọng TTS thành tin nhắn của user. Ngắt lời bằng
   // giọng vẫn hoạt động - barge-in đo mức âm qua luồng mic đã khử vọng, không cần nhận dạng.
   _muteRecognition() {
@@ -909,7 +909,7 @@ class NaotaVoice {
   // The recognizer has been opening or closing for longer than KET_MS without a single event from the browser.
   _dangKet() {
     return !!(this._starting || this._stopping) && !!this._chuyenLuc
-      && Date.now() - this._chuyenLuc > NaotaVoice.KET_MS;
+      && Date.now() - this._chuyenLuc > VanhanhVoice.KET_MS;
   }
 
   // Drop a wedged recognizer and build a fresh one (same language, same settings), then release anyone waiting
@@ -954,7 +954,7 @@ class NaotaVoice {
     }, 400);
   }
 
-  // Đang nói chuyện bằng giọng thì phải GIỮ luồng mic sống trong lúc Naota đọc, kể cả khi
+  // Đang nói chuyện bằng giọng thì phải GIỮ luồng mic sống trong lúc Vanhanh đọc, kể cả khi
   // nhận dạng đã đóng. Ngắt lời đo mức âm chứ không đọc chữ, nên không có luồng mic là không
   // có gì để đo và ngắt lời chết câm. Luồng mic vốn không bao giờ bị tắt tracks, nên thường
   // chỉ cần nối lại bộ đo; lần đầu thì mở (quyền đã cấp từ lúc bật rảnh tay, không hỏi lại).
@@ -983,13 +983,13 @@ class NaotaVoice {
     // hẳn trước khi câu trả lời kịp đọc; tới lượt đọc, _muteRecognition() thấy isListening đã
     // false nên thoát ngay và không đặt cờ ấy; vòng giữ mic trong app.js thì bỏ qua vì đang
     // đọc. Cả ba chốt cùng đúng riêng lẻ mà ghép lại thành điếc hoàn toàn (thử thật
-    // nói chen vào, Naota đọc tiếp như không nghe thấy gì).
+    // nói chen vào, Vanhanh đọc tiếp như không nghe thấy gì).
     //
     // Nỗi lo cũ vẫn được giữ nguyên, chỉ đổi chốt cho đúng chỗ: không được để luồng mic sống
-    // suốt đời trang rồi lần nào Naota đọc cũng rình, vì một tiếng động to trong phòng (nhạc,
+    // suốt đời trang rồi lần nào Vanhanh đọc cũng rình, vì một tiếng động to trong phòng (nhạc,
     // TV, người khác nói) sẽ tự mở mic rồi chép thành tin nhắn. Chốt đúng là "người dùng CÓ
     // đang nói chuyện bằng giọng không" (handsFree), chứ không phải "mic có tình cờ còn mở
-    // không". Rảnh tay tắt thì Naota đọc trong im lặng, không nghe gì hết.
+    // không". Rảnh tay tắt thì Vanhanh đọc trong im lặng, không nghe gì hết.
     if (!this._resumeAfterTTS && !this.handsFree) return;
     if (!this.bargeEnabled) return;                  // người dùng tắt "ngắt lời bằng giọng" trong Cài đặt nhanh
     if (this._dangNha) return;                       // đang nhá tiếng thăm dò, đừng mở bộ rình thứ hai
@@ -997,7 +997,7 @@ class NaotaVoice {
     let hits = 0, gan = [];
     // NGƯỠNG TỰ HỌC, không còn đo một lần rồi thôi. Bản cũ lấy nền trong 600 ms ĐẦU, mà bộ
     // rình khởi động TRƯỚC lúc tiếng thật sự ra loa (còn đang tải file TTS), nên nền đo được
-    // là phòng im và ngưỡng rơi về sàn 0.045: loa ngoài mở to là vượt ngay, Naota tự ngắt
+    // là phòng im và ngưỡng rơi về sàn 0.045: loa ngoài mở to là vượt ngay, Vanhanh tự ngắt
     // lời mình. Nay nền là trung bình trượt của chính những nhịp KHÔNG nghi ngờ, nên nó dâng
     // dần tới đúng mức vọng của phòng; thêm nữa mỗi lần nhá tiếng kết luận "là vọng" thì nền
     // được nâng thẳng lên trên mức vừa đo (xem _ketThucNha), nên chỉ sau một hai lần là hết
@@ -1010,7 +1010,7 @@ class NaotaVoice {
       // nên chính mức ấy không bao giờ vượt nổi ngưỡng của nó: bộ rình tê liệt, không nhá
       // tiếng lần nào, ngắt lời chết câm. Đã đo thấy trên trang thật. Nền chỉ được đi
       // lên từ trung bình trượt và từ các lần nhá tiếng kết luận "là vọng".
-      const thresh = Math.max(NaotaVoice.BARGE_SAN, this._echoFloor * 1.8 + 0.01);
+      const thresh = Math.max(VanhanhVoice.BARGE_SAN, this._echoFloor * 1.8 + 0.01);
       if (rms > thresh) {
         gan.push(rms);
         if (gan.length > 3) gan.shift();
@@ -1043,7 +1043,7 @@ class NaotaVoice {
   // mới, vì mỗi khúc TTS là một phần tử Audio khác: quên một chỗ là khúc kế tiếp bật lại âm
   // lượng đầy ngay giữa lúc đang thăm dò, hỏng hết phép so.
   _apAmLuong(audio) {
-    try { if (audio) audio.volume = this._dangNha ? NaotaVoice.NHA_GAIN : 1; } catch (e) {}
+    try { if (audio) audio.volume = this._dangNha ? VanhanhVoice.NHA_GAIN : 1; } catch (e) {}
   }
 
   // ---- Nhá tiếng để thăm dò: hạ âm lượng một nhá rồi đo lại ----
@@ -1062,8 +1062,8 @@ class NaotaVoice {
       if (!this.isPlaying) { this._ketThucNha(false, preLevel, dungSynth); return; }
       const rms = this._micRms();
       if (rms != null) mau.push(rms);
-      if (mau.length >= NaotaVoice.NHA_TICKS) {
-        this._ketThucNha(NaotaVoice.laNguoiThat(preLevel, mau), preLevel, dungSynth);
+      if (mau.length >= VanhanhVoice.NHA_TICKS) {
+        this._ketThucNha(VanhanhVoice.laNguoiThat(preLevel, mau), preLevel, dungSynth);
       }
     }, 100);
   }
@@ -1086,7 +1086,7 @@ class NaotaVoice {
     // Người nghe chỉ thấy tiếng nhỏ đi một nhá, không giật, không câm.
     //
     // Nền leo TỪNG BẬC chứ không nhảy thẳng tới mức vừa đo: một tiếng ho to (0.2) mà nhảy
-    // thẳng là nền treo ở đó, ngưỡng vọt lên gần 0.4 và mấy lượt sau nói gì Naota cũng không
+    // thẳng là nền treo ở đó, ngưỡng vọt lên gần 0.4 và mấy lượt sau nói gì Vanhanh cũng không
     // nghe. Leo bậc thì vọng thật (lặp lại liên tục) vẫn tới nơi sau một hai nhá, còn tiếng
     // ho một lần chỉ đẩy được một bậc nhỏ.
     const tran = (preLevel || 0) * 1.05;
@@ -1103,7 +1103,7 @@ class NaotaVoice {
   // thì câu trả lời ĐẦU TIÊN sau khi tải trang đã có ngưỡng đúng, khỏi phải nhá tiếng vài lần
   // để học lại từ số không. Hỏng localStorage (chế độ riêng tư) thì thôi, học lại cũng được.
   _nhoNenVong() {
-    try { localStorage.setItem("naota.nenVong", String(this._echoFloor.toFixed(4))); } catch (e) {}
+    try { localStorage.setItem("vanhanh.nenVong", String(this._echoFloor.toFixed(4))); } catch (e) {}
   }
 
   // Huỷ cuộc thăm dò đang dở (dừng đọc, đổi lượt): trả âm lượng về đầy, không để phần tử
@@ -1155,7 +1155,7 @@ class NaotaVoice {
     return true;
   }
 
-  // Phần Naota ĐÃ ĐỌC RA TIẾNG trong lượt này: các khúc đã phát xong cộng phần khúc dở theo
+  // Phần Vanhanh ĐÃ ĐỌC RA TIẾNG trong lượt này: các khúc đã phát xong cộng phần khúc dở theo
   // tỉ lệ thời gian, cắt ở ranh giới từ. Dùng khi bị ngắt lời thật, để tin kế tiếp mang
   // "ngắt_lời=" và model không đọc lại từ đầu (mượn synchronized_transcript của LiveKit).
   static demTu(s) { const m = String(s || "").trim().match(/\S+/g); return m ? m.length : 0; }
@@ -1169,7 +1169,7 @@ class NaotaVoice {
       const a = this.currentAudio, i = this._chunkIndex;
       if (this._countThis && this.isPlaying && a && this.ttsChunks && i != null && i < this.ttsChunks.length && a.duration > 0) {
         const ratio = Math.max(0, Math.min(1, a.currentTime / a.duration));
-        n += Math.floor(NaotaVoice.demTu(this.ttsChunks[i]) * ratio);
+        n += Math.floor(VanhanhVoice.demTu(this.ttsChunks[i]) * ratio);
       }
     } catch (e) {}
     return n;
@@ -1181,7 +1181,7 @@ class NaotaVoice {
     const a = this.currentAudio, i = this._chunkIndex;
     if (this._countThis && this.isPlaying && a && a.currentTime > 0 &&
         this.ttsChunks && i != null && i < this.ttsChunks.length) {
-      return this._wordsDone + NaotaVoice.demTu(this.ttsChunks[i]);
+      return this._wordsDone + VanhanhVoice.demTu(this.ttsChunks[i]);
     }
     return this.spokenWords();
   }
@@ -1230,7 +1230,7 @@ class NaotaVoice {
   // "auto": the Edge voice follows the language of the text being read (voice-lang.js).
   _voiceFor(text) {
     if (this.ttsVoice !== "auto") return this.ttsVoice;
-    const L = typeof window !== "undefined" && window.NaotaVoiceLang;
+    const L = typeof window !== "undefined" && window.VanhanhVoiceLang;
     if (!L) return "en-US-EmmaMultilingualNeural";
     if (!this._langTracker) this._langTracker = new L.Tracker(String(this.lang || "vi").split("-")[0]);
     return this._langTracker.pick(text);
@@ -1280,7 +1280,7 @@ class NaotaVoice {
         if (done || epoch !== this._ttsEpoch) return;
         done = true;
         this._huyCanhTreo();
-        if (this._countThis) this._wordsDone += NaotaVoice.demTu(this.ttsChunks[i]);
+        if (this._countThis) this._wordsDone += VanhanhVoice.demTu(this.ttsChunks[i]);
         this._playChunk(i + 1);
       };
       a.onerror = onFail;
@@ -1341,7 +1341,7 @@ class NaotaVoice {
       this._huyCanhTreo();
       handled = true;
       this._spokenChunks.push(this.ttsChunks[i]);   // khúc này đã ra tiếng trọn vẹn
-      if (this._countThis) this._wordsDone += NaotaVoice.demTu(this.ttsChunks[i]);
+      if (this._countThis) this._wordsDone += VanhanhVoice.demTu(this.ttsChunks[i]);
       this._playChunk(i + 1);
     };
     audio.onerror = onFail;
@@ -1367,7 +1367,7 @@ class NaotaVoice {
       im++;
       // Chưa ra tiếng lần nào thì chờ rộng tay (mạng chậm, Edge tổng hợp lâu); đã phát rồi mà
       // đứng im thì đó là stream đứt, cắt sớm hơn.
-      if (im >= (t > 0 ? NaotaVoice.TREO_DANG_PHAT : NaotaVoice.TREO_CHUA_PHAT)) {
+      if (im >= (t > 0 ? VanhanhVoice.TREO_DANG_PHAT : VanhanhVoice.TREO_CHUA_PHAT)) {
         this._huyCanhTreo();
         onFail();
       }
@@ -1401,7 +1401,7 @@ class NaotaVoice {
       if (this.vietnameseVoice) utter.voice = this.vietnameseVoice;
       utter.rate = 1.05;
       utter.onstart = () => this._audioActuallyStarted(epoch);
-      utter.onend = () => { if (epoch !== this._ttsEpoch) return; if (this._countThis) this._wordsDone += NaotaVoice.demTu(piece); playNext(); };
+      utter.onend = () => { if (epoch !== this._ttsEpoch) return; if (this._countThis) this._wordsDone += VanhanhVoice.demTu(piece); playNext(); };
       utter.onerror = playNext;
       this.synth.speak(utter);
     };
@@ -1454,7 +1454,7 @@ class NaotaVoice {
   // Sentences for TTS. Shares the chunker's rule: "2.10.3" and "1.5" are not sentence ends, and
   // Japanese/Chinese stops (。！？) are, though no space follows them.
   _sentences(text) {
-    const C = typeof window !== "undefined" && window.NaotaVoiceChunker;
+    const C = typeof window !== "undefined" && window.VanhanhVoiceChunker;
     if (C && C.splitSentences) { const out = C.splitSentences(text); return out.length ? out : [text]; }
     return text.match(/[^.!?]+[.!?]+|\s*[^.!?]+$/g) || [text];
   }
@@ -1489,4 +1489,4 @@ class NaotaVoice {
   }
 }
 
-window.NaotaVoice = NaotaVoice;
+window.VanhanhVoice = VanhanhVoice;

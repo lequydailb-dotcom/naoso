@@ -36,10 +36,10 @@ check("mượn sang tab Thư mục thì giấu cả nút thu lẫn nút mở l�
   css.indexOf(".cside-pane .vault-tools #vtCollapse") !== -1
   && css.indexOf(".cside-pane > .hud-left > .vault-expand") !== -1);
 check("console.js gắn handler thu/mở và lưu localStorage",
-  cjs.indexOf('"naota_vault_thu"') !== -1 && cjs.indexOf("vtCollapse") !== -1
+  cjs.indexOf('"vanhanh_vault_thu"') !== -1 && cjs.indexOf("vtCollapse") !== -1
   && cjs.indexOf("vtExpand") !== -1);
 check("boot() áp lại trạng thái đã lưu (không nháy to rồi mới thu)",
-  /function boot\(\) \{[\s\S]{0,600}naota_vault_thu/.test(cjs));
+  /function boot\(\) \{[\s\S]{0,600}vanhanh_vault_thu/.test(cjs));
 
 // ---- 2. Cột Hội thoại/Thư mục trang Trò chuyện ----
 // The clock button on the title bar did the same as the corner button,
@@ -54,16 +54,16 @@ check("the corner collapse button closes the drawer on a phone",
 check("thu xong còn dải hẹp có nút mở lại (không ẩn hẳn mất đường về)",
   /\.chatpage\.side-thu \.chatpage-side\{ width:46px/.test(cjs)
   && cjs.indexOf(".chatpage.side-thu .chatpage-side > .cside-expand{ display:flex") !== -1);
-check("có nút thu ngay trên panel (cside-thu-btn), gắn SAU NaotaChatSide.mount",
+check("có nút thu ngay trên panel (cside-thu-btn), gắn SAU VanhanhChatSide.mount",
   cjs.indexOf('foldBtn.className = "cside-thu-btn"') !== -1
-  && cjs.indexOf('window.NaotaChatSide.mount(el.querySelector("#chatPageSide"))')
+  && cjs.indexOf('window.VanhanhChatSide.mount(el.querySelector("#chatPageSide"))')
      < cjs.lastIndexOf("_addSideFoldButtons(page, sideEl)"));
 check("luật thu khoá trong media min-width (không đụng drawer mobile)",
   /@media \(min-width:861px\)\{[\s\S]*?\.chatpage\.side-thu \.chatpage-side\{ width:46px/.test(cjs));
 check("màn hẹp vẫn là drawer (side-open giữ nguyên)",
   cjs.indexOf('page.classList.toggle("side-open")') !== -1);
 check("trạng thái thu cột lịch sử có nhớ qua localStorage",
-  cjs.indexOf('"naota_chatside_thu"') !== -1);
+  cjs.indexOf('"vanhanh_chatside_thu"') !== -1);
 
 // ---- 3. Khung HỘI THOẠI (cột phải màn chính) - thu co VÀO BÊN PHẢI ----
 check("index.html có nút thu #chatColThu và nút mở lại #chatColMo",
@@ -81,8 +81,8 @@ check("nút thu ẩn ở màn hẹp",
   /@media \(max-width: 860px\) \{ \.chatcol-thu-btn \{ display: none; \} \}/.test(css));
 check("icon lật gương thành panel-right",
   css.indexOf(".chatcol-thu-btn svg, .chatcol-expand svg { transform: scaleX(-1); }") !== -1);
-check("console.js gắn handler + nhớ localStorage naota_chatcol_thu",
-  cjs.indexOf('"naota_chatcol_thu"') !== -1 && cjs.indexOf("chatColThu") !== -1
+check("console.js gắn handler + nhớ localStorage vanhanh_chatcol_thu",
+  cjs.indexOf('"vanhanh_chatcol_thu"') !== -1 && cjs.indexOf("chatColThu") !== -1
   && cjs.indexOf("chatColMo") !== -1);
 
 // ---- cache-bust ----

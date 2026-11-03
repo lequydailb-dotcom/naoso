@@ -1,13 +1,13 @@
-"""Naota health scan from outside the server. Read-only, no model calls.
+"""Vanhanh health scan from outside the server. Read-only, no model calls.
 
-Works while the server is down, so it is the first thing to run when "Naota stopped doing my jobs".
+Works while the server is down, so it is the first thing to run when "Vanhanh stopped doing my jobs".
 
     python tools/sentinel.py                         # human-readable report
     python tools/sentinel.py --json                  # one JSON document
     python tools/sentinel.py --state-dir DIR --brains-dir DIR --hours 48
-    python tools/sentinel.py --out ~/naota-health    # also write report.json and report.md there
+    python tools/sentinel.py --out ~/vanhanh-health    # also write report.json and report.md there
 
---out refuses a folder inside the state dir: the scan never writes where Naota keeps its data.
+--out refuses a folder inside the state dir: the scan never writes where Vanhanh keeps its data.
 Exit code is always 0; read the report, not the exit code.
 """
 from __future__ import annotations
@@ -27,12 +27,12 @@ import sentinel  # noqa: E402
 def _brains(brains_dir: Path) -> list:
     if not brains_dir.is_dir():
         return []
-    return [p for p in sorted(brains_dir.iterdir()) if p.is_dir() and (p / "Naota").is_dir()]
+    return [p for p in sorted(brains_dir.iterdir()) if p.is_dir() and (p / "Vanhanh").is_dir()]
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="Read-only Naota health scan")
-    ap.add_argument("--state-dir", default=os.getenv("NAOTA_STATE_DIR", str(ROOT / "server")))
+    ap = argparse.ArgumentParser(description="Read-only Vanhanh health scan")
+    ap.add_argument("--state-dir", default=os.getenv("VANHANH_STATE_DIR", str(ROOT / "server")))
     ap.add_argument("--brains-dir", default=os.getenv("BRAINS_DIR", str(ROOT / "brains")))
     ap.add_argument("--hours", type=float, default=24.0)
     ap.add_argument("--json", action="store_true")

@@ -4,8 +4,8 @@
 
 Lỗi đã gặp: thẻ bot "Lan Anh" báo
     RuntimeError: gọi tool lỗi: RuntimeError: process đóng stdout ([mcp] Config loaded: {"maxMessagesPerPoll":20,...
-rồi hết. Vòng đọc giữ 300 ký tự ĐẦU của lỗi, mà dòng "[mcp] Config loaded" (naota-zalo in lúc khởi động) đã
-chiếm gần hết, nên dòng lý do thật phía sau bị cắt. Theo src/commands/mcp.js của naota-zalo v1.2.0, sau dòng
+rồi hết. Vòng đọc giữ 300 ký tự ĐẦU của lỗi, mà dòng "[mcp] Config loaded" (vanhanh-zalo in lúc khởi động) đã
+chiếm gần hết, nên dòng lý do thật phía sau bị cắt. Theo src/commands/mcp.js của vanhanh-zalo v1.2.0, sau dòng
 đó tiến trình chỉ tự thoát khi: Zalo đá phiên vì tài khoản mở ở nơi khác (mã 3000, "Duplicate Zalo Web
 session detected"), đăng nhập lại thất bại, hoặc không dựng được server/bộ nghe.
 

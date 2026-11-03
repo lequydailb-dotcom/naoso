@@ -1,4 +1,4 @@
-/* chat-render.js - bo render chat "chan that nhu Claude" cho NAOTA.
+/* chat-render.js - bo render chat "chan that nhu Claude" cho VANHANH.
    Thay bo markdownToHtml regex cu trong app.js: markdown day du (heading h1-h6,
    danh sach co thu tu + long + checkbox, blockquote, duong ke ngang, in nghieng,
    gach ngang, link, anh), code block co nhan ngon ngu + to mau cu phap, render an
@@ -54,7 +54,7 @@
   // Vi sao can: duong dan anh trong tin nhan la tuong doi ("attachments/x.png"), khong mang
   // brain. Truoc day moi lan ve lai deu ghep voi brain DANG chon, nen mo mot hoi thoai cu
   // trong khi dang o brain khac la anh tro sai cho, 404, roi bi thay bang o xam - nguoi dung
-  // tuong Naota tu xoa anh di. Gan brain cua chinh hoi thoai do vao luot render thi het.
+  // tuong Vanhanh tu xoa anh di. Gan brain cua chinh hoi thoai do vao luot render thi het.
   var _brainForRender = null;
   function brainPath() {
     if (_brainForRender != null) return _brainForRender;
@@ -89,11 +89,11 @@
   // thu cai ke tiep - khong phai hoi may chu truoc, va mot note tro dung duong van tai mot lan.
   //
   //   1. THEO THU MUC CUA CHINH FILE .md  - dung cach Obsidian, VS Code va GitHub hieu mot
-  //      duong dan tuong doi. Day la cai ma nguoi viet note mong doi, va la cai Naota thieu
+  //      duong dan tuong doi. Day la cai ma nguoi viet note mong doi, va la cai Vanhanh thieu
   //      truoc ban nay: no phan giai MOI duong dan theo GOC BRAIN, nen note nam trong thu muc
   //      con ma viet ![](anh.jpg) thi di tim <brain>/anh.jpg, khong bao gio co.
   //   2. THEO GOC BRAIN - dung hanh vi cu. Giu lai de note nao dang tro kieu do van chay.
-  //   3. attachments/<ten file> - cho Naota tu cat anh no sinh ra (quy uoc trong CLAUDE.md).
+  //   3. attachments/<ten file> - cho Vanhanh tu cat anh no sinh ra (quy uoc trong CLAUDE.md).
   function ungVienAnh(src) {
     var ra = [];
     var raw = String(src || "").trim().replace(/^\.\//, "");
@@ -245,7 +245,7 @@
       ? vaultDownload(rawpath, extraCls, brainOverride)
       : vaultLoc(rawpath, extraCls);
   }
-  // Inline code chua DUONG DAN FILE vault (vd `Naota/loops/x.md`)? Tra ve path da chuan hoa, "" neu khong phai.
+  // Inline code chua DUONG DAN FILE vault (vd `Vanhanh/loops/x.md`)? Tra ve path da chuan hoa, "" neu khong phai.
   // Chi nhan khi trong giong path that: co duoi file + (co thu muc / la .md tran), khong ky tu cam cua ten file
   // Windows (":" loai luon URL va lenh co cong cu), khong leo thang "..".
   function codeFilePath(c) {
@@ -459,7 +459,7 @@
   // Khoi `---\n...\n---` o DAU mot file .md la METADATA (type, status, created...), khong phai
   // van ban de soan. Truoc ban nay no roi vao luat "--- = duong ke ngang", nen mo mot note trong
   // trinh sua WYSIWYG roi bam Luu la frontmatter bien thanh "* * *" cong may dong chu roi: file
-  // hong that su, va moi thu doc metadata (Naota, dataview, Obsidian) doc truot tu do. Da gap
+  // hong that su, va moi thu doc metadata (Vanhanh, dataview, Obsidian) doc truot tu do. Da gap
   // dung canh nay ("mot so file .md dang khong doc duoc").
   //
   // Cach chua: cat ra thanh MOT khoi rieng, contenteditable=false, va giu NGUYEN VAN trong
@@ -613,15 +613,15 @@
   }
   function visibleMarkdown(raw) {
     raw = String(raw == null ? "" : raw);
-    // Bo HTML comment (khoi dieu khien NAOTA_* luon vo hinh), ke ca comment chua dong luc stream
+    // Bo HTML comment (khoi dieu khien VANHANH_* luon vo hinh), ke ca comment chua dong luc stream
     return raw.replace(/<!--[\s\S]*?-->/g, "").replace(/<!--[\s\S]*$/, "");
   }
 
   function _mdToHtmlThan(raw) {
     var ph = [];
     function put(html) { ph.push(html); return OPEN + (ph.length - 1) + CLOSE; }
-    // NAOTA_CARD blocks (charts, number tiles, buttons) are drawn in place before hidden comments go (chat-card.js).
-    if (typeof window !== "undefined" && window.NaotaCard) raw = window.NaotaCard.replaceIn(raw, put);
+    // VANHANH_CARD blocks (charts, number tiles, buttons) are drawn in place before hidden comments go (chat-card.js).
+    if (typeof window !== "undefined" && window.VanhanhCard) raw = window.VanhanhCard.replaceIn(raw, put);
     raw = visibleMarkdown(raw);
 
     // 0) frontmatter YAML o DAU file .md -> khoi rieng, KHONG cho sua, giu nguyen van de luu lai
@@ -636,7 +636,7 @@
       return "\n" + put(renderFence(info, code, true)) + "\n";
     });
     // 2) inline code (truoc bang/anh/link va truoc nhan manh). Code chua duong dan file vault
-    //    (vd `Naota/loops/x.md`) -> boc link bam mo khung doc/sua luon.
+    //    (vd `Vanhanh/loops/x.md`) -> boc link bam mo khung doc/sua luon.
     raw = raw.replace(/`([^`\n]+)`/g, function (_m, c) {
       var code = "<code>" + esc(c) + "</code>";
       var p = codeFilePath(c);
@@ -866,7 +866,7 @@
       elBody.innerHTML = '<div class="nt-ap-mermaid">' + esc(tw("crender.mm_drawing")) + "</div>";
       renderMermaid(art.code, elBody.querySelector(".nt-ap-mermaid"), function (host) {
         var svg = host.querySelector("svg");
-        if (svg && curArt === art && window.NaotaPanZoom) zoomOn(host, svg, window.NaotaPanZoom.svgSize(svg));
+        if (svg && curArt === art && window.VanhanhPanZoom) zoomOn(host, svg, window.VanhanhPanZoom.svgSize(svg));
       });
       return;
     }
@@ -875,7 +875,7 @@
   var curPz = null;
   function zoomOn(box, content, nat) {
     dropZoom();
-    if (window.NaotaPanZoom) curPz = window.NaotaPanZoom.attach(box, content, nat);
+    if (window.VanhanhPanZoom) curPz = window.VanhanhPanZoom.attach(box, content, nat);
   }
   function dropZoom() { if (curPz) { try { curPz.destroy(); } catch (e) {} curPz = null; } }
   // Natural size from the svg text (viewBox, else width/height), or null to read it off the loaded <img>.
@@ -912,7 +912,7 @@
   // Copy plain text through the shared helper (chat-acts.js, clipboard API with a textarea fallback on plain HTTP).
   // chat-acts.js loads after this file but before any click can happen; the inline copy is for pages without it.
   function copyPlain(text) {
-    if (typeof window !== "undefined" && window.NaotaActs && window.NaotaActs.copy) return window.NaotaActs.copy(text);
+    if (typeof window !== "undefined" && window.VanhanhActs && window.VanhanhActs.copy) return window.VanhanhActs.copy(text);
     var ta = document.createElement("textarea");
     ta.value = text; ta.style.cssText = "position:fixed;opacity:0";
     document.body.appendChild(ta); ta.select();
@@ -1064,7 +1064,7 @@
 
   // Mo mot FILE cua vault tu link (trong chat hoac trong ban render cua trinh sua).
   //
-  // Uu tien TRINH SUA DINH - window.NaotaOpenNote, wrapper SAN CO cua console.js (cung cai
+  // Uu tien TRINH SUA DINH - window.VanhanhOpenNote, wrapper SAN CO cua console.js (cung cai
   // click node do thi dung): nhan MOT chuoi path tuong doi GOC BRAIN, tu ghep tien to tran +
   // suy ten/duoi, tu so cay toi dung nhanh. O trang Tro chuyen no CHIEM CHO khung chat
   // (#chatPageEdit), o man chinh no noi len tren visual nao - cho do rong nen de la
@@ -1085,13 +1085,13 @@
     // Duong CHINH: console.js quyet dinh (file sua duoc -> trinh sua, con lai -> trang Tep tin).
     // Gom ve mot cho vi deep-link `#open=` cung goi dung ham do; hai ban sao luat se lech nhau,
     // ma trieu chung cua lech la "cung mot file luc thi sua duoc luc thi ve thu muc".
-    if (typeof window.NaotaOpenVaultPath === "function") { window.NaotaOpenVaultPath(rel); return; }
+    if (typeof window.VanhanhOpenVaultPath === "function") { window.VanhanhOpenVaultPath(rel); return; }
     // Duoi day la duong lui cho ban console.js cu chua co ham do.
     var hep = false;
     try { hep = window.matchMedia("(max-width: 860px)").matches; } catch (e) {}
-    if (!hep && typeof window.NaotaOpenNote === "function") { window.NaotaOpenNote(rel); return; }
-    if (typeof window.NaotaEditFile === "function") { window.NaotaEditFile(rel); return; }
-    if (typeof window.NaotaOpenFiles === "function") window.NaotaOpenFiles(rel);
+    if (!hep && typeof window.VanhanhOpenNote === "function") { window.VanhanhOpenNote(rel); return; }
+    if (typeof window.VanhanhEditFile === "function") { window.VanhanhEditFile(rel); return; }
+    if (typeof window.VanhanhOpenFiles === "function") window.VanhanhOpenFiles(rel);
   }
 
   // ---------------------------------------------------------------- tai file tren iPhone
@@ -1244,7 +1244,7 @@
     var img = a.querySelector ? a.querySelector("img") : null;
     var href = a.getAttribute("href") || (img && img.src) || "";
     if (a.classList && a.classList.contains("ht-anh")) {
-      return { url: href, ten: window.NaotaHtMedia && window.NaotaHtMedia.tenAnh ? window.NaotaHtMedia.tenAnh(href) : "" };
+      return { url: href, ten: window.VanhanhHtMedia && window.VanhanhHtMedia.tenAnh ? window.VanhanhHtMedia.tenAnh(href) : "" };
     }
     var vp = a.getAttribute("data-vault-path") || "";
     // `data-img-ten` la ten do NGUOI GUI dat, dung cho anh khong nam trong vault (vd file vua
@@ -1473,7 +1473,7 @@
     document.body.appendChild(_lb);
     document.body.classList.add("nt-lb-open");
     // Nut Back cua dien thoai (va cu vuot canh man hinh) phai DONG anh, khong phai roi khoi
-    // Naota. Loi da gap: dang xem anh thi vuot canh trai khong an gi, ma nut X thi
+    // Vanhanh. Loi da gap: dang xem anh thi vuot canh trai khong an gi, ma nut X thi
     // bi thanh trang thai che - khong con duong nao ra. Chen mot buoc lich su o day de cu Back
     // co cho ma lui ve.
     if (!_lbDayLichSu) {
@@ -1484,7 +1484,7 @@
   if (typeof document !== "undefined") {
     // Gan o TRONG khoi nay: file con duoc require duoi node de test ham thuan, ma duoi node
     // khong co `window` - gan o ngoai la module nem ngay luc nap.
-    window.NaotaLightbox = { open: moLightbox, close: dongLightbox, openFrom: moTuLink };
+    window.VanhanhLightbox = { open: moLightbox, close: dongLightbox, openFrom: moTuLink };
     document.addEventListener("keydown", function (e) {
       if (_lb && e.key === "Escape") { e.preventDefault(); dongLightbox(); }
       else if (_lb && _lbChuyen && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
@@ -1513,7 +1513,7 @@
     // TAI FILE TREN IPHONE. App cai ra man hinh chinh (standalone) KHONG co nut Back.
     // Mot link tai file (<a download>, hay link toi /files/raw, /files/zip, /upload/raw) ma di
     // trong CUNG cua so thi iOS khong tai gi ca: no THAY ca app bang trang xem file ("Open in
-    // Preview / More..."), va khong con duong nao quay lai Naota ngoai tat app (loi da gap).
+    // Preview / More..."), va khong con duong nao quay lai Vanhanh ngoai tat app (loi da gap).
     // Moi cho tai file deu roi vao day: link trong chat, nut Tai ve cua lightbox, trang
     // Tep tin (_dlGo, tai ca thu muc zip), trinh sua file, tai khoi code.
     //   - anh trong chat  -> mo lightbox ngay trong app (co nut Dong, nut Back cung dong duoc)
@@ -1565,7 +1565,7 @@
       if (cs && cs.getAttribute("data-cs")) {
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button > 0) return;
         e.preventDefault();
-        if (typeof window.NaotaOpenCongSu === "function") window.NaotaOpenCongSu(cs.getAttribute("data-cs"));
+        if (typeof window.VanhanhOpenCongSu === "function") window.VanhanhOpenCongSu(cs.getAttribute("data-cs"));
         return;
       }
       // Wikilink [[..]]: bam la DI CHUYEN toi note dich - chay CA trong ban render dang sua (ne-wys/.jvfe-modal),
@@ -1598,7 +1598,7 @@
           var isDir = /\/$/.test(vp) || base === "" || base.indexOf(".") < 0;   // co duoi -> FILE (nhu openFilesAt)
           // FILE co duoi -> mo trong trinh sua; THU MUC / anh inline -> mo trang Tep tin dung vi tri.
           if (!isImg && !isDir) { moFileVault(trimmed); return; }
-          if (typeof window.NaotaOpenFiles === "function") window.NaotaOpenFiles(vp);
+          if (typeof window.VanhanhOpenFiles === "function") window.VanhanhOpenFiles(vp);
           else window.open(loc.href, "_blank");   // du phong: mo tab moi neu console.js chua san sang
           return;
         }
@@ -1651,17 +1651,17 @@
 
   if (typeof window !== "undefined") {
     window.mdToHtml = mdToHtml;
-    window.NaotaVisibleMarkdown = visibleMarkdown;
+    window.VanhanhVisibleMarkdown = visibleMarkdown;
     // Bo to mau chung: code-hl.js goi lai cho cac ngon ngu kieu C (js/py/sh...) de mot luat
     // chi nam o mot cho. Markup/CSS/JSON thi code-hl tu doc lay (xem chu thich ben do).
-    window.NaotaHighlight = highlight;
+    window.VanhanhHighlight = highlight;
     window.ntImgGone = imgGone;   // goi tu thuoc tinh onerror noi tuyen cua the <img>
     // get(id): cho turndown (console.js) tra artifact card ve lai dung fence ``` khi luu note WYSIWYG
-    window.NaotaArtifacts = { open: openArtifact, close: closePanel,
+    window.VanhanhArtifacts = { open: openArtifact, close: closePanel,
       get: function (id) { return registry[id] || null; } };
-    // console.js goi lai khi mot duong dan file:// lot toi openVaultPath/NaotaOpenNote (deep-link,
+    // console.js goi lai khi mot duong dan file:// lot toi openVaultPath/VanhanhOpenNote (deep-link,
     // chip file dang mo...) - mot luat go giao thuc, nam o mot cho.
-    window.NaotaFileRef = appFileRef;
+    window.VanhanhFileRef = appFileRef;
   }
   if (typeof module !== "undefined" && module.exports) {
     module.exports = { mdToHtml: mdToHtml, visibleMarkdown: visibleMarkdown,

@@ -2,7 +2,7 @@
 
     python tests/run.py model_moi
 
-Lỗi thật: Naota không có bản claude 5.1 fable, trong khi trước đây danh sách model tự cập nhật
+Lỗi thật: Vanhanh không có bản claude 5.1 fable, trong khi trước đây danh sách model tự cập nhật
 theo nhà cung cấp.
 
 Ba lưới cùng thủng, và cả ba đều hỏng KIỂU IM LẶNG - trình chọn model vẫn hiện ra một danh
@@ -18,7 +18,7 @@ sách trông bình thường, chỉ là thiếu mất dòng model mới:
 2. **Danh sách đã nhớ ĐÈ danh sách mặc định.** `_remember_catalog` ghi bản live vào
    `settings.json`, mà `config._deep_merge` thì THAY danh sách chứ không nối. Nên kể từ lần
    ghi đầu tiên, bản mặc định mới trong `config.py` không bao giờ tới được người dùng nữa:
-   nâng cấp Naota bao nhiêu lần cũng vô ích, trừ khi sửa tay `settings.json`. Nay hai danh
+   nâng cấp Vanhanh bao nhiêu lần cũng vô ích, trừ khi sửa tay `settings.json`. Nay hai danh
    sách HỢP với nhau.
 
 3. **Dịch alias sang id thật lấy "cái đầu tiên gặp".** Alias có nghĩa là "bản mới nhất của
@@ -36,7 +36,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-model-moi-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-model-moi-")
 
 import claude_cli  # noqa: E402
 import config as cfg  # noqa: E402
@@ -58,7 +58,7 @@ def check(name, cond, them=""):
 # ============================================================
 # Không phụ thuộc máy chạy test có cài Claude Code hay không: dựng một file GIẢ mang đúng hình
 # dạng dữ liệu thật (id nằm trong dấu nháy kép, lẫn giữa rác nhị phân) rồi trỏ hàm vào đó.
-_gia = os.path.join(os.environ["NAOTA_STATE_DIR"], "claude-gia.bin")
+_gia = os.path.join(os.environ["VANHANH_STATE_DIR"], "claude-gia.bin")
 with open(_gia, "wb") as _fh:
     _fh.write(b'\x00rac"claude-opus-4-1-20250805"rac"claude-fable-5"\xff'
               b'"claude-opus-5"..."claude-fable-5-1"..."claude-sonnet-5"'
@@ -209,7 +209,7 @@ check("model đang chạy luôn có mặt trong ô, dù server không trả nó"
 # ============================================================
 # 7. CÙNG LOẠI LỖI ở nhà cung cấp khác: lọc model bằng danh sách tên được phép
 # ============================================================
-# Fable 5.1 biến mất vì Naota giữ một danh sách model "được phép" rồi để nó cũ đi. OpenAI và
+# Fable 5.1 biến mất vì Vanhanh giữ một danh sách model "được phép" rồi để nó cũ đi. OpenAI và
 # Gemini có đúng khuôn đó trong bộ lọc danh sách live: chỉ giữ tên bắt đầu bằng `gpt/o1/o3/o4/
 # chatgpt`, và chỉ giữ tên bắt đầu bằng `gemini`. Nhà cung cấp mở một dòng tên khác là dòng đó
 # không bao giờ hiện ra, không lỗi, không dấu hiệu nào. Nay lọc NGƯỢC: bỏ theo CÔNG DỤNG

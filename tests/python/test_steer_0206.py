@@ -1,4 +1,4 @@
-"""send more while Naota is working.
+"""send more while Vanhanh is working.
 
 Covers: the inbox (nothing held when no turn runs, held while one runs, read once, leftovers returned at the end, the
 read callback, the pending cap), the API engines' tool loop reading a message sent while a tool was running (a fake
@@ -13,10 +13,10 @@ import asyncio
 import os
 # vòng tool mặc định gọi model dạng stream. File này thử logic vòng tool trên đường non-stream
 # (giả lập client.post / máy chủ trả JSON), đường đó vẫn là đường lui. Đường stream: test_api_stream_vong.py.
-os.environ["NAOTA_API_STREAM_TOOLS"] = "0"
+os.environ["VANHANH_API_STREAM_TOOLS"] = "0"
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-steer-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-steer-")
 
 import steer_inbox as si  # noqa: E402
 

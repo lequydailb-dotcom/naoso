@@ -1,24 +1,24 @@
 #!/bin/bash
 # ============================================================
-# NAOTA - first install on a Mac (NAOTA.app opens Terminal on this file).
+# VANHANH - first install on a Mac (VANHANH.app opens Terminal on this file).
 #
-#   bash bootstrap.sh            # installs into ~/Naota (NAOTA_HOME to change it)
+#   bash bootstrap.sh            # installs into ~/Vanhanh (VANHANH_HOME to change it)
 #
 # Checks and installs what the Mac lacks, WITHOUT Homebrew (most Macs do not have it):
 #   1. Git: Apple's Command Line Tools. macOS shows its own "Install" dialog for them.
 #   2. Python >= 3.10: macOS only ships 3.9, so if none is found, uv (astral.sh) downloads a
 #      standalone Python 3.12 into the home folder. No admin rights, nothing system wide.
-#   3. Clones Naota into ~/Naota. A clone, not a copy, because the Update button in the app
+#   3. Clones Vanhanh into ~/Vanhanh. A clone, not a copy, because the Update button in the app
 #      updates with git (server/updater.py).
 #   4. install.sh does the rest: Node (nodejs.org build when there is no brew), the four CLI
-#      brains, the venv, .env, the admin account, the login auto-start, then opens Naota.
+#      brains, the venv, .env, the admin account, the login auto-start, then opens Vanhanh.
 # Running it again is safe: every step that is already done is skipped.
 # ============================================================
 set -u
 
-NAOTA_HOME="${NAOTA_HOME:-$HOME/Naota}"
-REPO="${NAOTA_REPO:-https://github.com/vuongtex/naota.git}"
-BRANCH="${NAOTA_BRANCH:-main}"
+VANHANH_HOME="${VANHANH_HOME:-$HOME/Vanhanh}"
+REPO="${VANHANH_REPO:-https://github.com/lequydailb-dotcom/vanhanh.git}"
+BRANCH="${VANHANH_BRANCH:-main}"
 
 CYAN='\033[0;36m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; RED='\033[0;31m'; NC='\033[0m'
 step() { echo ""; echo -e "${CYAN}[$1]${NC} $2"; }
@@ -27,17 +27,17 @@ warn() { echo -e "    ${YELLOW}[!]${NC} $*"; }
 fail() {
   echo -e "    ${RED}[LOI]${NC} $*"
   echo ""
-  echo "Cai dat chua xong. Sua xong thi mo lai NAOTA, cac buoc da xong se duoc bo qua."
-  echo "Setup did not finish. Fix the line above, then open NAOTA again."
+  echo "Cai dat chua xong. Sua xong thi mo lai VANHANH, cac buoc da xong se duoc bo qua."
+  echo "Setup did not finish. Fix the line above, then open VANHANH again."
   exit 1
 }
 
-export PATH="$HOME/.local/bin:$HOME/.naota/node/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/.vanhanh/node/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 echo ""
 echo " =========================================="
-echo "  NAOTA - kiem tra va cai nhung gi may con thieu"
-echo "  Thu muc cai: $NAOTA_HOME"
+echo "  VANHANH - kiem tra va cai nhung gi may con thieu"
+echo "  Thu muc cai: $VANHANH_HOME"
 echo " =========================================="
 
 # ---------------------------------------------------------------- [A] git
@@ -52,7 +52,7 @@ if ! xcode-select -p >/dev/null 2>&1 || ! git --version >/dev/null 2>&1; then
     sleep 5
   done
 fi
-git --version >/dev/null 2>&1 || fail "Chua co Git. Chay: xcode-select --install, cai xong roi mo lai NAOTA."
+git --version >/dev/null 2>&1 || fail "Chua co Git. Chay: xcode-select --install, cai xong roi mo lai VANHANH."
 ok "$(git --version)"
 
 # ---------------------------------------------------------------- [B] python
@@ -66,7 +66,7 @@ have_py() {
   return 1
 }
 if ! have_py; then
-  warn "Chua co Python 3.10+ (macOS chi kem 3.9). Dang tai Python 3.12 rieng cho Naota (uv)..."
+  warn "Chua co Python 3.10+ (macOS chi kem 3.9). Dang tai Python 3.12 rieng cho Vanhanh (uv)..."
   if ! command -v uv >/dev/null 2>&1; then
     curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh >/dev/null 2>&1 || true
   fi
@@ -79,30 +79,30 @@ if ! have_py; then
     fi
   fi
 fi
-have_py || fail "Chua cai duoc Python 3.12. Tai o https://www.python.org/downloads/macos/ roi mo lai NAOTA."
+have_py || fail "Chua cai duoc Python 3.12. Tai o https://www.python.org/downloads/macos/ roi mo lai VANHANH."
 for c in python3.12 python3.11 python3.13 python3.10 python3; do
   if command -v "$c" >/dev/null 2>&1 && py_ok "$c"; then ok "$("$c" --version) ($(command -v "$c"))"; break; fi
 done
 
 # ---------------------------------------------------------------- [C] source
-step C "Tai Naota ve may"
-if [ -d "$NAOTA_HOME/.git" ]; then
-  ok "Da co ban Naota o $NAOTA_HOME, giu nguyen (cap nhat bang nut Cap nhat trong app)"
+step C "Tai Vanhanh ve may"
+if [ -d "$VANHANH_HOME/.git" ]; then
+  ok "Da co ban Vanhanh o $VANHANH_HOME, giu nguyen (cap nhat bang nut Cap nhat trong app)"
 else
-  if [ -e "$NAOTA_HOME" ] && [ -n "$(ls -A "$NAOTA_HOME" 2>/dev/null)" ]; then
-    fail "Thu muc $NAOTA_HOME da co file nhung khong phai ban Naota tai bang git. Doi ten no roi mo lai NAOTA."
+  if [ -e "$VANHANH_HOME" ] && [ -n "$(ls -A "$VANHANH_HOME" 2>/dev/null)" ]; then
+    fail "Thu muc $VANHANH_HOME da co file nhung khong phai ban Vanhanh tai bang git. Doi ten no roi mo lai VANHANH."
   fi
   # blob:none keeps every commit (the updater merges and rolls back on them) and downloads
   # file contents only when needed.
-  git clone --filter=blob:none --branch "$BRANCH" "$REPO" "$NAOTA_HOME" || fail "Khong tai duoc Naota (kiem tra mang Internet)."
-  ok "Da tai ve $NAOTA_HOME"
+  git clone --filter=blob:none --branch "$BRANCH" "$REPO" "$VANHANH_HOME" || fail "Khong tai duoc Vanhanh (kiem tra mang Internet)."
+  ok "Da tai ve $VANHANH_HOME"
 fi
 
 # ---------------------------------------------------------------- [D] install.sh
 step D "Cai Node, cac bo nao AI, thu vien va tu khoi dong (vai phut)"
-cd "$NAOTA_HOME" || fail "Khong vao duoc $NAOTA_HOME"
+cd "$VANHANH_HOME" || fail "Khong vao duoc $VANHANH_HOME"
 bash ./install.sh || fail "install.sh bao loi, doc cac dong phia tren."
 
 echo ""
-ok "Xong. Lan sau mo Naota bang NAOTA trong Launchpad hoac thu muc Applications."
-echo "    Done. Next time, open NAOTA from Launchpad or Applications. You can close this window."
+ok "Xong. Lan sau mo Vanhanh bang VANHANH trong Launchpad hoac thu muc Applications."
+echo "    Done. Next time, open VANHANH from Launchpad or Applications. You can close this window."

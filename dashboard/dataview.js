@@ -1,4 +1,4 @@
-/* dataview.js - Dataview LITE cho NAOTA (cam hung obsidian-dataview + obsidian-tasks).
+/* dataview.js - Dataview LITE cho VANHANH (cam hung obsidian-dataview + obsidian-tasks).
    Khoi ```dataview trong note/chat duoc chat-render.js do thanh <div class="nt-dataview"
    data-dv-q="...">; file nay tu phat hien (MutationObserver), tai chi muc note tu
    /files/mdindex roi CHAY TRUY VAN NGAY TREN TRINH DUYET va ve ket qua.
@@ -666,14 +666,14 @@
       e.preventDefault(); e.stopPropagation();
       var p = a.getAttribute("data-vault-path") || "";
       if (!p) return;
-      if (a.closest("#noteEditor") && typeof window.NaotaOpenNote === "function") window.NaotaOpenNote(p);
-      else if (typeof window.NaotaEditFile === "function") window.NaotaEditFile(p);
-      else if (typeof window.NaotaOpenFiles === "function") window.NaotaOpenFiles(p);
+      if (a.closest("#noteEditor") && typeof window.VanhanhOpenNote === "function") window.VanhanhOpenNote(p);
+      else if (typeof window.VanhanhEditFile === "function") window.VanhanhEditFile(p);
+      else if (typeof window.VanhanhOpenFiles === "function") window.VanhanhOpenFiles(p);
     }, true);
   }
 
   if (typeof window !== "undefined") {
-    window.NaotaDataview = { run: run, parseQuery: parseQuery, execQuery: execQuery, dropCache: dropCache };
+    window.VanhanhDataview = { run: run, parseQuery: parseQuery, execQuery: execQuery, dropCache: dropCache };
   }
   if (typeof module !== "undefined" && module.exports) {
     module.exports = { parseQuery: parseQuery, execQuery: execQuery, compile: compile,

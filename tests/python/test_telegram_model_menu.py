@@ -22,7 +22,7 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-tgmodel-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-tgmodel-"))
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")

@@ -1,10 +1,10 @@
-"""Naota Core chọn model và bớt thông báo đăng nhập báo sai (Naota Core chưa có chỗ cài đặt model, và
+"""Vanhanh Core chọn model và bớt thông báo đăng nhập báo sai (Vanhanh Core chưa có chỗ cài đặt model, và
 nhiều thông báo đăng nhập vẫn hiện dù đã đăng nhập).
 
     python tests/run.py core_model_bao_sai
 
-Spec: naota-core-chi-huy-thong-bao mục 1 và 2. Không mạng, không model.
-- Mọi chat Naota Core theo ghim của Core (`model.core_provider/core_model`), không ghim thì theo model chính, ghim riêng
+Spec: vanhanh-core-chi-huy-thong-bao mục 1 và 2. Không mạng, không model.
+- Mọi chat Vanhanh Core theo ghim của Core (`model.core_provider/core_model`), không ghim thì theo model chính, ghim riêng
   của một chat bị bỏ qua; chọn model trên thanh model của chat Core là ghim cho cả Core; "Theo model chính" gỡ ghim;
   chat Core không bị đóng dấu model ở lượt đầu; meta trả ghim của Core.
 - Đèn não chỉ dò lỗi đăng nhập trong lượt lỗi hoặc kết quả một dòng ngắn; cờ "đã báo" còn sau khi khởi động lại.
@@ -19,7 +19,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-core-model-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-core-model-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -37,19 +37,19 @@ def check(name, cond, extra=""):
 import config as cfgmod  # noqa: E402
 import connect_health as CH  # noqa: E402
 import incident_desk as ID  # noqa: E402
-import naota_core  # noqa: E402
+import vanhanh_core  # noqa: E402
 import main  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-if os.environ["NAOTA_STATE_DIR"] not in str(cfgmod.STATE_DIR):
+if os.environ["VANHANH_STATE_DIR"] not in str(cfgmod.STATE_DIR):
     print(f"FAIL state dir is not the temp dir: {cfgmod.STATE_DIR}. STOP.")
     sys.exit(1)
 
-# ---- 1. Model của Naota Core ----
+# ---- 1. Model của Vanhanh Core ----
 cfgmod.update_settings({"model": {"main": {"provider": "anthropic-cli", "model": "opus"}, "groq_api_key": "gsk_test",
                                   "core_provider": "", "core_model": ""}})
 store = main.get_store()
-core = store.create_session(brain="brain", channel=naota_core.CHANNEL)
+core = store.create_session(brain="brain", channel=vanhanh_core.CHANNEL)
 web = store.create_session(brain="brain")
 store.set_pinned_model(core, "groq", "old-stamp")     # an old first-turn stamp of this one Core chat
 
@@ -64,10 +64,10 @@ check("a Core chat with no Core pin follows the main model, its own old stamp is
 
 client = TestClient(main.app, base_url="http://127.0.0.1:8080")
 r = client.post(f"/sessions/{core}/model", data={"provider": "groq", "model": "qwen3-32b"})
-check("picking a model in a Core chat pins Naota Core as a whole", r.status_code == 200 and r.json().get("scope") == "core" and
+check("picking a model in a Core chat pins Vanhanh Core as a whole", r.status_code == 200 and r.json().get("scope") == "core" and
       mcfg().get("core_provider") == "groq" and mcfg().get("core_model") == "qwen3-32b", r.text)
 check("...and clears the chat's own old stamp", not (store.get_session(core) or {}).get("pinned_provider"))
-core2 = store.create_session(brain="brain", channel=naota_core.CHANNEL)
+core2 = store.create_session(brain="brain", channel=vanhanh_core.CHANNEL)
 prov, kind, key, model = main._chat_provider_for_session(mcfg(), store.get_session(core2))
 check("a new Core chat runs on the Core pin", (prov, kind, key, model) == ("groq", "api", "gsk_test", "qwen3-32b"),
       (prov, model))
@@ -75,7 +75,7 @@ prov, _, _, model = main._chat_provider_for_session(mcfg(), store.get_session(we
 check("an ordinary chat is not touched by the Core pin", (prov, model) == ("anthropic-cli", "opus"), (prov, model))
 meta = client.get(f"/sessions/{core2}/meta").json()
 check("meta of a Core chat shows the Core pin", meta.get("pinned_provider") == "groq" and meta.get("pinned_model") == "qwen3-32b" and
-      meta.get("pin_ok") is True and meta.get("agent_slug") == naota_core.SLUG, meta)
+      meta.get("pin_ok") is True and meta.get("agent_slug") == vanhanh_core.SLUG, meta)
 cfgmod.update_settings({"model": {"main": {"provider": "anthropic-cli", "model": "sonnet"}}})
 prov, _, _, model = main._chat_provider_for_session(mcfg(), store.get_session(core2))
 check("changing the main model does not move a pinned Core", (prov, model) == ("groq", "qwen3-32b"), (prov, model))
@@ -175,7 +175,7 @@ async def _post(brain, text):
 async def _ask(prompt):
     return '{"action": "person", "message": "Cần đăng nhập lại."}'
 
-desk = ID.IncidentDesk(ID.IncidentDeps(state_dir=lambda: Path(os.environ["NAOTA_STATE_DIR"]), ask=_ask, post=_post, retry={}))
+desk = ID.IncidentDesk(ID.IncidentDeps(state_dir=lambda: Path(os.environ["VANHANH_STATE_DIR"]), ask=_ask, post=_post, retry={}))
 
 
 async def _three():

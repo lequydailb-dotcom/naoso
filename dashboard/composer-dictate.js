@@ -39,7 +39,7 @@
   var pure = { fmtTime: fmtTime, levelOf: levelOf, MAX_SECONDS: MAX_SECONDS };
   if (typeof module !== "undefined" && module.exports) module.exports = pure;
   if (typeof document === "undefined") return;
-  window.NaotaComposerDictate = pure;
+  window.VanhanhComposerDictate = pure;
 
   function tw(k) { return window.t ? window.t(k) : k; }
   // A finger, not a mouse: no Shift+Enter, an on-screen keyboard that comes up with focus.
@@ -57,7 +57,7 @@
     ctx: null, src: null, analyser: null, buf: null, raf: 0, levels: [], lastPush: 0 };
 
   function note(key) {
-    try { if (window.NaotaNoteFlash) window.NaotaNoteFlash(tw(key)); } catch (e) {}
+    try { if (window.VanhanhNoteFlash) window.VanhanhNoteFlash(tw(key)); } catch (e) {}
   }
 
   function inCall() {
@@ -184,7 +184,7 @@
     var inp = $("chatInput"), send = S.sendAfter;
     S.dict = null;
     S.sendAfter = false;
-    earTip(window.NaotaDictate, inp);
+    earTip(window.VanhanhDictate, inp);
     if (!inp) return;
     inp.readOnly = false;
     if (send && inp.value.trim()) {
@@ -198,7 +198,7 @@
   }
 
   function start() {
-    var D = window.NaotaDictate;
+    var D = window.VanhanhDictate;
     if (!D) { note("dict.unsupported"); return; }
     if (S.state !== "idle") return;
     if (inCall()) { note("dict.in_call"); return; }
@@ -280,8 +280,8 @@
     window.addEventListener("keydown", function (e) {
       if (S.state === "idle") return;
       if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); cancel(); return; }
-      // Enter follows the chat's own rule (NaotaActs.enterSends): a phone's Enter stays a new line here too.
-      var sends = window.NaotaActs ? window.NaotaActs.enterSends(e, false) : e.key === "Enter" && !e.shiftKey;
+      // Enter follows the chat's own rule (VanhanhActs.enterSends): a phone's Enter stays a new line here too.
+      var sends = window.VanhanhActs ? window.VanhanhActs.enterSends(e, false) : e.key === "Enter" && !e.shiftKey;
       if (sends && e.target === $("chatInput")) {
         e.preventDefault(); e.stopPropagation(); sendNow();
       }

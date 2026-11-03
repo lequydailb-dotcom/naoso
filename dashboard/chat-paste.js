@@ -124,6 +124,6 @@
 
   var api = { INLINE_CHARS: INLINE_CHARS, INLINE_LINES: INLINE_LINES, isLong: isLong,
     lineCount: lineCount, offer: offer, insertAt: insertAt, textFile: textFile };
-  if (root) root.NaotaPaste = api;
+  if (root) root.VanhanhPaste = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : null);

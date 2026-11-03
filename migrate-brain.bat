@@ -8,7 +8,7 @@ echo   Chuan hoa cau truc project brain
 echo   brain  ->  Brain Default  (phang: agents/ workflows/ memory/ skills/)
 echo  ==========================================
 echo.
-echo  [!] Hay chac chan da TAT server (stop-naota.bat) truoc khi chay.
+echo  [!] Hay chac chan da TAT server (stop-vanhanh.bat) truoc khi chay.
 echo.
 pause
 
@@ -19,13 +19,13 @@ if exist "brain" if not exist "Brain Default" (
 )
 
 REM 2. Lam phang cau truc ben trong (chi move khi dich chua ton tai)
-if exist "Brain Default\Naota\agents" if not exist "Brain Default\agents" (
-  echo   - Move: Naota\agents  ->  agents
-  move "Brain Default\Naota\agents" "Brain Default\agents" >nul
+if exist "Brain Default\Vanhanh\agents" if not exist "Brain Default\agents" (
+  echo   - Move: Vanhanh\agents  ->  agents
+  move "Brain Default\Vanhanh\agents" "Brain Default\agents" >nul
 )
-if exist "Brain Default\Naota\workflows" if not exist "Brain Default\workflows" (
-  echo   - Move: Naota\workflows  ->  workflows
-  move "Brain Default\Naota\workflows" "Brain Default\workflows" >nul
+if exist "Brain Default\Vanhanh\workflows" if not exist "Brain Default\workflows" (
+  echo   - Move: Vanhanh\workflows  ->  workflows
+  move "Brain Default\Vanhanh\workflows" "Brain Default\workflows" >nul
 )
 if exist "Brain Default\Memory" if not exist "Brain Default\memory" (
   echo   - Move: Memory  ->  memory

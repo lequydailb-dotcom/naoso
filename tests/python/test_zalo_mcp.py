@@ -6,7 +6,7 @@ import tempfile
 
 from _paths import ROOT, SERVER  # noqa: E402,F401
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-zalo-mcp-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-zalo-mcp-"))
 
 import mcp_catalog  # noqa: E402
 import zalo_cli  # noqa: E402
@@ -31,7 +31,7 @@ console_src = (ROOT / "dashboard" / "console.js").read_text(encoding="utf-8")
 doc = (ROOT / "docs" / "12-zalo.md").read_text(encoding="utf-8")
 prompt = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
 
-check("catalog chạy bản CLI riêng naota-zalo ghim theo tag phát hành, dùng cache trước",
+check("catalog chạy bản CLI riêng vanhanh-zalo ghim theo tag phát hành, dùng cache trước",
       zalo["command"] == "npx"
       and zalo["args"] == ["-y", "--prefer-offline", zalo_cli.CLI_PACKAGE, "mcp", "start"]
       and zalo_cli.CLI_PACKAGE.startswith("https://codeload.github.com/vuongtex/naota-zalo/tar.gz/refs/tags/v"))
@@ -67,18 +67,18 @@ check("hai plugin Zalo cũ đã được gỡ",
       and not (ROOT / "system/plugins/zalo-send/plugin.py").exists()
       and not (ROOT / "system/plugins/zalo-send/plugin.yaml").exists())
 
-guide_url = "https://github.com/vuongtex/naota/blob/main/docs/12-zalo.md"
+guide_url = "https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/12-zalo.md"
 check("catalog trỏ nút hướng dẫn đến doc GitHub", zalo["auth"]["guide_url"] == guide_url)
-check("doc nêu đủ mười một tool và link repo naota-zalo",
+check("doc nêu đủ mười một tool và link repo vanhanh-zalo",
       all(name in doc for name in expected_read | {"zalo_mark_read", "zalo_send_message", "zalo_review_join_requests"})
       and "https://github.com/vuongtex/naota-zalo" in doc)
 check("prompt cho gửi trực tiếp, không phụ thuộc listener/tool cũ",
       "do NOT demand a listener be" in prompt
       and 'do NOT check any "currently listening"' in prompt
-      and "do NOT use the old `naota_zalo_send` tool" in prompt)
+      and "do NOT use the old `vanhanh_zalo_send` tool" in prompt)
 
 
-# Đăng nhập QR: CLI báo hỏng bằng {"event": "login_error", "message": ...} (src/commands/login.js). Trước đây Naota
+# Đăng nhập QR: CLI báo hỏng bằng {"event": "login_error", "message": ...} (src/commands/login.js). Trước đây Vanhanh
 # chỉ nhận "error"/"failed", nên QR hết hạn hay bị Zalo từ chối thì modal không nói lý do thật.
 class _FakeProc:
     def __init__(self, lines):

@@ -55,14 +55,14 @@ check("hoãn thì xoá luôn số note của brain cũ (ô đó nhìn thấy đ�
 check("về màn chính thì chạy đủ cả năm việc",
   ["reloadGraph()", "connectGraphWatch()", "loadMemStats()", "loadBrainStats()", "checkVault()"]
     .every(s => CAP.indexOf(s) !== -1));
-check("app.js phơi NaotaCockpit.veManChinh cho console.js gọi",
-  /window\.NaotaCockpit = \{ veManChinh\(\)/.test(APP));
-check("_oManChinh hỏi NaotaNav, thiếu thì chạy như cũ (không treo số liệu vĩnh viễn)",
-  /window\.NaotaNav\.active\(\) === "home"/.test(APP) && /catch \(e\) \{ return true; \}/.test(APP));
+check("app.js phơi VanhanhCockpit.veManChinh cho console.js gọi",
+  /window\.VanhanhCockpit = \{ veManChinh\(\)/.test(APP));
+check("_oManChinh hỏi VanhanhNav, thiếu thì chạy như cũ (không treo số liệu vĩnh viễn)",
+  /window\.VanhanhNav\.active\(\) === "home"/.test(APP) && /catch \(e\) \{ return true; \}/.test(APP));
 // Nợ phải được trả ĐÚNG lúc về màn chính, không thì đồ thị kẹt ở brain cũ mãi mãi.
 const RE = CON.slice(CON.indexOf("function recomputeGraph()"), CON.indexOf("// ---- Chuyển trang"));
 check("recomputeGraph trả nợ khi active === home",
-  /active === "home"/.test(RE) && /NaotaCockpit\.veManChinh\(\)/.test(RE));
+  /active === "home"/.test(RE) && /VanhanhCockpit\.veManChinh\(\)/.test(RE));
 check("trả nợ TRƯỚC khi thoát vì không có đồ thị (máy yếu / lite vẫn phải có số liệu đúng)",
   RE.indexOf("veManChinh()") < RE.indexOf("if (!g) return;"));
 

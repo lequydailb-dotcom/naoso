@@ -5,12 +5,12 @@
 Ca thật đã đo được (đã đo trên một brain thật). Mức "Siêu tiết kiệm" là mặc định
 xuất xưởng tức `canary.allocation_basis_points = 10000`: MỌI lượt chat đều đi qua
 cổng này. Đường tắt cố ý không phát tool, không đọc ký ức, không đọc lịch sử hội thoại - nên
-mỗi lượt nó nhận nhầm là một lượt Naota trả lời như thể không có bộ não.
+mỗi lượt nó nhận nhầm là một lượt Vanhanh trả lời như thể không có bộ não.
 
 Ba lượt trong cùng một hội thoại, ba kiểu hỏng khác nhau, cùng một gốc:
 
     "viết bài ... dùng dữ liệu dự án DUANMAU ... dùng workflow viết bài chuyên sâu"
-        -> ALLOW khớp chữ "là gì" trong TIÊU ĐỀ bài -> đi tắt -> Naota trả lời "chưa có dữ
+        -> ALLOW khớp chữ "là gì" trong TIÊU ĐỀ bài -> đi tắt -> Vanhanh trả lời "chưa có dữ
            liệu dự án DUANMAU và chưa được cấp công cụ", rồi đòi người dùng tự dán tài liệu vào.
 
     "uh, vậy viết bài đi"
@@ -21,7 +21,7 @@ Ba lượt trong cùng một hội thoại, ba kiểu hỏng khác nhau, cùng m
         -> resolver hard-filter kind `workflow`/`skill` khỏi `ranked`, nên điểm của chúng
            KHÔNG tới được cổng. Gọi đúng tên một workflow của chính mình vẫn đi tắt.
 
-Luật chốt ở đây: trỏ vào BỘ NÃO (dữ liệu, dự án, ghi chú), trỏ vào NĂNG LỰC CỦA NAOTA
+Luật chốt ở đây: trỏ vào BỘ NÃO (dữ liệu, dự án, ghi chú), trỏ vào NĂNG LỰC CỦA VANHANH
 (workflow, skill, agent, plugin), hoặc trỏ vào LƯỢT TRƯỚC (câu nối) thì đi đường đầy đủ. Trả
 giá bằng token, không trả giá bằng một câu trả lời rỗng.
 """
@@ -86,7 +86,7 @@ def _stack(tmp_path, workflows=(), skills=()):
     return brain, registry, resolver, runtime, trace, canary
 
 
-# --- 1. Trỏ vào bộ não / năng lực của Naota thì không được đi tắt --------------------
+# --- 1. Trỏ vào bộ não / năng lực của Vanhanh thì không được đi tắt --------------------
 
 BAI_DUANMAU = (
     'viết cho tôi bài viết chuyên sâu với tiêu đề " Cà Phê Muối Là Gì? Tìm Hiểu Đặc Điểm Và '

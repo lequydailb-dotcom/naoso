@@ -21,8 +21,8 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-tkbrain-"))
-os.environ.setdefault("BRAINS_DIR", tempfile.mkdtemp(prefix="naota-tkbrains-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-tkbrain-"))
+os.environ.setdefault("BRAINS_DIR", tempfile.mkdtemp(prefix="vanhanh-tkbrains-"))
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

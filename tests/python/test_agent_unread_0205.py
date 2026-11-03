@@ -13,8 +13,8 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-_TMP = tempfile.mkdtemp(prefix="naota-agent-unread-")
-os.environ["NAOTA_STATE_DIR"] = _TMP
+_TMP = tempfile.mkdtemp(prefix="vanhanh-agent-unread-")
+os.environ["VANHANH_STATE_DIR"] = _TMP
 
 import agent_notify as an  # noqa: E402
 import sessions  # noqa: E402

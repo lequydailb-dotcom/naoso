@@ -40,11 +40,11 @@ function nut() {
 function napPet() {
   const el = () => nut();
   const win = {
-    NaotaPet: null, matchMedia: () => ({ matches: false, addEventListener() {} }),
+    VanhanhPet: null, matchMedia: () => ({ matches: false, addEventListener() {} }),
     addEventListener() {}, innerWidth: 1280, innerHeight: 800,
   };
   const doc = {
-    documentElement: { dataset: { naotaTheme: "dark" }, getAttribute: () => "dark", classList: { contains: () => false } },
+    documentElement: { dataset: { vanhanhTheme: "dark" }, getAttribute: () => "dark", classList: { contains: () => false } },
     addEventListener() {}, querySelectorAll: () => [], querySelector: () => el(),
     getElementById: () => el(), createElement: () => el(), createElementNS: () => el(), body: el(),
   };
@@ -80,7 +80,7 @@ const win = napPet();
 // Bộ chỉnh diện mạo nằm trong pet.js và dịch qua window.t: cho nó dùng CÙNG từ
 // điển giả, để nhãn thiếu trong pet.js cũng lộ ra như nhãn thiếu trong console.js.
 win.t = t;
-const P = win.NaotaPet;
+const P = win.VanhanhPet;
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 

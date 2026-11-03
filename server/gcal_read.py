@@ -1,7 +1,7 @@
 """Read-only Google Calendar events for the Tasks page, tab "Mine". Spec: nhiem-vu-spec 6.
 
 The events come from a calendar MCP the owner connected on the Connections page: the Google Calendar connector
-(`google-calendar`), Google Workspace (`google-workspace`), or a custom connection whose name says calendar. Naota never
+(`google-calendar`), Google Workspace (`google-workspace`), or a custom connection whose name says calendar. Vanhanh never
 writes to the calendar from here; the page shows the events next to the owner's appointments and links to Google to edit.
 
 Tool names and argument names differ per server, so the list tool and its time-window arguments are found from the
@@ -188,7 +188,7 @@ async def events(brain: str, start_iso: str, end_iso: str, conns=None, pool=None
                 continue
             args = build_args(tool, start_iso, end_iso, c)
             if args is None:
-                errors.append(f"{name}: {tool.get('name')} needs arguments Naota cannot fill")
+                errors.append(f"{name}: {tool.get('name')} needs arguments Vanhanh cannot fill")
                 continue
             raw = await pool.call_tool(spec, tool["name"], args)
             if isinstance(raw, str) and raw.startswith("ERROR:"):

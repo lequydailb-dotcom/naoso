@@ -1,5 +1,5 @@
 /* composer-plus.js - the composer's "+" menu.
- * One registry: a new feature only calls NaotaComposerMenu.register({...}), the composer is not touched.
+ * One registry: a new feature only calls VanhanhComposerMenu.register({...}), the composer is not touched.
  * Items are `run` (click and close), `submenu` (returns rows) or `panel` (draws its own body).
  * Pure parts are exported for node tests.
  */
@@ -38,7 +38,7 @@
   function tw(k, v) { return window.t ? window.t(k, v) : k; }
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-  function brain() { try { return (window.NaotaSessions && window.NaotaSessions.brain()) || "brain"; } catch (e) { return "brain"; } }
+  function brain() { try { return (window.VanhanhSessions && window.VanhanhSessions.brain()) || "brain"; } catch (e) { return "brain"; } }
   function getJson(url) { return fetch(url, { credentials: "same-origin" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
   function input() { return $("chatInput"); }
 
@@ -150,7 +150,7 @@
   var badConn = 0;
 
   reg.register({ id: "attach", order: 10, icon: ICON.clip, label: "cp.attach", hint: function () { return /Mac/.test(navigator.platform) ? "Cmd+U" : "Ctrl+U"; },
-    run: function () { if (window.NaotaAttach) window.NaotaAttach.pick(); } });
+    run: function () { if (window.VanhanhAttach) window.VanhanhAttach.pick(); } });
   // order 20 ("folder") is registered by composer-folder.js: pin a working folder.
   reg.register({ id: "brain_file", order: 30, icon: ICON.file, label: "cp.brain_file", emptyKey: "cp.brain_empty",
     submenu: function () { return Promise.resolve(brainSearchRows("")); } });
@@ -218,9 +218,9 @@
           el.addEventListener("click", function () {
             var it = items[+el.getAttribute("data-file")];
             getJson("/files/resolve?brain=" + encodeURIComponent(brain()) + "&path=" + encodeURIComponent(it.path)).then(function (r) {
-              if (window.NaotaAttach) {
-                if (r && r.ok) window.NaotaAttach.addBrainFile(brainAttachment(r, it.path, brain()));
-                else window.NaotaAttach.note(tw("cp.brain_failed"));
+              if (window.VanhanhAttach) {
+                if (r && r.ok) window.VanhanhAttach.addBrainFile(brainAttachment(r, it.path, brain()));
+                else window.VanhanhAttach.note(tw("cp.brain_failed"));
               }
               close(); var i2 = input(); if (i2) i2.focus();
             });
@@ -260,7 +260,7 @@
         var other = a && a !== input() && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
         if (other) return;
         e.preventDefault();
-        if (window.NaotaAttach) window.NaotaAttach.pick();
+        if (window.VanhanhAttach) window.VanhanhAttach.pick();
       }
     });
     // First count at page load; refreshed again each time the menu opens.
@@ -268,5 +268,5 @@
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 
-  window.NaotaComposerMenu = { register: reg.register, list: reg.list, open: open, close: close, isOpen: isOpen, openItem: openItem, icon: ICON };
+  window.VanhanhComposerMenu = { register: reg.register, list: reg.list, open: open, close: close, isOpen: isOpen, openItem: openItem, icon: ICON };
 })();

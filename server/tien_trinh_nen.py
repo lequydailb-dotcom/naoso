@@ -1,14 +1,14 @@
-"""Tiến trình nền do engine bỏ lại: Naota nhận theo dõi, xong thì tự báo và tự làm tiếp.
+"""Tiến trình nền do engine bỏ lại: Vanhanh nhận theo dõi, xong thì tự báo và tự làm tiếp.
 
 Vì sao có file này
 ==================
-Lỗi đã gặp: nhờ Naota làm video, Naota trả lời "Đang render
+Lỗi đã gặp: nhờ Vanhanh làm video, Vanhanh trả lời "Đang render
 nền, xong mình ghép tiếng và gửi video" rồi im. Video render xong lúc 14:57 mà phải tới 16:14,
-khi chủ hỏi "xong video chưa", Naota mới biết.
+khi chủ hỏi "xong video chưa", Vanhanh mới biết.
 
 Gốc rễ: engine có shell (Codex, Grok Build, Antigravity) tự bật lệnh dài chạy ngầm (`cmd &`,
-`nohup cmd &`) rồi kết thúc lượt. Naota chỉ biết tự báo về cho việc Kanban, loop và nhắc hẹn.
-Một tiến trình do engine tự bật thì Naota không hề biết nó tồn tại, nên không có gì đánh thức
+`nohup cmd &`) rồi kết thúc lượt. Vanhanh chỉ biết tự báo về cho việc Kanban, loop và nhắc hẹn.
+Một tiến trình do engine tự bật thì Vanhanh không hề biết nó tồn tại, nên không có gì đánh thức
 khung chat khi nó xong. Còn lời hứa "xong mình gửi" là lời của model, không có cơ chế nào đứng
 sau.
 
@@ -25,7 +25,7 @@ model, không cần model nhớ gọi tool nào: đây là sự thật đọc t�
      xong. Gọi `_KHI_XONG` do main đặt: báo về đúng khung chat + hòm thư + thông báo đẩy, và nếu
      cần thì mở một lượt nối tiếp trong cùng phiên để làm nốt (ghép tiếng, kiểm tra, gửi file).
 
-Lượt nối tiếp chạy khi: model đã dặn rõ bằng tool `naota_job` op=then, HOẶC câu trả lời của
+Lượt nối tiếp chạy khi: model đã dặn rõ bằng tool `vanhanh_job` op=then, HOẶC câu trả lời của
 lượt vừa rồi có hứa "xong em làm tiếp/gửi" (bộ bắt lời hứa của background_status). Nhờ vậy lời
 hứa của model thành sự thật, thay vì chỉ bị dán nhãn là hứa suông.
 
@@ -60,7 +60,7 @@ try:
     import config as _cfg
     _STATE_DIR = Path(_cfg.STATE_DIR)
 except Exception:          # chạy lẻ trong test
-    _STATE_DIR = Path(os.getenv("NAOTA_STATE_DIR", str(Path(__file__).parent)))
+    _STATE_DIR = Path(os.getenv("VANHANH_STATE_DIR", str(Path(__file__).parent)))
 
 POSIX = os.name != "nt"
 
@@ -80,7 +80,7 @@ _KHOA = threading.Lock()
 
 _NHOM_THEO_TAG: Dict[str, List[int]] = {}      # tag lượt -> pid engine (= mã nhóm)
 _VIEC: Dict[str, dict] = {}                     # mã việc -> bản ghi
-_LOI_DAN: Dict[str, dict] = {}                  # chat_id -> {"text", "ts"} (naota_job op=then)
+_LOI_DAN: Dict[str, dict] = {}                  # chat_id -> {"text", "ts"} (vanhanh_job op=then)
 _KHI_XONG: Optional[Callable[[dict], Any]] = None
 _VONG: Optional[asyncio.Task] = None
 
@@ -93,7 +93,7 @@ def nhom_con_song(pgid: int) -> bool:
 
     Tiến trình đã chết mà chưa ai dọn (zombie, trạng thái Z) vẫn làm killpg(0) thành công. Máy
     thật có tiến trình số 1 dọn chúng (tini trong Docker, systemd, launchd), nhưng một container
-    chạy thẳng uvicorn làm PID 1 thì không: khi đó việc đã xong mà Naota tưởng còn chạy mãi. Nên
+    chạy thẳng uvicorn làm PID 1 thì không: khi đó việc đã xong mà Vanhanh tưởng còn chạy mãi. Nên
     có /proc thì hỏi thêm trạng thái từng thành viên, chỉ tính người còn sống thật.
     """
     if not POSIX or not pgid:
@@ -240,7 +240,7 @@ def ghi_nhom(tag: str, pid: int) -> None:
 
 
 def dat_loi_dan(chat_id: str, text: str) -> None:
-    """Model dặn "khi việc nền của lượt này xong thì làm tiếp X" (tool naota_job op=then)."""
+    """Model dặn "khi việc nền của lượt này xong thì làm tiếp X" (tool vanhanh_job op=then)."""
     cid = str(chat_id or "").strip()
     t = str(text or "").strip()
     if not cid or not t:
@@ -321,9 +321,9 @@ def nhan_nuoi_theo_tag(tag: str, brain_root: str, chat_id: str, *, hua: bool = F
 
 
 def theo_doi_nhom(pgid: int, mo_ta: str, cwd: str, brain_root: str, chat_id: str) -> str:
-    """Nhận theo dõi NGAY một nhóm tiến trình Naota tự bật (terminal của engine API).
+    """Nhận theo dõi NGAY một nhóm tiến trình Vanhanh tự bật (terminal của engine API).
 
-    Khác `nhan_nuoi_theo_tag`: không cần đợi hết lượt rồi dò nhóm còn sống, vì chính Naota bật
+    Khác `nhan_nuoi_theo_tag`: không cần đợi hết lượt rồi dò nhóm còn sống, vì chính Vanhanh bật
     tiến trình và biết chắc mã nhóm. Trả mã việc (rỗng nếu không theo dõi được).
     """
     if not POSIX or not pgid or not chat_id:

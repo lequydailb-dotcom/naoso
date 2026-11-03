@@ -1,6 +1,6 @@
-"""Bóc CHỮ từ file PDF và Word (.docx) cho tool `naota_read_file` của hub.
+"""Bóc CHỮ từ file PDF và Word (.docx) cho tool `vanhanh_read_file` của hub.
 
-Vì sao có. Engine CLI (Claude Code, Codex) tự mở được PDF, còn sáu engine API và Ollama máy nhà chỉ có `naota_read_file`, mà tool
+Vì sao có. Engine CLI (Claude Code, Codex) tự mở được PDF, còn sáu engine API và Ollama máy nhà chỉ có `vanhanh_read_file`, mà tool
 đó đọc mọi file bằng `read_text`: PDF/Word ra toàn mã nhị phân, model đọc xong báo "không đọc được" (ca thật với Ollama local trên
 Mac: bản thử bằng pypdf tóm tắt đúng một PDF 17 trang).
 
@@ -45,7 +45,7 @@ def extract(path) -> str:
         if suf in XLSX_SUFFIXES:
             return _xlsx(p)
         if suf == ".xls":
-            return (f"ERROR: '{p.name}' là file Excel đời cũ (.xls), Naota chỉ đọc được .xlsx. Mở file bằng Excel hoặc "
+            return (f"ERROR: '{p.name}' là file Excel đời cũ (.xls), Vanhanh chỉ đọc được .xlsx. Mở file bằng Excel hoặc "
                     f"Google Sheets rồi lưu lại thành .xlsx.")
         return _docx(p)
     except Exception as e:      # noqa: BLE001 - file hỏng hay lạ: nói thẳng, đừng làm sập lượt chat
@@ -56,8 +56,8 @@ def _pdf(p: Path) -> str:
     try:
         import pypdf
     except ImportError:
-        return ("ERROR: máy chủ Naota thiếu thư viện pypdf nên chưa đọc được PDF. Cập nhật Naota (bản mới cài sẵn), hoặc chạy "
-                "`pip install pypdf` trong môi trường của Naota.")
+        return ("ERROR: máy chủ Vanhanh thiếu thư viện pypdf nên chưa đọc được PDF. Cập nhật Vanhanh (bản mới cài sẵn), hoặc chạy "
+                "`pip install pypdf` trong môi trường của Vanhanh.")
     r = pypdf.PdfReader(str(p))
     tong = len(r.pages)
     parts, image_only = [], []

@@ -11,11 +11,11 @@ import json
 import os
 # vòng tool mặc định gọi model dạng stream. File này thử logic vòng tool trên đường non-stream
 # (giả lập client.post / máy chủ trả JSON), đường đó vẫn là đường lui. Đường stream: test_api_stream_vong.py.
-os.environ["NAOTA_API_STREAM_TOOLS"] = "0"
+os.environ["VANHANH_API_STREAM_TOOLS"] = "0"
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-fastapi-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-fastapi-"))
 import engine  # noqa: E402
 import fast_mode  # noqa: E402
 

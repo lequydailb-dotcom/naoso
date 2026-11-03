@@ -63,8 +63,8 @@
     return n ? n[0].toUpperCase() + n.slice(1) : n;
   }
   const $ = (id) => document.getElementById(id);
-  const curSid = () => { try { return (window.NaotaSessions && window.NaotaSessions.current()) || null; } catch (e) { return null; } };
-  const curBrain = () => { try { return (window.NaotaSessions && window.NaotaSessions.brain()) || ""; } catch (e) { return ""; } };
+  const curSid = () => { try { return (window.VanhanhSessions && window.VanhanhSessions.current()) || null; } catch (e) { return null; } };
+  const curBrain = () => { try { return (window.VanhanhSessions && window.VanhanhSessions.brain()) || ""; } catch (e) { return ""; } };
   // Model ĐANG HIỆU LỰC cho khung chat trước mặt: ghim của phiên thắng mặc định chung.
   const effective = () => sessionPin || state.main;
 
@@ -80,7 +80,7 @@
     fd.append("level", level);
     fd.append("brain", curBrain() || "brain");
     try { await fetch(`/agents/${encodeURIComponent(slug)}/reasoning`, { method: "POST", body: fd }); } catch (e) {}
-    try { window.dispatchEvent(new CustomEvent("naota:agent-reasoning", { detail: { slug: slug, level: level } })); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("vanhanh:agent-reasoning", { detail: { slug: slug, level: level } })); } catch (e) {}
   }
 
   async function pinToSession(sid, prov, model) {
@@ -134,7 +134,7 @@
       // the tooltip; the pin state shows as an icon (below).
       mt.textContent = chipLabel(eff, p);
       mt.title = (p ? p.label + " · " + (eff.model || defText(eff.provider)) + "\n" : "") + (sessionPin
-        ? window.t(agentEff && agentEff.slug === "naota-core" ? "mpick.core_pin_title" : "mpick.pin_title")
+        ? window.t(agentEff && agentEff.slug === "vanhanh-core" ? "mpick.core_pin_title" : "mpick.pin_title")
         : pinBroken
           ? window.t(pinLimited ? "mpick.pin_limited_title" : "mpick.pin_broken_title")
           : window.t("mpick.follow_default"));
@@ -161,8 +161,8 @@
     if (eb) {
       // A locked Antigravity model runs at the level in its name, so the chip shows that level.
       const effM = effective();
-      const own = window.NaotaEffortSlider && window.NaotaEffortSlider.isLocked(effM.provider, effM.model)
-        ? window.NaotaEffortSlider.lockedLevel(effM.model) : "";
+      const own = window.VanhanhEffortSlider && window.VanhanhEffortSlider.isLocked(effM.provider, effM.model)
+        ? window.VanhanhEffortSlider.lockedLevel(effM.model) : "";
       const lvl = agentEff ? agentEff.level : state.reasoning;
       eb.textContent = window.t(EFF_KEY[own || (EFFORT.find((e) => e[0] === lvl) || EFFORT[0])[0]]);
       const effB = $("effBtn");
@@ -187,7 +187,7 @@
     const fi = $("effFast");
     if (fi) fi.hidden = !on;
     if (effSlider && effSlider.refreshFast) effSlider.refreshFast();
-    try { if (window.NaotaPlanLimit) window.NaotaPlanLimit.setProvider(eff.provider); } catch (e) {}
+    try { if (window.VanhanhPlanLimit) window.VanhanhPlanLimit.setProvider(eff.provider); } catch (e) {}
   }
   // FAST_STATE_BEGIN
   // Tooltip line for the last Fast mode state a brain reported (server: fast_mode.states()).
@@ -234,7 +234,7 @@
       noWait: true,
       connectedOnly: true,   // providers not connected are not listed in the chat picker
     };
-    let html = await window.NaotaModelList.render(o);
+    let html = await window.VanhanhModelList.render(o);
     if (luot !== luotVe || pop.hidden) return;
     // An assistant's chat with its own model: one row to go back to following the main chat's model.
     if (agentEff && (sessionPin || pinBroken)) {
@@ -275,14 +275,14 @@
   let effSlider = null;
   function effOpen() {
     const pop = $("effPop"), btn = $("effBtn");
-    if (!pop || !window.NaotaEffortSlider) return;
+    if (!pop || !window.VanhanhEffortSlider) return;
     close(); closePlus(); closeLimit();
     const eff = effective();
     pop.hidden = false;
-    const locked = window.NaotaEffortSlider.isLocked(eff.provider, eff.model);
+    const locked = window.VanhanhEffortSlider.isLocked(eff.provider, eff.model);
     if (btn) btn.setAttribute("aria-expanded", "true");
     const fn = fastNote(eff.provider, eff.model);
-    effSlider = window.NaotaEffortSlider.mount(pop, {
+    effSlider = window.VanhanhEffortSlider.mount(pop, {
       value: agentEff ? agentEff.level : state.reasoning,
       fast: {
         supported: fn.supported, on: state.fast, title: fastTitle,
@@ -290,7 +290,7 @@
         onToggle: async (on) => { state.fast = on; renderFast(); await saveModel({ fast: state.fast }); },
       },
       locked: locked,
-      lockedValue: locked ? window.NaotaEffortSlider.lockedLevel(eff.model) : "",
+      lockedValue: locked ? window.VanhanhEffortSlider.lockedLevel(eff.model) : "",
       onChange: async (v) => {
         if (agentEff) { agentEff.level = v; renderBar(); await saveAgentEffort(agentEff.slug, v); return; }
         state.reasoning = v; renderBar(); await saveModel({ reasoning: v });
@@ -310,14 +310,14 @@
     if (btn) btn.setAttribute("aria-expanded", "false");
   }
   function effIsOpen() { const pop = $("effPop"); return pop && !pop.hidden; }
-  function closeLimit() { try { if (window.NaotaPlanLimit) window.NaotaPlanLimit.close(); } catch (e) {} }
-  function closePlus() { try { if (window.NaotaComposerMenu) window.NaotaComposerMenu.close(); } catch (e) {} }
+  function closeLimit() { try { if (window.VanhanhPlanLimit) window.VanhanhPlanLimit.close(); } catch (e) {} }
+  function closePlus() { try { if (window.VanhanhComposerMenu) window.VanhanhComposerMenu.close(); } catch (e) {} }
 
   // Chọn một model: ghi mặc định chung (chat mới sau này theo cái vừa chọn) + GHIM cho phiên
   // đang mở (phiên này giữ đúng model kể cả khi mặc định chung bị đổi ở chỗ khác). Dùng chung
   // cho cú bấm trong bảng chọn và lệnh `/model <tên>` của khung chat.
   async function chonModel(prov, model) {
-    // In an assistant's chat (any partner, Naota Core) the choice pins THAT chat only. It
+    // In an assistant's chat (any partner, Vanhanh Core) the choice pins THAT chat only. It
     // used to also rewrite the main chat's model. An assistant chat with no pin follows the main chat's model.
     if (!agentEff) await saveModel({ main: { provider: prov, model: model } });
     const sid = curSid();
@@ -345,7 +345,7 @@
     const nhaOk = state.providers.filter((p) => p.configured);
     const dem = await Promise.all(nhaOk.map(async (p) => {
       let ids = [];
-      try { ids = (window.NaotaModelList ? await window.NaotaModelList.models(p.id) : p.models) || []; }
+      try { ids = (window.VanhanhModelList ? await window.VanhanhModelList.models(p.id) : p.models) || []; }
       catch (e) { ids = p.models || []; }
       return { p, ids: ids.map((m) => (typeof m === "string" ? m : (m && (m.id || m.name)) || "")).filter(Boolean) };
     }));
@@ -404,12 +404,12 @@
   window.initModelBar = async function () {
     await loadState(); await loadSessionPin(); renderBar();
     // Tải sẵn danh sách của nhà đang dùng lúc rảnh, để lần bấm chip đầu tiên mở ra có ngay.
-    try { const pid = state.main.provider; if (pid && window.NaotaModelList) window.NaotaModelList.models(pid); } catch (e) {}
+    try { const pid = state.main.provider; if (pid && window.VanhanhModelList) window.VanhanhModelList.models(pid); } catch (e) {}
   };
 
   // Phiên mới mint id xong (app.js gọi ngay lúc gửi tin đầu): model đã chọn khi khung
   // còn trống đi theo phiên vừa sinh, không bị phiên khác đổi mặc định chung đè mất.
-  window.NaotaModelBar = {
+  window.VanhanhModelBar = {
     claimPending: function (sid) {
       if (!pendingPin || !sid) return;
       sessionPin = pendingPin; pinSid = sid;
@@ -445,11 +445,11 @@
   };
 
   // Đổi phiên (mở phiên cũ, chat mới, xoá phiên) → hỏi lại ghim của phiên rồi vẽ lại.
-  window.addEventListener("naota:sessions-changed", async () => { await loadSessionPin(); renderBar(); });
+  window.addEventListener("vanhanh:sessions-changed", async () => { await loadSessionPin(); renderBar(); });
 
   // Từ điển về (fetch bất đồng bộ, thường SAU khi chip model đã vẽ) hoặc người dùng đổi
   // ngôn ngữ giao diện: vẽ lại chip, và vẽ lại cả bảng chọn nếu nó đang mở.
-  window.addEventListener("naota:i18n", () => {
+  window.addEventListener("vanhanh:i18n", () => {
     renderBar();
     if (isOpen()) renderPop();
   });

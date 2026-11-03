@@ -37,7 +37,7 @@ function napPet(theme) {
   const win = {
     matchMedia: () => ({ matches: false, addEventListener() {} }), addEventListener() {}, dispatchEvent() {},
     innerWidth: 1280, innerHeight: 800,
-    naotaTheme: { isLight: () => theme === "light", on() {} },
+    vanhanhTheme: { isLight: () => theme === "light", on() {} },
   };
   const doc = {
     readyState: "complete", addEventListener() {}, querySelectorAll: () => [], querySelector: () => nut(),
@@ -49,7 +49,7 @@ function napPet(theme) {
     fs.readFileSync(path.join(ROOT, "dashboard", "pet.js"), "utf8"))(
     win, doc, { getItem: () => null, setItem() {} }, fetch, () => 0, () => {}, { now: () => 0 },
     function () {}, function () { this.append = () => {}; });
-  return { P: win.NaotaPet, goiMang };
+  return { P: win.VanhanhPet, goiMang };
 }
 
 function hsl(h6) {

@@ -178,6 +178,6 @@
     if (f) f.focus();
   }
 
-  window.NaotaDateRange = { PRESETS: PRESETS, resolve: resolve, dates: dates, label: label, monthCells: monthCells, iso: iso,
+  window.VanhanhDateRange = { PRESETS: PRESETS, resolve: resolve, dates: dates, label: label, monthCells: monthCells, iso: iso,
                             open: open, close: close };
 })();

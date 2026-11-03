@@ -171,5 +171,5 @@
     return html;
   }
 
-  window.NaotaModelList = { models, peek, render, clearCache };
+  window.VanhanhModelList = { models, peek, render, clearCache };
 })();

@@ -7,7 +7,7 @@
  *
  * Messenger used to be its own section under the connected list, with the form
  * opening inside the page. It now follows the page's own frame like every other service: a card in the "Available" grid
- * (`catCard`), the form in the shared connection dialog (`window.NaotaConnModal`, from console.js), and the connected
+ * (`catCard`), the form in the shared connection dialog (`window.VanhanhConnModal`, from console.js), and the connected
  * Pages as one card in the "Connected" list (`mount`), drawn only once a Page is connected.
  *
  * Log in with Facebook. The form now asks for the App ID and App secret only; the button opens Facebook's login in
@@ -49,9 +49,9 @@
     });
   }
   var ic = function (n) { return (typeof window !== "undefined" && window.ic) ? window.ic(n) : ""; };
-  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(tw("info.more")) : ""; }
+  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(tw("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.NaotaInfo;
+    var J = typeof window !== "undefined" && window.VanhanhInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
   function icon(name) {
@@ -60,9 +60,9 @@
   // Guides on GitHub: the Vietnamese interface opens docs/, every other language docs/en/.
   var GUIDE = { full: ["31-messenger.md", "31-messenger.md"], steps: ["31-messenger-tung-buoc.md", "31-messenger-step-by-step.md"] };
   function guideUrl(which) {
-    var vi = typeof window !== "undefined" && window.NaotaI18n && window.NaotaI18n.lang() === "vi";
+    var vi = typeof window !== "undefined" && window.VanhanhI18n && window.VanhanhI18n.lang() === "vi";
     var g = GUIDE[which];
-    return "https://github.com/vuongtex/naota/blob/main/docs/" + (vi ? g[0] : "en/" + g[1]);
+    return "https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/" + (vi ? g[0] : "en/" + g[1]);
   }
   function guideLink(which, key) {
     return '<a class="msc-guide" href="' + esc(guideUrl(which)) + '" target="_blank" rel="noopener">' + esc(tw(key)) + " ↗</a>";
@@ -275,7 +275,7 @@
 
   // Every connected Page with its Check / Repair / Renew buttons, in the dialog this page opens for every service.
   function openPages() {
-    var M = typeof window !== "undefined" && window.NaotaConnModal;
+    var M = typeof window !== "undefined" && window.VanhanhConnModal;
     var accounts = (setup && setup.accounts) || [];
     if (!M || !accounts.length) return;
     var m = M.open(M.head(esc(tw("msc.pages_head", { n: accounts.length })))
@@ -370,7 +370,7 @@
 
   // The form, in the same dialog every other service opens from this page.
   async function openForm(preset) {
-    var M = typeof window !== "undefined" && window.NaotaConnModal;
+    var M = typeof window !== "undefined" && window.VanhanhConnModal;
     if (!M) return;
     if (!setup) await load();
     var m = M.open(M.head(esc(tw("msc.dialog_head"))) + '<div class="conn-form">' + formHtml(setup || {}, preset) + "</div>", 640);
@@ -431,6 +431,6 @@
   var api_ = { mount: mount, openForm: openForm, catCard: catCard, groupHtml: groupHtml, checklistHtml: checklistHtml,
     summaryHtml: summaryHtml, accountHtml: accountHtml, formHtml: formHtml, addToConnCount: addToConnCount,
     openPages: openPages, pickHtml: pickHtml, resultsHtml: resultsHtml, commentSelect: commentSelect, guideUrl: guideUrl };
-  if (typeof window !== "undefined") window.NaotaMessenger = api_;
+  if (typeof window !== "undefined") window.VanhanhMessenger = api_;
   if (typeof module !== "undefined" && module.exports) module.exports = api_;
 })();

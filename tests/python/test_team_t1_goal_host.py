@@ -15,8 +15,8 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-goal-host-")
-BR = Path(tempfile.mkdtemp(prefix="naota-team-goal-host-brain-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-goal-host-")
+BR = Path(tempfile.mkdtemp(prefix="vanhanh-team-goal-host-brain-"))
 (BR / "agents").mkdir()
 for slug, name in (("lan", "Lan"), ("minh", "Minh"), ("hoa", "Hoa")):
     (BR / "agents" / f"{slug}.md").write_text(f"---\nname: {name}\nrole: Thành viên\n---\nBạn là {name}.\n",
@@ -81,7 +81,7 @@ def drain():
 
 def directive(**op):
     import json
-    return f"\n<!-- NAOTA_TEAM: {json.dumps(op, ensure_ascii=False)} -->"
+    return f"\n<!-- VANHANH_TEAM: {json.dumps(op, ensure_ascii=False)} -->"
 
 
 c = TestClient(main.app, base_url="http://127.0.0.1:8080")

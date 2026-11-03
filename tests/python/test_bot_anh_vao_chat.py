@@ -25,8 +25,8 @@ import time
 import zlib
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-anhchat-")
-os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-anhchat-")
+os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -34,7 +34,7 @@ except Exception:
 
 try:
     from PIL import Image  # noqa: E402
-except Exception:      # noqa: BLE001 - Pillow is NOT a dependency of Naota (CI and the Docker image run without it)
+except Exception:      # noqa: BLE001 - Pillow is NOT a dependency of Vanhanh (CI and the Docker image run without it)
     Image = None
 
 import vision_input as vi  # noqa: E402

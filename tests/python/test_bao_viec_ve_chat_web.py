@@ -1,6 +1,6 @@
 """Regression: việc chạy nền phải BÁO VỀ đúng khung chat đã giao nó.
 
-Lỗi thật cũ: người dùng ngồi dashboard bảo Naota chạy mấy agent nền. Naota đáp "em sẽ
+Lỗi thật cũ: người dùng ngồi dashboard bảo Vanhanh chạy mấy agent nền. Vanhanh đáp "em sẽ
 đợi các agent chạy nền hoàn tất (có thông báo tự động khi xong) rồi tổng hợp cho anh" rồi
 im lặng vĩnh viễn - không trạng thái, không hồi âm.
 
@@ -8,7 +8,7 @@ Hai gốc rễ, test này canh cả hai:
   1. `_notify_owner` CHỈ biết gửi Telegram. Máy không đấu Telegram thì nó trả (False, ...) và
      `TaskRunner._report` nuốt luôn - kết quả bay vào hư không. Người dùng web không có kênh
      nào nhận cả.
-  2. System prompt hứa "tự có thông báo khi xong" mà không nói kênh nào, nên Naota còn hứa
+  2. System prompt hứa "tự có thông báo khi xong" mà không nói kênh nào, nên Vanhanh còn hứa
      thêm là sẽ NGỒI ĐỢI rồi tổng hợp - điều nó không làm được: lượt trả lời đóng lại ngay
      sau khi nó nói xong, không ai đánh thức nó dậy.
 
@@ -27,12 +27,12 @@ import tempfile
 
 from _paths import ROOT, SERVER  # noqa: E402,F401  - nạp server/ vào sys.path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-push-test-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-push-test-"))
 
 import channel_context  # noqa: E402
 import main  # noqa: E402
 
-# Naota Core rings only urgent notices by default (that default is tested in test_notify_commander.py). This
+# Vanhanh Core rings only urgent notices by default (that default is tested in test_notify_commander.py). This
 # file checks how important notices are routed, so every group rings from "important" up, as before the change.
 import notify_policy  # noqa: E402
 for _g in notify_policy.GROUPS:
@@ -133,18 +133,18 @@ async def _run():
 asyncio.run(_run())
 
 
-# ─────────── 2. Naota phải BIẾT mã phiên và nói đúng sự thật ───────────
+# ─────────── 2. Vanhanh phải BIẾT mã phiên và nói đúng sự thật ───────────
 blk = channel_context.build_channel_block("dashboard", {"session_id": "abc123"}, port=7777)
 check("khối kênh dashboard nêu mã phiên chat hiện tại", "abc123" in blk)
-check("dạy Naota gắn chat_id 'web:<sid>' khi giao việc", '"chat_id":"web:abc123"' in blk)
-check("dạy Naota gắn owner_chat cho loop", 'owner_chat: "web:abc123"' in blk)
+check("dạy Vanhanh gắn chat_id 'web:<sid>' khi giao việc", '"chat_id":"web:abc123"' in blk)
+check("dạy Vanhanh gắn owner_chat cho loop", 'owner_chat: "web:abc123"' in blk)
 check("cấm hứa ngồi đợi rồi tổng hợp",
       "KHÔNG hứa" in blk and "đợi các agent chạy xong" in blk)
 check("chỉ đường thay thế: giao thêm việc tổng hợp bằng deps", "deps" in blk)
 
 # Không có mã phiên (đường gọi cũ) thì không được vỡ, chỉ là thiếu khối đó.
 blk0 = channel_context.build_channel_block("dashboard", port=7777)
-check("thiếu mã phiên vẫn dựng được khối kênh, không nổ", "Dashboard web Naota" in blk0)
+check("thiếu mã phiên vẫn dựng được khối kênh, không nổ", "Dashboard web Vanhanh" in blk0)
 check("thiếu mã phiên thì không bịa ra hướng dẫn web:", "web:" not in blk0)
 
 # Telegram giữ nguyên đường cũ.
@@ -156,7 +156,7 @@ check("nhánh Telegram vẫn dạy kèm chat_id như cũ", '\\"chat_id\\":\\"999
 _push = APP.split('if (data.type === "push")', 1)
 check("app.js có nhánh xử lý sự kiện push", len(_push) == 2)
 _body = _push[1].split("if (data.type === \"status\")", 1)[0] if len(_push) == 2 else ""
-check("push vẽ thành bong bóng Naota", "appendNaotaMessage(data.content" in _body)
+check("push vẽ thành bong bóng Vanhanh", "appendVanhanhMessage(data.content" in _body)
 # Bỏ chú thích trước khi soi: chú thích được quyền NHẮC tới turns[sid] để giải thích vì sao
 # không đụng vào nó.
 _code = re.sub(r"//[^\n]*", "", _body)

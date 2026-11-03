@@ -1,11 +1,11 @@
-/* chat-ask.js - khoi hoi-lai co lua chon cho khung chat Naota.
+/* chat-ask.js - khoi hoi-lai co lua chon cho khung chat Vanhanh.
 
-   Naota ket thuc cau tra loi bang mot khoi an:
-     <!-- NAOTA_ASK: {"question":"...","header":"...","options":[{"label":"..","desc":".."}]} -->
+   Vanhanh ket thuc cau tra loi bang mot khoi an:
+     <!-- VANHANH_ASK: {"question":"...","header":"...","options":[{"label":"..","desc":".."}]} -->
    File nay boc khoi do ra, ve thanh hang chip duoi bong bong tra loi, va bat su kien bam.
    Bam mot chip = gui dung nhan do di nhu mot tin nhan nguoi dung binh thuong.
 
-   Di theo dung vet khoi NAOTA_METRICS da chay san (app.js). KHONG dung MCP hub, khong
+   Di theo dung vet khoi VANHANH_METRICS da chay san (app.js). KHONG dung MCP hub, khong
    dung engine -> chay tren moi bo nao chi nho system prompt.
 
    An toan: moi text trong khoi la do model sinh ra -> escape het truoc khi nhet vao HTML.
@@ -27,7 +27,7 @@
     } catch (e) { return khoa; }
   }
 
-  var ASK_RE = /<!--\s*NAOTA_ASK:\s*([\s\S]*?)\s*-->/;
+  var ASK_RE = /<!--\s*VANHANH_ASK:\s*([\s\S]*?)\s*-->/;
   var MAX_OPTS = 4;
   var MAX_LABEL = 40;
 
@@ -44,8 +44,8 @@
     return s.length > MAX_LABEL ? s.slice(0, MAX_LABEL - 1) + "…" : s;
   }
 
-  // Boc khoi NAOTA_ASK khoi text. LUON tra clean da bo khoi (ke ca khi JSON hong) -
-  // mot khoi sai cu phap KHONG duoc phep nuot mat cau tra loi cua Naota.
+  // Boc khoi VANHANH_ASK khoi text. LUON tra clean da bo khoi (ke ca khi JSON hong) -
+  // mot khoi sai cu phap KHONG duoc phep nuot mat cau tra loi cua Vanhanh.
   //
   // Cat nhan (cut) NGAY O DAY - tang du lieu - chu khong cat luc ve (render). Ly do:
   // nut ve ra thu nguoi dung DOC roi moi bam, dung la lop xac nhan cuoi truoc khi noi
@@ -75,7 +75,7 @@
     return { clean: clean, ask: ask };
   }
 
-  // Ve hang chip vao cuoi .bubble cua thu tin nhan Naota.
+  // Ve hang chip vao cuoi .bubble cua thu tin nhan Vanhanh.
   // live=false -> ve san o trang thai dong cung (dung khi khoi phuc lich su).
   function render(msgEl, ask, live) {
     if (!msgEl || !ask || !ask.options || !ask.options.length) return null;
@@ -127,13 +127,13 @@
       var ask = box._ask;
       var opt = ask && ask.options[+chip.dataset.i];
       if (!opt) return;
-      chip.classList.add("nt-ask-picked");   // danh dau TRUOC khi gui: NaotaSend se freeze ca hang
-      if (typeof window.NaotaSend === "function") window.NaotaSend(opt.label);
+      chip.classList.add("nt-ask-picked");   // danh dau TRUOC khi gui: VanhanhSend se freeze ca hang
+      if (typeof window.VanhanhSend === "function") window.VanhanhSend(opt.label);
     });
   }
 
   if (typeof window !== "undefined") {
-    window.NaotaAsk = { extract: extract, render: render, freezeAll: freezeAll };
+    window.VanhanhAsk = { extract: extract, render: render, freezeAll: freezeAll };
   }
   if (typeof module !== "undefined" && module.exports) {
     module.exports = { extract: extract, render: render };

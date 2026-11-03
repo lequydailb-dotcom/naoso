@@ -13,9 +13,9 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-fix-scope-")
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
-TEMP = Path(tempfile.mkdtemp(prefix="naota-fix-scope-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-fix-scope-")
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-fix-scope-w-"))
 
 import agent_ledger as AL  # noqa: E402
 import agent_pulse as AP  # noqa: E402

@@ -1,6 +1,6 @@
 /* Thẻ Giọng nói gọn (voice-call-spec mục 5).
 
-   Bấm mic là gọi Naota, nên trang Cài đặt chỉ còn: dòng "Đang dùng", Giọng Naota (danh sách đổi
+   Bấm mic là gọi Vanhanh, nên trang Cài đặt chỉ còn: dòng "Đang dùng", Giọng Vanhanh (danh sách đổi
    theo đường gọi); Nâng cao có Đường gọi, Bộ não trả lời nhanh (trả lại), Tốc độ đọc,
    ElevenLabs. Mọi ô tự lưu, không còn nút Lưu. Phần máy tự lo (ngôn ngữ nghe, im lặng rồi gửi,
    ngắt lời, nhịp hội thoại, tai nghe lại, đọc trả lời bằng giọng, key OpenAI) không còn ô nhập.
@@ -46,12 +46,12 @@ check("console.js: thẻ đọc /voice/options?brains=0 (không chờ agy models
 check("console.js: mở tab Giọng nói là vẽ lại thẻ", /if \(tab === "voice"\) renderVoiceCard\(\);/.test(cs));
 check("console.js: không còn hàm thẻ V2 cũ", !/renderVoiceV2Card/.test(cs));
 check("app.js: ngôn ngữ nghe theo ngôn ngữ giao diện", /function recLangTheoGiaoDien\(\)/.test(app) && /const recNow = recLangTheoGiaoDien\(\);/.test(app));
-check("app.js: đổi ngôn ngữ giao diện thì đổi ngôn ngữ nghe", /addEventListener\("naota:i18n", \(\) => \{\s*\n\s*const lang = recLangTheoGiaoDien\(\);/.test(app));
-check("app.js: ngắt lời bằng giọng luôn bật", /voice\.bargeEnabled = true;/.test(app) && !/getItem\("naota\.bargeIn"\)/.test(app));
+check("app.js: đổi ngôn ngữ giao diện thì đổi ngôn ngữ nghe", /addEventListener\("vanhanh:i18n", \(\) => \{\s*\n\s*const lang = recLangTheoGiaoDien\(\);/.test(app));
+check("app.js: ngắt lời bằng giọng luôn bật", /voice\.bargeEnabled = true;/.test(app) && !/getItem\("vanhanh\.bargeIn"\)/.test(app));
 check("app.js: im lặng rồi gửi mặc định 1,2 giây, giữ mức cũ hợp lệ",
   /turn\.opts\.minDelay = \[500, 800, 1200\]\.includes\(ep\) \? ep : 1200;/.test(app)
-  && /minDelay: parseInt\(localStorage\.getItem\("naota\.endpoint"\) \|\| "1200", 10\) \|\| 1200,/.test(app));
-check("app.js: nút Nghe thử của đường Cơ bản đi qua window.NaotaVoiceSample", /window\.NaotaVoiceSample = \(\) => voice\.speak\(/.test(app));
+  && /minDelay: parseInt\(localStorage\.getItem\("vanhanh\.endpoint"\) \|\| "1200", 10\) \|\| 1200,/.test(app));
+check("app.js: nút Nghe thử của đường Cơ bản đi qua window.VanhanhVoiceSample", /window\.VanhanhVoiceSample = \(\) => voice\.speak\(/.test(app));
 check("công tắc Tập trung đã gỡ (im 30 giây thì ngắt, nói là nối lại)", !card.includes('id="vcFocus"') && !/vcFocus/.test(cs));
 for (const k of ["settings.vc_title", "settings.vc_voice", "settings.vc_advanced",
   "settings.vc_engine", "settings.vc_engine_auto", "settings.vc_engine_api", "settings.vc_engine_basic", "settings.vc_hear_call", "settings.vc_hear_read", "settings.vc_hear_basic",
@@ -108,7 +108,7 @@ async function run(options, edgeVoice = "vi-VN-HoaiMyNeural", models = null) {
       return options;
     } }), urls: [],
     saveSetting: async (section, data) => { saves.push([section, data]); return { ok: true }; },
-    window: { NaotaVoiceMode: { refresh: () => refreshes.push(1) }, NaotaVoiceCatalog: require("../../dashboard/voice-catalog.js") },
+    window: { VanhanhVoiceMode: { refresh: () => refreshes.push(1) }, VanhanhVoiceCatalog: require("../../dashboard/voice-catalog.js") },
     setTimeout: () => 0, clearTimeout: () => {}, Event: class { constructor(type) { this.type = type; } },
     Audio: class { constructor(src) { ctx.played = src; } play() { return Promise.resolve(); } pause() {} },
     Date, Math, Number, Array, String, JSON, Promise,

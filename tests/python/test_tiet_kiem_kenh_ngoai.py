@@ -28,9 +28,9 @@ import os
 import sys
 import tempfile
 
-_STATE = tempfile.mkdtemp(prefix="naota-tkkn-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
-os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="naota-tkkn-brains-")
+_STATE = tempfile.mkdtemp(prefix="vanhanh-tkkn-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
+os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="vanhanh-tkkn-brains-")
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -221,7 +221,7 @@ _that = main._schedule_cancel_action
 
 async def _lich_gia(text, brain):
     # Đúng hình dạng _schedule_cancel_reply đọc: handled + result, không phải "reply".
-    return {"calls": ["naota_schedule:huy"], "handled": True, "result": "Đã huỷ lịch."}
+    return {"calls": ["vanhanh_schedule:huy"], "handled": True, "result": "Đã huỷ lịch."}
 
 
 main._schedule_cancel_action = _lich_gia

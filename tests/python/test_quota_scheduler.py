@@ -16,7 +16,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-qsched-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-qsched-")
 
 import quota_scheduler as qs  # noqa: E402
 
@@ -76,7 +76,7 @@ from pathlib import Path  # noqa: E402
 from context_runtime import ObserveRuntime  # noqa: E402
 
 _settings = {"context_runtime": {"mode": "canary", "retention_days": 14}}
-_tmp = Path(tempfile.mkdtemp(prefix="naota-qsched-rt-"))
+_tmp = Path(tempfile.mkdtemp(prefix="vanhanh-qsched-rt-"))
 _rt = ObserveRuntime(_tmp / "runtime", settings_reader=lambda: _settings)
 _trace = _rt.start_turn("sid-quota", str(_tmp / "brain"), "dashboard")
 

@@ -17,10 +17,10 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-botmodel-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-botmodel-"))
 # Brain RIÊNG cho test: mặc định BRAINS_DIR trỏ vào `brains/` thật của repo, nên không đặt
 # là test rải file agent vào brain người dùng đang xài.
-os.environ.setdefault("BRAINS_DIR", tempfile.mkdtemp(prefix="naota-botbrain-"))
+os.environ.setdefault("BRAINS_DIR", tempfile.mkdtemp(prefix="vanhanh-botbrain-"))
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

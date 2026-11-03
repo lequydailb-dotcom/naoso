@@ -1,12 +1,12 @@
 """
 skill_usage.py - Sidecar TELEMETRY cho skill: đo skill nào THẬT SỰ được dùng.
 
-Vị trí: <brain>/Naota/skill-usage.json. Đặt cạnh Naota/loop-state.json theo đúng quy ước
-đã có của Naota ("STATE runtime tách riêng, server sở hữu" - xem self_improve.py). KHÔNG
+Vị trí: <brain>/Vanhanh/skill-usage.json. Đặt cạnh Vanhanh/loop-state.json theo đúng quy ước
+đã có của Vanhanh ("STATE runtime tách riêng, server sở hữu" - xem self_improve.py). KHÔNG
 nhét vào frontmatter SKILL.md: brain là git repo, mỗi lần dùng skill sẽ đẻ một commit rác
 và tạo áp lực xung đột lên file do người viết.
 
-TÍN HIỆU DƯƠNG MỘT CHIỀU. Bộ đếm chỉ bump ở tool naota_use_skill (mcp_hub). Claude Code
+TÍN HIỆU DƯƠNG MỘT CHIỀU. Bộ đếm chỉ bump ở tool vanhanh_use_skill (mcp_hub). Claude Code
 nạp skill NATIVE qua bản mirror <brain>/.claude/skills KHÔNG đi qua đó, nên:
   - use_count > 0  → skill CHẮC CHẮN có dùng.
   - use_count == 0 → KHÔNG có bằng chứng. TUYỆT ĐỐI không suy ra "vô dụng", không tự tắt,
@@ -34,7 +34,7 @@ _LOCK = threading.Lock()   # serialize read-modify-write trong process
 
 
 def usage_path(brain_root) -> Path:
-    return Path(brain_root) / "Naota" / "skill-usage.json"
+    return Path(brain_root) / "Vanhanh" / "skill-usage.json"
 
 
 def read_usage(brain_root) -> dict:

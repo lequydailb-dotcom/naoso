@@ -13,13 +13,13 @@ import json
 import os
 # vòng tool mặc định gọi model dạng stream. File này thử logic vòng tool trên đường non-stream
 # (giả lập client.post / máy chủ trả JSON), đường đó vẫn là đường lui. Đường stream: test_api_stream_vong.py.
-os.environ["NAOTA_API_STREAM_TOOLS"] = "0"
+os.environ["VANHANH_API_STREAM_TOOLS"] = "0"
 import sys
 import tempfile
 from pathlib import Path
 
-_TMP = tempfile.mkdtemp(prefix="naota-e2e-code-")
-os.environ["NAOTA_STATE_DIR"] = _TMP
+_TMP = tempfile.mkdtemp(prefix="vanhanh-e2e-code-")
+os.environ["VANHANH_STATE_DIR"] = _TMP
 
 import coding_checkpoint  # noqa: E402
 import coding_terminal  # noqa: E402
@@ -53,10 +53,10 @@ tools, route = mcp_hub._builtin_tools("full", str(VAULT), workspace_root=[str(WS
 coding_checkpoint.luot_moi("e2e")
 
 KICH_BAN = [
-    ("naota_search_files", {"pattern": "def cong"}),
-    ("naota_read_file", {"path": "src/tinh.py", "offset": 1, "limit": 50}),
-    ("naota_edit_file", {"path": "src/tinh.py", "old_string": "return a - b", "new_string": "return a + b"}),
-    ("naota_terminal", {"command": "cd src && python3 -c 'import tinh; print(tinh.cong(2, 3))' | tr -d '\\n'"}),
+    ("vanhanh_search_files", {"pattern": "def cong"}),
+    ("vanhanh_read_file", {"path": "src/tinh.py", "offset": 1, "limit": 50}),
+    ("vanhanh_edit_file", {"path": "src/tinh.py", "old_string": "return a - b", "new_string": "return a + b"}),
+    ("vanhanh_terminal", {"command": "cd src && python3 -c 'import tinh; print(tinh.cong(2, 3))' | tr -d '\\n'"}),
 ]
 gui = []
 
@@ -120,8 +120,8 @@ moc = coding_checkpoint.danh_sach("e2e")
 check("có đúng một mốc khôi phục cho lượt này", len(moc) == 1)
 check("mốc giữ bản TRƯỚC khi sửa", "-    return a - b" in coding_checkpoint.diff_file("e2e", moc[0]["id"], "src/tinh.py"))
 check("công cụ gửi lên model có đủ bộ lập trình",
-      {t["function"]["name"] for t in gui[0]["tools"]} >= {"naota_read_file", "naota_edit_file",
-                                                          "naota_search_files", "naota_terminal", "naota_process"})
+      {t["function"]["name"] for t in gui[0]["tools"]} >= {"vanhanh_read_file", "vanhanh_edit_file",
+                                                          "vanhanh_search_files", "vanhanh_terminal", "vanhanh_process"})
 
 print()
 if _fails:

@@ -1,9 +1,9 @@
-/* Khối tiến trình từng bước trong khung chat (NaotaSteps).
+/* Khối tiến trình từng bước trong khung chat (VanhanhSteps).
  *
  *     node tests/js/test_tien_trinh_buoc.js
  *
  * Vì sao có file này: lượt chat lâu
- * thì không biết Naota đang làm gì. Dashboard vốn CÓ nhận sự kiện tool_call, nhưng
+ * thì không biết Vanhanh đang làm gì. Dashboard vốn CÓ nhận sự kiện tool_call, nhưng
  * showActivity() chỉ có một dòng duy nhất: bước mới ghi đè bước cũ, hết lượt thì xoá sạch.
  *
  * Hai thứ đáng khoá bằng test, vì đó đúng là hai chỗ đã hỏng:
@@ -56,10 +56,10 @@ check("nhãn: bỏ ký tự ⚙ dẫn đầu", st.ds[0].label === "Đang gọi: 
 
 // ---- 2. Nhiều bước: giữ đủ và ĐÚNG THỨ TỰ (lỗi gốc: chỉ còn bước cuối) -------------------
 st = S.nhan(st, goi("zalo_send_message", "⚙ Đang gọi: zalo_send_message"));
-st = S.nhan(st, goi("naota_task", "⚙ Đang gọi: naota_task"));
+st = S.nhan(st, goi("vanhanh_task", "⚙ Đang gọi: vanhanh_task"));
 check("ba bước: giữ đủ cả ba", st.ds.length === 3);
 check("ba bước: thứ tự trước sau đúng",
-  st.ds[0].tool === "pos_order" && st.ds[2].tool === "naota_task");
+  st.ds[0].tool === "pos_order" && st.ds[2].tool === "vanhanh_task");
 check("gọi lại cùng một công cụ vẫn là bước riêng",
   S.nhan(S.nhan(null, goi("a")), goi("a")).ds.length === 2);
 
@@ -72,7 +72,7 @@ check("thiếu cả tên lẫn content: không lòi undefined", trong.indexOf("u
 
 // ---- 4. Sự kiện KHÔNG phải tool_call thì không sinh bước ---------------------------------
 check("status không sinh bước",
-  S.nhan(null, { type: "status", content: "Naota đang suy nghĩ..." }).ds.length === 0);
+  S.nhan(null, { type: "status", content: "Vanhanh đang suy nghĩ..." }).ds.length === 0);
 check("stream không sinh bước",
   S.nhan(null, { type: "stream", content: "Doanh thu" }).ds.length === 0);
 

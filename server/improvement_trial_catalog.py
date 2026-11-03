@@ -158,8 +158,8 @@ def _scan(root, language):
     layout = {"skills": "skills"}
     for kind in ("agents", "workflows"):
         canonical = _directory(root, kind, directories)
-        legacy = _directory(root, "Naota/" + kind, directories)
-        chosen = kind if canonical is not None else "Naota/" + kind if legacy is not None else kind
+        legacy = _directory(root, "Vanhanh/" + kind, directories)
+        chosen = kind if canonical is not None else "Vanhanh/" + kind if legacy is not None else kind
         members = canonical if canonical is not None else legacy or []
         layout[kind] = chosen
         for entry in members:
@@ -215,15 +215,15 @@ def _scan(root, language):
                         body.split("\n")[0][:skill_router.SKILL_DESC_MAX] if body else ""),
                     "group": meta.get("group") or "Chung", "enabled": enabled})
 
-    state_text, record = read("Naota/loop-state.json", optional=True)
+    state_text, record = read("Vanhanh/loop-state.json", optional=True)
     loop_state = _mapping(state_text) if state_text is not None else {}
     # Runtime summaries and previous outputs are irrelevant to discovery and private.
     paused = {slug: bool(value.get("auto_paused_reason")) for slug, value in loop_state.items() if isinstance(value, dict)}
     record["projection"] = paused if state_text is not None else None
-    for entry in _directory(root, "Naota/loops", directories) or []:
+    for entry in _directory(root, "Vanhanh/loops", directories) or []:
         if entry["kind"] != "file" or not Path(entry["name"]).match("*.md"):
             continue
-        text, record = read("Naota/loops/" + entry["name"])
+        text, record = read("Vanhanh/loops/" + entry["name"])
         meta, _ = _frontmatter(text, loop=True)
         record["projection"] = meta
         goal = str(meta.get("goal", "custom") or "custom").strip().lower()
@@ -238,7 +238,7 @@ def _scan(root, language):
             "interval_min": interval, "goal": goal if goal in ("business", "brain", "product", "custom") else "custom",
             "paused": paused.get(slug, False)})
 
-    usage_text, record = read("Naota/skill-usage.json", optional=True)
+    usage_text, record = read("Vanhanh/skill-usage.json", optional=True)
     usage = _mapping(usage_text) if usage_text is not None else {}
     priorities = {}
     for slug, value in usage.items():

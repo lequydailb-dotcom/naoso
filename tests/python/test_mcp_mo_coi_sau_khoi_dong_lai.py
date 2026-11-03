@@ -2,8 +2,8 @@
 
     python tests/run.py mcp_mo_coi      (KHÔNG mạng; spawn vài tiến trình python ngủ)
 
-Lỗi đã gặp ở bot "Naota An": bot im trong nhóm Zalo từ 21:09. Tài khoản có HAI tiến trình
-`naota-zalo mcp start`, một từ 20:49 và một do server mở lại lúc 21:10. Zalo chỉ đẩy tin về một
+Lỗi đã gặp ở bot "Vanhanh An": bot im trong nhóm Zalo từ 21:09. Tài khoản có HAI tiến trình
+`vanhanh-zalo mcp start`, một từ 20:49 và một do server mở lại lúc 21:10. Zalo chỉ đẩy tin về một
 socket, bot đọc phiên mới, phiên mới gần như không nhận được gì.
 
 Điều được ghim:
@@ -22,7 +22,7 @@ import sys
 import tempfile
 import time
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-mocoi-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-mocoi-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -55,7 +55,7 @@ def _pid_da_chet():
     return p.pid
 
 
-NGU = "import time; time.sleep(600)  # naota-mcp-mo-coi-{}"
+NGU = "import time; time.sleep(600)  # vanhanh-mcp-mo-coi-{}"
 
 
 async def _mo(key, tag):

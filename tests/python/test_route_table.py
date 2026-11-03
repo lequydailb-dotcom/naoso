@@ -14,7 +14,7 @@ mà nằm trong một đối tượng bọc, nên hàm snapshot() phải đi đ�
 Khi test đỏ mà bạn KHÔNG cố ý đổi route thì đó là bug của lần bóc vừa rồi, đừng --update.
 Chỉ --update khi thật sự thêm/xoá/đổi tên một endpoint, và commit file .json chung với thay đổi đó.
 
-KHÔNG mạng. Dùng NAOTA_STATE_DIR tạm nên không đụng dữ liệu thật.
+KHÔNG mạng. Dùng VANHANH_STATE_DIR tạm nên không đụng dữ liệu thật.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401  - nạp server/ vào sys.path (xem tests/python/_paths.py)
 import json
@@ -23,7 +23,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-routetest-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-routetest-"))
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")

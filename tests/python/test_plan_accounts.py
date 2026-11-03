@@ -15,8 +15,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-_TMP = Path(tempfile.mkdtemp(prefix="naota-plan-acc-"))
-os.environ.setdefault("NAOTA_STATE_DIR", str(_TMP / "state"))
+_TMP = Path(tempfile.mkdtemp(prefix="vanhanh-plan-acc-"))
+os.environ.setdefault("VANHANH_STATE_DIR", str(_TMP / "state"))
 _FAKE_HOME = _TMP / "home"
 for d in (".codex", ".grok", ".claude"):
     (_FAKE_HOME / d).mkdir(parents=True, exist_ok=True)
@@ -66,10 +66,10 @@ P.mark_signed_in("anthropic-cli", fc)
 check("Claude: the sign-in mark alone counts on macOS only", P.signed_in("anthropic-cli", "acc_k") == (sys.platform == "darwin"))
 (fc / ".credentials.json").write_text("{}", encoding="utf-8")
 check("Claude: a credentials file = signed in", P.signed_in("anthropic-cli", "acc_k"))
-(P.default_home("openai-oauth") / "naota.config.toml").write_text("[profiles.naota]\n", encoding="utf-8")
+(P.default_home("openai-oauth") / "vanhanh.config.toml").write_text("[profiles.vanhanh]\n", encoding="utf-8")
 (P.default_home("openai-oauth") / "auth.json").write_text("{}", encoding="utf-8")
 P.prepare("openai-oauth", fb)
-check("account 1's Codex settings (hub profile) are copied into the extra folder", (fb / "naota.config.toml").exists())
+check("account 1's Codex settings (hub profile) are copied into the extra folder", (fb / "vanhanh.config.toml").exists())
 check("account 1's login is never copied", json.loads((fb / "auth.json").read_text(encoding="utf-8"))["tokens"]["access_token"] == "a")
 
 # ---- 3. rotation ---------------------------------------------------------------------------------------

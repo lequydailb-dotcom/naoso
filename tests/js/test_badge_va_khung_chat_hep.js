@@ -2,7 +2,7 @@
 
        node tests/js/test_badge_va_khung_chat_hep.js
 
-   Hàng tiêu đề vỡ trên màn hẹp: "Trò chuyện với Naota" xuống BỐN dòng, chữ "Thu nhỏ" xuống
+   Hàng tiêu đề vỡ trên màn hẹp: "Trò chuyện với Vanhanh" xuống BỐN dòng, chữ "Thu nhỏ" xuống
    hai dòng, đẩy khung chat tụt hẳn xuống. Hồi quy do chính nút Thu nhỏ thêm - hàng
    vốn đã chật, thêm một nút chữ nữa là vỡ.
 
@@ -42,7 +42,7 @@ check("tìm được media query của trang Trò chuyện", iMq !== -1);
 const MQ = CONSOLE.slice(iMq, iMq + 900);
 check("CANARY: màn hẹp thì nút Thu nhỏ chỉ còn icon", /\.cp-min span\{\s*display:none/.test(MQ));
 // Ba mục về .cp-title (cấm xuống dòng, cắt ba chấm, min-width:0) ĐÃ BỎ: tiêu đề
-// tĩnh "Trò chuyện với Naota" bị gỡ hẳn khỏi thanh theo yêu cầu, nên không còn
+// tĩnh "Trò chuyện với Vanhanh" bị gỡ hẳn khỏi thanh theo yêu cầu, nên không còn
 // gì để cắt. Thứ đứng ở chỗ đó bây giờ là chip project, và chính nó nhận lại yêu cầu "một
 // dòng, cắt ba chấm" - canh ở tests/js/test_khung_project.js.
 check("thanh tiêu đề không còn tiêu đề tĩnh để phải cắt", !/cp-title/.test(CONSOLE));

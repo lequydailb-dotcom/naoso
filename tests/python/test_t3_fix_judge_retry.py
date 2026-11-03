@@ -10,7 +10,7 @@ lượt nhóm và engine phán xử GIẢ.
 import asyncio
 import os
 
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
 
 from _judge_world import World, batch, check, finish, keys_in  # noqa: E402
 import agent_judge as AJ  # noqa: E402

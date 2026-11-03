@@ -6,9 +6,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-os.environ['NAOTA_STATE_DIR'] = tempfile.mkdtemp(prefix='naota-quality-api-')
-BRAIN = Path(tempfile.mkdtemp(prefix='naota-quality-brain-'))
-OTHER = Path(tempfile.mkdtemp(prefix='naota-quality-other-'))
+os.environ['VANHANH_STATE_DIR'] = tempfile.mkdtemp(prefix='vanhanh-quality-api-')
+BRAIN = Path(tempfile.mkdtemp(prefix='vanhanh-quality-brain-'))
+OTHER = Path(tempfile.mkdtemp(prefix='vanhanh-quality-other-'))
 (BRAIN / 'agents').mkdir()
 for slug in ('leader', 'maker'):
     (BRAIN / 'agents' / f'{slug}.md').write_text(

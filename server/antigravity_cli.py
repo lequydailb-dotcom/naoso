@@ -63,13 +63,13 @@ def lenh_cai() -> str:
 
 
 def find_antigravity_cli() -> Optional[str]:
-    """Tìm binary `agy`. Cửa thoát NAOTA_AGY_BIN cho máy cài chỗ lạ.
+    """Tìm binary `agy`. Cửa thoát VANHANH_AGY_BIN cho máy cài chỗ lạ.
 
     Trình cài chính chủ thả vào `~/.local/bin/agy`, mà thư mục đó KHÔNG chắc nằm trong PATH của
-    tiến trình Naota - dịch vụ systemd và app trên macOS đều được cấp một PATH rất ngắn. Nên
+    tiến trình Vanhanh - dịch vụ systemd và app trên macOS đều được cấp một PATH rất ngắn. Nên
     phải soi tay chỗ đó thay vì tin mỗi `which`.
     """
-    envp = (os.environ.get("NAOTA_AGY_BIN") or "").strip()
+    envp = (os.environ.get("VANHANH_AGY_BIN") or "").strip()
     if envp:
         try:
             if Path(envp).exists():
@@ -103,7 +103,7 @@ def find_antigravity_cli() -> Optional[str]:
 # ---------------------------------------------------------------------------
 _HELP_CACHE: dict = {"path": None, "text": "", "ts": 0.0}
 _HELP_TTL = 300.0     # 5 phút: đủ để một phiên chat không đẻ tiến trình mỗi lượt, mà nâng cấp
-                      # bản CLI xong cũng không phải khởi động lại Naota mới nhận cờ mới.
+                      # bản CLI xong cũng không phải khởi động lại Vanhanh mới nhận cờ mới.
 _HELP_TTL_LOI = 120.0  # kết quả RỖNG cũng phải nhớ: binary hỏng mà cứ chạy lại `--help` 20s
                        # mỗi lượt gọi là tự biến một CLI hỏng thành cả app đơ (từng xảy ra:
                        # mọi trang cùng đứng hình khi `agy` treo).
@@ -151,7 +151,7 @@ def co_co(*ten_co: str) -> bool:
 # cờ `--effort` có thật mà chỉ nhận `low|high` thì gửi "medium" là CLI thoát ngay, hỏng trọn
 # lượt chat. Nên phải thấy TÊN CỜ trong help, và thấy CẢ GIÁ TRỊ định gửi, mới truyền.
 #
-# Hệ quả thành thật: bản CLI nào không liệt kê giá trị trong help thì Naota không truyền gì
+# Hệ quả thành thật: bản CLI nào không liệt kê giá trị trong help thì Vanhanh không truyền gì
 # cả, và độ sâu suy nghĩ rơi về câu nhắc trong prompt. Đó là chủ ý - thà mất một tuỳ chọn còn
 # hơn đoán một giá trị rồi làm hỏng lượt chat của người dùng. Khi CLI khai rõ ra thì phần này
 # tự chạy, khỏi sửa code.
@@ -254,10 +254,10 @@ _MA_TAM_THOI = ("code 429", "code 500", "code 502", "code 503", "code 504",
 
 
 def _la_het_gio_luot(loi: str) -> bool:
-    """`agy` stopped the turn itself because it ran past `--print-timeout` (the cap Naota sets).
+    """`agy` stopped the turn itself because it ran past `--print-timeout` (the cap Vanhanh sets).
 
     Example: a 70-step turn ended with "[agy] print timeout after 15m0s
-    with turn in progress; returning partial output". The word "timeout" made Naota call it a
+    with turn in progress; returning partial output". The word "timeout" made Vanhanh call it a
     temporary Google outage and claim two retries. It is neither: the turn was simply too long,
     and running it again would redo every step (messages sent, files written).
     """
@@ -298,10 +298,10 @@ def _cau_bao_tam_thoi(loi: str, so_lan: int = len(_NHIP_THU_LAI)) -> str:
     `so_lan` is the number of retries that really ran: a turn that already used a tool is never
     retried, and the old text claimed "retried 2 times" for it anyway.
     """
-    vi_thu = ("Naota đã tự thử lại " + str(so_lan) + " lần, vẫn chưa được.\n\n" if so_lan
-              else "Lượt này đã làm được một phần nên Naota không tự chạy lại, tránh làm một việc hai lần.\n\n")
-    en_thu = ("Naota retried " + str(so_lan) + " times without success.\n\n" if so_lan
-              else "This turn had already done part of the work, so Naota did not run it again (that would repeat it).\n\n")
+    vi_thu = ("Vanhanh đã tự thử lại " + str(so_lan) + " lần, vẫn chưa được.\n\n" if so_lan
+              else "Lượt này đã làm được một phần nên Vanhanh không tự chạy lại, tránh làm một việc hai lần.\n\n")
+    en_thu = ("Vanhanh retried " + str(so_lan) + " times without success.\n\n" if so_lan
+              else "This turn had already done part of the work, so Vanhanh did not run it again (that would repeat it).\n\n")
     return localefmt.chu(
         "Google (Antigravity) đang trục trặc tạm thời nên lượt này không gửi đi được. " + vi_thu +
         "Chờ một lát rồi nhắn lại, hoặc đổi sang bộ não khác ở trang Models. Đây là lỗi "
@@ -318,16 +318,16 @@ def _cau_bao_het_gio(loi: str, giay: float) -> str:
     phut = max(1, int(round(giay / 60)))
     return localefmt.chu(
         "Lượt này chạy quá " + str(phut) + " phút nên Antigravity CLI tự dừng. Đây là trần thời gian "
-        "Naota đặt cho một lượt, không phải lỗi của Google hay cấu hình của bạn. Các bước đã chạy xong "
+        "Vanhanh đặt cho một lượt, không phải lỗi của Google hay cấu hình của bạn. Các bước đã chạy xong "
         "vẫn giữ kết quả.\n\n"
         "Nhắn \"làm tiếp\" để làm nốt phần còn lại, hoặc giao việc dài như vậy thành việc nền ở trang "
-        "Việc. Cần trần dài hơn thì đặt biến môi trường NAOTA_AGY_TIMEOUT (tính bằng giây).\n\n"
+        "Việc. Cần trần dài hơn thì đặt biến môi trường VANHANH_AGY_TIMEOUT (tính bằng giây).\n\n"
         "_Nguyên văn:_ " + (loi or "")[:400],
         "This turn ran over " + str(phut) + " minutes, so Antigravity CLI stopped it. That is the time "
-        "cap Naota sets for one turn, not a Google error or your configuration. Steps that finished keep "
+        "cap Vanhanh sets for one turn, not a Google error or your configuration. Steps that finished keep "
         "their results.\n\n"
         "Send \"continue\" to finish the rest, or give a job this long to the background queue on the "
-        "Work page. For a longer cap, set the environment variable NAOTA_AGY_TIMEOUT (in seconds).\n\n"
+        "Work page. For a longer cap, set the environment variable VANHANH_AGY_TIMEOUT (in seconds).\n\n"
         "_Raw message:_ " + (loi or "")[:400])
 
 
@@ -366,7 +366,7 @@ def phien_moi() -> str:
 # ---------------------------------------------------------------------------
 # Prompt DÀI: trần dòng lệnh của hệ điều hành, và đường vòng khi argv không đủ chỗ
 # ---------------------------------------------------------------------------
-# ĐO, và con số này đảo ngược cả cách hiểu vấn đề: system prompt của Naota trên
+# ĐO, và con số này đảo ngược cả cách hiểu vấn đề: system prompt của Vanhanh trên
 # một brain TRỐNG (chưa ký ức, chưa lịch sử) đã là 36.045 ký tự - riêng CLAUDE.md 27.172, cộng
 # lớp agentic, chỉ mục năng lực, router skill và khối kênh. Windows chặn TỔNG dòng lệnh của tiến
 # trình con ở 32767 (CreateProcess), nên trên Windows đường argv KHÔNG BAO GIỜ đủ chỗ, kể cả khi
@@ -417,7 +417,7 @@ def _tep_nho_duong() -> Path:
         import config
         base = Path(config.STATE_DIR)
     except Exception:
-        base = Path(os.environ.get("NAOTA_STATE_DIR") or Path(__file__).parent)
+        base = Path(os.environ.get("VANHANH_STATE_DIR") or Path(__file__).parent)
     return base / _NHO_DUONG
 
 
@@ -458,7 +458,7 @@ def _ghi_nho_duong(d: dict):
 # này không suy luận từ tài liệu được, phải hỏi thẳng binary trên máy đó. Nên thử lần lượt bằng
 # một prompt tí hon có mã canary, cái nào vọng lại canary thì cái đó đúng.
 _CT_STDIN = (("trong", []), ("gach", ["-p", "-"]), ("rong", ["-p", ""]))
-_MA_CANARY = "NAOTA-STDIN-OK-7413"
+_MA_CANARY = "VANHANH-STDIN-OK-7413"
 
 
 def _do_stdin(cli: str, timeout: float = 75.0) -> str:
@@ -495,16 +495,16 @@ def _la_loi_thieu_prompt(loi: str) -> bool:
 def duong_prompt_dai(cli: Optional[str] = None) -> str:
     """Prompt không nhét vừa argv thì đi đường nào: "stdin:<công thức>" hay "file".
 
-    Ưu tiên stdin vì nó là đường TRUNG THỰC: prompt tới model nguyên vẹn, đúng thứ Naota gửi.
+    Ưu tiên stdin vì nó là đường TRUNG THỰC: prompt tới model nguyên vẹn, đúng thứ Vanhanh gửi.
     Đường file phải nhờ chính model chịu mở file ra đọc, tức có xác suất trượt. Nhưng "ưu tiên"
     không có nghĩa là "mặc định tin": một bản cũ mặc định stdin theo tài liệu và người dùng lĩnh
     trọn "Error: empty prompt" ngay lượt đầu. Nên ở đây HỎI BINARY (xem `_do_stdin`), và chỉ khi
     không công thức nào ăn mới xuống đường file.
 
     Nhớ ra đĩa theo vân tay binary. Bất đối xứng có chủ ý: kết quả dương tính nhớ mãi, âm tính
-    chỉ nhớ 24 giờ. Cửa thoát: NAOTA_AGY_PROMPT_DAI=stdin|file|argv.
+    chỉ nhớ 24 giờ. Cửa thoát: VANHANH_AGY_PROMPT_DAI=stdin|file|argv.
     """
-    ep = (os.environ.get("NAOTA_AGY_PROMPT_DAI") or "").strip().lower()
+    ep = (os.environ.get("VANHANH_AGY_PROMPT_DAI") or "").strip().lower()
     if ep in ("file", "argv"):
         return ep
     if ep == "stdin":
@@ -540,7 +540,7 @@ def nho_duong(cli: Optional[str], duong: str, vi_sao: str = ""):
                     "ts": time.time()})
 
 
-_THU_MUC_NGU_CANH = ".naota-agy"
+_THU_MUC_NGU_CANH = ".vanhanh-agy"
 _HAN_NGU_CANH = 3600.0      # file mồ côi quá một giờ thì dọn
 
 
@@ -563,7 +563,7 @@ def _don_ngu_canh_cu(thu_muc: Path):
 def _viet_file_ngu_canh(cwd: str, noi_dung: str) -> tuple[str, str]:
     """Ghi cả gói (system prompt + hội thoại + câu hỏi) ra file, trả (đường tuyệt đối, đường nhắc).
 
-    Ghi vào STATE_DIR của Naota chứ KHÔNG vào brain, và đây là chỗ đã suýt sai một cách đắt giá.
+    Ghi vào STATE_DIR của Vanhanh chứ KHÔNG vào brain, và đây là chỗ đã suýt sai một cách đắt giá.
     Đặt trong brain thì tiện hơn (agent luôn đọc được file trong cwd của nó), nhưng file này là
     bản sao của system prompt + MEMORY.md + toàn bộ lịch sử hội thoại, mà đường sao lưu git của
     brain (`git_brain._backup_skip`) chỉ chặn theo danh sách cố định rồi cho qua mọi file .md.
@@ -574,7 +574,7 @@ def _viet_file_ngu_canh(cwd: str, noi_dung: str) -> tuple[str, str]:
 
     STATE_DIR cũng chữa luôn ca cwd không ghi được: đường fast path gọi engine này với
     `cwd = os.getcwd()`, tức `/app` trong Docker - thư mục của root trong khi tiến trình chạy
-    bằng user `naota`.
+    bằng user `vanhanh`.
 
     Đổi lại phải cho `agy` quyền đọc thư mục đó bằng `--add-dir`, việc của người gọi.
     """
@@ -582,7 +582,7 @@ def _viet_file_ngu_canh(cwd: str, noi_dung: str) -> tuple[str, str]:
         import config
         goc = Path(config.STATE_DIR)
     except Exception:
-        goc = Path(os.environ.get("NAOTA_STATE_DIR") or Path(__file__).parent)
+        goc = Path(os.environ.get("VANHANH_STATE_DIR") or Path(__file__).parent)
     thu_muc = goc / _THU_MUC_NGU_CANH
     thu_muc.mkdir(parents=True, exist_ok=True)
     _don_ngu_canh_cu(thu_muc)
@@ -598,9 +598,9 @@ def _viet_file_ngu_canh(cwd: str, noi_dung: str) -> tuple[str, str]:
 
 
 def cau_hoi_moi_nhat(prompt: str) -> str:
-    """Bóc ĐÚNG tin nhắn mới nhất của người dùng ra khỏi gói prompt Naota gửi cho `agy`.
+    """Bóc ĐÚNG tin nhắn mới nhất của người dùng ra khỏi gói prompt Vanhanh gửi cho `agy`.
 
-    Vì `agy` không nối lại mạch, mỗi lượt Naota gửi cả lịch sử hội thoại đã gói bằng
+    Vì `agy` không nối lại mạch, mỗi lượt Vanhanh gửi cả lịch sử hội thoại đã gói bằng
     `compaction.bootstrap_prompt`: lịch sử cũ ở trên, rồi một dòng đánh dấu, rồi câu hỏi hiện
     tại ở CUỐI. Chỗ nào cần "câu hỏi thật" (lời nhắc trên dòng lệnh khi đi đường file) phải lấy
     phần SAU dấu đó. Bản trước lấy 1500 ký tự ĐẦU của cả gói, tức là tiêu đề khối lịch sử cộng
@@ -636,7 +636,7 @@ def _loi_nhac_file(duong_dan: str, cau_hoi: str) -> str:
 
     Câu hỏi thật vẫn được nhắc lại ở đây (cắt ngắn) chứ không chỉ nằm trong file. Đó là lưới an
     toàn: bản CLI nào bướng không chịu đọc file thì ít ra vẫn trả lời đúng câu người dùng hỏi,
-    chỉ thiếu luật riêng của Naota, chứ không trả lời trống trơn. Phải là câu hỏi MỚI NHẤT
+    chỉ thiếu luật riêng của Vanhanh, chứ không trả lời trống trơn. Phải là câu hỏi MỚI NHẤT
     (xem `cau_hoi_moi_nhat`), không phải đoạn đầu của gói lịch sử.
     """
     hoi = cau_hoi_moi_nhat(cau_hoi)
@@ -662,13 +662,13 @@ def _loi_nhac_file(duong_dan: str, cau_hoi: str) -> str:
 
 
 _CANH_BAO_CHUA_DOC = (
-    "\n\n_(Lưu ý của Naota: bản `agy` trên máy này không mở file ngữ cảnh, nên lượt vừa rồi trả "
-    "lời mà chưa có system prompt và bộ nhớ của Naota. Muốn chuẩn thì nâng cấp `agy` lên bản mới "
+    "\n\n_(Lưu ý của Vanhanh: bản `agy` trên máy này không mở file ngữ cảnh, nên lượt vừa rồi trả "
+    "lời mà chưa có system prompt và bộ nhớ của Vanhanh. Muốn chuẩn thì nâng cấp `agy` lên bản mới "
     "(nhận prompt qua stdin), hoặc đổi bộ não khác ở trang Models.)_"
 )
 _CANH_BAO_CHUA_DOC_EN = (
-    "\n\n_(Note from Naota: the `agy` version on this machine does not open the context file, so the last "
-    "answer was given without Naota's system prompt and memory. To fix this, upgrade `agy` to a newer version "
+    "\n\n_(Note from Vanhanh: the `agy` version on this machine does not open the context file, so the last "
+    "answer was given without Vanhanh's system prompt and memory. To fix this, upgrade `agy` to a newer version "
     "(that takes the prompt over stdin), or switch to another brain on the Models page.)_"
 )
 # Bơm stdin theo mẩu bao nhiêu byte. 4096 là kích thước một trang ống dẫn: đủ nhỏ để bên đọc
@@ -685,13 +685,13 @@ def _ghi_stdin(proc, s: str) -> None:
     `buffer.toString("utf8")` trên TỪNG MẨU ống dẫn thay vì dùng bộ giải mã tăng dần: mẩu nào
     kết thúc giữa một ký tự thì mấy byte lẻ thành U+FFFD hết.
 
-    ĐÃ ĐO trên máy này: lớp đọc của Naota KHÔNG dính lỗi đó (test `_gia` cắt byte giữa ký tự,
+    ĐÃ ĐO trên máy này: lớp đọc của Vanhanh KHÔNG dính lỗi đó (test `_gia` cắt byte giữa ký tự,
     chữ vẫn ghép lại nguyên vẹn - `io.TextIOWrapper` dùng bộ giải mã tăng dần đúng chuẩn). Và
     các chữ hỏng đã gặp ("gồm", "hạn", "từng", "đồng bộ") đều là từ trong system prompt
-    của Naota, tức chúng hỏng trên đường VÀO chứ không phải đường ra. Nên bên cắt nhầm là bộ
+    của Vanhanh, tức chúng hỏng trên đường VÀO chứ không phải đường ra. Nên bên cắt nhầm là bộ
     đọc stdin của `agy`.
 
-    Naota không sửa được `agy`, nhưng chỉnh được chỗ mình ĐẶT ranh giới: ghi từng mẩu kết thúc
+    Vanhanh không sửa được `agy`, nhưng chỉnh được chỗ mình ĐẶT ranh giới: ghi từng mẩu kết thúc
     đúng biên ký tự rồi flush. Bên kia đọc bao nhiêu mẩu cũng được, ranh giới nào cũng rơi vào
     giữa hai ký tự trọn vẹn. Ghi thẳng dạng BYTE còn tránh luôn chuyện `\\n` bị dịch thành
     `\\r\\n` trên Windows (chế độ text làm vậy) - prompt tới nơi đúng nguyên văn.
@@ -715,23 +715,23 @@ def _ghi_stdin(proc, s: str) -> None:
 
 
 _CANH_BAO_HONG_DAU = (
-    "\n\n_(Lưu ý của Naota: bản `agy` trên máy này làm hỏng dấu tiếng Việt khi nhận prompt dài "
+    "\n\n_(Lưu ý của Vanhanh: bản `agy` trên máy này làm hỏng dấu tiếng Việt khi nhận prompt dài "
     "(chữ biến thành `�`), và đổi đường gửi cũng không cứu được. Lỗi nằm trong chính CLI, "
-    "Naota không vá được - nâng cấp `agy` lên bản mới, hoặc đổi bộ não khác ở trang Models.)_"
+    "Vanhanh không vá được - nâng cấp `agy` lên bản mới, hoặc đổi bộ não khác ở trang Models.)_"
 )
 _CANH_BAO_HONG_DAU_EN = (
-    "\n\n_(Note from Naota: the `agy` version on this machine breaks Vietnamese diacritics in long prompts "
+    "\n\n_(Note from Vanhanh: the `agy` version on this machine breaks Vietnamese diacritics in long prompts "
     "(letters turn into `�`), and switching the delivery route did not help. The bug is in the CLI itself, "
-    "Naota cannot patch it - upgrade `agy`, or switch to another brain on the Models page.)_"
+    "Vanhanh cannot patch it - upgrade `agy`, or switch to another brain on the Models page.)_"
 )
 _CANH_BAO_DOC_HONG = (
-    "\n\n_(Lưu ý của Naota: `agy` có thử mở file ngữ cảnh nhưng KHÔNG đọc được (thường là do mức "
+    "\n\n_(Lưu ý của Vanhanh: `agy` có thử mở file ngữ cảnh nhưng KHÔNG đọc được (thường là do mức "
     "quyền hoặc sandbox chặn), nên lượt vừa rồi trả lời mà chưa có system prompt và bộ nhớ của "
-    "Naota. Nâng cấp `agy` lên bản nhận prompt qua stdin là hết hẳn đường vòng này.)_"
+    "Vanhanh. Nâng cấp `agy` lên bản nhận prompt qua stdin là hết hẳn đường vòng này.)_"
 )
 _CANH_BAO_DOC_HONG_EN = (
-    "\n\n_(Note from Naota: `agy` tried to open the context file but could NOT read it (usually blocked by "
-    "the permission level or sandbox), so the last answer was given without Naota's system prompt and "
+    "\n\n_(Note from Vanhanh: `agy` tried to open the context file but could NOT read it (usually blocked by "
+    "the permission level or sandbox), so the last answer was given without Vanhanh's system prompt and "
     "memory. Upgrading `agy` to a version that takes the prompt over stdin removes this detour.)_"
 )
 
@@ -740,7 +740,7 @@ _CANH_BAO_DOC_HONG_EN = (
 # Mức quyền
 # ---------------------------------------------------------------------------
 def co_quyen_cho_mode(mode: Optional[str]) -> list[str]:
-    """Ba mức quyền của Naota -> cờ của `agy`. Giá trị lạ về nấc CHẶT NHẤT (fail-closed).
+    """Ba mức quyền của Vanhanh -> cờ của `agy`. Giá trị lạ về nấc CHẶT NHẤT (fail-closed).
 
     Chỉ có `--dangerously-skip-permissions` (tự duyệt mọi tool) và `--sandbox` (siết terminal)
     là thấy trong tài liệu. KHÔNG có nấc "chỉ đọc" tương đương `--approval-mode plan` của Gemini
@@ -899,14 +899,14 @@ def auth_status(bo_qua_cache: bool = False) -> dict:
         d = {"connected": True, "method": _METHOD_KEYRING, "email": "", "error": ""}
     else:
         # Nói rõ chuyện ĐÚNG USER: nhiều người đã đăng nhập agy thành công qua SSH
-        # nhưng bằng user khác (vd root), còn Naota chạy bằng user riêng nên không thấy gì -
-        # "đã cài rồi mà Naota không nhận". Trang Code của dashboard mở shell bằng chính user
-        # của Naota nên đăng nhập ở đó là chắc ăn nhất.
+        # nhưng bằng user khác (vd root), còn Vanhanh chạy bằng user riêng nên không thấy gì -
+        # "đã cài rồi mà Vanhanh không nhận". Trang Code của dashboard mở shell bằng chính user
+        # của Vanhanh nên đăng nhập ở đó là chắc ăn nhất.
         d = {"connected": False, "method": "", "email": "",
-             "error": "Đã cài Antigravity CLI nhưng phiên của Naota chưa đăng nhập. Mở trang "
-                      "Code (Terminal) NGAY TRONG Naota, gõ `agy` rồi làm theo hướng dẫn - "
-                      "phải đăng nhập bằng ĐÚNG user đang chạy Naota; SSH bằng user khác "
-                      "(vd root) đăng nhập xong Naota vẫn không thấy."}
+             "error": "Đã cài Antigravity CLI nhưng phiên của Vanhanh chưa đăng nhập. Mở trang "
+                      "Code (Terminal) NGAY TRONG Vanhanh, gõ `agy` rồi làm theo hướng dẫn - "
+                      "phải đăng nhập bằng ĐÚNG user đang chạy Vanhanh; SSH bằng user khác "
+                      "(vd root) đăng nhập xong Vanhanh vẫn không thấy."}
     _AUTH_CACHE.update(ts=now, val=dict(d))
     return _hien_auth(d)
 
@@ -916,14 +916,14 @@ def auth_status(bo_qua_cache: bool = False) -> dict:
 _METHOD_KEYRING = "google (keyring của máy)"
 _AUTH_EN = {
     _METHOD_KEYRING: "google (machine keyring)",
-    "Đã cài Antigravity CLI nhưng phiên của Naota chưa đăng nhập. Mở trang "
-    "Code (Terminal) NGAY TRONG Naota, gõ `agy` rồi làm theo hướng dẫn - "
-    "phải đăng nhập bằng ĐÚNG user đang chạy Naota; SSH bằng user khác "
-    "(vd root) đăng nhập xong Naota vẫn không thấy.":
-        "Antigravity CLI is installed but Naota's session is not signed in. Open the "
-        "Terminal page RIGHT IN Naota, type `agy` and follow the steps - "
-        "you must sign in as the SAME user that runs Naota; signing in over SSH as another user "
-        "(e.g. root) still leaves Naota unable to see it.",
+    "Đã cài Antigravity CLI nhưng phiên của Vanhanh chưa đăng nhập. Mở trang "
+    "Code (Terminal) NGAY TRONG Vanhanh, gõ `agy` rồi làm theo hướng dẫn - "
+    "phải đăng nhập bằng ĐÚNG user đang chạy Vanhanh; SSH bằng user khác "
+    "(vd root) đăng nhập xong Vanhanh vẫn không thấy.":
+        "Antigravity CLI is installed but Vanhanh's session is not signed in. Open the "
+        "Terminal page RIGHT IN Vanhanh, type `agy` and follow the steps - "
+        "you must sign in as the SAME user that runs Vanhanh; signing in over SSH as another user "
+        "(e.g. root) still leaves Vanhanh unable to see it.",
 }
 
 
@@ -988,13 +988,13 @@ def auth_status_nen() -> dict:
 def login_huong_dan() -> dict:
     """Hướng dẫn đăng nhập. KHÔNG có nút bấm trên dashboard, và đó là quyết định có lý do.
 
-    `agy` giữ token trong keyring hệ điều hành chứ không phải file, nên Naota không bắc cầu
-    token hộ được như Naota từng làm với Gemini CLI (đường đó đã gỡ). Dựng một nút
+    `agy` giữ token trong keyring hệ điều hành chứ không phải file, nên Vanhanh không bắc cầu
+    token hộ được như Vanhanh từng làm với Gemini CLI (đường đó đã gỡ). Dựng một nút
     "Đăng nhập" rồi bên dưới không làm gì được thì tệ hơn là nói thẳng phải gõ một lệnh.
 
     Điểm sáng cho người chạy VPS: `agy` tự nhận biết phiên từ xa và IN RA một đường link để mở
     trên máy có trình duyệt, nên không cần màn hình ở phía máy chủ. Nhận biết đó dựa vào biến
-    `SSH_CONNECTION`; terminal của Naota là pty ngay trên máy chủ nên trước đây không có
+    `SSH_CONNECTION`; terminal của Vanhanh là pty ngay trên máy chủ nên trước đây không có
     biến này và `agy` rơi vào luồng "trình duyệt cùng máy" - in link xong nằm chờ một cổng
     loopback mà trình duyệt ở máy khác không với tới, không hỏi mã, không báo lỗi.
     Nay `terminal._env` đặt biến đó khi máy chủ không có màn hình, nên luồng dán mã
@@ -1004,17 +1004,17 @@ def login_huong_dan() -> dict:
         "cai": lenh_cai(),
         "dang_nhap": "agy",
         "ghi_chu": localefmt.chu(
-            "Dùng trang Terminal (nhóm Năng lực) NGAY TRONG Naota - nó mở shell bằng đúng user "
-            "đang chạy Naota, đăng nhập ở đó là Naota nhận liền. (SSH bằng user khác, "
-            "vd root, đăng nhập xong Naota vẫn không thấy - đây là lý do hay gặp nhất "
+            "Dùng trang Terminal (nhóm Năng lực) NGAY TRONG Vanhanh - nó mở shell bằng đúng user "
+            "đang chạy Vanhanh, đăng nhập ở đó là Vanhanh nhận liền. (SSH bằng user khác, "
+            "vd root, đăng nhập xong Vanhanh vẫn không thấy - đây là lý do hay gặp nhất "
             "của cảnh 'cài rồi mà không nhận'.) Gõ `agy`: nó in ra một đường link. Mở "
             "link đó trên máy của bạn, đăng nhập Google xong trình duyệt nhảy sang một "
             "địa chỉ localhost báo không mở được - đó là bước ĐÚNG, copy nguyên địa "
             "chỉ trên thanh URL rồi dán ngược vào terminal và Enter. Chỉ phải làm một "
             "lần.",
-            "Use the Terminal page RIGHT IN Naota - it opens a shell as the same user "
-            "running Naota, so signing in there is picked up right away. (Signing in over SSH as another user, "
-            "e.g. root, still leaves Naota unable to see it - the most common reason "
+            "Use the Terminal page RIGHT IN Vanhanh - it opens a shell as the same user "
+            "running Vanhanh, so signing in there is picked up right away. (Signing in over SSH as another user, "
+            "e.g. root, still leaves Vanhanh unable to see it - the most common reason "
             "for 'installed but not recognized'.) Type `agy`: it prints a link. Open "
             "that link on your own machine; after the Google sign-in the browser jumps to a "
             "localhost address that fails to load - that is the CORRECT step, copy the whole "
@@ -1023,15 +1023,15 @@ def login_huong_dan() -> dict:
         "cuu_ho": localefmt.chu(
             "Nếu terminal không hiện chỗ dán (bản `agy` cũ): mở thêm một phiên terminal "
             "rồi chạy curl \"<địa chỉ localhost vừa copy>\" - cổng đó đang mở ngay "
-            "trên máy chạy Naota nên mã về đúng chỗ.",
+            "trên máy chạy Vanhanh nên mã về đúng chỗ.",
             "If the terminal shows no place to paste (older `agy`): open another terminal session "
             "and run curl \"<the localhost address you copied>\" - that port is open right "
-            "on the machine running Naota, so the code lands in the right place."),
+            "on the machine running Vanhanh, so the code lands in the right place."),
     }
 
 
 # ---------------------------------------------------------------------------
-# MCP: đấu hub của Naota vào CLI
+# MCP: đấu hub của Vanhanh vào CLI
 # ---------------------------------------------------------------------------
 # ĐO bằng nguồn cấp 1 chứ không phải suy từ tài liệu bên thứ ba: tài liệu MCP
 # chính chủ của Antigravity, tài liệu di trú Gemini CLI → Antigravity của Google, và hai issue
@@ -1041,10 +1041,10 @@ def login_huong_dan() -> dict:
 #
 # Kết quả lật ngược cả hai bản trước. Một bản cũ đoán
 # `.antigravity/mcp.json` + `.antigravity/settings.json`; bản sau thêm `.agents/mcp_config.json`
-# rồi ghi vào CHANGELOG là "Antigravity giờ dùng được tool của Naota". Cả ba lần đều KHÔNG chạy,
+# rồi ghi vào CHANGELOG là "Antigravity giờ dùng được tool của Vanhanh". Cả ba lần đều KHÔNG chạy,
 # vì có tới hai chỗ sai chồng lên nhau và cả hai đều hỏng lặng lẽ:
 #
-# 1. SAI TÊN KHOÁ. Naota ghi `{"httpUrl": ...}` - đó là schema của **Gemini CLI**, chép nguyên từ
+# 1. SAI TÊN KHOÁ. Vanhanh ghi `{"httpUrl": ...}` - đó là schema của **Gemini CLI**, chép nguyên từ
 #    `_apply_gemini_hub`. `agy` đọc khoá `serverUrl` (tài liệu chính chủ, và một issue của
 #    google-antigravity/antigravity-cli dán đúng cấu hình chạy được). Tài liệu di trú Gemini →
 #    Antigravity nói thẳng: `url` được ĐỔI TÊN thành `serverUrl`. Entry không có khoá nào `agy`
@@ -1059,11 +1059,11 @@ def login_huong_dan() -> dict:
 #    workspace để bản nào vá xong issue đó thì tự có luôn cách ly theo brain.
 #
 # Đánh đổi của việc phải ghi vào HOME, nói thẳng ra chứ không giấu: file đó là của NGƯỜI DÙNG và
-# dùng chung với Antigravity IDE, nên (a) IDE cũng sẽ nhìn thấy tool của Naota, (b) hai brain
-# chạy `agy` cùng lúc thì brain sau ghi đè header `X-Naota-Vault` của brain trước. Bên Codex chỗ
+# dùng chung với Antigravity IDE, nên (a) IDE cũng sẽ nhìn thấy tool của Vanhanh, (b) hai brain
+# chạy `agy` cùng lúc thì brain sau ghi đè header `X-Vanhanh-Vault` của brain trước. Bên Codex chỗ
 # này chữa bằng override argv (`mcp_hub.codex_vault_override`); ở đây chưa đo được `agy` có cờ
 # tương đương nên `_build_args` hỏi `co_co("--mcp-config")` rồi mới truyền - có thì hết race,
-# không có thì vẫn chạy như cũ. Ai không muốn Naota đụng HOME thì đặt NAOTA_AGY_MCP_HOME=0.
+# không có thì vẫn chạy như cũ. Ai không muốn Vanhanh đụng HOME thì đặt VANHANH_AGY_MCP_HOME=0.
 
 # Hai đường ĐOÁN của các bản trước. Không còn ghi vào nữa, nhưng phải DỌN: chúng chứa hub token
 # và nằm trong brain, mà brain thì có đường sao lưu git đẩy lên remote của người dùng.
@@ -1079,14 +1079,14 @@ def hub_entry(url: str, headers: Optional[dict] = None) -> dict:
     qua, còn thiếu khoá thì server câm luôn, nên chọn phía thừa.
 
     KHÔNG có `httpUrl`/`trust`/`timeout`: cả ba là của Gemini CLI, và chính `httpUrl` là thứ đã
-    làm bộ não này chạy suốt mấy bản mà không có lấy một tool nào của Naota.
+    làm bộ não này chạy suốt mấy bản mà không có lấy một tool nào của Vanhanh.
 
-    Cửa thoát `NAOTA_AGY_MCP_KEY=serverUrl|url` cho ai gặp một bản `agy` khó tính từ chối entry
+    Cửa thoát `VANHANH_AGY_MCP_KEY=serverUrl|url` cho ai gặp một bản `agy` khó tính từ chối entry
     có khoá lạ. Đây là chỗ KHÔNG đo được trên máy dựng bản này (mạng bị chặn không tải nổi
-    binary), nên phải có một cái lẫy thay vì bắt người dùng chờ bản sau - file cấu hình bị Naota
+    binary), nên phải có một cái lẫy thay vì bắt người dùng chờ bản sau - file cấu hình bị Vanhanh
     ghi đè mỗi lượt chat, sửa tay không giữ được.
     """
-    khoa = (os.environ.get("NAOTA_AGY_MCP_KEY") or "").strip()
+    khoa = (os.environ.get("VANHANH_AGY_MCP_KEY") or "").strip()
     if khoa == "serverUrl":
         e: dict = {"serverUrl": url}
     elif khoa == "url":
@@ -1101,9 +1101,9 @@ def hub_entry(url: str, headers: Optional[dict] = None) -> dict:
 
 def _duong_mcp_home() -> list[Path]:
     """Cấu hình MCP tầng HOME mà `agy` thật sự nạp. Rỗng nếu người dùng tắt bằng env."""
-    if (os.environ.get("NAOTA_AGY_MCP_HOME") or "").strip() in ("0", "false", "no"):
+    if (os.environ.get("VANHANH_AGY_MCP_HOME") or "").strip() in ("0", "false", "no"):
         return []
-    rieng = (os.environ.get("NAOTA_AGY_MCP_CONFIG") or "").strip()
+    rieng = (os.environ.get("VANHANH_AGY_MCP_CONFIG") or "").strip()
     if rieng:
         return [Path(rieng).expanduser()]
     h = _home_dir()
@@ -1112,7 +1112,7 @@ def _duong_mcp_home() -> list[Path]:
 
 
 def duong_mcp(vault_root=None) -> list[Path]:
-    """Mọi file cấu hình MCP Naota ghi cho `agy`, HOME trước rồi tới workspace."""
+    """Mọi file cấu hình MCP Vanhanh ghi cho `agy`, HOME trước rồi tới workspace."""
     ds = _duong_mcp_home()
     if vault_root:
         try:
@@ -1123,7 +1123,7 @@ def duong_mcp(vault_root=None) -> list[Path]:
 
 
 def _ghi_mot_mcp(p: Path, hub: Optional[dict], xoa_khi_rong: bool = False) -> bool:
-    """Đặt/gỡ entry `naota` trong MỘT file mcp_config, giữ nguyên phần của người dùng."""
+    """Đặt/gỡ entry `vanhanh` trong MỘT file mcp_config, giữ nguyên phần của người dùng."""
     cu: dict = {}
     if p.exists():
         try:
@@ -1136,14 +1136,14 @@ def _ghi_mot_mcp(p: Path, hub: Optional[dict], xoa_khi_rong: bool = False) -> bo
     if not isinstance(servers, dict):
         servers = {}
     if hub:
-        servers["naota"] = hub
+        servers["vanhanh"] = hub
     else:
-        servers.pop("naota", None)
+        servers.pop("vanhanh", None)
     if servers:
         cu["mcpServers"] = servers
     else:
         cu.pop("mcpServers", None)
-    # Chỉ xoá file khi ĐÓ LÀ FILE CỦA NAOTA (hai đường đoán cũ) và không còn gì trong đó. File
+    # Chỉ xoá file khi ĐÓ LÀ FILE CỦA VANHANH (hai đường đoán cũ) và không còn gì trong đó. File
     # HOME là của người dùng, không bao giờ xoá - cùng lắm để lại `{}`, vẫn là JSON hợp lệ.
     if xoa_khi_rong and not cu:
         try:
@@ -1162,9 +1162,9 @@ def _ghi_mot_mcp(p: Path, hub: Optional[dict], xoa_khi_rong: bool = False) -> bo
 
 
 def ghi_mcp_settings(vault_root, hub: Optional[dict]) -> Optional[str]:
-    """Đấu hub của Naota vào `agy`: ghi entry `naota` vào cấu hình HOME + workspace.
+    """Đấu hub của Vanhanh vào `agy`: ghi entry `vanhanh` vào cấu hình HOME + workspace.
 
-    `hub=None` (hub tắt) → GỠ entry `naota` khỏi mọi chỗ, giữ nguyên MCP người dùng tự thêm.
+    `hub=None` (hub tắt) → GỠ entry `vanhanh` khỏi mọi chỗ, giữ nguyên MCP người dùng tự thêm.
     Trả về đường dẫn file ĐẦU TIÊN ghi được (file HOME - chỗ `agy` thật sự nạp), None nếu không
     ghi được chỗ nào. Lý do chọn từng đường dẫn: xem khối chú thích dài ngay trên.
     """
@@ -1210,15 +1210,15 @@ def trang_thai_mcp(vault_root=None) -> dict:
             doc = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
         except Exception:
             doc = {}
-        e = ((doc or {}).get("mcpServers") or {}).get("naota") or {}
-        # Nhận cả hai tên khoá: NAOTA_AGY_MCP_KEY=url thì entry chỉ có `url`, soi mỗi
+        e = ((doc or {}).get("mcpServers") or {}).get("vanhanh") or {}
+        # Nhận cả hai tên khoá: VANHANH_AGY_MCP_KEY=url thì entry chỉ có `url`, soi mỗi
         # `serverUrl` là báo "chưa đấu" cho một cấu hình hoàn toàn đúng.
         dia_chi = str(e.get("serverUrl") or e.get("url") or "")
-        ds.append({"path": str(p), "co_naota": bool(dia_chi), "url": dia_chi})
+        ds.append({"path": str(p), "co_vanhanh": bool(dia_chi), "url": dia_chi})
         co = bool(dia_chi)
         if not co:
             thieu.append(str(p))
-    return {"ok": any(d["co_naota"] for d in ds), "files": ds, "thieu": thieu}
+    return {"ok": any(d["co_vanhanh"] for d in ds), "files": ds, "thieu": thieu}
 
 
 # ---------------------------------------------------------------------------
@@ -1239,7 +1239,7 @@ class AntigravityCLI:
         self.mode = "suggest"
         # File mcp_config riêng cho ĐÚNG lượt này. Chỉ dùng được nếu bản `agy` trên máy có cờ
         # nhận file cấu hình (hỏi `co_co` trước khi truyền). Có thì hết cảnh hai brain chạy cùng
-        # lúc ghi đè header X-Naota-Vault của nhau trong file HOME dùng chung.
+        # lúc ghi đè header X-Vanhanh-Vault của nhau trong file HOME dùng chung.
         self.mcp_config: Optional[str] = None
         self.extra_args: list[str] = []
         # Độ sâu suy nghĩ (`main._cli_do_sau_khac` đặt). None = không truyền cờ nào.
@@ -1249,7 +1249,7 @@ class AntigravityCLI:
         # Trần thời gian một lượt. Gemini CLI không cần vì `--approval-mode` chặn mọi câu hỏi;
         # ở đây mức suggest/auto CHƯA ĐO được là CLI có dừng hỏi không, mà headless dừng hỏi là
         # treo vĩnh viễn. Thà cắt và báo còn hơn để một việc nền ngậm tiến trình cả đêm.
-        self.timeout = float(os.environ.get("NAOTA_AGY_TIMEOUT") or 900)
+        self.timeout = float(os.environ.get("VANHANH_AGY_TIMEOUT") or 900)
 
     def is_available(self) -> bool:
         return self.cli_path is not None
@@ -1275,7 +1275,7 @@ class AntigravityCLI:
                 args += ["--add-dir", str(d)]
         args += list(them or [])
         # Trần thời gian của CHÍNH `agy` trong print mode, mặc định 5 phút. Không đặt thì việc
-        # nền dài bị chính CLI cắt ở phút thứ 5 trong khi Naota còn ngồi đợi tới 15 - và cắt kiểu
+        # nền dài bị chính CLI cắt ở phút thứ 5 trong khi Vanhanh còn ngồi đợi tới 15 - và cắt kiểu
         # đó trả về câu trả lời dở dang chứ không báo lỗi, nên rất khó đoán ra.
         if co_co("--print-timeout"):
             args += ["--print-timeout", f"{int(self.timeout)}s"]
@@ -1297,7 +1297,7 @@ class AntigravityCLI:
         Tách hàm riêng vì nó ĐỒNG BỘ và có thể chậm (lần đầu phải chạy `agy --help`, trần 20
         giây), nên `query()` đẩy nó sang worker thay vì gọi thẳng trong event loop.
         """
-        ep = (os.environ.get("NAOTA_AGY_PROMPT_DAI") or "").strip().lower()
+        ep = (os.environ.get("VANHANH_AGY_PROMPT_DAI") or "").strip().lower()
         if ep in ("stdin", "file", "argv"):
             return duong_prompt_dai(self.cli_path) if ep == "stdin" else ep
         # Đo bằng _do_dai_argv chứ KHÔNG bằng len(): trần của hệ điều hành tính theo byte
@@ -1313,10 +1313,10 @@ class AntigravityCLI:
             yield {"type": "error",
                    "content": localefmt.chu(
                        f"Không tìm thấy Antigravity CLI (`agy`). Cài một lần trên máy "
-                       f"chạy Naota:\n\n`{lenh_cai()}`\n\nRồi gõ `agy` một lần để đăng "
+                       f"chạy Vanhanh:\n\n`{lenh_cai()}`\n\nRồi gõ `agy` một lần để đăng "
                        f"nhập Google.",
                        f"Antigravity CLI (`agy`) not found. Install it once on the machine "
-                       f"running Naota:\n\n`{lenh_cai()}`\n\nThen type `agy` once to sign "
+                       f"running Vanhanh:\n\n`{lenh_cai()}`\n\nThen type `agy` once to sign "
                        f"in to Google.")}
             return
         full = (self.instructions.strip() + "\n\n" + prompt) if self.instructions else prompt
@@ -1329,7 +1329,7 @@ class AntigravityCLI:
         # Lượt đi stdin là lượt CÓ THỂ HỎNG rồi thử lại, nên giữ lỗi của nó lại thay vì bắn ngay
         # ra màn hình. Từng thấy đúng cảnh ngược lại: hai bong bóng đỏ "Error: empty
         # prompt" và "thoát với mã 1" hiện lên, rồi mới tới câu trả lời - người dùng không có
-        # cách nào biết cái đỏ đó Naota đã tự xử xong.
+        # cách nào biết cái đỏ đó Vanhanh đã tự xử xong.
         # `giu_loi=True` cho MỌI đường, kể cả đường file. Trước đây chỗ này truyền
         # `giu_loi=(duong != "file")`, và nó đẻ ra lỗi kép: đường file vừa bắn lỗi ra ngay tại
         # chỗ, vừa gom vào `cac_loi` để nhánh `else` cuối hàm bắn ra LẦN NỮA - người dùng nhận
@@ -1337,7 +1337,7 @@ class AntigravityCLI:
         # một chỗ phát lỗi, mà lượt thử lại bên dưới cũng không bị lộ câu lỗi của lượt hỏng.
         async for ev in self._mot_luot(full, prompt, duong, ket, giu_loi=True):
             yield ev
-        # Model đã khoá mức nghĩ mà Naota còn kèm `--effort`: `agy` chết ngay lúc đọc cờ (xem
+        # Model đã khoá mức nghĩ mà Vanhanh còn kèm `--effort`: `agy` chết ngay lúc đọc cờ (xem
         # `model_khoa_effort`). Bỏ cờ rồi chạy lại NGAY trong lượt này - người dùng vẫn nhận
         # câu trả lời, chỉ mất phần độ sâu mà chính tên model đã ấn định sẵn.
         if self.effort and any(_la_loi_xung_effort(x) for x in ket.get("cac_loi") or []):
@@ -1395,7 +1395,7 @@ class AntigravityCLI:
         # Hình dạng thứ BA của "prompt không tới nơi", tinh vi hơn hai cái trên vì nó vẫn trả lời
         # trôi chảy: prompt tới nơi nhưng HỎNG DẤU. Đã gặp: chữ trong
         # câu trả lời thành "gm", "hn", mỗi ký tự tiếng Việt 3 byte hoá 3 dấu U+FFFD.
-        # Đó là bên đọc cắt mẩu ống dẫn giữa một ký tự rồi giải mã từng mẩu rời. Naota không sửa
+        # Đó là bên đọc cắt mẩu ống dẫn giữa một ký tự rồi giải mã từng mẩu rời. Vanhanh không sửa
         # được `agy`, nhưng phát hiện được: U+FFFD gần như không bao giờ xuất hiện trong câu trả
         # lời lành lặn.
         _hong_dau = "�" in (ket.get("text") or "")
@@ -1420,7 +1420,7 @@ class AntigravityCLI:
         else:
             for _l in ket.get("cac_loi") or []:      # không thử lại thì phải đưa lỗi ra
                 # Gãy tạm thời mà thử lại hết nhịp vẫn không xong: người dùng cần biết ĐÂY LÀ
-                # LỖI PHÍA GOOGLE và Naota đã tự thử lại rồi, chứ không phải một câu tiếng Anh
+                # LỖI PHÍA GOOGLE và Vanhanh đã tự thử lại rồi, chứ không phải một câu tiếng Anh
                 # sáu dòng nghe như mình cấu hình sai.
                 if _la_het_gio_luot(_l):
                     _noi = _cau_bao_het_gio(_l, self.timeout)
@@ -1432,7 +1432,7 @@ class AntigravityCLI:
         text = ket.get("text") or ""
         if text:
             # Không nuốt chuyện này: trả lời mà thiếu system prompt thì vẫn trôi chảy, người dùng
-            # không tài nào nhận ra Naota vừa quên hết luật và bộ nhớ của mình. Đó đúng là kiểu
+            # không tài nào nhận ra Vanhanh vừa quên hết luật và bộ nhớ của mình. Đó đúng là kiểu
             # sai âm thầm mà file này viết ra để tránh. Nhưng chỉ nói khi BIẾT CHẮC - dán một câu
             # cảnh báo vào mọi lượt vì không đo được cũng là một kiểu nói sai.
             if ket.get("biet_doc_hay_khong", True) and not ket.get("doc_duoc", True):
@@ -1441,7 +1441,7 @@ class AntigravityCLI:
                       file=sys.stderr)
                 text += (localefmt.chu(_CANH_BAO_DOC_HONG, _CANH_BAO_DOC_HONG_EN) if ket.get("da_thu_doc")
                          else localefmt.chu(_CANH_BAO_CHUA_DOC, _CANH_BAO_CHUA_DOC_EN))
-            # Đổi đường rồi mà chữ vẫn hỏng dấu: hết cách trong tầm Naota. Nói thẳng, đừng để
+            # Đổi đường rồi mà chữ vẫn hỏng dấu: hết cách trong tầm Vanhanh. Nói thẳng, đừng để
             # người dùng ngồi đoán xem mình gõ sai hay máy hỏng.
             elif "�" in text:
                 print("[antigravity] câu trả lời vẫn còn ký tự hỏng sau khi đổi đường",
@@ -1485,12 +1485,12 @@ class AntigravityCLI:
                 yield {"type": "error",
                        "content": localefmt.chu(
                            f"Không ghi được file ngữ cảnh cho Antigravity CLI "
-                           f"({type(e).__name__}: {e}). Prompt của Naota dài hơn trần "
+                           f"({type(e).__name__}: {e}). Prompt của Vanhanh dài hơn trần "
                            f"dòng lệnh của hệ điều hành nên phải đi qua file. Kiểm tra "
                            f"quyền ghi của thư mục state, hoặc đổi bộ não khác ở trang "
                            f"Models.",
                            f"Could not write the context file for Antigravity CLI "
-                           f"({type(e).__name__}: {e}). Naota's prompt is longer than the operating "
+                           f"({type(e).__name__}: {e}). Vanhanh's prompt is longer than the operating "
                            f"system's command-line limit, so it must go through a file. Check "
                            f"write permission on the state folder, or switch to another brain on the "
                            f"Models page.")}
@@ -1502,7 +1502,7 @@ class AntigravityCLI:
                 them_args = ["--add-dir", str(Path(tep_ngu_canh).parent)]
         # Không nối mạch cũ khi đi đường file: lịch sử phía CLI còn nguyên câu "đọc file X" của
         # lượt trước, mà file đó đã bị xoá cuối lượt trước - model đi mở lại là tốn một vòng tool
-        # để nhận lỗi. Nối mạch cũng chẳng tiết kiệm được gì vì Naota gửi lại đủ ngữ cảnh mỗi lượt.
+        # để nhận lỗi. Nối mạch cũng chẳng tiết kiệm được gì vì Vanhanh gửi lại đủ ngữ cảnh mỗi lượt.
         qua_stdin = duong.startswith("stdin")
         args = self._build_args(None if qua_stdin else prompt_argv,
                                 noi_mach=(duong != "file"), them=them_args,
@@ -1547,7 +1547,7 @@ class AntigravityCLI:
                         _kill_tree(proc)
 
                 threading.Thread(target=watch_stop, daemon=True,
-                                 name=f"naota-agy-watch-{self.tag}").start()
+                                 name=f"vanhanh-agy-watch-{self.tag}").start()
                 try:   # lệnh chạy ngầm agy bỏ lại sẽ được theo dõi sau lượt (tien_trinh_nen)
                     import tien_trinh_nen
                     tien_trinh_nen.ghi_nhom(self.tag, proc.pid)
@@ -1572,7 +1572,7 @@ class AntigravityCLI:
                         pass
 
                 luong_loi = threading.Thread(target=_doc_loi, daemon=True,
-                                             name=f"naota-agy-err-{self.tag}")
+                                             name=f"vanhanh-agy-err-{self.tag}")
                 luong_loi.start()
                 for line in iter(proc.stdout.readline, ""):
                     line = line.strip()
@@ -1596,10 +1596,10 @@ class AntigravityCLI:
                 publish({"_exit": -1, "_err": localefmt.chu(
                         f"Antigravity CLI chạy quá {int(self.timeout)}s nên bị "
                         f"cắt. Nếu việc thật sự dài thì nâng biến môi trường "
-                        f"NAOTA_AGY_TIMEOUT.",
+                        f"VANHANH_AGY_TIMEOUT.",
                         f"Antigravity CLI ran over {int(self.timeout)}s and was cut off. "
                         f"If the job really is long, raise the environment variable "
-                        f"NAOTA_AGY_TIMEOUT.")})
+                        f"VANHANH_AGY_TIMEOUT.")})
             except OSError as e:
                 # E2BIG = prompt vượt trần dòng lệnh của hệ điều hành. Phép đo ở `_chon_duong`
                 # có thể vẫn hụt (biến môi trường to chiếm chỗ trong ARG_MAX chung, hoặc bản
@@ -1625,7 +1625,7 @@ class AntigravityCLI:
                 # Dọn file ngữ cảnh ở ĐÂY chứ không ở vòng đọc sự kiện: luồng này luôn chạy hết,
                 # kể cả khi người dùng đóng tab giữa chừng và không ai đọc nốt hàng đợi nữa.
                 # Để sót là rác tích dần trong brain của người dùng.
-                if tep_ngu_canh and not os.environ.get("NAOTA_AGY_GIU_NGU_CANH"):
+                if tep_ngu_canh and not os.environ.get("VANHANH_AGY_GIU_NGU_CANH"):
                     try:
                         os.unlink(tep_ngu_canh)
                     except Exception:
@@ -1633,7 +1633,7 @@ class AntigravityCLI:
                 reader_finished.set()
                 publish(HET)
 
-        threading.Thread(target=doc_luong, name=f"naota-agy-{self.tag}", daemon=True).start()
+        threading.Thread(target=doc_luong, name=f"vanhanh-agy-{self.tag}", daemon=True).start()
 
         cac_manh: list[str] = []
         cac_loi: list[str] = []
@@ -1706,7 +1706,7 @@ class AntigravityCLI:
                    biet_doc_hay_khong=(duong != "file") or (co_stream and co_json))
 
     def _doi_su_kien(self, ev: dict, cac_manh: list, chan: Optional[dict] = None) -> list:
-        """Một dòng NDJSON của `agy` -> 0..n sự kiện theo hợp đồng của Naota.
+        """Một dòng NDJSON của `agy` -> 0..n sự kiện theo hợp đồng của Vanhanh.
 
         CHƯA ĐO được tên trường thật, nên nhận rộng: gom mọi hình dạng "có chữ để hiện" mà một
         stream sự kiện hay dùng. Dòng lạ hoàn toàn thì giữ nguyên làm chữ ở cuối hàm - mất công
@@ -1723,10 +1723,10 @@ class AntigravityCLI:
                 return [{"type": "error",
                          "content": localefmt.chu(
                              "Antigravity CLI chưa đăng nhập. Mở terminal trên máy chạy "
-                             "Naota, gõ `agy` rồi làm theo hướng dẫn (qua SSH thì nó in "
+                             "Vanhanh, gõ `agy` rồi làm theo hướng dẫn (qua SSH thì nó in "
                              "ra một link để mở trên máy bạn).",
                              "Antigravity CLI is not signed in. Open a terminal on the machine running "
-                             "Naota, type `agy` and follow the steps (over SSH it prints "
+                             "Vanhanh, type `agy` and follow the steps (over SSH it prints "
                              "a link to open on your own machine).")}]
             if not loi:
                 loi = localefmt.chu(f"Antigravity CLI thoát với mã {ev.get('_exit')}.",
@@ -1757,7 +1757,7 @@ class AntigravityCLI:
         #    "step_index":2,"tool_info":{"name":...,"parameters":{...}}}
         # Nhánh `tool_use/tool_call/tool` bên dưới chỉ khớp khi loại nằm ở tầng ngoài, hình
         # dạng CLI thật không dùng - nên trước bản này mọi lần agy gọi công cụ đều rơi vào hư
-        # không: khung chat không vẽ được tiến trình nào, và `co_tool` không bật lên nên Naota
+        # không: khung chat không vẽ được tiến trình nào, và `co_tool` không bật lên nên Vanhanh
         # tưởng lượt đó chưa đụng gì bên ngoài và cho phép chạy lại.
         if str(ev.get("step_type") or "").lower() == "tool":
             # `state` đi ACTIVE rồi DONE cho CÙNG một `step_index`, nên phải đếm theo index
@@ -1799,9 +1799,9 @@ class AntigravityCLI:
             if _la_loi_chua_dang_nhap(tin):
                 return [{"type": "error",
                          "content": localefmt.chu("Antigravity CLI chưa đăng nhập. Gõ `agy` một lần trên máy "
-                                                  "chạy Naota.",
+                                                  "chạy Vanhanh.",
                                                   "Antigravity CLI is not signed in. Type `agy` once on the machine "
-                                                  "running Naota.")}]
+                                                  "running Vanhanh.")}]
             if str(ev.get("severity") or "error") == "warning":
                 return []
             return [{"type": "error", "content": tin[:1500]}]
@@ -1928,9 +1928,9 @@ def kiem_tra_nhanh(timeout: float = 60.0) -> dict:
         if _la_loi_chua_dang_nhap(_ra) or "select login method" in _ra.lower():
             return {"ok": False,
                     "error": localefmt.chu("Chưa đăng nhập - CLI đang đứng ở màn chọn cách đăng nhập. Mở "
-                                           "terminal trên máy chạy Naota, gõ `agy` rồi làm theo hướng dẫn.",
+                                           "terminal trên máy chạy Vanhanh, gõ `agy` rồi làm theo hướng dẫn.",
                                            "Not signed in - the CLI is waiting at the sign-in method menu. Open a "
-                                           "terminal on the machine running Naota, type `agy` and follow the steps.")}
+                                           "terminal on the machine running Vanhanh, type `agy` and follow the steps.")}
         return {"ok": False, "error": localefmt.chu("Antigravity CLI không trả lời kịp.",
                                                     "Antigravity CLI did not answer in time.")}
     except Exception as e:
@@ -1939,8 +1939,8 @@ def kiem_tra_nhanh(timeout: float = 60.0) -> dict:
     if r.returncode != 0:
         loi = (r.stderr or out or "").strip()
         if _la_loi_chua_dang_nhap(loi):
-            return {"ok": False, "error": localefmt.chu("Chưa đăng nhập. Gõ `agy` một lần trên máy chạy Naota.",
-                                                        "Not signed in. Type `agy` once on the machine running Naota.")}
+            return {"ok": False, "error": localefmt.chu("Chưa đăng nhập. Gõ `agy` một lần trên máy chạy Vanhanh.",
+                                                        "Not signed in. Type `agy` once on the machine running Vanhanh.")}
         return {"ok": False, "error": loi[:400] or localefmt.chu(f"Thoát mã {r.returncode}",
                                                                  f"Exit code {r.returncode}")}
     if not out:

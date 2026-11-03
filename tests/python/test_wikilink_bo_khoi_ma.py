@@ -7,7 +7,7 @@ Vấp thật: vừa cài bộ skill lập trình vào brain xong là khung chat 
     Error: node not found: ! "$command_file" =~ \\.md$
 
 Đó là một dòng bash trong skill: `[[ ! "$command_file" =~ \\.md$ ]]`. Bash dùng `[[ ... ]]` làm
-phép thử, trùng y hệt cú pháp wikilink của Obsidian. Bộ dò của Naota quét THẲNG văn bản thô nên
+phép thử, trùng y hệt cú pháp wikilink của Obsidian. Bộ dò của Vanhanh quét THẲNG văn bản thô nên
 đẻ ra một "note" tên là đoạn mã ấy, gửi cho trình duyệt làm đầu dây, và force-graph ném lỗi mỗi
 khung hình cho tới khi đồ thị chết.
 

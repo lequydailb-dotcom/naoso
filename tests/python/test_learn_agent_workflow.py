@@ -71,7 +71,7 @@ def test_cap_mac_dinh_tat(tmp_path):
     assert caps["agent"] is False and caps["workflow"] is False
 
 
-# ---- ghi thật: đúng thư mục PHẲNG + đúng frontmatter mẫu naota-builder ----
+# ---- ghi thật: đúng thư mục PHẲNG + đúng frontmatter mẫu vanhanh-builder ----
 
 def test_ghi_agent_va_workflow(tmp_path):
     feature = _feature(tmp_path)
@@ -82,7 +82,7 @@ def test_ghi_agent_va_workflow(tmp_path):
 
     fm, body = _fm(tmp_path / "agents" / "viet-email.md")
     assert fm["type"] == "agent" and fm["slug"] == "viet-email"
-    assert fm["name"] == "Viết email chăm khách" and fm["origin"] == "naota-learned"
+    assert fm["name"] == "Viết email chăm khách" and fm["origin"] == "vanhanh-learned"
     assert fm["skills"] == [] and "chuyên viên email" in body
 
     fm, _ = _fm(tmp_path / "workflows" / "nghien-cuu-viet-bai.md")
@@ -163,18 +163,18 @@ def test_dry_run_chi_liet_ke(tmp_path):
     assert not (tmp_path / "agents" / "viet-email.md").exists()
 
 
-# ---- fallback thư mục CŨ Naota/agents: chưa migrate thì ghi vào đó, và dedup thấy nó ----
+# ---- fallback thư mục CŨ Vanhanh/agents: chưa migrate thì ghi vào đó, và dedup thấy nó ----
 
-def test_fallback_naota_agents_khi_chua_co_phang(tmp_path):
+def test_fallback_vanhanh_agents_khi_chua_co_phang(tmp_path):
     feature = _feature(tmp_path)
     cfg = feature.read_config()
-    _write(tmp_path / "Naota" / "agents" / "cu.md", "---\ntype: agent\n---\nx")
+    _write(tmp_path / "Vanhanh" / "agents" / "cu.md", "---\ntype: agent\n---\nx")
     rep = feature._promote_sync("brain", {"agents": [_agent(slug="cu")]}, cfg, CAPS, allow_write=True)
     assert rep["agents"] == [] and any("không ghi đè" in b for b in rep["blocked"])
     rep = feature._promote_sync("brain", {"agents": [_agent()]}, cfg, CAPS, allow_write=True)
     assert rep["agents"] == ["viet-email"]
-    assert (tmp_path / "Naota" / "agents" / "viet-email.md").exists(), \
-        "brain chưa migrate (chỉ có Naota/agents) thì ghi tiếp vào đó, không tách đôi kho"
+    assert (tmp_path / "Vanhanh" / "agents" / "viet-email.md").exists(), \
+        "brain chưa migrate (chỉ có Vanhanh/agents) thì ghi tiếp vào đó, không tách đôi kho"
 
 
 # ---- prompt: cap bật mới xin loại đó, kèm danh sách chống trùng ----
@@ -240,7 +240,7 @@ def test_update_workflow_sua_dung_file_cu(tmp_path):
     assert fm["name"] == "Chuỗi bài chuẩn của tôi", "tên chủ đặt phải giữ nguyên"
     assert fm["status"] == "active", "workflow chủ đang bật thì sửa xong vẫn bật"
     assert fm["ghi_chu_rieng"] == "chủ tự thêm field này", "field lạ của chủ không được nuốt"
-    assert fm["learned_updated"], "phải đánh dấu Naota từng sửa"
+    assert fm["learned_updated"], "phải đánh dấu Vanhanh từng sửa"
     assert "Mô tả của chủ." in body, "thân file chủ viết phải giữ"
     assert "## Lịch sử (tự học)" in body and "bước nghiên cứu thừa" in body
 
@@ -303,15 +303,15 @@ def test_learn_lock_thi_cam_dung(tmp_path):
 
 
 def test_update_ghi_dung_file_legacy_khong_tach_doi_kho(tmp_path):
-    """Brain chưa migrate (chỉ có Naota/workflows): sửa phải ghi vào ĐÚNG file đó, kẻo
+    """Brain chưa migrate (chỉ có Vanhanh/workflows): sửa phải ghi vào ĐÚNG file đó, kẻo
     thành hai bản và app đọc bản cũ - chủ tưởng sửa không ăn."""
     feature = _feature(tmp_path)
     cfg = feature.read_config()
-    _wf_cu(tmp_path, d="Naota/workflows")
+    _wf_cu(tmp_path, d="Vanhanh/workflows")
     rep = feature._promote_sync("brain", {"workflows": [_upd_wf()]}, cfg, CAPS, allow_write=True)
     assert rep["workflows_updated"] == ["nghien-cuu-viet-bai"], rep
     assert not (tmp_path / "workflows" / "nghien-cuu-viet-bai.md").exists()
-    fm, _ = _fm(tmp_path / "Naota" / "workflows" / "nghien-cuu-viet-bai.md")
+    fm, _ = _fm(tmp_path / "Vanhanh" / "workflows" / "nghien-cuu-viet-bai.md")
     assert fm["steps"][0]["task"] == "Viết thẳng từ {{input}}"
 
 

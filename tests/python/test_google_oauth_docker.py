@@ -1,14 +1,14 @@
-"""Đăng nhập Google Workspace khi Naota chạy Docker trên máy tính.
+"""Đăng nhập Google Workspace khi Vanhanh chạy Docker trên máy tính.
 
     python tests/run.py google_oauth_docker
 
-workspace-mcp hứng kết quả đăng nhập Google ở http://localhost:8000/oauth2callback. Naota trong
+workspace-mcp hứng kết quả đăng nhập Google ở http://localhost:8000/oauth2callback. Vanhanh trong
 container: chỗ hứng đó nghe trên loopback của CONTAINER, còn trình duyệt ở máy người dùng, nên bấm
 đồng ý xong là ERR_CONNECTION_REFUSED. Bản sửa có ba phần, test giữ cả ba:
   1. Trong Docker, kết nối workspace-mcp chạy với chỗ hứng nghe mọi địa chỉ của container nhưng vẫn
      trả về localhost:8000 (client OAuth loại "ứng dụng máy tính" nhận cổng loopback bất kỳ).
   2. docker-compose.google.yml mở cổng 8000 CHỈ cho chính máy đó; update.sh giữ file này khi cổng đang mở.
-  3. Bấm Kết nối lần đầu trong Docker thì Naota nói rõ phải làm gì thay vì để đâm vào ngõ cụt.
+  3. Bấm Kết nối lần đầu trong Docker thì Vanhanh nói rõ phải làm gì thay vì để đâm vào ngõ cụt.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
 import asyncio
@@ -17,7 +17,7 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-gdocker-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-gdocker-"))
 
 import deploy_info  # noqa: E402
 import main  # noqa: E402
@@ -68,7 +68,7 @@ check("file nhắc không dùng trên VPS", "VPS" in g)
 u = (ROOT / "update.sh").read_text(encoding="utf-8")
 check("update.sh giữ cổng 8000 khi container đang mở nó",
       'docker port "$NAME" 8000' in u and "-f docker-compose.google.yml" in u)
-check("docker-compose.yml chính không tự mở cổng 8000 (máy đang dùng cổng đó vẫn chạy được Naota)",
+check("docker-compose.yml chính không tự mở cổng 8000 (máy đang dùng cổng đó vẫn chạy được Vanhanh)",
       ":8000" not in (ROOT / "docker-compose.yml").read_text(encoding="utf-8"))
 
 
@@ -87,9 +87,9 @@ _old_mode = main._deploy_mode
 try:
     main._deploy_mode = lambda: "docker"
     r = asyncio.run(main.connect_add(_Req({"connector_id": "google-workspace", "fields": {}})))
-    check("Docker, mở Naota trên chính máy đó: nói rõ phải mở cổng 8000 và cho bấm lại",
+    check("Docker, mở Vanhanh trên chính máy đó: nói rõ phải mở cổng 8000 và cho bấm lại",
           r.get("ok") is False and r.get("can_force") is True and "docker-compose.google.yml" in (r.get("error") or ""))
-    r = asyncio.run(main.connect_add(_Req({"connector_id": "google-workspace", "fields": {}}, host="naota.example.com")))
+    r = asyncio.run(main.connect_add(_Req({"connector_id": "google-workspace", "fields": {}}, host="vanhanh.example.com")))
     check("Docker qua tên miền công khai: vẫn là lời nhắc dùng thẻ Lịch/Gmail",
           "VPS" in (r.get("error") or "") and "docker-compose.google.yml" not in (r.get("error") or ""))
 finally:

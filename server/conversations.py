@@ -581,7 +581,7 @@ def own_messages_without_id(channel: str, account_id: str, external_chat_id: str
     """Messages this account sent in a chat (the bot, or the owner from the inbox) since `since` that still have no
     channel message id, newest first: `[{id, text}]`. Never raises.
 
-    Naota writes those rows before Zalo gives the message an id; the id comes back with the message's echo in the read
+    Vanhanh writes those rows before Zalo gives the message an id; the id comes back with the message's echo in the read
     loop (`zalo_personal_channel.attach_echo_id`). A customer's reaction names the message by that id, so without
     it a heart on the bot's price quote could not be told apart from a heart on anything else."""
     try:
@@ -633,7 +633,7 @@ def _conv_public(r: dict) -> dict:
         if d.get("chat_type") == "group":
             # KHÔNG mượn tên khách: khách gắn với cuộc chat là NGƯỜI NHẮN ĐẦU TIÊN, nên nhóm
             # chưa biết tên hiện thành tên một người trong nhóm (chủ thấy nhóm "Test Bot Zalo"
-            # hiện là "Hoàng Ngọc Vương"). Đuôi id đủ để phân biệt các nhóm chưa rõ tên với nhau.
+            # hiện là "Đại Lê"). Đuôi id đủ để phân biệt các nhóm chưa rõ tên với nhau.
             cid = str(d.get("external_chat_id") or "")
             import localefmt
             d["title"] = (localefmt.chu(f"Nhóm …{cid[-6:]}", f"Group …{cid[-6:]}") if cid
@@ -1017,7 +1017,7 @@ def dat_ghim(conversation_id: int, pinned: bool) -> bool:
 #
 # The owner keeps ONE list of tags (name + a colour from a small fixed palette) and puts them on CONVERSATIONS, so a
 # customer's private chat and a group they write in are tagged separately. Kept apart from `customers.tags_json`, the
-# free-text tags the CRM store pack (naota.crm) writes on a CUSTOMER: neither touches the other.
+# free-text tags the CRM store pack (vanhanh.crm) writes on a CUSTOMER: neither touches the other.
 # ============================================================
 TAG_COLORS = ("gray", "red", "orange", "yellow", "green", "teal", "blue", "purple", "pink")
 MAX_INBOX_TAGS = 60
@@ -1541,9 +1541,9 @@ _NEN_ANH = re.compile(r"^(?:https?://\S+|\[(?:chat\.)?(?:photo|image)[^\]]*\]|\[
 def chu_thich_anh(text: str) -> str:
     """Chú thích thật của một tin ảnh, hoặc "" nếu tin ảnh trơn.
 
-    MCP của naota-zalo chuẩn hoá tin không phải chữ bằng `extractMessageText` (src/utils/extract-message-text.js; bản 1.6.2 cũ là
+    MCP của vanhanh-zalo chuẩn hoá tin không phải chữ bằng `extractMessageText` (src/utils/extract-message-text.js; bản 1.6.2 cũ là
     `content.title || content.href || "[<msgType>]"`). Với ảnh hai bản ra cùng kết quả vì ảnh có `description` rỗng: ảnh CÓ chú thích
-    thì `text` là chú thích; ảnh trơn thì `text` là đường dẫn ảnh, hoặc "[chat.photo]". Naota
+    thì `text` là chú thích; ảnh trơn thì `text` là đường dẫn ảnh, hoặc "[chat.photo]". Vanhanh
     cũng tự thay chữ trống bằng "[Zalo cá nhân: khách gửi image]". Cả ba loại "nền" đó không phải lời của người gửi nên trả rỗng."""
     t = " ".join(str(text or "").split())
     return "" if (not t or _NEN_ANH.match(t)) else t
@@ -1566,7 +1566,7 @@ def loai_tin_tu_chu(text: str) -> str:
 # ============================================================
 # CRM: khách hàng xuyên kênh
 #
-# Tầng đọc/ghi mà gói "Quản lý khách hàng" ở Kho cài đặt (naota.crm) cắm vào. Gói
+# Tầng đọc/ghi mà gói "Quản lý khách hàng" ở Kho cài đặt (vanhanh.crm) cắm vào. Gói
 # gọi ĐÚNG các hàm này chứ không tự viết SQL: schema là của kho, kho đổi thì hàm đổi theo, còn
 # SQL chép trong gói sẽ gãy im lặng ở bản sau. Hai hàm ghi (tag, ghi chú) chỉ chạm bảng
 # customers; không hàm nào gửi tin hay gọi ra ngoài.

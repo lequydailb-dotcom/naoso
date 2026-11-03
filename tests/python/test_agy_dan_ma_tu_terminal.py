@@ -3,13 +3,13 @@
 
     python tests/run.py agy_dan_ma     (KHÔNG mạng)
 
-Sự cố (người dùng, Naota chạy Docker, trình duyệt trên máy Mac): gõ `agy` trong tab Code,
+Sự cố (người dùng, Vanhanh chạy Docker, trình duyệt trên máy Mac): gõ `agy` trong tab Code,
 màn hình in ra link Google rồi đứng im - không có ô nào để điền mã, đăng nhập tắc ở đó.
 
 Bàn phím của terminal KHÔNG hỏng (pty thật, gõ được). Bệnh nằm ở chỗ `agy` chọn đường đăng
 nhập theo môi trường: thấy `SSH_CONNECTION` thì in link rồi CHỜ dán ngược URL callback vào;
 không thấy thì coi trình duyệt nằm cùng máy, mở một cổng loopback rồi nằm chờ im lặng. Terminal
-của Naota là pty ngay trên máy chủ nên không có biến SSH nào, luôn rơi vào đường thứ hai - mà
+của Vanhanh là pty ngay trên máy chủ nên không có biến SSH nào, luôn rơi vào đường thứ hai - mà
 trình duyệt lại ở máy khác, nên mã không bao giờ về tới nơi.
 
 Test này giữ hai điều: `_env` khai phiên từ xa khi máy chủ không có màn hình, và hướng dẫn trên
@@ -38,7 +38,7 @@ import terminal  # noqa: E402
 import antigravity_cli  # noqa: E402
 
 _GIU = {k: os.environ.get(k) for k in
-        ("NAOTA_TERMINAL_REMOTE", "SSH_CONNECTION", "SSH_CLIENT", "DISPLAY", "WAYLAND_DISPLAY")}
+        ("VANHANH_TERMINAL_REMOTE", "SSH_CONNECTION", "SSH_CLIENT", "DISPLAY", "WAYLAND_DISPLAY")}
 
 
 def _dat(**kv):
@@ -84,11 +84,11 @@ try:
               terminal._env().get("SSH_CONNECTION") == "10.0.0.9 51234 10.0.0.1 22")
 
         # ---- 4. Công tắc tay ----
-        _dat(NAOTA_TERMINAL_REMOTE="0")
-        check("NAOTA_TERMINAL_REMOTE=0 tắt được (bố trí lạ: X11 forwarding...)",
+        _dat(VANHANH_TERMINAL_REMOTE="0")
+        check("VANHANH_TERMINAL_REMOTE=0 tắt được (bố trí lạ: X11 forwarding...)",
               terminal._khong_co_trinh_duyet() is False)
-        _dat(NAOTA_TERMINAL_REMOTE="1", DISPLAY=":0")
-        check("NAOTA_TERMINAL_REMOTE=1 bật được kể cả khi có DISPLAY",
+        _dat(VANHANH_TERMINAL_REMOTE="1", DISPLAY=":0")
+        check("VANHANH_TERMINAL_REMOTE=1 bật được kể cả khi có DISPLAY",
               terminal._khong_co_trinh_duyet() is True)
 
     # ---- 5. Máy để bàn chạy THẲNG (macOS/Windows): trình duyệt ở ngay trước mặt ----
@@ -106,8 +106,8 @@ finally:
 hd = antigravity_cli.login_huong_dan()
 check("hướng dẫn nói phải DÁN địa chỉ ngược vào terminal", "dán" in hd["ghi_chu"].lower())
 check("nói trước rằng localhost báo lỗi là bước ĐÚNG", "localhost" in hd["ghi_chu"].lower())
-check("vẫn giữ lời cảnh báo đăng nhập đúng user (trang Code trong Naota)",
-      "NGAY TRONG Naota" in hd["ghi_chu"] and "root" in hd["ghi_chu"])
+check("vẫn giữ lời cảnh báo đăng nhập đúng user (trang Code trong Vanhanh)",
+      "NGAY TRONG Vanhanh" in hd["ghi_chu"] and "root" in hd["ghi_chu"])
 check("có đường cứu hộ bằng curl cho bản agy cũ",
       "curl" in (hd.get("cuu_ho") or ""))
 

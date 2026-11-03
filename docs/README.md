@@ -1,8 +1,8 @@
-# 📚 Tài liệu NAOTA
+# 📚 Tài liệu VANHANH
 
 ***Tiếng Việt** · [English](en/README.md)*
 
-Hướng dẫn sử dụng chi tiết từng chức năng của NAOTA. Mỗi trang là một how-to độc lập: mở ở đâu, bấm gì, dùng thế nào.
+Hướng dẫn sử dụng chi tiết từng chức năng của VANHANH. Mỗi trang là một how-to độc lập: mở ở đâu, bấm gì, dùng thế nào.
 
 > Mới bắt đầu? Đọc [Cài đặt trong README](i18n/vi/README.md#-cài-đặt) trước, rồi qua [01 - Bắt đầu & thiết lập lần đầu](01-bat-dau-thiet-lap.md).
 
@@ -20,7 +20,7 @@ Thanh điều hướng của dashboard gom **19 trang** thành **5 nhóm**: Bộ
 - [05 - Quản lý tệp tin](05-quan-ly-tep-tin.md) - duyệt brain, tìm file theo tên/nội dung, sửa .md/.txt trực tiếp, tải lên/về.
 
 ### Terminal (nhóm Năng lực)
-- [27 - Terminal](27-tab-code-terminal.md) - dòng lệnh thật của máy chạy Naota, mở ngay trong dashboard, không cần SSH.
+- [27 - Terminal](27-tab-code-terminal.md) - dòng lệnh thật của máy chạy Vanhanh, mở ngay trong dashboard, không cần SSH.
 
 ### Mở rộng năng lực (nhóm Năng lực)
 - [06 - Skills](06-skills.md) - gom nhóm, tìm kiếm, bật/tắt, thêm/sửa/xoá, nhập/xuất skill.
@@ -28,28 +28,28 @@ Thanh điều hướng của dashboard gom **19 trang** thành **5 nhóm**: Bộ
 - [20 - Plugins](20-plugins.md) - thêm tool/hook native cho mọi engine bằng một thư mục Python.
 - [25 - Chatbot (Bot chuyên trách)](25-chatbot.md) - đem Agent ra trả lời khách qua bot Telegram hoặc Zalo riêng, brain riêng, chuyển nhân viên khi bí.
 - [28 - Hội thoại khách (Hộp thư)](28-hoi-thoai-khach.md) - đọc lại mọi cuộc chat khách nhắn cho bot và Zalo cá nhân ở một chỗ, tiếp quản khi cần người thật.
-- [29 - Slack và WhatsApp](29-slack-whatsapp.md) - chat với Naota và đặt bot khách hàng trên Slack (không cần tên miền) và WhatsApp (API chính thức của Meta).
-- [30 - Discord và Lark/Feishu](30-discord-lark.md) - chat với Naota từ Discord và Lark/Feishu ở trang Kênh Admin, không cần tên miền.
+- [29 - Slack và WhatsApp](29-slack-whatsapp.md) - chat với Vanhanh và đặt bot khách hàng trên Slack (không cần tên miền) và WhatsApp (API chính thức của Meta).
+- [30 - Discord và Lark/Feishu](30-discord-lark.md) - chat với Vanhanh từ Discord và Lark/Feishu ở trang Kênh Admin, không cần tên miền.
 - [31 - Messenger](31-messenger.md) - đặt bot khách hàng trả lời hộp thư Fanpage Facebook (API chính thức của Meta, cần tên miền HTTPS).
   - [Nối Messenger từng bước](31-messenger-tung-buoc.md) - từng cú bấm trên trang Meta, cho người mới làm lần đầu.
 - [32 - Theo dõi trang web](32-theo-doi-trang.md) - canh giá, cụm chữ hoặc thay đổi trên một trang theo lịch, không tốn token.
-- [33 - Cookies](33-kho-dang-nhap.md) - cất phiên đăng nhập riêng (cookie) để Naota đọc trang cần đăng nhập và canh trang đó.
+- [33 - Cookies](33-kho-dang-nhap.md) - cất phiên đăng nhập riêng (cookie) để Vanhanh đọc trang cần đăng nhập và canh trang đó.
 
 ### Việc chạy nền (nhóm Việc & Bộ não)
 - [08 - Việc định kỳ & Nhắc hẹn](08-viec-dinh-ky.md) - nhiều vòng lặp chạy nền + nhắc hẹn theo giờ hoặc cron.
 - [21 - Việc (Kanban)](21-viec-kanban.md) - giao goal bằng lời, AI tự đặc tả và chạy task nền.
-- [22 - Tự học](22-tu-hoc.md) - Naota tự rút ký ức, đúc Wiki và kỹ năng sau mỗi hội thoại, hoàn tác được.
+- [22 - Tự học](22-tu-hoc.md) - Vanhanh tự rút ký ức, đúc Wiki và kỹ năng sau mỗi hội thoại, hoàn tác được.
 
 ### Kết nối & kênh (nhóm Kết nối)
 - [09 - Kết nối & số liệu kinh doanh](09-mcp-va-so-lieu.md) - kho dịch vụ ngoài đa tài khoản, phân quyền, báo cáo số thật.
-- [11 - Kênh Telegram](11-telegram.md) - hỏi Naota qua điện thoại, gửi và nhận file.
-- [26 - Kênh Zalo Bot](26-kenh-zalo-bot.md) - hỏi Naota trên Zalo bằng API chính thức, ghép nối bằng một cú bấm.
+- [11 - Kênh Telegram](11-telegram.md) - hỏi Vanhanh qua điện thoại, gửi và nhận file.
+- [26 - Kênh Zalo Bot](26-kenh-zalo-bot.md) - hỏi Vanhanh trên Zalo bằng API chính thức, ghép nối bằng một cú bấm.
 - [12 - Zalo Agent MCP](12-zalo.md) - đăng nhập QR, đọc/tìm lịch sử và gửi tin qua MCP chuẩn.
-- [24 - Naota CLI (terminal)](24-cli-terminal.md) - gõ `naota "..."` từ terminal, token API, ghép vào script.
+- [24 - Vanhanh CLI (terminal)](24-cli-terminal.md) - gõ `vanhanh "..."` từ terminal, token API, ghép vào script.
 
 ### Bộ não & dữ liệu
 - [13 - Second Brain: bộ nhớ, Wiki, INGEST](13-second-brain-bo-nho-wiki.md) - đa brain, bộ nhớ sống, tiêu hoá tri thức.
-- [34 - GitHub ngay trong khung chat](34-github-trong-chat.md) - gắn repo vào cuộc trò chuyện, Naota tự kiểm tra, đẩy lên, mở PR, theo dõi CI, sửa khi đỏ và merge khi xanh.
+- [34 - GitHub ngay trong khung chat](34-github-trong-chat.md) - gắn repo vào cuộc trò chuyện, Vanhanh tự kiểm tra, đẩy lên, mở PR, theo dõi CI, sửa khi đỏ và merge khi xanh.
 - [35 - Zalo OA](35-zalo-oa.md) - đặt bot khách hàng trả lời hộp thư Zalo Official Account (API chính thức OA v3, cần tên miền HTTPS).
 - [18 - Sao lưu brain lên GitHub](18-sao-luu-github.md) - đồng bộ 2 chiều lên repo riêng, khôi phục khi mất máy/VPS.
 - [19 - Task & Dataview trong note](19-task-va-dataview.md) - tick checkbox tự lưu kiểu Obsidian, khối ```dataview chạy thật.
@@ -59,7 +59,7 @@ Thanh điều hướng của dashboard gom **19 trang** thành **5 nhóm**: Bộ
 - [14 - Bảo mật & tài khoản](14-bao-mat-tai-khoan.md) - đăng nhập bắt buộc, mật khẩu, rate-limit, mã hoá khoá bí mật.
 - [15 - Thương hiệu & tên miền riêng](15-thuong-hieu-ten-mien.md) - đổi logo/avatar, trỏ tên miền và bật HTTPS.
 - [16 - Cấu hình .env](16-cau-hinh-env.md) - tham chiếu mọi biến môi trường.
-- [23 - Mức dùng: token & chi phí](23-muc-dung-token.md) - Naota tự đo token vào/ra theo ngày, theo nhà cung cấp, theo nguồn.
+- [23 - Mức dùng: token & chi phí](23-muc-dung-token.md) - Vanhanh tự đo token vào/ra theo ngày, theo nhà cung cấp, theo nguồn.
 
 ### Khi có sự cố
 - [17 - Khắc phục sự cố & FAQ](17-khac-phuc-su-co.md) - lỗi thường gặp và cách xử lý.

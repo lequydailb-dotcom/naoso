@@ -21,8 +21,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-_TMP = Path(tempfile.mkdtemp(prefix="naota-token-index-"))
-os.environ["NAOTA_STATE_DIR"] = str(_TMP / "state")
+_TMP = Path(tempfile.mkdtemp(prefix="vanhanh-token-index-"))
+os.environ["VANHANH_STATE_DIR"] = str(_TMP / "state")
 (_TMP / "state").mkdir(parents=True, exist_ok=True)
 
 import usage_index as ui  # noqa: E402

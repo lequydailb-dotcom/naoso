@@ -9,9 +9,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-_TMP = tempfile.mkdtemp(prefix="naota-wfturn-")
-os.environ["NAOTA_STATE_DIR"] = _TMP
-os.environ["NAOTA_SESSIONS_DB"] = str(Path(_TMP) / "conv.db")
+_TMP = tempfile.mkdtemp(prefix="vanhanh-wfturn-")
+os.environ["VANHANH_STATE_DIR"] = _TMP
+os.environ["VANHANH_SESSIONS_DB"] = str(Path(_TMP) / "conv.db")
 
 import main  # noqa: E402
 import workflow_runs  # noqa: E402

@@ -1,4 +1,4 @@
-"""Chat với một trợ lý ở trang Cộng sự: system prompt là prompt của trợ lý, không phải Naota.
+"""Chat với một trợ lý ở trang Cộng sự: system prompt là prompt của trợ lý, không phải Vanhanh.
 
     python tests/run.py agent_chat_prompt
 
@@ -12,8 +12,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-agchat-")
-os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="naota-agchat-brains-")  # KHONG dung brains/ that
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-agchat-")
+os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="vanhanh-agchat-brains-")  # KHONG dung brains/ that
 
 import main  # noqa: E402
 
@@ -32,14 +32,14 @@ ag_dir = main._agents_dir("brain"); ag_dir.mkdir(parents=True, exist_ok=True)
                                        encoding="utf-8")
 
 p = main._agent_chat_prompt("brain", "nguoi-viet")
-check("prompt la cua tro ly", "Bạn là agent **Người viết**" in p and "Viết súc tích." in p and "NAOTA_LESSON" in p)
+check("prompt la cua tro ly", "Bạn là agent **Người viết**" in p and "Viết súc tích." in p and "VANHANH_LESSON" in p)
 check("prompt noi ro dang chat truc tiep", "trò chuyện trực tiếp" in p)
-check("prompt KHONG keo CLAUDE.md cua Naota", "SWAPPABLE BRAIN" not in p and "# === LỚP AGENTIC" not in p)
+check("prompt KHONG keo CLAUDE.md cua Vanhanh", "SWAPPABLE BRAIN" not in p and "# === LỚP AGENTIC" not in p)
 # agent "Biên tập viên" từ chối đẩy file lên Drive vì "ngoài phạm vi", rồi BỊA đã
 # "bàn giao cho agent dang_tai" và hẹn "có kết quả em báo lại". Prompt agent phải nói rõ: vai
 # là chuyên môn chứ không phải hàng rào tool, không bịa giao việc, không hẹn báo lại.
 check("prompt agent noi ro co TOAN BO tool qua hub (khong tu choi viec ngoai vai)",
-      "naota_run_tool" in p and "naota_task" in p and "naota_connections" in p
+      "vanhanh_run_tool" in p and "vanhanh_task" in p and "vanhanh_connections" in p
       and "không phải hàng rào" in p)
 check("prompt agent cam bia 'da giao cho agent khac'", "không bịa tên agent" in p)
 check("prompt agent cam hen 'co ket qua em bao lai'", "báo lại" in p and "KẾT THÚC khi bạn nói xong" in p)
@@ -49,8 +49,8 @@ try:
 except FileNotFoundError:
     check("tro ly khong co -> FileNotFoundError", True)
 
-sach = main._ket_luot_agent("brain", "nguoi-viet", "viết giúp", "Bài đây.\nNAOTA_LESSON: chủ thích câu ngắn")
-check("ket luot boc NAOTA_LESSON", sach.strip() == "Bài đây.")
+sach = main._ket_luot_agent("brain", "nguoi-viet", "viết giúp", "Bài đây.\nVANHANH_LESSON: chủ thích câu ngắn")
+check("ket luot boc VANHANH_LESSON", sach.strip() == "Bài đây.")
 # T3 phần L (thiết kế 8.1): bài học chat riêng vào kho bài học phạm vi dm:<agent_key>, không còn vào MEMORY.md.
 import agent_lessons  # noqa: E402
 _key = main._dm_agent_key("brain", "nguoi-viet")
@@ -69,14 +69,14 @@ check("_subscription_system_prompt bo qua nen ngu canh khi co persona",
 check("nhanh phase8 API khong dung plan khi co persona", 'action == "use" and not _persona' in than)
 check("cuoi luot goi _ket_luot_agent", "_ket_luot_agent(brain, _persona[1], user_message, final_text, conv_sid=conv_sid)" in than)
 
-# Fix round 1 - mục 1: bong bóng chat KHÔNG được để lộ dòng NAOTA_LESSON. Mọi nhánh engine
+# Fix round 1 - mục 1: bong bóng chat KHÔNG được để lộ dòng VANHANH_LESSON. Mọi nhánh engine
 # đã gửi khung "response" RAW trước khi tới _ket_luot_agent, nên sau khi bóc sạch phải gửi
 # lại một khung "response" nữa để ép trình duyệt vẽ lại đúng chữ (xem app.js: data.type ===
 # "response" thay hẳn nội dung bong bóng bằng data.content).
 _m_resend = re.search(
     r"_ket_luot_agent\(brain, _persona\[1\], user_message, final_text, conv_sid=conv_sid\)(.{0,1600}?)\"type\": \"response\"(.{0,200}?)\}\)\)",
     than, re.S)
-check("sau _ket_luot_agent co gui lai khung response de xoa NAOTA_LESSON tren bong bong",
+check("sau _ket_luot_agent co gui lai khung response de xoa VANHANH_LESSON tren bong bong",
       _m_resend is not None)
 # Fix round 2: khung gửi lại PHẢI kèm "tts": False, nếu không app.js gọi voice.speak() lần
 # hai (đọc lại từ đầu) vì t.spoke chỉ được set từ nhánh "stream", không phải từ speak() dự

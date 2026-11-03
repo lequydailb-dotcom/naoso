@@ -2,7 +2,7 @@
 
 Design: team-duyet-muc-tieu-nghiem-thu, part 2.
 
-A team can carry ONE mandate, set only by the owner (HTTP routes in team_api, never a NAOTA_TEAM directive):
+A team can carry ONE mandate, set only by the owner (HTTP routes in team_api, never a VANHANH_TEAM directive):
 
     outcome        what the department is for ("Giữ trang bán hàng chạy và đúng giá")
     metrics        how the owner judges it (lines of text, shown to members)

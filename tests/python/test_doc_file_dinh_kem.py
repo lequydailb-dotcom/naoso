@@ -3,12 +3,12 @@
     python tests/run.py doc_file_dinh_kem        (KHÔNG mạng)
 
 Lỗi đã gặp: dán một đoạn văn dài vào khung chat (dashboard tự cắt thành
-`van-ban-dan-HHMMSS.txt` rồi tải lên) thì Naota bảo phải tự chép file vào thư mục Brain mới
+`van-ban-dan-HHMMSS.txt` rồi tải lên) thì Vanhanh bảo phải tự chép file vào thư mục Brain mới
 đọc được.
 
 Đúng là hỏng, và hỏng ở chỗ nối: dashboard chèn vào câu hỏi khối "[File đính kèm để ĐỌC
 (đường dẫn): …]" với đường dẫn tuyệt đối trong `STATE_DIR/.staging`, rồi dặn model "đọc thẳng
-file rồi trả lời". Nhưng sáu engine API không có tool đọc file nào ngoài `naota_read_file`,
+file rồi trả lời". Nhưng sáu engine API không có tool đọc file nào ngoài `vanhanh_read_file`,
 mà tool đó đi qua `_safe_path` khoá trong vault → mọi lượt có đính kèm đều nổ
 `ValueError: nằm ngoài vault`, và model đọc lỗi đó xong tự nghĩ ra lời khuyên "chuyển file
 vào Brain đi". (Claude Code/Codex không dính vì chúng có tool đọc file native.)
@@ -23,8 +23,8 @@ import os
 import sys
 import tempfile
 
-_TMP = tempfile.mkdtemp(prefix="naota-dinhkem-")
-os.environ.setdefault("NAOTA_STATE_DIR", _TMP)
+_TMP = tempfile.mkdtemp(prefix="vanhanh-dinhkem-")
+os.environ.setdefault("VANHANH_STATE_DIR", _TMP)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -114,17 +114,17 @@ check("_safe_path gốc KHÔNG đổi hành vi (ghi vẫn khoá trong vault)",
 
 
 # ============================================================
-# 3) Tool naota_read_file thật, qua đúng đường _builtin_tools
+# 3) Tool vanhanh_read_file thật, qua đúng đường _builtin_tools
 # ============================================================
 def _route(staging):
     _t, r = mcp_hub._builtin_tools("full", str(VAULT), staging=staging)
     return r
 
 
-mo = _route(True)["naota_read_file"]["call"]
-dong = _route(False)["naota_read_file"]["call"]
+mo = _route(True)["vanhanh_read_file"]["call"]
+dong = _route(False)["vanhanh_read_file"]["call"]
 
-check("bật staging: naota_read_file trả đúng nội dung file vừa dán",
+check("bật staging: vanhanh_read_file trả đúng nội dung file vừa dán",
       "đoạn văn dài user vừa dán" in _no(mo({"path": str(DAN)})))
 check("bật staging: file trong vault vẫn đọc bình thường",
       "nội dung trong vault" in _no(mo({"path": "Sources/ghi-chu.md"})))
@@ -141,7 +141,7 @@ check("bật staging vẫn từ chối file khác trên ổ đĩa", loi_ngoai.st
 # hai cho phiên Coding): engine Web chạy vòng tool bằng chữ, một exception bay ra giữa lô tool
 # là chết cả lượt, còn một câu lỗi thì model đọc rồi tự sửa đường dẫn ở vòng sau. Bất biến
 # "ghi ra staging bị chặn" KHÔNG đổi, chỉ đổi cách báo.
-_ghi_stage = _no(_route(True)["naota_write_file"]["call"]({"path": str(DAN), "content": "x"}))
+_ghi_stage = _no(_route(True)["vanhanh_write_file"]["call"]({"path": str(DAN), "content": "x"}))
 check("ghi file ra staging vẫn bị chặn (chỉ nới cho ĐỌC)",
       isinstance(_ghi_stage, str) and _ghi_stage.startswith("ERROR:"))
 check("file vừa dán KHÔNG bị ghi đè",

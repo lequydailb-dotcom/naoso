@@ -2,9 +2,9 @@
 
     python tests/run.py ollama_local_dinh_tuyen     (KHÔNG mạng)
 
-Lỗi đã gặp: chọn model local `qwen3:4b-instruct`, gõ "hello", Naota trả
+Lỗi đã gặp: chọn model local `qwen3:4b-instruct`, gõ "hello", Vanhanh trả
 về "There's an issue with the selected model (qwen3:4b-instruct). It may not exist or you
-may not have access to it." Câu đó KHÔNG có trong mã nguồn Naota - nó do chính binary
+may not have access to it." Câu đó KHÔNG có trong mã nguồn Vanhanh - nó do chính binary
 `claude` in ra. Badge dưới câu trả lời ghi `cli · qwen3:4b-instruct`, tức lượt chat đã bị
 đưa cho Claude Code kèm tên model của Ollama.
 

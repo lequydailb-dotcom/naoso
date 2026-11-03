@@ -4,7 +4,7 @@
 
 Không cần pytest, KHÔNG chạm mạng thật (mọi lần tải đều thay bằng hàm giả).
 
-Đây là đường đầu tiên trong Naota mà SERVER TỰ ĐI GỌI một địa chỉ nó không nghĩ ra, tức bề mặt
+Đây là đường đầu tiên trong Vanhanh mà SERVER TỰ ĐI GỌI một địa chỉ nó không nghĩ ra, tức bề mặt
 SSRF đầu tiên. Rất cụ thể: `mcp_hub` đặt hub ở `http://127.0.0.1:7777/hub/mcp` và hub cầm toàn
 bộ khoá của người dùng; trên máy ảo đám mây thì `169.254.169.254` trả credential của chính máy
 đó. Nên phần lớn test này canh đúng một câu hỏi: có địa chỉ nào lọt vào trong nhà không.
@@ -119,7 +119,7 @@ check("a pack without upstream has an empty one", packs_store._lam_sach({"id": "
 
 # ─────────────── 4. Kho: đọc, cache, và suy biến ───────────────
 INDEX_TOT = json.dumps({
-    "format": "naota-pack-index", "format_version": 1,
+    "format": "vanhanh-pack-index", "format_version": 1,
     "store": {"name": "Kho thử"},
     "packs": [
         {"id": "acme.a", "name": {"vi": "Gói A"}, "version": "1.0.0", "category": "sales",
@@ -183,7 +183,7 @@ with tempfile.TemporaryDirectory() as td:
         # Định dạng lạ.
         for raw, dau in (
             (b'{"format": "cai gi do", "packs": []}', "không phải danh mục"),
-            (json.dumps({"format": "naota-pack-index", "format_version": 99,
+            (json.dumps({"format": "vanhanh-pack-index", "format_version": 99,
                          "packs": []}).encode(), "mới hơn"),
             (b"khong phai json", ""),
         ):
@@ -241,29 +241,29 @@ check("kho hỏng KHÔNG làm hỏng phần gói đã cài",
 # Kho ở REPO RIÊNG, và bản cũ vẫn cài được
 # ============================================================
 # Tách repo là điểm mấu chốt: thêm một gói không còn dính tới việc ra bản mới của app, và người
-# lạ gửi Pull Request vào kho được mà không cần quyền ghi vào mã nguồn Naota.
-check("kho mặc định trỏ sang repo riêng, không phải repo NAOTA",
-      "naota-store" in packs_store.STORE_MAC_DINH
-      and "/vuongtex/naota/" not in packs_store.STORE_MAC_DINH)
+# lạ gửi Pull Request vào kho được mà không cần quyền ghi vào mã nguồn Vanhanh.
+check("kho mặc định trỏ sang repo riêng, không phải repo VANHANH",
+      "vanhanh-store" in packs_store.STORE_MAC_DINH
+      and "/lequydailb-dotcom/vanhanh/" not in packs_store.STORE_MAC_DINH)
 check("và đọc qua raw.githubusercontent (không phải trang HTML của GitHub)",
       packs_store.STORE_MAC_DINH.startswith("https://raw.githubusercontent.com/"))
 
 idx = json.loads((ROOT / "system" / "pack-index.json").read_text(encoding="utf-8"))
-check("repo có sẵn tệp danh mục", idx.get("format") == "naota-pack-index")
+check("repo có sẵn tệp danh mục", idx.get("format") == "vanhanh-pack-index")
 check("và nó đọc được bằng chính bộ đọc",
       all(packs_store._lam_sach(x)["id"] for x in idx.get("packs", [])) if idx.get("packs") else True)
 
 # Danh mục CŨ trong repo này đã đông lại, nhưng KHÔNG được xoá: các bản cũ trỏ cứng vào
 # đó. Xoá đi là mọi máy chưa cập nhật thấy kho rỗng. Nên nó phải còn, và mọi địa chỉ tải trong đó
-# phải TUYỆT ĐỐI - đường tương đối sẽ ghép với repo NAOTA, nơi không còn tệp .zip nào.
+# phải TUYỆT ĐỐI - đường tương đối sẽ ghép với repo VANHANH, nơi không còn tệp .zip nào.
 check("danh mục cũ vẫn còn cho bản chưa cập nhật", bool(idx.get("packs")))
 check("và mọi địa chỉ tải trong đó là tuyệt đối, trỏ sang kho mới",
       all((g.get("download") or {}).get("url", "").startswith("https://")
-          and "naota-store" in g["download"]["url"] for g in idx.get("packs", [])))
+          and "vanhanh-store" in g["download"]["url"] for g in idx.get("packs", [])))
 check("danh mục cũ tự nói là đã đông lại, để không ai thêm nhầm vào đó",
       "ĐÔNG LẠI" in (idx.get("_doc") or ""))
 # Gói thật đã dọn sang repo kho, nên repo này không còn ôm tệp .zip nào nữa.
-check("repo NAOTA không còn giữ tệp gói", not (ROOT / "system" / "packs").exists())
+check("repo VANHANH không còn giữ tệp gói", not (ROOT / "system" / "packs").exists())
 
 # ============================================================
 # 4. Kho là MỘT kho, vào được từ tab của bốn trang năng lực
@@ -298,11 +298,11 @@ src_con = (DASHBOARD / "console.js").read_text(encoding="utf-8")
 src_ws = (DASHBOARD / "workspace.js").read_text(encoding="utf-8")
 check("mọi loại năng lực có đường sang kho, trợ lý và quy trình đi qua Cộng sự",
       all(x in src_con for x in ('skills: "skill"', 'plugins: "tool"', 'mcp: "connector"'))
-      and 'window.NaotaPacks.moKho(S.loai, "workspace",' in src_ws
+      and 'window.VanhanhPacks.moKho(S.loai, "workspace",' in src_ws
       and 'data-loai="agent"' in src_ws and 'data-loai="workflow"' in src_ws)
 # Năm bản sao của lưới kho là năm thứ sẽ lệch nhau sau vài tháng. Tab chỉ ĐIỀU HƯỚNG.
 check("tab kho điều hướng sang kho chứ không nhúng bản sao lưới",
-      "NaotaPacks.moKho(kind" in src_con and "veKho" not in src_con)
+      "VanhanhPacks.moKho(kind" in src_con and "veKho" not in src_con)
 # Kho không nằm trên thanh bên, nên vào rồi mà không có nút quay lại là người dùng thấy mình
 # bị lạc. Tab phải truyền cả trang gốc, và kho phải vẽ nút đó.
 check("tab truyền cả trang gốc để kho vẽ được nút quay lại",
@@ -328,7 +328,7 @@ check("CANARY: vẽ lại sau khi cài/gỡ KHÔNG đi qua render (đường v�
 
 # Kho có mặt trên thanh bên. Lý do ẩn nó trước đây - "đường vào đúng là cái tab
 # trên chính trang bạn đang đứng" - sai ngay khi kho thành chỗ chứa phần lớn kết nối của
-# Naota: người mới cài chưa đấu gì thì không có trang nào để mà bấm tab.
+# Vanhanh: người mới cài chưa đấu gì thì không có trang nào để mà bấm tab.
 # RAIL_AN không còn rỗng (id trang cũ "chatbots" ẩn đi vì đã gộp vào trang Hội thoại),
 # nên canh đúng ý: "packs" KHÔNG nằm trong tập ẩn.
 import re as _re
@@ -352,9 +352,9 @@ check("bật/tắt tạm chuyển lên thẻ chứ không mất",
 # Nút chọn tệp nằm TRONG thanh công cụ của lưới, tức trên đầu - không phải cuối trang.
 check("nút cài từ tệp .zip nằm trên thanh công cụ của lưới",
       src_js.index('data-kho-zip="1"') < src_js.index('id="pkGrid"'))
-# the page header (VIEW_META) already reads "Naota Store", so the page body must not
+# the page header (VIEW_META) already reads "Vanhanh Store", so the page body must not
 # repeat it as a second heading.
-check("không lặp tiêu đề Naota Store trong thân trang", "◆ Naota Store" not in src_js)
+check("không lặp tiêu đề Vanhanh Store trong thân trang", "◆ Vanhanh Store" not in src_js)
 check("thanh tab của kho cố định khi cuộn",
       ".kho-thanh { position: sticky;" in (DASHBOARD / "console.css").read_text(encoding="utf-8"))
 check("phân trang 18 mục một trang", "const MOI_TRANG = 18;" in src_js)

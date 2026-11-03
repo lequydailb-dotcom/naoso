@@ -1,39 +1,39 @@
 <!-- translated-from: QUICKSTART.en.md sha256:c04efec7ce47 -->
-# NAOTA - Mulai cepat
+# VANHANH - Mulai cepat
 
 *[English](../../../QUICKSTART.en.md) · [Tiếng Việt](../../../QUICKSTART.md) · [简体中文](../zh/QUICKSTART.md) · [Español](../es/QUICKSTART.md) · [日本語](../ja/QUICKSTART.md) · [हिन्दी](../hi/QUICKSTART.md) · [Português](../pt-BR/QUICKSTART.md) · [한국어](../ko/QUICKSTART.md) · [Русский](../ru/QUICKSTART.md) · [Deutsch](../de/QUICKSTART.md) · [Français](../fr/QUICKSTART.md) · **Bahasa Indonesia***
 
 > Ini adalah terjemahan otomatis dari panduan mulai cepat berbahasa Inggris.
 
-Jalankan NAOTA dalam beberapa menit. Panduan lengkap: [docs/en/](../../../docs/en/README.md).
+Jalankan VANHANH dalam beberapa menit. Panduan lengkap: [docs/en/](../../../docs/en/README.md).
 
 ## Komputer pribadi (Windows, macOS) - unduh penginstal
 
-Pasang Naota seperti aplikasi biasa: unduh satu file, buka, lalu Anda punya ikon NAOTA untuk diklik setiap hari. Penginstal memeriksa apa yang belum ada di komputer (Git, Python, Node, otak AI) dan hanya memasang itu.
+Pasang Vanhanh seperti aplikasi biasa: unduh satu file, buka, lalu Anda punya ikon VANHANH untuk diklik setiap hari. Penginstal memeriksa apa yang belum ada di komputer (Git, Python, Node, otak AI) dan hanya memasang itu.
 
-- **Windows 10/11:** unduh [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), klik dua kali, lalu tekan Next sampai selesai. Jendela hitam menampilkan kemajuan pemasangan (beberapa menit). Setelah selesai ada ikon NAOTA di Desktop dan menu Start.
-- **macOS 11 atau lebih baru:** unduh [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), buka, seret **NAOTA** ke **Applications**, lalu buka dari Launchpad. Pertama kali, Terminal terbuka untuk memasang (mungkin meminta Anda membuat akun admin Naota dan kata sandi Mac sekali).
+- **Windows 10/11:** unduh [Vanhanh-Setup.exe](https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/Vanhanh-Setup.exe), klik dua kali, lalu tekan Next sampai selesai. Jendela hitam menampilkan kemajuan pemasangan (beberapa menit). Setelah selesai ada ikon VANHANH di Desktop dan menu Start.
+- **macOS 11 atau lebih baru:** unduh [Vanhanh-macOS.dmg](https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/Vanhanh-macOS.dmg), buka, seret **VANHANH** ke **Applications**, lalu buka dari Launchpad. Pertama kali, Terminal terbuka untuk memasang (mungkin meminta Anda membuat akun admin Vanhanh dan kata sandi Mac sekali).
 
-Mengklik ikon membuka Naota di jendelanya sendiri (tanpa bilah alamat), Naota berjalan bersama komputer, dan tombol **Update** di aplikasi berfungsi seperti biasa. Data Anda ada di folder `Naota` dalam folder pengguna; mencopot aplikasi tetap menyimpan folder itu.
+Mengklik ikon membuka Vanhanh di jendelanya sendiri (tanpa bilah alamat), Vanhanh berjalan bersama komputer, dan tombol **Update** di aplikasi berfungsi seperti biasa. Data Anda ada di folder `Vanhanh` dalam folder pengguna; mencopot aplikasi tetap menyimpan folder itu.
 
 Kedua penginstal belum ditandatangani kode, jadi komputer akan bertanya sekali:
 - Windows menampilkan "Windows protected your PC": klik **More info**, lalu **Run anyway**.
-- macOS bilang tidak bisa membuka aplikasi: buka **System Settings → Privacy & Security**, gulir ke bawah, klik **Open Anyway**, lalu buka NAOTA lagi.
+- macOS bilang tidak bisa membuka aplikasi: buka **System Settings → Privacy & Security**, gulir ke bawah, klik **Open Anyway**, lalu buka VANHANH lagi.
 
 ## Opsi 1 - VPS Hostinger (Docker Manager, sekali klik)
 
-> 🛒 **Belum punya VPS?** [Sewa VPS Hostinger di sini](https://www.hostinger.com). Docker Manager sudah tersedia, jadi Naota terpasang sekali klik. Setelah siap, kembali ke langkah di bawah.
+> 🛒 **Belum punya VPS?** [Sewa VPS Hostinger di sini](https://www.hostinger.com). Docker Manager sudah tersedia, jadi Vanhanh terpasang sekali klik. Setelah siap, kembali ke langkah di bawah.
 
 1. hPanel → VPS → **Docker Manager** → **Compose** → **Compose from URL**.
 2. Tempel URL ini:
    ```
-   https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.yml
+   https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.hostinger.yml
    ```
 3. (Opsional, untuk HTTPS + domain) isi ini di kotak **Environment**:
    ```
-   DOMAIN_NAME=naota.<vps-hostname>.hstgr.cloud
+   DOMAIN_NAME=vanhanh.<vps-hostname>.hstgr.cloud
    ```
-   (Hostname ada di hPanel → VPS, contoh `naota.srv1234567.hstgr.cloud`.)
+   (Hostname ada di hPanel → VPS, contoh `vanhanh.srv1234567.hstgr.cloud`.)
 4. **Deploy**. Tunggu 1-3 menit. Buka aplikasi dengan tombol **Open** (atau `https://<DOMAIN_NAME>`).
 5. Saat pertama dijalankan, layar akan meminta Anda membuat akun admin. Setelah itu, login ke Claude Code sekali saja dari terminal container: `claude auth login --claudeai`.
 
@@ -52,7 +52,7 @@ Buka http://localhost:7777. Untuk HTTPS lewat Caddy, tambahkan `-f docker-compos
 
 1. Instal Python 3.12 + Node 22.
 2. Di folder proyek, jalankan `setup.bat` sekali: script ini membuat .venv, menginstal dependency, dan menginstalkan dua engine CLI (Claude Code, Codex) untuk Anda.
-3. `start-naota.bat` untuk menjalankan di background (`stop-naota.bat` untuk menghentikan).
+3. `start-vanhanh.bat` untuk menjalankan di background (`stop-vanhanh.bat` untuk menghentikan).
 4. Buka http://localhost:7777.
 
 ## Setelah berjalan

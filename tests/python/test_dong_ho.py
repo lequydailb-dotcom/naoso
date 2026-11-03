@@ -1,15 +1,15 @@
-"""Naota phải biết BÂY GIỜ MẤY GIỜ trên mọi đường, kể cả đường tắt không phát tool.
+"""Vanhanh phải biết BÂY GIỜ MẤY GIỜ trên mọi đường, kể cả đường tắt không phát tool.
 
     python tests/run.py dong_ho
 
-Lỗi thật: hỏi "giờ Việt Nam là mấy giờ" thì Naota trả lời "MCP server của
-Naota hiện đang mất kết nối... khi nào kết nối lại em sẽ gọi tool naota_now". Không có server
+Lỗi thật: hỏi "giờ Việt Nam là mấy giờ" thì Vanhanh trả lời "MCP server của
+Vanhanh hiện đang mất kết nối... khi nào kết nối lại em sẽ gọi tool vanhanh_now". Không có server
 nào mất kết nối cả. Sự thật là lượt đó đi ĐƯỜNG TẮT của mức Siêu tiết kiệm, mà đường tắt gửi
 capsule KHÔNG KÈM TOOL NÀO - đó chính là chỗ nó tiết kiệm. Model không có đồng hồ, không có
 tool, nên nó làm cái tệ nhất: bịa ra một lý do nghe hợp lý.
 
 Bộ lọc câu hỏi CÓ chặn "bây giờ", "hôm nay"... nhưng chặn theo từ khoá là trò đuổi bắt, và
-"giờ Việt Nam là mấy giờ" lọt qua đúng như vậy. Nên chữa ở gốc: mọi prompt Naota gửi đi đều
+"giờ Việt Nam là mấy giờ" lọt qua đúng như vậy. Nên chữa ở gốc: mọi prompt Vanhanh gửi đi đều
 mang theo một dòng giờ thật. Khoảng 30 token, đổi lấy việc không còn cửa nào để bịa.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
@@ -20,7 +20,7 @@ import sys
 import tempfile
 from datetime import datetime, timedelta, timezone
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-dongho-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-dongho-")
 
 import context_compiler as cc  # noqa: E402
 import main  # noqa: E402
@@ -62,7 +62,7 @@ check("và đúng giờ đang chạy", _hom_nay.strftime("%H:%M") in _that
 # ---- 2. Capsule của ĐƯỜNG TẮT phải mang theo giờ. Đây là chỗ lỗi thật nằm ----
 from capability_registry import CapabilityRegistry  # noqa: E402
 
-_reg_dir = tempfile.mkdtemp(prefix="naota-dongho-reg-")
+_reg_dir = tempfile.mkdtemp(prefix="vanhanh-dongho-reg-")
 _reg = CapabilityRegistry(_reg_dir)
 _reg.refresh_tools("brain-a", [], {})
 _reg.refresh_model_profile("groq", "model-a", "api", True, {"observed": True})
@@ -74,7 +74,7 @@ check("biên soạn được capsule", _kq.status == "compiled")
 check("capsule đi đường tắt", _kq.capsule.path == "fast")
 _sys = _kq.capsule.rendered_request["messages"][0]["content"]
 # Nhãn múi giờ nay đọc từ cấu hình (vd "Asia/Ho_Chi_Minh (UTC+7)") thay vì ghim "Việt Nam":
-# người dùng đổi múi giờ mà Naota vẫn khai giờ Việt Nam là sai một cách rất khó ngờ, vì
+# người dùng đổi múi giờ mà Vanhanh vẫn khai giờ Việt Nam là sai một cách rất khó ngờ, vì
 # con số giờ thì đã đúng. Test bám vào ĐỘ LỆCH, thứ luôn có mặt.
 check("CANARY: capsule đường tắt CÓ mang theo giờ", "UTC+7" in _sys)
 check("giờ là món BẮT BUỘC, có tên riêng trong sổ nguồn",

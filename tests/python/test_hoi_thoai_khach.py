@@ -2,7 +2,7 @@
 
     python tests/run.py hoi_thoai_khach      (KHÔNG mạng)
 
-Cột sống của cả tính năng là một câu: MỘT tin Telegram hoặc Zalo đi vào Naota, được lưu đúng
+Cột sống của cả tính năng là một câu: MỘT tin Telegram hoặc Zalo đi vào Vanhanh, được lưu đúng
 Khách -> Hội thoại -> Tin, rồi mở trang Hội thoại đọc lại được. Test này canh đúng câu đó, ở
 ba lớp:
 
@@ -22,8 +22,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="naota-hoithoai-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="vanhanh-hoithoai-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -126,7 +126,7 @@ check("loại tin đoán từ dòng gateway: ảnh -> image, chữ thường -> 
 # ============================================================
 # 2. Bot chuyên trách -> kho
 # ============================================================
-BRAIN = Path(tempfile.mkdtemp(prefix="naota-hoithoai-brain-"))
+BRAIN = Path(tempfile.mkdtemp(prefix="vanhanh-hoithoai-brain-"))
 (BRAIN / "inbox" / "khach").mkdir(parents=True)
 _dap = {"text": "Dạ shop còn size 42 ạ.", "files": []}
 

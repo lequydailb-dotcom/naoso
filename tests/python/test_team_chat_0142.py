@@ -17,8 +17,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-0142-")
-TEMP = Path(tempfile.mkdtemp(prefix="naota-team-0142-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-0142-")
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-team-0142-w-"))
 
 import aux_engine  # noqa: E402
 import main  # noqa: E402
@@ -86,7 +86,7 @@ with patch.object(main.cfgmod, "read_settings", return_value=SETTINGS), \
 
 class Base:
     def __init__(self):
-        self.allowed_tools = ["naota_reply_policy_khong_cong_cu"]
+        self.allowed_tools = ["vanhanh_reply_policy_khong_cong_cu"]
         self.system_prompt = "SYS"
         self.cwd = str(TEMP / "team_cwd")
         self.model = None
@@ -102,18 +102,18 @@ try:
 except team_engine.TeamEngineUnavailable:
     check("Claude không có cổng chặn công cụ: từ chối", True)
 
-old = os.environ.get("NAOTA_CODEX_SANDBOX")
-os.environ["NAOTA_CODEX_SANDBOX"] = "off"
+old = os.environ.get("VANHANH_CODEX_SANDBOX")
+os.environ["VANHANH_CODEX_SANDBOX"] = "off"
 try:
     with patch.object(aux_engine, "availability", return_value=(True, "")):
         cc = team_engine.build({"provider": "openai-oauth", "model": "gpt-5.5"}, Base(), "team-x", {})
     args = cc._build_args()
 finally:
     if old is None:
-        os.environ.pop("NAOTA_CODEX_SANDBOX", None)
+        os.environ.pop("VANHANH_CODEX_SANDBOX", None)
     else:
-        os.environ["NAOTA_CODEX_SANDBOX"] = old
-check("Codex: luôn --sandbox read-only, kể cả khi máy đặt NAOTA_CODEX_SANDBOX=off",
+        os.environ["VANHANH_CODEX_SANDBOX"] = old
+check("Codex: luôn --sandbox read-only, kể cả khi máy đặt VANHANH_CODEX_SANDBOX=off",
       "--sandbox" in args and args[args.index("--sandbox") + 1] == "read-only"
       and "--dangerously-bypass-approvals-and-sandbox" not in args, args)
 check("Codex: không profile (hub), MCP rỗng, tắt web search và công cụ native",
@@ -124,7 +124,7 @@ check("Codex: lời nhắc của trợ lý đi kèm, model của trợ lý", cc.
 
 with patch.object(aux_engine, "availability", return_value=(True, "")):
     api = team_engine.build({"provider": "openrouter", "model": "x/y"}, Base(), "team-x", {})
-check("engine API: no_tools, mức suggest, không vault", api.no_tools is True and api.naota_mode == "suggest"
+check("engine API: no_tools, mức suggest, không vault", api.no_tools is True and api.vanhanh_mode == "suggest"
       and api.vault_root is None)
 for prov in ("grok-cli", "antigravity-cli"):
     try:

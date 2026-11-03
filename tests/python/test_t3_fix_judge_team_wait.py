@@ -11,7 +11,7 @@ Kho thật, bộ chạy nhóm thật, engine GIẢ. Không model thật nào.
 import asyncio
 import os
 
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
 
 from _judge_world import World, check, finish  # noqa: E402
 

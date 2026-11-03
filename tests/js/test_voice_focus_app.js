@@ -15,11 +15,11 @@ const box = {
   adaptive: {cancel(){}, running:()=>false, input:()=>false, manual:()=>false, holding:()=>false, blocked:()=>false,start(){},save(){}},
   adaptiveOutbox:new Map(), adaptiveContinuation:'',
 
-  window: { NaotaVoiceAttention: { Attention: class extends Attention { constructor() { super({now: () => now}); } } },
-    t: x => x, NaotaVoiceLive: { start: async o => { liveOptions = o; events.push('live-start'); return startResult; },
+  window: { VanhanhVoiceAttention: { Attention: class extends Attention { constructor() { super({now: () => now}); } } },
+    t: x => x, VanhanhVoiceLive: { start: async o => { liveOptions = o; events.push('live-start'); return startResult; },
       attachMic: async () => { events.push('attach-mic'); return true; },
       stop: () => { stopCount++; }, isSpeaking: () => false, sendText: t => sent.push(t) } },
-  NaotaVoice: class { constructor(o) { if (!voiceOptions) voiceOptions = o; else wakeOptions = o; this.lang = 'vi-VN'; }
+  VanhanhVoice: class { constructor(o) { if (!voiceOptions) voiceOptions = o; else wakeOptions = o; this.lang = 'vi-VN'; }
     isSupported() { return true; } micHong() { return false; } isSpeaking() { return false; }
     waitForCaptureEnd() { return captureEnd; }
     setRecognitionLang(lang) { this.lang = lang; }
@@ -96,30 +96,30 @@ function final(text) { if (voiceOptions.acceptTranscript(text)) voiceOptions.onT
   liveOptions.onReady({});
   assert.deepEqual(sent, ['mở trò chuyện giúp anh'], 'the waking sentence becomes the first message, once');
   assert.deepEqual(stored, [['user', 'mở trò chuyện giúp anh']]);
-  run('_liveNaotaText = "Latest answer"');
+  run('_liveVanhanhText = "Latest answer"');
   liveOptions.onStopped(); liveOptions.onStopped();
-  assert.deepEqual(stored.at(-1), ['naota', 'Latest answer']);
+  assert.deepEqual(stored.at(-1), ['vanhanh', 'Latest answer']);
   assert.equal(stored.length, 2, 'reply without turn_done is saved exactly once on sleep');
   sent.length = 0; stored.length = 0;
-  await box.batLive('Naota câu của phiên A');
+  await box.batLive('Vanhanh câu của phiên A');
   const stale = liveOptions;
   box.tatRanhTay(); box.savedSessionId = 'session-B';
-  stale.onReady({session_id:'session-A'}); wakeOptions.onTranscript('Naota câu cũ của phiên trước');
+  stale.onReady({session_id:'session-A'}); wakeOptions.onTranscript('Vanhanh câu cũ của phiên trước');
   assert.equal(sent.length, 0); assert.equal(stored.length, 0);
   assert.equal(run('attention.running'), false); assert.equal(button.hidden, true);
   box.handsFree = true; run('attention.enabled = true; attention.start()');
   await box.batLive(); liveOptions.onReady({});
-  liveOptions.onTool('ask_naota', 'running'); liveOptions.onTool('ask_naota', 'running');
+  liveOptions.onTool('ask_vanhanh', 'running'); liveOptions.onTool('ask_vanhanh', 'running');
   liveOptions.onSpeakEnd(); liveOptions.onTurnDone();
   now += 29000; box.tickVoiceFocus();
   now += 2000; box.tickVoiceFocus();
   assert.equal(run('_liveWaitingWake'), false, 'a spoken acknowledgement must not cancel the running tool');
-  liveOptions.onTool('ask_naota', 'done');
+  liveOptions.onTool('ask_vanhanh', 'done');
   for (let i = 0; i < 8; i++) { now += 29000; box.tickVoiceFocus(); }
   assert.equal(run('_liveWaitingWake'), false, 'a legitimate long-running tool is not cancelled by an idle timer');
   now += 29000; box.tickVoiceFocus();
   assert.equal(run('_liveWaitingWake'), false, 'one tool finishing must not clear another');
-  liveOptions.onTool('ask_naota', 'done');
+  liveOptions.onTool('ask_vanhanh', 'done');
   now += 29000; box.tickVoiceFocus(); assert.equal(run('_liveWaitingWake'), false);
   now += 1001; box.tickVoiceFocus(); assert.equal(run('_liveWaitingWake'), true, 'new silent Live sleeps after 30s, not 60s');
   let release;
@@ -129,7 +129,7 @@ function final(text) { if (voiceOptions.acceptTranscript(text)) voiceOptions.onT
   box.tatRanhTay(); release(true); await opening;
   assert.equal(events.filter(e => e === 'live-start').length, starts, 'cancel while waiting for capture release never opens provider');
   // nối lại hỏng GIỮA cuộc gọi không chuyển sang đường Cơ bản (giọng Edge khác hẳn, người dùng
-  // nghe như Naota tự đổi giọng nữ sang nam). Thử lại một lần đúng câu đó, rồi quay về chờ và báo.
+  // nghe như Vanhanh tự đổi giọng nữ sang nam). Thử lại một lần đúng câu đó, rồi quay về chờ và báo.
   captureEnd = Promise.resolve(true);
   box.handsFree = true; box.voiceMode = 'live';
   run('attention.enabled = true; attention.start(); _liveWaitingWake = false; _liveSom = null; _cuocGoiDaNoi = true');

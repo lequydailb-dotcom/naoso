@@ -13,7 +13,7 @@ Ba nhóm được canh ở đây, theo đúng thứ tự "hỏng thì đau tới
 3. **Không bỏ lại tiến trình mồ côi.** Shell chạy trong process group riêng nên nó KHÔNG chết
    theo server; đóng phiên phải giết cả nhóm.
 
-Chạy được trên Linux/macOS. Trên Windows phần pty tự bỏ qua (ở đó Naota chạy chế độ ống) -
+Chạy được trên Linux/macOS. Trên Windows phần pty tự bỏ qua (ở đó Vanhanh chạy chế độ ống) -
 nhưng nhánh ống vẫn được test ở mọi hệ bằng cách ép CO_PTY=False, vì đó là nhánh không ai ngồi
 Linux chạy thử được.
 """
@@ -52,10 +52,10 @@ _than = _ws.group(0) if _ws else ""
 check("có endpoint WebSocket /ws/terminal", bool(_than))
 check("WS terminal đòi ĐÚNG session đăng nhập như /ws",
       "cfgmod.gate_active()" in _than and "cfgmod.valid_session" in _than
-      and "naota_session" in _than)
+      and "vanhanh_session" in _than)
 check("CANARY: WS terminal KHÔNG nhận token API (_token_ok là đường của script, không phải shell)",
       "_token_ok" not in _than)
-check("WS terminal tôn trọng công tắc tắt NAOTA_TERMINAL", "terminal.bat()" in _than)
+check("WS terminal tôn trọng công tắc tắt VANHANH_TERMINAL", "terminal.bat()" in _than)
 check("/terminal/status + /terminal/close không nằm trong danh sách khỏi đăng nhập",
       "/terminal" not in re.search(r"_AUTH_PUBLIC_EXACT = \((.*?)\)", SRC, re.S).group(1)
       and "/terminal" not in re.search(r"_AUTH_LOCAL_EXACT = \((.*?)\)", SRC, re.S).group(1))
@@ -68,17 +68,17 @@ check("rời tab chỉ GỠ NGƯỜI XEM, không giết shell",
 # ============================================================
 # 2. Công tắc + cấu hình
 # ============================================================
-_cu = os.environ.get("NAOTA_TERMINAL")
+_cu = os.environ.get("VANHANH_TERMINAL")
 try:
-    os.environ.pop("NAOTA_TERMINAL", None)
+    os.environ.pop("VANHANH_TERMINAL", None)
     check("mặc định terminal BẬT", terminal.bat() is True)
     for v in ("0", "off", "false", "no", "OFF"):
-        os.environ["NAOTA_TERMINAL"] = v
-        check(f"NAOTA_TERMINAL={v} -> tắt", terminal.bat() is False)
+        os.environ["VANHANH_TERMINAL"] = v
+        check(f"VANHANH_TERMINAL={v} -> tắt", terminal.bat() is False)
 finally:
-    os.environ.pop("NAOTA_TERMINAL", None)
+    os.environ.pop("VANHANH_TERMINAL", None)
     if _cu is not None:
-        os.environ["NAOTA_TERMINAL"] = _cu
+        os.environ["VANHANH_TERMINAL"] = _cu
 
 check("shell_argv() luôn trả ít nhất một lệnh", len(terminal.shell_argv()) >= 1)
 check("che_do() ra 'pty' trên POSIX / 'ong' trên Windows",

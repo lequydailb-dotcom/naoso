@@ -15,7 +15,7 @@ import os
 import tempfile
 import time
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-oauth-refresh-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-oauth-refresh-")
 
 import mcp_client  # noqa: E402
 import oauth_mcp  # noqa: E402

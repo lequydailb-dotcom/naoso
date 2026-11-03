@@ -11,7 +11,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-khunggo-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-khunggo-")
 from fastapi.testclient import TestClient  # noqa: E402
 import main  # noqa: E402
 import config as cfgmod  # noqa: E402

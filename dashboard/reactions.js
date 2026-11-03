@@ -209,6 +209,6 @@
     LONG_PRESS_MS: LONG_PRESS_MS, emojiOf: emojiOf, nextReaction: nextReaction, payload: payload, newNonce: newNonce,
     nonceKeeper: nonceKeeper, agentChipsHtml: agentChipsHtml, barHtml: barHtml, cornerHtml: cornerHtml,
     cornerToggle: cornerToggle, bindLongPress: bindLongPress, esc: esc };
-  if (typeof window !== "undefined") window.NaotaReactions = api;
+  if (typeof window !== "undefined") window.VanhanhReactions = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })();

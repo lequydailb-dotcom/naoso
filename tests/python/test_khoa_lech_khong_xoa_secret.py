@@ -20,8 +20,8 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-khoalech-")
-os.environ.pop("NAOTA_ADMIN_PASSWORD", None)
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-khoalech-")
+os.environ.pop("VANHANH_ADMIN_PASSWORD", None)
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -89,9 +89,9 @@ check("a secret block dropped while the key is wrong is kept too",
       raw()["model"].get("openai_oauth", {}).get("access_token", "").startswith("enc:"))
 
 # ---- 2. the startup write under a wrong key ----
-os.environ["NAOTA_ADMIN_PASSWORD"] = "env-pass-123"
+os.environ["VANHANH_ADMIN_PASSWORD"] = "env-pass-123"
 c.provision_admin_from_env()
-os.environ.pop("NAOTA_ADMIN_PASSWORD", None)
+os.environ.pop("VANHANH_ADMIN_PASSWORD", None)
 r = raw()
 check("the boot-time admin write with a wrong key keeps the secrets",
       r["model"]["openrouter_key"].startswith("enc:") and r["telegram"]["token"].startswith("enc:"))

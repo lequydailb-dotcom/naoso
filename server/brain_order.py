@@ -5,7 +5,7 @@ there was no way to change it. GET /brains sorted by FOLDER name while the list 
 
 Now:
 - The owner can set the order by hand (the brain picker's Reorder mode). It is stored in settings.json as a list of
-  folder names under "brain_order", so every device that opens this Naota shows the same order.
+  folder names under "brain_order", so every device that opens this Vanhanh shows the same order.
 - A brain not in that list (new, or never ordered) comes after the ordered ones, sorted by its label the way a person
   reads it: numbers by value ("2-..." before "10-..."), case and accents ignored.
 

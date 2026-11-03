@@ -8,8 +8,8 @@ import shutil
 import sys
 import tempfile
 
-STATE = tempfile.mkdtemp(prefix="naota-pin-")
-os.environ["NAOTA_STATE_DIR"] = STATE
+STATE = tempfile.mkdtemp(prefix="vanhanh-pin-")
+os.environ["VANHANH_STATE_DIR"] = STATE
 from fastapi.testclient import TestClient  # noqa: E402
 import coding_store  # noqa: E402
 import main  # noqa: E402
@@ -27,8 +27,8 @@ def real(p):
     return os.path.realpath(p)
 
 
-brain = tempfile.mkdtemp(prefix="naota-pin-brain-")
-outside = tempfile.mkdtemp(prefix="naota-pin-out-")
+brain = tempfile.mkdtemp(prefix="vanhanh-pin-brain-")
+outside = tempfile.mkdtemp(prefix="vanhanh-pin-out-")
 try:
     proj = os.path.join(brain, "projects", "shop-site")
     os.makedirs(proj)

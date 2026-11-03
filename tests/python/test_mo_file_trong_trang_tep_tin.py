@@ -22,7 +22,7 @@ from pathlib import Path
 
 from _paths import ROOT, SERVER  # noqa: E402,F401  - nạp server/ vào sys.path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-motep-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-motep-"))
 
 import main  # noqa: E402
 
@@ -43,7 +43,7 @@ def check(name: str, condition: bool) -> None:
 # =====================================================================
 # 1. Server: /files/list không được bỏ người dùng ở ngõ cụt
 # =====================================================================
-_TMP = Path(tempfile.mkdtemp(prefix="naota-motep-brain-")).resolve()
+_TMP = Path(tempfile.mkdtemp(prefix="vanhanh-motep-brain-")).resolve()
 BRAIN = _TMP / "brains" / "Bo Nao"
 (BRAIN / "06 - Sources").mkdir(parents=True)
 (BRAIN / "06 - Sources" / "Ke Hoach SaaS Quan Ly Tai Chinh.md").write_text("# Kế hoạch", encoding="utf-8")
@@ -51,9 +51,9 @@ BRAIN = _TMP / "brains" / "Bo Nao"
 
 main._brain_root = lambda brain: str(BRAIN)
 main.BRAINS_DIR = str(_TMP / "brains")
-os.environ["NAOTA_HOST"] = "0.0.0.0"          # public → trần = gốc brain (khỏi lệ thuộc ổ đĩa máy chạy test)
-os.environ.pop("NAOTA_FILES_ROOT", None)
-os.environ.pop("NAOTA_REQUIRE_LOGIN", None)
+os.environ["VANHANH_HOST"] = "0.0.0.0"          # public → trần = gốc brain (khỏi lệ thuộc ổ đĩa máy chạy test)
+os.environ.pop("VANHANH_FILES_ROOT", None)
+os.environ.pop("VANHANH_REQUIRE_LOGIN", None)
 
 
 def _list(path):

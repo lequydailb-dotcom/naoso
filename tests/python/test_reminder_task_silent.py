@@ -15,13 +15,13 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-reminder-silent-state-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-reminder-silent-state-")
 
 import reminders  # noqa: E402
 
 fails = []
 sent = []
-brain = Path(tempfile.mkdtemp(prefix="naota-reminder-silent-brain-"))
+brain = Path(tempfile.mkdtemp(prefix="vanhanh-reminder-silent-brain-"))
 
 
 def check(name, cond):
@@ -55,7 +55,7 @@ feature = reminders.RemindersFeature(deps)
 
 
 def stored(rid):
-    data = json.loads((brain / "Naota" / "reminders.json").read_text(encoding="utf-8"))
+    data = json.loads((brain / "Vanhanh" / "reminders.json").read_text(encoding="utf-8"))
     return next(r for r in data["reminders"] if r["id"] == rid)
 
 

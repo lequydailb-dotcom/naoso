@@ -23,7 +23,7 @@ import pathlib
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-agnhe-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-agnhe-")
 
 import main  # noqa: E402
 
@@ -36,7 +36,7 @@ def check(name, cond):
         fails.append(name)
 
 
-BRAIN = pathlib.Path(tempfile.mkdtemp(prefix="naota-brain-agnhe-"))
+BRAIN = pathlib.Path(tempfile.mkdtemp(prefix="vanhanh-brain-agnhe-"))
 (BRAIN / "agents").mkdir(parents=True)
 PROMPT = ("Bạn là trợ lý chuyên trách. " * 120 + "\n") * 6
 for i in range(14):

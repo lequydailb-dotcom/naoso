@@ -1,7 +1,7 @@
 /* Trang Gói: xem gói đã cài, cài từ tệp .zip, bật tắt, gỡ.
  *
  * File riêng thay vì nhét vào console.js (đã ~7k dòng), theo đúng cách studio.js và
- * chatbots.js đang làm: console.js dựng khung rồi gọi window.NaotaPacks.render(el).
+ * chatbots.js đang làm: console.js dựng khung rồi gọi window.VanhanhPacks.render(el).
  *
  * Nguyên tắc của màn hình xác nhận: nó VẼ TỪ /packs/inspect chứ không tự đoán. Danh sách "gói
  * này chứa gì" viết tay trong JS thì sau vài tháng nó lệch khỏi thứ server thật sự cài, mà
@@ -53,15 +53,15 @@
       (bien && bien[ten] != null) ? String(bien[ten]) : m);
   }
   // (i) button from info-tip.js; without it (node tests) the explanation is drawn inline.
-  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(tw("info.more")) : ""; }
+  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(tw("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.NaotaInfo;
+    var J = typeof window !== "undefined" && window.VanhanhInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
   // Tên nhóm của gói là tiếng Việt và là KHOÁ lọc (`data-kho-nhom`), nên chỉ dịch lúc vẽ; xem
-  // `NaotaI18n.catLabel`. Tên lạ do gói cộng đồng tự đặt thì giữ nguyên.
+  // `VanhanhI18n.catLabel`. Tên lạ do gói cộng đồng tự đặt thì giữ nguyên.
   function nhanNhom(ten) {
-    const i = (typeof window !== "undefined") && window.NaotaI18n;
+    const i = (typeof window !== "undefined") && window.VanhanhI18n;
     return i && typeof i.catLabel === "function" ? i.catLabel(ten) : (ten || "");
   }
 
@@ -74,7 +74,7 @@
     // tra bằng một object hàm, luôn trượt, và mọi tên gói rơi về tiếng Anh trong giao diện
     // tiếng Việt - hỏng lặng lẽ, vì vẫn có chữ để hiện nên trông như gói thiếu bản dịch chứ
     // không như một lỗi. Lỗi này đã tồn tại một thời gian trong file này.
-    const lang = (window.NaotaI18n && NaotaI18n.lang()) || "vi";
+    const lang = (window.VanhanhI18n && VanhanhI18n.lang()) || "vi";
     return v[lang] || v.en || Object.values(v)[0] || mac || "";
   }
 
@@ -399,7 +399,7 @@
   }
 
   // Mở thẳng màn hình đồng ý cài của MỘT gói trong kho, theo id, từ bất kỳ trang nào.
-  // Lối vào đầu tiên: quét QR Zalo xong thì mời cài `naota.zalo`, vì ba tool Zalo mở rộng đã rời
+  // Lối vào đầu tiên: quét QR Zalo xong thì mời cài `vanhanh.zalo`, vì ba tool Zalo mở rộng đã rời
   // app sang kho. Đi qua ĐÚNG đường cài từ kho (`tuUrl`: tải, soi, hiện mã, chốt vân tay), không
   // có đường tắt nào cài mà người dùng chưa thấy màn hình này.
   //
@@ -428,7 +428,7 @@
   // trong ca đã có kết nối chạy, tức là ca hiếm hơn, còn ca thường thì im lặng.
   //
   // Dùng chung cho cả thẻ trong kho lẫn dấu × trên trang Kết nối - hai lối vào một hành động
-  // thì phải hỏi y hệt nhau. Vì thế nó nằm ở `window.NaotaPacks`.
+  // thì phải hỏi y hệt nhau. Vì thế nó nằm ở `window.VanhanhPacks`.
   async function goApp(ten, id) {
     const p = await postJson("/connect/core-toggle", { id: id, off: true, plan: true });
     if (!p || !p.ok) {
@@ -467,7 +467,7 @@
     // Thứ tự, đúng như `console.js iconInner` cho phần logo:
     //   đường dẫn/URL ảnh (logo hãng)  -> <img>
     //   tên icon Lucide                -> SVG trên ô màu nhạt
-    //   trợ lý (agent)                 -> chân dung trợ lý y như trang Cộng sự (`NaotaAvatar`)
+    //   trợ lý (agent)                 -> chân dung trợ lý y như trang Cộng sự (`VanhanhAvatar`)
     //   còn lại                        -> icon của LOẠI (skill = mảnh ghép, quy trình, công cụ...)
     //
     // `ic()` KHÔNG tự nhận đường dẫn (đó là việc của `iconInner`), nên bỏ nhánh <img> là mọi
@@ -482,8 +482,8 @@
         + '" alt="" loading="lazy"></div>';
     }
     const kind = (g && g.kind) || "bundle";
-    const A = typeof window !== "undefined" && window.NaotaAvatar;
-    if (kind === "agent" && A && A.html && window.NaotaPet) {
+    const A = typeof window !== "undefined" && window.VanhanhAvatar;
+    if (kind === "agent" && A && A.html && window.VanhanhPet) {
       try { return '<div class="kho-ava kho-ava-agent">' + A.html({ slug: g.id || "" }, 40) + '</div>'; }
       catch (e) { /* the mascot library is not ready: fall back to the kind icon */ }
     }
@@ -517,7 +517,7 @@
     const moi = coBanMoi(g);
     if (g.nguon === "app") {
       return g.installed
-        ? { nhan: tw("store.btn.remove_from_naota"), lop: "kho-btn kho-btn-go", act: "coreoff" }
+        ? { nhan: tw("store.btn.remove_from_vanhanh"), lop: "kho-btn kho-btn-go", act: "coreoff" }
         : { nhan: tw("store.btn.reinstall"), lop: "kho-btn kho-btn-chinh", act: "coreon" };
     }
     if (moi) {
@@ -612,7 +612,7 @@
   // per-device convenience, so it lives in localStorage and the page works without it.
   const SAP = { "de-xuat": "store.sort.recommended", "moi": "store.sort.recent", "ten": "store.sort.name" };
   function docSap() {
-    try { const v = localStorage.getItem("naota.kho.sap"); return SAP[v] ? v : "de-xuat"; }
+    try { const v = localStorage.getItem("vanhanh.kho.sap"); return SAP[v] ? v : "de-xuat"; }
     catch (e) { return "de-xuat"; }
   }
   // Stable: ties keep the catalog's own order, which is how the Store owner lays it out.
@@ -657,7 +657,7 @@
     // Danh mục cache 6 giờ ở phía server (`packs_store.TTL`). Với việc TÌM một gói mới thì 6
     // giờ là hợp lý. Với việc BIẾT gói mình đã cài có bản mới chưa thì nó sai một cách im
     // lặng: mở trang ra vẫn là danh mục của sáng nay, không dấu hiệu gì, và người dùng kết
-    // luận là Naota không có tính năng cập nhật.
+    // luận là Vanhanh không có tính năng cập nhật.
     //
     // Nên khi bản đang cầm đã quá cũ, lấy lại MỘT lần ở nền rồi vẽ lại. Không đụng TTL của
     // server (các nơi khác vẫn hưởng cache), chỉ trang Kho mới trả cái giá một request nhỏ.
@@ -910,7 +910,7 @@
     const ss = host.querySelector ? host.querySelector("#pkSap") : null;
     if (ss) ss.onchange = () => {
       _kho.sap = SAP[ss.value] ? ss.value : "de-xuat"; _kho.trang = 1;
-      try { localStorage.setItem("naota.kho.sap", _kho.sap); } catch (e) {}
+      try { localStorage.setItem("vanhanh.kho.sap", _kho.sap); } catch (e) {}
       lai();
     };
     const sn = host.querySelector ? host.querySelector("#pkNhom") : null;
@@ -1137,7 +1137,7 @@
         esc(tw("plzip.off_body")) + (v.zipAskedOn ? " " + esc(tw("plzip.off_zip")) : ""));
       if (k === "vault") return canh("vang", "info", esc(tw("plzip.vault_title")), esc(tw("plzip.vault_body")));
       if (k === "gate") return canh("vang", "triangle-alert", esc(tw("plzip.gate_title")),
-        tw("plzip.gate_body", { bien: "<code>NAOTA_ENABLE_USER_PLUGINS=false</code>" }));
+        tw("plzip.gate_body", { bien: "<code>VANHANH_ENABLE_USER_PLUGINS=false</code>" }));
       return "";
     }).join("");
 
@@ -1306,12 +1306,12 @@
           + tw("store.back_to", { trang: esc(veTrang.nhan) }) + '</button>'
         : "")
       // No heading and no intro here: the page header right above already says
-      // "Naota Store" and what it holds, and the cards explain themselves. Where installs land on
+      // "Vanhanh Store" and what it holds, and the cards explain themselves. Where installs land on
       // disk moved into the (i) of the Install from .zip dialog, the one place it matters.
       + '<div class="kho-khoi">'
       + (d.disabled
         ? '<div class="conn-guide" style="border-left:3px solid var(--warn,#e0a33e);padding-left:10px;margin-bottom:12px">'
-          + tw("store.disabled_env", { bien: '<code>NAOTA_DISABLE_PACKS</code>' }) + '</div>'
+          + tw("store.disabled_env", { bien: '<code>VANHANH_DISABLE_PACKS</code>' }) + '</div>'
         : "")
       + '<div id="pkKho"></div>'
       + '</div>';
@@ -1346,7 +1346,7 @@
   // xanh y nguyên khi phép so bị đảo ngược. `veKho` phơi ra cùng lý do: ô tìm trong kho
   // chỉ gõ được đúng một chữ rồi văng con trỏ, và chỉ có gõ THẬT qua đường vẽ lại mới bắt
   // được lỗi đó.
-  window.NaotaPacks = { render: render, moKho: moKho, LOAI: LOAI, goApp: goApp, hoi: hoi,
+  window.VanhanhPacks = { render: render, moKho: moKho, LOAI: LOAI, goApp: goApp, hoi: hoi,
                         coBanMoi: coBanMoi, nutThe: nutThe, theKho: theKho,
                         ghiConTro: ghiConTro, traConTro: traConTro, veKho: veKho,
                         caiGoiKho: caiGoiKho, caiPluginZip: caiPluginZip,

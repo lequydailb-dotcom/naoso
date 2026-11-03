@@ -1,4 +1,4 @@
-"""Test bảo mật lõi Naota (P0). Chạy tay / CI:
+"""Test bảo mật lõi Vanhanh (P0). Chạy tay / CI:
 
     python tests/run.py security
 
@@ -12,8 +12,8 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-sectest-")
-os.environ.pop("NAOTA_ALLOWED_HOSTS", None)
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-sectest-")
+os.environ.pop("VANHANH_ALLOWED_HOSTS", None)
 
 import config as cfg           # noqa: E402
 import secrets_store           # noqa: E402
@@ -38,18 +38,18 @@ check("password verify sai", not cfg.verify_password("wrong", {"auth": {"passwor
 check("hash không phải plaintext", "hunter2" not in h and len(h) >= 40)
 
 # ---- 2. require_login FAIL-CLOSED theo bind ----
-_saved = {k: os.environ.get(k) for k in ("NAOTA_HOST", "NAOTA_REQUIRE_LOGIN")}
+_saved = {k: os.environ.get(k) for k in ("VANHANH_HOST", "VANHANH_REQUIRE_LOGIN")}
 try:
-    os.environ.pop("NAOTA_REQUIRE_LOGIN", None)
-    os.environ["NAOTA_HOST"] = "0.0.0.0"
+    os.environ.pop("VANHANH_REQUIRE_LOGIN", None)
+    os.environ["VANHANH_HOST"] = "0.0.0.0"
     check("public bind → bắt buộc login", cfg.require_login() is True)
-    os.environ["NAOTA_HOST"] = "127.0.0.1"
+    os.environ["VANHANH_HOST"] = "127.0.0.1"
     check("localhost bind → không ép login", cfg.require_login() is False)
-    os.environ["NAOTA_HOST"] = "192.168.1.50"
+    os.environ["VANHANH_HOST"] = "192.168.1.50"
     check("LAN IP bind → bắt buộc login", cfg.require_login() is True)
-    os.environ["NAOTA_REQUIRE_LOGIN"] = "0"
-    os.environ["NAOTA_HOST"] = "0.0.0.0"
-    check("NAOTA_REQUIRE_LOGIN=0 ép tắt kể cả public", cfg.require_login() is False)
+    os.environ["VANHANH_REQUIRE_LOGIN"] = "0"
+    os.environ["VANHANH_HOST"] = "0.0.0.0"
+    check("VANHANH_REQUIRE_LOGIN=0 ép tắt kể cả public", cfg.require_login() is False)
 finally:
     for k, v in _saved.items():
         if v is None:
@@ -67,10 +67,10 @@ check("session quá hạn bị xoá khỏi store", tok not in cfg.SESSIONS)
 # ---- 4. Server public vẫn BẮT BUỘC đăng nhập ----
 # Mã thiết lập đã bỏ (xem test_ma_thiet_lap.py), nhưng chạy public thì vẫn phải có
 # tài khoản mới vào được: rào này là thứ giữ lại, không được mất theo.
-os.environ["NAOTA_HOST"] = "0.0.0.0"
-os.environ.pop("NAOTA_REQUIRE_LOGIN", None)
+os.environ["VANHANH_HOST"] = "0.0.0.0"
+os.environ.pop("VANHANH_REQUIRE_LOGIN", None)
 check("public → bắt buộc đăng nhập", cfg.require_login())
-os.environ["NAOTA_HOST"] = "127.0.0.1"
+os.environ["VANHANH_HOST"] = "127.0.0.1"
 
 # ---- 5. secrets_store roundtrip ----
 enc = secrets_store.encrypt("sk-secret-123")
@@ -112,7 +112,7 @@ check("mode auto trần safe (chặn danger dù perm full)",
       mcp_catalog.allowed(conn, "full", "auto", "delete_order")[0] is False)
 
 # ---- 8. Chống path traversal trong vault ----
-base = tempfile.mkdtemp(prefix="naota-vault-")
+base = tempfile.mkdtemp(prefix="vanhanh-vault-")
 ok_path = mcp_hub._safe_path(base, "notes/report.md")
 check("path hợp lệ trong vault", str(ok_path).startswith(os.path.realpath(base)))
 for bad in ("../etc/passwd", "../../secret", "/etc/passwd"):
@@ -144,7 +144,7 @@ check("đã bật auth + host lạ → cho qua (không khoá nhầm deploy)",
 # ---- 10. Rào _AUTH_LOCAL_EXACT: /reminders/cancel phải được miễn đăng nhập localhost ----
 # Lỗi Important vừa vá: _AUTH_LOCAL_EXACT trước đây chỉ có ("/telegram/send-file", "/reminders"),
 # thiếu "/reminders/cancel". main.py:94 khớp CHÍNH XÁC theo path (không phải prefix), nên khi đã
-# bật mật khẩu (gate_active()=True) thì naota_schedule op=cancel (httpx.post từ localhost, không
+# bật mật khẩu (gate_active()=True) thì vanhanh_schedule op=cancel (httpx.post từ localhost, không
 # cookie) LUÔN 401 dù POST /reminders (TẠO nhắc) đã được miễn cùng nhóm. Huỷ là thao tác YẾU HƠN
 # tạo nên miễn cùng mức là nhất quán, không phải nới rào.
 check("rào: /reminders/cancel được miễn đăng nhập localhost",
@@ -152,14 +152,14 @@ check("rào: /reminders/cancel được miễn đăng nhập localhost",
 check("rào: /reminders (tạo nhắc) vẫn còn được miễn (không mất khi thêm /reminders/cancel)",
       "/reminders" in main._AUTH_LOCAL_EXACT)
 # Nguyên tắc rào: một path KHÔNG có mặt trong tuple thì KHÔNG được miễn - vd /loops (route ghi
-# self_improve; chính plugin naota_schedule đã lý luận "KHÔNG dùng POST /loops vì cần đăng nhập").
+# self_improve; chính plugin vanhanh_schedule đã lý luận "KHÔNG dùng POST /loops vì cần đăng nhập").
 check("rào: /loops KHÔNG nằm trong _AUTH_LOCAL_EXACT (path lạ không tự nhiên được miễn)",
       "/loops" not in main._AUTH_LOCAL_EXACT)
 check("rào: không còn webhook Zalo local sau khi chuyển sang MCP chuẩn",
       "/hook/zalo" not in main._AUTH_LOCAL_EXACT)
 # Tin Zalo do NGƯỜI LẠ soạn và được chuyển thẳng vào Telegram của chủ. _notify_owner phải
 # gửi PLAIN TEXT: nếu ai đó thêm parse_mode như telegram_bot._send (MarkdownV2) thì chữ
-# trong tin khách sẽ dựng được markup, mở đường giả dạng lời của Naota.
+# trong tin khách sẽ dựng được markup, mở đường giả dạng lời của Vanhanh.
 import inspect  # noqa: E402
 check("rào: _notify_owner gửi plain text, KHÔNG parse_mode (tin người lạ không dựng được markup)",
       "parse_mode" not in inspect.getsource(main._notify_owner))
@@ -167,11 +167,11 @@ check("rào: _notify_owner gửi plain text, KHÔNG parse_mode (tin người l�
 # external_base: dựng redirect OAuth theo địa chỉ NGƯỜI DÙNG thấy (vụ VPS Hostinger:
 # uvicorn sau proxy thấy http nội bộ, dựng redirect http:// làm Meta chặn "không bảo mật").
 check("external_base: sau proxy https → lấy X-Forwarded-Proto",
-      web_security.external_base("http", "naota.example.com", "https", "")
-      == "https://naota.example.com")
+      web_security.external_base("http", "vanhanh.example.com", "https", "")
+      == "https://vanhanh.example.com")
 check("external_base: X-Forwarded-Host thắng host nội bộ",
-      web_security.external_base("http", "10.0.0.5:7777", "https", "naota.example.com")
-      == "https://naota.example.com")
+      web_security.external_base("http", "10.0.0.5:7777", "https", "vanhanh.example.com")
+      == "https://vanhanh.example.com")
 check("external_base: không proxy → giữ nguyên scheme/host của request",
       web_security.external_base("http", "localhost:7777", "", "")
       == "http://localhost:7777")
@@ -183,7 +183,7 @@ check("external_base: CHỈ dùng cho redirect_uri - không được lẫn vào 
 
 # ---- 12. GET có tác dụng phụ: chặn khi TRANG KHÁC kích hoạt (Sec-Fetch-Site) ----
 # Vì sao cần lớp này ngoài csrf_decision: điều hướng top-level GET không gửi Origin, mà cookie
-# naota_session là SameSite=lax nên VẪN đi kèm → csrf_decision cho qua sạch.
+# vanhanh_session là SameSite=lax nên VẪN đi kèm → csrf_decision cho qua sạch.
 check("cross-site điều hướng vào /workflows/run → chặn 403",
       (web_security.navigation_decision("/workflows/run", "cross-site") or (0,))[0] == 403)
 check("cross-site điều hướng vào /workflows/resume (duyệt ghi) → chặn 403",

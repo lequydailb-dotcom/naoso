@@ -19,7 +19,7 @@ const ANDROID = { userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebK
 const MAC = { userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130", platform: "MacIntel", maxTouchPoints: 0 };
 
 // ───────── fakes ─────────
-let runs = [], mics = [], recorders = [], ear = "upload", sttText = "chào Naota";
+let runs = [], mics = [], recorders = [], ear = "upload", sttText = "chào Vanhanh";
 class FakeSR {
   constructor() { runs.push(this); }
   start() {}
@@ -96,7 +96,7 @@ function fresh() {
   check("iPhone + ear: the meter gets that same stream", streams.length === 1 && streams[0] === mics[0]);
   d.stop(); for (let i = 0; i < 6; i++) await tick();
   check("iPhone + ear: stop transcribes, then the ear's text lands as final",
-    states.indexOf("transcribing") !== -1 && texts.length === 1 && texts[0][0] === "chào Naota" && texts[0][1] === true);
+    states.indexOf("transcribing") !== -1 && texts.length === 1 && texts[0][0] === "chào Vanhanh" && texts[0][1] === true);
   check("iPhone + ear: ends idle, mic released, no error", states[states.length - 1] === "idle"
     && mics[0].getTracks()[0].stopped === true && errors.length === 0);
 
@@ -142,7 +142,7 @@ function fresh() {
   d.start(); await tick(); await tick();
   d.stop(); for (let i = 0; i < 6; i++) await tick();
   check("ear returned no words: error 'nothing', no empty text", errors.indexOf("nothing") !== -1 && texts.length === 0);
-  sttText = "chào Naota";
+  sttText = "chào Vanhanh";
 
   // Android behaves as a phone too.
   reset(ANDROID, "upload");

@@ -10,12 +10,12 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-reminder-memory-state-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-reminder-memory-state-")
 
 import reminders  # noqa: E402
 
 fails = []
-brain = Path(tempfile.mkdtemp(prefix="naota-reminder-memory-brain-"))
+brain = Path(tempfile.mkdtemp(prefix="vanhanh-reminder-memory-brain-"))
 
 
 def check(name, cond):

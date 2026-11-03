@@ -154,9 +154,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build ảnh (không đẩy) và đọc kích thước từng lớp
         run: |
-          docker build -t naota-do:pr . 2>&1 | tail -5
-          tong=$(docker image inspect naota-do:pr --format '{{.Size}}')
-          lop=$(docker history naota-do:pr --no-trunc --format '{{.Size}}|{{.CreatedBy}}' \
+          docker build -t vanhanh-do:pr . 2>&1 | tail -5
+          tong=$(docker image inspect vanhanh-do:pr --format '{{.Size}}')
+          lop=$(docker history vanhanh-do:pr --no-trunc --format '{{.Size}}|{{.CreatedBy}}' \
                  | grep -i "playwright.*install-deps" | head -1 | cut -d'|' -f1)
           mb() { awk -v b="$1" 'BEGIN{printf "%.0f MB", b/1024/1024}'; }
           echo "Tổng ảnh: $(mb "$tong")"

@@ -1,8 +1,8 @@
-/* Logo NAOTA và màu mặc định của linh vật (NAOTA 1.0.0).
+/* Logo VANHANH và màu mặc định của linh vật (VANHANH 1.0.0).
 
        node tests/js/test_logo_linh_vat.js
 
-   Logo là chữ (cùng kiểu logo VUONG.AI): ô đen #0E1116 bo góc, chữ N
+   Logo là chữ (cùng kiểu logo ĐẠI LÊ AI): ô đen #0E1116 bo góc, chữ N
    vàng #FCCB1D Montserrat Black nghiêng. Linh
    vật vẫn là ngôi sao nhưng mặc định màu vàng "nắng" theo bộ màu thương hiệu, và không còn thay
    chỗ logo. Logo nằm ở nhiều chỗ (logo.svg, các PNG, MAC_DINH, nút Đặt lại) nên test khoá lại.
@@ -25,7 +25,7 @@ check("linh vật mặc định là NGÔI SAO", /var MAC_DINH = \{[^}]*shape: "s
 check("linh vật mặc định màu NẮNG (vàng thương hiệu)", /var MAC_DINH = \{[^}]*palette: "nang"/.test(pet));
 check("nút Đặt lại trả về ngôi sao màu nắng",
   /P\.setCfg\(\{ shape: "star", palette: "nang",/.test(read("dashboard/console.js")));
-check("logo.svg là logo chữ NAOTA 1.0.0, bọc đúng ảnh PNG", /Logo NAOTA 1\.0\.0/.test(svg) && /href="data:image\/png;base64,/.test(svg));
+check("logo.svg là logo chữ VANHANH 1.0.0, bọc đúng ảnh PNG", /Logo VANHANH 1\.0\.0/.test(svg) && /href="data:image\/png;base64,/.test(svg));
 check("logo.svg không còn ngôi sao cam cũ", !/#FD6100/i.test(svg));
 
 // Các PNG phải là ảnh vuông đúng cỡ (đọc thẳng header PNG, khỏi cần thư viện ảnh).

@@ -15,7 +15,7 @@ import sys
 import tempfile
 import types
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-phien-am-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-phien-am-"))
 
 import phien_am as P  # noqa: E402
 
@@ -68,7 +68,7 @@ NHAN = [("vẫn không nhận ra huyết áp Action luôn", "vẫn không nhận
         ("anh hỏi về khít half action", "anh hỏi về GitHub Actions"),
         ("Cho anh hỏi về phía SH Action thì", "Cho anh hỏi về GitHub Actions thì"),
         ("mở trang mên", "mở trang main"),
-        ("xin chào Naôta", "xin chào Naota")]
+        ("xin chào Naôta", "xin chào Vanhanh")]
 for cu, moi in NHAN:
     check(f"nhận câu sửa đúng: {cu!r}", vb.safe_transcript_rewrite(cu, moi) == moi)
 CHAN = [("trả lời khách đi", "trở thành khách đi"), ("gửi email cho sếp", "gửi Zalo cho sếp"),

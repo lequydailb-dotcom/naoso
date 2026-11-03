@@ -12,7 +12,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-pathtest-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-pathtest-"))
 
 import main  # noqa: E402
 
@@ -25,7 +25,7 @@ def check(name, cond):
         _fails.append(name)
 
 
-_TMP = Path(tempfile.mkdtemp(prefix="naota-pathexists-")).resolve()
+_TMP = Path(tempfile.mkdtemp(prefix="vanhanh-pathexists-")).resolve()
 _DIR = _TMP / "brain-that"
 _DIR.mkdir()
 _FILE = _TMP / "la-file.md"

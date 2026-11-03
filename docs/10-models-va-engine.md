@@ -2,23 +2,23 @@
 
 ***Tiếng Việt** · [English](en/10-models-and-engines.md)*
 
-Trang **Models** là nơi bạn chọn "bộ não" cho Naota: đăng nhập vào nhà cung cấp AI, xếp thứ tự dùng các nhà đó (thẻ trên cùng là model chính, các thẻ sau là dự phòng), chọn model và mức suy nghĩ cho từng nhà, và chọn model rẻ cho việc chạy nền. Đây là trang quyết định Naota thông minh tới đâu và tiêu hạn mức của gói nào.
+Trang **Models** là nơi bạn chọn "bộ não" cho Vanhanh: đăng nhập vào nhà cung cấp AI, xếp thứ tự dùng các nhà đó (thẻ trên cùng là model chính, các thẻ sau là dự phòng), chọn model và mức suy nghĩ cho từng nhà, và chọn model rẻ cho việc chạy nền. Đây là trang quyết định Vanhanh thông minh tới đâu và tiêu hạn mức của gói nào.
 
-Nếu bạn mới bắt đầu, xem trước [Bắt đầu & thiết lập lần đầu](01-bat-dau-thiet-lap.md). Khi cần gắn thêm công cụ ngoài cho Naota, xem [Kết nối & số liệu kinh doanh](09-mcp-va-so-lieu.md).
+Nếu bạn mới bắt đầu, xem trước [Bắt đầu & thiết lập lần đầu](01-bat-dau-thiet-lap.md). Khi cần gắn thêm công cụ ngoài cho Vanhanh, xem [Kết nối & số liệu kinh doanh](09-mcp-va-so-lieu.md).
 
 ## Tính năng này là gì
 
-Naota có thể chạy trên nhiều "engine" (nhà cung cấp AI) khác nhau. Các nhà bạn đã kết nối nằm trong một danh sách **Thứ tự dùng**: thẻ trên cùng là **MAIN** (model chính cho hội thoại), các thẻ sau là **Dự phòng 1, 2...**, chat tự chuyển xuống khi thẻ trên hết lượt. Ngoài ra:
+Vanhanh có thể chạy trên nhiều "engine" (nhà cung cấp AI) khác nhau. Các nhà bạn đã kết nối nằm trong một danh sách **Thứ tự dùng**: thẻ trên cùng là **MAIN** (model chính cho hội thoại), các thẻ sau là **Dự phòng 1, 2...**, chat tự chuyển xuống khi thẻ trên hết lượt. Ngoài ra:
 
-- **Model việc nền**: model rẻ hơn cho những việc Naota tự chạy khi bạn không ngồi đó - loop, việc Kanban, nhắc hẹn, tự học, tiêu hoá nguồn.
+- **Model việc nền**: model rẻ hơn cho những việc Vanhanh tự chạy khi bạn không ngồi đó - loop, việc Kanban, nhắc hẹn, tự học, tiêu hoá nguồn.
 - **Effort (mức suy nghĩ)**: mức độ model động não trước khi trả lời. Mỗi thẻ nhà cung cấp có mức riêng, model việc nền cũng có mức riêng.
 
-Điểm quan trọng nhất cần hiểu: **đổi model KHÔNG làm Naota mất chức năng.** Mọi provider đều được cấp cùng một bộ đồ nghề qua trung tâm kết nối (MCP Hub) của Naota: gọi kho Kết nối đã đấu, đọc/ghi file trong brain, chạy skill, giao việc Kanban (tool `naota_task`), tạo agent/workflow/loop/nhắc hẹn (tool `naota_schedule`).
+Điểm quan trọng nhất cần hiểu: **đổi model KHÔNG làm Vanhanh mất chức năng.** Mọi provider đều được cấp cùng một bộ đồ nghề qua trung tâm kết nối (MCP Hub) của Vanhanh: gọi kho Kết nối đã đấu, đọc/ghi file trong brain, chạy skill, giao việc Kanban (tool `vanhanh_task`), tạo agent/workflow/loop/nhắc hẹn (tool `vanhanh_schedule`).
 
-| Cách gọi | Provider | MCP Naota · tool file brain · skill | Chạy lệnh máy (Bash) |
+| Cách gọi | Provider | MCP Vanhanh · tool file brain · skill | Chạy lệnh máy (Bash) |
 |---|---|---|---|
 | Qua **Claude Code** | Claude Code | Có - MCP native + skill native | **Có** |
-| Qua **Codex** | OpenAI OAuth (ChatGPT) | Có - MCP qua hub (cả kết nối local như Zalo/Webcake) + kho MCP GỐC của Codex (server bạn tự `codex mcp add`) + skill qua router (`naota_use_skill` / đọc file `skills/`) | **Có** |
+| Qua **Codex** | OpenAI OAuth (ChatGPT) | Có - MCP qua hub (cả kết nối local như Zalo/Webcake) + kho MCP GỐC của Codex (server bạn tự `codex mcp add`) + skill qua router (`vanhanh_use_skill` / đọc file `skills/`) | **Có** |
 | Qua **Antigravity CLI** | Google Antigravity CLI (`agy`) | Có - MCP qua hub (ghi vào `~/.gemini/config/mcp_config.json`, xem B1b) + skill qua router | **Có** |
 | **Gọi API thẳng** | OpenRouter | Có - MCP qua hub + tool file vault + skill qua router | Không |
 | **Gọi API thẳng** | OpenAI (API) | Có - như trên | Không |
@@ -41,15 +41,15 @@ Thêm một giới hạn thực dụng của engine API: mỗi lượt có **tr�
 
 Ngoài từng ấy, mọi năng lực còn lại là như nhau. Cụ thể là: gọi mọi MCP đã đấu, đọc và ghi file trong brain, đọc file bạn vừa đính kèm hoặc dán vào khung chat, chạy skill, giao việc Kanban, tạo loop và nhắc hẹn, tạo agent/workflow/skill (chúng chỉ là file `.md` trong vault), tạo ảnh, dùng tool của plugin.
 
-> **Đọc file đính kèm trên engine API.** Trước đây `naota_read_file` chỉ nhìn thấy bên trong brain, trong khi file bạn kéo-thả hay dán vào khung chat lại rơi xuống `.staging` ở ngoài - nên engine API báo lỗi rồi bảo bạn tự chép file vào thư mục Brain. Nay tool đó nhận cả đường dẫn file vừa đính kèm. Vẫn CHỈ đúng thư mục nhận file đó và CHỈ để đọc: ghi vẫn khoá trong brain, và chatbot nói chuyện với khách của bạn thì không thấy mấy file này.
+> **Đọc file đính kèm trên engine API.** Trước đây `vanhanh_read_file` chỉ nhìn thấy bên trong brain, trong khi file bạn kéo-thả hay dán vào khung chat lại rơi xuống `.staging` ở ngoài - nên engine API báo lỗi rồi bảo bạn tự chép file vào thư mục Brain. Nay tool đó nhận cả đường dẫn file vừa đính kèm. Vẫn CHỈ đúng thư mục nhận file đó và CHỈ để đọc: ghi vẫn khoá trong brain, và chatbot nói chuyện với khách của bạn thì không thấy mấy file này.
 
-> **Giao việc Kanban từ engine API.** Trước đây đường duy nhất là `POST /kanban/task`, mà gọi được nó thì phải có Bash và curl - nên chỉ Claude Code với Codex làm được, dù tài liệu vẫn hứa mọi bộ não đều làm được. Nay có tool `naota_task` đi qua hub nên lời hứa đó thành đúng.
+> **Giao việc Kanban từ engine API.** Trước đây đường duy nhất là `POST /kanban/task`, mà gọi được nó thì phải có Bash và curl - nên chỉ Claude Code với Codex làm được, dù tài liệu vẫn hứa mọi bộ não đều làm được. Nay có tool `vanhanh_task` đi qua hub nên lời hứa đó thành đúng.
 
-Nói ngắn gọn: **năng lực nằm ở Naota, không nằm ở model.** Ba engine CLI (**Claude Code** với gói Claude, **Codex** với gói ChatGPT, **Antigravity CLI** với gói Google) tận dụng chính gói subscription bạn đang trả và chạy thêm được lệnh máy; sáu provider API chỉ cần một API key và làm được mọi thứ còn lại - kể cả điều phối việc, tạo loop, chạy skill. Agent trong Workflow cũng chọn được model theo nhà cung cấp - xem [Agents & Workflows](07-agents-va-workflows.md).
+Nói ngắn gọn: **năng lực nằm ở Vanhanh, không nằm ở model.** Ba engine CLI (**Claude Code** với gói Claude, **Codex** với gói ChatGPT, **Antigravity CLI** với gói Google) tận dụng chính gói subscription bạn đang trả và chạy thêm được lệnh máy; sáu provider API chỉ cần một API key và làm được mọi thứ còn lại - kể cả điều phối việc, tạo loop, chạy skill. Agent trong Workflow cũng chọn được model theo nhà cung cấp - xem [Agents & Workflows](07-agents-va-workflows.md).
 
-## Mở ở đâu trong Naota
+## Mở ở đâu trong Vanhanh
 
-1. Mở dashboard Naota (mặc định ở cổng `7777`).
+1. Mở dashboard Vanhanh (mặc định ở cổng `7777`).
 2. Ở thanh bên trái, mở nhóm **Kết nối**, rồi bấm mục **Models**.
 3. Tab **Cloud Model** hiện 2 khối theo thứ tự: **◆ Thứ tự dùng** ("nhà đã đăng nhập, thẻ trên cùng là MAIN") và **◆ Model việc nền** ("loop · việc Kanban · nhắc hẹn · tự học"). Dưới cùng là nút **＋ Kết nối thêm nhà cung cấp (N)**, bấm vào mới hiện các nhà chưa kết nối. Khi chưa có nhà nào đăng nhập (lần đầu vào), nút này lên **trên cùng** và danh sách các nhà mở sẵn để bắt đầu ngay. Mỗi khối có nút (i) bên cạnh tên, bấm để đọc giải thích ngắn.
 
@@ -63,60 +63,60 @@ Bảng dưới là các nhà cung cấp có sẵn. Nhà **đã kết nối** n�
 |---|---|---|
 | **Claude Code** | Đăng nhập Claude Code, không cần key | Đầy đủ MCP/skill/tool máy. Thường là thẻ MAIN mặc định |
 | **OpenAI OAuth (ChatGPT)** | Device code (đăng nhập gói ChatGPT) | Chạy qua Codex, đấu kho Kết nối qua hub + dùng skill qua router |
-| **xAI Grok Build CLI** | Đăng nhập **ngay trên trang Models** (device code), không cần key | Dùng gói **SuperGrok / X Premium+** sẵn có. Chạy qua binary `grok`. Đầy đủ MCP/skill/tool máy, nối lại được mạch hội thoại. Là thẻ CLI **duy nhất đăng nhập được khi Naota chạy trên VPS** - xem [B1a](#b1a-kết-nối-grok-build-cli-dùng-gói-supergrok--x-premium) |
+| **xAI Grok Build CLI** | Đăng nhập **ngay trên trang Models** (device code), không cần key | Dùng gói **SuperGrok / X Premium+** sẵn có. Chạy qua binary `grok`. Đầy đủ MCP/skill/tool máy, nối lại được mạch hội thoại. Là thẻ CLI **duy nhất đăng nhập được khi Vanhanh chạy trên VPS** - xem [B1a](#b1a-kết-nối-grok-build-cli-dùng-gói-supergrok--x-premium) |
 | **Google Antigravity CLI** | Gõ `agy` **một lần trong terminal**, không cần key | Bản Google chỉ định thay Gemini CLI. Chạy qua binary `agy`. Đầy đủ MCP/skill/tool máy, và chọn được **đúng dàn model của Antigravity IDE** (có cả model không phải của Google) |
 | **OpenRouter** | Dán API key | Nhiều model 1 chỗ, MCP + tool file + skill qua hub |
 | **Anthropic (API)** | Dán API key | MCP + tool file + skill qua hub (từ 0.9) |
 | **OpenAI (ChatGPT API)** | Dán API key | MCP + tool file + skill qua hub |
 | **Google Gemini (API)** | Dán API key | MCP + tool file + skill qua hub |
 | **Groq (API)** | Dán API key | MCP + tool file + skill qua hub. Suy luận rất nhanh, hợp làm model việc nền. Key này còn là thứ cho phép **ra lệnh bằng ghi âm trên Telegram và Zalo** (Whisper nghe giọng thành chữ) - xem [Telegram](11-telegram.md) và [Kênh Zalo Bot](26-kenh-zalo-bot.md); đấu key là đủ, không bắt buộc đổi model chính sang Groq |
-| **DeepSeek (API)** | Dán API key lấy ở platform.deepseek.com | MCP + tool file + skill qua hub. Model `deepseek-flash` (rẻ, nhận ảnh) và `deepseek-v4-pro`. Độ sâu suy nghĩ để **Tắt** thì DeepSeek trả lời thẳng; bật lên thì nó suy nghĩ trước, và nếu cuộc trò chuyện cũ không hợp chế độ đó Naota tự trả lời ở chế độ thường kèm một dòng báo |
+| **DeepSeek (API)** | Dán API key lấy ở platform.deepseek.com | MCP + tool file + skill qua hub. Model `deepseek-flash` (rẻ, nhận ảnh) và `deepseek-v4-pro`. Độ sâu suy nghĩ để **Tắt** thì DeepSeek trả lời thẳng; bật lên thì nó suy nghĩ trước, và nếu cuộc trò chuyện cũ không hợp chế độ đó Vanhanh tự trả lời ở chế độ thường kèm một dòng báo |
 | **Ollama Cloud** | Dán API key lấy ở ollama.com | MCP + tool file + skill qua hub. Model mã nguồn mở cỡ lớn (gpt-oss, qwen3-coder, deepseek) chạy trên máy chủ của Ollama |
 
-Mỗi card provider hiển thị trạng thái **● Đã kết nối** hoặc **○ Chưa kết nối**, kèm số model khả dụng, và một nhãn kiểu bên cạnh tên: **MCP/skill** (Claude Code), **Device code** (ChatGPT), **MCP Naota** (các provider API). Trong Thứ tự dùng, card trên cùng có nhãn **MAIN**, các card sau ghi **Dự phòng 1**, **Dự phòng 2**... (xem mục D).
+Mỗi card provider hiển thị trạng thái **● Đã kết nối** hoặc **○ Chưa kết nối**, kèm số model khả dụng, và một nhãn kiểu bên cạnh tên: **MCP/skill** (Claude Code), **Device code** (ChatGPT), **MCP Vanhanh** (các provider API). Trong Thứ tự dùng, card trên cùng có nhãn **MAIN**, các card sau ghi **Dự phòng 1**, **Dự phòng 2**... (xem mục D).
 
-> Nhãn của các provider API trước đây ghi là **chat**, khiến nhiều người tưởng chúng chỉ chat suông. Sai: chúng gọi kho Kết nối, đọc/ghi brain và chạy skill y như hai engine CLI. Nhãn giờ là **MCP Naota** cho đúng.
+> Nhãn của các provider API trước đây ghi là **chat**, khiến nhiều người tưởng chúng chỉ chat suông. Sai: chúng gọi kho Kết nối, đọc/ghi brain và chạy skill y như hai engine CLI. Nhãn giờ là **MCP Vanhanh** cho đúng.
 
 ## Cách dùng (từng bước)
 
 ### A. Kết nối Claude Code (mặc định)
 
-Đây là engine mặc định. Nó dùng được toàn bộ công cụ, skill và bộ nhớ, cộng thêm chạy lệnh máy. Không bắt buộc: nếu bạn không có gói Claude thì bỏ qua mục này và đi thẳng xuống mục B (ChatGPT) hoặc C (API key) - Naota chạy đủ chức năng như nhau, chỉ thiếu phần lệnh máy khi đi bằng API key.
+Đây là engine mặc định. Nó dùng được toàn bộ công cụ, skill và bộ nhớ, cộng thêm chạy lệnh máy. Không bắt buộc: nếu bạn không có gói Claude thì bỏ qua mục này và đi thẳng xuống mục B (ChatGPT) hoặc C (API key) - Vanhanh chạy đủ chức năng như nhau, chỉ thiếu phần lệnh máy khi đi bằng API key.
 
 1. Vào **Models**, tìm card **Claude Code** (chưa đăng nhập thì nó nằm sau nút **＋ Kết nối thêm nhà cung cấp** ở cuối trang).
-2. Nếu chưa đăng nhập, card báo **○ Chưa đăng nhập** và có hai nút: **Đăng nhập Claude** và **↻ Kiểm tra lại**. Nếu máy chạy Naota chưa có lệnh `claude`, card báo **○ Chưa cài Claude Code**, hiện một khung hướng dẫn cài (bản Docker: cập nhật Naota; bản cài tay: một lệnh để chép) và chỉ có nút **↻ Kiểm tra lại**.
-3. Bấm **Đăng nhập Claude**. Naota hiện dòng "**1)** Mở link này để đăng nhập claude.ai" kèm đường link.
+2. Nếu chưa đăng nhập, card báo **○ Chưa đăng nhập** và có hai nút: **Đăng nhập Claude** và **↻ Kiểm tra lại**. Nếu máy chạy Vanhanh chưa có lệnh `claude`, card báo **○ Chưa cài Claude Code**, hiện một khung hướng dẫn cài (bản Docker: cập nhật Vanhanh; bản cài tay: một lệnh để chép) và chỉ có nút **↻ Kiểm tra lại**.
+3. Bấm **Đăng nhập Claude**. Vanhanh hiện dòng "**1)** Mở link này để đăng nhập claude.ai" kèm đường link.
 4. Mở link đó để đăng nhập tài khoản claude.ai của bạn.
-5. Nếu trang hiện **một mã code**, dán mã vào ô "dán code (nếu có)" rồi bấm **Gửi code**. Một số luồng không cần dán code - Naota vừa chờ vừa tự kiểm tra mỗi 3 giây, kết nối xong là card tự đổi. Quá 5 phút không xong thì báo "Hết thời gian, thử lại.".
+5. Nếu trang hiện **một mã code**, dán mã vào ô "dán code (nếu có)" rồi bấm **Gửi code**. Một số luồng không cần dán code - Vanhanh vừa chờ vừa tự kiểm tra mỗi 3 giây, kết nối xong là card tự đổi. Quá 5 phút không xong thì báo "Hết thời gian, thử lại.".
 6. Khi xong, card đổi sang **● Đã kết nối** kèm email và gói.
 
-Nút **↻ Kiểm tra lại** chỉ có ở trạng thái chưa đăng nhập, dùng khi bạn vừa đăng nhập bằng terminal và muốn Naota nhìn lại. Khi đã kết nối, card chỉ còn đúng một nút **Ngắt**.
+Nút **↻ Kiểm tra lại** chỉ có ở trạng thái chưa đăng nhập, dùng khi bạn vừa đăng nhập bằng terminal và muốn Vanhanh nhìn lại. Khi đã kết nối, card chỉ còn đúng một nút **Ngắt**.
 
 Cách này chạy được cả trên VPS không có màn hình. Nếu thích dùng dòng lệnh, bạn có thể chạy `claude auth login --claudeai` trong terminal.
 
 ### B. Kết nối ChatGPT bằng gói thuê bao
 
-Dùng gói ChatGPT Plus/Pro của bạn thay cho API key. Cách này chạy qua Codex và Naota tự đẩy các kết nối của bạn (ví dụ POS bán hàng) sang Codex để ChatGPT cũng gọi được công cụ.
+Dùng gói ChatGPT Plus/Pro của bạn thay cho API key. Cách này chạy qua Codex và Vanhanh tự đẩy các kết nối của bạn (ví dụ POS bán hàng) sang Codex để ChatGPT cũng gọi được công cụ.
 
 Card **OpenAI OAuth (ChatGPT)** khi chưa kết nối có **hai** nút, ứng với hai đường đăng nhập:
 
 **Đường 1 - nút "Đăng nhập ChatGPT" (device code, dùng cho hầu hết mọi người):**
 
-1. Bấm **Đăng nhập ChatGPT**. Naota mở trang xác thực của OpenAI và hiện một dòng dạng "Mở &lt;đường link&gt; · nhập mã **XXXX-XXXX** - đang chờ…".
+1. Bấm **Đăng nhập ChatGPT**. Vanhanh mở trang xác thực của OpenAI và hiện một dòng dạng "Mở &lt;đường link&gt; · nhập mã **XXXX-XXXX** - đang chờ…".
 2. Ở trang vừa mở, nhập đúng mã đó.
-3. Naota tự động chờ và kiểm tra. Xong thì hiện **✓ Đã kết nối!** và card đổi sang **● Đã kết nối** kèm gói tài khoản.
-4. Naota chờ tối đa khoảng 16 phút rồi bỏ cuộc với dòng "Hết hạn, thử lại." - lúc đó bấm **Đăng nhập ChatGPT** lại để lấy mã mới.
+3. Vanhanh tự động chờ và kiểm tra. Xong thì hiện **✓ Đã kết nối!** và card đổi sang **● Đã kết nối** kèm gói tài khoản.
+4. Vanhanh chờ tối đa khoảng 16 phút rồi bỏ cuộc với dòng "Hết hạn, thử lại." - lúc đó bấm **Đăng nhập ChatGPT** lại để lấy mã mới.
 
 **Đường 2 - nút "Qua trình duyệt" (khi workspace của bạn CHẶN device code):**
 
 Một số workspace ChatGPT tắt đường device code, bấm nút thứ nhất là báo lỗi. Đừng tưởng hỏng, dùng nút này:
 
-1. Bấm **Qua trình duyệt**. Naota mở trang đăng nhập ChatGPT trong tab mới.
-2. Đăng nhập xong, trình duyệt sẽ nhảy sang địa chỉ **localhost** và rất có thể **báo không tải được trang - chuyện bình thường**, vì Naota không thật sự mở cổng đó.
-3. **Copy toàn bộ đường dẫn trên thanh địa chỉ** (dạng `http://localhost:1455/auth/callback?code=…`) rồi dán vào ô trong Naota, bấm **Xác nhận**.
-4. Naota tách mã trong đường dẫn đó ra và đổi lấy token. Xong thì hiện **✓ Đã kết nối!**.
+1. Bấm **Qua trình duyệt**. Vanhanh mở trang đăng nhập ChatGPT trong tab mới.
+2. Đăng nhập xong, trình duyệt sẽ nhảy sang địa chỉ **localhost** và rất có thể **báo không tải được trang - chuyện bình thường**, vì Vanhanh không thật sự mở cổng đó.
+3. **Copy toàn bộ đường dẫn trên thanh địa chỉ** (dạng `http://localhost:1455/auth/callback?code=…`) rồi dán vào ô trong Vanhanh, bấm **Xác nhận**.
+4. Vanhanh tách mã trong đường dẫn đó ra và đổi lấy token. Xong thì hiện **✓ Đã kết nối!**.
 
-Vì chỉ cần dán lại đường dẫn nên đường này cũng chạy được khi Naota nằm trên VPS còn trình duyệt ở máy bạn.
+Vì chỉ cần dán lại đường dẫn nên đường này cũng chạy được khi Vanhanh nằm trên VPS còn trình duyệt ở máy bạn.
 
 Kết nối xong, thẻ ChatGPT vào cuối **Thứ tự dùng**. Muốn chat bằng nó thì kéo thẻ lên đầu (hoặc bấm **⇅ Đảo**) để nó thành MAIN, rồi chọn model bằng chip model trên thẻ (xem mục D).
 
@@ -126,12 +126,12 @@ Lưu ý: đây là kênh thử nghiệm (chạy nền Codex). Nếu cần ổn �
 
 ### B1a. Kết nối Grok Build CLI (dùng gói SuperGrok / X Premium+)
 
-Đây là đường **xAI** dùng gói bạn đang trả tiền, không phải mua API key riêng. Điểm khác biệt lớn nhất so với hai thẻ CLI của Google: **đăng nhập xong ngay trên trang Models**, kể cả khi Naota chạy trên VPS không có trình duyệt.
+Đây là đường **xAI** dùng gói bạn đang trả tiền, không phải mua API key riêng. Điểm khác biệt lớn nhất so với hai thẻ CLI của Google: **đăng nhập xong ngay trên trang Models**, kể cả khi Vanhanh chạy trên VPS không có trình duyệt.
 
-1. Cài CLI một lần trên máy chạy Naota:
+1. Cài CLI một lần trên máy chạy Vanhanh:
    - Linux/macOS: `curl -fsSL https://x.ai/cli/install.sh | bash`
    - Windows PowerShell: `irm https://x.ai/cli/install.ps1 | iex`
-   - Bản Docker: **không cần làm bước này**, Naota tự cài lúc khởi động. Trong lúc đang cài, thẻ hiện "Naota đang tự cài"; khoảng một phút sau bấm **Kiểm tra lại**.
+   - Bản Docker: **không cần làm bước này**, Vanhanh tự cài lúc khởi động. Trong lúc đang cài, thẻ hiện "Vanhanh đang tự cài"; khoảng một phút sau bấm **Kiểm tra lại**.
 2. Vào **Models**, bấm **＋ Kết nối thêm nhà cung cấp** ở cuối trang, tìm thẻ **xAI Grok Build CLI**, bấm **Đăng nhập**. Nó hiện ra một đường link và một mã. Mở link đó trên máy bạn (điện thoại cũng được), nhập mã, xác nhận. Thẻ tự chuyển sang **● Đã đăng nhập**, không phải bấm gì thêm.
 3. Thẻ vừa đăng nhập vào cuối **Thứ tự dùng**. Kéo nó lên đầu (hoặc bấm **⇅ Đảo**) để nó thành MAIN, rồi chọn model bằng chip model trên thẻ.
 
@@ -141,54 +141,54 @@ Lưu ý: đây là kênh thử nghiệm (chạy nền Codex). Nếu cần ổn �
 
 Vài chỗ đáng biết:
 
-- **Tool của Naota đấu vào `<brain>/.grok/config.toml`**, mục `[mcp_servers.naota]`. Grok đọc cấu hình theo **thư mục làm việc**, mà Naota luôn chạy nó với thư mục làm việc là gốc brain - nên mỗi brain một hub riêng, và Naota **không đụng vào `~/.grok/config.toml`** cá nhân của bạn. Kiểm trong 10 giây: bấm **Kiểm tra lại** ở thẻ, nó ghi lại cấu hình rồi **đọc lại chính file đó** và báo *tool của Naota đã đấu* / *chưa đấu được tool của Naota* / *trung tâm kết nối đang tắt*.
-- **File `config.toml` của bạn không bị đè hỏng.** Naota giữ nguyên mọi mục khác trong file (`[models]`, `[tools]`...). Và nếu file đang có lỗi cú pháp khiến Naota không đọc nổi, nó **không ghi đè** - thà chạy thiếu tool còn hơn xoá mất cấu hình của bạn; khi đó thẻ báo "chưa đấu được tool của Naota" chứ không báo xanh giả.
-- **Có nối lại mạch hội thoại của CLI** (khác thẻ Antigravity). `grok` tự sinh id phiên rồi phát ra trong dòng sự kiện, Naota chỉ đọc lại id đó chứ không tự bịa - nên không có chuyện lưu nhầm rồi lượt sau nối vào một mạch không tồn tại. Mạch dài quá ngưỡng thì Naota tự mở mạch mới và mồi lại bằng lịch sử đã lưu.
-- **Naota ĐO cờ của bản CLI đang cài, không đoán.** Trước mỗi lượt nó hỏi `grok --help` (nhớ 5 phút) rồi chỉ truyền những cờ mà binary tự khai. Bản cũ thiếu một cờ thì mất đúng tính năng đó, không làm hỏng cả lượt chat vì "unknown flag".
-- **Prompt đi qua file, không qua dòng lệnh** (`--prompt-file`), cùng lý do với thẻ Antigravity: Windows chặn tổng dòng lệnh ở 32767 ký tự mà system prompt của Naota đã hơn 36.000.
-- Danh sách model hỏi CLI chứ Naota không giữ bảng chép tay, nên xAI đổi tên model cũng không làm picker lạc hậu.
-- **Naota tắt bộ tự cập nhật của CLI** ở mọi lượt (cờ `--no-auto-update` khi bản CLI có, cộng biến `GROK_DISABLE_AUTOUPDATER=1` luôn luôn). Lý do: Naota chạy `grok` headless trên VPS và trong container, để nó tự tải bản mới giữa lượt là in thêm chữ vào luồng kết quả rồi hỏng câu trả lời, hoặc ghi vào chỗ chỉ đọc rồi chết. Muốn nó tự cập nhật thì tự đặt `GROK_DISABLE_AUTOUPDATER=0` - Naota tôn trọng giá trị bạn đặt. Nâng cấp tay lúc nào cũng được: `grok update`.
-- Lượt chạy quá lâu thì bị cắt ở **900 giây**; đổi bằng biến môi trường `NAOTA_GROK_TIMEOUT`. Binary nằm chỗ lạ thì trỏ bằng `NAOTA_GROK_BIN`.
+- **Tool của Vanhanh đấu vào `<brain>/.grok/config.toml`**, mục `[mcp_servers.vanhanh]`. Grok đọc cấu hình theo **thư mục làm việc**, mà Vanhanh luôn chạy nó với thư mục làm việc là gốc brain - nên mỗi brain một hub riêng, và Vanhanh **không đụng vào `~/.grok/config.toml`** cá nhân của bạn. Kiểm trong 10 giây: bấm **Kiểm tra lại** ở thẻ, nó ghi lại cấu hình rồi **đọc lại chính file đó** và báo *tool của Vanhanh đã đấu* / *chưa đấu được tool của Vanhanh* / *trung tâm kết nối đang tắt*.
+- **File `config.toml` của bạn không bị đè hỏng.** Vanhanh giữ nguyên mọi mục khác trong file (`[models]`, `[tools]`...). Và nếu file đang có lỗi cú pháp khiến Vanhanh không đọc nổi, nó **không ghi đè** - thà chạy thiếu tool còn hơn xoá mất cấu hình của bạn; khi đó thẻ báo "chưa đấu được tool của Vanhanh" chứ không báo xanh giả.
+- **Có nối lại mạch hội thoại của CLI** (khác thẻ Antigravity). `grok` tự sinh id phiên rồi phát ra trong dòng sự kiện, Vanhanh chỉ đọc lại id đó chứ không tự bịa - nên không có chuyện lưu nhầm rồi lượt sau nối vào một mạch không tồn tại. Mạch dài quá ngưỡng thì Vanhanh tự mở mạch mới và mồi lại bằng lịch sử đã lưu.
+- **Vanhanh ĐO cờ của bản CLI đang cài, không đoán.** Trước mỗi lượt nó hỏi `grok --help` (nhớ 5 phút) rồi chỉ truyền những cờ mà binary tự khai. Bản cũ thiếu một cờ thì mất đúng tính năng đó, không làm hỏng cả lượt chat vì "unknown flag".
+- **Prompt đi qua file, không qua dòng lệnh** (`--prompt-file`), cùng lý do với thẻ Antigravity: Windows chặn tổng dòng lệnh ở 32767 ký tự mà system prompt của Vanhanh đã hơn 36.000.
+- Danh sách model hỏi CLI chứ Vanhanh không giữ bảng chép tay, nên xAI đổi tên model cũng không làm picker lạc hậu.
+- **Vanhanh tắt bộ tự cập nhật của CLI** ở mọi lượt (cờ `--no-auto-update` khi bản CLI có, cộng biến `GROK_DISABLE_AUTOUPDATER=1` luôn luôn). Lý do: Vanhanh chạy `grok` headless trên VPS và trong container, để nó tự tải bản mới giữa lượt là in thêm chữ vào luồng kết quả rồi hỏng câu trả lời, hoặc ghi vào chỗ chỉ đọc rồi chết. Muốn nó tự cập nhật thì tự đặt `GROK_DISABLE_AUTOUPDATER=0` - Vanhanh tôn trọng giá trị bạn đặt. Nâng cấp tay lúc nào cũng được: `grok update`.
+- Lượt chạy quá lâu thì bị cắt ở **900 giây**; đổi bằng biến môi trường `VANHANH_GROK_TIMEOUT`. Binary nằm chỗ lạ thì trỏ bằng `VANHANH_GROK_BIN`.
 
 ### B1b. Kết nối Antigravity CLI (dùng gói Google của bạn)
 
-Đây là đường **Google chỉ định** sau khi họ ngắt Gemini CLI với tài khoản cá nhân (18/06/2026), và Naota đã gỡ hẳn engine Gemini CLI. Ưu điểm lớn nhất: bạn chọn được **đúng dàn model hiện trong Antigravity IDE**, gồm cả model không phải của Google.
+Đây là đường **Google chỉ định** sau khi họ ngắt Gemini CLI với tài khoản cá nhân (18/06/2026), và Vanhanh đã gỡ hẳn engine Gemini CLI. Ưu điểm lớn nhất: bạn chọn được **đúng dàn model hiện trong Antigravity IDE**, gồm cả model không phải của Google.
 
-1. Cài CLI một lần trên máy chạy Naota:
+1. Cài CLI một lần trên máy chạy Vanhanh:
    - Linux/macOS: `curl -fsSL https://antigravity.google/cli/install.sh | bash`
    - Windows PowerShell: `irm https://antigravity.google/cli/install.ps1 | iex`
-   - Bản Docker: **không cần làm bước này**, Naota tự cài lúc khởi động. Trong lúc đang cài, thẻ hiện "Naota đang tự cài"; khoảng một phút sau bấm **Kiểm tra lại**.
-2. Gõ `agy` một lần **trong terminal của máy chạy Naota** (trang **Code** trong Naota là chắc ăn nhất - đúng user đang chạy Naota). Máy để bàn có màn hình thì nó tự mở trình duyệt. Máy chủ không có màn hình (VPS, Docker - kể cả Docker trên chính máy Mac của bạn) thì nó in ra một đường link: mở link đó bằng trình duyệt trên máy bạn, đăng nhập Google xong trình duyệt sẽ nhảy sang một địa chỉ `http://localhost:...` **báo không mở được - đó là bước đúng**, copy nguyên địa chỉ trên thanh URL rồi dán ngược vào terminal và Enter. Phiên lưu trong keyring của hệ điều hành nên chỉ phải làm một lần.
+   - Bản Docker: **không cần làm bước này**, Vanhanh tự cài lúc khởi động. Trong lúc đang cài, thẻ hiện "Vanhanh đang tự cài"; khoảng một phút sau bấm **Kiểm tra lại**.
+2. Gõ `agy` một lần **trong terminal của máy chạy Vanhanh** (trang **Code** trong Vanhanh là chắc ăn nhất - đúng user đang chạy Vanhanh). Máy để bàn có màn hình thì nó tự mở trình duyệt. Máy chủ không có màn hình (VPS, Docker - kể cả Docker trên chính máy Mac của bạn) thì nó in ra một đường link: mở link đó bằng trình duyệt trên máy bạn, đăng nhập Google xong trình duyệt sẽ nhảy sang một địa chỉ `http://localhost:...` **báo không mở được - đó là bước đúng**, copy nguyên địa chỉ trên thanh URL rồi dán ngược vào terminal và Enter. Phiên lưu trong keyring của hệ điều hành nên chỉ phải làm một lần.
 
-   > Vì sao phải dán tay: `agy` nhận mã về qua một cổng loopback trên chính máy chạy nó. Trình duyệt của bạn ở máy khác nên không với tới cổng đó. Terminal của Naota tự khai đây là phiên từ xa (`SSH_CONNECTION`) để `agy` hỏi chỗ dán thay vì nằm chờ im lặng. Bản `agy` cũ không hỏi thì mở thêm một phiên terminal rồi chạy `curl "<địa chỉ localhost vừa copy>"` cũng xong. Bố trí lạ (X11 forwarding, máy để bàn có màn hình) muốn tắt hành vi này thì đặt `NAOTA_TERMINAL_REMOTE=0`.
+   > Vì sao phải dán tay: `agy` nhận mã về qua một cổng loopback trên chính máy chạy nó. Trình duyệt của bạn ở máy khác nên không với tới cổng đó. Terminal của Vanhanh tự khai đây là phiên từ xa (`SSH_CONNECTION`) để `agy` hỏi chỗ dán thay vì nằm chờ im lặng. Bản `agy` cũ không hỏi thì mở thêm một phiên terminal rồi chạy `curl "<địa chỉ localhost vừa copy>"` cũng xong. Bố trí lạ (X11 forwarding, máy để bàn có màn hình) muốn tắt hành vi này thì đặt `VANHANH_TERMINAL_REMOTE=0`.
 3. Quay lại **Models**, bấm **＋ Kết nối thêm nhà cung cấp** ở cuối trang, tìm thẻ **Google Antigravity CLI**, bấm **Kiểm tra lại** (nó chạy thử một lượt chat thật). Thẻ đổi sang **● Đã đăng nhập**.
 4. Thẻ vừa đăng nhập vào cuối **Thứ tự dùng**. Kéo nó lên đầu (hoặc bấm **⇅ Đảo**) để nó thành MAIN, rồi chọn model bằng chip model trên thẻ.
 
-Danh sách model **hỏi thẳng `agy models`** chứ Naota không giữ bảng chép tay, nên tài khoản bạn được cấp model nào là thấy đúng model đó, và Google đổi tên model cũng không làm picker lạc hậu. Model mới chỉ hiện khi chính `agy` đã lên bản biết model đó, nên Naota tự chạy `agy update` mỗi ngày một lần, cả trong bản Docker (tắt bằng biến môi trường `NAOTA_AGY_AUTO_UPDATE=0`). `agy` đã mới nhất mà vẫn không thấy một model thì tài khoản Google của bạn chưa được cấp model đó.
+Danh sách model **hỏi thẳng `agy models`** chứ Vanhanh không giữ bảng chép tay, nên tài khoản bạn được cấp model nào là thấy đúng model đó, và Google đổi tên model cũng không làm picker lạc hậu. Model mới chỉ hiện khi chính `agy` đã lên bản biết model đó, nên Vanhanh tự chạy `agy update` mỗi ngày một lần, cả trong bản Docker (tắt bằng biến môi trường `VANHANH_AGY_AUTO_UPDATE=0`). `agy` đã mới nhất mà vẫn không thấy một model thì tài khoản Google của bạn chưa được cấp model đó.
 
 Vài chỗ đáng biết, nói trước cho khỏi hiểu nhầm:
 
-- **Đăng nhập làm trong terminal, dashboard không có nút**. Bản cũ từng dựng một luồng đăng nhập ngay trên trang: Naota mở `agy` trong một terminal giả rồi làm người đưa thư giữa nó và trình duyệt của bạn. Nó chạy được trên Linux, nhưng cái hiện ra trên trang là một ô terminal bấm vào không ăn nên rốt cuộc vẫn phải mở terminal thật, còn Windows thì không có pseudo-terminal nên chưa bao giờ dùng được. Người dùng `agy` đều là dân code sẵn terminal trong tay, nên gõ một lệnh gọn hơn hẳn một luồng UI nửa vời. Đổi lại, Naota không cầm token của ai - nó nằm trong keyring hệ điều hành.
-- **Mức Chỉ đọc ở đây nhẹ hơn.** Bên Grok Build, mức `suggest` xuống thẳng cờ `--deny` nên chính CLI chặn. `agy` không có nấc tương đương, nên Naota siết bằng `--sandbox` cộng với lời dặn trong system prompt. Rào tiền/đơn/đăng bài vẫn nằm ở MCP Hub như mọi engine.
+- **Đăng nhập làm trong terminal, dashboard không có nút**. Bản cũ từng dựng một luồng đăng nhập ngay trên trang: Vanhanh mở `agy` trong một terminal giả rồi làm người đưa thư giữa nó và trình duyệt của bạn. Nó chạy được trên Linux, nhưng cái hiện ra trên trang là một ô terminal bấm vào không ăn nên rốt cuộc vẫn phải mở terminal thật, còn Windows thì không có pseudo-terminal nên chưa bao giờ dùng được. Người dùng `agy` đều là dân code sẵn terminal trong tay, nên gõ một lệnh gọn hơn hẳn một luồng UI nửa vời. Đổi lại, Vanhanh không cầm token của ai - nó nằm trong keyring hệ điều hành.
+- **Mức Chỉ đọc ở đây nhẹ hơn.** Bên Grok Build, mức `suggest` xuống thẳng cờ `--deny` nên chính CLI chặn. `agy` không có nấc tương đương, nên Vanhanh siết bằng `--sandbox` cộng với lời dặn trong system prompt. Rào tiền/đơn/đăng bài vẫn nằm ở MCP Hub như mọi engine.
 - **Mức `auto` KHÔNG kèm `--sandbox`**. Đo trên agy 1.2.7: `--sandbox` đi cùng `--dangerously-skip-permissions` làm tool shell của agy chạy như một việc nền rồi bị chính agy huỷ sau 5 giây khi thoát chế độ in một lượt, nên việc Kanban/Loop mức auto không đọc thư mục hay ghi file được mà không có lấy một dòng lỗi. Bỏ cờ này không mất lớp phòng vệ nào vì rào hành động ra ngoài nằm ở MCP Hub.
 - **Chưa nối lại mạch hội thoại của CLI.** Mỗi lượt mở mạch mới rồi mồi lại bằng lịch sử đã lưu, nên **không mất ngữ cảnh** nhưng tốn token hơn.
-- Naota không tự cài `agy` lúc cài đặt (khác ba engine npm): trình cài của Google là một script tải về chạy thẳng, nên để bạn tự chạy khi muốn.
-- **Trên Windows, prompt không đi qua dòng lệnh nữa** (đã sửa). Windows chặn tổng dòng lệnh ở 32767 ký tự, mà riêng system prompt của Naota trên một brain trống đã hơn 36.000 - tức bộ não này từng chết hẳn trên Windows, và câu báo lỗi lại đổ cho "hội thoại quá dài" nên mở chat mới bao nhiêu lần cũng không thoát.
-- **Naota ĐO xem bản `agy` của bạn nhận prompt kiểu gì, không đoán.** Đây là bài học phải trả giá hai lần: bản cũ suy cú pháp từ tài liệu chính chủ (CHANGELOG 1.1.1 nói `agy` đọc stdin khi prompt không cấp qua cờ) rồi gửi `--print ""`, và bản `agy` thật trả lại `Error: empty prompt` vì nó kiểm giá trị cờ trước khi ngó tới stdin. Tài liệu đúng về nguyên lý, sai về cú pháp. Nay lần chạy đầu tiên Naota thử ba cách bơm stdin bằng một prompt tí hon có mã riêng, cách nào vọng mã về thì dùng cách đó, rồi nhớ lại cho những lần sau. Không cách nào ăn thì nó ghi ngữ cảnh ra file và bảo model tự đọc; model không đọc được thì nó nói thẳng chứ không lặng lẽ trả lời thiếu luật.
+- Vanhanh không tự cài `agy` lúc cài đặt (khác ba engine npm): trình cài của Google là một script tải về chạy thẳng, nên để bạn tự chạy khi muốn.
+- **Trên Windows, prompt không đi qua dòng lệnh nữa** (đã sửa). Windows chặn tổng dòng lệnh ở 32767 ký tự, mà riêng system prompt của Vanhanh trên một brain trống đã hơn 36.000 - tức bộ não này từng chết hẳn trên Windows, và câu báo lỗi lại đổ cho "hội thoại quá dài" nên mở chat mới bao nhiêu lần cũng không thoát.
+- **Vanhanh ĐO xem bản `agy` của bạn nhận prompt kiểu gì, không đoán.** Đây là bài học phải trả giá hai lần: bản cũ suy cú pháp từ tài liệu chính chủ (CHANGELOG 1.1.1 nói `agy` đọc stdin khi prompt không cấp qua cờ) rồi gửi `--print ""`, và bản `agy` thật trả lại `Error: empty prompt` vì nó kiểm giá trị cờ trước khi ngó tới stdin. Tài liệu đúng về nguyên lý, sai về cú pháp. Nay lần chạy đầu tiên Vanhanh thử ba cách bơm stdin bằng một prompt tí hon có mã riêng, cách nào vọng mã về thì dùng cách đó, rồi nhớ lại cho những lần sau. Không cách nào ăn thì nó ghi ngữ cảnh ra file và bảo model tự đọc; model không đọc được thì nó nói thẳng chứ không lặng lẽ trả lời thiếu luật.
 
-- **Tool của Naota đấu vào đâu, và vì sao chỗ đó** (đã sửa). Đây là chỗ sai ba bản liên tiếp mà không bản nào lộ ra, vì hỏng kiểu này không có câu lỗi nào: `agy` vẫn chạy, vẫn trả lời trôi chảy, chỉ là không có lấy một tool nào của Naota - không MCP, không Kanban, không skill. Hai chỗ sai chồng lên nhau:
-  - **Sai tên trường.** Naota ghi `httpUrl`, đó là schema của Gemini CLI (engine đã gỡ) chép nguyên sang. `agy` đọc `serverUrl` (tài liệu di trú của Google nói thẳng là trường `url` được đổi tên thành `serverUrl`). Entry không có trường nào nó hiểu thì server không có địa chỉ, và nó bỏ qua trong im lặng.
-  - **Sai chỗ đặt.** Naota ghi vào trong brain. `agy` nạp MCP từ cấu hình **tầng HOME**: `~/.gemini/config/mcp_config.json` (hiện hành, dùng chung với Antigravity 2.0/IDE) và `~/.gemini/antigravity-cli/mcp_config.json` (đường cũ). Tầng workspace `<brain>/.agents/mcp_config.json` có thật trong tài liệu, nhưng issue #60 của chính repo `antigravity-cli` ghi nhận CLI **tìm thấy rồi bỏ qua** `mcpServers` trong đó. Nay Naota ghi cả hai tầng: HOME để chạy được ngay, workspace để bản nào vá xong issue đó thì tự có cách ly theo brain.
+- **Tool của Vanhanh đấu vào đâu, và vì sao chỗ đó** (đã sửa). Đây là chỗ sai ba bản liên tiếp mà không bản nào lộ ra, vì hỏng kiểu này không có câu lỗi nào: `agy` vẫn chạy, vẫn trả lời trôi chảy, chỉ là không có lấy một tool nào của Vanhanh - không MCP, không Kanban, không skill. Hai chỗ sai chồng lên nhau:
+  - **Sai tên trường.** Vanhanh ghi `httpUrl`, đó là schema của Gemini CLI (engine đã gỡ) chép nguyên sang. `agy` đọc `serverUrl` (tài liệu di trú của Google nói thẳng là trường `url` được đổi tên thành `serverUrl`). Entry không có trường nào nó hiểu thì server không có địa chỉ, và nó bỏ qua trong im lặng.
+  - **Sai chỗ đặt.** Vanhanh ghi vào trong brain. `agy` nạp MCP từ cấu hình **tầng HOME**: `~/.gemini/config/mcp_config.json` (hiện hành, dùng chung với Antigravity 2.0/IDE) và `~/.gemini/antigravity-cli/mcp_config.json` (đường cũ). Tầng workspace `<brain>/.agents/mcp_config.json` có thật trong tài liệu, nhưng issue #60 của chính repo `antigravity-cli` ghi nhận CLI **tìm thấy rồi bỏ qua** `mcpServers` trong đó. Nay Vanhanh ghi cả hai tầng: HOME để chạy được ngay, workspace để bản nào vá xong issue đó thì tự có cách ly theo brain.
 
-  Hệ quả phải biết: file HOME là **của bạn** và dùng chung với Antigravity IDE, nên IDE cũng sẽ thấy tool của Naota; và hai brain chạy `agy` cùng lúc thì brain sau ghi đè brain trước. Không muốn Naota đụng vào HOME thì đặt `NAOTA_AGY_MCP_HOME=0` (khi đó chỉ còn đường workspace, tức chỉ chạy trên bản `agy` đã vá issue #60). Muốn chỉ định một file khác thì đặt `NAOTA_AGY_MCP_CONFIG=/đường/dẫn/mcp_config.json`. Bản `agy` của bạn từ chối cấu hình vì có khoá lạ thì đặt `NAOTA_AGY_MCP_KEY=serverUrl` (hoặc `=url` cho bản 1.0.x cũ) để Naota chỉ ghi đúng một khoá.
+  Hệ quả phải biết: file HOME là **của bạn** và dùng chung với Antigravity IDE, nên IDE cũng sẽ thấy tool của Vanhanh; và hai brain chạy `agy` cùng lúc thì brain sau ghi đè brain trước. Không muốn Vanhanh đụng vào HOME thì đặt `VANHANH_AGY_MCP_HOME=0` (khi đó chỉ còn đường workspace, tức chỉ chạy trên bản `agy` đã vá issue #60). Muốn chỉ định một file khác thì đặt `VANHANH_AGY_MCP_CONFIG=/đường/dẫn/mcp_config.json`. Bản `agy` của bạn từ chối cấu hình vì có khoá lạ thì đặt `VANHANH_AGY_MCP_KEY=serverUrl` (hoặc `=url` cho bản 1.0.x cũ) để Vanhanh chỉ ghi đúng một khoá.
 
-  **Tự kiểm trong 10 giây:** vào **Models**, thẻ **Google Antigravity CLI**, bấm **Kiểm tra lại**. Nó ghi lại cấu hình rồi đọc lại chính file đó, và báo một trong ba câu: *tool của Naota đã đấu*, *chưa đấu được tool của Naota*, hoặc *trung tâm kết nối đang tắt*. Xem tận file thì: `cat ~/.gemini/config/mcp_config.json` - phải thấy một entry tên `naota` có `serverUrl` trỏ về `/hub/mcp`.
+  **Tự kiểm trong 10 giây:** vào **Models**, thẻ **Google Antigravity CLI**, bấm **Kiểm tra lại**. Nó ghi lại cấu hình rồi đọc lại chính file đó, và báo một trong ba câu: *tool của Vanhanh đã đấu*, *chưa đấu được tool của Vanhanh*, hoặc *trung tâm kết nối đang tắt*. Xem tận file thì: `cat ~/.gemini/config/mcp_config.json` - phải thấy một entry tên `vanhanh` có `serverUrl` trỏ về `/hub/mcp`.
 
-- **Dấu tiếng Việt không vỡ dọc đường**. Triệu chứng cũ: chữ "gồm" thành `g<?><?>m`, mỗi ký tự tiếng Việt 3 byte hoá đúng 3 dấu `<?>`. Đó là chữ ký của một bên đọc cắt mẩu ống dẫn giữa một ký tự rồi giải mã từng mẩu rời. Đã đo và loại trừ phía Naota (bộ đọc của nó dùng giải mã tăng dần, cắt byte giữa ký tự vẫn ghép lại đúng), nên chỗ vỡ nằm ở bộ đọc của `agy`. Naota không vá được CLI, nhưng chỉnh được chỗ mình đặt ranh giới: nay nó bơm prompt theo từng mẩu kết thúc đúng biên ký tự, nên bên kia đọc kiểu gì cũng không vỡ. Chữ về mà vẫn có ký tự hỏng thì Naota tự đổi sang đường file rồi hỏi lại một lần; vẫn hỏng thì nó nói thẳng là lỗi nằm trong CLI.
+- **Dấu tiếng Việt không vỡ dọc đường**. Triệu chứng cũ: chữ "gồm" thành `g<?><?>m`, mỗi ký tự tiếng Việt 3 byte hoá đúng 3 dấu `<?>`. Đó là chữ ký của một bên đọc cắt mẩu ống dẫn giữa một ký tự rồi giải mã từng mẩu rời. Đã đo và loại trừ phía Vanhanh (bộ đọc của nó dùng giải mã tăng dần, cắt byte giữa ký tự vẫn ghép lại đúng), nên chỗ vỡ nằm ở bộ đọc của `agy`. Vanhanh không vá được CLI, nhưng chỉnh được chỗ mình đặt ranh giới: nay nó bơm prompt theo từng mẩu kết thúc đúng biên ký tự, nên bên kia đọc kiểu gì cũng không vỡ. Chữ về mà vẫn có ký tự hỏng thì Vanhanh tự đổi sang đường file rồi hỏi lại một lần; vẫn hỏng thì nó nói thẳng là lỗi nằm trong CLI.
 
-- **Model đã kèm sẵn mức nghĩ thì Naota không gửi thêm Độ sâu suy nghĩ**. `agy models` trả về những tên như `gemini-3.8-flash-medium`, tức chọn model cũng chính là chọn mức nghĩ, và `agy` từ chối chạy nếu nhận thêm mức nghĩ lần nữa: `invalid model selection ... conflicts with --effort=high`, thoát mã 1, cả lượt chat mất trắng chứ không phải chậm hay kém. Nay Naota nhận ra loại tên đó và bỏ phần gửi thừa, còn độ sâu bạn chọn thì chuyển thành một câu nhắc trong prompt. Bản `agy` nào từ chối vì lý do khác thì Naota đọc chính câu lỗi đó rồi chạy lại ngay trong lượt, không cờ.
+- **Model đã kèm sẵn mức nghĩ thì Vanhanh không gửi thêm Độ sâu suy nghĩ**. `agy models` trả về những tên như `gemini-3.8-flash-medium`, tức chọn model cũng chính là chọn mức nghĩ, và `agy` từ chối chạy nếu nhận thêm mức nghĩ lần nữa: `invalid model selection ... conflicts with --effort=high`, thoát mã 1, cả lượt chat mất trắng chứ không phải chậm hay kém. Nay Vanhanh nhận ra loại tên đó và bỏ phần gửi thừa, còn độ sâu bạn chọn thì chuyển thành một câu nhắc trong prompt. Bản `agy` nào từ chối vì lý do khác thì Vanhanh đọc chính câu lỗi đó rồi chạy lại ngay trong lượt, không cờ.
 
-**Nếu vẫn gặp lỗi trên Windows**, đặt biến môi trường `NAOTA_AGY_PROMPT_DAI=file` để ép đi thẳng đường file, rồi báo lại giúp kèm câu lỗi `agy` in ra.
+**Nếu vẫn gặp lỗi trên Windows**, đặt biến môi trường `VANHANH_AGY_PROMPT_DAI=file` để ép đi thẳng đường file, rồi báo lại giúp kèm câu lỗi `agy` in ra.
 
 ### C. Kết nối provider bằng API key (OpenRouter / Anthropic API / OpenAI API / Gemini / Groq / DeepSeek)
 
@@ -204,10 +204,10 @@ Ollama Cloud cũng kết nối đúng cách này, key lấy ở ollama.com.
 - Mỗi dòng có số thứ tự, tên key, 4 ký tự cuối của key và trạng thái: **Sẵn sàng**, **Đã tắt**, hoặc **Hết lượt, mở lại HH:MM**.
 - Đổi thứ tự key bằng mũi tên lên/xuống hoặc kéo dòng. Nút **⋯** ở cuối dòng có **Tắt** / **Bật**, **Đổi key** (dán key mới rồi **Lưu**) và **Gỡ**.
 - **＋ Thêm key**: đặt tên cho dễ nhận (ví dụ "Key dự án B"), dán key, bấm **Lưu**. Key mới vào cuối danh sách.
-- Naota dùng key **từ trên xuống**: key 1 tới khi hết lượt thì sang key 2, key đang nghỉ thì bỏ qua ngay; dùng hết key của nhà này mới sang thẻ kế tiếp. Key 1 hồi lượt thì quay lại dùng nó trước.
+- Vanhanh dùng key **từ trên xuống**: key 1 tới khi hết lượt thì sang key 2, key đang nghỉ thì bỏ qua ngay; dùng hết key của nhà này mới sang thẻ kế tiếp. Key 1 hồi lượt thì quay lại dùng nó trước.
 - Key đang chạy được tô nổi: xanh lá **Chat đang dùng**, tím **Việc nền đang dùng**.
 - Dòng trạng thái của thẻ tóm lại, ví dụ "Đã kết nối · 3 model · 2/2 key dùng được".
-- Gỡ key cuối cùng là ngắt kết nối nhà đó: Naota hỏi lại ("Đây là key cuối cùng: nhà này rời khỏi thứ tự dùng."), đồng ý thì thẻ rời Thứ tự dùng, và nếu nó đang là MAIN thì thẻ kế tiếp lên làm MAIN.
+- Gỡ key cuối cùng là ngắt kết nối nhà đó: Vanhanh hỏi lại ("Đây là key cuối cùng: nhà này rời khỏi thứ tự dùng."), đồng ý thì thẻ rời Thứ tự dùng, và nếu nó đang là MAIN thì thẻ kế tiếp lên làm MAIN.
 
 Các cổng tự khai địa chỉ (OpenAI Compatible, Anthropic Compatible, Ollama Local) vẫn giữ form một địa chỉ, một key như cũ (xem C1 và G).
 
@@ -224,7 +224,7 @@ Dùng khi bạn mua key Claude (hoặc model khác) từ một bên bán lại, 
 
 **Chuẩn bị 3 thứ từ bên bán** (lấy thông tin của cổng ANTHROPIC, không phải cổng OpenAI):
 
-- **Base URL**: địa chỉ bên bán ghi cho `ANTHROPIC_BASE_URL`, ví dụ `https://api.tenbenban.com` hoặc `https://api.tenbenban.com/anthropic`. Lỡ dán cả đuôi `/v1` hay `/v1/messages` cũng không sao, Naota tự cắt.
+- **Base URL**: địa chỉ bên bán ghi cho `ANTHROPIC_BASE_URL`, ví dụ `https://api.tenbenban.com` hoặc `https://api.tenbenban.com/anthropic`. Lỡ dán cả đuôi `/v1` hay `/v1/messages` cũng không sao, Vanhanh tự cắt.
 - **API key**: chuỗi bên bán cấp, thường bắt đầu bằng `sk-`.
 - **Tên model**: ví dụ `claude-sonnet-4-6`. Hỏi bên bán gói của bạn dùng được model nào và chép đúng từng chữ.
 
@@ -232,10 +232,10 @@ Dùng khi bạn mua key Claude (hoặc model khác) từ một bên bán lại, 
 
 1. Vào **Models**, chọn tab **Cloud Model**, bấm **＋ Kết nối thêm nhà cung cấp** ở cuối trang, tìm thẻ **Anthropic Compatible**.
 2. Điền 3 ô từ trên xuống: Base URL, tên model (nhiều model thì cách nhau bằng dấu phẩy), API key.
-3. Bấm **Kết nối**. Naota gửi thử một tin rất ngắn tới bên bán để kiểm tra, xong thì thẻ hiện **● Đã kết nối** kèm số model.
+3. Bấm **Kết nối**. Vanhanh gửi thử một tin rất ngắn tới bên bán để kiểm tra, xong thì thẻ hiện **● Đã kết nối** kèm số model.
 4. Đặt làm model chính như mục D: thẻ **Anthropic Compatible** vừa vào cuối Thứ tự dùng, kéo nó lên đầu (hoặc bấm **⇅ Đảo**) rồi chọn tên model bằng chip model trên thẻ. Chat thử một câu, dưới câu trả lời có dòng nhỏ ghi "Anthropic Compatible · tên-model" là đã chạy đúng đường.
 
-Naota chỉ lưu khi kiểm tra thành công, nên thấy báo lỗi tức là chưa lưu gì. Lý do cần ô tên model: đa số cổng kiểu này không trả danh sách model, Naota không tự biết bên bán có những model nào. Cổng nào có danh sách thì Naota tự nạp thêm.
+Vanhanh chỉ lưu khi kiểm tra thành công, nên thấy báo lỗi tức là chưa lưu gì. Lý do cần ô tên model: đa số cổng kiểu này không trả danh sách model, Vanhanh không tự biết bên bán có những model nào. Cổng nào có danh sách thì Vanhanh tự nạp thêm.
 
 **Gặp lỗi khi bấm Kết nối:**
 
@@ -245,17 +245,17 @@ Naota chỉ lưu khi kiểm tra thành công, nên thấy báo lỗi tức là c
 | Cổng này không trả danh sách model | Chưa điền tên model | Điền tên model bên bán đưa rồi bấm Kết nối lại |
 | Không thấy .../v1/messages (HTTP 404) | Base URL chưa đúng | Hỏi lại bên bán địa chỉ cổng Anthropic; hay gặp nhất là lấy nhầm địa chỉ cổng OpenAI |
 | Cổng trả HTTP 400 khi thử model ... | Thường là tên model sai, hoặc gói không có model đó | Kiểm tra chính tả tên model, hoặc hỏi bên bán tên đúng |
-| Không gọi được ... | Máy chạy Naota không tới được địa chỉ đó | Kiểm tra Base URL, mạng, hoặc hỏi bên bán cổng còn chạy không |
+| Không gọi được ... | Máy chạy Vanhanh không tới được địa chỉ đó | Kiểm tra Base URL, mạng, hoặc hỏi bên bán cổng còn chạy không |
 
 Đã kết nối mà lúc chat báo **429** hoặc **529** nghĩa là bên bán đang quá tải hoặc bạn đã hết hạn mức: đợi một lúc rồi thử lại, hoặc hỏi bên bán về hạn mức gói.
 
 **Nên biết:**
 
-- Đổi key: điền key mới vào ô API key rồi bấm **Lưu**. Để trống ô key thì Naota giữ key cũ.
+- Đổi key: điền key mới vào ô API key rồi bấm **Lưu**. Để trống ô key thì Vanhanh giữ key cũ.
 - Thêm hay bớt model: sửa ô tên model rồi bấm **Lưu**.
-- Đổi sang Base URL khác thì phải nhập lại key: Naota không bao giờ gửi key cũ sang một địa chỉ mới.
+- Đổi sang Base URL khác thì phải nhập lại key: Vanhanh không bao giờ gửi key cũ sang một địa chỉ mới.
 - Thôi dùng: bấm **Ngắt** (xoá cả địa chỉ, key và tên model). Thẻ rời Thứ tự dùng; nếu nó đang là MAIN thì thẻ kế tiếp lên làm MAIN.
-- Naota gửi key theo cả hai kiểu xác thực (`x-api-key` và `Bearer`), nên bên bán đọc kiểu nào cũng nhận.
+- Vanhanh gửi key theo cả hai kiểu xác thực (`x-api-key` và `Bearer`), nên bên bán đọc kiểu nào cũng nhận.
 - Cổng này có đủ MCP, đọc ghi brain, skill, agent, việc nền và chatbot như các engine API khác. Như mọi engine API, nó không chạy lệnh máy (xem mục "Bốn thứ engine API không có").
 
 ### D. Thứ tự dùng: chọn MAIN và dự phòng
@@ -264,7 +264,7 @@ Khối **◆ Thứ tự dùng** ở đầu tab Cloud Model chỉ có các nhà *
 
 - **Thẻ trên cùng là MAIN** (nhãn **MAIN**): đây là model chat của bạn.
 - Các thẻ sau ghi **Dự phòng 1**, **Dự phòng 2**... MAIN hết lượt, hoặc lỗi trước khi kịp làm gì, thì chat chuyển xuống thẻ kế tiếp. Thẻ dự phòng nào đang gánh chat ngay lúc này có nhãn xanh **ĐANG DÙNG**.
-- **Đã làm một bước rồi mới lỗi thì không chuyển.** Engine nào đã gọi công cụ (gửi tin, đăng bài, tạo đơn...) rồi mới hỏng thì Naota dừng lại và báo, không chạy lại bước đó ở nhà khác, để không có chuyện gửi tin hay đăng bài hai lần.
+- **Đã làm một bước rồi mới lỗi thì không chuyển.** Engine nào đã gọi công cụ (gửi tin, đăng bài, tạo đơn...) rồi mới hỏng thì Vanhanh dừng lại và báo, không chạy lại bước đó ở nhà khác, để không có chuyện gửi tin hay đăng bài hai lần.
 - Chuyển dự phòng chỉ đổi đường chạy của lượt đó, **không sửa** thứ tự hay model bạn đã lưu.
 
 **Đổi thứ tự:**
@@ -276,7 +276,7 @@ Thẻ nào lên đầu là thành MAIN ngay, không phải bấm lưu.
 
 **Model và Effort của từng thẻ.** Mỗi thẻ có hai chip giống hệt chip dưới khung chat:
 
-- **Chip model** (chấm xanh, tên model, ▾): mở danh sách model của riêng nhà đó, có ô tìm ở trên. Dòng đầu **mặc định** nghĩa là dùng model mặc định của nhà cung cấp; Naota biết đó là model nào thì ghi tên trong ngoặc, ví dụ **mặc định (llama-3.3-70b-versatile)**. Thẻ gói (Claude Code, ChatGPT, Grok, Antigravity) chưa đặt model thì do chính CLI tự chọn theo gói, trang ghi **mặc định của CLI (tự chọn theo gói)**. Danh sách được nạp từ chính nhà cung cấp, nên mới đổi tên model là thấy ngay.
+- **Chip model** (chấm xanh, tên model, ▾): mở danh sách model của riêng nhà đó, có ô tìm ở trên. Dòng đầu **mặc định** nghĩa là dùng model mặc định của nhà cung cấp; Vanhanh biết đó là model nào thì ghi tên trong ngoặc, ví dụ **mặc định (llama-3.3-70b-versatile)**. Thẻ gói (Claude Code, ChatGPT, Grok, Antigravity) chưa đặt model thì do chính CLI tự chọn theo gói, trang ghi **mặc định của CLI (tự chọn theo gói)**. Danh sách được nạp từ chính nhà cung cấp, nên mới đổi tên model là thấy ngay.
 - **Chip Effort** (mức, ▾): mở thanh trượt 6 nấc **Off**, **Light**, **Medium**, **High**, **Extra**, **Ultra** (xem mục F).
 
 Mỗi thẻ nhớ model và Effort riêng, nên đổi thứ tự không làm mất lựa chọn của thẻ nào. Effort của thẻ MAIN chính là mức hiện trên chip Effort ở khung chat.
@@ -291,14 +291,14 @@ Telegram cũng đi theo MAIN: đổi MAIN trên web là các cuộc trò chuyệ
 
 ### D1. Nhiều tài khoản cho một gói
 
-Thẻ của ba nhà chạy bằng gói **ChatGPT (Codex)**, **Grok Build** và **Claude Code** nhận được nhiều tài khoản. Tài khoản này hết lượt thì Naota chạy tiếp bằng tài khoản kế của cùng gói, rồi mới sang thẻ dự phòng.
+Thẻ của ba nhà chạy bằng gói **ChatGPT (Codex)**, **Grok Build** và **Claude Code** nhận được nhiều tài khoản. Tài khoản này hết lượt thì Vanhanh chạy tiếp bằng tài khoản kế của cùng gói, rồi mới sang thẻ dự phòng.
 
 **Tài khoản 1** là đăng nhập sẵn có trên máy, đăng nhập bằng chính các nút ở phần trên của thẻ như mục A, B, B1a. Không có gì thay đổi với nó.
 
 **Thêm tài khoản.** Khi thẻ đã đăng nhập và nằm trong Thứ tự dùng, dưới phần đăng nhập có nút **＋ Thêm tài khoản**:
 
 1. Bấm **＋ Thêm tài khoản** và gõ tên cho tài khoản (ví dụ "Gói Pro 2" hay "Gói Max 200").
-2. Đọc dòng cảnh báo nhẹ: "Nhiều tài khoản cho một gói có nguy cơ bị khoá, dù Naota chưa ghi nhận ca nào. Nếu gặp, hãy báo cho nhà phát triển qua mục Issues trên GitHub của Naota."
+2. Đọc dòng cảnh báo nhẹ: "Nhiều tài khoản cho một gói có nguy cơ bị khoá, dù Vanhanh chưa ghi nhận ca nào. Nếu gặp, hãy báo cho nhà phát triển qua mục Issues trên GitHub của Vanhanh."
 3. Bấm **Lấy link đăng nhập**, mở link trên máy nào cũng được, rồi đăng nhập đúng tài khoản cần thêm.
    - **ChatGPT** và **Grok Build**: thẻ hiện link kèm một mã. Đăng nhập xong là tự hoàn tất: trang kiểm tra mỗi 3 giây, chờ tối đa 15 phút.
    - **Claude Code**: thẻ hiện link. Đăng nhập xong, dán mã hiện ra vào ô trên thẻ rồi bấm **Xác nhận**.
@@ -318,30 +318,30 @@ Thẻ của ba nhà chạy bằng gói **ChatGPT (Codex)**, **Grok Build** và *
 - Dùng hết các tài khoản của một thẻ rồi mới sang thẻ kế trong Thứ tự dùng. Thẻ chỉ tính là hết lượt khi không còn tài khoản nào của nó chạy được.
 - Áp như nhau cho chat (web và Telegram) và việc nền (mỗi tài khoản là một mắt dự phòng riêng).
 
-**Bên dưới.** Mỗi tài khoản thêm có thư mục đăng nhập riêng trên máy (trong thư mục trạng thái của Naota, `accounts/<id>/codex`, `accounts/<id>/grok` hoặc `accounts/<id>/claude`), và CLI chạy trỏ vào đó (`CODEX_HOME`, `GROK_HOME`, `CLAUDE_CONFIG_DIR`). Naota chép cài đặt của tài khoản 1 sang (cấu hình Codex và hồ sơ hub của Naota, `config.toml` của Grok, `settings.json` của Claude); đăng nhập thì không bao giờ được chép.
+**Bên dưới.** Mỗi tài khoản thêm có thư mục đăng nhập riêng trên máy (trong thư mục trạng thái của Vanhanh, `accounts/<id>/codex`, `accounts/<id>/grok` hoặc `accounts/<id>/claude`), và CLI chạy trỏ vào đó (`CODEX_HOME`, `GROK_HOME`, `CLAUDE_CONFIG_DIR`). Vanhanh chép cài đặt của tài khoản 1 sang (cấu hình Codex và hồ sơ hub của Vanhanh, `config.toml` của Grok, `settings.json` của Claude); đăng nhập thì không bao giờ được chép.
 
 **Giới hạn cần biết:**
 
-- Đổi tài khoản giữa cuộc trò chuyện thì lượt đó mở một mạch CLI mới, Naota tự nạp lại lịch sử.
+- Đổi tài khoản giữa cuộc trò chuyện thì lượt đó mở một mạch CLI mới, Vanhanh tự nạp lại lịch sử.
 - Đồng hồ hạn mức, tạo ảnh, giọng nói và những đường ChatGPT không đi qua Codex CLI vẫn dùng tài khoản 1.
 - Antigravity vẫn chỉ một tài khoản (token nằm trong keyring của hệ điều hành).
 - Claude Code chạy bằng API key Anthropic không có danh sách tài khoản.
-- Trên macOS, một tài khoản Claude được tính là đã đăng nhập khi Naota thấy bước đăng nhập hoàn tất (token nằm trong Keychain).
+- Trên macOS, một tài khoản Claude được tính là đã đăng nhập khi Vanhanh thấy bước đăng nhập hoàn tất (token nằm trong Keychain).
 
 ### D2. Hết lượt giữa một lượt chat
 
-Đường đang chạy (một tài khoản hay một key) báo hết lượt **trước khi viết chữ nào hay gọi công cụ nào** thì Naota chạy lại ngay đúng câu hỏi đó bằng đường kế tiếp: tài khoản hay key kế của cùng thẻ trước, rồi tới thẻ kế trong Thứ tự dùng. Bạn không phải gửi lại.
+Đường đang chạy (một tài khoản hay một key) báo hết lượt **trước khi viết chữ nào hay gọi công cụ nào** thì Vanhanh chạy lại ngay đúng câu hỏi đó bằng đường kế tiếp: tài khoản hay key kế của cùng thẻ trước, rồi tới thẻ kế trong Thứ tự dùng. Bạn không phải gửi lại.
 
 - Trong khung chat hiện một dòng nhạt, ví dụ "Đang dùng ChatGPT vì Claude Code hết lượt." hoặc "Đang dùng ChatGPT (tài khoản 2) vì tài khoản 1 hết lượt.", rồi câu trả lời của đường mới hiện bên dưới như thường.
-- Tối đa 3 lần đổi đường cho một câu hỏi. Hết đường thì Naota báo hết lượt và hẹn tự chạy lại như trước.
-- **Hết lượt giữa chừng** (đã viết được một đoạn): câu trả lời dừng ở đó, kèm thẻ **Chạy lại ngay**. Bấm vào là hỏi lại câu đó bằng đường còn lượt, câu trả lời dở được thay bằng câu mới. Naota không tự chạy lại trường hợp này.
-- **Đã gọi công cụ rồi mới hết lượt**: Naota dừng và báo, không chạy lại ở đường khác, để không gửi tin hay đăng bài hai lần.
+- Tối đa 3 lần đổi đường cho một câu hỏi. Hết đường thì Vanhanh báo hết lượt và hẹn tự chạy lại như trước.
+- **Hết lượt giữa chừng** (đã viết được một đoạn): câu trả lời dừng ở đó, kèm thẻ **Chạy lại ngay**. Bấm vào là hỏi lại câu đó bằng đường còn lượt, câu trả lời dở được thay bằng câu mới. Vanhanh không tự chạy lại trường hợp này.
+- **Đã gọi công cụ rồi mới hết lượt**: Vanhanh dừng và báo, không chạy lại ở đường khác, để không gửi tin hay đăng bài hai lần.
 - Telegram cũng tự đổi đường như vậy, dòng "Đang dùng..." hiện ở tin trạng thái. Bot chuyên trách nói với khách thì không đổi: nó luôn chạy model của Agent nó trỏ tới.
 - Đổi đường không sửa thứ tự hay model đã lưu. Lượt sau bắt đầu lại từ MAIN, trừ khi MAIN vẫn đang nghỉ.
 
 ### E. Chọn model việc nền
 
-Khối **◆ Model việc nền** quyết định model nào chạy những việc Naota làm khi bạn không ngồi trước máy: **loop · việc Kanban · nhắc hẹn · tự học · tiêu hoá nguồn**. Đây thường là phần đốt hạn mức âm thầm nhất, nên chọn model rẻ ở đây tiết kiệm thấy rõ.
+Khối **◆ Model việc nền** quyết định model nào chạy những việc Vanhanh làm khi bạn không ngồi trước máy: **loop · việc Kanban · nhắc hẹn · tự học · tiêu hoá nguồn**. Đây thường là phần đốt hạn mức âm thầm nhất, nên chọn model rẻ ở đây tiết kiệm thấy rõ.
 
 1. Khối **◆ Model việc nền** nằm ngay dưới Thứ tự dùng. Dòng lớn màu cam là tên model, dòng nhỏ bên dưới là nhà cung cấp. Bên cạnh có chip **Effort** riêng của việc nền và nút **Đổi model ▾**.
 2. Bấm **Đổi model ▾**. Trên máy tính, cửa sổ hai cột (nhà cung cấp | model) mở ra với tiêu đề **MODEL VIỆC NỀN**. Trên điện thoại (màn hình rộng tới 600px), nó mở một danh sách kiểu chip model của khung chat: ô tìm ở trên, tên nhà viết hoa bấm để mở hoặc thu, dấu ✓ ở model đang chọn. Cả hai **chỉ liệt kê nhà đã kết nối**.
@@ -352,17 +352,17 @@ Không còn nút **Về mặc định** (bỏ). Muốn quay về model mặc đ�
 
 Vài điều cần biết:
 
-- **Model việc nền không chạy theo MAIN.** Lần đầu (máy mới, hoặc nâng cấp mà chưa từng đặt) Naota chọn sẵn cấu hình mặc định của nhà cung cấp: model mặc định và mức Effort mặc định của nó. Sau đó model nền **giữ cố định** tới khi bạn tự đổi; kéo thẻ khác lên làm MAIN không kéo model nền đổi theo.
+- **Model việc nền không chạy theo MAIN.** Lần đầu (máy mới, hoặc nâng cấp mà chưa từng đặt) Vanhanh chọn sẵn cấu hình mặc định của nhà cung cấp: model mặc định và mức Effort mặc định của nó. Sau đó model nền **giữ cố định** tới khi bạn tự đổi; kéo thẻ khác lên làm MAIN không kéo model nền đổi theo.
 - **Chọn được MỌI nhà bạn đã kết nối**, không riêng Claude: Claude Code, ChatGPT/Codex, OpenRouter, OpenAI, Gemini, Anthropic API... Chọn nhà cung cấp khác thì việc nền chạy bằng gói hoặc khoá của nhà đó, không ăn vào hạn mức Claude nữa.
-- **Hết lượt thì đi theo Thứ tự dùng (gắn với Thứ tự dùng).** Việc nền chạy model nền trước; model nền hết lượt thì lần lượt sang **Dự phòng 1, Dự phòng 2...**, và **MAIN sau cùng**, mỗi nhà chạy cấu hình mặc định của nó (không phải model bạn chọn cho chat). Một nhà có nhiều API key thì thử từng key trước khi sang nhà kế, và thẻ gói có nhiều tài khoản cũng thử từng tài khoản trước (xem mục D1). Naota không tự chen một nhà bạn chưa kết nối vào.
+- **Hết lượt thì đi theo Thứ tự dùng (gắn với Thứ tự dùng).** Việc nền chạy model nền trước; model nền hết lượt thì lần lượt sang **Dự phòng 1, Dự phòng 2...**, và **MAIN sau cùng**, mỗi nhà chạy cấu hình mặc định của nó (không phải model bạn chọn cho chat). Một nhà có nhiều API key thì thử từng key trước khi sang nhà kế, và thẻ gói có nhiều tài khoản cũng thử từng tài khoản trước (xem mục D1). Vanhanh không tự chen một nhà bạn chưa kết nối vào.
 - **Trang chỉ lên tiếng khi cần.** Chuỗi thứ tự trên không hiện ra thường xuyên. Chỉ khi model nền hết lượt mới có một dòng, ví dụ "Haiku 5.5 đang hết lượt, việc nền chạy tạm ChatGPT · GPT-5.5." Nhà của model nền chưa kết nối thì có dòng cảnh báo "Nhà cung cấp này chưa kết nối, việc nền bắt đầu từ Dự phòng 1." Không còn nhà nào chạy được thì báo "Không còn tài khoản nào chạy được việc nền."
 - **Không làm một việc hai lần.** Engine nào đã gọi công cụ (gửi tin, đăng bài, tạo đơn...) rồi mới hỏng thì việc đó dừng và báo lỗi, không chạy lại bằng engine khác.
-- **Công cụ không giống nhau giữa các đường.** Claude Code và Codex đọc/ghi file trực tiếp trong brain. Các model API (OpenRouter, OpenAI, Gemini, Anthropic API) đọc/ghi qua công cụ vault của Naota và **không chạy được lệnh máy**, nên hợp với việc đọc - tổng hợp - ghi ghi chú; việc nền nào cần chạy lệnh thì cứ để Claude.
+- **Công cụ không giống nhau giữa các đường.** Claude Code và Codex đọc/ghi file trực tiếp trong brain. Các model API (OpenRouter, OpenAI, Gemini, Anthropic API) đọc/ghi qua công cụ vault của Vanhanh và **không chạy được lệnh máy**, nên hợp với việc đọc - tổng hợp - ghi ghi chú; việc nền nào cần chạy lệnh thì cứ để Claude.
 - Với đường API, công cụ ghi file tự khoá lại khi loop đang ở mức `suggest`, đúng như khi chạy bằng Claude.
 
 ### E1. Chỗ nào chạy model nào (bảng tra)
 
-Naota có ba chỗ đặt model, và câu hỏi hay gặp nhất là "cái nào thắng cái nào". Thứ tự: **model của Agent** (ô Model trong Cài đặt trợ lý) thắng **model chính**, còn **model việc nền** chỉ dùng cho các đường chạy nền.
+Vanhanh có ba chỗ đặt model, và câu hỏi hay gặp nhất là "cái nào thắng cái nào". Thứ tự: **model của Agent** (ô Model trong Cài đặt trợ lý) thắng **model chính**, còn **model việc nền** chỉ dùng cho các đường chạy nền.
 
 | Bạn đang ở đâu | Model chạy thật |
 |---|---|
@@ -372,7 +372,7 @@ Naota có ba chỗ đặt model, và câu hỏi hay gặp nhất là "cái nào 
 | Một bước trong quy trình (workflow) | Model của trợ lý ở bước đó; để **Mặc định** thì **model việc nền** |
 | Loop, việc Kanban, nhắc hẹn, tự học, tiêu hoá nguồn | Model việc nền |
 
-Nhà cung cấp mà trợ lý đã chọn nếu bị gỡ key thì Naota lui về model chính, chứ không để trợ lý hay bot chết câm.
+Nhà cung cấp mà trợ lý đã chọn nếu bị gỡ key thì Vanhanh lui về model chính, chứ không để trợ lý hay bot chết câm.
 
 Ô **Model** trong Cài đặt trợ lý dùng đúng bảng chọn của thanh model dưới khung chat: gõ để tìm, và nhà chưa cắm API key vẫn hiện ra kèm ổ khoá, bấm vào là sang trang Models để mở. (Riêng bảng chọn ở khung chat thì nay chỉ liệt kê nhà đã kết nối.)
 
@@ -401,14 +401,14 @@ Mức này áp dụng khác nhau tuỳ engine:
 
 ### G. Local Model - Ollama chạy trên máy bạn hoặc trên VPS
 
-Tab **Local Model** (cạnh tab Cloud Model trên trang Models) nối Naota với một Ollama do bạn tự chạy: model mã nguồn mở, ngoại tuyến, không tốn lượt. Provider tương ứng trong ô chọn model là **Ollama (Local)**, khác với **Ollama Cloud** ở tab Cloud (bản trả phí qua ollama.com).
+Tab **Local Model** (cạnh tab Cloud Model trên trang Models) nối Vanhanh với một Ollama do bạn tự chạy: model mã nguồn mở, ngoại tuyến, không tốn lượt. Provider tương ứng trong ô chọn model là **Ollama (Local)**, khác với **Ollama Cloud** ở tab Cloud (bản trả phí qua ollama.com).
 
-**Naota chạy thẳng trên máy (Windows/Mac/Linux):** cài Ollama bằng lệnh tab hiện sẵn, bấm Kết nối với địa chỉ `http://127.0.0.1:11434` đã điền sẵn. Xong.
+**Vanhanh chạy thẳng trên máy (Windows/Mac/Linux):** cài Ollama bằng lệnh tab hiện sẵn, bấm Kết nối với địa chỉ `http://127.0.0.1:11434` đã điền sẵn. Xong.
 
-**Naota chạy trong Docker/VPS:** ba bước, làm bằng SSH trên máy chủ thật, không phải terminal trong Naota (terminal đó nằm trong container, không có quyền root, và mọi thứ cài vào đó mất sạch ở lần cập nhật kế).
+**Vanhanh chạy trong Docker/VPS:** ba bước, làm bằng SSH trên máy chủ thật, không phải terminal trong Vanhanh (terminal đó nằm trong container, không có quyền root, và mọi thứ cài vào đó mất sạch ở lần cập nhật kế).
 
 1. Cài Ollama trên máy chủ: `curl -fsSL https://ollama.com/install.sh | sh`.
-2. Cho Ollama nghe ở địa chỉ cầu nối Docker. Tab Local đã dò sẵn địa chỉ và sinh sẵn lệnh, chỉ việc chép. Nó ghi một file override cho systemd với `OLLAMA_HOST=<địa chỉ cầu nối>:11434` rồi restart. Gắn vào đúng địa chỉ này thì chỉ container trên máy đó gọi được, không lộ ra Internet, không cần tường lửa. Chỉ khi Naota dò không ra địa chỉ thì lệnh mới rơi về `0.0.0.0`, lúc đó bắt buộc chặn cổng 11434 ở tường lửa vì Ollama không có mật khẩu.
+2. Cho Ollama nghe ở địa chỉ cầu nối Docker. Tab Local đã dò sẵn địa chỉ và sinh sẵn lệnh, chỉ việc chép. Nó ghi một file override cho systemd với `OLLAMA_HOST=<địa chỉ cầu nối>:11434` rồi restart. Gắn vào đúng địa chỉ này thì chỉ container trên máy đó gọi được, không lộ ra Internet, không cần tường lửa. Chỉ khi Vanhanh dò không ra địa chỉ thì lệnh mới rơi về `0.0.0.0`, lúc đó bắt buộc chặn cổng 11434 ở tường lửa vì Ollama không có mật khẩu.
 3. Bấm **Kết nối** (địa chỉ đã điền sẵn).
 
 Không nối được sau ba bước? Trên máy chủ chạy `ss -ltnp | grep 11434`: không ra dòng nào là Ollama chưa chạy (`systemctl status ollama`); ra dòng có `127.0.0.1` là bước 2 chưa ăn.
@@ -417,24 +417,24 @@ Không nối được sau ba bước? Trên máy chủ chạy `ss -ltnp | grep 1
 
 ## Engine Claude chạy bằng gì bên dưới
 
-Engine Claude của Naota chạy **duy nhất qua Claude Agent SDK** (bộ thư viện chính chủ của Anthropic). Nhánh cũ tự gọi lệnh `claude` như một tiến trình rời đã bị gỡ hẳn. Hai điều người dùng cần biết:
+Engine Claude của Vanhanh chạy **duy nhất qua Claude Agent SDK** (bộ thư viện chính chủ của Anthropic). Nhánh cũ tự gọi lệnh `claude` như một tiến trình rời đã bị gỡ hẳn. Hai điều người dùng cần biết:
 
 - **Máy vẫn PHẢI có `claude` CLI.** SDK gọi chính CLI đó bên dưới, và toàn bộ phần đăng nhập lẫn MCP native đều đi qua nó. Chưa cài CLI thì card Claude Code báo lỗi và engine không chạy - xem [Bắt đầu & thiết lập lần đầu](01-bat-dau-thiet-lap.md).
-- **Quyền công cụ ở phiên chạy nền được chặn theo TỪNG LẦN GỌI.** Khi loop hoặc workflow chạy trong chế độ nền an toàn, mỗi lần Naota định gọi một công cụ ngoài danh sách cho phép là bị từ chối ngay tại chỗ và ghi vào nhật ký, chứ không chỉ khai báo danh sách lúc khởi động. Thông báo từ chối nói rõ đây là rào quyền của phiên nền, **không phải** kết nối MCP hỏng - gặp dòng đó thì đừng đi đăng nhập lại connector.
+- **Quyền công cụ ở phiên chạy nền được chặn theo TỪNG LẦN GỌI.** Khi loop hoặc workflow chạy trong chế độ nền an toàn, mỗi lần Vanhanh định gọi một công cụ ngoài danh sách cho phép là bị từ chối ngay tại chỗ và ghi vào nhật ký, chứ không chỉ khai báo danh sách lúc khởi động. Thông báo từ chối nói rõ đây là rào quyền của phiên nền, **không phải** kết nối MCP hỏng - gặp dòng đó thì đừng đi đăng nhập lại connector.
 
 ## Claude Code (đầy đủ công cụ) và gọi API thẳng khác nhau ra sao
 
 Đây là điểm dễ nhầm nhất, cần nắm rõ:
 
-- **MAIN = Claude Code**: mạnh nhất - đọc/ghi file native, chạy lệnh máy, gọi MCP, skill native, loop tự động, session resume. Chế độ khai thác hết sức mạnh NAOTA.
-- **MAIN = ChatGPT OAuth (Codex)**: gọi được toàn bộ kho Kết nối (hub tự đẩy sang Codex, gồm cả kết nối local như Zalo), có tool file của Codex, và dùng được skill qua router (Naota bơm danh sách skill vào system prompt + tool `naota_use_skill`; Codex chạy cwd=brain nên đọc thẳng `skills/<slug>/SKILL.md`). Ngoài ra Codex còn nạp kho MCP GỐC của chính nó (server bạn tự đăng ký bằng `codex mcp add`, xem trong khối gập "◆ Kết nối sẵn của Claude Code và Codex" ở trang Kết nối) - tương tự cách engine Claude dùng MCP gốc của Claude Code.
-- **MAIN = OpenRouter / OpenAI (API) / Anthropic (API) / Gemini**: từ bản 0.9 cả bốn đều gọi được kho Kết nối qua vòng gọi tool, kèm tool đọc/ghi file trong vault và kích hoạt skill (`naota_use_skill`). **Việc nền cũng chạy được bằng những provider này** (xem mục E). Khác biệt còn lại so với Claude Code: không có tool chạy lệnh máy (Bash), không có WebFetch, và không resume được session CLI.
+- **MAIN = Claude Code**: mạnh nhất - đọc/ghi file native, chạy lệnh máy, gọi MCP, skill native, loop tự động, session resume. Chế độ khai thác hết sức mạnh VANHANH.
+- **MAIN = ChatGPT OAuth (Codex)**: gọi được toàn bộ kho Kết nối (hub tự đẩy sang Codex, gồm cả kết nối local như Zalo), có tool file của Codex, và dùng được skill qua router (Vanhanh bơm danh sách skill vào system prompt + tool `vanhanh_use_skill`; Codex chạy cwd=brain nên đọc thẳng `skills/<slug>/SKILL.md`). Ngoài ra Codex còn nạp kho MCP GỐC của chính nó (server bạn tự đăng ký bằng `codex mcp add`, xem trong khối gập "◆ Kết nối sẵn của Claude Code và Codex" ở trang Kết nối) - tương tự cách engine Claude dùng MCP gốc của Claude Code.
+- **MAIN = OpenRouter / OpenAI (API) / Anthropic (API) / Gemini**: từ bản 0.9 cả bốn đều gọi được kho Kết nối qua vòng gọi tool, kèm tool đọc/ghi file trong vault và kích hoạt skill (`vanhanh_use_skill`). **Việc nền cũng chạy được bằng những provider này** (xem mục E). Khác biệt còn lại so với Claude Code: không có tool chạy lệnh máy (Bash), không có WebFetch, và không resume được session CLI.
 
-Kết luận thực dụng: để Naota "làm việc" trọn vẹn nhất, giữ thẻ **Claude Code** trên cùng (MAIN). Chuyển sang provider API khi bạn muốn thử một model cụ thể của hãng khác, hoặc muốn đẩy phần việc nền sang một gói rẻ hơn cho đỡ hạn mức Claude.
+Kết luận thực dụng: để Vanhanh "làm việc" trọn vẹn nhất, giữ thẻ **Claude Code** trên cùng (MAIN). Chuyển sang provider API khi bạn muốn thử một model cụ thể của hãng khác, hoặc muốn đẩy phần việc nền sang một gói rẻ hơn cho đỡ hạn mức Claude.
 
 ## Tiết kiệm token áp cho cả gói thuê bao
 
-Khối **Chế độ tiết kiệm token** ở đầu trang **Mức dùng** (nhóm Hệ thống) cho Naota gửi ít chữ hơn mỗi lượt: chỉ nạp phần bộ nhớ liên quan tới câu hỏi, chỉ nạp skill khi cần thay vì liệt kê hết.
+Khối **Chế độ tiết kiệm token** ở đầu trang **Mức dùng** (nhóm Hệ thống) cho Vanhanh gửi ít chữ hơn mỗi lượt: chỉ nạp phần bộ nhớ liên quan tới câu hỏi, chỉ nạp skill khi cần thay vì liệt kê hết.
 
 Phần này chạy được cho **cả ba loại bộ não**, không riêng bộ não dùng API key:
 
@@ -446,9 +446,9 @@ Phần này chạy được cho **cả ba loại bộ não**, không riêng bộ
 
 Mở trang là thấy ngay khối **Bộ não đang dùng**: nó nói bộ não hiện tại thuộc loại nào, đang ăn được mấy mảng tiết kiệm, và mảng nào không áp cho nó cùng lý do. Có mảng cố ý chỉ chạy trên bộ não dùng API key - ví dụ phần gửi lại lịch sử hội thoại, vì Claude Code và Codex vốn tự nhớ mạch hội thoại của chúng, gửi thêm là gửi hai lần.
 
-**Hết lượt gói thuê bao** thì chat đi theo **Thứ tự dùng** bạn đã xếp: MAIN hết lượt thì lượt đó chạy thẻ Dự phòng 1 (với model và Effort của thẻ đó), rồi Dự phòng 2... Thẻ gói có nhiều tài khoản thì dùng hết các tài khoản của nó trước khi chuyển (xem mục D1). Naota chỉ chuyển sang những nhà **chính bạn đã kết nối và xếp vào đó**, vì chuyển là tiêu hạn mức của một tài khoản khác, có khi mất tiền thật. Muốn một nhà không bao giờ được dùng thay thì ngắt nó, hoặc với nhà API thì **Tắt** các key của nó. Chuyển như vậy không sửa gì đã lưu: lượt sau Naota lại thử MAIN trước. Không còn thẻ nào chạy được thì Naota nói bằng tiếng Việt: hết lượt gói nào và còn khoảng bao lâu nữa. Lưu ý loại hạn mức này đếm **lượt dùng theo giờ** chứ không đếm độ dài, nên rút gọn câu hỏi không giúp gì.
+**Hết lượt gói thuê bao** thì chat đi theo **Thứ tự dùng** bạn đã xếp: MAIN hết lượt thì lượt đó chạy thẻ Dự phòng 1 (với model và Effort của thẻ đó), rồi Dự phòng 2... Thẻ gói có nhiều tài khoản thì dùng hết các tài khoản của nó trước khi chuyển (xem mục D1). Vanhanh chỉ chuyển sang những nhà **chính bạn đã kết nối và xếp vào đó**, vì chuyển là tiêu hạn mức của một tài khoản khác, có khi mất tiền thật. Muốn một nhà không bao giờ được dùng thay thì ngắt nó, hoặc với nhà API thì **Tắt** các key của nó. Chuyển như vậy không sửa gì đã lưu: lượt sau Vanhanh lại thử MAIN trước. Không còn thẻ nào chạy được thì Vanhanh nói bằng tiếng Việt: hết lượt gói nào và còn khoảng bao lâu nữa. Lưu ý loại hạn mức này đếm **lượt dùng theo giờ** chứ không đếm độ dài, nên rút gọn câu hỏi không giúp gì.
 
-Khi nhà cung cấp nói rõ **mốc mở lại**, dưới câu báo có thẻ **"Tự chạy lại lúc HH:MM"**: đến giờ Naota tự hỏi lại đúng câu đó và trả lời vào cùng hội thoại, tab đóng hay điện thoại tắt màn hình vẫn chạy (việc nằm ở máy chủ). Trên thẻ có ô **"Tự tiếp tục khi hạn mức reset"** (tắt là chỉ nhắc giờ, không tự chạy; lựa chọn được nhớ cho lần sau) và nút **"Chạy lại ngay"**. Gửi tin mới trong lúc chờ là lịch tự huỷ. Naota chỉ hẹn khi biết mốc, tối đa 3 lần cho một câu hỏi, và không hẹn mốc xa hơn một ngày; khởi động lại máy chủ thì lịch đang chờ mất, câu báo hết lượt vẫn còn trong hội thoại để bạn bấm "Gửi lại".
+Khi nhà cung cấp nói rõ **mốc mở lại**, dưới câu báo có thẻ **"Tự chạy lại lúc HH:MM"**: đến giờ Vanhanh tự hỏi lại đúng câu đó và trả lời vào cùng hội thoại, tab đóng hay điện thoại tắt màn hình vẫn chạy (việc nằm ở máy chủ). Trên thẻ có ô **"Tự tiếp tục khi hạn mức reset"** (tắt là chỉ nhắc giờ, không tự chạy; lựa chọn được nhớ cho lần sau) và nút **"Chạy lại ngay"**. Gửi tin mới trong lúc chờ là lịch tự huỷ. Vanhanh chỉ hẹn khi biết mốc, tối đa 3 lần cho một câu hỏi, và không hẹn mốc xa hơn một ngày; khởi động lại máy chủ thì lịch đang chờ mất, câu báo hết lượt vẫn còn trong hội thoại để bạn bấm "Gửi lại".
 
 ## Đổi nhanh model
 
@@ -460,10 +460,10 @@ Không cần mở trang Models cũng được: chọn model ở chip model dư�
 
 Đổi model ngay trong lúc đang chat thì **cuộc trò chuyện đi tiếp liền mạch**: model mới đọc được toàn bộ những gì đã nói trước đó và trả lời tiếp, không hỏi lại từ đầu. Bạn đổi bao nhiêu lần trong một cuộc cũng được.
 
-Bên dưới, Naota làm việc này theo hai cách tuỳ loại bộ não:
+Bên dưới, Vanhanh làm việc này theo hai cách tuỳ loại bộ não:
 
-- **Bộ não dùng API key** (OpenRouter, OpenAI, Anthropic, Gemini, Groq, Ollama) vốn không tự nhớ gì, nên mỗi lượt Naota gửi lại lịch sử hội thoại cho chúng.
-- **Bộ não chạy bằng gói thuê bao** (Claude Code, ChatGPT/Codex, Grok Build) thì tự giữ mạch hội thoại của riêng chúng, và Naota nối lại đúng mạch đó cho rẻ. Nhưng ngay khi một lượt do bộ não khác trả lời, mạch cũ đó **thiếu đúng lượt vừa rồi**. Naota vì vậy bỏ liên kết mạch của mọi bộ não khác sau mỗi lượt; lần bạn quay lại bộ não đó, nó dựng lại ngữ cảnh từ lịch sử đã lưu thay vì nối tiếp một mạch khuyết.
+- **Bộ não dùng API key** (OpenRouter, OpenAI, Anthropic, Gemini, Groq, Ollama) vốn không tự nhớ gì, nên mỗi lượt Vanhanh gửi lại lịch sử hội thoại cho chúng.
+- **Bộ não chạy bằng gói thuê bao** (Claude Code, ChatGPT/Codex, Grok Build) thì tự giữ mạch hội thoại của riêng chúng, và Vanhanh nối lại đúng mạch đó cho rẻ. Nhưng ngay khi một lượt do bộ não khác trả lời, mạch cũ đó **thiếu đúng lượt vừa rồi**. Vanhanh vì vậy bỏ liên kết mạch của mọi bộ não khác sau mỗi lượt; lần bạn quay lại bộ não đó, nó dựng lại ngữ cảnh từ lịch sử đã lưu thay vì nối tiếp một mạch khuyết.
 
 Nói ngắn: đổi qua đổi lại vẫn liền mạch, chỉ là lượt đầu tiên sau khi đổi tốn thêm một chút vì phải gửi lại lịch sử.
 
@@ -489,7 +489,7 @@ Trở về trước có lỗi ở đúng chỗ này: chỉ mạch của ChatGPT/
 | Danh sách **Tài khoản** | Thẻ nhà chạy bằng gói có từ 2 tài khoản | Dùng lần lượt từ trên xuống; trạng thái **Đã đăng nhập** / **Chưa đăng nhập** / **Đã tắt** / **Hết lượt, mở lại HH:MM**; **⋯** để Tắt / Bật, Đăng nhập lại, Gỡ |
 | **＋ Kết nối thêm nhà cung cấp (N)** | Cuối trang | Hiện N nhà chưa kết nối để đăng nhập / dán key |
 | **○ Chưa đăng nhập** | Card Claude Code | Chưa đăng nhập Claude Code trên máy |
-| **○ Chưa cài Claude Code** | Card Claude Code | Máy chạy Naota chưa có lệnh `claude`, làm theo khung hướng dẫn cài trên card |
+| **○ Chưa cài Claude Code** | Card Claude Code | Máy chạy Vanhanh chưa có lệnh `claude`, làm theo khung hướng dẫn cài trên card |
 | **Đăng nhập Claude** | Card Claude Code | Bắt đầu luồng đăng nhập bằng link |
 | **↻ Kiểm tra lại** | Card Claude Code (chỉ khi chưa đăng nhập) | Hỏi lại trạng thái đăng nhập |
 | **Đăng nhập ChatGPT** | Card OpenAI OAuth | Đăng nhập bằng mã device code |
@@ -500,20 +500,20 @@ Trở về trước có lỗi ở đúng chỗ này: chỉ mạch của ChatGPT/
 
 ## Mẹo
 
-- Nếu chỉ muốn Naota nhớ và làm việc trơn tru, cứ để thẻ Claude Code trên cùng (MAIN). Các provider khác dành cho nhu cầu đặc biệt.
+- Nếu chỉ muốn Vanhanh nhớ và làm việc trơn tru, cứ để thẻ Claude Code trên cùng (MAIN). Các provider khác dành cho nhu cầu đặc biệt.
 - Xếp ít nhất một thẻ dự phòng dưới MAIN (ví dụ một nhà API key) để gói chính hết lượt thì chat vẫn chạy tiếp thay vì đứng chờ.
-- Có nhiều API key cho cùng một nhà thì thêm hết vào thẻ đó bằng **＋ Thêm key**: Naota tự dùng lần lượt, key nào nghỉ thì bỏ qua.
+- Có nhiều API key cho cùng một nhà thì thêm hết vào thẻ đó bằng **＋ Thêm key**: Vanhanh tự dùng lần lượt, key nào nghỉ thì bỏ qua.
 - Có hơn một tài khoản ChatGPT, Grok hoặc Claude thì thêm vào thẻ đó bằng **＋ Thêm tài khoản** (xem mục D1): tài khoản trên hết lượt là tài khoản dưới chạy tiếp, chưa phải sang nhà khác. Đọc kỹ dòng cảnh báo về nguy cơ khoá trước khi thêm.
 - Đặt **Model việc nền** là model rẻ để loop, việc Kanban, nhắc hẹn, tự học và tiêu hoá nguồn không ngốn hết hạn mức của gói chính. Muốn biết chỗ nào đang đốt nhiều nhất thì xem [Mức dùng: token & chi phí](23-muc-dung-token.md).
 - Đẩy chip **Effort** lên Medium hoặc High khi hỏi việc khó (phân tích, chiến lược); để Off hoặc Light khi chỉ hỏi nhanh để đỡ chờ.
 - OpenRouter là lựa chọn tiện nếu muốn thử nhiều model của nhiều hãng chỉ với một key.
-- Muốn ChatGPT gọi được công cụ bán hàng của bạn: gắn kết nối trong trang [Kết nối & số liệu kinh doanh](09-mcp-va-so-lieu.md) trước, Naota sẽ tự đẩy sang Codex.
+- Muốn ChatGPT gọi được công cụ bán hàng của bạn: gắn kết nối trong trang [Kết nối & số liệu kinh doanh](09-mcp-va-so-lieu.md) trước, Vanhanh sẽ tự đẩy sang Codex.
 
 ## Sự cố thường gặp
 
 - **Card Claude Code báo "Claude CLI chưa cài"**: máy chưa cài Claude Code CLI. Engine Claude bắt buộc phải có nó (SDK gọi chính CLI này bên dưới). Cài xong bấm **↻ Kiểm tra lại**. Xem [Bắt đầu & thiết lập lần đầu](01-bat-dau-thiet-lap.md).
 - **Đăng nhập ChatGPT không ra mã, hoặc báo lỗi ngay**: workspace của bạn có thể đã chặn device code. Dùng nút **Qua trình duyệt** ở mục B.
-- **Đăng nhập ChatGPT báo "Hết hạn, thử lại."**: Naota chờ khoảng 16 phút rồi bỏ cuộc. Bấm **Đăng nhập ChatGPT** lại để lấy mã mới.
+- **Đăng nhập ChatGPT báo "Hết hạn, thử lại."**: Vanhanh chờ khoảng 16 phút rồi bỏ cuộc. Bấm **Đăng nhập ChatGPT** lại để lấy mã mới.
 - **Bấm chip model mà danh sách trống**: nhà đó chưa trả được danh sách model, hoặc chưa có model. Bấm **Kiểm tra lại** hoặc kết nối lại nhà đó, hoặc thêm model vào `settings.json` (mục `model.catalog`). Xem [Cấu hình .env](16-cau-hinh-env.md).
 - **Không thấy một nhà trong Thứ tự dùng**: nhà đó chưa kết nối (hoặc Claude Code chưa đăng nhập). Bấm **＋ Kết nối thêm nhà cung cấp** ở cuối trang.
 - **Model trả về rỗng**: thử lại hoặc chọn model khác bằng chip model trên thẻ MAIN. Với Anthropic API, thông báo còn kèm lý do (ví dụ hết max_tokens: nhắn "tiếp tục" để model viết tiếp).
@@ -521,8 +521,8 @@ Trở về trước có lỗi ở đúng chỗ này: chỉ mạch của ChatGPT/
 
 - **Banner đỏ "⚠ Bộ não claude mất đăng nhập" trên máy chưa từng cài Claude**: sửa. Đèn báo não giữ trạng thái trong RAM và không ai dọn, nên đèn đỏ thắp hồi Claude còn là Main Model treo mãi sau khi bạn đổi sang OpenRouter. Giờ đèn chỉ tính những bộ não bạn THẬT SỰ chọn (Main Model + model việc nền khi đặt rõ provider), và tự tắt ngay khi bạn đổi sang nhà cung cấp khác - không phải chờ vòng quét 10 phút.
 - **Bấm Ngắt (hoặc gỡ key cuối) của nhà đang là MAIN**: nhà đó rời Thứ tự dùng và thẻ kế tiếp lên làm MAIN để chat không gãy. Đây là hành vi cố ý, không phải lỗi.
-- **Chat trả lời bằng một nhà khác MAIN**: MAIN đang hết lượt (hoặc mọi key của nó đang nghỉ), nên lượt đó chạy thẻ dự phòng, thẻ đó có nhãn **ĐANG DÙNG**. Lượt sau Naota lại thử MAIN trước.
-- **ChatGPT OAuth báo chưa cài Codex CLI**: kênh này cần Codex CLI trên máy. Hai engine CLI npm (Claude Code, Codex) đều được cài sẵn lúc cài Naota - bản Docker, `install.sh` lẫn `setup.bat` - nên báo thiếu thường là bản cài cũ, **cập nhật Naota** một lần là có. Cài tay cũng được: `npm i -g @openai/codex`.
+- **Chat trả lời bằng một nhà khác MAIN**: MAIN đang hết lượt (hoặc mọi key của nó đang nghỉ), nên lượt đó chạy thẻ dự phòng, thẻ đó có nhãn **ĐANG DÙNG**. Lượt sau Vanhanh lại thử MAIN trước.
+- **ChatGPT OAuth báo chưa cài Codex CLI**: kênh này cần Codex CLI trên máy. Hai engine CLI npm (Claude Code, Codex) đều được cài sẵn lúc cài Vanhanh - bản Docker, `install.sh` lẫn `setup.bat` - nên báo thiếu thường là bản cài cũ, **cập nhật Vanhanh** một lần là có. Cài tay cũng được: `npm i -g @openai/codex`.
 
 ## Liên quan
 

@@ -1,12 +1,12 @@
 """Discord gateway for the owner's control channel.
 
-Why the Gateway (a WebSocket Naota opens OUT to Discord) instead of an Interactions webhook: it
+Why the Gateway (a WebSocket Vanhanh opens OUT to Discord) instead of an Interactions webhook: it
 works on a laptop or behind NAT with no public URL, the same way Telegram long-polling and Slack
 Socket Mode do, and it receives ordinary messages, not only slash commands.
 
 One credential: the bot token from the Developer Portal (Bot tab). No privileged intent is needed.
-Naota asks for GUILDS + GUILD_MESSAGES + DIRECT_MESSAGES only, and Discord still delivers the TEXT of
-the messages Naota answers without MESSAGE_CONTENT: direct messages, and server messages that
+Vanhanh asks for GUILDS + GUILD_MESSAGES + DIRECT_MESSAGES only, and Discord still delivers the TEXT of
+the messages Vanhanh answers without MESSAGE_CONTENT: direct messages, and server messages that
 @mention the bot. Those are exactly the turns the control channel takes, so the owner never has to
 switch on a privileged intent (which also needs review once a bot is in 100+ servers).
 
@@ -137,7 +137,7 @@ class DiscordBot(HangLuot):
     # ---- HTTP -------------------------------------------------------------------------
     def _headers(self) -> dict:
         return {"Authorization": f"Bot {self.token}",
-                "User-Agent": "DiscordBot (https://github.com/vuongtex/naota, 1.0)"}
+                "User-Agent": "DiscordBot (https://github.com/lequydailb-dotcom/vanhanh, 1.0)"}
 
     async def _api(self, client, method, path, **kw):
         """One REST call. Returns (status, json-or-{}). A 429 waits the time Discord asks for
@@ -318,9 +318,9 @@ class DiscordBot(HangLuot):
                 try:
                     kq = await self.stt_fn(data, name)
                 except Exception as e:
-                    kq = {"ok": False, "noi_voi_naota": stt.loi_thanh_dong("loi", f"{type(e).__name__}: {e}")}
+                    kq = {"ok": False, "noi_voi_vanhanh": stt.loi_thanh_dong("loi", f"{type(e).__name__}: {e}")}
                 notes.append(stt.khoi_thoai(kq.get("text"), "Discord") if (kq or {}).get("ok")
-                             else ((kq or {}).get("noi_voi_naota") or stt.loi_thanh_dong("loi")))
+                             else ((kq or {}).get("noi_voi_vanhanh") or stt.loi_thanh_dong("loi")))
                 continue
             chat = meta.get("chat_id", "")
             ddir = self.download_dir(chat) if callable(self.download_dir) else self.download_dir
@@ -349,7 +349,7 @@ class DiscordBot(HangLuot):
                 return       # people talking to each other in a server channel
         if self.chat_ids and meta["user_id"] not in self.chat_ids and chat not in self.chat_ids:
             await self._send(client, chat, localefmt.chu(
-                "Bạn không có quyền dùng bot Naota này.", "You are not allowed to use this Naota bot."))
+                "Bạn không có quyền dùng bot Vanhanh này.", "You are not allowed to use this Vanhanh bot."))
             return
         text = self._strip_mention(m.get("content"))
         # Discord owns "/" for registered slash commands, so "!stop", "!new"... stand in for the
@@ -403,7 +403,7 @@ class DiscordBot(HangLuot):
         if silent and not str(reply or "").strip() and not files:
             return
         if tools and not self.giau_trang_thai:
-            # The tool trail, proof of what Naota touched, as a small line above the answer.
+            # The tool trail, proof of what Vanhanh touched, as a small line above the answer.
             reply = f"-# {dong_vet(tools, time.monotonic() - t0)}\n{reply}"
         if str(reply or "").strip() or not files:
             await self._send(client, chat, reply)
@@ -452,7 +452,7 @@ class DiscordBot(HangLuot):
 
     def _identify(self) -> dict:
         return {"op": 2, "d": {"token": self.token, "intents": INTENTS,
-                               "properties": {"os": sys.platform, "browser": "naota", "device": "naota"}}}
+                               "properties": {"os": sys.platform, "browser": "vanhanh", "device": "vanhanh"}}}
 
     def _resume(self) -> dict:
         return {"op": 6, "d": {"token": self.token, "session_id": self._session_id, "seq": self._seq}}

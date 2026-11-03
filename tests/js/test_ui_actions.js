@@ -5,7 +5,7 @@
    Voice V1 spec mục 6. Bên thực hiện KHÔNG tin server tuyệt đối: trang lạ, đường dẫn tuyệt
    đối, `..`, scheme, mã việc lạ đều bị chặn ở đây dù plugin đã kiểm một lần. Danh sách trang
    phải khớp RAIL_ITEMS của console.js và PAGES của server/ui_targets.py (bảng dùng chung của
-   tool naota_ui lẫn đường tắt giọng nói), không thì "mở trang X" ở một đầu nhận mà đầu kia
+   tool vanhanh_ui lẫn đường tắt giọng nói), không thì "mở trang X" ở một đầu nhận mà đầu kia
    từ chối. */
 const fs = require("fs");
 const path = require("path");
@@ -70,17 +70,17 @@ check("GROUPS của ui-actions == RAIL_GROUPS của console.js", JSON.stringify(
 const gpm = plugin.match(/GROUPS = \(([\s\S]*?)\)/);
 const pgroups = gpm ? gpm[1].match(/"([a-z_]+)"/g).map(x => x.replace(/"/g, "")) : [];
 check("GROUPS của ui_targets.py == RAIL_GROUPS", JSON.stringify(grail) === JSON.stringify(pgroups));
-// Mở trang bằng lời PHẢI bung luôn nhóm chứa nó: NaotaNav.go đi qua store Alpine (store.go
+// Mở trang bằng lời PHẢI bung luôn nhóm chứa nó: VanhanhNav.go đi qua store Alpine (store.go
 // mới có dòng `this.openGroup = gl`), gọi thẳng navigateTo thì thanh bên vẫn gập.
-check("NaotaNav.go đi qua store Alpine để bung nhóm", /go\(id\) \{ const s = _navStore\(\);/.test(consoleJs));
-check("console.js xuất NaotaNav.openGroup và setCollapsed",
+check("VanhanhNav.go đi qua store Alpine để bung nhóm", /go\(id\) \{ const s = _navStore\(\);/.test(consoleJs));
+check("console.js xuất VanhanhNav.openGroup và setCollapsed",
   /openGroup\(groupId\)/.test(consoleJs) && /setCollapsed\(thu\)/.test(consoleJs));
 
-// Dây nối: app.js chuyển frame ui_action sang NaotaUiActions, tasks.js xuất NaotaTasks.show (việc Kanban
+// Dây nối: app.js chuyển frame ui_action sang VanhanhUiActions, tasks.js xuất VanhanhTasks.show (việc Kanban
 // nằm ở trang Nhiệm vụ), server có nhánh ui_result.
-check("app.js xử lý frame ui_action", /data\.type === "ui_action"/.test(app) && /NaotaUiActions\.handle\(/.test(app));
-check("tasks.js xuất NaotaTasks.show và ready", /window\.NaotaTasks = \{[^}]*show: show, ready:/.test(tasksJs));
-check("open_task mở trang Nhiệm vụ rồi gọi NaotaTasks.show", /NaotaNav\.go\("tasks"\)/.test(src) && /await nv\.show\(v\.target\)/.test(src));
+check("app.js xử lý frame ui_action", /data\.type === "ui_action"/.test(app) && /VanhanhUiActions\.handle\(/.test(app));
+check("tasks.js xuất VanhanhTasks.show và ready", /window\.VanhanhTasks = \{[^}]*show: show, ready:/.test(tasksJs));
+check("open_task mở trang Nhiệm vụ rồi gọi VanhanhTasks.show", /VanhanhNav\.go\("tasks"\)/.test(src) && /await nv\.show\(v\.target\)/.test(src));
 check("main.py có nhánh ui_result", /action == "ui_result"/.test(main));
 
 if (fails.length) { console.log("\nFAIL:", fails.length, fails); process.exit(1); }

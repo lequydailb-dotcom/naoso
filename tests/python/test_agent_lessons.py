@@ -5,8 +5,8 @@
 Kho thật (resonance.sqlite3 tạm). Phần đi qua main.py dùng engine GIẢ: hàm dựng engine thật bị thay bằng hàm ném lỗi ngay,
 nên test không bao giờ gọi model thật.
 - phạm vi: lượt nhóm nạp `team:<id>` + `*`, chat riêng nạp `dm:<agent_key>` + `*`, không bao giờ phạm vi khác;
-- NAOTA_LESSON: lượt nhóm ghi `team:<id>` (nguồn self, gắn lượt/việc), chat riêng ghi `dm:<agent_key>` (không vào MEMORY.md);
-  NAOTA_RULE vẫn vào "Luật chủ dặn";
+- VANHANH_LESSON: lượt nhóm ghi `team:<id>` (nguồn self, gắn lượt/việc), chat riêng ghi `dm:<agent_key>` (không vào MEMORY.md);
+  VANHANH_RULE vẫn vào "Luật chủ dặn";
 - thu hồi giữ lịch sử; nâng lên `*` chỉ do chủ hay tự rà soát có bằng chứng ≥ 2 ngữ cảnh; khôi phục;
 - bài học cũ trong MEMORY.md đọc được để giao diện ghi "bài học cũ chưa có phạm vi".
 """
@@ -16,9 +16,9 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-lessons-")
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
-TEMP = Path(tempfile.mkdtemp(prefix="naota-lessons-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-lessons-")
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-lessons-w-"))
 
 import agent_lessons as AL  # noqa: E402
 import resonance_store as RS  # noqa: E402
@@ -125,7 +125,7 @@ mem = ("# Ghi chú của chủ\n- Khách quen tên Ba.\n\n## Luật chủ dặn\
        "## Bài học (tự học)\n- Bài học cũ một.\n- Bài học cũ hai.\n")
 check("bài học cũ trong MEMORY.md đọc được (chỉ mục tự học, không luật chủ)",
       AL.legacy_lessons(mem) == ["Bài học cũ một.", "Bài học cũ hai."])
-check("tách NAOTA_LESSON khỏi văn bản", AL.split_lessons("Xong.\nNAOTA_LESSON: A\nNAOTA_LESSON: B\n") == (["A", "B"], "Xong."))
+check("tách VANHANH_LESSON khỏi văn bản", AL.split_lessons("Xong.\nVANHANH_LESSON: A\nVANHANH_LESSON: B\n") == (["A", "B"], "Xong."))
 
 # ═════ góp ý của đồng đội: giao một lần, bằng chứng không bao giờ hiện ═════
 f1 = AL.record_peer_feedback(st, team_id="A", receiver_key=K, author_key=K2, author_role="teammate", message_id=5,
@@ -163,17 +163,17 @@ memf = Path(brain, "memory", "agents", "viet", "MEMORY.md")
 memf.parent.mkdir(parents=True)
 memf.write_text("## Bài học (tự học)\n- Bài học cũ trộn nhóm.\n", encoding="utf-8")
 out = main._ket_luot_agent(brain, "viet", "Viết giúp anh đoạn mở bài",
-                           "Đây là đoạn mở.\nNAOTA_LESSON: Chủ thích mở bài bằng câu hỏi.\n", conv_sid="")
+                           "Đây là đoạn mở.\nVANHANH_LESSON: Chủ thích mở bài bằng câu hỏi.\n", conv_sid="")
 gs = main._resonance_store()
 key = main._dm_agent_key(brain, "viet")
-check("chat riêng: output đã bóc NAOTA_LESSON", "NAOTA_LESSON" not in out and "Đây là đoạn mở." in out)
-check("chat riêng: NAOTA_LESSON vào agent_lessons phạm vi dm:<agent_key> (đổi so với MEMORY.md)",
+check("chat riêng: output đã bóc VANHANH_LESSON", "VANHANH_LESSON" not in out and "Đây là đoạn mở." in out)
+check("chat riêng: VANHANH_LESSON vào agent_lessons phạm vi dm:<agent_key> (đổi so với MEMORY.md)",
       [r["text"] for r in AL.lessons(gs, key, scope=f"dm:{key}")] == ["Chủ thích mở bài bằng câu hỏi."]
       and AL.lessons(gs, key, scope=f"dm:{key}")[0]["source"] == "self")
 check("chat riêng: MEMORY.md không nhận bài học mới, bài học cũ giữ nguyên",
       memf.read_text(encoding="utf-8") == "## Bài học (tự học)\n- Bài học cũ trộn nhóm.\n")
-main._ket_luot_agent(brain, "viet", "Từ giờ luôn ký tên cuối thư", "Dạ.\nNAOTA_RULE: Luôn ký tên cuối thư.\n")
-check("NAOTA_RULE không đổi: vào mục Luật chủ dặn của MEMORY.md",
+main._ket_luot_agent(brain, "viet", "Từ giờ luôn ký tên cuối thư", "Dạ.\nVANHANH_RULE: Luôn ký tên cuối thư.\n")
+check("VANHANH_RULE không đổi: vào mục Luật chủ dặn của MEMORY.md",
       "Luôn ký tên cuối thư." in memf.read_text(encoding="utf-8")
       and "Luôn ký tên cuối thư." not in [r["text"] for r in AL.lessons(gs, key)])
 AL.add(gs, agent_key=key, scope="team:Z", kind="method", text="Bài học riêng nhóm Z.", source="self")
@@ -189,7 +189,7 @@ team = {"brain_id": main._brain_key(brain), "team_id": "Z", "session_id": "s-z"}
 class FakeEng:
     def query(self, prompt):
         async def gen():
-            yield {"type": "final", "content": "Kết quả nhóm.\nNAOTA_LESSON: Nhóm Z cần bảng tóm tắt.\n"}
+            yield {"type": "final", "content": "Kết quả nhóm.\nVANHANH_LESSON: Nhóm Z cần bảng tóm tắt.\n"}
         return gen()
 
 

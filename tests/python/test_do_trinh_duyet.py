@@ -1,11 +1,11 @@
-"""Tải Chromium xong thì MỌI chỗ trong Naota phải thấy nó.
+"""Tải Chromium xong thì MỌI chỗ trong Vanhanh phải thấy nó.
 
     python tests/run.py do_trinh_duyet
 
 Lỗi thật: hai trang cãi nhau trên CÙNG một máy:
 
     trang Công cụ  ->  "Trình duyệt (Chromium)  ● Sẵn sàng  · 260 MB"
-    trang Models   ->  "Chưa có trình duyệt nào Naota lái được. Mở trang Công cụ rồi bấm tải"
+    trang Models   ->  "Chưa có trình duyệt nào Vanhanh lái được. Mở trang Công cụ rồi bấm tải"
 
 Hệ quả không nhìn thấy ngay: nút "Đăng nhập ChatGPT" chỉ vẽ khi engine Web báo dùng được, nên
 người dùng tải đủ 400 MB rồi vẫn không có chỗ nào bấm để kết nối.
@@ -33,7 +33,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-dotd-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-dotd-")
 
 import optional_tools as ot  # noqa: E402
 
@@ -158,7 +158,7 @@ check("có bản đầy đủ cạnh bản chrome-headless-shell -> vẫn lấy 
 # 1c) Câu báo lỗi phải nói ĐÃ TÌM Ở ĐÂU, THẤY GÌ
 # ============================================================
 #
-# "Chưa có trình duyệt nào Naota lái được" là câu cụt: người đọc nó đã bấm tải và đã thấy báo
+# "Chưa có trình duyệt nào Vanhanh lái được" là câu cụt: người đọc nó đã bấm tải và đã thấy báo
 # xong. Nó nói họ sai mà không nói sai ở đâu, nên mỗi vòng hỏi lại tốn một lần cập nhật.
 
 _dung()
@@ -220,7 +220,7 @@ check("có ghi lại vì sao (hai thư mục, hai tên binary)", "headless_shell
 # 5) Không đụng tới thứ có sẵn của máy
 # ============================================================
 
-check("gỡ chỉ xoá thư mục Naota tải", "goc = BROWSERS_DIR" in _src)
+check("gỡ chỉ xoá thư mục Vanhanh tải", "goc = BROWSERS_DIR" in _src)
 check("vẫn dò Chrome/Edge có sẵn trên máy trước khi bắt tải",
       "_chrome_he_thong()" in _src[_src.index("def duong_dan_chrome"):])
 

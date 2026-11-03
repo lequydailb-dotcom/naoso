@@ -20,7 +20,7 @@ import os
 import re
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-voicecfg-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-voicecfg-")
 
 from fastapi.testclient import TestClient   # noqa: E402
 import config as c   # noqa: E402

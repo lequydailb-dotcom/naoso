@@ -1,12 +1,12 @@
 // ============================================================
-// Naota - "Try bot" panel.
+// Vanhanh - "Try bot" panel.
 //
 // The owner types a message as if a customer sent it (privately or in a group) and sees what the bot WOULD do:
 // reply or stay silent, why (the same gate, reply judge and Agent the real message goes through), the answer
 // text and the documents it used. Nothing is sent to Zalo or Telegram and nothing is written anywhere: see
 // chatbot_runtime.try_message on the server. Every visible string comes from the dictionary (keys `try.*`).
 //
-// Called by chatbots.js: window.NaotaTryBot.open(bot, { groups: bool }).
+// Called by chatbots.js: window.VanhanhTryBot.open(bot, { groups: bool }).
 // ============================================================
 (function () {
   "use strict";
@@ -19,9 +19,9 @@
   function tt(k, v) { return window.t(k, v); }
   function ic(name) { return window.Icons ? window.Icons.ic(name) : ""; }
   // (i) button (info-tip.js): explanations sit behind it; without the helper (Node tests) they draw open.
-  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(tt("info.more")) : ""; }
+  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(tt("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.NaotaInfo;
+    var J = typeof window !== "undefined" && window.VanhanhInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
 
@@ -33,7 +33,7 @@
   };
 
   function reasonOf(d) {
-    var RP = window.NaotaReplyPolicy;
+    var RP = window.VanhanhReplyPolicy;
     var code = d.stage === "judge" && RP ? RP.codeLabel(d.code) : "";
     var why = [code, d.reason].filter(Boolean).join(": ");
     if (d.score != null) {
@@ -131,5 +131,5 @@
     inp.focus();
   }
 
-  window.NaotaTryBot = { open: open };
+  window.VanhanhTryBot = { open: open };
 })();

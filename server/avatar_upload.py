@@ -1,8 +1,8 @@
 """Ảnh đại diện tự tải lên cho trợ lý và nhóm làm việc.
 
-Yêu cầu: ngoài avatar mặc định của Naota thêm một lựa chọn để tải avatar của họ lên, ở cả agent và nhóm.
-Hình Naota (hình dáng, màu, mắt trong agent_avatar.py) vẫn là mặc định; ảnh tải lên chỉ là một lựa chọn thêm, xoá đi là
-trở về đúng hình Naota cũ.
+Yêu cầu: ngoài avatar mặc định của Vanhanh thêm một lựa chọn để tải avatar của họ lên, ở cả agent và nhóm.
+Hình Vanhanh (hình dáng, màu, mắt trong agent_avatar.py) vẫn là mặc định; ảnh tải lên chỉ là một lựa chọn thêm, xoá đi là
+trở về đúng hình Vanhanh cũ.
 
 Cách lưu:
   - Một kho chung `STATE_DIR/avatars/`, tên file là băm nội dung (20 ký tự hex) + đuôi theo loại ảnh thật. Cùng một ảnh

@@ -19,7 +19,7 @@ TEXT_EXTENSIONS = {".txt", ".md", ".csv", ".tsv", ".json", ".yaml", ".yml", ".lo
 
 
 def normalize(msg: dict) -> dict:
-    # naota-zalo 1.2.0 normalizeMessage: attachment.url=content.href,
+    # vanhanh-zalo 1.2.0 normalizeMessage: attachment.url=content.href,
     # attachment.description=content.title. History drops attachment entirely.
     att = msg.get("attachment") if isinstance(msg.get("attachment"), dict) else {}
     content = msg.get("content") if isinstance(msg.get("content"), dict) else {}

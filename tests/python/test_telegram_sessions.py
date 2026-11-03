@@ -23,8 +23,8 @@ import sys
 import tempfile
 import time
 
-_TMP = tempfile.mkdtemp(prefix="naota-tgsess-")
-os.environ.setdefault("NAOTA_STATE_DIR", _TMP)
+_TMP = tempfile.mkdtemp(prefix="vanhanh-tgsess-")
+os.environ.setdefault("VANHANH_STATE_DIR", _TMP)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")

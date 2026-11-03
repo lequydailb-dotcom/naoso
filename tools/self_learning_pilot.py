@@ -242,7 +242,7 @@ class CliEngine:
 
     def __init__(self, model: str, effort: str, timeout: int = 240):
         self.model, self.effort, self.timeout = model, effort, timeout
-        self.cwd = Path(tempfile.mkdtemp(prefix="naota-pilot-"))
+        self.cwd = Path(tempfile.mkdtemp(prefix="vanhanh-pilot-"))
         self.usage = {"calls": 0, "cost_usd": 0.0, "models": set(), "errors": 0}
         self.binary = shutil.which("claude") or "claude"  # claude.exe / claude.cmd on Windows
         self.lock = threading.Lock()
@@ -264,12 +264,12 @@ class CliEngine:
         return str(data.get("result") or "")
 
     def solve(self, skill: str, prompt: str) -> str:
-        system = ("Ban la tro ly Naota cua mot cua hang. Lam dung theo skill duoi day.\n\n<skill>\n" + skill +
+        system = ("Ban la tro ly Vanhanh cua mot cua hang. Lam dung theo skill duoi day.\n\n<skill>\n" + skill +
                   "\n</skill>\n\nChi tra ve JSON, khong giai thich.")
         return self._call(system, prompt)
 
     def improve(self, instructions: str) -> str:
-        return self._call("You improve skills for the Naota assistant. Write the skill in Vietnamese without "
+        return self._call("You improve skills for the Vanhanh assistant. Write the skill in Vietnamese without "
                           "diacritics, like the current one.", instructions)
 
 

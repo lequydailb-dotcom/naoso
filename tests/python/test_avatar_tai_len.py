@@ -2,11 +2,11 @@
 
     python tests/run.py avatar_tai_len      (KHÔNG mạng)
 
-Yêu cầu: ngoài avatar mặc định của Naota, thêm lựa chọn tải avatar lên, cho cả agent và nhóm.
+Yêu cầu: ngoài avatar mặc định của Vanhanh, thêm lựa chọn tải avatar lên, cho cả agent và nhóm.
 File này canh:
   1. Kho ảnh chỉ nhận ảnh thật (PNG, JPEG, WEBP, GIF theo byte đầu), không nhận SVG hay HTML đội lốt, có trần dung lượng.
   2. Tên ảnh do kho đặt, tên lạ không mở được file nào khác (kể cả ../).
-  3. Trợ lý: lưu, giữ qua lần sửa không gửi ảnh, gỡ về hình Naota; hình Naota cũ vẫn còn.
+  3. Trợ lý: lưu, giữ qua lần sửa không gửi ảnh, gỡ về hình Vanhanh; hình Vanhanh cũ vẫn còn.
   4. Nhóm: PATCH gắn và gỡ ảnh, ảnh không có trong kho bị từ chối.
   5. Route tải lên và đọc ảnh.
 """
@@ -18,10 +18,10 @@ import os
 import sys
 import tempfile
 
-_state = tempfile.mkdtemp(prefix="naota-avatar-up-")
-os.environ["NAOTA_STATE_DIR"] = _state
+_state = tempfile.mkdtemp(prefix="vanhanh-avatar-up-")
+os.environ["VANHANH_STATE_DIR"] = _state
 os.environ["BRAINS_DIR"] = os.path.join(_state, "brains")
-os.environ["NAOTA_SESSIONS_DB"] = os.path.join(_state, "sessions.db")
+os.environ["VANHANH_SESSIONS_DB"] = os.path.join(_state, "sessions.db")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -69,17 +69,17 @@ check("tên lạ hay đi lùi thư mục không hợp lệ",
 # ---- 3. Trợ lý
 meta = {"avatar": {"shape": "star", "palette": "jade"}}
 a = agent_avatar.for_save(meta, "minh", image=ten)
-check("trợ lý: lưu ảnh mà vẫn giữ hình Naota bên dưới", a.get("image") == ten and a["shape"] == "star" and a["palette"] == "jade", a)
+check("trợ lý: lưu ảnh mà vẫn giữ hình Vanhanh bên dưới", a.get("image") == ten and a["shape"] == "star" and a["palette"] == "jade", a)
 check("trợ lý: đọc lại ra ảnh", agent_avatar.for_agent({"avatar": a}, "minh").get("image") == ten)
 check("trợ lý: lần sửa không gửi ảnh (None) thì giữ ảnh", agent_avatar.for_save({"avatar": a}, "minh").get("image") == ten)
 b = agent_avatar.for_save({"avatar": a}, "minh", image="")
-check("trợ lý: gửi rỗng là gỡ ảnh, về đúng hình Naota cũ", "image" not in b and b["shape"] == "star", b)
+check("trợ lý: gửi rỗng là gỡ ảnh, về đúng hình Vanhanh cũ", "image" not in b and b["shape"] == "star", b)
 try:
     agent_avatar.for_save(meta, "minh", image="../../etc/passwd")
     check("trợ lý: tên ảnh lạ bị từ chối", False)
 except ValueError as e:
     check("trợ lý: tên ảnh lạ bị từ chối", str(e) == "avatar_image")
-check("trợ lý: frontmatter trỏ ảnh đã mất thì về hình Naota, không vẽ ảnh vỡ",
+check("trợ lý: frontmatter trỏ ảnh đã mất thì về hình Vanhanh, không vẽ ảnh vỡ",
       "image" not in agent_avatar.for_agent({"avatar": {"shape": "star", "image": "0" * 20 + ".png"}}, "minh"))
 
 # ---- 4 + 5. Route thật trên một app tạm (không khởi động job nền hay engine của app)
@@ -115,12 +115,12 @@ def doc():
     return next(x for x in c.get("/agents", params={"brain": "brain"}).json()["agents"] if x["slug"] == slug)
 
 
-check("POST /agents: lưu ảnh, danh sách trả ảnh kèm hình Naota", doc()["avatar"].get("image") == j["image"]
+check("POST /agents: lưu ảnh, danh sách trả ảnh kèm hình Vanhanh", doc()["avatar"].get("image") == j["image"]
       and doc()["avatar"]["shape"] == "star", doc())
 c.post("/agents", data={"name": "Người viết", "brain": "brain", "slug": slug, "role": "Đổi vai"})
 check("POST /agents: client cũ không gửi avatar_image thì ảnh còn nguyên", doc()["avatar"].get("image") == j["image"])
 c.post("/agents", data={"name": "Người viết", "brain": "brain", "slug": slug, "avatar_image": "none"})
-check("POST /agents: gửi none thì về hình Naota", "image" not in doc()["avatar"] and doc()["avatar"]["shape"] == "star", doc())
+check("POST /agents: gửi none thì về hình Vanhanh", "image" not in doc()["avatar"] and doc()["avatar"]["shape"] == "star", doc())
 check("POST /agents: tên ảnh lạ 400",
       c.post("/agents", data={"name": "Người viết", "brain": "brain", "slug": slug, "avatar_image": "x.png"}).status_code == 400)
 

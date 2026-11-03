@@ -2,7 +2,7 @@
 
     python tests/run.py 2fa      (KHÔNG mạng)
 
-Naota chạy full quyền và có Bash, nên cổng đăng nhập là thứ đáng canh nhất trong cả sản phẩm.
+Vanhanh chạy full quyền và có Bash, nên cổng đăng nhập là thứ đáng canh nhất trong cả sản phẩm.
 File này canh bốn thứ dễ làm sai khi tự viết TOTP, và cả bốn đều KHÔNG lộ ra lúc dùng thử:
 
 1. **Dùng lại mã.** Một mã sống 30 giây, cộng cửa sổ lệch đồng hồ là tới 90. Không ghi lại bước
@@ -19,8 +19,8 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-2fa-test-")
-os.environ["NAOTA_REQUIRE_LOGIN"] = "1"
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-2fa-test-")
+os.environ["VANHANH_REQUIRE_LOGIN"] = "1"
 
 from fastapi.testclient import TestClient   # noqa: E402
 import config as c   # noqa: E402
@@ -72,12 +72,12 @@ check("nhưng bước SAU đó vẫn nhận",
 # Nhãn otpauth: tên workspace tiếng Việt có dấu làm vài app hiện chuỗi hỏng, dấu ':' phá cú pháp.
 # Nhãn GIỮ dấu tiếng Việt (phần trăm-mã-hoá UTF-8, đúng Key Uri Format) nhưng phải bỏ dấu ':'
 # vì nó là dấu ngăn giữa issuer và tên tài khoản - lọt vào là vỡ cú pháp nhãn.
-_uri = totp.otpauth_uri(S, "Hoàng Ngọc Vương", "NAOTA của Vương: bản 1")
+_uri = totp.otpauth_uri(S, "Đại Lê", "VANHANH của Vương: bản 1")
 import urllib.parse as _up   # noqa: E402
 _nhan = _up.unquote(_up.urlparse(_uri).path).lstrip("/")
 check("otpauth đúng dạng và chỉ còn MỘT dấu ':' (của scheme)",
       _uri.startswith("otpauth://totp/") and _uri.count(":") == 1)
-check("nhãn GIỮ nguyên dấu tiếng Việt", _nhan == "NAOTA của Vương bản 1:Hoàng Ngọc Vương")
+check("nhãn GIỮ nguyên dấu tiếng Việt", _nhan == "VANHANH của Vương bản 1:Đại Lê")
 check("dấu ':' trong tên workspace bị bỏ, không phá nhãn", _nhan.count(":") == 1)
 # `period`/`digits` cố ý KHÔNG có mặt khi chúng đúng bằng mặc định - xem mục 1b, chúng chỉ làm
 # QR dày lên mà không thêm thông tin nào. Phần bắt buộc được kiểm kỹ hơn ở đó.
@@ -106,7 +106,7 @@ check("chuẩn hoá bỏ qua cách gõ",
 import re as _re          # noqa: E402
 import segno as _segno    # noqa: E402
 
-_uri = totp.otpauth_uri(S, "admin", "NAOTA")
+_uri = totp.otpauth_uri(S, "admin", "VANHANH")
 for _thua in ("algorithm=", "digits=", "period="):
     check(f"URI KHÔNG nhét tham số mặc định ({_thua!r}) - chỉ làm QR dày thêm",
           _thua not in _uri)
@@ -117,7 +117,7 @@ check("nhưng vẫn đủ phần bắt buộc", _uri.startswith("otpauth://totp/
 _cu = (totp.SO_CHU_SO, totp.CHU_KY)
 try:
     totp.SO_CHU_SO, totp.CHU_KY = 8, 60
-    _u2 = totp.otpauth_uri(S, "admin", "NAOTA")
+    _u2 = totp.otpauth_uri(S, "admin", "VANHANH")
     check("CANARY: đổi hằng số khác mặc định thì URI PHẢI khai ra",
           "digits=8" in _u2 and "period=60" in _u2)
 finally:
@@ -125,7 +125,7 @@ finally:
 
 # Tên workspace nằm HAI chỗ trong URI nên mỗi ký tự tốn gấp đôi. Đo thật: 48 ký tự đẩy QR
 # từ v6 lên v11 (69 ô) - đủ để quét không ra nữa.
-_dai = totp.otpauth_uri(S, "nguyenvanadmin" * 3, "Cong ty TNHH Thuong mai Dich vu Hoang Ngoc Vuong Sai Gon")
+_dai = totp.otpauth_uri(S, "nguyenvanadmin" * 3, "Cong ty TNHH Thuong mai Dich vu Dai Le Sai Gon")
 check("tên workspace/tài khoản dài bị cắt để QR không phình", len(_dai) <= 180)
 
 # Tên hiển thị trong app: USER_NAME (tên người tự đặt) thắng auth.username (thường là "admin",
@@ -133,7 +133,7 @@ check("tên workspace/tài khoản dài bị cắt để QR không phình", len(
 _cfg_gia = {"auth": {"username": "admin"}}
 _env_cu = os.environ.get("USER_NAME")
 try:
-    for _v, _mong in (("Hoàng Ngọc Vương", "Hoàng Ngọc Vương"), ("Bạn", "admin"), ("", "admin"), ("  ", "admin")):
+    for _v, _mong in (("Đại Lê", "Đại Lê"), ("Bạn", "admin"), ("", "admin"), ("  ", "admin")):
         os.environ["USER_NAME"] = _v
         check(f"USER_NAME={_v!r} -> app hiện {_mong!r}", main._ten_hien_thi(_cfg_gia) == _mong)
     os.environ.pop("USER_NAME", None)
@@ -154,8 +154,8 @@ def _px_moi_o(uri):
     return canh_px / so_o, svg
 
 
-for _ten, _tk in (("NAOTA", "admin"),
-                  ("Cong ty TNHH Thuong mai Dich vu Hoang Ngoc Vuong Sai Gon", "nguyenvanadmin")):
+for _ten, _tk in (("VANHANH", "admin"),
+                  ("Cong ty TNHH Thuong mai Dich vu Dai Le Sai Gon", "nguyenvanadmin")):
     _px, _svg = _px_moi_o(totp.otpauth_uri(S, _tk, _ten))
     check(f"CANARY: mỗi ô >= 7px ở cỡ tự nhiên (workspace {len(_ten)} ký tự) - đang {_px:.1f}px",
           _px >= 7)
@@ -194,7 +194,7 @@ check("và bị TIÊU luôn, không dùng lại được",
 check("mã bịa thì không qua", c.totp_dung_ma_khoi_phuc("ZZZZ-ZZZZ") is False)
 
 _raw = (ROOT / "server" / "settings.json")
-_raw = (os.path.join(os.environ["NAOTA_STATE_DIR"], "settings.json"))
+_raw = (os.path.join(os.environ["VANHANH_STATE_DIR"], "settings.json"))
 _txt = open(_raw, encoding="utf-8").read()
 check("CANARY: secret TOTP được mã hoá trên đĩa, không nằm nguyên văn", S not in _txt)
 check("CANARY: mã khôi phục cũng không nằm nguyên văn",
@@ -287,9 +287,9 @@ check("CANARY: /auth/2fa/* KHÔNG nằm trong danh sách miễn đăng nhập",
 
 # install.sh chỉ ghi Ý ĐỊNH, không được tự bật 2FA (bật trước khi quét QR = tự khoá mình).
 _ins = (ROOT / "install.sh").read_text(encoding="utf-8")
-check("install.sh có hỏi bật 2FA", "NAOTA_SETUP_2FA" in _ins)
+check("install.sh có hỏi bật 2FA", "VANHANH_SETUP_2FA" in _ins)
 check("CANARY: install.sh KHÔNG tự bật, chỉ ghi cờ gợi ý",
-      "_env_set NAOTA_SETUP_2FA 1" in _ins and "totp" not in _ins.lower())
+      "_env_set VANHANH_SETUP_2FA 1" in _ins and "totp" not in _ins.lower())
 
 print()
 if _fails:

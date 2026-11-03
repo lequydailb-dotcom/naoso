@@ -48,7 +48,7 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var tw = function (k, v) { return window.t ? window.t(k, v) : k; };
-  var LOC = function () { return (window.NaotaI18n && window.NaotaI18n.locale()) || "vi-VN"; };
+  var LOC = function () { return (window.VanhanhI18n && window.VanhanhI18n.locale()) || "vi-VN"; };
   var data = null, provider = "", busy = null, lastFetch = 0, names = {};
 
   function cur() {
@@ -143,7 +143,7 @@
   function openPop() {
     var p = $("limitPop"), b = $("limitBtn");
     if (!p || !b) return;
-    try { if (window.NaotaModelBar && window.NaotaModelBar.closeAll) window.NaotaModelBar.closeAll(); } catch (e) {}
+    try { if (window.VanhanhModelBar && window.VanhanhModelBar.closeAll) window.VanhanhModelBar.closeAll(); } catch (e) {}
     p.hidden = false;
     b.setAttribute("aria-expanded", "true");
     paintPop();
@@ -181,10 +181,10 @@
     if (e.key === "Escape" && popOpen()) { closePop(); var b = $("limitBtn"); if (b) b.focus(); }
   });
 
-  window.addEventListener("naota:i18n", paintRing);
+  window.addEventListener("vanhanh:i18n", paintRing);
 
   api.setProvider = setProvider;
   api.refresh = function () { return refresh(true); };
   api.close = closePop;
-  window.NaotaPlanLimit = api;
+  window.VanhanhPlanLimit = api;
 })();

@@ -11,7 +11,7 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-msg-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-msg-")
 
 import sessions  # noqa: E402
 
@@ -24,7 +24,7 @@ def check(name, cond, extra=""):
         fails.append(name)
 
 
-db = Path(os.environ["NAOTA_STATE_DIR"]) / "s.db"
+db = Path(os.environ["VANHANH_STATE_DIR"]) / "s.db"
 st = sessions.SessionStore(db_path=db)
 web = st.create_session(brain="B", channel="web")
 team = st.create_session(brain="B", channel="team:tm_1", title="Ra mắt")

@@ -50,7 +50,7 @@ check("http: thanh link", has(h, '<a href="http://localhost:8000"'));
 h = mdToHtml("Chi la van ban binh thuong.");
 check("khong url: khong co the a", !has(h, "<a "));
 
-// ---- 9. Link file vault CO KHOANG TRANG + NGOAC (nhu Naota gui that) ----
+// ---- 9. Link file vault CO KHOANG TRANG + NGOAC (nhu Vanhanh gui that) ----
 h = mdToHtml("[Cach Toi Lam Viec.md](06 - Sources/Cach Toi Lam Viec (Tu Duy Nguoc).md)");
 check("path co space+ngoac: bat DUNG ca duong dan",
   has(h, 'data-vault-path="06 - Sources/Cach Toi Lam Viec (Tu Duy Nguoc).md"'));
@@ -72,10 +72,10 @@ check("hai link vault: path a dung", has(h, 'data-vault-path="thu muc/a.md"'));
 check("hai link vault: path b dung", has(h, 'data-vault-path="thu muc/b.md"'));
 
 // ---- 13. Wikilink [[..]] -> link dieu huong ----
-h = mdToHtml("Da cap nhat [[business/Danh Muc Du An - Hoang Ngoc Vuong]] xong");
+h = mdToHtml("Da cap nhat [[business/Danh Muc Du An - Dai Le]] xong");
 check("wikilink: co the a nt-wikilink", has(h, "nt-wikilink"));
-check("wikilink: data-vault-path giu target goc", has(h, 'data-vault-path="business/Danh Muc Du An - Hoang Ngoc Vuong"'));
-check("wikilink: chu hien thi = target", has(h, ">business/Danh Muc Du An - Hoang Ngoc Vuong</a>"));
+check("wikilink: data-vault-path giu target goc", has(h, 'data-vault-path="business/Danh Muc Du An - Dai Le"'));
+check("wikilink: chu hien thi = target", has(h, ">business/Danh Muc Du An - Dai Le</a>"));
 
 // ---- 14. Wikilink co alias [[path|chu]] ----
 h = mdToHtml("Xem [[notes/abc|Ten dep]] nhe");
@@ -93,9 +93,9 @@ h = mdToHtml("dung cu phap `[[ten note]]` de link");
 check("wikilink trong code: khong thanh link", !has(h, "nt-wikilink"));
 
 // ---- 17. Inline code chua duong dan file vault -> bam mo duoc ----
-h = mdToHtml("Da tao `Naota/loops/ghi-ho-so.md` cho anh");
-check("code path: co link nt-floc", has(h, "nt-fcode") && has(h, 'data-vault-path="Naota/loops/ghi-ho-so.md"'));
-check("code path: van hien dang code", has(h, "<code>Naota/loops/ghi-ho-so.md</code>"));
+h = mdToHtml("Da tao `Vanhanh/loops/ghi-ho-so.md` cho anh");
+check("code path: co link nt-floc", has(h, "nt-fcode") && has(h, 'data-vault-path="Vanhanh/loops/ghi-ho-so.md"'));
+check("code path: van hien dang code", has(h, "<code>Vanhanh/loops/ghi-ho-so.md</code>"));
 
 // ---- 18. Inline code thuong / lenh KHONG thanh link ----
 h = mdToHtml("Dat `enabled: false` trong frontmatter");
@@ -146,22 +146,22 @@ check("raw .md: khong target blank", !has(h, 'target="_blank"'));
 global.currentBrainPath = function () { return "D:\\Vaults\\My Second Brain"; };
 global.window = {
   location: {
-    origin: "https://naota.example.com",
-    href: "https://naota.example.com/chat",
+    origin: "https://vanhanh.example.com",
+    href: "https://vanhanh.example.com/chat",
   },
 };
-const brokenExport = "/brains/My%20Second%20Brain/exports/naota-hoi-thao-mau.html";
+const brokenExport = "/brains/My%20Second%20Brain/exports/vanhanh-hoi-thao-mau.html";
 check("export /brains: giai ma dung path trong brain",
-  appFilePath(brokenExport) === "exports/naota-hoi-thao-mau.html");
+  appFilePath(brokenExport) === "exports/vanhanh-hoi-thao-mau.html");
 // Hien nay .html mo TRINH SUA thay vi tai ve, nen phep thu o day doi tu "co dung endpoint
 // tai khong" sang "co doc dung path trong brain khong" - do van la dieu muc 25 canh (link
 // /brains/... sai kieu duoc tu sua ve file that), khong phai hanh vi bam.
 h = mdToHtml("[Tải export](" + brokenExport + ")");
 check("export /brains: render thanh link file trong vault",
-  has(h, 'class="nt-floc"') && has(h, 'data-vault-path="exports/naota-hoi-thao-mau.html"'));
-h = mdToHtml("[Tải export](https://naota.example.com" + brokenExport + ")");
+  has(h, 'class="nt-floc"') && has(h, 'data-vault-path="exports/vanhanh-hoi-thao-mau.html"'));
+h = mdToHtml("[Tải export](https://vanhanh.example.com" + brokenExport + ")");
 check("export URL day du cung domain: cung duoc sua",
-  has(h, 'class="nt-floc"') && has(h, 'data-vault-path="exports/naota-hoi-thao-mau.html"'));
+  has(h, 'class="nt-floc"') && has(h, 'data-vault-path="exports/vanhanh-hoi-thao-mau.html"'));
 
 // ---- 26. Editor nhan ca path goc brain va path da kem home cua Quan ly file ----
 const { ceilPath } = require("../../dashboard/file-editor.js");
@@ -217,9 +217,9 @@ check("bảng markdown giữ căn phải ở tiêu đề và ô dữ liệu",
   has(h, '<th style="text-align:right">Phải</th>') &&
   has(h, '<td style="text-align:right">c</td>'));
 check("copy giữa stream bỏ metadata đã đóng",
-  visibleMarkdown("Nội dung\n<!-- NAOTA_ASK: {hidden} -->\nTiếp") === "Nội dung\n\nTiếp");
+  visibleMarkdown("Nội dung\n<!-- VANHANH_ASK: {hidden} -->\nTiếp") === "Nội dung\n\nTiếp");
 check("copy giữa stream bỏ metadata chưa đóng",
-  visibleMarkdown("Nội dung\n<!-- NAOTA_METRICS: {") === "Nội dung\n");
+  visibleMarkdown("Nội dung\n<!-- VANHANH_METRICS: {") === "Nội dung\n");
 
 if (fails.length) {
   console.log("\nFAIL - " + fails.length + " test: " + fails.join(", "));

@@ -12,8 +12,8 @@ import os
 import tempfile
 
 # Always a fresh temp dir: this test deletes branding/theme.css, and with an inherited
-# NAOTA_STATE_DIR it would delete a real operator theme.
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-themetest-")
+# VANHANH_STATE_DIR it would delete a real operator theme.
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-themetest-")
 
 import main              # noqa: E402
 import config as cfgmod  # noqa: E402
@@ -44,16 +44,16 @@ html = page()
 i_link = html.find('href="/brand-theme.css?v=')
 check("theme link injected", i_link > 0)
 check("theme loads after bundled css", i_link > html.find("/static/console.css"))
-check("no default-mode seed without marker", "localStorage.setItem('naota.theme'" not in html)
+check("no default-mode seed without marker", "localStorage.setItem('vanhanh.theme'" not in html)
 
 v1 = html[i_link:i_link + 40]
 theme.write_text(":root{--accent:#1D3F4F}", encoding="utf-8")
 check("hash changes with content", page()[i_link:i_link + 40] != v1)
 
-theme.write_text("/* naota-default-mode: light */\n:root{}", encoding="utf-8")
+theme.write_text("/* vanhanh-default-mode: light */\n:root{}", encoding="utf-8")
 html = page()
-i_seed = html.find("localStorage.setItem('naota.theme','light')")
-i_inline = html.find("localStorage.getItem('naota.theme')", i_seed + 1)
+i_seed = html.find("localStorage.setItem('vanhanh.theme','light')")
+i_inline = html.find("localStorage.getItem('vanhanh.theme')", i_seed + 1)
 check("default-mode seed injected", i_seed > 0)
 check("seed runs before inline theme script", 0 < i_seed < i_inline)
 

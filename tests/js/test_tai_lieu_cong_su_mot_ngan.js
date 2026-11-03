@@ -24,10 +24,10 @@ const check = (ten, ok) => { console.log((ok ? "ok   " : "FAIL ") + ten); if (!o
 // ---- 1. Một lối vào chung ----
 check("sessions-ui xuất moTaiLieu", /moTaiLieu: openTaiLieuCongSu/.test(SU));
 check("nút trên thanh đầu trang Cộng sự mở ngăn có công tắc (tab Trợ lý)",
-  /S\.loai === "agent" && x && window\.NaotaChatSide\.moTaiLieu\) window\.NaotaChatSide\.moTaiLieu\(x\.slug, x\.name\)/.test(WS));
+  /S\.loai === "agent" && x && window\.VanhanhChatSide\.moTaiLieu\) window\.VanhanhChatSide\.moTaiLieu\(x\.slug, x\.name\)/.test(WS));
 check("nút trong Cài đặt trợ lý (trang Cộng sự) cũng đi đường đó, đứng sẵn ở phạm vi trợ lý",
-  /opts\.host && window\.NaotaChatSide && window\.NaotaChatSide\.moTaiLieu\)\s*\n\s*window\.NaotaChatSide\.moTaiLieu\(a\.slug, a\.name \|\| a\.slug, "agent"\)/.test(ST));
-check("Studio (không có cuộc liên quan) vẫn mở ngăn riêng của trợ lý", /window\.NaotaChatSide\.moKhungAgent\(a\.slug/.test(ST));
+  /opts\.host && window\.VanhanhChatSide && window\.VanhanhChatSide\.moTaiLieu\)\s*\n\s*window\.VanhanhChatSide\.moTaiLieu\(a\.slug, a\.name \|\| a\.slug, "agent"\)/.test(ST));
+check("Studio (không có cuộc liên quan) vẫn mở ngăn riêng của trợ lý", /window\.VanhanhChatSide\.moKhungAgent\(a\.slug/.test(ST));
 
 // ---- 2. Công tắc ----
 check("khung ngăn kéo có chỗ cho công tắc", /'<div class="pd-scope" hidden><\/div>'/.test(SU));

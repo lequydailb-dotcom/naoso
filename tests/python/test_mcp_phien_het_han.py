@@ -1,15 +1,15 @@
-"""Máy chủ MCP xoá phiên: Naota phải TỰ BẮT TAY LẠI, không được im lặng trả hộp rỗng.
+"""Máy chủ MCP xoá phiên: Vanhanh phải TỰ BẮT TAY LẠI, không được im lặng trả hộp rỗng.
 
     python tests/run.py mcp_phien_het_han      (KHÔNG mạng - giả lập httpx)
 
-Lỗi thật với Pancake POS "Quán Cơm Mẫu", đã tái diễn nhiều lần: trang Kết nối chấm XANH, quyền đủ, `naota_connections` báo
+Lỗi thật với Pancake POS "Quán Cơm Mẫu", đã tái diễn nhiều lần: trang Kết nối chấm XANH, quyền đủ, `vanhanh_connections` báo
 "ổn", mà không bộ não nào tìm ra một tool POS nào. Người dùng đi tìm lỗi ở token, ở quyền, ở
 brain - trong khi cả ba đều đúng.
 
 Gốc rễ nằm ở MỘT dòng thiếu trong `McpHttpSession._rpc`: nó KHÔNG đọc mã HTTP.
 
 Chuẩn Streamable HTTP cho phép máy chủ xoá phiên bất cứ lúc nào (hết hạn, deploy lại, bộ cân
-tải đổi máy) và quy định lúc đó máy chủ trả **404**, còn **client PHẢI tự bắt tay lại**. Naota
+tải đổi máy) và quy định lúc đó máy chủ trả **404**, còn **client PHẢI tự bắt tay lại**. Vanhanh
 không đọc mã, nên 404 kèm thân JSON-RPC bị `r.json()` nuốt thành một phản hồi bình thường:
 
     tools/list -> {"error": {...}}  ->  ((res).get("result") or {}).get("tools", [])  ->  []
@@ -26,7 +26,7 @@ Không có ngoại lệ nào được ném ra, và cả dây chuyền phía trê
     "Hoạt động bình thường (0 công cụ)".
 
 Trách nhiệm: máy chủ Pancake xoá phiên là ĐÚNG chuẩn, không phải lỗi của họ. Bên sai chuẩn là
-Naota. Nên bản vá nằm hết ở phía Naota, và test này ghim cả bốn mảnh của nó.
+Vanhanh. Nên bản vá nằm hết ở phía Vanhanh, và test này ghim cả bốn mảnh của nó.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
 import asyncio
@@ -34,7 +34,7 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-phien-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-phien-"))
 
 import httpx          # noqa: E402
 import mcp_client     # noqa: E402

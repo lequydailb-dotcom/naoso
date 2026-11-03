@@ -38,8 +38,8 @@ _DEPS: PluginZipDeps = None
 
 
 def _deny():
-    return JSONResponse({"ok": False, "error": localefmt.chu("Cần đăng nhập vào Naota để cài plugin.",
-                                                         "Sign in to Naota to install plugins.")},
+    return JSONResponse({"ok": False, "error": localefmt.chu("Cần đăng nhập vào Vanhanh để cài plugin.",
+                                                         "Sign in to Vanhanh to install plugins.")},
                         status_code=401)
 
 

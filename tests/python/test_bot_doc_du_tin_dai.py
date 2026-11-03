@@ -12,8 +12,8 @@ import sys
 import tempfile
 import time
 
-_STATE = tempfile.mkdtemp(prefix="naota-tindai-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="vanhanh-tindai-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

@@ -33,8 +33,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="naota-cbg-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="vanhanh-cbg-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -63,9 +63,9 @@ if _STATE not in str(chatbot_log.THU_MUC):
 # ============================================================
 # Dựng một brain giả đúng hình dạng brain của bot khách
 # ============================================================
-BRAIN = Path(tempfile.mkdtemp(prefix="naota-cbg-brain-"))
+BRAIN = Path(tempfile.mkdtemp(prefix="vanhanh-cbg-brain-"))
 (BRAIN / "inbox" / "khach").mkdir(parents=True)
-(BRAIN / "Naota" / "agents").mkdir(parents=True)
+(BRAIN / "Vanhanh" / "agents").mkdir(parents=True)
 
 (BRAIN / "bang-gia.md").write_text(
     "---\ntype: source\n---\n"
@@ -117,7 +117,7 @@ moi = chatbot_grounding.tim(BRAIN, "hoàn tiền 100% mọi trường hợp vô 
 check("file khách tự tải lên KHÔNG được tính là tài liệu",
       all("inbox" not in h["path"] for h in moi))
 check("thư mục hệ thống cũng bị loại",
-      all(not h["path"].lower().startswith("naota") for h in moi))
+      all(not h["path"].lower().startswith("vanhanh") for h in moi))
 
 # CANARY - lỗi đã xảy ra thật. meta_tools seed CLAUDE.md + AGENTS.md vào GỐC mọi brain, nên
 # danh sách thư mục không chặn được. Hỏi bot "sao lại kỷ luật cửa hàng", bot tra ra
@@ -134,7 +134,7 @@ check("thư mục hệ thống cũng bị loại",
     "# Kỷ luật bản thân\n\nKỷ luật là làm điều đã định kể cả khi hết hứng.\n", encoding="utf-8")
 
 kl = chatbot_grounding.tim(BRAIN, "ba kỷ luật chống wiki rỗng sai là gì", 8)
-check("CANARY: CLAUDE.md của Naota KHÔNG lọt vào tài liệu trả khách",
+check("CANARY: CLAUDE.md của Vanhanh KHÔNG lọt vào tài liệu trả khách",
       all(h["path"].lower() != "claude.md" for h in kl))
 check("AGENTS.md cũng bị loại", all(h["path"].lower() != "agents.md" for h in kl))
 check("file điều hướng wiki bị loại",
@@ -143,7 +143,7 @@ check("nhưng note wiki THẬT của người dùng vẫn dùng được",
       any("ky-luat-ban-than" in h["path"]
           for h in chatbot_grounding.tim(BRAIN, "kỷ luật bản thân là gì", 8)))
 
-# bản sao cũ và file vai của Naota không phải tài liệu trả khách. Một bot Zalo thật có
+# bản sao cũ và file vai của Vanhanh không phải tài liệu trả khách. Một bot Zalo thật có
 # `.backup/agents/` (bản agent cũ) và `agents/` (chính file luật của nó) ngay trong brain.
 _CU = "# Bảng giá cũ\n\nNước mắm cốt nhĩ 500ml giá 99.000 đồng một chai, giá khuyến mãi tháng trước.\n"
 for _d in (".backup/agents", "backup", "Backups/2026-09"):
@@ -253,10 +253,10 @@ check("dựng prompt ngoài một lượt thật -> không bịa ra khối tài 
 # trong hướng dẫn vai chứ không nằm ở file nào, nên đó là bịt miệng đúng cái nó giỏi nhất.
 #
 # Cách sửa cuối cùng KHÔNG phải là đổi câu dặn cho nhẹ đi, mà là BỎ HẲN câu dặn: mặc định
-# Naota không nói gì thêm, Agent tự quyết theo quy định người dùng viết. Chỉ chế độ mà người
+# Vanhanh không nói gì thêm, Agent tự quyết theo quy định người dùng viết. Chỉ chế độ mà người
 # dùng CHỦ ĐỘNG bật mới có một câu chỉ dẫn.
 p_agent = chatbot_runtime.build_bot_prompt({**bot, "nguon_tra_loi": "agent", "_tai_lieu": trong})
-check("CANARY: chế độ mặc định + không có tài liệu -> Naota không thêm chữ nào",
+check("CANARY: chế độ mặc định + không có tài liệu -> Vanhanh không thêm chữ nào",
       p_agent == chatbot_runtime.build_bot_prompt(bot))
 check("CANARY: chế độ mặc định KHÔNG ép bot câm khi thiếu tài liệu",
       "kiến thức chung" not in p_agent)
@@ -514,7 +514,7 @@ async def _chay_va_cho(text, meta):
 _ra = asyncio.run(_chay_va_cho("chào Coach", {"chat_id": "77", "chat_type": "private", "user_name": "Lan"}))
 
 # Yêu cầu: trục trặc kỹ thuật không gửi gì cho khách (trước đó là "đợi em chút xíu để em
-# kiểm tra lại ạ", và trước nữa là câu "trục trặc kỹ thuật"). Chủ nghe ở chuông thông báo của Naota.
+# kiểm tra lại ạ", và trước nữa là câu "trục trặc kỹ thuật"). Chủ nghe ở chuông thông báo của Vanhanh.
 check("lượt hỏng: khách KHÔNG nhận gì, kể cả câu xin lỗi", _ra.get("im_lang") is True and not _ra.get("text"))
 _src_rt = (SERVER / "chatbot_runtime.py").read_text(encoding="utf-8")
 check("CANARY: không còn đường nào gửi câu xin lỗi lượt hỏng cho khách (cả nhánh engine văng lỗi)",

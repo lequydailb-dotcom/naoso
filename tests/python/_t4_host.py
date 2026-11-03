@@ -1,9 +1,9 @@
 """Host thật cho test T4: `main.app` qua TestClient, state và brain tạm, engine GIẢ cho mọi loại lượt.
 
 Chốt chặn engine thật dùng chung với tools/team_adaptive_bench.py (`install_guards`): engine nhóm, Claude, Codex, engine
-Cộng hưởng, engine phán xử (`_agent_judge_ask`, chốt `NAOTA_NO_REAL_JUDGE_ENGINE` trong `Judge._run_engine`: engine giả
+Cộng hưởng, engine phán xử (`_agent_judge_ask`, chốt `VANHANH_NO_REAL_JUDGE_ENGINE` trong `Judge._run_engine`: engine giả
 được đánh dấu bằng `agent_judge.mark_test_fake`), engine quét của nhịp, engine lượt học (`_learn_engine_for`,
-`NAOTA_NO_REAL_REVIEW_ENGINE`) và sandbox của engine chỉ chữ đều ném lỗi NGAY nếu bị dựng. Việc nền (lượt trả lời, lô phán xử, điều phối) gom lại rồi chạy trong test.
+`VANHANH_NO_REAL_REVIEW_ENGINE`) và sandbox của engine chỉ chữ đều ném lỗi NGAY nếu bị dựng. Việc nền (lượt trả lời, lô phán xử, điều phối) gom lại rồi chạy trong test.
 
 Không phải file test (tên bắt đầu bằng `_`).
 """
@@ -14,14 +14,14 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-t4-host-")
-os.environ["NAOTA_NO_REAL_JUDGE_ENGINE"] = "1"   # chốt trung tâm (tests/run.py, _paths.py đặt sẵn; đặt lại cho chắc)
-os.environ["NAOTA_NO_REAL_REVIEW_ENGINE"] = "1"
-os.environ["NAOTA_NO_REAL_TEAM_ENGINE"] = "1"
-os.environ["NAOTA_PULSE_TICK_PAUSED"] = "1"
-os.environ["NAOTA_RESONANCE_TICK_PAUSED"] = "1"
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
-BR = Path(tempfile.mkdtemp(prefix="naota-t4-host-brain-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-t4-host-")
+os.environ["VANHANH_NO_REAL_JUDGE_ENGINE"] = "1"   # chốt trung tâm (tests/run.py, _paths.py đặt sẵn; đặt lại cho chắc)
+os.environ["VANHANH_NO_REAL_REVIEW_ENGINE"] = "1"
+os.environ["VANHANH_NO_REAL_TEAM_ENGINE"] = "1"
+os.environ["VANHANH_PULSE_TICK_PAUSED"] = "1"
+os.environ["VANHANH_RESONANCE_TICK_PAUSED"] = "1"
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
+BR = Path(tempfile.mkdtemp(prefix="vanhanh-t4-host-brain-"))
 (BR / "agents").mkdir()
 SLUGS = ("lan", "minh", "hoa", "tuan")
 for _slug in SLUGS:

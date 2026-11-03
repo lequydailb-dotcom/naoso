@@ -1,39 +1,39 @@
 <!-- translated-from: QUICKSTART.en.md sha256:c04efec7ce47 -->
-# NAOTA - クイックスタート
+# VANHANH - クイックスタート
 
 *[English](../../../QUICKSTART.en.md) · [Tiếng Việt](../../../QUICKSTART.md) · [简体中文](../zh/QUICKSTART.md) · [Español](../es/QUICKSTART.md) · **日本語** · [हिन्दी](../hi/QUICKSTART.md) · [Português](../pt-BR/QUICKSTART.md) · [한국어](../ko/QUICKSTART.md) · [Русский](../ru/QUICKSTART.md) · [Deutsch](../de/QUICKSTART.md) · [Français](../fr/QUICKSTART.md) · [Bahasa Indonesia](../id/QUICKSTART.md)*
 
 > このページは英語版クイックスタートの自動翻訳です。
 
-数分で NAOTA を動かせます。詳しいガイド：[docs/en/](../../../docs/en/README.md)。
+数分で VANHANH を動かせます。詳しいガイド：[docs/en/](../../../docs/en/README.md)。
 
 ## パソコン（Windows、macOS）- インストーラーをダウンロード
 
-Naota を普通のアプリのようにインストールできます。ファイルを 1 つダウンロードして開けば、毎日クリックする NAOTA アイコンができます。インストーラーはパソコンに足りないもの（Git、Python、Node、AI ブレイン）を確認し、足りない分だけをインストールします。
+Vanhanh を普通のアプリのようにインストールできます。ファイルを 1 つダウンロードして開けば、毎日クリックする VANHANH アイコンができます。インストーラーはパソコンに足りないもの（Git、Python、Node、AI ブレイン）を確認し、足りない分だけをインストールします。
 
-- **Windows 10/11:** [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe) をダウンロードし、ダブルクリックして最後まで Next を押します。黒いウィンドウに進行状況が表示されます（数分）。完了するとデスクトップとスタートメニューに NAOTA アイコンができます。
-- **macOS 11 以降:** [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg) をダウンロードして開き、**NAOTA** を **Applications** にドラッグしてから Launchpad で開きます。初回はターミナルが開いてインストールします（Naota の管理者アカウントの設定と、Mac のパスワードを一度求められることがあります）。
+- **Windows 10/11:** [Vanhanh-Setup.exe](https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/Vanhanh-Setup.exe) をダウンロードし、ダブルクリックして最後まで Next を押します。黒いウィンドウに進行状況が表示されます（数分）。完了するとデスクトップとスタートメニューに VANHANH アイコンができます。
+- **macOS 11 以降:** [Vanhanh-macOS.dmg](https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/Vanhanh-macOS.dmg) をダウンロードして開き、**VANHANH** を **Applications** にドラッグしてから Launchpad で開きます。初回はターミナルが開いてインストールします（Vanhanh の管理者アカウントの設定と、Mac のパスワードを一度求められることがあります）。
 
-アイコンをクリックすると Naota は専用ウィンドウ（アドレスバーなし）で開き、パソコンの起動時に自動で動き、アプリ内の **Update** ボタンも通常どおり使えます。データはユーザーフォルダ内の `Naota` フォルダにあり、アプリをアンインストールしてもこのフォルダは残ります。
+アイコンをクリックすると Vanhanh は専用ウィンドウ（アドレスバーなし）で開き、パソコンの起動時に自動で動き、アプリ内の **Update** ボタンも通常どおり使えます。データはユーザーフォルダ内の `Vanhanh` フォルダにあり、アプリをアンインストールしてもこのフォルダは残ります。
 
 どちらのインストーラーもまだコード署名されていないため、初回に確認が表示されます:
 - Windows で「Windows protected your PC」と出たら、**More info** を押してから **Run anyway** を押します。
-- macOS で開けないと表示されたら、**System Settings → Privacy & Security** を開き、下にスクロールして **Open Anyway** を押し、もう一度 NAOTA を開きます。
+- macOS で開けないと表示されたら、**System Settings → Privacy & Security** を開き、下にスクロールして **Open Anyway** を押し、もう一度 VANHANH を開きます。
 
 ## 方法 1 - Hostinger VPS（Docker Manager、ワンクリック）
 
-> 🛒 **VPS をまだお持ちでない方へ：** [Hostinger VPS はこちら](https://www.hostinger.com)。Docker Manager が標準搭載なので、Naota はワンクリックで入ります。準備ができたら下の手順に戻ってください。
+> 🛒 **VPS をまだお持ちでない方へ：** [Hostinger VPS はこちら](https://www.hostinger.com)。Docker Manager が標準搭載なので、Vanhanh はワンクリックで入ります。準備ができたら下の手順に戻ってください。
 
 1. hPanel → VPS → **Docker Manager** → **Compose** → **Compose from URL**。
 2. 次の URL を貼り付けます。
    ```
-   https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.yml
+   https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.hostinger.yml
    ```
 3. （任意。HTTPS + ドメインを使う場合）**Environment** 欄に次を設定します。
    ```
-   DOMAIN_NAME=naota.<vps-hostname>.hstgr.cloud
+   DOMAIN_NAME=vanhanh.<vps-hostname>.hstgr.cloud
    ```
-   （ホスト名は hPanel → VPS で確認できます。例：`naota.srv1234567.hstgr.cloud`。）
+   （ホスト名は hPanel → VPS で確認できます。例：`vanhanh.srv1234567.hstgr.cloud`。）
 4. **Deploy** を押します。1-3 分待ちます。**Open** ボタン（または `https://<DOMAIN_NAME>`）でアプリを開きます。
 5. 初回起動時に、管理者アカウントの作成を求める画面が表示されます。そのあと、コンテナのターミナルで Claude Code に一度だけサインインします：`claude auth login --claudeai`。
 
@@ -52,7 +52,7 @@ http://localhost:7777 を開きます。Caddy 経由で HTTPS を使う場合は
 
 1. Python 3.12 + Node 22 をインストールします。
 2. プロジェクトのフォルダで `setup.bat` を一度実行します。.venv を作成し、依存関係をインストールし、2 つの CLI エンジン（Claude Code、Codex）もインストールしてくれます。
-3. `start-naota.bat` でバックグラウンド実行します（停止は `stop-naota.bat`）。
+3. `start-vanhanh.bat` でバックグラウンド実行します（停止は `stop-vanhanh.bat`）。
 4. http://localhost:7777 を開きます。
 
 ## 起動したら

@@ -2,7 +2,7 @@
 
 Vì sao cần một module riêng cho đúng một cái cờ
 -----------------------------------------------
-Naota trên Windows khởi động qua `start-naota.vbs`, tức tiến trình server chạy **không có
+Vanhanh trên Windows khởi động qua `start-vanhanh.vbs`, tức tiến trình server chạy **không có
 console**. Trong Windows, một tiến trình không console mà sinh ra chương trình dạng console
 (git, curl, node, python...) thì hệ điều hành TỰ CẤP cho đứa con một cửa sổ console mới. Người
 dùng thấy đúng một cái nháy đen giữa màn hình rồi tắt - lỗi đã gặp: "thi thoảng

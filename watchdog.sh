@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# NAOTA - watchdog cho Mac chạy dưới launchd.
+# VANHANH - watchdog cho Mac chạy dưới launchd.
 #
 # Vì sao có file này: vụ treo. Server SỐNG (vẫn giữ cổng 7777, kernel vẫn nhận
 # TCP) nhưng event loop đông cứng - /health không trả lời, SIGTERM bị phớt, phải kill -9.
@@ -8,35 +8,35 @@
 # này gọi /health mỗi phút; hỏng NGUONG lần liên tiếp thì `launchctl kickstart -k` - launchd
 # tự hạ tiến trình cũ (SIGKILL nếu lì) rồi bật bản mới, không cần ai gõ tay lúc 4h sáng.
 #
-#   ./watchdog.sh install     cài LaunchAgent com.naota.watchdog (chạy check mỗi 60 giây)
+#   ./watchdog.sh install     cài LaunchAgent com.vanhanh.watchdog (chạy check mỗi 60 giây)
 #   ./watchdog.sh uninstall   gỡ LaunchAgent
 #   ./watchdog.sh check       một nhát kiểm tra (launchd gọi định kỳ; chạy tay cũng được)
 #   ./watchdog.sh status      đang cài chưa + đếm hỏng + mấy dòng log cuối
 #
-# Cấu hình qua env hoặc .env cùng thư mục: NAOTA_PORT (7777), NAOTA_LAUNCHD_LABEL
-# (com.naota.os), NAOTA_STATE_DIR (./server), NAOTA_WATCHDOG_FAILS (3).
+# Cấu hình qua env hoặc .env cùng thư mục: VANHANH_PORT (7777), VANHANH_LAUNCHD_LABEL
+# (com.vanhanh.os), VANHANH_STATE_DIR (./server), VANHANH_WATCHDOG_FAILS (3).
 # ============================================================================
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-# Đọc .env như update.sh: nhiều bản Naota trên một máy thì mỗi bản một cổng/nhãn riêng.
+# Đọc .env như update.sh: nhiều bản Vanhanh trên một máy thì mỗi bản một cổng/nhãn riêng.
 # Env truyền vào thắng .env (`:=` chỉ gán khi biến chưa đặt).
 if [ -f .env ]; then
   _env() { sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" .env | tail -1; }
-  : "${NAOTA_PORT:=$(_env NAOTA_PORT)}"
-  : "${NAOTA_LAUNCHD_LABEL:=$(_env NAOTA_LAUNCHD_LABEL)}"
-  : "${NAOTA_STATE_DIR:=$(_env NAOTA_STATE_DIR)}"
+  : "${VANHANH_PORT:=$(_env VANHANH_PORT)}"
+  : "${VANHANH_LAUNCHD_LABEL:=$(_env VANHANH_LAUNCHD_LABEL)}"
+  : "${VANHANH_STATE_DIR:=$(_env VANHANH_STATE_DIR)}"
 fi
-PORT="${NAOTA_PORT:-7777}"
-LABEL="${NAOTA_LAUNCHD_LABEL:-com.naota.os}"
-STATE_DIR="${NAOTA_STATE_DIR:-$PWD/server}"
+PORT="${VANHANH_PORT:-7777}"
+LABEL="${VANHANH_LAUNCHD_LABEL:-com.vanhanh.os}"
+STATE_DIR="${VANHANH_STATE_DIR:-$PWD/server}"
 TARGET="gui/$(id -u)/$LABEL"
-NGUONG="${NAOTA_WATCHDOG_FAILS:-3}"
+NGUONG="${VANHANH_WATCHDOG_FAILS:-3}"
 DEM_FILE="$STATE_DIR/watchdog-fails"
 LOG="$STATE_DIR/watchdog.log"
-PLIST="$HOME/Library/LaunchAgents/com.naota.watchdog.plist"
+PLIST="$HOME/Library/LaunchAgents/com.vanhanh.watchdog.plist"
 # Lệnh kick tách ra biến để test thay bằng `echo` được - còn lại không ai cần đổi.
-KICK_CMD="${NAOTA_WATCHDOG_KICK_CMD:-launchctl kickstart -k $TARGET}"
+KICK_CMD="${VANHANH_WATCHDOG_KICK_CMD:-launchctl kickstart -k $TARGET}"
 
 ghi() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
@@ -91,7 +91,7 @@ install() {
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>Label</key><string>com.naota.watchdog</string>
+  <key>Label</key><string>com.vanhanh.watchdog</string>
   <key>ProgramArguments</key><array>
     <string>/bin/bash</string>
     <string>$PWD/watchdog.sh</string>
@@ -103,20 +103,20 @@ install() {
   <key>StandardErrorPath</key><string>$STATE_DIR/watchdog.log</string>
 </dict></plist>
 EOF
-  launchctl bootout "gui/$(id -u)/com.naota.watchdog" 2>/dev/null || true
+  launchctl bootout "gui/$(id -u)/com.vanhanh.watchdog" 2>/dev/null || true
   launchctl bootstrap "gui/$(id -u)" "$PLIST"
   ghi "đã cài: kiểm /health cổng $PORT mỗi 60 giây, $NGUONG lần hỏng liên tiếp → kickstart $TARGET"
   ghi "log tại: $LOG"
 }
 
 uninstall() {
-  launchctl bootout "gui/$(id -u)/com.naota.watchdog" 2>/dev/null || true
+  launchctl bootout "gui/$(id -u)/com.vanhanh.watchdog" 2>/dev/null || true
   rm -f "$PLIST"
-  echo "đã gỡ watchdog (com.naota.watchdog)."
+  echo "đã gỡ watchdog (com.vanhanh.watchdog)."
 }
 
 status() {
-  if launchctl print "gui/$(id -u)/com.naota.watchdog" >/dev/null 2>&1; then
+  if launchctl print "gui/$(id -u)/com.vanhanh.watchdog" >/dev/null 2>&1; then
     echo "watchdog ĐANG chạy: kiểm /health cổng $PORT mỗi 60 giây, ngưỡng $NGUONG lần → kickstart $TARGET"
   else
     echo "watchdog CHƯA cài. Cài bằng: ./watchdog.sh install"

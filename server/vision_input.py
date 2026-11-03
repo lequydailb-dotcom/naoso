@@ -5,7 +5,7 @@ Decision: no second model "describing" the photo for the bot (that was ChatGPT, 
 300 MB) and sent as image input in the SAME turn to whatever model runs the bot. A model that cannot see images gets a description
 written by another connected brain (borrowed_eyes.py), or the old honest label when no brain can look; it never guesses.
 
-The neutral shape inside Naota is the OpenAI Chat Completions content list, because six providers already speak it natively
+The neutral shape inside Vanhanh is the OpenAI Chat Completions content list, because six providers already speak it natively
 (OpenAI, Gemini's OpenAI endpoint, Groq, Ollama, OpenAI-compatible, OpenRouter):
     [{"type": "text", "text": "..."}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,..."}}]
 Only the last user message of a turn ever carries it; history keeps plain text, so nothing heavy is resent on later turns.

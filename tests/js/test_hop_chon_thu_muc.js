@@ -1,10 +1,10 @@
-/* Hộp chọn thư mục (NaotaFolderPicker): NẠP THẬT module rồi GỌI THẬT open().
+/* Hộp chọn thư mục (VanhanhFolderPicker): NẠP THẬT module rồi GỌI THẬT open().
  *
  *     node tests/js/test_hop_chon_thu_muc.js
  *
  * Vì sao có file này: lỗi đã gặp: "thêm thư mục nên MỞ RA CHỌN thư mục
  * chứ không phải điền đường dẫn". Một test quét chuỗi chỉ chứng minh trong mã CÓ chữ
- * NaotaFolderPicker; nó không chứng minh bấm vào một thư mục thì đi vào được thư mục đó, hay
+ * VanhanhFolderPicker; nó không chứng minh bấm vào một thư mục thì đi vào được thư mục đó, hay
  * chọn xong thì đường dẫn giao ra đúng. Nên file này chạy thật cái hộp.
  *
  * Không có jsdom trong repo. Bản DOM giả dưới đây KHÔNG parse HTML: nó ghi nhớ chuỗi vừa gán

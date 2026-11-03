@@ -2,7 +2,7 @@
 
 Vì sao có file này
 ------------------
-Trước đây, sai Naota sửa một dự án phải nói trong khung chat chung, và engine chạy với
+Trước đây, sai Vanhanh sửa một dự án phải nói trong khung chat chung, và engine chạy với
 `cwd = <brain>`. Hậu quả: model đọc nhầm cây thư mục, không chỗ nào ghi "đang làm ở đâu", và
 mở hai việc song song trên cùng một dự án là giẫm chân nhau.
 
@@ -17,19 +17,19 @@ THƯ MỤC chứ không phải REPO
 ------------------------------------------
 Bản đầu bắt thư mục phải là repo git, không có `.git` thì TỪ CHỐI kèm câu "chạy git init
 trước đi". Đó là bắt người dùng làm việc vặt cho vừa mô hình dữ liệu của
-Naota: một thư mục script, một thư mục tài liệu, một dự án mới tinh chưa init đều là chỗ làm
+Vanhanh: một thư mục script, một thư mục tài liệu, một dự án mới tinh chưa init đều là chỗ làm
 việc hợp lệ.
 
 Nay git là một THUỘC TÍNH ĐỌC ĐƯỢC của thư mục, không phải điều kiện để vào cửa. Không có
 git thì ba thứ phụ thuộc git (nhánh, worktree, điểm hồi) tự vắng mặt trên giao diện, phần còn
-lại chạy bình thường. Muốn có chúng thì bảo Naota `git init` ngay trong lượt chat, vì nó đang
+lại chạy bình thường. Muốn có chúng thì bảo Vanhanh `git init` ngay trong lượt chat, vì nó đang
 đứng sẵn trong thư mục đó.
 
 Ba ranh giới có chủ ý
 ---------------------
-- **Xoá thư mục khỏi sổ KHÔNG đụng đĩa.** Người dùng bấm xoá là muốn Naota quên nó đi, không
+- **Xoá thư mục khỏi sổ KHÔNG đụng đĩa.** Người dùng bấm xoá là muốn Vanhanh quên nó đi, không
   phải muốn mất mã nguồn. Nhầm hai thứ này một lần là mất việc thật.
-- **Worktree luôn mở NHÁNH MỚI** `naota/<phiên>` tách từ nhánh gốc, chứ không checkout thẳng
+- **Worktree luôn mở NHÁNH MỚI** `vanhanh/<phiên>` tách từ nhánh gốc, chứ không checkout thẳng
   nhánh gốc. Git từ chối checkout cùng một nhánh ở hai worktree, mà nhánh gốc thì gần như
   luôn đang được checkout ở cây chính, nên cách kia hỏng ngay lần đầu dùng.
 - **Không tự tạo commit.** Điểm hồi là TAG trên HEAD hiện tại. Tự commit hộ là ghi vào lịch sử
@@ -84,9 +84,9 @@ TEN_MAX = 60
 GIT_TIMEOUT = 30
 
 LOI_CAN_GIT = ("Thư mục này chưa phải repo git nên chưa có {viec}. "
-               "Nhắn Naota `git init` giúp một câu là xong, rồi thử lại.")
+               "Nhắn Vanhanh `git init` giúp một câu là xong, rồi thử lại.")
 LOI_CAN_GIT_EN = ("This folder is not a git repo yet, so it has no {viec}. "
-                  "Ask Naota to run `git init` once, then try again.")
+                  "Ask Vanhanh to run `git init` once, then try again.")
 # Tên việc (đối số `viec` của `_can_git`) bằng tiếng Anh, cho LOI_CAN_GIT_EN.
 _VIEC_EN = {"điểm hồi": "restore points", "worktree": "worktrees"}
 
@@ -437,7 +437,7 @@ def muc_quyen_cua_phien(sid: str) -> str:
 def thu_muc_cua_phien(sid: str) -> List[Dict[str, Any]]:
     """Mọi thư mục phiên đang gắn, theo đúng thứ tự. Cái ĐẦU TIÊN là thư mục chính.
 
-    Chỉ trả về thư mục còn trong sổ: gỡ một thư mục khỏi Naota mà vẫn để lại id chết trong
+    Chỉ trả về thư mục còn trong sổ: gỡ một thư mục khỏi Vanhanh mà vẫn để lại id chết trong
     ràng buộc thì lượt chat sau nói với engine về một đường dẫn không tồn tại.
 
     Each record carries `lam_viec`: where this session actually works in that folder, its own worktree when
@@ -498,7 +498,7 @@ def _can_git(sid: str, viec: str) -> str:
 # Worktree
 # ============================================================
 def tao_worktree(sid: str) -> Dict[str, Any]:
-    """Mở một worktree riêng cho phiên, trên nhánh mới `naota/<phiên>` tách từ nhánh đã chọn.
+    """Mở một worktree riêng cho phiên, trên nhánh mới `vanhanh/<phiên>` tách từ nhánh đã chọn.
 
     Nhánh MỚI chứ không phải nhánh gốc: git từ chối checkout một nhánh ở hai worktree cùng
     lúc, mà nhánh gốc thì gần như luôn đang được checkout ở cây chính.
@@ -513,7 +513,7 @@ def tao_worktree(sid: str) -> Dict[str, Any]:
     if not la_git(r["duong_dan"]):
         raise LoiCoding(_loi_can_git("worktree"))
     goc = (rb.get("nhanh") or nhanh_hien_tai(r["duong_dan"]) or "HEAD")
-    ten_nhanh = f"naota/{_sid_ngan(sid)}"
+    ten_nhanh = f"vanhanh/{_sid_ngan(sid)}"
     dich = WORKTREE_DIR / f"{r['id']}-{_sid_ngan(sid)}"
     WORKTREE_DIR.mkdir(parents=True, exist_ok=True)
     # Nhánh của phiên có thể ĐÃ TỒN TẠI: gỡ worktree không xoá nhánh, nên bật lại lần hai là
@@ -555,7 +555,7 @@ def go_worktree(sid: str, ep: bool = False) -> Dict[str, Any]:
 # Điểm hồi
 # ============================================================
 def _tag_moi(sid: str, cwd: str) -> str:
-    tien_to = f"naota/{_sid_ngan(sid)}/"
+    tien_to = f"vanhanh/{_sid_ngan(sid)}/"
     try:
         da_co = _git(["tag", "--list", tien_to + "*"], cwd).splitlines()
     except Exception:

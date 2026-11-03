@@ -1,4 +1,4 @@
-"""The admin password set in the environment (NAOTA_ADMIN_PASSWORD) must actually work.
+"""The admin password set in the environment (VANHANH_ADMIN_PASSWORD) must actually work.
 
     python tests/run.py admin_env_password      (no network)
 
@@ -22,9 +22,9 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-envpw-")
-os.environ.pop("NAOTA_ADMIN_PASSWORD", None)
-os.environ.pop("NAOTA_ADMIN_USER", None)
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-envpw-")
+os.environ.pop("VANHANH_ADMIN_PASSWORD", None)
+os.environ.pop("VANHANH_ADMIN_USER", None)
 
 import config as c   # noqa: E402
 
@@ -38,7 +38,7 @@ def check(name, cond):
 
 
 def set_env(pw=None, user=None):
-    for k, v in (("NAOTA_ADMIN_PASSWORD", pw), ("NAOTA_ADMIN_USER", user)):
+    for k, v in (("VANHANH_ADMIN_PASSWORD", pw), ("VANHANH_ADMIN_USER", user)):
         if v is None:
             os.environ.pop(k, None)
         else:

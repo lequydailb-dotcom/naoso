@@ -1,7 +1,7 @@
-/* chat-acts.js - hang nut duoi moi tin nhan trong khung chat Naota.
+/* chat-acts.js - hang nut duoi moi tin nhan trong khung chat Vanhanh.
 
    Moi bong bong co mot hang nho ben duoi. Tin cua NGUOI DUNG: gio gui, tua lai,
-   trich dan, sao chep. Tin cua NAOTA: gio gui, trich dan, sao chep, ghim vao muc luc, doc thanh tieng. Hang nay AN san (opacity 0), chi hien khi
+   trich dan, sao chep. Tin cua VANHANH: gio gui, trich dan, sao chep, ghim vao muc luc, doc thanh tieng. Hang nay AN san (opacity 0), chi hien khi
    hover tren may tinh hoac khi cham vao tin tren dien thoai (.acts-on).
 
    File nay chi giu phan THUAN (khong dung tai lieu DOM that) de test bang node:
@@ -58,11 +58,11 @@
       "/" + d.getFullYear() + " " + fmtTime(ts);
   }
 
-  // role: "user" | "naota".
+  // role: "user" | "vanhanh".
   //
-  // Tin cua NAOTA chi con gio + sao chep. Nut "Tra loi lai cau hoi phia tren" da BO
+  // Tin cua VANHANH chi con gio + sao chep. Nut "Tra loi lai cau hoi phia tren" da BO
   // no nam ngay canh nut sao chep, ma sao chep la thao tac
-  // hay dung nhat duoi mot cau tra loi - bam truot mot ly la Naota chay lai ca luot,
+  // hay dung nhat duoi mot cau tra loi - bam truot mot ly la Vanhanh chay lai ca luot,
   // ton tien va de mat cau tra loi dang doc. Ai muon hoi lai thi go lai cau hoi, hoac
   // bam "Tua lai" ngay tren bong bong cau hoi cua chinh minh - van con day.
   //
@@ -81,14 +81,14 @@
       send = '<button class="msg-act" type="button" data-act="rewind" title="' + esc(tw("cact.rewind")) + '">↺</button>';
     }
     // Trich dan: dat doan nay len tren o nhap de hoi tiep, khoi go lai. Co o ca tin
-    // nguoi dung lan tin Naota. Bam truot cung vo hai: no chi dat chip, khong chay gi.
+    // nguoi dung lan tin Vanhanh. Bam truot cung vo hai: no chi dat chip, khong chay gi.
     // Tin nguoi dung chi co anh thi khong co chu de trich, bo nut nhu nut gui lai.
     var quote = (role === "user" && canResend === false) ? "" :
       '<button class="msg-act" type="button" data-act="quote" title="' + esc(tw("cact.quote")) + '">' + ic("quote") + '</button>';
     // Duoi cau tra loi them nut GHIM vao muc luc cua cuoc chat (thanh moc /
     // nut "≡ n/m") va nut LOA doc thanh tieng cau do. Nut ghim chi hien khi bong bong da co ma tin (CSS
-    // .msg-naota[data-mid]): cau dang stream chua luu thi chua ghim duoc.
-    var them = role === "naota"
+    // .msg-vanhanh[data-mid]): cau dang stream chua luu thi chua ghim duoc.
+    var them = role === "vanhanh"
       ? '<button class="msg-act" type="button" data-act="pin" title="' + esc(tw("cact.pin")) + '">' + ic("pin") + '</button>' +
         '<button class="msg-act" type="button" data-act="speak" title="' + esc(tw("cact.speak")) + '">' + ic("volume-2") + '</button>'
       : "";
@@ -214,6 +214,6 @@
     isUserMsg: isUserMsg,
   };
 
-  if (typeof window !== "undefined") window.NaotaActs = API;
+  if (typeof window !== "undefined") window.VanhanhActs = API;
   if (typeof module !== "undefined" && module.exports) module.exports = API;
 })();

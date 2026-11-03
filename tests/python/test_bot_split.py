@@ -19,7 +19,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-split-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-split-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

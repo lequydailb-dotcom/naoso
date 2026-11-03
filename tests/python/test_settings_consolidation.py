@@ -35,18 +35,18 @@ check("rail không còn tab Tổng quan", '"overview"' not in rail_block)
 check("metadata không còn trang Tổng quan", '"overview"' not in meta_block)
 check("router không còn render Tổng quan", 'id === "overview"' not in router_block)
 boot_block = CONSOLE.split("function boot()", 1)[1]
-# Hợp đồng: MỞ APP LÀ VÀO MÀN NAOTA, mọi khổ màn hình. Bản cũ từng cho
+# Hợp đồng: MỞ APP LÀ VÀO MÀN VANHANH, mọi khổ màn hình. Bản cũ từng cho
 # lite-mode/mobile tự nhảy sang Trò chuyện; dùng thật thì rối hơn (mỗi lần tải lại rơi vào một
 # trang khác) nên bỏ. Trang Tổng quan cũ cũng không còn chỗ nào trỏ tới.
-check("mở app là vào màn Naota, không tự nhảy trang khác",
+check("mở app là vào màn Vanhanh, không tự nhảy trang khác",
       'active: "home"' in CONSOLE
       and 'navigateTo("chat")' not in boot_block
       and 'navigateTo("overview")' not in CONSOLE)
-# Điều cần canh là deep-link CÒN ĐƯỢC XỬ sau khi vào màn Naota, chứ không phải nó gọi đúng
+# Điều cần canh là deep-link CÒN ĐƯỢC XỬ sau khi vào màn Vanhanh, chứ không phải nó gọi đúng
 # hàm nào. Nó gọi openVaultPath: file sửa được thì mở thẳng trình sửa, thư mục mới về
 # trang Tệp tin - trước đó thả tất vào thư mục, nên cùng một file .html bấm ở chat thì sửa được
 # mà mở tab mới lại không.
-check("deep-link file vẫn được ưu tiên sau khi vào Naota",
+check("deep-link file vẫn được ưu tiên sau khi vào Vanhanh",
       'const m = /^#open=(.+)$/' in boot_block and "openVaultPath(decodeURIComponent(m[1]))" in boot_block)
 # Soi "wireUpdateManager(el" chứ KHÔNG soi "wireUpdateManager(el)": điều cần canh là trang Cập
 # nhật có gọi bộ máy đó hay không, chứ không phải nó truyền mấy tham số. Khoá cả dấu đóng ngoặc

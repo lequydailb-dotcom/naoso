@@ -1,8 +1,8 @@
-// Resonance M4: thẻ "Naota đang hướng tới" (dashboard/chat-resonance.js).
+// Resonance M4: thẻ "Vanhanh đang hướng tới" (dashboard/chat-resonance.js).
 //
 //     python tests/run.py --js resonance_mvp_ui -v
 //
-// Hàm thuần chạy dưới node: bóc khối NAOTA_RESONANCE, HTML của thẻ từ trạng thái GET /goals/{id}, và request của
+// Hàm thuần chạy dưới node: bóc khối VANHANH_RESONANCE, HTML của thẻ từ trạng thái GET /goals/{id}, và request của
 // từng nút. Nút phải gửi revision, artifact_ref, criterion_id lấy TỪ TRẠNG THÁI ĐÃ TẢI, không tự điền.
 "use strict";
 const fs = require("fs");
@@ -20,16 +20,16 @@ function check(name, cond, extra) {
 }
 
 // ───────────── bóc khối ─────────────
-const raw = 'Naota đã lập mục tiêu.\n<!-- NAOTA_RESONANCE: {"goal_id": "g_abc", "revision": 2, "report": "outbox:7"} -->';
+const raw = 'Vanhanh đã lập mục tiêu.\n<!-- VANHANH_RESONANCE: {"goal_id": "g_abc", "revision": 2, "report": "outbox:7"} -->';
 const t1 = RS.tach(raw);
-check("bóc khối: chữ còn lại sạch, không lộ khối", t1.clean === "Naota đã lập mục tiêu." && !/NAOTA_RESONANCE/.test(t1.clean));
+check("bóc khối: chữ còn lại sạch, không lộ khối", t1.clean === "Vanhanh đã lập mục tiêu." && !/VANHANH_RESONANCE/.test(t1.clean));
 check("bóc khối: lấy đúng goal_id, revision, khoá báo cáo",
       t1.cards.length === 1 && t1.cards[0].goal_id === "g_abc" && t1.cards[0].revision === 2 && t1.cards[0].report === "outbox:7");
-const t2 = RS.tach("Chữ <!-- NAOTA_RESONANCE: {hỏng -->");
+const t2 = RS.tach("Chữ <!-- VANHANH_RESONANCE: {hỏng -->");
 check("khối JSON hỏng: vẫn bóc khỏi chữ, không tạo thẻ", t2.clean === "Chữ" && t2.cards.length === 0);
 check("không có khối: giữ nguyên chữ", RS.tach("Chào bạn").clean === "Chào bạn" && RS.tach("Chào bạn").cards.length === 0);
-const t3 = RS.tach('a <!-- NAOTA_VIEC: {"kind":"task"} --> <!-- NAOTA_RESONANCE: {"goal_id":"g1","revision":1} -->');
-check("chỉ bóc khối của mình, khối khác (NAOTA_VIEC) để module của nó lo", /NAOTA_VIEC/.test(t3.clean) && t3.cards.length === 1);
+const t3 = RS.tach('a <!-- VANHANH_VIEC: {"kind":"task"} --> <!-- VANHANH_RESONANCE: {"goal_id":"g1","revision":1} -->');
+check("chỉ bóc khối của mình, khối khác (VANHANH_VIEC) để module của nó lo", /VANHANH_VIEC/.test(t3.clean) && t3.cards.length === 1);
 
 // ───────────── HTML của thẻ ─────────────
 const waiting = {
@@ -117,10 +117,10 @@ check("chuỗi giao diện không xưng anh/em với người dùng",
 
 // ───────────── nối vào dashboard ─────────────
 const app = fs.readFileSync(path.join(ROOT, "dashboard", "app.js"), "latin1");
-check("app.js: bóc khối và vẽ thẻ trong appendNaotaMessage",
-      app.includes("window.NaotaResonance.tach(tv.clean)") && app.includes("window.NaotaResonance.ve(div, c)"));
+check("app.js: bóc khối và vẽ thẻ trong appendVanhanhMessage",
+      app.includes("window.VanhanhResonance.tach(tv.clean)") && app.includes("window.VanhanhResonance.ve(div, c)"));
 check("app.js: giọng đọc bỏ khối thẻ (bóc trước dòng _doc, giữ nguyên dòng canary của chat-viec)",
-      app.includes('if (window.NaotaResonance) data.content = window.NaotaResonance.tach(data.content || "").clean;'));
+      app.includes('if (window.VanhanhResonance) data.content = window.VanhanhResonance.tach(data.content || "").clean;'));
 const html = fs.readFileSync(path.join(ROOT, "dashboard", "index.html"), "utf8");
 check("index.html nạp chat-resonance.js sau chat-viec.js",
       html.indexOf("/static/chat-resonance.js") > html.indexOf("/static/chat-viec.js") && html.includes("/static/chat-resonance.js"));

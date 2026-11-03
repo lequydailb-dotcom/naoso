@@ -22,9 +22,9 @@ import time
 from contextlib import closing
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-agent-calls-")
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
-TEMP = Path(tempfile.mkdtemp(prefix="naota-agent-calls-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-agent-calls-")
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-agent-calls-w-"))
 
 import agent_ledger as AL  # noqa: E402
 import resonance_store as RS  # noqa: E402
@@ -44,9 +44,9 @@ def check(name, cond, extra=""):
 
 def ceiling(n):
     if n is None:
-        os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
+        os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
     else:
-        os.environ["NAOTA_RESONANCE_CALL_CEILING"] = str(n)
+        os.environ["VANHANH_RESONANCE_CALL_CEILING"] = str(n)
 
 
 _n = [0]

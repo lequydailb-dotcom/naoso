@@ -98,7 +98,7 @@
   }
 
   // `npx mcp-remote <url> --header "K: V"` là cách cũ để nối server HTTP vào client chỉ biết
-  // stdio. Naota nói HTTP trực tiếp được, nên đổi ngược về dạng URL: bớt một tiến trình node
+  // stdio. Vanhanh nói HTTP trực tiếp được, nên đổi ngược về dạng URL: bớt một tiến trình node
   // và header nằm trong ô header, sửa được, thay vì chôn trong tham số lệnh.
   function tuMcpRemote(cmd, args) {
     var all = [cmd].concat(args || []);
@@ -257,6 +257,6 @@
     docCauHinh: docCauHinh, tachLenh: tachLenh, ghepLenh: ghepLenh, doanTransport: doanTransport,
     nhaCungCap: nhaCungCap, tenTuUrl: tenTuUrl, thieuBearer: thieuBearer, HEADER_GOI_Y: HEADER_GOI_Y,
   };
-  if (typeof window !== "undefined") window.NaotaMcpParse = api;
+  if (typeof window !== "undefined") window.VanhanhMcpParse = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })();

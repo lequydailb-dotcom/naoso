@@ -1,4 +1,4 @@
-"""Plugin desktop-apps: mở / đóng / liệt kê app trên máy chạy Naota.
+"""Plugin desktop-apps: mở / đóng / liệt kê app trên máy chạy Vanhanh.
 
     python tests/run.py desktop_apps
 
@@ -20,7 +20,7 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-dapps-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-dapps-")
 
 import plugins_host  # noqa: E402
 import deploy_info  # noqa: E402
@@ -79,7 +79,7 @@ m.time.sleep = lambda s: None   # đóng lịch sự có chờ 1,5 giây - bỏ 
 
 
 class Ctx:
-    vault_root = str(Path(tempfile.mkdtemp(prefix="naota-brain-")))
+    vault_root = str(Path(tempfile.mkdtemp(prefix="vanhanh-brain-")))
 
 
 ctx = Ctx()
@@ -150,7 +150,7 @@ out = m._open({"name": "chrome"}, ctx)
 check("không đưa lên được (app nằm khay) -> rơi về mở như cũ", len(calls["launch"]) == n_truoc + 1)
 state["running"] = list(RUNNING)
 out = m._open({"name": "photoshop"}, ctx)
-check("mở app không có: ERROR [failed] + gợi ý gọi list", out.startswith("ERROR: [failed]") and "naota_app_list" in out)
+check("mở app không có: ERROR [failed] + gợi ý gọi list", out.startswith("ERROR: [failed]") and "vanhanh_app_list" in out)
 out = m._open({"name": "zallo app"}, ctx)
 check("tên gần giống mà không chắc: [ask], không mở bừa", out.startswith("[ask]") and "Zalo" in out)
 n_truoc = len(calls["launch"])
@@ -194,9 +194,9 @@ check("đóng: khớp theo tiêu đề cửa sổ tiếng Việt", img == "subli
 img, why = m.resolve_close("explorer", RUNNING)
 check("đóng: explorer là hệ thống -> chặn", img == "" and "hệ thống" in why)
 img, why = m.resolve_close("python", RUNNING)
-check("đóng: python (chính Naota) -> chặn", img == "")
+check("đóng: python (chính Vanhanh) -> chặn", img == "")
 img, why = m.resolve_close("photoshop", RUNNING)
-check("đóng: không chạy -> lý do nêu naota_app_list", img == "" and "naota_app_list" in why)
+check("đóng: không chạy -> lý do nêu vanhanh_app_list", img == "" and "vanhanh_app_list" in why)
 
 out = m._close({"name": "chrome"}, ctx)
 check("đóng lịch sự: gọi _kill force=False", calls["kill"][-1] == ("chrome.exe", False))
@@ -237,11 +237,11 @@ desc = {x["slug"]: x for x in plugins_host.describe(None)}
 check("manifest: có slug desktop-apps, enabled", desc.get("desktop-apps", {}).get("enabled") is True)
 check("manifest: nạp không lỗi", desc.get("desktop-apps", {}).get("loaded") is True and not desc["desktop-apps"]["error"])
 tools, route = plugins_host.plugin_tools("full", None)
-mm = {t["fn"]: route[t["fn"]]["required_mode"] for t in tools if t["fn"].startswith("naota_app_")}
+mm = {t["fn"]: route[t["fn"]]["required_mode"] for t in tools if t["fn"].startswith("vanhanh_app_")}
 check("mức quyền: list readonly, open safe, close full",
-      mm == {"naota_app_list": "readonly", "naota_app_open": "safe", "naota_app_close": "full"})
+      mm == {"vanhanh_app_list": "readonly", "vanhanh_app_open": "safe", "vanhanh_app_close": "full"})
 tools_s, route_s = plugins_host.plugin_tools("suggest", None)
-res = asyncio.run(route_s["naota_app_open"]["call"]({"name": "chrome"}))
+res = asyncio.run(route_s["vanhanh_app_open"]["call"]({"name": "chrome"}))
 check("chế độ suggest: mở app bị chặn bằng code", res.startswith("ERROR") and "mức quyền" in res)
 
 if _fails:

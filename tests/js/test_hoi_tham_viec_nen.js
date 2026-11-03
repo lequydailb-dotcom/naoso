@@ -1,4 +1,4 @@
-/* Naota TỰ HỎI THĂM khi việc nền chạy lâu.
+/* Vanhanh TỰ HỎI THĂM khi việc nền chạy lâu.
 
        node tests/js/test_hoi_tham_viec_nen.js
 
@@ -28,8 +28,8 @@ function check(name, cond, extra) {
 
 // ---- 1. Đường số liệu: server -> dải trạng thái -> app ----
 check("dải trạng thái đẩy voice_count sang app",
-  /window\.NaotaOrb\.setVoiceJobs\(\(d && d\.voice_count\) \|\| 0\)/.test(strip));
-check("app nhận qua NaotaOrb.setVoiceJobs", /setVoiceJobs: \(n\) => datSoViecGiong\(n\)/.test(app));
+  /window\.VanhanhOrb\.setVoiceJobs\(\(d && d\.voice_count\) \|\| 0\)/.test(strip));
+check("app nhận qua VanhanhOrb.setVoiceJobs", /setVoiceJobs: \(n\) => datSoViecGiong\(n\)/.test(app));
 check("có câu hỏi thăm trong cả hai ngôn ngữ",
   !!vi["app.voice_cho_viec"] && !!en["app.voice_cho_viec"]
   && !!vi["app.voice_cho_viec_lau"] && !!en["app.voice_cho_viec_lau"]);

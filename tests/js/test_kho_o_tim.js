@@ -71,16 +71,16 @@ const host = {
 const win = { ic: () => "<svg></svg>", Alpine: { store: () => ({ go() {} }) } };
 const goi = (id, ten, mo) => ({
   id: id, kind: "connector", name: { vi: ten }, description: { vi: mo },
-  tier: "data", verified: true, nguon: "kho", author: { name: "Naota" },
+  tier: "data", verified: true, nguon: "kho", author: { name: "Vanhanh" },
   version: "1.0.0", installed: false, download: { url: "https://x/y.zip", sha256: "a" },
   nhom: "Ban hang",
 });
 const DANH_MUC = {
   ok: true, fetched_at: Math.floor(Date.now() / 1000),
   packs: [
-    goi("naota.pancake-pos", "Pancake POS", "Don hang, doanh thu"),
-    goi("naota.shopify", "Shopify", "Tra cuu san pham"),
-    goi("naota.webcake", "Webcake", "Dung trang ban hang"),
+    goi("vanhanh.pancake-pos", "Pancake POS", "Don hang, doanh thu"),
+    goi("vanhanh.shopify", "Shopify", "Tra cuu san pham"),
+    goi("vanhanh.webcake", "Webcake", "Dung trang ban hang"),
   ],
 };
 
@@ -89,7 +89,7 @@ globalThis.Alpine = win.Alpine;
 new Function("window", "document", "fetch",
   fs.readFileSync(path.join(ROOT, "dashboard", "packs.js"), "utf8"))(
   win, doc, () => Promise.resolve({ json: () => Promise.resolve(DANH_MUC) }));
-const P = win.NaotaPacks || {};
+const P = win.VanhanhPacks || {};
 
 check("packs.js phoi ra veKho / ghiConTro / traConTro",
   typeof P.veKho === "function" && typeof P.ghiConTro === "function"

@@ -24,8 +24,8 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-TMP = Path(tempfile.mkdtemp(prefix="naota-codex-steer-"))
-os.environ["NAOTA_STATE_DIR"] = str(TMP / "state")
+TMP = Path(tempfile.mkdtemp(prefix="vanhanh-codex-steer-"))
+os.environ["VANHANH_STATE_DIR"] = str(TMP / "state")
 os.environ["CODEX_HOME"] = str(TMP / "codex-home")
 (TMP / "codex-home").mkdir()
 
@@ -44,13 +44,13 @@ def check(name, cond):
 
 # ---- pure helpers ----
 ov = []
-codex_steer._flatten("", {"mcp_servers": {"naota": {"url": "http://h/mcp", "startup_timeout_sec": 20,
+codex_steer._flatten("", {"mcp_servers": {"vanhanh": {"url": "http://h/mcp", "startup_timeout_sec": 20,
                                                     "http_headers": {"Authorization": "Bearer x\"y",
-                                                                     "X-Naota-Mode": "full"}}}}, ov)
+                                                                     "X-Vanhanh-Mode": "full"}}}}, ov)
 check("profile flattens into -c overrides, header names unquoted",
-      'mcp_servers.naota.url="http://h/mcp"' in ov and "mcp_servers.naota.startup_timeout_sec=20" in ov
-      and 'mcp_servers.naota.http_headers.Authorization="Bearer x\\"y"' in ov
-      and 'mcp_servers.naota.http_headers.X-Naota-Mode="full"' in ov)
+      'mcp_servers.vanhanh.url="http://h/mcp"' in ov and "mcp_servers.vanhanh.startup_timeout_sec=20" in ov
+      and 'mcp_servers.vanhanh.http_headers.Authorization="Bearer x\\"y"' in ov
+      and 'mcp_servers.vanhanh.http_headers.X-Vanhanh-Mode="full"' in ov)
 try:
     codex_steer._flatten("", {"a.b": 1}, [])
     check("a dotted key cannot be passed with -c", False)
@@ -61,7 +61,7 @@ ei = codex_steer.exec_item({"type": "commandExecution", "id": "c1", "command": "
 check("commandExecution reads as exec's command_execution",
       ei == {"id": "c1", "type": "command_execution", "command": "ls", "aggregated_output": "x", "exit_code": 0,
              "status": "completed"})
-ei = codex_steer.exec_item({"type": "mcpToolCall", "id": "m1", "server": "naota", "tool": "pos_stats",
+ei = codex_steer.exec_item({"type": "mcpToolCall", "id": "m1", "server": "vanhanh", "tool": "pos_stats",
                             "arguments": {"a": 1}, "status": "inProgress"})
 check("mcpToolCall reads as mcp_tool_call", ei["type"] == "mcp_tool_call" and ei["tool"] == "pos_stats"
       and ei["status"] == "in_progress")
@@ -78,7 +78,7 @@ cli0.steer = False
 check("not for an engine that is not the chat engine", not codex_steer.wanted(cli0))
 cli0.steer = True
 os.environ[codex_steer.ENV_SWITCH] = "0"
-check("NAOTA_CODEX_STEER=0 turns it off", not codex_steer.wanted(cli0))
+check("VANHANH_CODEX_STEER=0 turns it off", not codex_steer.wanted(cli0))
 del os.environ[codex_steer.ENV_SWITCH]
 si.INBOX.close("w0", token=tok)
 
@@ -168,16 +168,16 @@ if os.name == "nt":
     (TMP / "codex.cmd").write_text(f'@"{sys.executable}" "{fake}" %*\r\n', encoding="utf-8")
     fake = TMP / "codex.cmd"
 os.environ["FAKE_ARGV"] = str(TMP / "argv.jsonl")
-(TMP / "codex-home" / "naota.config.toml").write_text(
-    '[mcp_servers.naota]\nurl = "http://127.0.0.1:7777/hub/mcp"\nstartup_timeout_sec = 20\n'
-    '[mcp_servers.naota.http_headers]\n"Authorization" = "Bearer tok"\n"X-Naota-Mode" = "full"\n', encoding="utf-8")
+(TMP / "codex-home" / "vanhanh.config.toml").write_text(
+    '[mcp_servers.vanhanh]\nurl = "http://127.0.0.1:7777/hub/mcp"\nstartup_timeout_sec = 20\n'
+    '[mcp_servers.vanhanh.http_headers]\n"Authorization" = "Bearer tok"\n"X-Vanhanh-Mode" = "full"\n', encoding="utf-8")
 
 
 def new_cli(**kw):
     c = CodexCLI(cwd=str(TMP), tag="chat:t:1", model="gpt-5.5")
     c.cli_path = str(fake)
     c.steer = True
-    c.profile = "naota"
+    c.profile = "vanhanh"
     c.transport = "ws"
     for k, v in kw.items():
         setattr(c, k, v)
@@ -219,8 +219,8 @@ check("app-server: the message sent while the command ran reached the same turn"
 argv = rows[0] if rows else []
 check("app-server: started as app-server with the profile as -c, never -p",
       argv[-1:] == ["app-server"] and "-p" not in argv
-      and 'mcp_servers.naota.url="http://127.0.0.1:7777/hub/mcp"' in argv
-      and 'mcp_servers.naota.http_headers.X-Naota-Mode="full"' in argv)
+      and 'mcp_servers.vanhanh.url="http://127.0.0.1:7777/hub/mcp"' in argv
+      and 'mcp_servers.vanhanh.http_headers.X-Vanhanh-Mode="full"' in argv)
 tstart = next((r["thread/start"] for r in rows if isinstance(r, dict) and "thread/start" in r), {})
 check("app-server: model, sandbox and approval go in thread/start",
       tstart.get("model") == "gpt-5.5" and tstart.get("sandbox") == "danger-full-access"
@@ -279,7 +279,7 @@ check("background work stays on exec", any(e.get("content") == "EXEC PATH" for e
 # ---- streamed text, instructions once, a warm process for the next turn ----
 import warm_pool  # noqa: E402
 
-os.environ["NAOTA_WARM_BUDGET_MB"] = "500"
+os.environ["VANHANH_WARM_BUDGET_MB"] = "500"
 os.environ["FAKE_NO_CMD"] = "1"
 os.environ["FAKE_DELTA"] = "1"
 
@@ -298,8 +298,8 @@ async def turns(*clis):
     return out, st
 
 
-(r1, r2), st = asyncio.run(turns({"instructions": "LUAT NAOTA", "warm_key": "conv-w"},
-                                 {"instructions": "LUAT NAOTA", "warm_key": "conv-w"}))
+(r1, r2), st = asyncio.run(turns({"instructions": "LUAT VANHANH", "warm_key": "conv-w"},
+                                 {"instructions": "LUAT VANHANH", "warm_key": "conv-w"}))
 rows = argv_log()
 spawns = [r for r in rows if isinstance(r, list) and r[-1:] == ["app-server"]]
 tstart = [r["thread/start"] for r in rows if isinstance(r, dict) and "thread/start" in r]
@@ -308,9 +308,9 @@ check("deltas: the answer arrives piece by piece and is not sent again as a bloc
       [e["content"] for e in r1 if e["type"] == "text"] == ["DO", "NE"])
 check("deltas: final still carries the whole answer", any(e.get("content") == "DONE" for e in r1 if e["type"] == "final"))
 check("instructions go once, as developerInstructions of thread/start",
-      len(tstart) == 1 and tstart[0].get("developerInstructions") == "LUAT NAOTA")
+      len(tstart) == 1 and tstart[0].get("developerInstructions") == "LUAT VANHANH")
 check("the message itself no longer carries the instructions",
-      len(tturns) == 2 and all("LUAT NAOTA" not in json.dumps(t["input"]) for t in tturns))
+      len(tturns) == 2 and all("LUAT VANHANH" not in json.dumps(t["input"]) for t in tturns))
 check("warm: the second turn runs on the same process (one spawn, no resume, two turns)",
       len(spawns) == 1 and not any(isinstance(r, dict) and "thread/resume" in r for r in rows))
 check("warm: the second turn says it was warm and has its own answer",
@@ -318,10 +318,10 @@ check("warm: the second turn says it was warm and has its own answer",
       and any(e.get("content") == "DONE" for e in r2 if e["type"] == "final"))
 check("warm: the pool held one codex slot and served one hit", st["hits"] == 1 and st["admitted"] == 1)
 
-(r1,), st = asyncio.run(turns({"instructions": "LUAT NAOTA", "session_id": "old-thread"}))
+(r1,), st = asyncio.run(turns({"instructions": "LUAT VANHANH", "session_id": "old-thread"}))
 tturns = [r["turn/start"] for r in argv_log() if isinstance(r, dict) and "turn/start" in r]
 check("a thread from before the change (rules only in its first message) still gets them in front of the message",
-      len(tturns) == 1 and json.dumps(tturns[0]["input"], ensure_ascii=False).count("LUAT NAOTA") == 1)
+      len(tturns) == 1 and json.dumps(tturns[0]["input"], ensure_ascii=False).count("LUAT VANHANH") == 1)
 check("a thread opened with developerInstructions is on record", codex_steer.carries_instructions("th1")
       and not codex_steer.carries_instructions("old-thread"))
 
@@ -335,12 +335,12 @@ argv_log()
 check("a turn that ran a shell command hands its process back (adoption on POSIX, Stop on Windows)",
       st["slots"] == [] and any(e["type"] == "final" for e in r1))
 
-os.environ["NAOTA_WARM_BUDGET_MB"] = "0"
+os.environ["VANHANH_WARM_BUDGET_MB"] = "0"
 os.environ["FAKE_NO_CMD"] = "1"
 (r1,), st = asyncio.run(turns({"warm_key": "conv-z"}))
 argv_log()
 check("budget 0 turns the pool off", st["slots"] == [] and any(e["type"] == "final" for e in r1))
-for k in ("NAOTA_WARM_BUDGET_MB", "FAKE_NO_CMD", "FAKE_DELTA"):
+for k in ("VANHANH_WARM_BUDGET_MB", "FAKE_NO_CMD", "FAKE_DELTA"):
     os.environ.pop(k, None)
 
 # ---- wiring ----

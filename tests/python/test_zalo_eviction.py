@@ -2,8 +2,8 @@
 
     python tests/run.py zalo_eviction      (no network; spawns a few sleeping dummy processes on Linux)
 
-Reported case (bot Naota An): after an update, the account's live socket was evicted right after every
-re-login, naota-zalo backed off up to five minutes, and the bot only heard messages in the seconds after each
+Reported case (bot Vanhanh An): after an update, the account's live socket was evicted right after every
+re-login, vanhanh-zalo backed off up to five minutes, and the bot only heard messages in the seconds after each
 reconnect. Three hours of tags went unanswered while the bot card stayed green, and some replies showed in the bot
 history without ever reaching the customer. Checks:
   1. the leftover-process ledger: a live pid with a different start time is NOT the old server; a tarball URL also
@@ -11,7 +11,7 @@ history without ever reaching the customer. Checks:
   2. reap_same_home kills a second `... zalo ... mcp start` on the same HOME, never another HOME, a plain CLI
      command on that HOME, or the group we keep;
   3. the read-loop watch spots rapid closes in the MCP log, kills local rivals, marks the bot card, rings once;
-  4. a send that naota-zalo reports as success without a message id counts as failed.
+  4. a send that vanhanh-zalo reports as success without a message id counts as failed.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
 import asyncio
@@ -21,7 +21,7 @@ import sys
 import tempfile
 import time
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-evict-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-evict-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -45,7 +45,7 @@ URL = "https://codeload.github.com/vuongtex/naota-zalo/tar.gz/refs/tags/v1.6.1"
 
 # ---- 1. ledger ---------------------------------------------------------------------------------------
 check("markers: last long arg plus the package name of a tarball URL",
-      mcp_orphans._markers(["-y", "--prefer-offline", URL, "mcp", "start"]) == [URL, "/naota-zalo/"])
+      mcp_orphans._markers(["-y", "--prefer-offline", URL, "mcp", "start"]) == [URL, "/vanhanh-zalo/"])
 check("markers: an ordinary package keeps one marker", mcp_orphans._markers(["-y", "mcp-server-gsc"]) == ["mcp-server-gsc"])
 LINUX = os.name != "nt" and os.path.isdir("/proc")
 if LINUX:
@@ -70,7 +70,7 @@ if LINUX:
 
     def dummy(home, *words):
         env = dict(os.environ, HOME=home)
-        return subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)", "naota-zalo", *words],
+        return subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)", "vanhanh-zalo", *words],
                                 env=env, start_new_session=True)
 
     rival = dummy(home_a, "mcp", "start")
@@ -109,7 +109,7 @@ async def _bell(*a, **k):
 
 
 zc.NOTIFY_OWNER = _bell
-CONN = {"id": "zl-1", "label": "Naota An", "env": {"HOME": "/tmp/zl"}}
+CONN = {"id": "zl-1", "label": "Vanhanh An", "env": {"HOME": "/tmp/zl"}}
 
 
 async def watch(lines):
@@ -127,7 +127,7 @@ check("one quick close is not a rival", not REAPED and not BELL and not zc.evict
 asyncio.run(watch([line(1, 1), line(2, 3)]))
 check("rapid closes: local rivals reaped, keeping our own group", REAPED == [("/tmp/zl", (4242,))], REAPED)
 check("rapid closes: the bot card shows eviction", zc.evicted_recently("zl-1"))
-check("rapid closes: the owner is told once", len(BELL) == 1 and "Naota An" in str(BELL[0]), BELL)
+check("rapid closes: the owner is told once", len(BELL) == 1 and "Vanhanh An" in str(BELL[0]), BELL)
 asyncio.run(watch([line(1, 1), line(2, 3)]))
 check("the same log line is handled once", len(REAPED) == 1 and len(BELL) == 1)
 asyncio.run(watch([line(3, 4)]))

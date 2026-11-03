@@ -22,7 +22,7 @@ import sys
 import tempfile
 import time
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-note-images-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-note-images-"))
 
 import media_gc  # noqa: E402
 

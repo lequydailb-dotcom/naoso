@@ -4,7 +4,7 @@
 
 Không cần pytest, không chạm mạng (client HTTP giả), không đụng CSDL.
 
-Bệnh: mỗi lượt hỏi, bot gửi tin "🤔 Naota đang xử lý…" rồi XOÁ nó
+Bệnh: mỗi lượt hỏi, bot gửi tin "🤔 Vanhanh đang xử lý…" rồi XOÁ nó
 đi và gửi câu trả lời. Hai chỗ sai: người dùng thấy một tin nhấp nháy rồi biến mất (đọc như
 lỗi), và điện thoại nổ HAI thông báo mà cái đầu chỉ nói "đang xử lý".
 

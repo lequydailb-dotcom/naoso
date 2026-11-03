@@ -2,7 +2,7 @@
 
        node tests/js/test_mo_file_tu_chat.js
 
-   Lỗi đã gặp: Naota xuất ra file .html rồi gửi link trong chat, muốn bấm vào là
+   Lỗi đã gặp: Vanhanh xuất ra file .html rồi gửi link trong chat, muốn bấm vào là
    sửa được ngay, "nhưng thi thoảng nó vẫn bị gửi về folder của quản lý file".
 
    NGUYÊN NHÂN, và đây là thứ test này canh: cùng MỘT thẻ <a> có HAI đường đi tới đích.
@@ -16,11 +16,11 @@
    openVaultPath().
 
    Hành vi đã ĐO trong Chromium thật trước khi chốt (mdToHtml + click thật, console.js giả lập):
-     exports/bao-cao.html  -> class nt-floc     title "Mở ra sửa"              -> NaotaOpenVaultPath
-     notes/ghi-chu.md      -> class nt-floc     title "Mở ra sửa"              -> NaotaOpenVaultPath
+     exports/bao-cao.html  -> class nt-floc     title "Mở ra sửa"              -> VanhanhOpenVaultPath
+     notes/ghi-chu.md      -> class nt-floc     title "Mở ra sửa"              -> VanhanhOpenVaultPath
      anh/hinh.png          -> class nt-fdownload title "Tải file về"           -> (tải, không mở)
-     exports/              -> class nt-floc     title "Mở vị trí trong Tệp tin" -> NaotaOpenFiles
-     Naota/loops           -> class nt-floc     title "Mở vị trí trong Tệp tin" -> NaotaOpenFiles
+     exports/              -> class nt-floc     title "Mở vị trí trong Tệp tin" -> VanhanhOpenFiles
+     Vanhanh/loops           -> class nt-floc     title "Mở vị trí trong Tệp tin" -> VanhanhOpenFiles
    CI chỉ có node nên file này khoá phần hợp đồng đọc được từ mã nguồn. */
 const fs = require("fs");
 const path = require("path");
@@ -41,12 +41,12 @@ const check = (name, cond) => { console.log((cond ? "ok   " : "FAIL ") + name); 
 // 1. Một quyết định dùng chung, không phải hai bản sao
 // ============================================================
 check("console.js có openVaultPath", /function openVaultPath\s*\(/.test(CONSOLE));
-check("và phơi ra cho nơi khác gọi", /window\.NaotaOpenVaultPath\s*=\s*openVaultPath/.test(CONSOLE));
+check("và phơi ra cho nơi khác gọi", /window\.VanhanhOpenVaultPath\s*=\s*openVaultPath/.test(CONSOLE));
 check("CANARY: deep-link #open= đi qua openVaultPath, KHÔNG phải openFilesAt "
       + "(đây chính là đường đổ vào thư mục)",
       /#open=\(\.\+\)\$\/\.exec[\s\S]{0,400}?openVaultPath\(decodeURIComponent/.test(CONSOLE));
 check("chat-render ưu tiên đúng hàm đó thay vì tự có luật riêng",
-      /function moFileVault[\s\S]{0,400}?window\.NaotaOpenVaultPath/.test(CR));
+      /function moFileVault[\s\S]{0,400}?window\.VanhanhOpenVaultPath/.test(CR));
 
 // ============================================================
 // 2. Luật chọn: file sửa được -> trình sửa; thư mục -> trang Tệp tin
@@ -55,10 +55,10 @@ const than = (CONSOLE.match(/function openVaultPath\s*\([\s\S]*?\n  \}/) || [""]
 check("nhận ra thư mục bằng dấu chấm trong tên (cùng luật openFilesAt)",
       /laThuMuc/.test(than) && /indexOf\("\."\)\s*<\s*0/.test(than));
 check("file sửa được thì mở TRÌNH SỬA", /VT_TEXT_EXTS\.includes\(duoi\)/.test(than)
-      && /NaotaOpenNote/.test(than));
-check("màn hẹp rơi về modal file-editor chứ không bỏ cuộc", /NaotaEditFile/.test(than));
+      && /VanhanhOpenNote/.test(than));
+check("màn hẹp rơi về modal file-editor chứ không bỏ cuộc", /VanhanhEditFile/.test(than));
 check("CANARY: về trang Tệp tin chỉ là ĐƯỜNG LUI cuối cùng, không phải mặc định",
-      than.lastIndexOf("openFilesAt") > than.lastIndexOf("NaotaEditFile"));
+      than.lastIndexOf("openFilesAt") > than.lastIndexOf("VanhanhEditFile"));
 check(".html nằm trong danh sách sửa được của trình sửa cây",
       /VT_TEXT_EXTS = \[[^\]]*"\.html"/.test(CONSOLE));
 
@@ -83,12 +83,12 @@ check("CANARY: .html KHÔNG bị xếp vào nhóm tải về", !/DOWNLOAD_EXT_RE
 // xuống openFilesAt, tức là ĐỔI TRANG sang Tệp tin. Ở trang Cộng sự cú bấm đó ném người dùng
 // ra khỏi cuộc trò chuyện đang mở với trợ lý, chỉ để xem một tấm ảnh. Nay mở lightbox tại chỗ.
 check("ảnh mở lightbox tại chỗ chứ không đổi trang",
-      /VT_IMG_EXTS\.includes\(duoi\) && window\.NaotaLightbox/.test(than)
-      && /window\.NaotaLightbox\.open\(_vtRaw\(clean\), base\)/.test(than));
+      /VT_IMG_EXTS\.includes\(duoi\) && window\.VanhanhLightbox/.test(than)
+      && /window\.VanhanhLightbox\.open\(_vtRaw\(clean\), base\)/.test(than));
 check("CANARY: nhánh ảnh đứng TRƯỚC đường lui về trang Tệp tin",
-      than.lastIndexOf("NaotaLightbox") < than.lastIndexOf("openFilesAt"));
+      than.lastIndexOf("VanhanhLightbox") < than.lastIndexOf("openFilesAt"));
 check("lightbox là bản CÓ SẴN của chat-render, không dựng khung xem thứ hai",
-      /window\.NaotaLightbox = \{ open: moLightbox/.test(CR));
+      /window\.VanhanhLightbox = \{ open: moLightbox/.test(CR));
 
 console.log();
 if (fails.length) { console.log(fails.length + " test HỎNG: " + fails.join(", ")); process.exit(1); }

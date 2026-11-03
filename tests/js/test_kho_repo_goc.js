@@ -27,17 +27,17 @@ const doc = {
 const host = { innerHTML: "", querySelector: () => null, querySelectorAll: () => [] };
 
 const goi = (o) => Object.assign({
-  id: "naota.x", kind: "skill", name: { vi: "X" }, description: { vi: "mo ta" },
-  tier: "data", verified: true, nguon: "kho", author: { name: "Naota" },
+  id: "vanhanh.x", kind: "skill", name: { vi: "X" }, description: { vi: "mo ta" },
+  tier: "data", verified: true, nguon: "kho", author: { name: "Vanhanh" },
   version: "1.0.0", installed: false, download: { url: "https://x/y.zip", sha256: "a" }, nhom: "Sang tao",
   upstream: {},
 }, o);
-const REMOTION = goi({ id: "naota.remotion", name: { vi: "Remotion" },
+const REMOTION = goi({ id: "vanhanh.remotion", name: { vi: "Remotion" },
   upstream: { repo: "remotion-dev/skills", ref: "main", commit: "30d4553", synced: "2026-10-28" } });
-const LEMO = goi({ id: "naota.lemo", kind: "bundle", name: { vi: "Lemo" },
+const LEMO = goi({ id: "vanhanh.lemo", kind: "bundle", name: { vi: "Lemo" },
   upstream: { repo: "lemomo-ai/lemo-opuscar", ref: "main", commit: "413a6bd", synced: "2026-10-27" } });
-const THUONG = goi({ id: "naota.thuong", name: { vi: "Thuong" } });
-const KET_NOI = goi({ id: "naota.kn", kind: "connector", name: { vi: "Ket noi" } });
+const THUONG = goi({ id: "vanhanh.thuong", name: { vi: "Thuong" } });
+const KET_NOI = goi({ id: "vanhanh.kn", kind: "connector", name: { vi: "Ket noi" } });
 
 let danhMuc = { ok: true, fetched_at: Math.floor(Date.now() / 1000), packs: [REMOTION, LEMO, THUONG, KET_NOI] };
 const win = { ic: (t) => "<svg data-ic=\"" + t + "\"></svg>", Alpine: { store: () => ({ go() {} }) } };
@@ -46,7 +46,7 @@ globalThis.Alpine = win.Alpine;
 new Function("window", "document", "fetch",
   fs.readFileSync(path.join(ROOT, "dashboard", "packs.js"), "utf8"))(
   win, doc, () => Promise.resolve({ json: () => Promise.resolve(danhMuc) }));
-const P = win.NaotaPacks || {};
+const P = win.VanhanhPacks || {};
 
 // ---- 1. The card ----
 const the = P.theKho(REMOTION);
@@ -68,14 +68,14 @@ check("ten repo duoc escape truoc khi vao HTML", !doc_.includes("<script>"));
   check("tab Repo khuyen dung dung DAU hang tab",
     h.indexOf('data-kho-loai="repo"') < h.indexOf('data-kho-loai="agent"'));
   check("tab repo liet ke moi goi theo repo goc, bat ke loai",
-    h.includes("naota.remotion") && h.includes("naota.lemo"));
-  check("tab repo khong lan goi thuong", !h.includes("naota.thuong") && !h.includes("naota.kn"));
+    h.includes("vanhanh.remotion") && h.includes("vanhanh.lemo"));
+  check("tab repo khong lan goi thuong", !h.includes("vanhanh.thuong") && !h.includes("vanhanh.kn"));
   // The lead line under the tab went (the cards explain themselves).
   check("tab repo khong con dong gioi thieu thua", !h.includes("kho-goc-gt"));
 
   await P.veKho({}, host, false, "skill");
   const h2 = host.innerHTML;
-  check("tab Ky nang van co goi theo repo goc cua no", h2.includes("naota.remotion") && h2.includes("naota.thuong"));
+  check("tab Ky nang van co goi theo repo goc cua no", h2.includes("vanhanh.remotion") && h2.includes("vanhanh.thuong"));
   check("tab khac khong hien dong gioi thieu cua tab repo", !h2.includes("kho-goc-gt"));
 
   // ---- 3. No upstream packs: no tab ----

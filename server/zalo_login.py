@@ -1,11 +1,11 @@
 """
-Đăng nhập Zalo bằng QR ngay trong UI Naota (connector "zalo" - CLI naota-zalo).
+Đăng nhập Zalo bằng QR ngay trong UI Vanhanh (connector "zalo" - CLI vanhanh-zalo).
 Flow: POST /connect/zalo/start → spawn `npx -y --prefer-offline <gói> login --json` với HOME
 cô lập riêng cho tài khoản → bắt event {"event":"qr", dataUrl} đưa lên modal →
 user quét bằng app Zalo → thành công thì TỰ TẠO connection (config.home_dir trỏ
 home cô lập đó, mcp_store.resolved tự set env HOME/USERPROFILE khi chạy MCP).
 
-Đã verify (zalo-agent-cli 1.6.2, giữ nguyên ở naota-zalo 1.0.0): account active là TOÀN CỤC theo home dir
+Đã verify (zalo-agent-cli 1.6.2, giữ nguyên ở vanhanh-zalo 1.0.0): account active là TOÀN CỤC theo home dir
 (thư mục phiên vẫn tên ~/.zalo-agent-cli để tài khoản đã đăng nhập không bị đăng xuất)
 → mỗi connection 1 home riêng để nhiều tài khoản Zalo chạy song song.
 """
@@ -160,8 +160,8 @@ def start(label=None):
     _sweep()
     argv = _npx_argv()
     if not argv:
-        return {"ok": False, "error": localefmt.chu("Cần cài Node.js 20+ (lệnh npx) trên máy chạy Naota - tải tại nodejs.org",
-                                                    "Node.js 20+ (the npx command) must be installed on the machine running Naota - download it at nodejs.org")}
+        return {"ok": False, "error": localefmt.chu("Cần cài Node.js 20+ (lệnh npx) trên máy chạy Vanhanh - tải tại nodejs.org",
+                                                    "Node.js 20+ (the npx command) must be installed on the machine running Vanhanh - download it at nodejs.org")}
     sid = uuid.uuid4().hex[:10]
     slug = mcp_store._slugify(label or "zalo")
     # Kèm sid: 2 tài khoản đặt CÙNG tên gợi nhớ vẫn phải 2 home riêng (account active của

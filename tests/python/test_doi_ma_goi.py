@@ -21,8 +21,8 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-doima-")
-os.environ["NAOTA_ENABLE_USER_PLUGINS"] = "true"
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-doima-")
+os.environ["VANHANH_ENABLE_USER_PLUGINS"] = "true"
 
 import packs           # noqa: E402
 import pack_install    # noqa: E402
@@ -49,11 +49,11 @@ def register(ctx):
 def goi_zip(pid, ver, slug, replaces=None, ten_skill="tu-van"):
     b = io.BytesIO()
     with zipfile.ZipFile(b, "w") as z:
-        man = f"format: naota-pack\nspec: 1\nid: {pid}\nversion: {ver}\nname: {pid}\n" \
+        man = f"format: vanhanh-pack\nspec: 1\nid: {pid}\nversion: {ver}\nname: {pid}\n" \
               f"provides:\n  connectors:\n    - connectors/demo.yaml\n"
         if replaces:
             man += "replaces:\n" + "".join(f"  - {x}\n" for x in replaces)
-        z.writestr("naota-pack.yaml", man)
+        z.writestr("vanhanh-pack.yaml", man)
         z.writestr("connectors/demo.yaml", "id: demo-svc\nname: Demo\ntransport: http\nurl: https://x.example/mcp\n")
         z.writestr(f"plugins/{slug}/plugin.yaml",
                    f"name: {slug}\nslug: {slug}\nenabled: true\nmin_mode: readonly\n")
@@ -72,85 +72,85 @@ def cai(du_lieu, brain, enable=True):
 BRAIN = Path(tempfile.mkdtemp(prefix="brain-doima-"))
 
 # ---- gói cũ, mã tiếng Việt ----
-s0, r0 = cai(goi_zip("naota.naota-trong-chatgpt", "1.0.0", "naota-trong-chatgpt"), BRAIN)
+s0, r0 = cai(goi_zip("vanhanh.vanhanh-trong-chatgpt", "1.0.0", "vanhanh-trong-chatgpt"), BRAIN)
 check("cài gói cũ", r0.get("ok"), r0)
-du_lieu_cu = STATE_DIR / "plugin-data" / "naota-trong-chatgpt"
+du_lieu_cu = STATE_DIR / "plugin-data" / "vanhanh-trong-chatgpt"
 du_lieu_cu.mkdir(parents=True, exist_ok=True)
 (du_lieu_cu / "kho.json").write_text('{"tokens": {"abc": 1}}', encoding="utf-8")
 check("skill gói cũ nằm trong brain", (BRAIN / "skills" / "tu-van" / "SKILL.md").is_file())
 
 # ---- danh mục Store trước khi cập nhật ----
-KHO = [{"id": "naota.gate", "version": "2.0.0", "name": {"vi": "Naota Gate"},
-        "replaces": ["naota.naota-trong-chatgpt"]},
-       {"id": "naota.naota-trong-chatgpt", "version": "1.0.0", "name": {"vi": "Naota trong ChatGPT"}}]
+KHO = [{"id": "vanhanh.gate", "version": "2.0.0", "name": {"vi": "Vanhanh Gate"},
+        "replaces": ["vanhanh.vanhanh-trong-chatgpt"]},
+       {"id": "vanhanh.vanhanh-trong-chatgpt", "version": "1.0.0", "name": {"vi": "Vanhanh trong ChatGPT"}}]
 up = pack_updates.find_updates(KHO, pack_install.doc_so())
-check("chuông báo bản mới cho gói đổi mã", any(u["id"] == "naota.gate" and u["from"] == "1.0.0" for u in up), up)
+check("chuông báo bản mới cho gói đổi mã", any(u["id"] == "vanhanh.gate" and u["from"] == "1.0.0" for u in up), up)
 import packs_store  # noqa: E402
-sach = packs_store._lam_sach({"id": "naota.gate", "replaces": ["naota.naota-trong-chatgpt", "", 5], "download": {}})
-check("danh mục giữ trường replaces đã làm sạch", sach["replaces"] == ["naota.naota-trong-chatgpt", "5"], sach)
+sach = packs_store._lam_sach({"id": "vanhanh.gate", "replaces": ["vanhanh.vanhanh-trong-chatgpt", "", 5], "download": {}})
+check("danh mục giữ trường replaces đã làm sạch", sach["replaces"] == ["vanhanh.vanhanh-trong-chatgpt", "5"], sach)
 check("replaces kiểu lạ (chuỗi) thành rỗng", packs_store._lam_sach({"id": "a", "replaces": "abc"})["replaces"] == [])
 
 # ---- 1. soi gói mới ----
-moi = goi_zip("naota.gate", "2.0.0", "naota-gate", replaces=["naota.naota-trong-chatgpt", "naota.khong-cai"])
+moi = goi_zip("vanhanh.gate", "2.0.0", "vanhanh-gate", replaces=["vanhanh.vanhanh-trong-chatgpt", "vanhanh.khong-cai"])
 s1 = pack_install.soi(moi, "gate.zip")
 check("soi: gói mới hợp lệ, connector cùng tên gói cũ KHÔNG bị coi là trùng",
       s1.get("ok") and "demo-svc" in s1.get("connectors", []), s1.get("error") or s1.get("warning"))
-check("soi: báo gói đã cài mà nó thay (chỉ mã đang cài)", s1.get("replaces") == ["naota.naota-trong-chatgpt"], s1)
+check("soi: báo gói đã cài mà nó thay (chỉ mã đang cài)", s1.get("replaces") == ["vanhanh.vanhanh-trong-chatgpt"], s1)
 check("soi: màn hình xác nhận coi là bản cập nhật", (s1.get("da_cai") or {}).get("version") == "1.0.0", s1.get("da_cai"))
 
 # ---- 2. cài ----
 r1 = pack_install.cai(s1["staging_id"], s1["sha256"], enable=False, brain_root=str(BRAIN))
-check("cài gói mới ok, báo đã thay gói cũ", r1.get("ok") and r1.get("replaced") == ["naota.naota-trong-chatgpt"], r1)
+check("cài gói mới ok, báo đã thay gói cũ", r1.get("ok") and r1.get("replaced") == ["vanhanh.vanhanh-trong-chatgpt"], r1)
 so = pack_install.doc_so()
-check("sổ cài đặt: có mã mới, mất mã cũ", "naota.gate" in so and "naota.naota-trong-chatgpt" not in so, list(so))
+check("sổ cài đặt: có mã mới, mất mã cũ", "vanhanh.gate" in so and "vanhanh.vanhanh-trong-chatgpt" not in so, list(so))
 check("gói cũ đang bật thì bản thay nó cũng bật, dù màn hình gửi enable=False",
-      so["naota.gate"]["enabled"] is True and r1.get("enabled") is True)
-check("thư mục gói cũ đã gỡ", not (packs.PACKS_DIR / "naota.naota-trong-chatgpt").exists())
-check("connector của gói mới đầy đủ trong sổ", so["naota.gate"]["connectors"] == ["demo-svc"], so["naota.gate"])
-du_lieu_moi = STATE_DIR / "plugin-data" / "naota-gate"
+      so["vanhanh.gate"]["enabled"] is True and r1.get("enabled") is True)
+check("thư mục gói cũ đã gỡ", not (packs.PACKS_DIR / "vanhanh.vanhanh-trong-chatgpt").exists())
+check("connector của gói mới đầy đủ trong sổ", so["vanhanh.gate"]["connectors"] == ["demo-svc"], so["vanhanh.gate"])
+du_lieu_moi = STATE_DIR / "plugin-data" / "vanhanh-gate"
 check("dữ liệu plugin (token) chuyển sang tên mới",
       (du_lieu_moi / "kho.json").is_file() and not du_lieu_cu.exists())
-check("sổ ghi bí danh plugin cũ -> mới", so["naota.gate"].get("plugin_aliases") == {"naota-trong-chatgpt": "naota-gate"})
-check("packs.plugin_alias đọc ra bí danh", packs.plugin_alias("naota-trong-chatgpt") == "naota-gate")
-check("plugin không đổi tên thì không có bí danh", packs.plugin_alias("naota-gate") == "")
+check("sổ ghi bí danh plugin cũ -> mới", so["vanhanh.gate"].get("plugin_aliases") == {"vanhanh-trong-chatgpt": "vanhanh-gate"})
+check("packs.plugin_alias đọc ra bí danh", packs.plugin_alias("vanhanh-trong-chatgpt") == "vanhanh-gate")
+check("plugin không đổi tên thì không có bí danh", packs.plugin_alias("vanhanh-gate") == "")
 
 # ---- 3. địa chỉ cũ tới plugin mới ----
 plugins_host.invalidate()
-tr = plugins_host.tim_http("naota-trong-chatgpt", "mcp", "POST")
-check("/ext/<slug cũ>/mcp tới plugin mới", tr is not None and tr[0].slug == "naota-gate", tr)
-check("địa chỉ mới vẫn chạy", plugins_host.tim_http("naota-gate", "mcp", "POST") is not None)
-check("đường không có thì vẫn không có", plugins_host.tim_http("naota-trong-chatgpt", "khong-co", "POST") is None)
+tr = plugins_host.tim_http("vanhanh-trong-chatgpt", "mcp", "POST")
+check("/ext/<slug cũ>/mcp tới plugin mới", tr is not None and tr[0].slug == "vanhanh-gate", tr)
+check("địa chỉ mới vẫn chạy", plugins_host.tim_http("vanhanh-gate", "mcp", "POST") is not None)
+check("đường không có thì vẫn không có", plugins_host.tim_http("vanhanh-trong-chatgpt", "khong-co", "POST") is None)
 
 # ---- 4. năng lực trong brain đi theo gói mới ----
-sv = pack_vault.doc_so("naota.gate")
+sv = pack_vault.doc_so("vanhanh.gate")
 check("sổ năng lực brain chuyển sang mã mới", "skills/tu-van" in (sv.get("items") or {}), sv)
-check("sổ năng lực mã cũ không còn", not pack_vault._so_path("naota.naota-trong-chatgpt").exists())
+check("sổ năng lực mã cũ không còn", not pack_vault._so_path("vanhanh.vanhanh-trong-chatgpt").exists())
 check("skill không bị bỏ qua như 'của người khác'",
       not any(x.get("khoa") == "skills/tu-van" for x in (r1.get("vault") or {}).get("bo_qua", [])), r1.get("vault"))
 
 # ---- 5. bí danh đi tiếp qua lần đổi tên thứ hai ----
-s2, r2 = cai(goi_zip("naota.gate-pro", "3.0.0", "gate-pro", replaces=["naota.gate"]), BRAIN)
+s2, r2 = cai(goi_zip("vanhanh.gate-pro", "3.0.0", "gate-pro", replaces=["vanhanh.gate"]), BRAIN)
 so = pack_install.doc_so()
 check("đổi tên lần hai: bí danh cũ nhất cũng trỏ về tên mới nhất",
-      so["naota.gate-pro"].get("plugin_aliases") == {"naota-trong-chatgpt": "gate-pro", "naota-gate": "gate-pro"},
-      so["naota.gate-pro"].get("plugin_aliases"))
+      so["vanhanh.gate-pro"].get("plugin_aliases") == {"vanhanh-trong-chatgpt": "gate-pro", "vanhanh-gate": "gate-pro"},
+      so["vanhanh.gate-pro"].get("plugin_aliases"))
 plugins_host.invalidate()
-tr = plugins_host.tim_http("naota-trong-chatgpt", "mcp", "POST")
+tr = plugins_host.tim_http("vanhanh-trong-chatgpt", "mcp", "POST")
 check("địa chỉ gốc vẫn tới plugin mới nhất", tr is not None and tr[0].slug == "gate-pro")
 
 # ---- 6. replaces một mã không cài: không đụng gì ----
-s3, r3 = cai(goi_zip("naota.crm", "1.0.1", "crm", replaces=["naota.khach-hang-crm"], ten_skill="cham-soc"), BRAIN,
+s3, r3 = cai(goi_zip("vanhanh.crm", "1.0.1", "crm", replaces=["vanhanh.khach-hang-crm"], ten_skill="cham-soc"), BRAIN,
              enable=False)
 check("replaces mã không cài: cài bình thường, không thay gì", r3.get("ok") and r3.get("replaced") == [], r3)
 check("không có gói cũ để thừa hưởng: bật hay tắt đúng như màn hình chọn",
-      pack_install.doc_so()["naota.crm"]["enabled"] is False)
+      pack_install.doc_so()["vanhanh.crm"]["enabled"] is False)
 
 # ---- danh mục Store qua route ----
 src = (SERVER / "routes" / "packs.py").read_text(encoding="utf-8")
 check("route danh mục: ẩn thẻ mã cũ và đánh dấu thẻ mới đã cài",
       "bi_thay" in src and "replaces_installed" in src)
-man = packs.ma_thay_the({"replaces": ["naota.a", "naota.a", "../x", "naota.self", 3]}, "naota.self")
-check("ma_thay_the: bỏ trùng, bỏ mã sai, bỏ chính nó", man == ["naota.a", "3"], man)
+man = packs.ma_thay_the({"replaces": ["vanhanh.a", "vanhanh.a", "../x", "vanhanh.self", 3]}, "vanhanh.self")
+check("ma_thay_the: bỏ trùng, bỏ mã sai, bỏ chính nó", man == ["vanhanh.a", "3"], man)
 
 print()
 print("ALL PASS" if not _fails else f"{len(_fails)} FAIL: {_fails}")

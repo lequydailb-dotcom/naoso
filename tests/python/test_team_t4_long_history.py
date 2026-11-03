@@ -16,8 +16,8 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-t4-long-")
-TEMP = Path(tempfile.mkdtemp(prefix="naota-t4-long-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-t4-long-")
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-t4-long-w-"))
 
 import agent_pulse as AP  # noqa: E402
 import resonance_store as RS  # noqa: E402

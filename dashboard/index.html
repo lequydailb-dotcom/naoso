@@ -7,7 +7,7 @@
        dưới); ở tab Safari thường iOS 10+ vẫn cho zoom bằng tay vì lý do accessibility, nên còn
        chặn thêm bằng touch-action trong style.css làm lớp thứ hai. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
-  <title>NAOTA</title>
+  <title>VANHANH</title>
   <!-- Favicon = logo hiện tại (/brand-logo): mặc định theo logo.png, và tự đổi theo ảnh user tải lên. -->
   <link rel="icon" href="/brand-logo?v=6">
   <link rel="apple-touch-icon" href="/brand-logo?v=6">
@@ -19,7 +19,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="NAOTA">
+  <meta name="apple-mobile-web-app-title" content="VANHANH">
   <meta name="theme-color" content="#ffffff">
   <!-- manifest.json khai icon PNG vuông 192/512 có sizes rõ ràng: đó là điều kiện để
        Chrome/Edge DESKTOP coi trang là cài được (icon "any" trên PNG bị coi là không hợp lệ
@@ -35,9 +35,9 @@
   <link rel="stylesheet" href="/static/console.css?v=137">
   <!-- Áp tông đã lưu TRƯỚC khi vẽ để không nháy tối rồi mới đổi sang sáng.
        Giá trị cũ "dim" (tông tối-nhạt, gỡ) quy về tối; theme.js sẽ ghi đè lại.
-       Chưa chọn gì thì SÁNG (NAOTA 1.0.0). Chế độ "auto" (chỉ khi người dùng tự chọn) tính theo khung giờ "HH:MM-HH:MM", cùng quy tắc với
+       Chưa chọn gì thì SÁNG (VANHANH 1.0.0). Chế độ "auto" (chỉ khi người dùng tự chọn) tính theo khung giờ "HH:MM-HH:MM", cùng quy tắc với
        mode() và lightAt() trong theme.js (vắt qua nửa đêm được, hai mốc trùng là tối): sửa một bên thì sửa cả bên kia. -->
-  <script>(function(){try{var m=localStorage.getItem('naota.theme'),L=m!=='dark'&&m!=='dim';if(m==='auto'){var p=/^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/.exec(localStorage.getItem('naota.theme.schedule')||'')||[0,6,0,18,0],a=p[1]*60+ +p[2],b=p[3]*60+ +p[4],d=new Date(),n=d.getHours()*60+d.getMinutes();L=a!==b&&(a<b?n>=a&&n<b:n>=a||n<b);}if(L)document.documentElement.setAttribute('data-theme','light');}catch(e){}})();</script>
+  <script>(function(){try{var m=localStorage.getItem('vanhanh.theme'),L=m!=='dark'&&m!=='dim';if(m==='auto'){var p=/^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/.exec(localStorage.getItem('vanhanh.theme.schedule')||'')||[0,6,0,18,0],a=p[1]*60+ +p[2],b=p[3]*60+ +p[4],d=new Date(),n=d.getHours()*60+d.getMinutes();L=a!==b&&(a<b?n>=a&&n<b:n>=a||n<b);}if(L)document.documentElement.setAttribute('data-theme','light');}catch(e){}})();</script>
 </head>
 <body>
   <div class="hud">
@@ -52,7 +52,7 @@
       </button>
       <!-- NHÓM TRÁI: thương hiệu + chọn brain + số liệu (bám trái) -->
       <div class="hud-top-left">
-        <div class="brand"><span class="brand-icon"><img src="/brand-logo" alt="" style="width:22px;height:22px;border-radius:5px;vertical-align:middle;object-fit:cover"></span> <span class="brand-text">NAOTA</span></div>
+        <div class="brand"><span class="brand-icon"><img src="/brand-logo" alt="" style="width:22px;height:22px;border-radius:5px;vertical-align:middle;object-fit:cover"></span> <span class="brand-text">VANHANH</span></div>
         <!-- Select Brain: dời từ góc graph lên navbar -->
         <div class="orb-graph-ctl navbar-brain">
           <i data-ic="brain" class="brain-select-ico" data-ic-title="Bộ não đang chọn" data-i18n-title="top.brain_current"></i>
@@ -84,12 +84,12 @@
           <span class="notification-trigger-label" data-i18n="noti.label">Thông báo</span>
           <span class="notification-badge" id="notificationBadge" hidden>0</span>
         </button>
-        <!-- Cài Naota như app riêng (PWA). Ẩn mặc định: app.js chỉ hiện khi trình duyệt
+        <!-- Cài Vanhanh như app riêng (PWA). Ẩn mặc định: app.js chỉ hiện khi trình duyệt
              bắn beforeinstallprompt (Chrome/Edge desktop + Android) và chưa chạy standalone.
              Safari/iOS không có event này - bên đó vẫn là Share → Thêm vào MH chính. -->
         <button class="install-app-btn" id="installAppBtn" type="button" hidden
-                title="Cài Naota thành app riêng - mở từ Desktop/Dock, không lẫn giữa các tab" data-i18n-title="top.install_title"
-                aria-label="Cài Naota thành app riêng" data-i18n-aria="top.install">
+                title="Cài Vanhanh thành app riêng - mở từ Desktop/Dock, không lẫn giữa các tab" data-i18n-title="top.install_title"
+                aria-label="Cài Vanhanh thành app riêng" data-i18n-aria="top.install">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <rect x="2" y="3" width="20" height="14" rx="2"/>
             <path d="M8 21h8M12 17v4"/>
@@ -123,7 +123,7 @@
           </button>
           <!-- Nút loa ở đây đã BỎ: cùng một công tắc mà có tới ba chỗ bấm (header,
                thanh nhập chat, công tắc trong Cài đặt nhanh). Giữ lại đúng nút trên THANH NHẬP
-               (#ttsToggleBar) - nó nằm ngay cạnh chỗ người ta gõ, thấy được ở cả màn Naota lẫn
+               (#ttsToggleBar) - nó nằm ngay cạnh chỗ người ta gõ, thấy được ở cả màn Vanhanh lẫn
                trang Trò chuyện, và có ở màn hẹp. Chỗ trống này để dành cho hòm thư. -->
           <button class="hud-icon-btn" id="resetBtn" title="Reset hội thoại" data-i18n-title="top.reset">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -147,7 +147,7 @@
       <div class="noti-head">
         <div>
           <div class="noti-title" data-i18n="noti.label">Thông báo</div>
-          <div class="noti-sub" id="notificationSummary" data-i18n="noti.summary">Cập nhật mới và tin từ NAOTA</div>
+          <div class="noti-sub" id="notificationSummary" data-i18n="noti.summary">Cập nhật mới và tin từ VANHANH</div>
         </div>
         <div class="noti-head-actions">
           <button class="noti-text-btn" id="notificationReadAll" type="button" data-i18n="noti.read_all">Đọc tất cả</button>
@@ -163,7 +163,7 @@
         <button class="noti-tab" id="notiTabNews" type="button" role="tab" aria-selected="false">
           <span data-i18n="noti.tab_news">Tin tức</span><span class="noti-tab-count" id="notiTabNewsCount" hidden>0</span>
         </button>
-        <!-- Naota Core's notification filter (each group's mode, per-kind rules, undo). -->
+        <!-- Vanhanh Core's notification filter (each group's mode, per-kind rules, undo). -->
         <button class="noti-tab noti-tab-filter" id="notiTabFilter" type="button" role="tab" aria-selected="false">
           <span data-i18n="noti.filter_btn">Bộ lọc</span>
         </button>
@@ -176,7 +176,7 @@
       <div class="noti-push" id="notificationPush" hidden>
         <div class="noti-push-main">
           <span class="noti-push-title" data-i18n="noti.push">Thông báo đẩy</span>
-          <span class="noti-push-note" id="notificationPushNote" data-i18n="noti.push_note">Báo cả khi bạn không mở Naota</span>
+          <span class="noti-push-note" id="notificationPushNote" data-i18n="noti.push_note">Báo cả khi bạn không mở Vanhanh</span>
         </div>
         <button class="noti-text-btn" id="notificationPushTest" type="button" hidden data-i18n="noti.push_test">Gửi thử</button>
         <button class="noti-text-btn primary" id="notificationPushToggle" type="button" data-i18n="noti.push_on">Bật</button>
@@ -323,10 +323,10 @@
           </span>
         </div>
         <!-- MỨC DÙNG token đã DỜI xuống góc dưới-phải khung giữa (giải phóng chỗ cho khung chat). -->
-        <!-- Thanh gọi (call-bar.js): hiện khi bấm mic gọi Naota. Nằm trong CHAT_NODE_IDS
+        <!-- Thanh gọi (call-bar.js): hiện khi bấm mic gọi Vanhanh. Nằm trong CHAT_NODE_IDS
              (console.js) nên sang trang Trò chuyện là đi theo khung chat. -->
         <div class="call-bar" id="callBar" hidden></div>
-        <div class="transcript" id="chatArea" data-i18n-empty="chat.empty_hint" data-empty-hint="Nói hoặc gõ để bắt đầu hội thoại với Naota."></div>
+        <div class="transcript" id="chatArea" data-i18n-empty="chat.empty_hint" data-empty-hint="Nói hoặc gõ để bắt đầu hội thoại với Vanhanh."></div>
         <!-- Thanh #toolBar cũ ĐÃ BỎ: trạng thái "đang suy nghĩ / gọi tool" giờ hiện bằng
              chip hoạt động NGAY TRONG #chatArea (app.js showActivity) → tự đi theo cả khi
              phóng to chat workspace (chat-zoom chỉ dời #chatArea, trước đây toolBar bị bỏ lại). -->
@@ -357,7 +357,7 @@
             <div id="replyLangHost" data-settings-section="general"></div>
 
             <!-- GIỌNG NÓI (voice-call-spec mục 5): MỘT thẻ, ba ô, mọi ô
-                 tự lưu khi đổi, không còn nút Lưu. Bấm mic là gọi Naota, nên những gì máy tự lo được
+                 tự lưu khi đổi, không còn nút Lưu. Bấm mic là gọi Vanhanh, nên những gì máy tự lo được
                  (bộ não giọng, tai nghe lại, ngôn ngữ nghe, im bao lâu thì gửi, ngắt lời bằng giọng,
                  nhịp hội thoại, đọc trả lời bằng giọng; cả "Tập trung": im 30 giây thì ngắt
                  Live, nói là nối lại) không còn ô nhập. Giá trị đã lưu từ bản cũ
@@ -371,7 +371,7 @@
               <div class="vc-now" id="vcNow" role="status"></div>
               <div class="qs-field vc-field">
                 <div class="vc-lblcol">
-                  <label class="qs-lbl" for="vcVoice" id="vcVoiceLbl" data-i18n="settings.vc_voice">Giọng Naota</label>
+                  <label class="qs-lbl" for="vcVoice" id="vcVoiceLbl" data-i18n="settings.vc_voice">Giọng Vanhanh</label>
                   <div class="vc-sub" id="vcVoiceSub"></div>
                 </div>
                 <div class="v2-voice-row">
@@ -491,7 +491,7 @@
               </details>
               <div class="gcard-meta" id="vcStatus" role="status"></div>
               <div class="gcard-meta" id="v2LastErr" hidden></div>
-              <!-- Kho giọng Edge: app.js đọc/ghi giọng Edge qua ô này (localStorage naota.voice), còn
+              <!-- Kho giọng Edge: app.js đọc/ghi giọng Edge qua ô này (localStorage vanhanh.voice), còn
                    người dùng chọn ở #vcVoice. Ẩn, nhưng vẫn là danh sách gốc của bảy giọng Edge. -->
               <select id="voiceSel" name="voice" hidden aria-hidden="true" tabindex="-1">
                 <option value="en-US-EmmaMultilingualNeural" data-i18n="qs.voice_opt_emma">Emma · Nữ, vui tươi rõ chữ · đa ngôn ngữ</option>
@@ -530,9 +530,9 @@
 
             <div class="qs-block" data-settings-section="general">
               <div class="popover-label" data-i18n="qs.domain">TÊN MIỀN & SSL</div>
-              <div class="opt-sub dom-intro" data-i18n="qs.domain_intro">Nhập tên miền để Naota kiểm tra DNS và hướng dẫn bật HTTPS theo đúng môi trường đang chạy.</div>
+              <div class="opt-sub dom-intro" data-i18n="qs.domain_intro">Nhập tên miền để Vanhanh kiểm tra DNS và hướng dẫn bật HTTPS theo đúng môi trường đang chạy.</div>
               <div class="dom-field">
-                <input id="setDomain" placeholder="Ví dụ: naota.tencuaban.com" data-i18n-ph="qs.domain_ph" autocomplete="off" spellcheck="false">
+                <input id="setDomain" placeholder="Ví dụ: vanhanh.tencuaban.com" data-i18n-ph="qs.domain_ph" autocomplete="off" spellcheck="false">
                 <button class="gcard-btn" id="saveDomain" data-i18n="qs.domain_save">Lưu &amp; kiểm tra</button>
               </div>
               <div class="dom-status" id="domStatusRow" style="display:none">
@@ -549,8 +549,8 @@
               <div id="domainGuide" class="dom-guide" style="display:none"></div>
               <div class="opt-sub" id="domainStatus"></div>
               <div class="dom-docs">
-                <a href="https://github.com/vuongtex/naota/blob/main/docs/15-thuong-hieu-ten-mien.md" target="_blank" rel="noopener" data-i18n="qs.domain_docs">Hướng dẫn cài tên miền ↗</a>
-                <a href="https://github.com/vuongtex/naota/blob/main/DEPLOY.md" target="_blank" rel="noopener" data-i18n="qs.deploy_docs">Hướng dẫn deploy/SSL ↗</a>
+                <a href="https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/15-thuong-hieu-ten-mien.md" target="_blank" rel="noopener" data-i18n="qs.domain_docs">Hướng dẫn cài tên miền ↗</a>
+                <a href="https://github.com/lequydailb-dotcom/vanhanh/blob/main/DEPLOY.md" target="_blank" rel="noopener" data-i18n="qs.deploy_docs">Hướng dẫn deploy/SSL ↗</a>
               </div>
             </div>
 
@@ -558,8 +558,8 @@
                  /remote-access/status; the server downloads and supervises cloudflared (remote_tunnel.py). -->
             <div class="qs-block" data-settings-section="general" id="remoteAccessBlock">
               <div class="popover-label"><span data-i18n="ra.title">TRUY CẬP TỪ XA</span> <button type="button" class="info-i" aria-expanded="false" aria-label="Xem giải thích" title="Xem giải thích" data-i18n-aria="info.more" data-i18n-title="info.more"><i data-ic="info"></i></button></div>
-              <div class="info-body" hidden data-i18n="ra.intro_long">Naota tự tải và chạy cloudflared (công cụ chính thức, miễn phí của Cloudflare) ngay trên máy này.</div>
-              <div class="opt-sub" data-i18n="ra.sub">Mở Naota từ điện thoại hay máy khác qua link HTTPS, không cần VPS.</div>
+              <div class="info-body" hidden data-i18n="ra.intro_long">Vanhanh tự tải và chạy cloudflared (công cụ chính thức, miễn phí của Cloudflare) ngay trên máy này.</div>
+              <div class="opt-sub" data-i18n="ra.sub">Mở Vanhanh từ điện thoại hay máy khác qua link HTTPS, không cần VPS.</div>
               <div id="raBox" class="ra"></div>
             </div>
 
@@ -568,7 +568,7 @@
       </aside>
     </div>
 
-    <!-- Việc nền đang sống của hội thoại này (app.js NaotaBackground bơm nội dung, ẩn khi rỗng).
+    <!-- Việc nền đang sống của hội thoại này (app.js VanhanhBackground bơm nội dung, ẩn khi rỗng).
          Nằm NGAY trên khung nhập vì đó là chỗ mắt người dùng đang ở lúc họ tự hỏi "nó có chạy
          thật không". Được đăng ký trong CHAT_NODE_IDS (console.js) nên sang trang Trò chuyện
          là nó đi theo, không bị bỏ lại như thanh #toolBar cũ. -->
@@ -636,7 +636,7 @@
             <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
           </svg>
         </button>
-        <button type="button" class="mic-big" id="voiceBtn" title="Đàm thoại: nói chuyện trực tiếp với Naota" data-i18n-title="bar.mic" aria-label="Đàm thoại: nói chuyện trực tiếp với Naota" data-i18n-aria="bar.mic">
+        <button type="button" class="mic-big" id="voiceBtn" title="Đàm thoại: nói chuyện trực tiếp với Vanhanh" data-i18n-title="bar.mic" aria-label="Đàm thoại: nói chuyện trực tiếp với Vanhanh" data-i18n-aria="bar.mic">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3"/>
           </svg>
@@ -666,7 +666,7 @@
       <!-- Dấu ấn và CHỮ tách làm hai ô: pet.js thay ruột của .brand-mark bằng khuôn mặt linh
            vật (xem veDauAn), nên chữ phải nằm ngoài ô đó, không thì mỗi lần đổi hình dáng hay
            bảng màu là chữ bị xoá theo. .brand .brand-icon trên thanh trên cũng cùng vai trò. -->
-      <div class="rail-brand"><span class="brand-mark"><img src="/brand-logo" alt="Naota" style="width:30px;height:30px;border-radius:8px;display:block;object-fit:cover"></span><span class="rail-brand-text">NAOTA</span></div>
+      <div class="rail-brand"><span class="brand-mark"><img src="/brand-logo" alt="Vanhanh" style="width:30px;height:30px;border-radius:8px;display:block;object-fit:cover"></span><span class="rail-brand-text">VANHANH</span></div>
     </div>
     <!-- GIỮA cuộn được - gom theo nhóm; nhóm foot (Hệ thống) tự ghim xuống đáy -->
     <div class="rail-nav">
@@ -700,7 +700,7 @@
     </div>
     <!-- Ô đổi ngôn ngữ GIAO DIỆN ngay trên hàng version: console.js đổ danh sách từ /settings
          (lang_list - sổ đăng ký phía server, cùng nguồn với trang Cài đặt). Đổi là
-         NaotaI18n.setLang áp NGAY trên máy này rồi mới lưu ui_lang lên server. Ẩn cho tới khi
+         VanhanhI18n.setLang áp NGAY trên máy này rồi mới lưu ui_lang lên server. Ẩn cho tới khi
          có danh sách để không hiện một ô select trống. -->
     <div class="rail-lang" id="railLangWrap" hidden>
       <i data-ic="globe"></i>
@@ -713,7 +713,7 @@
               x-html="$store.nav.collapseIcon"></button>
       <div class="rf-meta">
         <div class="rf-ver" id="railVersion">v0.0.0</div>
-        <a class="rf-author" href="https://vuong.ai" target="_blank" rel="noopener">by Hoàng Ngọc Vương</a>
+        <a class="rf-author" href="https://lequydai.com" target="_blank" rel="noopener">by Đại Lê</a>
       </div>
     </div>
   </nav>
@@ -748,7 +748,7 @@
   <!-- Vault structure banner -->
   <div class="vault-banner" id="vaultBanner">
     <i class="vb-icon" data-ic="triangle-alert"></i>
-    <span class="vb-text" id="vbText" data-i18n="vbanner.text">Cấu trúc vault chưa chuẩn cho Naota.</span>
+    <span class="vb-text" id="vbText" data-i18n="vbanner.text">Cấu trúc vault chưa chuẩn cho Vanhanh.</span>
     <button class="vb-init" id="vbInit" data-i18n="vbanner.init">Khởi tạo cấu trúc</button>
     <button class="vb-close" id="vbClose"><i data-ic="x"></i></button>
   </div>
@@ -777,7 +777,7 @@
   <!-- Bộ cài đặt lần đầu (hiện khi chưa setup_done) -->
   <div class="modal-overlay" id="setupWizard">
     <div class="settings-modal" style="max-width:460px">
-      <div class="fm-head"><img src="/brand-logo" alt="" style="width:24px;height:24px;border-radius:6px;vertical-align:middle;margin-right:6px;object-fit:cover"><span data-i18n="wz.welcome">Chào mừng tới Naota</span></div>
+      <div class="fm-head"><img src="/brand-logo" alt="" style="width:24px;height:24px;border-radius:6px;vertical-align:middle;margin-right:6px;object-fit:cover"><span data-i18n="wz.welcome">Chào mừng tới Vanhanh</span></div>
       <div class="settings-body">
         <style>
         .wz-prov{display:flex;flex-direction:column;gap:8px;margin-top:6px}
@@ -796,7 +796,7 @@
         <div class="set-note"><span data-i18n="wz.intro">Vài bước nhanh để bắt đầu. Mọi thứ đổi lại được sau trong</span> <i data-ic="settings"></i> <span data-i18n="page.settings.label">Cài đặt</span>.</div>
         <div class="set-sec">
           <h4 data-i18n="wz.s1">1. Workspace</h4>
-          <label data-i18n="wz.ws_name">Tên hiển thị</label><input id="wzWsName" placeholder="NAOTA">
+          <label data-i18n="wz.ws_name">Tên hiển thị</label><input id="wzWsName" placeholder="VANHANH">
         </div>
         <div class="set-sec">
           <h4><span data-i18n="wz.s2">2. Tài khoản admin</span> <span class="dim" data-i18n="wz.s2_rec">(khuyến nghị)</span></h4>
@@ -816,12 +816,12 @@
             <label class="wz-card" data-prov="openai-oauth">
               <input type="radio" name="wzprov" value="openai-oauth">
               <div><b><i data-ic="message-circle"></i> <span data-i18n="wz.prov_gpt_name">ChatGPT (gói subscription)</span></b>
-                <div class="wz-pdesc" data-i18n="wz.prov_gpt">Đăng nhập ChatGPT Plus/Pro (qua Codex) → vẫn dùng được MCP của Naota. Hợp nếu bạn đã có gói ChatGPT.</div></div>
+                <div class="wz-pdesc" data-i18n="wz.prov_gpt">Đăng nhập ChatGPT Plus/Pro (qua Codex) → vẫn dùng được MCP của Vanhanh. Hợp nếu bạn đã có gói ChatGPT.</div></div>
             </label>
             <label class="wz-card" data-prov="openrouter">
               <input type="radio" name="wzprov" value="openrouter">
               <div><b><i data-ic="globe"></i> OpenRouter</b>
-                <div class="wz-pdesc" data-i18n="wz.prov_or">Nhiều model giá rẻ một chỗ, vẫn đủ MCP Naota + skill + đọc/ghi file brain. Chỉ cần API key - không cần đăng nhập.</div></div>
+                <div class="wz-pdesc" data-i18n="wz.prov_or">Nhiều model giá rẻ một chỗ, vẫn đủ MCP Vanhanh + skill + đọc/ghi file brain. Chỉ cần API key - không cần đăng nhập.</div></div>
             </label>
           </div>
           <div id="wzOrKey" style="display:none">
@@ -830,7 +830,7 @@
           </div>
           <div id="wzProvHint"></div>
         </div>
-        <div class="set-actions"><button class="s-btn" id="wzFinish" data-i18n="wz.start">Bắt đầu dùng Naota →</button></div>
+        <div class="set-actions"><button class="s-btn" id="wzFinish" data-i18n="wz.start">Bắt đầu dùng Vanhanh →</button></div>
         <div class="auth-err" id="wzErr"></div>
       </div>
     </div>
@@ -839,7 +839,7 @@
   <!-- Đăng nhập (chỉ hiện khi admin đã đặt mật khẩu & chưa đăng nhập) -->
   <div class="modal-overlay" id="authOverlay">
     <div class="folder-modal auth-modal">
-      <div class="fm-head"><img src="/brand-logo" alt="" style="width:24px;height:24px;border-radius:6px;vertical-align:middle;margin-right:6px;object-fit:cover"><span id="authTitle" data-i18n="auth.title">Đăng nhập Naota</span></div>
+      <div class="fm-head"><img src="/brand-logo" alt="" style="width:24px;height:24px;border-radius:6px;vertical-align:middle;margin-right:6px;object-fit:cover"><span id="authTitle" data-i18n="auth.title">Đăng nhập Vanhanh</span></div>
       <div class="auth-body">
         <input id="authUser" placeholder="Tài khoản" data-i18n-ph="common.account" autocomplete="username">
         <div class="auth-pw">
@@ -861,8 +861,8 @@
         <div class="auth-help"><span id="authForgot" data-i18n="auth.forgot">Quên mật khẩu?</span></div>
         <div class="auth-reset" id="authResetInfo" style="display:none">
           <span data-i18n="auth.reset1">Mở file</span> <code>server/settings.json</code><span data-i18n="auth.reset2">, xóa khối</span> <code>"auth"</code> <span data-i18n="auth.reset3">(hoặc đặt rỗng), rồi chạy</span>
-          <code>stop-naota.bat</code> → <code>start-naota.vbs</code>. <span data-i18n="auth.reset4">Mở lại sẽ về bộ cài đặt để tạo tài khoản mới.</span>
-          <div class="auth-reset-srv" data-i18n="auth.reset_server">Chạy trên máy chủ (Docker, Hostinger): đổi NAOTA_ADMIN_PASSWORD trong Environment rồi Redeploy. Naota đặt lại mật khẩu theo giá trị mới, 2FA giữ nguyên.</div>
+          <code>stop-vanhanh.bat</code> → <code>start-vanhanh.vbs</code>. <span data-i18n="auth.reset4">Mở lại sẽ về bộ cài đặt để tạo tài khoản mới.</span>
+          <div class="auth-reset-srv" data-i18n="auth.reset_server">Chạy trên máy chủ (Docker, Hostinger): đổi VANHANH_ADMIN_PASSWORD trong Environment rồi Redeploy. Vanhanh đặt lại mật khẩu theo giá trị mới, 2FA giữ nguyên.</div>
         </div>
       </div>
     </div>
@@ -871,7 +871,7 @@
   <!-- Cài đặt -->
   <div class="modal-overlay" id="settingsOverlay">
     <div class="settings-modal">
-      <div class="fm-head"><span><i data-ic="settings"></i> <span data-i18n="setm.title">Cài đặt Naota</span></span><button class="fm-close" id="settingsClose"><i data-ic="x"></i></button></div>
+      <div class="fm-head"><span><i data-ic="settings"></i> <span data-i18n="setm.title">Cài đặt Vanhanh</span></span><button class="fm-close" id="settingsClose"><i data-ic="x"></i></button></div>
       <div class="settings-body">
         <div class="set-sec">
           <h4 data-i18n="setm.general">Chung</h4>
@@ -883,8 +883,8 @@
           <div class="info-body" hidden data-i18n="setm.or_note">Danh sách model tải động từ OpenRouter. Không thấy model cần? Chọn "Nhập tên khác" rồi gõ chính xác id. OpenRouter sẽ kích hoạt ở bản kế (P2).</div>
           <label data-i18n="setm.engine">Engine xử lý chat</label>
           <select id="setEngine">
-            <option value="cli" data-i18n="setm.engine_cli">Claude Code CLI - MCP Naota + skill + loop + lệnh máy</option>
-            <option value="openrouter" data-i18n="setm.engine_or">OpenRouter - MCP Naota + skill + loop (không lệnh máy)</option>
+            <option value="cli" data-i18n="setm.engine_cli">Claude Code CLI - MCP Vanhanh + skill + loop + lệnh máy</option>
+            <option value="openrouter" data-i18n="setm.engine_or">OpenRouter - MCP Vanhanh + skill + loop (không lệnh máy)</option>
           </select>
           <label data-i18n="setm.claude_model">Model Claude (khi dùng CLI)</label>
           <!-- Danh sách nạp động từ /provider/models (app.js: loadClaudeModels). Mấy option
@@ -901,7 +901,7 @@
         </div>
         <div class="set-sec">
           <h4>Telegram <button type="button" class="info-i" aria-expanded="false" aria-label="Xem giải thích" title="Xem giải thích" data-i18n-aria="info.more" data-i18n-title="info.more"><i data-ic="info"></i></button></h4>
-          <div class="info-body" hidden data-i18n="setm.tg_note">Nhắn Telegram ↔ Naota. Dùng đúng engine đang chọn (CLI thì có cả MCP để hỏi doanh thu/ads qua điện thoại). Có thể dùng lại token bot Morning Briefing.</div>
+          <div class="info-body" hidden data-i18n="setm.tg_note">Nhắn Telegram ↔ Vanhanh. Dùng đúng engine đang chọn (CLI thì có cả MCP để hỏi doanh thu/ads qua điện thoại). Có thể dùng lại token bot Morning Briefing.</div>
           <label class="loop-row" style="padding:0"><span data-i18n="setm.tg_on">Bật bot Telegram</span>
             <label class="toggle"><input type="checkbox" id="setTgEnabled"><span></span></label></label>
           <label>Bot token <span class="dim" id="setTgHint"></span></label>
@@ -916,7 +916,7 @@
         </div>
         <div class="set-sec">
           <h4><span data-i18n="setm.auth">Tài khoản đăng nhập</span> <button type="button" class="info-i" aria-expanded="false" aria-label="Xem giải thích" title="Xem giải thích" data-i18n-aria="info.more" data-i18n-title="info.more"><i data-ic="info"></i></button></h4>
-          <div class="info-body" hidden data-i18n="setm.auth_note">Đặt mật khẩu để chặn người lạ khi đưa Naota lên VPS. Lưu ý: trên VPS nên chạy sau HTTPS (reverse proxy).</div>
+          <div class="info-body" hidden data-i18n="setm.auth_note">Đặt mật khẩu để chặn người lạ khi đưa Vanhanh lên VPS. Lưu ý: trên VPS nên chạy sau HTTPS (reverse proxy).</div>
           <div class="set-note" id="setAuthState"></div>
           <label data-i18n="common.account">Tài khoản</label><input id="setAuthUser" placeholder="Ví dụ: admin" data-i18n-ph="wz.user_ph">
           <!-- Mật khẩu hiện tại: chỉ hiện khi ĐÃ có tài khoản (app.js refreshAuthRow bật lên).
@@ -959,7 +959,7 @@
   <script src="/static/fetch-gop.js?v=1"></script>
   <!-- Code của từng trang nạp khi cần (nap-cham.js): các file LỚN chỉ một trang dùng không còn chặn lúc mở app.
        Nhóm nào trang nào cần: console.js renderPage. Trang rảnh thì nạp nốt ở nền theo đúng thứ tự dưới đây. -->
-  <script id="naota-lazy" type="application/json">{
+  <script id="vanhanh-lazy" type="application/json">{
  "congviec": [
   "/static/agent-jobs.js?v=6",
   "/static/agent-pulse.js?v=4",
@@ -1009,7 +1009,7 @@
   <script src="/static/info-tip.js?v=2"></script>
 
   <!-- theme.js phải nạp TRƯỚC mọi file khác: graph.js / app.js đăng ký
-       hàm vẽ lại theo tông ngay lúc parse, nếu window.naotaTheme chưa có thì chúng
+       hàm vẽ lại theo tông ngay lúc parse, nếu window.vanhanhTheme chưa có thì chúng
        đăng ký hụt và các lớp canvas kẹt ở bảng màu tối. -->
   <script src="/static/theme.js?v=5"></script>
   <!-- Voice V1: đạo diễn hội thoại (thuần) phải nạp TRƯỚC voice.js và app.js. -->
@@ -1027,14 +1027,14 @@
   <script src="/static/chat-render.js?v=23"></script>
   <script src="/static/code-hl.js?v=1"></script>
   <script src="/static/dataview.js?v=2"></script>
-  <!-- window.NaotaCopy: chép một chuỗi vào bảng nhớ tạm, có đường lui cho http trần. Đứng
+  <!-- window.VanhanhCopy: chép một chuỗi vào bảng nhớ tạm, có đường lui cho http trần. Đứng
        sớm vì nhiều màn dùng chung (ngăn kéo File & link, thanh trình sửa file). -->
   <script src="/static/copy-path.js?v=1"></script>
   <script src="/static/task-suggest.js?v=1"></script>
   <!-- Bảng lệnh của trình soạn .md (nút thanh công cụ + phím tắt + menu "/"). PHẢI đứng
-       trước console.js: _neBuildToolbar đọc window.NaotaEditorCmds để vẽ nút. -->
+       trước console.js: _neBuildToolbar đọc window.VanhanhEditorCmds để vẽ nút. -->
   <script src="/static/editor-cmds.js?v=2"></script>
-  <!-- Đếm từ + ký tự cho trình sửa file. Thuần, console.js dùng qua window.NaotaWordCount. -->
+  <!-- Đếm từ + ký tự cho trình sửa file. Thuần, console.js dùng qua window.VanhanhWordCount. -->
   <script src="/static/word-count.js?v=1"></script>
   <!-- .html opens on its preview with a Code tab: before file-editor.js and console.js. -->
   <script src="/static/html-preview.js?v=1"></script>
@@ -1046,7 +1046,7 @@
   <script src="/static/limit-resume.js?v=2"></script>
   <script src="/static/chat-slash.js?v=5"></script>
   <!-- Lệnh "/" hệ thống (/status /model /compact /plan /goal ...): chạy lệnh mà chat-slash.js vừa nhận
-       diện. Phải nạp TRƯỚC app.js (sendMessage gọi window.NaotaLenh) và SAU chat-slash.js (đọc menu). -->
+       diện. Phải nạp TRƯỚC app.js (sendMessage gọi window.VanhanhLenh) và SAU chat-slash.js (đọc menu). -->
   <script src="/static/chat-goal.js?v=1"></script>
   <script src="/static/chat-lenh.js?v=2"></script>
   <script src="/static/chat-acts.js?v=7"></script>
@@ -1066,7 +1066,7 @@
   <script src="/static/chat-reactions.js?v=7"></script>
   <script src="/static/chat-marks.js?v=5"></script>
   <!-- Khối tiến trình từng bước trong khung chat: phải đứng TRƯỚC app.js vì app.js gọi
-       window.NaotaSteps ngay khi khung tool_call đầu tiên về. -->
+       window.VanhanhSteps ngay khi khung tool_call đầu tiên về. -->
   <script src="/static/chat-steps.js?v=2"></script>
   <script src="/static/chat-viec.js?v=6"></script>
   <script src="/static/chat-nho.js?v=1"></script>
@@ -1085,13 +1085,13 @@
   <script src="/static/incoming-call.js?v=1"></script>
   <script src="/static/call-bar.js?v=1"></script>
   <script src="/static/app.js?v=157"></script>
-  <!-- Sau app.js: dải việc nền đọc window.NaotaSessions (app.js dựng) để biết phiên + brain. -->
+  <!-- Sau app.js: dải việc nền đọc window.VanhanhSessions (app.js dựng) để biết phiên + brain. -->
   <script src="/static/background-strip.js?v=3"></script>
   <!-- Thân bảng chọn model dùng chung: phải đứng TRƯỚC model-picker.js (thanh chat) và
-       studio.js (ô Model của trợ lý) vì cả hai gọi window.NaotaModelList lúc vẽ. -->
+       studio.js (ô Model của trợ lý) vì cả hai gọi window.VanhanhModelList lúc vẽ. -->
   <script src="/static/model-list.js?v=3"></script>
   <script src="/static/effort-slider.js?v=3"></script>
-  <!-- Models page usage order: drag, swap, popover placement. console.js calls window.NaotaModelsOrder. -->
+  <!-- Models page usage order: drag, swap, popover placement. console.js calls window.VanhanhModelsOrder. -->
   <script src="/static/models-order.js?v=1"></script>
   <script src="/static/plan-limit.js?v=2"></script>
   <script src="/static/model-picker.js?v=18"></script>
@@ -1103,7 +1103,7 @@
   <script src="/static/remote-access.js?v=2"></script>
   <script src="/static/chat-zoom.js?v=6"></script>
   <script src="/static/brains-ui.js?v=9"></script>
-  <!-- Brain picker drawn by Naota over #graphSource: after brains-ui.js and app.js. -->
+  <!-- Brain picker drawn by Vanhanh over #graphSource: after brains-ui.js and app.js. -->
   <script src="/static/brain-picker.js?v=1"></script>
   <script src="/static/sessions-ui.js?v=25"></script>
   <link rel="stylesheet" href="/static/improvement-candidates.css?v=3">
@@ -1112,16 +1112,16 @@
   <script src="/static/agent-picker.js?v=1"></script>
   <script src="/static/studio.js?v=49"></script>
   <!-- Trang Cộng sự: nạp SAU studio.js (mượn trình sửa agent/workflow của Studio) và TRƯỚC
-       console.js (renderWorkspace ủy quyền cho window.NaotaWorkspace). -->
-  <!-- Tab Công việc của trợ lý: nạp TRƯỚC workspace.js, workspace.js gọi window.NaotaAgentJobs. -->
+       console.js (renderWorkspace ủy quyền cho window.VanhanhWorkspace). -->
+  <!-- Tab Công việc của trợ lý: nạp TRƯỚC workspace.js, workspace.js gọi window.VanhanhAgentJobs. -->
   <script src="/static/pulse-seen.js?v=1"></script>
   <!-- Tag filter bar and tag picker shared by Cộng sự and Team: load BEFORE workspace.js and teams.js. -->
   <script src="/static/tag-picker.js?v=1"></script>
   <script src="/static/workspace.js?v=33"></script>
-  <!-- Hộp chọn thành viên kiểu Zalo: nạp TRƯỚC teams.js, teams.js gọi window.NaotaTeamPicker. -->
+  <!-- Hộp chọn thành viên kiểu Zalo: nạp TRƯỚC teams.js, teams.js gọi window.VanhanhTeamPicker. -->
   <script src="/static/team-picker.js?v=1"></script>
   <!-- Bộ phán xử nói / chờ / im của từng trợ lý: lịch sử quyết định và nút sửa. Nạp TRƯỚC teams.js
-       (ngăn Nhóm gọi window.NaotaAgentJudge.hydrate); góp phần "judge" vào khung nhịp qua window.NaotaPulseParts. -->
+       (ngăn Nhóm gọi window.VanhanhAgentJudge.hydrate); góp phần "judge" vào khung nhịp qua window.VanhanhPulseParts. -->
   <!-- Nút mic nhập chữ của khung soạn Nhóm: nạp TRƯỚC teams.js. -->
   <script src="/static/dictate.js?v=4"></script>
   <script src="/static/composer-dictate.js?v=4"></script>
@@ -1131,7 +1131,7 @@
   <!-- Trang Code (terminal): nạp TRƯỚC console.js để renderCode ủy quyền được. File này CHỈ có
        phần khung - xterm.js (285KB) nạp lười ở lần đầu mở tab, không nằm trong đường khởi động. -->
   <script src="/static/code-term.js?v=3"></script>
-  <!-- Hộp chọn thư mục dùng chung (NaotaFolderPicker). Nạp TRƯỚC file nào gọi nó. -->
+  <!-- Hộp chọn thư mục dùng chung (VanhanhFolderPicker). Nạp TRƯỚC file nào gọi nó. -->
   <script src="/static/folder-picker.js?v=2"></script>
   <!-- Trang Coding (nhóm Code): mượn khung chat của app, nên nạp TRƯỚC console.js y như
        workspace.js để renderCoding uỷ quyền được. -->
@@ -1139,8 +1139,8 @@
   <!-- Console layer: console.js đăng ký store TRƯỚC khi Alpine khởi động (defer) -->
   <!-- Phần đọc cấu hình của form "Tự thêm MCP" (thuần, có test node). Nạp TRƯỚC console.js. -->
   <script src="/static/mcp-form-parse.js?v=1"></script>
-  <!-- Webhooks section of the Work page: load BEFORE console.js, which mounts window.NaotaWebhooks. -->
-  <!-- Health section of the Work page: incidents Naota Core handles and the read-only scan. -->
+  <!-- Webhooks section of the Work page: load BEFORE console.js, which mounts window.VanhanhWebhooks. -->
+  <!-- Health section of the Work page: incidents Vanhanh Core handles and the read-only scan. -->
   <script src="/static/health-panel.js?v=1"></script>
   <!-- Watch tab of the Recurring work page: token-free web page watching (server/web_watch.py). -->
   <script src="/static/web-watch.js?v=3"></script>
@@ -1157,7 +1157,7 @@
   <script src="/static/star-nudge.js?v=2"></script>
   <script src="/static/notifications.js?v=11"></script>
   <!-- Linh vật ở mép màn hình. Nạp SAU app.js vì nó chỉ được app.js gọi vào
-       (setOrbState -> NaotaPet.setState), và sau console.js để trang Cài đặt vẽ được thẻ chọn. -->
+       (setOrbState -> VanhanhPet.setState), và sau console.js để trang Cài đặt vẽ được thẻ chọn. -->
   <script src="/static/pet.js?v=2"></script>
   <script src="/static/agent-avatar.js?v=4"></script>
   <!-- (Nút đổi tông TỐI ↔ SÁNG: theme.js đã nạp ở đầu khối script phía trên) -->

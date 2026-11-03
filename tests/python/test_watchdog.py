@@ -34,18 +34,18 @@ check("cú pháp bash hợp lệ", _syntax.returncode == 0, _syntax.stderr)
 SRC = WD.read_text(encoding="utf-8")
 check("kick bằng launchctl kickstart -k (SIGTERM bị phớt thì launchd tự SIGKILL)",
       "kickstart -k" in SRC)
-check("LaunchAgent riêng com.naota.watchdog, không đè lên job chính com.naota.os",
-      "com.naota.watchdog" in SRC and "StartInterval" in SRC)
-check("nhãn job chính đổi được qua NAOTA_LAUNCHD_LABEL (đồng bộ với updater.py)",
-      "NAOTA_LAUNCHD_LABEL" in SRC)
+check("LaunchAgent riêng com.vanhanh.watchdog, không đè lên job chính com.vanhanh.os",
+      "com.vanhanh.watchdog" in SRC and "StartInterval" in SRC)
+check("nhãn job chính đổi được qua VANHANH_LAUNCHD_LABEL (đồng bộ với updater.py)",
+      "VANHANH_LAUNCHD_LABEL" in SRC)
 
 
 def chay(state_dir: str, port: int):
     """Một nhát `watchdog.sh check` với kick giả + state riêng, trả stdout."""
     r = subprocess.run(
         ["bash", str(WD), "check"], capture_output=True, text=True, cwd=str(ROOT),
-        env={**os.environ, "NAOTA_PORT": str(port), "NAOTA_STATE_DIR": state_dir,
-             "NAOTA_WATCHDOG_FAILS": "3", "NAOTA_WATCHDOG_KICK_CMD": "echo DA_KICK"},
+        env={**os.environ, "VANHANH_PORT": str(port), "VANHANH_STATE_DIR": state_dir,
+             "VANHANH_WATCHDOG_FAILS": "3", "VANHANH_WATCHDOG_KICK_CMD": "echo DA_KICK"},
         timeout=30)
     return (r.stdout or "") + (r.stderr or "")
 

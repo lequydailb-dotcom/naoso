@@ -100,7 +100,7 @@ def private_escalation(cfg: dict, meta: dict) -> bool:
 
     Background: "Tự đánh giá" used to judge group messages only, while a private chat always got an
     answer, even a guessed one. In this mode a private chat now has a third outcome next to reply and [IM_LANG]: the
-    Agent writes [BAO_CHU], nothing is sent and the owner is told in the Naota bell. Same exact match on "auto" as
+    Agent writes [BAO_CHU], nothing is sent and the owner is told in the Vanhanh bell. Same exact match on "auto" as
     `can_danh_gia`: an odd value fails closed to the old behaviour.
     """
     meta = meta or {}

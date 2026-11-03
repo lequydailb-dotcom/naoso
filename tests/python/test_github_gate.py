@@ -18,7 +18,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-gate-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-gate-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

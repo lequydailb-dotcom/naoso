@@ -3,7 +3,7 @@
     python tests/python/test_windows_child_utf8_0271.py
 
 A Team member on Windows ran a Python one-liner that printed Vietnamese sheet names and died with UnicodeEncodeError
-(cp1252). Every engine CLI Naota starts inherits the server environment, so config sets PYTHONUTF8 and
+(cp1252). Every engine CLI Vanhanh starts inherits the server environment, so config sets PYTHONUTF8 and
 PYTHONIOENCODING there on Windows, at import time, keeping any value the user set.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
@@ -12,7 +12,7 @@ import subprocess
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-utf8-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-utf8-"))
 
 import config  # noqa: E402
 

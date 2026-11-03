@@ -2,7 +2,7 @@
 
     python tests/run.py mcp_nong_sau_update      (KHÔNG mạng, không spawn tiến trình)
 
-Lỗi đã gặp: sau khi update hay bị mất kết nối với các MCP của Naota, đặc biệt là POS. Kết nối không hỏng - nó chỉ VẮNG MẶT trong hộp công cụ của phiên chat vừa mở, và
+Lỗi đã gặp: sau khi update hay bị mất kết nối với các MCP của Vanhanh, đặc biệt là POS. Kết nối không hỏng - nó chỉ VẮNG MẶT trong hộp công cụ của phiên chat vừa mở, và
 lát sau tự khỏi. Chuỗi nhân quả, đọc từ dưới lên:
 
   1. Cập nhật = tiến trình mới: session pool RỖNG. Bản Docker còn mất cả cache npm/uv theo
@@ -50,17 +50,17 @@ def conn(i, **kw):
 # ============================================================
 # 1. Hai vòng, hai trần - và trần làm nóng phải RỘNG HƠN HẲN
 # ============================================================
-for k in ("NAOTA_MCP_DISCOVER_TIMEOUT", "NAOTA_MCP_WARM_TIMEOUT"):
+for k in ("VANHANH_MCP_DISCOVER_TIMEOUT", "VANHANH_MCP_WARM_TIMEOUT"):
     os.environ.pop(k, None)
 
 check("trần lượt chat vẫn là 20s (không đụng vào đường găng)", mcp_client.tran_dial() == 20.0)
 check(f"trần làm nóng rộng hơn hẳn ({mcp_client.tran_warm()}s > {mcp_client.tran_dial()}s)",
       mcp_client.tran_warm() >= 5 * mcp_client.tran_dial(), mcp_client.tran_warm())
-os.environ["NAOTA_MCP_WARM_TIMEOUT"] = "45"
-check("chỉnh được bằng NAOTA_MCP_WARM_TIMEOUT", mcp_client.tran_warm() == 45.0)
-os.environ["NAOTA_MCP_WARM_TIMEOUT"] = "0"
+os.environ["VANHANH_MCP_WARM_TIMEOUT"] = "45"
+check("chỉnh được bằng VANHANH_MCP_WARM_TIMEOUT", mcp_client.tran_warm() == 45.0)
+os.environ["VANHANH_MCP_WARM_TIMEOUT"] = "0"
 check("đặt 0 = bỏ trần làm nóng", mcp_client.tran_warm() is None)
-os.environ.pop("NAOTA_MCP_WARM_TIMEOUT")
+os.environ.pop("VANHANH_MCP_WARM_TIMEOUT")
 
 
 # ============================================================
@@ -84,8 +84,8 @@ async def _list_tools_nguoi(spec):
 
 _that = mcp_client.pool.list_tools
 mcp_client.pool.list_tools = _list_tools_nguoi
-os.environ["NAOTA_MCP_DISCOVER_TIMEOUT"] = "0.1"
-os.environ["NAOTA_MCP_WARM_TIMEOUT"] = "5"
+os.environ["VANHANH_MCP_DISCOVER_TIMEOUT"] = "0.1"
+os.environ["VANHANH_MCP_WARM_TIMEOUT"] = "5"
 try:
     conns = [conn(1), conn(2)]
 
@@ -120,8 +120,8 @@ try:
           (nong3, lanh3) == ([], []), (nong3, lanh3))
 finally:
     mcp_client.pool.list_tools = _that
-    os.environ.pop("NAOTA_MCP_DISCOVER_TIMEOUT", None)
-    os.environ.pop("NAOTA_MCP_WARM_TIMEOUT", None)
+    os.environ.pop("VANHANH_MCP_DISCOVER_TIMEOUT", None)
+    os.environ.pop("VANHANH_MCP_WARM_TIMEOUT", None)
 
 
 # ============================================================

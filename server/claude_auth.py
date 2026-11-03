@@ -2,14 +2,14 @@
 
 Vì sao có module này
 --------------------
-Trước đây, Naota TỰ ĐỌC access token OAuth mà Claude Code lưu trong
+Trước đây, Vanhanh TỰ ĐỌC access token OAuth mà Claude Code lưu trong
 `~/.claude/.credentials.json` rồi gửi thẳng `Authorization: Bearer <token>` tới
 `api.anthropic.com/v1/messages`. Anthropic cấm đúng việc đó: token của gói Free/Pro/Max chỉ
 được dùng trong Claude Code và Claude.ai, và họ chặn hẳn các harness bên thứ ba từ 04/04/2026.
 Cách phát hiện của họ dựa vào dấu vân tay request (thiếu telemetry/heartbeat mà CLI chính chủ
-mới phát) - mà request Naota tự dựng thì không có gì trong số đó. Đường ấy đã được gỡ.
+mới phát) - mà request Vanhanh tự dựng thì không có gì trong số đó. Đường ấy đã được gỡ.
 
-Nay Naota KHÔNG bao giờ đọc token của ai. Nó chạy binary `claude` (qua claude-agent-sdk) và
+Nay Vanhanh KHÔNG bao giờ đọc token của ai. Nó chạy binary `claude` (qua claude-agent-sdk) và
 để chính sản phẩm của Anthropic lo phần đăng nhập. Còn lại đúng hai lựa chọn, người dùng tự
 chọn ở trang Models, và CẢ HAI giữ nguyên vẹn năng lực (Bash, WebFetch, MCP, nối phiên cũ):
 
@@ -20,7 +20,7 @@ chọn ở trang Models, và CẢ HAI giữ nguyên vẹn năng lực (Bash, Web
 - `api_key`: đưa `anthropic_api_key` xuống cho binary `claude` qua biến môi trường. Trả tiền
   theo lượt dùng qua Claude Console. Đây là đường Anthropic chỉ định cho sản phẩm bên thứ ba.
 
-Naota cố ý KHÔNG tắt cứng đường subscription: chủ máy được quyền tự cân rủi ro. Việc của
+Vanhanh cố ý KHÔNG tắt cứng đường subscription: chủ máy được quyền tự cân rủi ro. Việc của
 module này là bảo đảm họ cân nó khi đã BIẾT, chứ không phải vì không ai nói.
 """
 from __future__ import annotations
@@ -32,14 +32,14 @@ API_KEY = "api_key"
 
 # Nguyên văn dán ở trang Models và trả kèm khi đặt việc nền chạy bằng gói subscription.
 # Đừng rút gọn: người đọc cần đủ ba thứ - phạm vi gói, cái gì có thể làm mình giống bot, và lối ra.
-# Yêu cầu: giọng nhẹ nhàng, nói đúng mức rủi ro. Có nguy cơ, nhưng Naota chưa ghi nhận
+# Yêu cầu: giọng nhẹ nhàng, nói đúng mức rủi ro. Có nguy cơ, nhưng Vanhanh chưa ghi nhận
 # trường hợp nào bị khoá; gặp thì báo nhà phát triển để mọi người cùng biết.
 CANH_BAO_SUBSCRIPTION = (
     "Gói Claude Pro/Max được Anthropic tính cho việc dùng cá nhân thông thường của Claude Code. "
     "Chạy nền liên tục (loop, nhắc hẹn, việc Kanban, chatbot), chạy trên VPS, hoặc nhiều người "
     "dùng chung một tài khoản nằm ngoài phạm vi đó nên có nguy cơ bị khoá tài khoản, dù tới nay "
-    "Naota chưa ghi nhận trường hợp nào. Nếu bạn gặp, hãy báo cho nhà phát triển qua mục Issues "
-    "trên GitHub của Naota. Muốn chạy nền yên tâm hơn thì đổi sang API key ở trang Models, hoặc "
+    "Vanhanh chưa ghi nhận trường hợp nào. Nếu bạn gặp, hãy báo cho nhà phát triển qua mục Issues "
+    "trên GitHub của Vanhanh. Muốn chạy nền yên tâm hơn thì đổi sang API key ở trang Models, hoặc "
     "trỏ 'model việc nền' sang một provider khác."
 )
 
@@ -47,16 +47,16 @@ CANH_BAO_SUBSCRIPTION_EN = (
     "Anthropic counts a Claude Pro/Max plan for ordinary personal use of Claude Code. "
     "Continuous background runs (loops, reminders, Kanban work, chatbots), running on a VPS, "
     "or several people sharing one account fall outside that, so there is a risk of the account "
-    "being locked, although Naota has no reported case so far. If it happens to you, please tell "
-    "the developer through Issues on Naota's GitHub. For more peace of mind, switch to an API key "
+    "being locked, although Vanhanh has no reported case so far. If it happens to you, please tell "
+    "the developer through Issues on Vanhanh's GitHub. For more peace of mind, switch to an API key "
     "on the Models page, or point the 'background model' at another provider."
 )
 
 # Câu ngắn cho chỗ chật (badge, tooltip, dòng trạng thái).
-CANH_BAO_NGAN = ("Chạy nền bằng gói subscription có nguy cơ bị khoá tài khoản, dù Naota chưa ghi nhận "
+CANH_BAO_NGAN = ("Chạy nền bằng gói subscription có nguy cơ bị khoá tài khoản, dù Vanhanh chưa ghi nhận "
                  "trường hợp nào. Dùng API key cho việc nền là yên tâm nhất.")
 CANH_BAO_NGAN_EN = ("Running background work on a subscription plan carries a risk of the account being "
-                    "locked, though Naota has no reported case so far. An API key is the safest choice.")
+                    "locked, though Vanhanh has no reported case so far. An API key is the safest choice.")
 
 
 def che_do(settings: dict = None) -> str:

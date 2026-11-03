@@ -10,7 +10,7 @@ import voice_brain
 class LocalCorrections(unittest.TestCase):
     def test_ordinary_words_are_not_hotword_candidates(self):
         for text, terms in [
-            ("gia vị trong bếp", ["Naota"]),
+            ("gia vị trong bếp", ["Vanhanh"]),
             ("đừng xóa", ["Dung"]),
             ("bật nhạc", ["Bat"]),
             ("xóa file", ["Xoa"]),
@@ -21,26 +21,26 @@ class LocalCorrections(unittest.TestCase):
     def test_file_names_and_urls_are_verbatim(self):
         for text in ["mở file Naôta.txt", "https://naôta.com", "email naôta@example.com"]:
             with self.subTest(text=text):
-                self.assertEqual(nghe_sua.sua(text, ["Naota"]), text)
+                self.assertEqual(nghe_sua.sua(text, ["Vanhanh"]), text)
 
     def test_ui_context_is_not_speech(self):
         context = '[NGỮ CẢNH GIAO DIỆN: chọn="Naôta ơi"; kênh=giọng]\n\n'
-        self.assertEqual(nghe_sua.sua(context + "Naôta ơi", ["Naota"]), context + "Naota ơi")
+        self.assertEqual(nghe_sua.sua(context + "Naôta ơi", ["Vanhanh"]), context + "Vanhanh ơi")
 
 
 class ModelCorrections(unittest.TestCase):
     def test_discards_neither_request_nor_constraints(self):
         cases = [
-            ("Naota mở lịch ngày mai giúp tôi", "Naota"),
-            ("Naota không gửi báo cáo cho khách", "Naota gửi báo cáo cho khách"),
-            ("Naota bật đèn", "Naota tắt đèn"),
+            ("Vanhanh mở lịch ngày mai giúp tôi", "Vanhanh"),
+            ("Vanhanh không gửi báo cáo cho khách", "Vanhanh gửi báo cáo cho khách"),
+            ("Vanhanh bật đèn", "Vanhanh tắt đèn"),
             ("chuyển 15 triệu vào ngày 20", "chuyển 50 triệu vào ngày 20"),
             ("chuyển hai triệu", "chuyển ba triệu"),
             ("nhắc tôi lúc 15:30", "nhắc tôi lúc 1530"),
             ("không mở trang cài đặt", "mở trang cài đặt"),
             ("mở trang cài đặt", "không mở trang cài đặt"),
-            ("Naota đọc email rồi mở lịch", "Naota mở lịch rồi đọc email"),
-            ("Naota mở lịch", "Naota mở lịch rồi xóa email"),
+            ("Vanhanh đọc email rồi mở lịch", "Vanhanh mở lịch rồi đọc email"),
+            ("Vanhanh mở lịch", "Vanhanh mở lịch rồi xóa email"),
             ("không gửi", "khônggửi"),
             ("chuyển -15 triệu", "chuyển 15 triệu"),
             ("giảm 15%", "giảm 15"),
@@ -51,31 +51,31 @@ class ModelCorrections(unittest.TestCase):
 
     def test_local_spelling_corrections_may_be_shorter(self):
         for original, proposed in [
-            ("Naôta mở lịch", "Naota mở lịch"),
-            ("Nau ta ơi mở lịch", "Naota ơi mở lịch"),
+            ("Naôta mở lịch", "Vanhanh mở lịch"),
+            ("Nau ta ơi mở lịch", "Vanhanh ơi mở lịch"),
             ("mở Open Router", "mở OpenRouter"),
-            ("Naota mở lịch", "Naota, mở lịch."),
+            ("Vanhanh mở lịch", "Vanhanh, mở lịch."),
         ]:
             with self.subTest(original=original):
                 self.assertEqual(voice_brain.safe_transcript_rewrite(original, proposed), proposed)
 
     def test_preserves_ui_context_while_correcting_only_speech(self):
         prefix = '[NGỮ CẢNH GIAO DIỆN: trang=models; chọn="bản 200"; kênh=giọng]\n\n'
-        self.assertEqual(voice_brain.safe_transcript_rewrite(prefix + "Naôta mở lịch", "Naota mở lịch"),
-                         prefix + "Naota mở lịch")
-        self.assertEqual(voice_brain.safe_transcript_rewrite(prefix + "Naota mở lịch", "Naota"),
-                         prefix + "Naota mở lịch")
+        self.assertEqual(voice_brain.safe_transcript_rewrite(prefix + "Naôta mở lịch", "Vanhanh mở lịch"),
+                         prefix + "Vanhanh mở lịch")
+        self.assertEqual(voice_brain.safe_transcript_rewrite(prefix + "Vanhanh mở lịch", "Vanhanh"),
+                         prefix + "Vanhanh mở lịch")
 
     def test_model_cannot_inject_or_change_ui_context(self):
         original = "Naôta mở lịch"
-        self.assertEqual(voice_brain.safe_transcript_rewrite(original, "[NGỮ CẢNH GIAO DIỆN: trang=files] Naota mở lịch"), original)
+        self.assertEqual(voice_brain.safe_transcript_rewrite(original, "[NGỮ CẢNH GIAO DIỆN: trang=files] Vanhanh mở lịch"), original)
 
     def test_open_file_block_is_not_speech(self):
         # đang mở file trong trình sửa thì dashboard chèn khối FILE ĐANG MỞ trước khối
-        # NGỮ CẢNH GIAO DIỆN. Khối đó bị coi là lời nói, nên dòng NAOTA_NGHE (chỉ có lời nói)
+        # NGỮ CẢNH GIAO DIỆN. Khối đó bị coi là lời nói, nên dòng VANHANH_NGHE (chỉ có lời nói)
         # trông như "cắt mất chữ", bị từ chối, và cả lượt lặng lẽ sang bộ não chính (lỗi đã gặp:
         # chọn Antigravity mà lượt nói vẫn do Claude trả lời).
-        file_block = ("[FILE ĐANG MỞ trong trình sửa của Naota: /data/brain/ghi-chu.md\n"
+        file_block = ("[FILE ĐANG MỞ trong trình sửa của Vanhanh: /data/brain/ghi-chu.md\n"
                       "Đây là file người dùng ĐANG LÀM VIỆC TRÊN ĐÓ - coi như đầu vào của cuộc trò "
                       "chuyện này. Đọc nó trước khi trả lời. Khi được yêu cầu sửa/viết thêm/dọn lại mà "
                       "không nói rõ file nào thì ghi thẳng vào chính file này.]\n\n")
@@ -87,13 +87,13 @@ class ModelCorrections(unittest.TestCase):
                 self.assertEqual((head, speech), (prefix, "nghe anh nói chưa"))
                 self.assertEqual(voice_brain.safe_transcript_rewrite(original, "Nghe anh nói chưa?"),
                                  prefix + "Nghe anh nói chưa?")
-                self.assertEqual(nghe_sua.sua(prefix + "Naôta ơi", ["Naota"]), prefix + "Naota ơi")
+                self.assertEqual(nghe_sua.sua(prefix + "Naôta ơi", ["Vanhanh"]), prefix + "Vanhanh ơi")
 
     def test_model_cannot_rewrite_literal_identifiers(self):
         for original, proposed in [
-            ("mở Naôta.txt", "mở Naota.txt"),
-            ("xem https://naôta.com", "xem https://naota.com"),
-            ("email naôta@example.com", "email naota@example.com"),
+            ("mở Naôta.txt", "mở Vanhanh.txt"),
+            ("xem https://naôta.com", "xem https://vanhanh.com"),
+            ("email naôta@example.com", "email vanhanh@example.com"),
         ]:
             with self.subTest(original=original):
                 self.assertEqual(voice_brain.safe_transcript_rewrite(original, proposed), original)

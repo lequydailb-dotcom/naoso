@@ -13,7 +13,7 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-turn-engine-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-turn-engine-"))
 
 import claude_sdk_engine  # noqa: E402
 import claude_token_gate  # noqa: E402

@@ -12,7 +12,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-wsguard-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-wsguard-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

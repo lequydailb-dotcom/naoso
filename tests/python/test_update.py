@@ -2,7 +2,7 @@
 Chạy:  python tests/run.py update    (KHÔNG mạng)."""
 from _paths import ROOT, SERVER  # noqa: E402,F401  - nạp server/ vào sys.path (xem tests/python/_paths.py)
 import os, sys, tempfile, json
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-update-test-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-update-test-")
 
 _fails = []
 def check(name, cond):
@@ -164,8 +164,8 @@ main._latest_remote_version = _latest_new
 main._read_version = lambda: "0.65.26"
 main._docker_image_published = _img
 main._watchtower_update = _fake_wu
-_old_src = os.environ.get("NAOTA_IMAGE_SOURCE")
-os.environ["NAOTA_IMAGE_SOURCE"] = "ghcr.io/vuongtex/naota"   # official image (stamped by the release workflow)
+_old_src = os.environ.get("VANHANH_IMAGE_SOURCE")
+os.environ["VANHANH_IMAGE_SOURCE"] = "ghcr.io/lequydailb-dotcom/vanhanh"   # official image (stamped by the release workflow)
 try:
     us.write_state({"phase": "idle"})
     _ri = asyncio.run(main.do_update())
@@ -183,29 +183,29 @@ try:
     _ok2 = asyncio.run(main.do_update())
     check("không hỏi được GHCR → không chặn oan, vẫn gọi Watchtower", isinstance(_ok2, dict) and _ok2.get("ok") is True)
     # (a user's VPS stuck on an older version): an image built on a PC and loaded onto the VPS is in no registry.
-    os.environ["NAOTA_IMAGE_SOURCE"] = ""
+    os.environ["VANHANH_IMAGE_SOURCE"] = ""
     _triggered.clear()
     us.write_state({"phase": "idle"})
     _sb = asyncio.run(main.do_update())
     _sbb = json.loads(_sb.body) if isinstance(_sb, JSONResponse) else {}
     check("self-built image → says pulling cannot update it, names the official image, never calls Watchtower",
           isinstance(_sb, JSONResponse) and _sb.status_code == 400 and _sbb.get("self_built") is True
-          and "ghcr.io/vuongtex/naota:latest" in _sbb.get("error", "") and _triggered == []
+          and "ghcr.io/lequydailb-dotcom/vanhanh:latest" in _sbb.get("error", "") and _triggered == []
           and _sbb.get("manual") == "docker compose up -d --pull always")
     check("self-built image → releases the claim", us.read_state().get("phase") == "idle")
 finally:
     for _k, _v in _saved.items():
         setattr(main, _k, _v)
     if _old_src is None:
-        os.environ.pop("NAOTA_IMAGE_SOURCE", None)
+        os.environ.pop("VANHANH_IMAGE_SOURCE", None)
     else:
-        os.environ["NAOTA_IMAGE_SOURCE"] = _old_src
+        os.environ["VANHANH_IMAGE_SOURCE"] = _old_src
 src_df = open(os.path.join(str(ROOT), "Dockerfile"), encoding="utf-8").read()
 src_wf = open(os.path.join(str(ROOT), ".github", "workflows", "docker-publish.yml"), encoding="utf-8").read()
 check("the release workflow stamps the official image, the Dockerfile carries it into the container",
-      "NAOTA_IMAGE_SOURCE=${{ env.IMAGE }}" in src_wf and 'ARG NAOTA_IMAGE_SOURCE=""' in src_df
-      and "ENV NAOTA_IMAGE_SOURCE=${NAOTA_IMAGE_SOURCE}" in src_df
-      and src_df.index("ARG NAOTA_IMAGE_SOURCE") > src_df.index("ENV NAOTA_CODEX_SANDBOX"))
+      "VANHANH_IMAGE_SOURCE=${{ env.IMAGE }}" in src_wf and 'ARG VANHANH_IMAGE_SOURCE=""' in src_df
+      and "ENV VANHANH_IMAGE_SOURCE=${VANHANH_IMAGE_SOURCE}" in src_df
+      and src_df.index("ARG VANHANH_IMAGE_SOURCE") > src_df.index("ENV VANHANH_CODEX_SANDBOX"))
 
 # --- Watchtower trả lời mà container còn sống = không thay gì → nhả "restarting" ngay ---
 _r = main._watchtower_no_update_reason
@@ -324,7 +324,7 @@ _ann_raw = json.dumps({
             "summary": "Nội dung",
             "published_at": "2099-01-01",
             "priority": "high",
-            "cta": {"label": "Xem", "url": "https://vuong.ai"},
+            "cta": {"label": "Xem", "url": "https://lequydai.com"},
         },
         {
             "id": "tin-het-han",
@@ -358,7 +358,7 @@ _noti_js = (main.DASHBOARD_PATH / "notifications.js").read_text(encoding="utf-8"
 _mobile_js = (main.DASHBOARD_PATH / "mobile-chat.js").read_text(encoding="utf-8")
 check("navbar có nút chuông và panel thông báo",
       'id="notificationTrigger"' in _index_text and 'id="notificationPanel"' in _index_text)
-check("frontend ghi nhớ đã đọc", "naota.notifications.read" in _noti_js)
+check("frontend ghi nhớ đã đọc", "vanhanh.notifications.read" in _noti_js)
 check("hộp thư giới hạn 5 tin và có tải thêm",
       "PAGE_SIZE = 5" in _noti_js and "notificationLoadMore" in _noti_js)
 check("release không render toàn bộ body trong card",

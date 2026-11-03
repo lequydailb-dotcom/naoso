@@ -4,7 +4,7 @@
 
 Vì sao file này tồn tại: khi nói "tìm hiểu cho anh Workers for Platforms
 của Cloudflare" và "KV của Cloudflare"; máy nghe chép "Quốc cơ ford plat form của clap Play",
-"cave". Bộ não giọng viết lại đúng ở dòng NAOTA_NGHE nhưng rào voice_brain.safe_transcript_rewrite
+"cave". Bộ não giọng viết lại đúng ở dòng VANHANH_NGHE nhưng rào voice_brain.safe_transcript_rewrite
 chặn (cụm 5 tiếng vượt trần 4; "KV" quá ngắn; so mặt chữ tiếng Anh với tiếng Việt), lượt quay
 về câu gốc, bộ não chính trả lời mở đầu "Em hiểu 'cave' là KV..." còn bong bóng vẫn chữ sai.
 Yêu cầu: có bộ định tuyến điền đúng ngữ cảnh vào khung chat, không cần giải thích. Rào vẫn phải chặn mọi chỗ sửa đổi nghĩa như trước.
@@ -13,7 +13,7 @@ from _paths import ROOT, SERVER  # noqa: E402,F401
 import os
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-diengiai-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-diengiai-"))
 
 import voice_brain as vb  # noqa: E402
 
@@ -33,7 +33,7 @@ NHAN = [
     ("cave là gì", "KV là gì"),
     ("vẫn không nhận ra huyết áp Action luôn", "vẫn không nhận ra GitHub Actions luôn"),
     ("anh hỏi về khít half action", "anh hỏi về GitHub Actions"),
-    ("xin chào Naôta", "xin chào Naota"),
+    ("xin chào Naôta", "xin chào Vanhanh"),
     ("xem đơn trên pan cake", "xem đơn trên Pancake"),
 ]
 for cu, moi in NHAN:

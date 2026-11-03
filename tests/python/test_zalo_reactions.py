@@ -1,14 +1,14 @@
-"""Emoji reactions on personal Zalo (naota-zalo 1.7.0), END TO END: fake MCP, fake models, real bot.
+"""Emoji reactions on personal Zalo (vanhanh-zalo 1.7.0), END TO END: fake MCP, fake models, real bot.
 
     python tests/run.py zalo_reactions      (no network)
 
-Requirement: Naota reads the emoji reactions of customers on Zalo and can leave reactions itself; whether the bot answers a customer who only reacts is learned in the judge, not hard-coded, and
+Requirement: Vanhanh reads the emoji reactions of customers on Zalo and can leave reactions itself; whether the bot answers a customer who only reacts is learned in the judge, not hard-coded, and
 the bot reacts on its own according to the
 judge. This file guards:
   1. A reaction lands in the inbox as one line saying who reacted, with what, and to which message (the bot's own
      reply included: its id is attached when its echo comes back).
   2. The account's own reactions never count as the owner typing; the bot's own one is filed as the bot's.
-  3. A customer's reaction reaches the decider (the Agent, or the judge in a group) as an event; nothing in Naota
+  3. A customer's reaction reaches the decider (the Agent, or the judge in a group) as an event; nothing in Vanhanh
      answers or ignores it on its own. Taking a reaction back is only recorded.
   4. The bot reacts only when the Agent (`[CAM_XUC:<name>]`) or the judge (`"reaction"`) says so, on the customer's
      message, never on a reaction; the marker never reaches the customer.
@@ -22,7 +22,7 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-reactions-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-reactions-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -122,7 +122,7 @@ def message(text, mid, thread=CUSTOMER, uid=CUSTOMER, who="Lan", secs_ago=2, gro
 
 def reaction_msg(rid, target, name="heart", thread=CUSTOMER, uid=CUSTOMER, who="Lan", group=False, removed=False,
                  own=False, secs_ago=1):
-    """Exactly naota-zalo 1.7.0 `normalizeReaction`."""
+    """Exactly vanhanh-zalo 1.7.0 `normalizeReaction`."""
     emoji = bot_reaction.emoji_of(name)
     return {"id": rid, "threadId": thread, "threadType": "group" if group else "dm", "senderId": uid,
             "senderName": who, "isSelf": own, "text": None, "timestamp": _ms(secs_ago), "type": "reaction",

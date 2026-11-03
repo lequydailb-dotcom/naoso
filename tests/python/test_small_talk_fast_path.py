@@ -15,7 +15,7 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-smalltalk-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-smalltalk-"))
 from capability_registry import CapabilityRegistry  # noqa: E402
 from capability_resolver import DeterministicResolver  # noqa: E402
 from context_compiler import ContextCompiler  # noqa: E402
@@ -32,7 +32,7 @@ def check(name, cond, extra=""):
 
 
 # ---- 1. What counts as small talk ----
-for text in ("chào em", "Chào em 👋", "cảm ơn em nhé", "Cảm ơn nhiều ạ", "hi Naota", "thanks!",
+for text in ("chào em", "Chào em 👋", "cảm ơn em nhé", "Cảm ơn nhiều ạ", "hi Vanhanh", "thanks!",
              "Xin chào", "chào buổi sáng anh", "Thank you so much", "em cảm ơn ạ"):
     check(f"small talk: {text!r}", fp.is_small_talk(text))
 for text in ("ok", "ok làm đi", "ok cảm ơn", "chào em, doanh thu hôm nay thế nào?",
@@ -44,7 +44,7 @@ for text in ("ok", "ok làm đi", "ok cảm ơn", "chào em, doanh thu hôm nay 
 
 # ---- 2. It takes the fast path with the saving level OFF, on Claude Code ----
 def _stack(settings):
-    tmp = Path(tempfile.mkdtemp(prefix="naota-smalltalk-stack-"))
+    tmp = Path(tempfile.mkdtemp(prefix="vanhanh-smalltalk-stack-"))
     brain = tmp / "brain"
     registry = CapabilityRegistry(tmp / "registry")
     registry.refresh_tools(brain, [], {})

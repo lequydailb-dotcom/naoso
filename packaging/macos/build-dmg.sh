@@ -1,13 +1,13 @@
 #!/bin/bash
 # ============================================================
-# Build dist/Naota-macOS.dmg: "NAOTA.app" plus a shortcut to Applications, so the
+# Build dist/Vanhanh-macOS.dmg: "VANHANH.app" plus a shortcut to Applications, so the
 # person drags the app across like any other Mac app.
 #
 #   bash packaging/macos/build-dmg.sh          # needs macOS (hdiutil)
 #   NO_DMG=1 bash packaging/macos/build-dmg.sh # any OS: only assemble the .app (tests use it)
 #
 # The app stays tiny: launcher.sh + bootstrap.sh + icon. The first launch clones the newest
-# Naota into ~/Naota (see bootstrap.sh), so this .dmg never goes stale.
+# Vanhanh into ~/Vanhanh (see bootstrap.sh), so this .dmg never goes stale.
 # Not signed with an Apple Developer ID: macOS asks once to allow it under
 # System Settings > Privacy & Security > Open Anyway (QUICKSTART explains it).
 # ============================================================
@@ -18,29 +18,29 @@ HERE="${ROOT}/packaging/macos"
 DIST="${ROOT}/dist"
 VERSION="$(tr -d ' \r\n' < "${ROOT}/VERSION")"
 STAGE="${DIST}/dmg-stage"
-APP="${STAGE}/NAOTA.app"
+APP="${STAGE}/VANHANH.app"
 
 rm -rf "${STAGE}"
 mkdir -p "${APP}/Contents/MacOS" "${APP}/Contents/Resources"
 
-cp "${HERE}/launcher.sh" "${APP}/Contents/MacOS/naota"
+cp "${HERE}/launcher.sh" "${APP}/Contents/MacOS/vanhanh"
 cp "${HERE}/bootstrap.sh" "${APP}/Contents/Resources/bootstrap.sh"
-cp "${ROOT}/packaging/assets/naota.icns" "${APP}/Contents/Resources/naota.icns"
-chmod +x "${APP}/Contents/MacOS/naota" "${APP}/Contents/Resources/bootstrap.sh"
+cp "${ROOT}/packaging/assets/vanhanh.icns" "${APP}/Contents/Resources/vanhanh.icns"
+chmod +x "${APP}/Contents/MacOS/vanhanh" "${APP}/Contents/Resources/bootstrap.sh"
 
 cat > "${APP}/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key><string>NAOTA</string>
-    <key>CFBundleDisplayName</key><string>NAOTA</string>
-    <key>CFBundleIdentifier</key><string>ai.vuong.naota</string>
+    <key>CFBundleName</key><string>VANHANH</string>
+    <key>CFBundleDisplayName</key><string>VANHANH</string>
+    <key>CFBundleIdentifier</key><string>ai.daile.vanhanh</string>
     <key>CFBundleVersion</key><string>${VERSION}</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleExecutable</key><string>naota</string>
-    <key>CFBundleIconFile</key><string>naota</string>
+    <key>CFBundleExecutable</key><string>vanhanh</string>
+    <key>CFBundleIconFile</key><string>vanhanh</string>
     <key>LSMinimumSystemVersion</key><string>11.0</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
@@ -58,12 +58,12 @@ fi
 codesign --force --deep --sign - "${APP}" || echo "codesign skipped"
 
 ln -s /Applications "${STAGE}/Applications"
-# The Naota star as the icon of the mounted disk (Finder sidebar and desktop) instead of the
+# The Vanhanh star as the icon of the mounted disk (Finder sidebar and desktop) instead of the
 # generic drive. Needs the volume's "custom icon" flag, which can only be set on a writable
 # image: build read-write, flag it, then compress. Missing SetFile only loses the icon.
-cp "${ROOT}/packaging/assets/naota.icns" "${STAGE}/.VolumeIcon.icns"
-rm -f "${DIST}/Naota-macOS.dmg" "${DIST}/rw.dmg"
-hdiutil create -volname "NAOTA" -srcfolder "${STAGE}" -ov -format UDRW "${DIST}/rw.dmg"
+cp "${ROOT}/packaging/assets/vanhanh.icns" "${STAGE}/.VolumeIcon.icns"
+rm -f "${DIST}/Vanhanh-macOS.dmg" "${DIST}/rw.dmg"
+hdiutil create -volname "VANHANH" -srcfolder "${STAGE}" -ov -format UDRW "${DIST}/rw.dmg"
 MNT="$(hdiutil attach -nobrowse -readwrite "${DIST}/rw.dmg" | awk -F'\t' '/\/Volumes\//{print $NF}')"
 if SETFILE="$(xcrun --find SetFile 2>/dev/null)" && [ -n "${MNT}" ]; then
   "${SETFILE}" -a C "${MNT}" && echo "Volume icon set"
@@ -71,7 +71,7 @@ else
   echo "SetFile not found: disk image keeps the generic icon"
 fi
 [ -n "${MNT}" ] && hdiutil detach "${MNT}"
-hdiutil convert "${DIST}/rw.dmg" -format UDZO -o "${DIST}/Naota-macOS.dmg"
+hdiutil convert "${DIST}/rw.dmg" -format UDZO -o "${DIST}/Vanhanh-macOS.dmg"
 rm -f "${DIST}/rw.dmg"
 rm -rf "${STAGE}"
-echo "Built ${DIST}/Naota-macOS.dmg"
+echo "Built ${DIST}/Vanhanh-macOS.dmg"

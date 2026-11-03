@@ -1,7 +1,7 @@
 /* Kéo ảnh vừa chụp vào ô chat trên iPhone: ảnh hiện mà gửi thì hỏng.
 
    Lỗi đã gặp: kéo ảnh chụp màn hình (thumbnail ở góc) vào ô chat, chip hiện ảnh, bấm gửi thì
-   hỏng. iPhone chỉ cho ĐỌC file kéo thả trong lúc sự kiện thả đang chạy; Naota trước đây chỉ giữ
+   hỏng. iPhone chỉ cho ĐỌC file kéo thả trong lúc sự kiện thả đang chạy; Vanhanh trước đây chỉ giữ
    tham chiếu File rồi đọc khi tải lên (sau đó), lúc quyền đã hết. Nay chupFile() bắt đầu đọc
    NGAY trong sự kiện và gói bản sao thành File mới; file 0 byte báo ngay trên chip.
 

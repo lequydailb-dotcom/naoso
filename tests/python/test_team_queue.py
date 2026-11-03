@@ -11,7 +11,7 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-queue-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-queue-")
 
 import task_store as TS  # noqa: E402
 
@@ -24,7 +24,7 @@ def check(name, cond, extra=""):
         fails.append(name)
 
 
-st = TS.TaskStore(Path(os.environ["NAOTA_STATE_DIR"]) / "kanban.sqlite3")
+st = TS.TaskStore(Path(os.environ["VANHANH_STATE_DIR"]) / "kanban.sqlite3")
 B = "D:/brain"
 
 

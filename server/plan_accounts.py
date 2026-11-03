@@ -30,12 +30,12 @@ MAIN = "main"
 KIND = {"openai-oauth": "codex", "grok-cli": "grok", "anthropic-cli": "claude"}
 ENV = {"codex": "CODEX_HOME", "grok": "GROK_HOME", "claude": "CLAUDE_CONFIG_DIR"}
 # Files copied from account 1's folder into an extra account's folder before each run, so the extra account sees
-# the same settings and MCP servers (Codex `config.toml` and Naota's hub profile, Grok `config.toml`, Claude
+# the same settings and MCP servers (Codex `config.toml` and Vanhanh's hub profile, Grok `config.toml`, Claude
 # `settings.json`). Logins and history are never copied.
 _SHARED = {"codex": ("*.toml",), "grok": ("config.toml",), "claude": ("settings.json",)}
 # Claude keeps user-scope MCP servers (added through Claude Code's own MCP, `--scope user`) in `.claude.json` NEXT TO the
 # config folder, together with that login's account data. Only its `mcpServers` list is carried over.
-_MARK = ".naota-signed-in"
+_MARK = ".vanhanh-signed-in"
 
 
 def supported(provider: str) -> bool:
@@ -128,7 +128,7 @@ def _share_claude_mcp(src_home: Path, folder: Path) -> None:
 
 
 def mark_signed_in(provider: str, folder) -> None:
-    """Remember that Naota saw this account finish signing in (Claude on macOS keeps the token in the Keychain,
+    """Remember that Vanhanh saw this account finish signing in (Claude on macOS keeps the token in the Keychain,
     so no file in the folder proves it)."""
     if not folder:
         return
@@ -161,7 +161,7 @@ def signed_in(provider: str, account_id: str) -> bool:
     if (folder / ".credentials.json").exists():
         return True
     # Only macOS keeps the Claude token in the Keychain, where no file proves it; elsewhere a missing credentials
-    # file means signed out, whatever Naota remembered.
+    # file means signed out, whatever Vanhanh remembered.
     return sys.platform == "darwin" and (folder / _MARK).exists()
 
 
@@ -310,7 +310,7 @@ def _claude_use(engine, folder) -> None:
     engine.claude_config_dir = str(folder) if folder else None
     # Wrapped once PER INSTANCE: background work copies the chat's engine (copy.copy) for a second account, and the
     # copy must build options from its own attributes, not through the original's closure.
-    if getattr(engine, "_naota_wrap_owner", None) is engine:
+    if getattr(engine, "_vanhanh_wrap_owner", None) is engine:
         return
     cls_opts = getattr(type(engine), "_options", None)
     if cls_opts is None:
@@ -327,4 +327,4 @@ def _claude_use(engine, folder) -> None:
         return o
 
     engine._options = _options
-    engine._naota_wrap_owner = engine
+    engine._vanhanh_wrap_owner = engine

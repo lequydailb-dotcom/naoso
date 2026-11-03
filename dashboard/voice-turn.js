@@ -47,8 +47,8 @@
   ];
   // Tiểu từ đuôi / xưng hô không mang nghĩa lệnh: "khoan đã nhé", "đợi chút nào".
   var PARTICLES = ["nhé", "nha", "nhá", "đã", "đi", "chút", "xíu", "tí", "nào", "ạ", "với", "please",
-                   "naota", "ơi", "nghen", "nhen", "hen", "đây", "cái"];
-  var LEAD = ["naota ơi", "ê naota", "này naota", "naota", "ơi", "ê", "này", "hey naota", "hey", "ok naota"];
+                   "vanhanh", "ơi", "nghen", "nhen", "hen", "đây", "cái"];
+  var LEAD = ["vanhanh ơi", "ê vanhanh", "này vanhanh", "vanhanh", "ơi", "ê", "này", "hey vanhanh", "hey", "ok vanhanh"];
 
   // Câu kết bằng một trong các từ này thì rất có thể người dùng còn nói tiếp. Nhóm cuối là
   // tiếng ậm ừ lúc đang NGHĨ ("ừm", "ờ", "kiểu", "cái"): dừng để nghĩ, không phải dừng hẳn (V3,
@@ -156,7 +156,7 @@
     this.background = 0;
     this.slow = false;
     this.deferred = [];
-    this.interruptedAt = "";   // câu Naota đọc tới lúc bị ngắt, đi vào tin kế tiếp
+    this.interruptedAt = "";   // câu Vanhanh đọc tới lúc bị ngắt, đi vào tin kế tiếp
     this.history = [];
     this.turnAt = 0;           // mốc ms lượt hiện tại bắt đầu xử lý (V3: câu tiến độ)
     this.spoke = false;        // lượt này đã có chữ THẬT ra loa chưa
@@ -188,8 +188,8 @@
 
   VoiceTurn.prototype.delayFor = function (text) {
     // Một tiếng gọi tên thường là mở đầu câu ra lệnh. Chờ thêm một nhịp để không gửi
-    // riêng "Naota" trước khi người dùng nói tiếp; vẫn đáp nếu họ chỉ gọi tên.
-    if (/^(naota|nauta)( ơi)?$/.test(normalize(text))) return this.opts.maxDelay;
+    // riêng "Vanhanh" trước khi người dùng nói tiếp; vẫn đáp nếu họ chỉ gọi tên.
+    if (/^(vanhanh|nauta)( ơi)?$/.test(normalize(text))) return this.opts.maxDelay;
     return looksUnfinished(text) ? this.opts.maxDelay : this.opts.minDelay;
   };
 
@@ -226,7 +226,7 @@
       return acts.concat(this._recompute());
     }
     if (isStopPhrase(t)) {
-      // "thôi / dừng lại" chỉ làm Naota IM: lượt đang chạy vẫn viết nốt câu trả lời vào
+      // "thôi / dừng lại" chỉ làm Vanhanh IM: lượt đang chạy vẫn viết nốt câu trả lời vào
       // khung chat. Quy tắc: trong cuộc gọi, lượt chỉ dừng khi bấm lại nút mic.
       if (this.speaking) { this.speaking = false; }
       acts.push({ type: "stop_tts" });
@@ -284,7 +284,7 @@
     return this._recompute();
   };
 
-  // Bộ rình RMS đủ 500 ms tiếng nói trong lúc Naota đang đọc.
+  // Bộ rình RMS đủ 500 ms tiếng nói trong lúc Vanhanh đang đọc.
   VoiceTurn.prototype.bargeStart = function () {
     if (!this.speaking || this.interrupted) return [];
     this.interrupted = true;
@@ -313,7 +313,7 @@
     this.speaking = false;
     this.userSpeaking = true;
     if (spokenPrefix) this.interruptedAt = String(spokenPrefix);
-    // Cắt lời chỉ làm Naota IM, KHÔNG dừng lượt đang chạy. Trước đây cắt lời là dừng
+    // Cắt lời chỉ làm Vanhanh IM, KHÔNG dừng lượt đang chạy. Trước đây cắt lời là dừng
     // luôn lượt, và lỗi đã gặp: nói chen một câu là "Đã dừng lượt này", mô hình bị cắt
     // liên tục. Nay lượt viết nốt câu trả lời vào khung chat (stop_tts đánh dấu phần còn lại không
     // đọc), câu người dùng vừa nói xếp hàng ở app.js và đi sau khi lượt xong.
@@ -370,6 +370,6 @@
     normalize: normalize, coreOf: coreOf,
     isWaitPhrase: isWaitPhrase, isStopPhrase: isStopPhrase, looksUnfinished: looksUnfinished
   };
-  if (typeof window !== "undefined") window.NaotaVoiceTurn = api;
+  if (typeof window !== "undefined") window.VanhanhVoiceTurn = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })();

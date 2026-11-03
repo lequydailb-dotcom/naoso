@@ -1,7 +1,7 @@
 // ============================================
-// NAOTA - Console layer (sidebar + router)
+// VANHANH - Console layer (sidebar + router)
 // Bọc ngoài cockpit: rail điều hướng + trang quản lý. KHÔNG sửa app.js.
-// Đồ thị tự pause khi rời cockpit (qua window.__naotaGraph). Alpine cho UI.
+// Đồ thị tự pause khi rời cockpit (qua window.__vanhanhGraph). Alpine cho UI.
 // Thêm trang mới = thêm 1 mục vào RAIL_ITEMS + 1 case trong renderPage().
 // ============================================
 (function () {
@@ -10,10 +10,10 @@
   // Locale để định dạng số/ngày. Lấy từ i18n chứ KHÔNG khoá "vi-VN": người dùng đổi
   // ngôn ngữ giao diện thì ngày giờ phải đổi theo, nếu không thì nửa màn hình tiếng Anh
   // mà ngày vẫn dd/mm/yyyy kiểu Việt.
-  const LOC = () => (window.NaotaI18n && NaotaI18n.locale()) || "vi-VN";
+  const LOC = () => (window.VanhanhI18n && VanhanhI18n.locale()) || "vi-VN";
   // Cập nhật xong: tải lại khi máy chủ đã lên hẳn (freshness.js), không thì trang mới mở ra giữa lúc nó còn
   // khởi động và kẹt với chữ mã khoá.
-  const _taiLaiKhiSan = () => (window.NaotaReloadWhenReady ? window.NaotaReloadWhenReady() : location.reload());
+  const _taiLaiKhiSan = () => (window.VanhanhReloadWhenReady ? window.VanhanhReloadWhenReady() : location.reload());
   // ---- Khai báo các mục trên rail (mở rộng = thêm dòng ở đây) ----
   // type 'view' = render trong cview ; có launch() = nút mở overlay/modal sẵn có.
   const APP_VERSION = "1.0.0";   // fallback hiển thị tức thời; nguồn thật là /version (file VERSION)
@@ -57,7 +57,7 @@
     account: "circle-user",
     usage: "chart-column",
     // Trang Avatar (trước gọi là Linh vật, anh Vương đổi tên 02/11/2026): icon chân dung
-    // trong khung bo góc, đúng nghĩa "ảnh đại diện". Khuôn mặt cam "naota-pet" vẫn nằm trong
+    // trong khung bo góc, đúng nghĩa "ảnh đại diện". Khuôn mặt cam "vanhanh-pet" vẫn nằm trong
     // RIENG của dashboard/icons.js cho chỗ nào cần chính con pet.
     pet: "user-square-rounded",
     // "share-2" chu khong phai "link": nhan nhom "Ket noi" ngay trong cung mot rail da dung
@@ -117,7 +117,7 @@
   // Nhóm cuối (foot:true) được ghim xuống ĐÁY rail; các nhóm còn lại cuộn ở giữa.
   // Thứ tự & thành viên đổi ở đây; RAIL_ITEMS vẫn là nguồn icon/label + tra cứu cho go().
   const RAIL_GROUPS = [
-    // `id` là tên máy đọc của nhóm, dùng cho lệnh bằng lời (`naota_ui` action open_group).
+    // `id` là tên máy đọc của nhóm, dùng cho lệnh bằng lời (`vanhanh_ui` action open_group).
     // Nhãn đổi theo ngôn ngữ nên KHÔNG dùng nhãn làm khoá tra cứu được.
     // Nhóm "Trợ lý" đã BỎ: nó chỉ chứa Đồ thị + Trò chuyện, mà cả hai đều là cách
     // NHÌN vào chính bộ não (đồ thị là khoang não, trò chuyện là nói với bộ não đó), nên
@@ -143,10 +143,10 @@
   // Trang CÓ THẬT nhưng KHÔNG hiện trên thanh bên. Bỏ hẳn khỏi `RAIL_ITEMS` thì không dùng
   // được, vì đó mới là nguồn icon và nhãn; nên chỗ ẩn nằm ở đây.
   //
-  // Rỗng. Trước đây Naota Store bị ẩn với lý do "nó không phải một chức năng ngang
+  // Rỗng. Trước đây Vanhanh Store bị ẩn với lý do "nó không phải một chức năng ngang
   // hàng với Trợ lý hay Kỹ năng, đường vào đúng là cái tab trên chính trang bạn đang đứng".
   // Lập luận đó đúng khi kho chỉ có vài gói và ai cũng tới nó từ một trang năng lực. Nó sai
-  // ngay khi kho thành chỗ chứa PHẦN LỚN kết nối của Naota (16 khuôn đã dọn ra kho):
+  // ngay khi kho thành chỗ chứa PHẦN LỚN kết nối của Vanhanh (16 khuôn đã dọn ra kho):
   // một người mới cài, chưa đấu gì, không có trang nào để mà bấm tab - họ cần thấy lối vào
   // ngay trên thanh bên. Nên đưa ra, và đặt cạnh Kết nối.
   //
@@ -205,7 +205,7 @@
     },
   }]));
 
-  // Trang tách từ Studio cũ - render container rồi gọi loader trong studio.js (window.NaotaStudio).
+  // Trang tách từ Studio cũ - render container rồi gọi loader trong studio.js (window.VanhanhStudio).
   const STUDIO_PAGES = ["skills"];
 
   let _settings = null;
@@ -224,13 +224,13 @@
   // (i) button (info-tip.js): long explanations hide behind it. Without info-tip.js
   // (Node tests) the text is drawn open so nothing is lost.
   const _infoLabel = () => (typeof window.t === "function" ? window.t("info.more") : "i");
-  function infoBtn() { const J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(_infoLabel()) : ""; }
+  function infoBtn() { const J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(_infoLabel()) : ""; }
   function infoBody(html) {
-    const J = typeof window !== "undefined" && window.NaotaInfo;
+    const J = typeof window !== "undefined" && window.VanhanhInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
   function infoPair(html) {
-    const J = typeof window !== "undefined" && window.NaotaInfo;
+    const J = typeof window !== "undefined" && window.VanhanhInfo;
     return J ? J.pair(html, _infoLabel()) : '<div class="info-body">' + html + "</div>";
   }
   // Chỉ cho link http(s) HOẶC đường dẫn cùng origin (chặn javascript:/data: XSS); dùng kèm
@@ -305,7 +305,7 @@
   }
   // Cho các module khác (studio.js - trang Kỹ năng) dùng chung, thay vì đẻ bản phân trang
   // thứ hai rồi hai bản trôi lệch nhau ngay lần sửa đầu.
-  window.NaotaPager = pager;
+  window.VanhanhPager = pager;
 
   // ---- Điều khiển graph: chỉ chạy khi đang ở cockpit + không lite + không mở Studio ----
   function recomputeGraph() {
@@ -313,14 +313,14 @@
     // số cộng sự, cờ vault). Gọi TRƯỚC khi hỏi `g` vì nợ vẫn phải trả kể cả khi không có đồ
     // thị nào để đánh thức (máy yếu / chế độ lite), và nó tự kiểm "đang ở màn chính chưa".
     const active = window.Alpine ? Alpine.store("nav").active : "home";
-    if (active === "home") { try { if (window.NaotaCockpit) window.NaotaCockpit.veManChinh(); } catch (e) {} }
-    const g = window.__naotaGraph;
+    if (active === "home") { try { if (window.VanhanhCockpit) window.VanhanhCockpit.veManChinh(); } catch (e) {} }
+    const g = window.__vanhanhGraph;
     if (!g) return;
     const studioOpen = !!document.getElementById("studio")?.classList.contains("open");
     const shouldRun = !liteMode() && active === "home" && !studioOpen;
     if (shouldRun) g.wake(); else g.pause();
   }
-  window.NaotaRecomputeGraph = recomputeGraph;
+  window.VanhanhRecomputeGraph = recomputeGraph;
 
   // ---- Chuyển trang (có View Transition cho mượt) ----
   // Hook "rời trang": trang nào mượn DOM dùng chung (vd tab Trò chuyện mượn khung chat của
@@ -333,7 +333,7 @@
   // bookmark vẫn tới nơi.
   // Kanban and Scheduled became the Tasks page; the old Scheduled link opens its Recurring list.
   const TRANG_GOP = { runtime: "usage", agents: "workspace", workflows: "workspace", kanban: "tasks", selfimprove: "tasks" };
-  const TRANG_CUOI_KEY = "naota_last_page";
+  const TRANG_CUOI_KEY = "vanhanh_last_page";
   function khoiPhucTrang() {
     let id = "home";
     try {
@@ -348,11 +348,11 @@
   function navigateTo(id) {
     // Trang Chatbot là TAB của trang Hội thoại: nhớ tab rồi đi tới trang đó.
     if (id === "chatbots") {
-      if (window.NaotaConversations && window.NaotaConversations.chonTab) window.NaotaConversations.chonTab("bot", true);
+      if (window.VanhanhConversations && window.VanhanhConversations.chonTab) window.VanhanhConversations.chonTab("bot", true);
       else _tabHoiThoaiCho = "bot";
       id = "conversations";
     }
-    if (id === "selfimprove") { try { localStorage.setItem("naota.nv.view", "rep"); } catch (e) {} }
+    if (id === "selfimprove") { try { localStorage.setItem("vanhanh.nv.view", "rep"); } catch (e) {} }
     id = TRANG_GOP[id] || id;
     const store = Alpine.store("nav");
     // Tab "updates" cũ của Cài đặt giờ là trang Cập nhật riêng (id "logs") trên thanh bên.
@@ -377,7 +377,7 @@
       // Về nơi có hiển thị model thì làm mới, phòng khi model bị đổi bằng đường khác
       // (trang Models, Cài đặt nhanh, hoặc chỉnh tay settings).
       if (id === "home" || id === "chat") refreshModelUi();
-      // Nút điều khiển cockpit (cài đặt, giọng nói, làm mới) chỉ hiện ở trang Naota, không hiện navbar trang quản lý
+      // Nút điều khiển cockpit (cài đặt, giọng nói, làm mới) chỉ hiện ở trang Vanhanh, không hiện navbar trang quản lý
       document.body.classList.toggle("in-console", id !== "home");
       // Rời trang Cài đặt → cất #quickSet về holder TRƯỚC khi cviewBody bị ghi đè (giữ node + handler).
       if (id !== "settings") parkQuickSet(true);
@@ -391,7 +391,7 @@
     else swap();
   }
 
-  // Mở trang Tệp tin ĐÚNG vị trí một file/thư mục (gọi từ link trong chat qua window.NaotaOpenFiles,
+  // Mở trang Tệp tin ĐÚNG vị trí một file/thư mục (gọi từ link trong chat qua window.VanhanhOpenFiles,
   // hoặc từ deep-link #open=<đường-dẫn> khi mở ở tab trình duyệt mới). fullPath tương đối GỐC BRAIN
   // (đúng quy ước AI ghi trong chat); trang Tệp tin sẽ tự ghép tiền tố brain để ra path tương đối trần.
   function openFilesAt(fullPath) {
@@ -406,7 +406,7 @@
     if (active === "files") renderPage("files");   // đã ở trang Tệp tin → nạp lại để nhảy tới vị trí mới
     else navigateTo("files");
   }
-  if (typeof window !== "undefined") window.NaotaOpenFiles = openFilesAt;
+  if (typeof window !== "undefined") window.VanhanhOpenFiles = openFilesAt;
   // Bấm một đường dẫn vault: file SỬA ĐƯỢC thì mở thẳng TRÌNH SỬA, còn lại mới về trang Tệp tin.
   //
   // Vì sao gom vào một hàm: cùng một link trong chat có HAI đường đi tới đây - cú bấm thường
@@ -426,58 +426,58 @@
     if (!laThuMuc && VT_TEXT_EXTS.includes(duoi)) {
       // Màn rộng: trình sửa đính bên cây. Màn hẹp: modal của file-editor.js - ở đây người dùng
       // bấm ĐÚNG một file nên đừng chặn như nhánh node đồ thị.
-      if (!isNarrow() && typeof window.NaotaOpenNote === "function") {
-        window.NaotaOpenNote(clean); return;
+      if (!isNarrow() && typeof window.VanhanhOpenNote === "function") {
+        window.VanhanhOpenNote(clean); return;
       }
-      if (typeof window.NaotaEditFile === "function") { window.NaotaEditFile(clean); return; }
+      if (typeof window.VanhanhEditFile === "function") { window.VanhanhEditFile(clean); return; }
     }
     // ẢNH: mở LIGHTBOX ngay tại chỗ. Trước đây ảnh rơi xuống openFilesAt, tức là ĐỔI TRANG
     // sang Tệp tin - ở trang Cộng sự thì cú bấm đó ném người dùng ra khỏi cuộc trò chuyện đang
     // mở với trợ lý, chỉ để xem một tấm ảnh. Lightbox đã có sẵn nút Tải về và Mở tab mới nên
     // không mất đường nào cả. (Ảnh chèn thẳng trong chat đã đi lightbox từ trước, chat-render.js
     // bắt ở pha capture; nhánh này lo LINK trỏ tới ảnh và deep-link #open=.)
-    if (!laThuMuc && VT_IMG_EXTS.includes(duoi) && window.NaotaLightbox) {
-      window.NaotaLightbox.open(_vtRaw(clean), base); return;
+    if (!laThuMuc && VT_IMG_EXTS.includes(duoi) && window.VanhanhLightbox) {
+      window.VanhanhLightbox.open(_vtRaw(clean), base); return;
     }
     openFilesAt(fullPath);
   }
-  if (typeof window !== "undefined") window.NaotaOpenVaultPath = openVaultPath;
+  if (typeof window !== "undefined") window.VanhanhOpenVaultPath = openVaultPath;
   // Mở một CỘNG SỰ từ link trong chat: "agent|workflow:<slug>[:<mã phiên>]".
   // Có mã phiên thì mở đúng cuộc hội thoại đã chạy việc đó, không thì mở cuộc gần nhất.
   // Hai đường vào giống hệt link file: cú bấm thường (chat-render.js) và deep-link "#cs=".
   function moCongSu(spec) {
     const m = /^(agent|workflow):([^:]+)(?::(.+))?$/.exec(String(spec == null ? "" : spec).trim());
-    if (!m || !window.NaotaWorkspace) return false;
-    window.NaotaWorkspace.openCommand(m[1], m[2]).then((ok) => {
-      if (ok && m[3] && window.NaotaSessions) window.NaotaSessions.open(m[3]);
+    if (!m || !window.VanhanhWorkspace) return false;
+    window.VanhanhWorkspace.openCommand(m[1], m[2]).then((ok) => {
+      if (ok && m[3] && window.VanhanhSessions) window.VanhanhSessions.open(m[3]);
     });
     return true;
   }
-  if (typeof window !== "undefined") window.NaotaOpenCongSu = moCongSu;
+  if (typeof window !== "undefined") window.VanhanhOpenCongSu = moCongSu;
   // Mở note trong editor cây từ đường dẫn TƯƠNG ĐỐI GỐC BRAIN (như openNodePopup). Người gọi: click node
   // đồ thị (app.js onGraphNodeClick) VÀ wikilink [[..]] trong chat-render.js - đều truyền MỘT chuỗi path.
   // ĐỪNG gán đè hàm này bằng openNote thô: mất bước suy tên/đuôi file → note .md rơi nhánh "hãy tải về"
   // (đã từng dính).
   // Đường dẫn còn khoác giao thức file:// (link do Antigravity viết) thì gỡ về dạng
   // tương đối gốc brain trước, không thì tiền tố trần bị ghép thành "brains/x/file:///brains/x/..."
-  // và server trả 404. Luật gỡ nằm ở chat-render.js (NaotaFileRef); ở đây chỉ gọi lại.
+  // và server trả 404. Luật gỡ nằm ở chat-render.js (VanhanhFileRef); ở đây chỉ gọi lại.
   function _goFileUri(p) {
     const s = String(p == null ? "" : p);
     if (!/^file:/i.test(s)) return p;
-    if (typeof window.NaotaFileRef === "function") {
-      const r = window.NaotaFileRef(s);
+    if (typeof window.VanhanhFileRef === "function") {
+      const r = window.VanhanhFileRef(s);
       if (r && r.path) return r.path;
     }
     return s.replace(/^file:(?:\/\/[^/\\]*)?/i, "").replace(/^\/+/, "");
   }
-  if (typeof window !== "undefined") window.NaotaOpenNote = function (brainRel) {
+  if (typeof window !== "undefined") window.VanhanhOpenNote = function (brainRel) {
     brainRel = _goFileUri(brainRel);
     if (!brainRel) return;
     // Trên điện thoại KHÔNG mở trình sửa: node trên đồ thị quá nhỏ nên chạm gần như luôn
     // trúng nhầm note, và trình sửa mở ra rồi thì thanh nút tràn khỏi màn hẹp nên khó thoát.
     // Mở nhầm một note rồi mắc kẹt trong đó tệ hơn hẳn là không mở.
     if (isNarrow()) {
-      if (window.NaotaToast) window.NaotaToast(window.t("cs.note_mobile_off"));
+      if (window.VanhanhToast) window.VanhanhToast(window.t("cs.note_mobile_off"));
       else alert(window.t("cs.note_mobile_off_alert"));
       return;
     }
@@ -493,12 +493,12 @@
   };
   // Mở lại một file bằng đường dẫn THEO TRẦN DUYỆT (đã có sẵn tiền tố nhà brain). Người gọi:
   // chip "file đang mở" dưới khung chat (app.js) - ghim giữ đúng dạng path mà openNote nhận,
-  // nên gọi thẳng vào đây; đi vòng qua NaotaOpenNote sẽ ghép tiền tố trần LẦN HAI và mở hụt.
+  // nên gọi thẳng vào đây; đi vòng qua VanhanhOpenNote sẽ ghép tiền tố trần LẦN HAI và mở hụt.
   // Trả về true nếu đã mở được; false = người gọi tự lo đường lui (khung sửa bung giữa màn).
-  if (typeof window !== "undefined") window.NaotaOpenNoteAt = function (ceilRel, name) {
+  if (typeof window !== "undefined") window.VanhanhOpenNoteAt = function (ceilRel, name) {
     if (!ceilRel) return false;
     // Màn hẹp không có chỗ cho trình sửa đính, nhưng ở đây người dùng bấm ĐÚNG một file đã biết
-    // (khác click nhầm node đồ thị) nên đừng chặn - trả false để app.js rơi về NaotaEditFile.
+    // (khác click nhầm node đồ thị) nên đừng chặn - trả false để app.js rơi về VanhanhEditFile.
     if (isNarrow()) return false;
     const ed = document.getElementById("noteEditor");
     if (!ed) return false;
@@ -520,12 +520,12 @@
   };
   // Xổ cây tới đúng nhánh chứa `path` (đường dẫn theo TRẦN DUYỆT). Phơi ra cho chỗ khác gọi
   // mà không phải chép lại cơ chế xổ cây thứ hai.
-  if (typeof window !== "undefined") window.NaotaRevealInTree = (path) => _vtRevealInTree(path);
+  if (typeof window !== "undefined") window.VanhanhRevealInTree = (path) => _vtRevealInTree(path);
 
   // ============================================
   // Render từng trang vào #cviewBody
   // ============================================
-  // Trang nào cần nhóm code nạp chậm nào (nap-cham.js, khối naota-lazy trong index.html).
+  // Trang nào cần nhóm code nạp chậm nào (nap-cham.js, khối vanhanh-lazy trong index.html).
   const NHOM_TRANG = {
     workspace: ["congviec"], teams: ["congviec", "teams"], packs: ["packs"], plugins: ["packs"], mcp: ["packs"],
     conversations: ["hoithoai"], chatbots: ["hoithoai"], usage: ["usage"], webhooks: ["webhooks"],
@@ -534,7 +534,7 @@
   // Tab Hội thoại cần chọn khi conversations.js còn chưa nạp (navigateTo("chatbots") lúc đầu): renderPage chọn hộ sau khi nạp.
   let _tabHoiThoaiCho = "";
   // Gọi một hàm của module nạp chậm từ chỗ khác trang: chờ nhóm của nó rồi mới gọi.
-  const _goiNhom = (nhom, fn) => (window.NaotaNapCham ? window.NaotaNapCham.goi(nhom, fn) : Promise.resolve(fn()));
+  const _goiNhom = (nhom, fn) => (window.VanhanhNapCham ? window.VanhanhNapCham.goi(nhom, fn) : Promise.resolve(fn()));
 
   async function renderPage(id) {
     let el = body();
@@ -560,14 +560,14 @@
     // code của trang này có thể chưa nạp (nap-cham.js). Chờ ĐỦ nhóm rồi mới vẽ; trong lúc chờ mà người dùng đã
     // sang trang khác thì dừng hẳn, đừng vẽ (renderWorkspace mượn khung chat: vẽ vào trang đã tháo là mất khung chat).
     const nhomCan = NHOM_TRANG[id];
-    if (nhomCan && window.NaotaNapCham) {
+    if (nhomCan && window.VanhanhNapCham) {
       const gen = _renderGen;
       el.innerHTML = placeholder(id, window.t("common.loading"));
-      await window.NaotaNapCham.cho(nhomCan);
+      await window.VanhanhNapCham.cho(nhomCan);
       if (gen !== _renderGen) return;
       el.innerHTML = "";
       if (id === "conversations" && _tabHoiThoaiCho) {
-        try { if (window.NaotaConversations && window.NaotaConversations.chonTab) window.NaotaConversations.chonTab(_tabHoiThoaiCho, true); } catch (e) {}
+        try { if (window.VanhanhConversations && window.VanhanhConversations.chonTab) window.VanhanhConversations.chonTab(_tabHoiThoaiCho, true); } catch (e) {}
       }
       _tabHoiThoaiCho = "";
     }
@@ -583,7 +583,7 @@
     // Trang Gói do packs.js dựng, uỷ quyền y như renderStudioPage uỷ cho studio.js. Để riêng
     // file vì console.js đã ~7k dòng.
     if (id === "packs") {
-      if (window.NaotaPacks) return window.NaotaPacks.render(el);
+      if (window.VanhanhPacks) return window.VanhanhPacks.render(el);
       el.innerHTML = placeholder("packs", window.t("cs.mod_not_ready", { ten: "packs.js" }));
       return;
     }
@@ -594,17 +594,17 @@
     if (CODE_PAGES.includes(id)) return renderCode(el, id);
     if (id === "tasks") {
       // the Tasks page lives in tasks.js (lazy group "nhiemvu").
-      if (!window.NaotaTasks) {
+      if (!window.VanhanhTasks) {
         el.innerHTML = placeholder("tasks", window.t("cs.mod_not_ready", { ten: "tasks.js" }));
         return;
       }
-      _pageLeave = () => { try { window.NaotaTasks.unmount(); } catch (e) {} };
-      return window.NaotaTasks.mount(el);
+      _pageLeave = () => { try { window.VanhanhTasks.unmount(); } catch (e) {} };
+      return window.VanhanhTasks.mount(el);
     }
     if (id === "webhooks") return renderWebhooks(el);
     if (id === "logins") {
       // the Login vault page lives in login-vault.js, delegated like the Packs page.
-      if (window.NaotaLoginVault) return window.NaotaLoginVault.mount(el);
+      if (window.VanhanhLoginVault) return window.VanhanhLoginVault.mount(el);
       el.innerHTML = placeholder("logins", window.t("cs.mod_not_ready", { ten: "login-vault.js" }));
       return;
     }
@@ -613,7 +613,7 @@
       // Trang Nhóm do teams.js dựng, uỷ quyền như trang Gói. Trang chat chiếm trọn khung và tự cuộn bên trong (khung soạn
       // luôn ở đáy) nên dùng .cview-flush như trang Code; body.on-teams để CSS bỏ đầu trang và linh vật trên điện thoại.
       // _pageLeave gỡ cả hai (renderPage clone cviewBody GIỮ class) và báo teams.js dọn.
-      if (!window.NaotaTeams) {
+      if (!window.VanhanhTeams) {
         el.innerHTML = placeholder("teams", window.t("cs.mod_not_ready", { ten: "teams.js" }));
         return;
       }
@@ -622,9 +622,9 @@
       _pageLeave = () => {
         el.classList.remove("cview-flush");
         document.body.classList.remove("on-teams");
-        try { if (window.NaotaTeams.leave) window.NaotaTeams.leave(); } catch (e) {}
+        try { if (window.VanhanhTeams.leave) window.VanhanhTeams.leave(); } catch (e) {}
       };
-      return window.NaotaTeams.render(el);
+      return window.VanhanhTeams.render(el);
     }
     if (id === "conversations") return renderConversations(el);
     if (id === "learn")    return renderLearn(el);
@@ -675,8 +675,8 @@
     // rồi phải tự tìm đường về bằng thanh bên - mà kho không nằm trên thanh bên nữa, nên họ
     // dễ thấy mình bị lạc.
     nut.onclick = () => _goiNhom("packs", () => {
-      if (window.NaotaPacks && window.NaotaPacks.moKho) {
-        window.NaotaPacks.moKho(kind, id, VIEW_META[id] ? VIEW_META[id].label : id);
+      if (window.VanhanhPacks && window.VanhanhPacks.moKho) {
+        window.VanhanhPacks.moKho(kind, id, VIEW_META[id] ? VIEW_META[id].label : id);
       } else { const s = window.Alpine && Alpine.store("nav"); if (s && s.go) s.go("packs"); }
     });
     return row;
@@ -687,7 +687,7 @@
     el.innerHTML = `<div class="stab-panel" id="panel-${id}"></div>`;
     const tab = hangTabKho(id);
     if (tab) el.insertBefore(tab, el.firstChild);
-    const fn = window.NaotaStudio && window.NaotaStudio[id];
+    const fn = window.VanhanhStudio && window.VanhanhStudio[id];
     if (fn) { try { fn(); } catch (e) { el.innerHTML = placeholder(id, window.t("cs.err_load") + e.message); } }
     else el.innerHTML = placeholder(id, window.t("cs.mod_not_ready", { ten: "studio.js" }));
   }
@@ -705,11 +705,11 @@
   // _pageLeave lo cả hai. (Lớp .cview-flush phải gỡ bằng tay: renderPage clone lại cviewBody
   // bằng cloneNode(false), mà clone đó GIỮ NGUYÊN class - để lại thì trang sau mất padding.)
   function renderCode(el, id) {
-    const fn = window.NaotaCode && window.NaotaCode.render;
+    const fn = window.VanhanhCode && window.VanhanhCode.render;
     if (!fn) { el.innerHTML = placeholder(id, window.t("cs.mod_not_ready", { ten: "code-term.js" })); return; }
     _pageLeave = () => {
       el.classList.remove("cview-flush");
-      try { window.NaotaCode.roi(); } catch (e) {}
+      try { window.VanhanhCode.roi(); } catch (e) {}
     };
     try { fn(el, id); } catch (e) { el.innerHTML = placeholder(id, window.t("cs.err_load") + e.message); }
   }
@@ -717,14 +717,14 @@
   // Trang Chatbot do chatbots.js dựng - uỷ quyền y như renderStudioPage uỷ cho studio.js,
   // để console.js không phình thêm một màn hình nữa.
   function renderChatbots(el) {
-    const fn = window.NaotaChatbots && window.NaotaChatbots.render;
+    const fn = window.VanhanhChatbots && window.VanhanhChatbots.render;
     if (fn) { try { fn(el); } catch (e) { el.innerHTML = placeholder("chatbots", window.t("cs.err_load") + e.message); } }
     else el.innerHTML = placeholder("chatbots", window.t("cs.mod_not_ready", { ten: "chatbots.js" }));
   }
 
   // Trang Hội thoại (hộp thư khách của Chatbot V2) do conversations.js dựng - cùng kiểu uỷ quyền.
   function renderConversations(el) {
-    const fn = window.NaotaConversations && window.NaotaConversations.render;
+    const fn = window.VanhanhConversations && window.VanhanhConversations.render;
     if (fn) { try { fn(el); } catch (e) { el.innerHTML = placeholder("conversations", window.t("cs.err_load") + e.message); } }
     else el.innerHTML = placeholder("conversations", window.t("cs.mod_not_ready", { ten: "conversations.js" }));
   }
@@ -736,31 +736,31 @@
   // mà renderCode không truyền hàm mượn xuống - nên nó đi đúng lối của trang Cộng sự. Nhét nó
   // vào code-term.js chỉ để "cùng nhóm" là phải chép cơ chế mượn sang file thứ hai.
   function renderCoding(el) {
-    if (!window.NaotaCoding) { el.innerHTML = placeholder("coding", window.t("cs.mod_not_ready", { ten: "coding.js" })); return; }
+    if (!window.VanhanhCoding) { el.innerHTML = placeholder("coding", window.t("cs.mod_not_ready", { ten: "coding.js" })); return; }
     _injectChatCss();
     if (_chatSlots.length) _returnChatNodes();
     document.body.classList.add("on-chat");
-    window.NaotaCoding.render(el, { borrow: _borrowChatNodes });
+    window.VanhanhCoding.render(el, { borrow: _borrowChatNodes });
     // Dải chip mà trang này nhét vào #modelBar phải được gỡ TRƯỚC khi node được trả về HUD,
     // không thì trang Trò chuyện mọc thêm một hàng nói về một repo không còn liên quan.
     _pageLeave = () => {
-      try { if (window.NaotaCoding.roi) window.NaotaCoding.roi(); } catch (e) {}
+      try { if (window.VanhanhCoding.roi) window.VanhanhCoding.roi(); } catch (e) {}
       _returnChatNodes();
     };
   }
 
   // Trang Cộng sự: dựng bởi workspace.js, mượn khung chat như trang Trò chuyện.
   function renderWorkspace(el) {
-    if (!window.NaotaWorkspace) { el.innerHTML = placeholder("workspace", window.t("cs.mod_not_ready", { ten: "workspace.js" })); return; }
+    if (!window.VanhanhWorkspace) { el.innerHTML = placeholder("workspace", window.t("cs.mod_not_ready", { ten: "workspace.js" })); return; }
     _injectChatCss();
     if (_chatSlots.length) _returnChatNodes();
     document.body.classList.add("on-chat");
-    window.NaotaWorkspace.render(el, { borrow: _borrowChatNodes });
+    window.VanhanhWorkspace.render(el, { borrow: _borrowChatNodes });
     // Trang này đổi placeholder của ô nhập (node MƯỢN của app) thành "Nhắn cho <trợ lý>", nên
     // rời trang phải cho nó dọn trước khi node được trả về HUD - không thì trang Trò chuyện
     // vẫn mời người dùng nhắn cho một cộng sự không còn hiện ở đâu cả.
     _pageLeave = () => {
-      try { if (window.NaotaWorkspace.roi) window.NaotaWorkspace.roi(); } catch (e) {}
+      try { if (window.VanhanhWorkspace.roi) window.VanhanhWorkspace.roi(); } catch (e) {}
       _returnChatNodes();
     };
   }
@@ -775,7 +775,7 @@
   }
 
   // ============================================
-  // Trang Mức dùng (token & chi phí Naota tự đo, có đồ thị 14 ngày)
+  // Trang Mức dùng (token & chi phí Vanhanh tự đo, có đồ thị 14 ngày)
   // ============================================
   let _uzCss = false;
   function _injectUsageCss() {
@@ -814,8 +814,8 @@
     // Trang Token nâng cấp (usage.js): index log thô Claude+Codex + lọc kỳ/provider + insight.
     // Ủy quyền sang module mới nếu đã nạp; nếu chưa thì rơi về bảng cũ (usage_store 30 ngày).
     // Tab Thống kê trong Cài đặt cũng gọi hàm này mà không đi qua renderPage: tự chờ usage.js.
-    if (!window.NaotaUsage && window.NaotaNapCham) await window.NaotaNapCham.cho("usage");
-    if (window.NaotaUsage && window.NaotaUsage.render) { try { return window.NaotaUsage.render(el); } catch (e) {} }
+    if (!window.VanhanhUsage && window.VanhanhNapCham) await window.VanhanhNapCham.cho("usage");
+    if (window.VanhanhUsage && window.VanhanhUsage.render) { try { return window.VanhanhUsage.render(el); } catch (e) {} }
     _injectUsageCss();
     el.innerHTML = `<div class="uz-wrap"><div class="cview-placeholder" style="min-height:200px"><div class="ph-ico">${ic("loader", { cls: "ic-xl ic-spin" })}</div><div class="dim">${window.t("cs.uz_loading")}</div></div></div>`;
     let d;
@@ -1065,7 +1065,7 @@
     const myGen = _renderGen;
     el.innerHTML = `<div class="cl-wrap">
       <section class="upd-card" aria-label="${window.t("cs.upd_aria")}">
-        <div class="upd-title"><span class="upd-name">NAOTA</span><span class="gcard-tag" id="updVerTag">…</span></div>
+        <div class="upd-title"><span class="upd-name">VANHANH</span><span class="gcard-tag" id="updVerTag">…</span></div>
         <div class="gcard-meta" id="updVerMeta">${window.t("cs.upd_checking")}</div>
         <div class="upd-changes" id="updVerChangelog"></div>
         <div class="js-actions">
@@ -1075,13 +1075,13 @@
         <div class="upd-progress" id="updVerProgress"></div>
         <div class="gcard-meta" id="updVerStatus"></div>
         <div class="upd-rollback" id="updVerRollback"></div>
-        ${window.NaotaStar ? window.NaotaStar.theUngHo() : ""}
+        ${window.VanhanhStar ? window.VanhanhStar.theUngHo() : ""}
       </section>
       <div id="clTimeline"><div class="cl-note">${window.t("cs.cl_loading")}</div></div>
     </div>`;
-    // Thẻ "Ủng hộ Naota" (star-nudge.js): ai muốn tặng sao lúc nào cũng tìm được ở đây.
+    // Thẻ "Ủng hộ Vanhanh" (star-nudge.js): ai muốn tặng sao lúc nào cũng tìm được ở đây.
     const _snGo = el.querySelector(".sn-ho .sn-go");
-    if (_snGo) _snGo.onclick = () => window.NaotaStar.open();
+    if (_snGo) _snGo.onclick = () => window.VanhanhStar.open();
     // Nút "Kiểm tra lại" PHẢI làm mới cả danh sách bên dưới, không chỉ khung trên.
     wireUpdateManager(el, napTimeline);
     await napTimeline();
@@ -1125,14 +1125,14 @@
     if (maLyDo === "watchtower_off") {
       // Short reason stays visible; the how-to folds into the (i) block.
       return window.t("cs.upd_wt_a") + " <b>" + window.t("cs.upd_wt_b") + "</b>" + infoBtn() + infoBody(window.t("cs.upd_wt_c")
-        + "<br><code>curl -fsSLO https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.yml</code>"
+        + "<br><code>curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml</code>"
         + "<br><code>docker compose up -d --pull always</code><br>"
         + window.t("cs.upd_wt_d")
         + "<br><code>docker compose --profile update up -d</code><br>"
         + window.t("cs.upd_wt_e")
         + " <code>docker compose up -d --pull always</code>."
         // Người dùng gõ lệnh trên rồi lãnh "no configuration file provided: not found" - đứng sai
-        // thư mục, vì tên thư mục tuỳ lúc clone (naota hay naota). Câu "ở thư mục chứa file
+        // thư mục, vì tên thư mục tuỳ lúc clone (vanhanh hay vanhanh). Câu "ở thư mục chứa file
         // compose" đúng nhưng vô dụng khi người ta KHÔNG BIẾT nó nằm đâu. Docker biết, nên hỏi nó.
         + "<div class=\"upd-why-sub\">" + window.t("cs.upd_wt_f") + " <code>no configuration file provided: not found</code> "
         + window.t("cs.upd_wt_g") + "<br>"
@@ -1227,7 +1227,7 @@
         return;
       }
       status.innerHTML = ic("loader", { cls: "ic-spin" }) + " " + window.t("cs.upd_running_now");
-      window.__naotaUpdating = true;
+      window.__vanhanhUpdating = true;
       const t0 = Date.now();
       let longNote = false;
       const poll = setInterval(async () => {
@@ -1242,9 +1242,9 @@
           const stash = state.state.stashed ? ic("package") + " " + window.t("cs.upd_stashed") : "";
           progress(phase, stash);
           if (result === "success") { clearInterval(poll); status.innerHTML = OK_ICON + " " + window.t("cs.upd_done_reload"); setTimeout(_taiLaiKhiSan, 1500); return; }
-          if (result === "rolled_back") { clearInterval(poll); window.__naotaUpdating = false; status.innerHTML = "↩ " + window.t("cs.upd_rb_a") + " <b>" + window.t("cs.upd_rb_b") + "</b>."; update.disabled = false; return; }
+          if (result === "rolled_back") { clearInterval(poll); window.__vanhanhUpdating = false; status.innerHTML = "↩ " + window.t("cs.upd_rb_a") + " <b>" + window.t("cs.upd_rb_b") + "</b>."; update.disabled = false; return; }
           if (["pull_failed", "rollback_failed", "error"].includes(result)) {
-            clearInterval(poll); window.__naotaUpdating = false; q("updVerProgress").style.display = "none";
+            clearInterval(poll); window.__vanhanhUpdating = false; q("updVerProgress").style.display = "none";
             status.innerHTML = WARN_ICON + " " + esc(state.state.error || window.t("cs.upd_err")) + " " + window.t("cs.upd_see") + " <code>update.log</code>."; update.disabled = false; return;
           }
         }
@@ -1256,12 +1256,12 @@
           }
         } catch (e) {}
         if (waited >= UPD_WAIT_MS) {
-          clearInterval(poll); window.__naotaUpdating = false;
+          clearInterval(poll); window.__vanhanhUpdating = false;
           status.innerHTML = WARN_ICON + " " + window.t("cs.upd_timeout");
           if (rollback && root.dataset.updateMode === "docker") {
             const prev = root.dataset.previousVersion || "";
             rollback.style.display = "";
-            rollback.innerHTML = "<b>" + window.t("cs.upd_rb_docker") + "</b><br><code>docker compose pull && docker compose up -d</code>" + (prev ? `<br>${window.t("cs.upd_pin_a")} <code>ghcr.io/vuongtex/naota:${esc(prev)}</code> ${window.t("cs.upd_pin_b")}` : "");
+            rollback.innerHTML = "<b>" + window.t("cs.upd_rb_docker") + "</b><br><code>docker compose pull && docker compose up -d</code>" + (prev ? `<br>${window.t("cs.upd_pin_a")} <code>ghcr.io/lequydailb-dotcom/vanhanh:${esc(prev)}</code> ${window.t("cs.upd_pin_b")}` : "");
           }
           update.disabled = false;
         }
@@ -1860,8 +1860,8 @@
   // ============================================
   // Trang PLUGINS - tool/hook native cho mọi engine (bundled / toàn cục / brain)
   // ============================================
-  // ---- Công cụ TUỲ CHỌN: thứ Naota dùng được nhưng không cài sẵn ----
-  // Đặt ở ĐẦU trang Công cụ vì đây là câu trả lời cho "vì sao Naota không mở được trình duyệt"
+  // ---- Công cụ TUỲ CHỌN: thứ Vanhanh dùng được nhưng không cài sẵn ----
+  // Đặt ở ĐẦU trang Công cụ vì đây là câu trả lời cho "vì sao Vanhanh không mở được trình duyệt"
   // - người dùng đi tìm câu đó sẽ tới trang này trước. Thẻ Playwright ở trang Kết nối cũng
   // nhắc sang đây, vì chỗ người ta PHÁT HIỆN ra mình thiếu lại là lúc đang đấu kết nối.
   let _ctTimer = null;
@@ -2021,7 +2021,7 @@
     const SRC = { bundled: [window.t("cs.pl_src_bundled"), "var(--green)"], pack: [window.t("cs.pl_src_pack"), "var(--accent, #7c5cff)"], user: [window.t("cs.pl_src_user"), "var(--link-ink)"], vault: [window.t("cs.pl_src_vault"), "var(--warn-ink)"] };
     const MM = { readonly: window.t("cs.pl_mm_readonly"), safe: window.t("cs.pl_mm_safe"), full: window.t("cs.pl_mm_full") };
     // Group order = how often a person comes to toggle them: their own plugins, then what they
-    // installed from the store, then the ones that ship with Naota.
+    // installed from the store, then the ones that ship with Vanhanh.
     const GROUPS = [["mine", "cs.pl_grp_mine"], ["pack", "cs.pl_grp_pack"], ["bundled", "cs.pl_grp_bundled"]];
     const groupOf = (p) => p.source === "bundled" ? "bundled" : p.source === "pack" ? "pack" : "mine";
     const stateOf = (p) => p.error ? "err" : p.enabled ? "on" : "off";
@@ -2187,7 +2187,7 @@
       const wrap = document.createElement("div");
       wrap.className = "cview-section";
       // Khối "Công cụ tuỳ chọn" đứng TRƯỚC danh sách plugin: nó trả lời câu hỏi người dùng
-      // mang tới trang này ("sao Naota không mở được trình duyệt"), và trang Kết nối gửi người
+      // mang tới trang này ("sao Vanhanh không mở được trình duyệt"), và trang Kết nối gửi người
       // ta tới đây đúng vì nó. Nó ẩn hẳn khi không có công cụ nào, trước đây tiêu đề
       // vẫn đứng đó với một khoảng trống bên dưới.
       wrap.innerHTML = `<div id="ctTuyChon" style="margin-bottom:22px" hidden></div>`
@@ -2219,8 +2219,8 @@
       // Không qua _goiNhom: caiPluginZip mở hộp chọn file, trình duyệt chỉ cho mở NGAY trong cú bấm. packs.js đã nạp
       // sẵn khi trang Plugin vẽ (NHOM_TRANG.plugins).
       zip.onclick = () => {
-        if (!window.NaotaPacks || !window.NaotaPacks.caiPluginZip) return;
-        window.NaotaPacks.caiPluginZip({
+        if (!window.VanhanhPacks || !window.VanhanhPacks.caiPluginZip) return;
+        window.VanhanhPacks.caiPluginZip({
           brain: fbrain(), maxMb: (ui.data && ui.data.zip_max_mb) || 25,
           // After an install: clear search and filter so the new (off) card shows, focus its switch.
           xong: (r) => {
@@ -2246,7 +2246,7 @@
       ui.data = d;
       if (first || !document.getElementById("plCards")) buildShell(d);
       const gate = document.getElementById("plGate");
-      if (gate) gate.innerHTML = (!d.user_gate) ? `<div style="margin-bottom:14px;padding:11px 13px;border:1px solid rgba(224,160,74,.5);border-radius:10px;background:rgba(224,160,74,.08);color:var(--warn-ink);font-size:13px;line-height:1.55"><b>${WARN_ICON} ${esc(window.t("cs.pl_gate_head"))}</b>${infoBtn()}${infoBody(`${esc(window.t("cs.pl_gate_a"))} <code>NAOTA_ENABLE_USER_PLUGINS=false</code> ${esc(window.t("cs.pl_gate_b"))}`)}</div>` : "";
+      if (gate) gate.innerHTML = (!d.user_gate) ? `<div style="margin-bottom:14px;padding:11px 13px;border:1px solid rgba(224,160,74,.5);border-radius:10px;background:rgba(224,160,74,.08);color:var(--warn-ink);font-size:13px;line-height:1.55"><b>${WARN_ICON} ${esc(window.t("cs.pl_gate_head"))}</b>${infoBtn()}${infoBody(`${esc(window.t("cs.pl_gate_a"))} <code>VANHANH_ENABLE_USER_PLUGINS=false</code> ${esc(window.t("cs.pl_gate_b"))}`)}</div>` : "";
       drawList();
     }
     load();
@@ -2260,7 +2260,7 @@
   async function renderWebhooks(el) {
     _injectExtraCss();
     const myGen = _renderGen;
-    if (!window.NaotaWebhooks) {
+    if (!window.VanhanhWebhooks) {
       el.innerHTML = placeholder("webhooks", window.t("cs.mod_not_ready", { ten: "webhooks.js" }));
       return;
     }
@@ -2272,8 +2272,8 @@
     } catch (e) {}
     if (myGen !== _renderGen) return;
     // the hook popup hangs off <body>; leaving the page closes it.
-    _pageLeave = () => { try { window.NaotaWebhooks.unmount(); } catch (e) {} };
-    window.NaotaWebhooks.mount(el.querySelector("#whSection"), { brains: () => brains, current: () => fbrain() });
+    _pageLeave = () => { try { window.VanhanhWebhooks.unmount(); } catch (e) {} };
+    window.VanhanhWebhooks.mount(el.querySelector("#whSection"), { brains: () => brains, current: () => fbrain() });
   }
 
   // ============================================
@@ -2321,9 +2321,9 @@
 
       <div class="si-log" id="lnBackupBox">
         <h3 style="font-size:15px;color:var(--text)">⇅ ${esc(window.t("cs.bk_head"))}${infoBtn()}</h3>
-        ${infoBody(`<p style="margin:0 0 8px">${esc(window.t("cs.bk_p_a"))} <b>${esc(window.t("cs.bk_p_b"))}</b> ${esc(window.t("cs.bk_p_c"))} <b>${esc(window.t("cs.bk_p_d"))}</b>${esc(window.t("cs.bk_p_e"))} <code>.conflict-*</code> ${esc(window.t("cs.bk_p_f"))} <a href="https://github.com/vuongtex/naota/blob/main/docs/18-sao-luu-github.md" target="_blank" style="color:var(--link-ink)">docs/18-sao-luu-github.md</a>.</p>
+        ${infoBody(`<p style="margin:0 0 8px">${esc(window.t("cs.bk_p_a"))} <b>${esc(window.t("cs.bk_p_b"))}</b> ${esc(window.t("cs.bk_p_c"))} <b>${esc(window.t("cs.bk_p_d"))}</b>${esc(window.t("cs.bk_p_e"))} <code>.conflict-*</code> ${esc(window.t("cs.bk_p_f"))} <a href="https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/18-sao-luu-github.md" target="_blank" style="color:var(--link-ink)">docs/18-sao-luu-github.md</a>.</p>
         <ol style="line-height:1.7;margin:0;padding-left:20px">
-          <li>${esc(window.t("cs.bk_li1_a"))} <b>Private</b> ${esc(window.t("cs.bk_li1_b"))} <code>naota-brain-backup</code>.</li>
+          <li>${esc(window.t("cs.bk_li1_a"))} <b>Private</b> ${esc(window.t("cs.bk_li1_b"))} <code>vanhanh-brain-backup</code>.</li>
           <li>${esc(window.t("cs.bk_li2_a"))} <b>Fine-grained tokens</b> ${esc(window.t("cs.bk_li2_b"))} <b>Contents: Read and write</b> ${esc(window.t("cs.bk_li2_c"))} <code>github_pat_...</code>).</li>
           <li>${esc(window.t("cs.bk_li3_a"))} <b>${esc(window.t("cs.bk_test_short"))}</b>${esc(window.t("cs.bk_li3_b"))} <b>${esc(window.t("cs.bk_sync_now"))}</b>${esc(window.t("cs.bk_li3_c"))}</li>
         </ol>`)}
@@ -2421,7 +2421,7 @@
       loadAll();
     };
 
-    // Learning from chat: what Naota changed on its own; undo, or apply in "Đề xuất" mode.
+    // Learning from chat: what Vanhanh changed on its own; undo, or apply in "Đề xuất" mode.
     async function loadChat() {
       const box = el.querySelector("#lnChat");
       let d = {}; try { d = await (await fetch(`/auto-learning?brain=${encodeURIComponent(fbrain())}`)).json(); } catch (e) { }
@@ -2559,7 +2559,7 @@
     const m = s.model || {};
     // Đọc từ model.main + model.providers (nguồn thật của trang Models), KHÔNG từ m.engine -
     // trường cũ đó chỉ biết "cli" với "openrouter" nên máy đang chạy Gemini/OpenAI vẫn bị
-    // ghi là "Claude CLI". Mọi provider đều có MCP Naota, khác nhau ở chỗ chạy được lệnh máy.
+    // ghi là "Claude CLI". Mọi provider đều có MCP Vanhanh, khác nhau ở chỗ chạy được lệnh máy.
     const _mainP = (m.providers || []).find(p => p.id === (m.main || {}).provider) || {};
     const eng = (_mainP.label || (m.main || {}).provider || "-")
       + (_mainP.kind === "api" ? " " + window.t("cs.ov_eng_api") : _mainP.kind ? " " + window.t("cs.ov_eng_cli") : "");
@@ -2571,7 +2571,7 @@
       <div class="cview-section">
         <h3>${esc(window.t("cs.ov_version"))}</h3>
         <div class="gcard" style="max-width:640px">
-          <div class="gcard-top"><span class="gcard-name">NAOTA</span><span class="gcard-tag" id="ovVerTag">…</span></div>
+          <div class="gcard-top"><span class="gcard-name">VANHANH</span><span class="gcard-tag" id="ovVerTag">…</span></div>
           <div class="gcard-meta" id="ovVerMeta">${esc(window.t("cs.ov_checking"))}</div>
           <div id="ovVerChangelog" style="display:none;margin:8px 0;padding:8px 10px;border-left:3px solid var(--accent,var(--accent));background:rgba(120,140,160,.08);border-radius:6px;font-size:13px;line-height:1.6"></div>
           <div class="js-actions">
@@ -2588,7 +2588,7 @@
         <div class="cgrid">
           <div class="gcard"><div class="gcard-top"><span class="gcard-name">Engine</span></div><div class="gcard-meta">${esc(eng)}</div></div>
           <div class="gcard"><div class="gcard-top"><span class="gcard-name">Model</span></div><div class="gcard-meta">${esc(curModel)}</div></div>
-          <div class="gcard"><div class="gcard-top"><span class="gcard-name">${esc(window.t("cs.ac_ws_head"))}</span></div><div class="gcard-meta">${esc(s.workspace_name || "NAOTA")}</div></div>
+          <div class="gcard"><div class="gcard-top"><span class="gcard-name">${esc(window.t("cs.ac_ws_head"))}</span></div><div class="gcard-meta">${esc(s.workspace_name || "VANHANH")}</div></div>
           <div class="gcard"><div class="gcard-top"><span class="gcard-name">Telegram</span></div><div class="gcard-meta">${tg.enabled ? "● " + esc(window.t("settings.tag_on")) : "○ " + esc(window.t("settings.tag_off"))}${tg.chat_id ? " · " + esc(tg.chat_id) : ""}</div></div>
         </div>
       </div>
@@ -2730,7 +2730,7 @@
         return;
       }
       st.innerHTML = ic("loader", { cls: "ic-spin" }) + " " + esc(window.t("cs.upd_running_now"));
-      window.__naotaUpdating = true;
+      window.__vanhanhUpdating = true;
       const t0 = Date.now();
       let longNote = false;
       const poll = setInterval(async () => {
@@ -2747,9 +2747,9 @@
           const stashNote = s.state.stashed ? ic("package") + " " + window.t("cs.ov_stashed") : "";
           renderProgress(ph, stashNote);
           if (res === "success") { clearInterval(poll); st.innerHTML = OK_ICON + " " + esc(window.t("cs.upd_done_reload")); setTimeout(_taiLaiKhiSan, 1500); return; }
-          if (res === "rolled_back") { clearInterval(poll); window.__naotaUpdating = false; renderProgress("done", stashNote); st.innerHTML = "↩ " + esc(window.t("cs.upd_rb_a")) + " <b>" + esc(window.t("cs.upd_rb_b")) + "</b>. " + esc(window.t("cs.upd_see")) + " <code>update.log</code>."; verUpd.disabled = false; return; }
+          if (res === "rolled_back") { clearInterval(poll); window.__vanhanhUpdating = false; renderProgress("done", stashNote); st.innerHTML = "↩ " + esc(window.t("cs.upd_rb_a")) + " <b>" + esc(window.t("cs.upd_rb_b")) + "</b>. " + esc(window.t("cs.upd_see")) + " <code>update.log</code>."; verUpd.disabled = false; return; }
           if (res === "pull_failed" || res === "rollback_failed" || res === "error") {
-            clearInterval(poll); window.__naotaUpdating = false;
+            clearInterval(poll); window.__vanhanhUpdating = false;
             const pb = document.getElementById("ovVerProgress"); if (pb) pb.style.display = "none";
             st.innerHTML = WARN_ICON + " " + esc(s.state.error || window.t("cs.upd_err")) + " " + esc(window.t("cs.upd_see")) + " <code>update.log</code>.";
             verUpd.disabled = false; return;
@@ -2764,14 +2764,14 @@
           }
         } catch (e) { /* server đang restart - chờ tiếp */ }
         if (waited >= UPD_WAIT_MS) {
-          clearInterval(poll); window.__naotaUpdating = false;
+          clearInterval(poll); window.__vanhanhUpdating = false;
           st.innerHTML = WARN_ICON + " " + esc(window.t("cs.upd_timeout"));
           if (rb && window._ovVerMode === "docker") {
             const prev = window._ovVerPrev || "";
             rb.style.display = "";
             rb.innerHTML = "<b>" + esc(window.t("cs.ov_rb_head")) + "</b><br>" + esc(window.t("cs.ov_rb_pin"))
               + "<br><code>docker compose pull && docker compose up -d</code>"
-              + (prev ? "<br>" + esc(window.t("cs.ov_rb_img")) + " <code>ghcr.io/vuongtex/naota:" + esc(prev) + "</code> " + esc(window.t("cs.upd_pin_b")) : "");
+              + (prev ? "<br>" + esc(window.t("cs.ov_rb_img")) + " <code>ghcr.io/lequydailb-dotcom/vanhanh:" + esc(prev) + "</code> " + esc(window.t("cs.upd_pin_b")) : "");
           }
           verUpd.disabled = false;
         }
@@ -2871,8 +2871,8 @@
   }
 
   // ===== Tab Local Model (Ollama chạy trên máy) =====
-  // HAI trạng thái chứ không ba như bản demo. Demo có "đang cài Ollama" vì nó giả định Naota
-  // tự chạy được lệnh cài trên máy người dùng - chỉ đúng khi Naota chạy native. Bản Docker/VPS
+  // HAI trạng thái chứ không ba như bản demo. Demo có "đang cài Ollama" vì nó giả định Vanhanh
+  // tự chạy được lệnh cài trên máy người dùng - chỉ đúng khi Vanhanh chạy native. Bản Docker/VPS
   // không có quyền, cũng không có đường, chạy lệnh trên máy vật lý của người ta. Nên ở đây
   // chỉ còn: CHƯA NỐI (hiện lệnh cài để người dùng tự chạy trong terminal máy thật) và ĐÃ NỐI.
   const OL_LENH = {
@@ -2887,7 +2887,7 @@
     return st.host_platform === "mac" ? lenh + "   # " + t("ol.mac_hint") : lenh;
   }
   // Bản Docker cần NHIỀU HƠN một lệnh cài. Bản cũ chỉ nói "cài trên máy thật rồi điền địa
-  // chỉ", và người dùng dán ngay lệnh đó vào terminal của Naota - dễ hiểu, vì nút copy
+  // chỉ", và người dùng dán ngay lệnh đó vào terminal của Vanhanh - dễ hiểu, vì nút copy
   // nằm ngay cạnh mà app thì có sẵn một cái terminal. Nhưng kể cả cài đúng chỗ vẫn còn hai bức
   // tường nữa: Ollama mặc định chỉ nghe 127.0.0.1 nên container không với tới, và không ai
   // đoán được phải điền địa chỉ cầu nối Docker. Thiếu một trong hai là "không nối được" mà
@@ -2904,11 +2904,11 @@
       "sudo systemctl daemon-reload && sudo systemctl restart ollama";
   }
   // (Hằng OL_DIA_CHI_DOCKER = "http://172.17.0.1:11434" ĐÃ BỎ.) 172.17.0.1 là cổng của mạng
-  // bridge MẶC ĐỊNH, chỉ đúng với `docker run` trần. Naota cài bằng compose thì nằm trên mạng
+  // bridge MẶC ĐỊNH, chỉ đúng với `docker run` trần. Vanhanh cài bằng compose thì nằm trên mạng
   // riêng của project (172.18.x trở đi), nên con số đó SAI với gần như mọi bản cài - điền
   // đúng theo hướng dẫn vẫn không nối được. Nay server dò cổng thật và trả về `goi_y_endpoint`.
 
-  const OL_LENH_TIM_CONG = "docker exec naota ip route | grep default";
+  const OL_LENH_TIM_CONG = "docker exec vanhanh ip route | grep default";
 
   function olGb(n) { return (Math.round((n || 0) * 10) / 10) + " GB"; }
 
@@ -2922,7 +2922,7 @@
 
   function olVeChuaNoi(el, st) {
     const lenh = olLenhCai(st);
-    // Docker/VPS: máy chạy Naota KHÔNG phải máy người dùng, nên câu hướng dẫn phải khác hẳn -
+    // Docker/VPS: máy chạy Vanhanh KHÔNG phải máy người dùng, nên câu hướng dẫn phải khác hẳn -
     // bảo họ chạy lệnh "trên máy này" là bảo họ cài Ollama vào trong container.
     const xa = st.deploy_mode === "docker";
     const lenhNghe = olLenhNghe(st);
@@ -2973,7 +2973,7 @@
               esc(t("common.copy")) + "</button></div>"
           : "") +
         (st.error ? '<div class="ol-err">' + ic("triangle-alert") + "<span>" + esc(st.error) + "</span>" + (xa ? infoBtn() : "") + "</div>" : "") +
-        // Đã lưu địa chỉ mà vẫn không nối được thì từ trong container Naota không phân biệt
+        // Đã lưu địa chỉ mà vẫn không nối được thì từ trong container Vanhanh không phân biệt
         // nổi "chưa cài" với "đã chạy nhưng chỉ nghe 127.0.0.1". Máy chủ thì phân biệt được
         // bằng đúng một lệnh - đưa lệnh đó và cách đọc kết quả, thay vì để người dùng đoán.
         (st.error && xa ? infoBody('<div class="ol-note">' + ic("terminal") + "<span>" + esc(t("ol.dk_chan_doan")) + "</span></div>") : "") +
@@ -3317,7 +3317,7 @@
 
     const KEYFIELD = { "openrouter": "openrouter_key", "anthropic-api": "anthropic_api_key", "openai": "openai_api_key", "gemini": "gemini_api_key", "groq": "groq_api_key", "deepseek": "deepseek_api_key", "ollama": "ollama_key", "openai-compat": "openai_compat_key", "anthropic-compat": "anthropic_compat_key" };
     // ---- Usage order cards. `ord` = {idx} for a card in the order, null for a card still to connect. ----
-    const effName = (v) => t((window.NaotaEffortSlider && window.NaotaEffortSlider.LABEL_KEY[v]) || "eff.off");
+    const effName = (v) => t((window.VanhanhEffortSlider && window.VanhanhEffortSlider.LABEL_KEY[v]) || "eff.off");
     const ORD_GRIP = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>';
     const ORD_SWAP = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M7 4L3.5 7.5M7 4l3.5 3.5M17 20V4M17 20l-3.5-3.5M17 20l3.5-3.5"/></svg>';
     const chatLive = (p, ord) => !!ord && ord.idx > 0 && R.chat_in_use === p.id;
@@ -3514,7 +3514,7 @@
       if (p.id === "grok-cli") {
         // Bộ não thứ 11. Đây là thẻ CLI DUY NHẤT có nút "Đăng nhập" thật sự bấm được trên VPS:
         // `grok login --device-auth` in ra một link và một mã rồi tự đứng hỏi máy chủ, nên
-        // Naota chỉ cần bóc link + mã đưa lên đây, không phải giả lập terminal như bản `agy`
+        // Vanhanh chỉ cần bóc link + mã đưa lên đây, không phải giả lập terminal như bản `agy`
         // Từng thử (và tắc trên Windows vì không có pseudo-terminal).
         const dn = p.dang_nhap || {};
         const st = on
@@ -3566,7 +3566,7 @@
       }
       if (p.kind === "cli") {   // Claude Code - trạng thái + login/logout nạp động qua /claude/status
         // Ô chọn nguồn xác thực. Cả hai lựa chọn giữ NGUYÊN năng lực (Bash, WebFetch, MCP, nối
-        // phiên cũ); khác nhau ở chỗ ai trả tiền và ai chịu rủi ro. Naota cố ý không tắt cứng
+        // phiên cũ); khác nhau ở chỗ ai trả tiền và ai chịu rủi ro. Vanhanh cố ý không tắt cứng
         // đường subscription - chủ máy tự cân, nhưng phải cân khi đã BIẾT, nên có cảnh báo.
         const byKey = p.auth_mode === "api_key";
         return `${cardOpen(p, ord)}
@@ -3602,7 +3602,7 @@
       if (p.id === "openai-compat") {
         // Endpoint tự khai: thứ quyết định "đã kết nối" là Base URL, key có thể bỏ trống.
         return `${cardOpen(p, ord)}
-          ${provHead(p, on, "MCP Naota", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", true, ord)}
+          ${provHead(p, on, "MCP Vanhanh", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", true, ord)}
           ${infoBody(esc(t("models.oc_note")))}
           <div class="prov-action" style="flex-wrap:wrap">
             <input class="js-input" id="ocBase" inputmode="url" spellcheck="false" style="flex:1 1 100%" value="${esc(m.openai_compat_base || "")}" placeholder="${esc(t("models.oc_base_ph"))}">
@@ -3618,7 +3618,7 @@
         // the card also takes the model names the seller gave (comma separated).
         const typed = (m.anthropic_compat_models || []).join(", ");
         return `${cardOpen(p, ord)}
-          ${provHead(p, on, "MCP Naota", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", true, ord)}
+          ${provHead(p, on, "MCP Vanhanh", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", true, ord)}
           ${infoBody(esc(t("models.ac_note")))}
           <div class="prov-action" style="flex-wrap:wrap">
             <input class="js-input" id="acBase" inputmode="url" spellcheck="false" style="flex:1 1 100%" value="${esc(m.anthropic_compat_base || "")}" placeholder="${esc(t("models.ac_base_ph"))}">
@@ -3632,7 +3632,7 @@
         </div>`;
       }
       return `${cardOpen(p, ord)}
-        ${provHead(p, on, p.kind === "cli" ? "MCP/skill" : "MCP Naota", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", false, ord)}
+        ${provHead(p, on, p.kind === "cli" ? "MCP/skill" : "MCP Vanhanh", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", false, ord)}
         ${ord && multiKey.indexOf(p.id) >= 0 ? acctList(p) : p.needs_key
           ? `<div class="prov-action"><input class="js-input" id="pk-${p.id}" type="password" placeholder="${on ? esc(t("models.key_change_ph", { duoi: masked })) : esc(t("models.key_ph"))}"><button class="gcard-btn" data-pk="${p.id}">${on ? esc(t("models.key_change")) : esc(t("models.connect"))}</button>${on ? `<button class="gcard-btn ghost" data-disc="${p.id}">${esc(t("models.disconnect"))}</button>` : ""}</div>`
           : `<div class="prov-note">${esc(t("models.no_key_note"))}</div>`}
@@ -3760,13 +3760,13 @@
       if (msg) msg.textContent = t("models.testing");
       let r = null;
       // Gửi kèm brain đang mở: phần `mcp` của câu trả lời soi cấu hình theo ĐÚNG brain đó
-      // (header X-Naota-Vault khoá tool file/lịch vào một brain), nên hỏi trống là soi nhầm.
+      // (header X-Vanhanh-Vault khoá tool file/lịch vào một brain), nên hỏi trống là soi nhầm.
       const _br = window.currentBrainPath ? currentBrainPath() : "brain";
       try { r = await (await fetch(`/antigravity/check?brain=${encodeURIComponent(_br)}`,
                                    { method: "POST" })).json(); }
       catch (e) { r = { ok: false, error: t("common.net_err") }; }
       agk.disabled = false; agk.textContent = cu2;
-      // Nói RIÊNG chuyện tool của Naota. "Chat được" và "gọi được tool của Naota" là hai
+      // Nói RIÊNG chuyện tool của Vanhanh. "Chat được" và "gọi được tool của Vanhanh" là hai
       // chuyện khác nhau, và suốt các bản 0.30-0.42 cái thứ hai luôn hỏng trong khi cái thứ
       // nhất vẫn xanh - nên thẻ này chỉ báo "Dùng được" là báo thiếu đúng chỗ đau.
       const mcpTxt = (r && r.mcp)
@@ -3793,7 +3793,7 @@
       if (!r || !r.ok) { if (msg) msg.innerHTML = Icons.warn((r && r.error) || t("models.cant_open")); return; }
       if (r.xong) { renderModelsCloudTab(el); return; }
       // Link + mã hiện ra để người dùng mở trên MÁY CỦA HỌ - đây là cả lý do tồn tại của
-      // đường device code: máy chạy Naota (VPS) không cần có trình duyệt.
+      // đường device code: máy chạy Vanhanh (VPS) không cần có trình duyệt.
       if (box) {
         box.style.display = "";
         box.innerHTML = `<div>${esc(t("models.grok_open"))}<br><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a></div>`
@@ -3860,10 +3860,10 @@
                                    { method: "POST" })).json(); }
       catch (e) { r = { ok: false, error: t("common.net_err") }; }
       gkc.disabled = false; gkc.textContent = cu3;
-      // Nói RIÊNG chuyện tool của Naota: "chat được" và "gọi được tool của Naota" là hai
+      // Nói RIÊNG chuyện tool của Vanhanh: "chat được" và "gọi được tool của Vanhanh" là hai
       // chuyện khác nhau, và cái thứ hai mới là chỗ đã ba lần hỏng câm với `agy`.
       const mcpTxt2 = (r && r.mcp)
-        ? (r.mcp.co_naota ? " · " + esc(t("models.mcp_ok"))
+        ? (r.mcp.co_vanhanh ? " · " + esc(t("models.mcp_ok"))
            : (r.mcp.hub_bat === false ? " · " + esc(t("models.mcp_off"))
               : " · <b>" + esc(t("models.mcp_fail")) + "</b>"))
         : "";
@@ -3873,7 +3873,7 @@
         setTimeout(() => renderModelsCloudTab(el), 700);
       } else if (msg) {
         msg.innerHTML = Icons.warn((r && r.error) || t("models.not_works")) + mcpTxt2;
-        // Chưa dùng được thì hiện luôn chỗ Naota đã nhìn: binary nào, thư mục nào, trong đó
+        // Chưa dùng được thì hiện luôn chỗ Vanhanh đã nhìn: binary nào, thư mục nào, trong đó
         // có file gì. Chỉ TÊN file và TÊN khoá - giá trị trong auth.json là token thật.
         const cd = r && r.chan_doan, box2 = el.querySelector("#grokBox");
         if (cd && box2) {
@@ -3907,7 +3907,7 @@
   //
   // Vì sao cần: con số trên thẻ đọc từ `model.catalog` trong settings, mà catalog chỉ được ghi
   // SAU một lần lấy live thành công. ChatGPT không có catalog mặc định (danh sách model do
-  // Codex quyết, Naota cố ý không ghim version), nên trên máy mới đăng nhập xong là thẻ hiện
+  // Codex quyết, Vanhanh cố ý không ghim version), nên trên máy mới đăng nhập xong là thẻ hiện
   // "● Đã kết nối · 0 model" và nằm im như vậy cho tới khi ai đó mở hộp chọn model - trông y
   // hệt đăng nhập hỏng. Máy cũ không thấy lỗi này chỉ vì catalog đã có sẵn từ lần trước.
   const _daHoiModel = new Set();   // hỏi HỤT thì thôi, không quay vòng vô tận
@@ -3936,13 +3936,13 @@
   // every draw of the tab; each change saves at once and draws the tab again from the server's answer.
   // "default" alone tells nothing, so it names the model it stands for when the server knows it.
   let MODEL_DEFAULTS = {};
-  // A subscription CLI with nothing set picks its own model by plan, which Naota cannot read: say so instead of "default".
+  // A subscription CLI with nothing set picks its own model by plan, which Vanhanh cannot read: say so instead of "default".
   const PLAN_CLI = ["anthropic-cli", "openai-oauth", "grok-cli", "antigravity-cli"];
   const defName = (pid) => MODEL_DEFAULTS[pid] ? t("models.mp_default_is", { m: MODEL_DEFAULTS[pid] })
     : PLAN_CLI.indexOf(pid) >= 0 ? t("models.mp_default_cli") : t("models.mp_default");
 
   function bindOrderCards(el, c) {
-    const MO = window.NaotaModelsOrder;
+    const MO = window.VanhanhModelsOrder;
     const save = async (patch) => { await saveSetting("model", patch); c.again(); };
     const items = (pid) => (c.accts[pid] || []).map(a => ({ id: a.id, label: a.label, enabled: !!a.enabled }));
     // `removed` names the accounts to delete; one merely missing from `list` (a stale page) is kept by the server.
@@ -4200,7 +4200,7 @@
       const cur = isBg ? c.bgCfg : c.prof(pid);
       const curProv = isBg ? c.bgCfg.provider : pid;
       if (btn.dataset.ordpop === "eff") {
-        const S = window.NaotaEffortSlider;
+        const S = window.VanhanhEffortSlider;
         const label = isBg ? t("models.h_aux") : ((c.connList.find(p => p.id === pid) || {}).label || pid);
         const sh = shell(wrap, "eff-pop", t("eff.head") + " · " + label);
         sh.pop.setAttribute("role", "dialog");
@@ -4227,7 +4227,7 @@
       pop.setAttribute("role", "listbox");
       sh.body.innerHTML = `<input class="mb-search" type="search" enterkeyhint="search" placeholder="${esc(t("mpick.search_ph"))}">`
         + (sh.sheet ? "" : `<div class="mb-prov"><span>${esc(label)}</span></div>`) + `<div class="ord-mlist"></div>`;
-      const ML = window.NaotaModelList;
+      const ML = window.VanhanhModelList;
       let ids = ML ? ML.peek(pid) : [], q = "";
       const row = (id) => {
         const on = id === (cur.model || "");
@@ -4268,7 +4268,7 @@
     // providers only (spec 2.4.4).
     const auxChg = el.querySelector("#auxChange");
     if (auxChg) auxChg.onclick = () => {
-      if (!window.matchMedia("(max-width: 600px)").matches || !window.NaotaModelList) {
+      if (!window.matchMedia("(max-width: 600px)").matches || !window.VanhanhModelList) {
         closePop();
         openModelPicker(c.connList, { provider: c.bgCfg.provider, model: c.bgCfg.model }, c.again, {
           title: t("models.aux_title"),
@@ -4289,7 +4289,7 @@
       const draw = async () => {
         const o = { providers: c.connList, connectedOnly: true, expanded: st.expanded, filter: st.filter, noWait: true,
                     selected: { provider: c.bgCfg.provider, model: c.bgCfg.model }, searchId: "ordBgSearch" };
-        const html = await window.NaotaModelList.render(o);
+        const html = await window.VanhanhModelList.render(o);
         if (!openPop || openPop.el !== pop) return;
         const typing = document.activeElement && document.activeElement.id === "ordBgSearch";
         sh.body.innerHTML = html;
@@ -4388,7 +4388,7 @@
 
   // Dòng "Claude Code bản nào + nút Cập nhật". Danh sách model của gói Claude đọc từ chính
   // binary `claude`, nên CLI cũ là model mới (Sonnet 5.5) không hiện - Claude Code không tự
-  // cập nhật khi chỉ được Naota gọi chạy ngầm. Server tự chạy `claude update` mỗi ngày; nút
+  // cập nhật khi chỉ được Vanhanh gọi chạy ngầm. Server tự chạy `claude update` mỗi ngày; nút
   // này là để khỏi phải chờ.
   function veCapNhatClaude(el, d) {
     const box = el.querySelector("#cliUpd");
@@ -4401,7 +4401,7 @@
     if (d.cap_nhat_docker) { box.innerHTML = `<div>Claude Code${infoBtn()}</div>${infoBody(esc(t("models.cc_upd_docker")))}`; return; }
     const cn = d.cap_nhat || {};
     // Daily auto-update switch (code 18). The env var
-    // NAOTA_CLAUDE_AUTO_UPDATE=0 forces it off on the server, so the switch then shows off and locked.
+    // VANHANH_CLAUDE_AUTO_UPDATE=0 forces it off on the server, so the switch then shows off and locked.
     const envOff = !!d.auto_update_env_off, autoOn = d.auto_update !== false && !envOff;
     const parts = [];
     if (cn.sau) parts.push(t("models.cc_upd_ver", { v: cn.sau }));
@@ -4886,9 +4886,9 @@
   }
 
   // Tên danh mục trong catalog là tiếng Việt và là KHOÁ lọc (`data-cat`), nên chỉ dịch lúc vẽ
-  // chip/nhãn; xem `NaotaI18n.catLabel`. Không có bộ dịch (test chạy tách file) thì giữ nguyên.
+  // chip/nhãn; xem `VanhanhI18n.catLabel`. Không có bộ dịch (test chạy tách file) thì giữ nguyên.
   function nhanDanhMuc(x) {
-    const i = window.NaotaI18n;
+    const i = window.VanhanhI18n;
     return i && typeof i.catLabel === "function" ? i.catLabel(x) : (x || "");
   }
 
@@ -5047,7 +5047,7 @@
         force: !!m._forceAdd });
       if (!r.ok) {
         err.textContent = r.error || window.t("app.err_cap");
-        // can_force = server chặn có lý do (vd connector cần trình duyệt trên máy chạy Naota
+        // can_force = server chặn có lý do (vd connector cần trình duyệt trên máy chạy Vanhanh
         // mà đang mở qua domain public ). Bấm lần nữa là xác nhận vẫn muốn đấu.
         if (r.can_force) { m._forceAdd = true; go.textContent = window.t("cs.cn_force_add"); }
         else { go.textContent = window.t("models.connect"); }
@@ -5063,9 +5063,9 @@
   // Open the consent screen of a connector's companion store pack. Returns what `caiGoiKho` returned,
   // or "" when there is nothing to offer. Never installs anything by itself.
   async function moiGoiDiKem(el, pack) {
-    if (pack && !window.NaotaPacks && window.NaotaNapCham) await window.NaotaNapCham.cho("packs");   // nạp chậm
-    if (!pack || !window.NaotaPacks || typeof window.NaotaPacks.caiGoiKho !== "function") return "";
-    return window.NaotaPacks.caiGoiKho(pack, { batSan: true, sauKhiCai: () => renderConnect(el) });
+    if (pack && !window.VanhanhPacks && window.VanhanhNapCham) await window.VanhanhNapCham.cho("packs");   // nạp chậm
+    if (!pack || !window.VanhanhPacks || typeof window.VanhanhPacks.caiGoiKho !== "function") return "";
+    return window.VanhanhPacks.caiGoiKho(pack, { batSan: true, sauKhiCai: () => renderConnect(el) });
   }
 
   function openQrFlow(el, con, isFirst) {
@@ -5358,7 +5358,7 @@
         await postJson("/connect/update", { id: c.id, deny_tools: v.split(",").map(x => x.trim()).filter(Boolean) });
         closeConnModal(); renderConnect(el);
       } else if (act === "relogin") {
-        // Nguồn tự giữ token ngoài Naota (workspace-mcp): nút Kết nối lại chỉ lưu key chứ không
+        // Nguồn tự giữ token ngoài Vanhanh (workspace-mcp): nút Kết nối lại chỉ lưu key chứ không
         // đụng được token, nên token cấp thiếu quyền là thiếu mãi. Đây là đường duy nhất bắt nó
         // hỏi lại quyền.
         if (!confirm(window.t("cs.cn_relogin_confirm", { ten: c.label || "" }))) return;
@@ -5583,7 +5583,7 @@
     const st = await freshSettings();
     const main = (st.model && st.model.main) || {};
     const provs = (st.model && st.model.providers) || [];
-    // MỌI provider Naota hỗ trợ đều gọi được kho Kết nối: hai CLI (Claude Code, Codex) đi
+    // MỌI provider Vanhanh hỗ trợ đều gọi được kho Kết nối: hai CLI (Claude Code, Codex) đi
     // native, bốn provider API đi qua vòng gọi tool + hub trong _api_stream_mcp. Gemini từng
     // thiếu trong danh sách này nên khách chạy Gemini bị banner vàng "chưa hỗ trợ gọi công cụ"
     // dù bên dưới đã chạy MCP ngon - nhánh vàng giờ chỉ còn để chặn provider lạ.
@@ -5603,12 +5603,12 @@
     const removed = d.removed || [];
     const orphans = d.orphans || [];
     // Kết nối mất khuôn thì `mcp_store.resolved` từ chối dựng dial spec, tức nó IM. Phải nói ra
-    // thay vì để người dùng ngồi đoán vì sao một nguồn đang có mà Naota bảo không có.
+    // thay vì để người dùng ngồi đoán vì sao một nguồn đang có mà Vanhanh bảo không có.
     //
     // Hai nguyên nhân, hai lối thoát khác hẳn nhau - trộn làm một là đẩy người dùng đi sai
     // đường ở đúng lúc họ đang hoảng:
     //   `co_trong_kho`  người dùng vừa tự gỡ dịch vụ đó → cài lại ở khu "Đã gỡ" ngay dưới.
-    //   không có        dịch vụ đã DỌN RA Naota Store (đã dọn 16 cái) → cài lại từ kho.
+    //   không có        dịch vụ đã DỌN RA Vanhanh Store (đã dọn 16 cái) → cài lại từ kho.
     //
     // Câu cũ ở nhánh thứ hai xui người dùng nâng cấp app hoặc bỏ kết nối đi. Nó
     // vừa sai vừa nguy hiểm: nâng cấp không mọc lại dịch vụ nữa, còn bỏ kết nối là vứt luôn
@@ -5634,7 +5634,7 @@
         + '</div>'
       : "";
     // A connected service whose extra tools moved to a store pack the machine does not have yet
-    // (Zalo -> naota.zalo). Naota never installs a pack silently, so it has to be said here.
+    // (Zalo -> vanhanh.zalo). Vanhanh never installs a pack silently, so it has to be said here.
     const banDiKem = (d.companions || []).filter(c => c.state !== "installed").map(c =>
       '<div class="conn-guide" style="border-left:3px solid var(--warn,#e0a33e);padding-left:10px;margin-bottom:12px">'
       + WARN_ICON + ' ' + esc(window.t(c.state === "disabled" ? "cs.cn_companion_disabled" : "cs.cn_companion_missing",
@@ -5667,7 +5667,7 @@
       + (conns.length > 3 ? '<input class="js-input conn-search" id="connQ" type="search" placeholder="' + esc(window.t("cs.cn_conn_search_ph")) + '">' : "")
       + '<div class="gcard-meta" style="max-width:740px">'
       + '<label style="cursor:pointer"><input type="checkbox" id="mcpStrict" ' + (d.strict ? "checked" : "") + '> ' + esc(window.t("cs.cn_strict")) + '</label></div>'
-      // GitHub is built into Naota (github-connect.js): its card is always first, connected or not.
+      // GitHub is built into Vanhanh (github-connect.js): its card is always first, connected or not.
       + '<div class="prov-list" id="mcpGithub" style="margin-top:12px"></div>'
       + '<div class="prov-list" id="connList" style="margin-top:12px">' + (connectedHtml || '<div class="mp-empty">' + esc(window.t("cs.cn_empty_a")) + ' <b>' + esc(window.t("cs.cn_tab_sanco")) + '</b> ' + esc(window.t("cs.cn_empty_b")) + '</div>') + '</div>'
       // Connected Facebook Pages (messenger-connect.js), one card in this same list, drawn only once a Page is
@@ -5693,8 +5693,8 @@
       + '<div class="cat-grid" id="catGrid">' + catalogCard(byId.custom) + groupCards(cat, conns)
       // Facebook Messenger is set up by its own form (messenger-connect.js), but it sits in this grid like every
       // other service, filed under the same category as Zalo so the category chips find it.
-      + (window.NaotaMessenger && window.NaotaMessenger.catCard
-        ? window.NaotaMessenger.catCard((cat.find(c => c.id === "zalo") || {}).category || "") : "")
+      + (window.VanhanhMessenger && window.VanhanhMessenger.catCard
+        ? window.VanhanhMessenger.catCard((cat.find(c => c.id === "zalo") || {}).category || "") : "")
       + catSolo(cat).map(catalogCard).join("") + '</div></div>'
       // Hai khu kết nối sẵn của CLI: GẬP mặc định (dân thường không cần thấy) + LAZY:
       // chỉ gọi /mcp/ambient (chậm - phải health check) khi người dùng thật sự mở ra.
@@ -5718,11 +5718,11 @@
     ]);
     if (tabKho) el.insertBefore(tabKho, el.firstChild);
     // messenger-connect.js opens its form in this page's shared connection dialog.
-    window.NaotaConnModal = { open: connModal, head: mHead, close: closeConnModal };
-    if (window.NaotaMessenger) window.NaotaMessenger.mount(document.getElementById("mcpMessenger"));
-    if (window.NaotaGithubRepos) window.NaotaGithubRepos.mount(document.getElementById("mcpGithub"));
+    window.VanhanhConnModal = { open: connModal, head: mHead, close: closeConnModal };
+    if (window.VanhanhMessenger) window.VanhanhMessenger.mount(document.getElementById("mcpMessenger"));
+    if (window.VanhanhGithubRepos) window.VanhanhGithubRepos.mount(document.getElementById("mcpGithub"));
     el.querySelectorAll("#catGrid [data-msc-open]").forEach(b => b.onclick = () => {
-      if (window.NaotaMessenger && window.NaotaMessenger.openForm) window.NaotaMessenger.openForm(null);
+      if (window.VanhanhMessenger && window.VanhanhMessenger.openForm) window.VanhanhMessenger.openForm(null);
     });
     const nutSanCo = document.getElementById("mcpDiSanCo");
     if (nutSanCo) nutSanCo.onclick = () => doiTab("sanco");
@@ -5742,27 +5742,27 @@
       else if (kq === "da_cai" || kq === "da_tat") renderConnect(el);
     });
     el.querySelectorAll("[data-mocoi]").forEach(b => b.onclick = () => {
-      if (window.NaotaPacks && window.NaotaPacks.moKho) {
-        window.NaotaPacks.moKho("connector", "mcp",
+      if (window.VanhanhPacks && window.VanhanhPacks.moKho) {
+        window.VanhanhPacks.moKho("connector", "mcp",
           VIEW_META.mcp ? VIEW_META.mcp.label : window.t("page.mcp.label"), b.dataset.mocoi);
       }
     });
     const nutKho = document.getElementById("mcpDiKho");
     if (nutKho) nutKho.onclick = () => {
-      if (window.NaotaPacks && window.NaotaPacks.moKho) {
-        window.NaotaPacks.moKho("connector", "mcp", VIEW_META.mcp ? VIEW_META.mcp.label : window.t("page.mcp.label"));
+      if (window.VanhanhPacks && window.VanhanhPacks.moKho) {
+        window.VanhanhPacks.moKho("connector", "mcp", VIEW_META.mcp ? VIEW_META.mcp.label : window.t("page.mcp.label"));
       }
     };
     document.getElementById("mcpStrict").onchange = (e) => postJson("/mcp/strict", { strict: e.target.checked });
-    // Gỡ một dịch vụ có sẵn. Luồng hỏi lại nằm trong `NaotaPacks.goApp` chứ không viết lại ở
+    // Gỡ một dịch vụ có sẵn. Luồng hỏi lại nằm trong `VanhanhPacks.goApp` chứ không viết lại ở
     // đây: dấu × trên thẻ và nút Gỡ trong kho là CÙNG một hành động, nên phải hỏi y hệt nhau -
     // hai bản sao thì sớm muộn cũng lệch, mà lệch ở đúng chỗ hỏi trước khi xoá.
     el.querySelectorAll("[data-coreoff]").forEach(b => b.onclick = async (ev) => {
       ev.stopPropagation();
       const con = byId[b.dataset.coreoff] || {};
-      if (!window.NaotaPacks && window.NaotaNapCham) await window.NaotaNapCham.cho("packs");   // nạp chậm
-      if (!window.NaotaPacks || !window.NaotaPacks.goApp) { alert(window.t("cs.cn_reload_retry")); return; }
-      const r = await window.NaotaPacks.goApp(con.name || b.dataset.coreoff, b.dataset.coreoff);
+      if (!window.VanhanhPacks && window.VanhanhNapCham) await window.VanhanhNapCham.cho("packs");   // nạp chậm
+      if (!window.VanhanhPacks || !window.VanhanhPacks.goApp) { alert(window.t("cs.cn_reload_retry")); return; }
+      const r = await window.VanhanhPacks.goApp(con.name || b.dataset.coreoff, b.dataset.coreoff);
       if (r.ok) renderConnect(el);
       else if (!r.huy) alert(r.error);
     });
@@ -5878,7 +5878,7 @@
   // `npx ...`) là tự điền; key nhập theo từng dòng tên + giá trị; lưu xong kiểm tra luôn.
   // Phần đọc cấu hình nằm ở mcp-form-parse.js (thuần, có test node).
   function openMcpForm(el, server) {
-    const P = window.NaotaMcpParse;
+    const P = window.VanhanhMcpParse;
     let editId = server ? server.id : "";
     // Kết nối đã chuyển sang OAuth thì Lưu phải GIỮ chế độ đó: gửi auth=header là token thôi
     // được gắn, máy chủ trả 401 và người dùng bị đẩy đi đăng nhập lại vô cớ.
@@ -6151,7 +6151,7 @@
   }
 
   // ---- Trang Kênh Admin: mỗi kênh một tab ----
-  // Kênh ADMIN là đường CHỦ nói chuyện với Naota qua app chat, đủ quyền như dashboard. Bot trả lời
+  // Kênh ADMIN là đường CHỦ nói chuyện với Vanhanh qua app chat, đủ quyền như dashboard. Bot trả lời
   // KHÁCH nằm ở trang Chatbot, và tên trang nói rõ điều đó vì hai thứ từng bị nhầm.
   //
   // Mỗi tab cùng một khuôn, và khuôn đó sửa đúng chỗ người dùng vấp ở bản cũ:
@@ -6182,9 +6182,9 @@
   // Hướng dẫn mở đúng bản theo ngôn ngữ giao diện: tiếng Việt ở docs/, mọi thứ tiếng khác ở docs/en/.
   const DOC_GUIDE = { slack: "29-slack-whatsapp.md", whatsapp: "29-slack-whatsapp.md",
                       discord: "30-discord-lark.md", lark: "30-discord-lark.md" };
-  const docGuideUrl = (k) => "https://github.com/vuongtex/naota/blob/main/docs/"
-    + ((window.NaotaI18n && window.NaotaI18n.lang() === "vi") ? "" : "en/") + DOC_GUIDE[k];
-  const ACH_TAB_KEY = "naota.adminChannelTab";
+  const docGuideUrl = (k) => "https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/"
+    + ((window.VanhanhI18n && window.VanhanhI18n.lang() === "vi") ? "" : "en/") + DOC_GUIDE[k];
+  const ACH_TAB_KEY = "vanhanh.adminChannelTab";
   // Khoá viết rõ từng cái (không ghép chuỗi) để bộ soát i18n thấy được khoá nào đang dùng.
   const ACH_PILL = { setup: "ach.pill_setup", off: "ach.pill_off", run: "ach.pill_run",
                      start: "ach.pill_start", err: "ach.pill_err", stop: "ach.pill_stop" };
@@ -6509,7 +6509,7 @@
         <h3>${esc(window.t("cs.ac_ws_head"))}</h3>
         <div class="gcard" style="max-width:560px">
           <label class="js-lbl">${esc(window.t("cs.ac_ws_name"))}</label>
-          <input class="js-input" id="acWs" value="${esc(s.workspace_name || "NAOTA")}">
+          <input class="js-input" id="acWs" value="${esc(s.workspace_name || "VANHANH")}">
           <button class="gcard-btn" id="acWsSave">${esc(window.t("common.save"))}</button>
           <div class="gcard-meta" id="acWsStatus"></div>
         </div>
@@ -6539,7 +6539,7 @@
       </div>` : ""}
       <div class="cview-section">
         <h3>${esc(window.t("cs.ac_tk_head"))}${infoBtn()}</h3>
-        ${infoBody(`${esc(window.t("cs.ac_tk_intro_a"))} <b>Naota CLI</b> ${esc(window.t("cs.ac_tk_intro_b"))}`)}
+        ${infoBody(`${esc(window.t("cs.ac_tk_intro_a"))} <b>Vanhanh CLI</b> ${esc(window.t("cs.ac_tk_intro_b"))}`)}
         <div class="gcard" style="max-width:560px">
           <label class="js-lbl">${esc(window.t("cs.ac_tk_name"))}</label>
           <input class="js-input" id="tkName" placeholder="${esc(window.t("cs.ac_tk_name_ph"))}">
@@ -6553,8 +6553,8 @@
           <div id="tkNew"></div>
           <div id="tkList" class="tk-list"></div>
           <div class="tk-docs">
-            <a href="https://github.com/vuongtex/naota/blob/main/docs/24-cli-terminal.md" target="_blank" rel="noopener">${esc(window.t("cs.ac_doc_cli"))} ↗</a>
-            <a href="https://github.com/vuongtex/naota/blob/main/docs/14-bao-mat-tai-khoan.md" target="_blank" rel="noopener">${esc(window.t("cs.ac_doc_sec"))} ↗</a>
+            <a href="https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/24-cli-terminal.md" target="_blank" rel="noopener">${esc(window.t("cs.ac_doc_cli"))} ↗</a>
+            <a href="https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/14-bao-mat-tai-khoan.md" target="_blank" rel="noopener">${esc(window.t("cs.ac_doc_sec"))} ↗</a>
           </div>
         </div>
       </div>`;
@@ -6581,8 +6581,8 @@
             <button class="gcard-btn" id="tkCopy">Copy</button>
             <button class="gcard-btn ghost" id="tkHide">${esc(window.t("cs.ac_tk_hide"))}</button>
           </div>
-          <div class="gcard-meta">${esc(window.t("cs.ac_tk_paste"))} <code>naota login ${esc(location.origin)} --token &lt;token&gt;</code></div>
-          <div class="gcard-meta">${esc(window.t("cs.ac_tk_nocli"))} <code>pip install naota-cli</code> · <a class="tk-doclink" href="https://github.com/vuongtex/naota/blob/main/docs/24-cli-terminal.md" target="_blank" rel="noopener">${esc(window.t("cs.ac_tk_seedoc"))} ↗</a></div>
+          <div class="gcard-meta">${esc(window.t("cs.ac_tk_paste"))} <code>vanhanh login ${esc(location.origin)} --token &lt;token&gt;</code></div>
+          <div class="gcard-meta">${esc(window.t("cs.ac_tk_nocli"))} <code>pip install vanhanh-cli</code> · <a class="tk-doclink" href="https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/24-cli-terminal.md" target="_blank" rel="noopener">${esc(window.t("cs.ac_tk_seedoc"))} ↗</a></div>
         </div>`;
       document.getElementById("tkCopy").onclick = () => {
         const c = document.getElementById("tkCopy");
@@ -6597,7 +6597,7 @@
       wsStatus.textContent = window.t("settings.saving");
       const r = await saveSetting("general", { workspace_name: document.getElementById("acWs").value.trim() });
       wsStatus.innerHTML = r.ok ? OK_ICON + " " + esc(window.t("cs.ac_saved")) : WARN_ICON + " " + esc(window.t("cs.ac_err_dot"));
-      const wn = document.getElementById("workspaceName"); if (wn) wn.textContent = document.getElementById("acWs").value.trim() || "NAOTA";
+      const wn = document.getElementById("workspaceName"); if (wn) wn.textContent = document.getElementById("acWs").value.trim() || "VANHANH";
     };
     const acStatus = document.getElementById("acStatus");
     // HAI đường, đừng gộp: /auth/setup là đường CÔNG KHAI cho lần đầu tạo admin và nó TỪ CHỐI
@@ -6647,8 +6647,8 @@
       fetch("/auth/status").then(r => r.json()).then(a => { if (a.require_login) dis.hidden = true; }).catch(() => {});
       dis.onclick = async () => {
         const curEl = document.getElementById("acCur");
-        if (!window.__naotaDisableLogin) { acStatus.innerHTML = Icons.warn(window.t("cs.ac_err_dot")); return; }
-        const r = await window.__naotaDisableLogin(curEl ? curEl.value : "");
+        if (!window.__vanhanhDisableLogin) { acStatus.innerHTML = Icons.warn(window.t("cs.ac_err_dot")); return; }
+        const r = await window.__vanhanhDisableLogin(curEl ? curEl.value : "");
         if (r.ok) { renderAccount(el); return; }
         if (r.error) acStatus.innerHTML = Icons.warn(r.error);
       };
@@ -6840,9 +6840,9 @@
     try { if (window.initModelBar) window.initModelBar(); } catch (e) {}
     // Ô chọn model trong form sửa trợ lý dựng từ /settings, mà form đó giữ bản /settings gần
     // nhất một lát cho đỡ nặng - vừa đổi model/cắm key xong thì bảo nó quên đi.
-    try { if (window.NaotaStudio && window.NaotaStudio.quenForm) window.NaotaStudio.quenForm(); } catch (e) {}
+    try { if (window.VanhanhStudio && window.VanhanhStudio.quenForm) window.VanhanhStudio.quenForm(); } catch (e) {}
   }
-  if (typeof window !== "undefined") window.NaotaRefreshModelUi = refreshModelUi;
+  if (typeof window !== "undefined") window.VanhanhRefreshModelUi = refreshModelUi;
 
   // ---- Cất #quickSet (avatar/tên miền/giọng nói) về holder ẩn khi rời trang Cài đặt ----
   // Node giữ nguyên → mọi handler đã gắn ở app.js/branding.js/quick-settings.js vẫn sống.
@@ -6859,9 +6859,9 @@
   // ---- Trang Cài đặt: nhúng #quickSet + bộ chọn nhà cung cấp giọng đọc ----
   // Dòng trạng thái 2FA trong khối "Tài khoản đăng nhập" cũ (#quickSet, index.html).
   //
-  // Vì sao cần: Naota có HAI bề mặt cài đặt tài khoản - trang Tài khoản (đủ thứ, gồm cả 2FA)
+  // Vì sao cần: Vanhanh có HAI bề mặt cài đặt tài khoản - trang Tài khoản (đủ thứ, gồm cả 2FA)
   // và khối cũ này nhúng trong trang Cài đặt (chỉ đổi mật khẩu). Ai mở Cài đặt trước sẽ thấy
-  // một khối tài khoản không nhắc gì tới 2FA và kết luận Naota không có, rồi thôi.
+  // một khối tài khoản không nhắc gì tới 2FA và kết luận Vanhanh không có, rồi thôi.
   //
   // Đây CHỈ là trạng thái + lối đi. Nút bấm mang data-settings-go="account" nên nó dùng chung
   // đúng đường chuyển trang với mấy nút còn lại, không tự gọi navigateTo.
@@ -6896,7 +6896,7 @@
   }
 
   // ---- Thẻ GIỌNG NÓI (voice-call-spec mục 5) ----
-  // Ba ô: dòng "Đang dùng", Giọng Naota (danh sách đổi theo đường gọi), Tập trung. Nâng cao: Đường
+  // Ba ô: dòng "Đang dùng", Giọng Vanhanh (danh sách đổi theo đường gọi), Tập trung. Nâng cao: Đường
   // gọi, Tốc độ đọc, ElevenLabs. MỌI Ô TỰ LƯU khi đổi, không còn nút Lưu. Khung là node tĩnh trong
   // index.html (#voiceCard); hàm này chỉ đổ lựa chọn và nối tay bắt, nên gọi lại bao nhiêu lần
   // cũng được (mỗi lần mở tab Giọng nói, mỗi lần đổi đường gọi).
@@ -6942,15 +6942,15 @@
       const r = await saveSetting("voice", data);
       st.textContent = r && r.ok ? t("settings.vc_saved") : t("settings.save_failed");
       _settings = null;
-      try { if (window.NaotaVoiceMode) window.NaotaVoiceMode.refresh(); } catch (e) {}
+      try { if (window.VanhanhVoiceMode) window.VanhanhVoiceMode.refresh(); } catch (e) {}
       return r;
     };
 
-    // Giọng Naota: mỗi đường gọi một bộ giọng.
+    // Giọng Vanhanh: mỗi đường gọi một bộ giọng.
     const sel = $("vcVoice"), tryBtn = $("vcTry");
     const edgeSel = $("voiceSel");
     const basic = call.engine === "basic";
-    const VC = window.NaotaVoiceCatalog || { gioiCua: () => "n", tenDep: (x) => x, nhomTheoGioi: (d) => ({ f: [], m: [], n: d || [] }),
+    const VC = window.VanhanhVoiceCatalog || { gioiCua: () => "n", tenDep: (x) => x, nhomTheoGioi: (d) => ({ f: [], m: [], n: d || [] }),
                                              lechGioi: () => null, giongCungGioi: () => "" };
     const tenGioi = (g) => g === "f" ? t("settings.vc_g_f") : g === "m" ? t("settings.vc_g_m") : "";
     // "Juniper · Nữ": the live voices are bare names, so the gender word is what tells them apart.
@@ -7069,17 +7069,17 @@
     if (!basic) readSel.onchange = () => pickReading(readSel.value);
     capNhatNghe();
     // Nghe thử: ChatGPT Live phát mẫu thu sẵn (dashboard/voices/<giọng>.mp3, không mở phiên
-    // realtime nào); đường Cơ bản đọc một câu bằng giọng đang chọn (app.js NaotaVoiceSample).
+    // realtime nào); đường Cơ bản đọc một câu bằng giọng đang chọn (app.js VanhanhVoiceSample).
     tryBtn.onclick = () => {
       try {
         if (window._vcSample) window._vcSample.pause();
         if (call.engine === "chatgpt") {
           window._vcSample = new Audio("/static/voices/" + encodeURIComponent(sel.value) + ".mp3");
           window._vcSample.play().catch(() => {});
-        } else if (window.NaotaVoiceSample) window.NaotaVoiceSample();
+        } else if (window.VanhanhVoiceSample) window.VanhanhVoiceSample();
       } catch (e) {}
     };
-    $("vcReadTry").onclick = () => { try { if (window.NaotaVoiceSample) window.NaotaVoiceSample(); } catch (e) {} };
+    $("vcReadTry").onclick = () => { try { if (window.VanhanhVoiceSample) window.VanhanhVoiceSample(); } catch (e) {} };
 
 
     // Live over an API key: TV filter and reply pace. ChatGPT Live and the basic path
@@ -7204,7 +7204,7 @@
 
   // ---- Thẻ LINH VẬT trên trang Cài đặt ----
   // Pet là một module độc lập (dashboard/pet.js) và nó GIỮ trạng thái thật; ở đây chỉ vẽ ô
-  // chọn rồi gọi NaotaPet.setCfg(). Không sao chép danh sách hình dáng hay bảng màu sang
+  // chọn rồi gọi VanhanhPet.setCfg(). Không sao chép danh sách hình dáng hay bảng màu sang
   // đây: hai bản danh sách lệch nhau là kiểu lỗi đã xảy ra với bảng icon một lần rồi.
   // Trang LINH VẬT (nhóm Hệ thống). Tách khỏi trang Cài đặt vì nó không phải một công tắc
   // hệ thống: đây là chỗ người dùng ngồi chọn hình dáng và màu cho con pet của mình, và
@@ -7265,7 +7265,7 @@
       // chiếm chỗ, và mắt vẫn quét hết danh sách nhanh hơn là gõ.
       const coTim = ds.length > SHARE_NGUONG_TIM;
       // (i) next to the heading; local helpers since tests run this body on its own.
-      const JI = window.NaotaInfo;
+      const JI = window.VanhanhInfo;
       const infoBtn = () => (JI ? JI.btn(t("info.more")) : "");
       const infoBody = (h) => (JI ? JI.body(h) : '<div class="info-body">' + h + "</div>");
       el.innerHTML = `<div class="settings-page"><div class="settings-card">
@@ -7286,7 +7286,7 @@
     }
 
     // Vẽ lại RIÊNG phần danh sách: lọc theo từ khoá rồi phân trang bằng pager() dùng chung
-    // (window.NaotaPager - cùng bản với trang Kỹ năng và khung nhật ký, không đẻ bản thứ hai).
+    // (window.VanhanhPager - cùng bản với trang Kỹ năng và khung nhật ký, không đẻ bản thứ hai).
     function veDanhSach() {
       const box = el.querySelector("#shareList");
       if (!box) return;
@@ -7295,7 +7295,7 @@
       const dem = el.querySelector("#shareCount");
       if (dem) dem.textContent = (tuKhoa || "").trim()
         ? t("share.count", { so: hien.length, tong: ds.length }) : "";
-      const P = (typeof window !== "undefined" && window.NaotaPager) || null;
+      const P = (typeof window !== "undefined" && window.VanhanhPager) || null;
       const trong = `<div class="share-empty">${esc(t("share.no_match"))}</div>`;
       if (P) {
         P(box, hien, SHARE_MOI_TRANG, (rows) => rows.map(m => hang(m)).join(""), trong);
@@ -7398,7 +7398,7 @@
 
   function renderPetCard(host, tuMayChu) {
     if (!host) return;
-    const P = window.NaotaPet;
+    const P = window.VanhanhPet;
     if (!P) {                                   // pet.js chưa nạp (cache index.html cũ)
       host.innerHTML = `<div class="settings-card compact"><p>${esc(t("settings.pet_missing"))}</p></div>`;
       return;
@@ -7417,7 +7417,7 @@
       // CÙNG mới tới khối nút Lưu / Tắt / Đặt lại.
       // What the pet does and how to handle it fold into (i) by the heading. Tests run
       // this body on its own, so the (i) helpers are local copies here.
-      const JI = window.NaotaInfo;
+      const JI = window.VanhanhInfo;
       const infoBtn = () => (JI ? JI.btn(t("info.more")) : "");
       const infoBody = (h) => (JI ? JI.body(h) : '<div class="info-body">' + h + "</div>");
       host.innerHTML = `<div class="settings-card"><div class="pet-editor" data-pet-editor>${P.editorHtml(cur, OPTS_ED)}</div></div>
@@ -7469,7 +7469,7 @@
     });
   }
   function renderThemeBox(box) {
-    const T = window.naotaTheme;
+    const T = window.vanhanhTheme;
     if (!box || !T || !T.mode) return;
     const mode = T.mode();
     const sch = T.schedule();
@@ -7479,7 +7479,7 @@
       <span class="seg-d">${esc(d)}</span></button>`;
     const now = mode === "auto" ? themeNowText(T) : "";
     // (i) helpers as local copies: a test runs this body on its own.
-    const JI = window.NaotaInfo;
+    const JI = window.VanhanhInfo;
     const infoBtn = () => (JI ? JI.btn(t("info.more")) : "");
     const infoBody = (h) => (JI ? JI.body(h) : '<div class="info-body">' + h + "</div>");
     // Hai ô giờ chỉ VẼ khi đang tự động, không dùng thuộc tính hidden: .qs-field là flex và
@@ -7503,7 +7503,7 @@
       </div>
       <div class="qs-hint" role="status">${esc(now)}</div>` : ""}`;
     box.querySelectorAll("[data-theme-mode]").forEach(b => {
-      b.onclick = () => T.setMode(b.dataset.themeMode);   // sự kiện naota-theme-change vẽ lại thẻ
+      b.onclick = () => T.setMode(b.dataset.themeMode);   // sự kiện vanhanh-theme-change vẽ lại thẻ
     });
     const inL = box.querySelector("#vpThemeLight");
     const inD = box.querySelector("#vpThemeDark");
@@ -7518,7 +7518,7 @@
   }
   // Đăng ký MỘT lần cho cả phiên; thẻ không có trên trang thì bỏ qua. Đang gõ dở ô giờ thì
   // không vẽ lại, kẻo đồng hồ tự động hay tab khác giật mất ô người dùng đang sửa.
-  window.addEventListener("naota-theme-change", () => {
+  window.addEventListener("vanhanh-theme-change", () => {
     const box = document.getElementById("vpThemeBox");
     if (!box || box.contains(document.activeElement) && document.activeElement.type === "time") return;
     renderThemeBox(box);
@@ -7598,7 +7598,7 @@
     const lc = s.locale || {};
     const langs = (s.lang_list || []);
     const replyLang = lc.reply_lang || "auto";
-    const uiLang = (window.NaotaI18n && NaotaI18n.lang()) || "vi";
+    const uiLang = (window.VanhanhI18n && VanhanhI18n.lang()) || "vi";
     // MỘT thẻ cho cả hai ô ngôn ngữ. Trước là hai thẻ riêng nằm cạnh nhau trong lưới,
     // mỗi thẻ đúng một ô chọn - hai cái khung cho hai dòng chữ.
     const langHtml = `
@@ -7629,7 +7629,7 @@
           <div class="settings-status-grid">
             <div><span>Engine</span><b>${esc(engine)}</b></div>
             <div><span>Model</span><b>${esc(currentModel)}</b></div>
-            <div><span>Workspace</span><b>${esc(s.workspace_name || "NAOTA")}</b></div>
+            <div><span>Workspace</span><b>${esc(s.workspace_name || "VANHANH")}</b></div>
             <div><span>Telegram</span><b>${esc(telegram.enabled ? t("settings.on") : t("settings.off"))}</b></div>
           </div>
           <div class="settings-links">
@@ -7693,10 +7693,10 @@
     // Khối tài khoản vừa nhúng do app.js nuôi, và đường vào trang này KHÔNG đi qua
     // openSettings() - không gọi cái này thì ô "Tài khoản" trống trơn, ô mật khẩu hiện tại
     // không hiện ra, và nút Lưu tưởng là chưa có tài khoản nên bấm không ăn.
-    if (window.__naotaRefreshAuthRow) { try { await window.__naotaRefreshAuthRow(); } catch (e) {} }
+    if (window.__vanhanhRefreshAuthRow) { try { await window.__vanhanhRefreshAuthRow(); } catch (e) {} }
     if (gen !== _renderGen) return;
-    if (tab === "general" && qs && !qs.dataset.generalReady && window.__naotaRefreshExtras) {
-      try { window.__naotaRefreshExtras(); qs.dataset.generalReady = "true"; } catch (e) {}
+    if (tab === "general" && qs && !qs.dataset.generalReady && window.__vanhanhRefreshExtras) {
+      try { window.__vanhanhRefreshExtras(); qs.dataset.generalReady = "true"; } catch (e) {}
     }
     const langHost = document.getElementById("replyLangHost");
     if (langHost) {
@@ -7710,9 +7710,9 @@
       const selUi = document.getElementById("vpUiLang");
       if (selUi) selUi.onchange = async () => {
         // Đổi NGAY trên máy này trước, rồi mới lưu lên server. Ngôn ngữ giao diện là lựa chọn
-        // THEO THIẾT BỊ (người dùng mở Naota từ nhiều máy), nên trải nghiệm phải tức thì và
+        // THEO THIẾT BỊ (người dùng mở Vanhanh từ nhiều máy), nên trải nghiệm phải tức thì và
         // không được phụ thuộc vào việc gọi mạng có thành công hay không.
-        try { await NaotaI18n.setLang(selUi.value); } catch (e) { /* noop */ }
+        try { await VanhanhI18n.setLang(selUi.value); } catch (e) { /* noop */ }
         await saveSetting("locale", { ui_lang: uiLangForServer(selUi.value, s) });
         // Vẽ lại trang Cài đặt bằng từ điển mới - không thì phần khung (tiêu đề nhóm, thẻ,
         // nút) vẫn tiếng cũ tới lần mở sau, nhìn như đổi ngôn ngữ "không ăn".
@@ -7796,7 +7796,7 @@
   // Trang TRÒ CHUYỆN - khung chat toàn khung (mượn node chat của cockpit + sidebar lịch sử)
   // Không nhân đôi bộ máy chat: relocate chính #chatArea/#attachBar/#modelBar/#hudVoice
   // (giữ nguyên mọi handler + WebSocket + streaming đã gắn trong app.js) rồi TRẢ về HUD khi
-  // rời trang. Cùng một cuộc trò chuyện hiển thị ở cả màn Naota lẫn tab này.
+  // rời trang. Cùng một cuộc trò chuyện hiển thị ở cả màn Vanhanh lẫn tab này.
   // ============================================
   // attachBar lives INSIDE #hudVoice so it is no longer borrowed on its own.
   const CHAT_NODE_IDS = ["callBar", "chatArea", "bgStrip", "goalBar", "modelBar", "hudVoice"];
@@ -7867,7 +7867,7 @@
     @media (prefers-reduced-motion:reduce){ .cp-conv{ animation:none; } }
     .chatpage-slot{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:10px; }
     /* Mở file từ tab Thư mục (desktop): trình sửa bên TRÁI, khung chat co thành CỘT PHẢI
-       y như màn Naota - hội thoại ở trên, ô nhập dưới đáy cột (bản xếp
+       y như màn Vanhanh - hội thoại ở trên, ô nhập dưới đáy cột (bản xếp
        chồng dọc trước đó để chat nằm TRÊN trình sửa theo thứ tự DOM, nhìn ngược). Grid
        đặt chỗ theo ô nên thứ tự DOM không còn quyết định vị trí. Màn hẹp giữ lối cũ:
        trình sửa chiếm chỗ (luật display:none nằm trong khối @media 860px bên dưới),
@@ -7886,8 +7886,8 @@
     .cedit-thu-btn svg, .cedit-expand svg{ transform:scaleX(-1); }
     @media (min-width:861px){
       /* Bản trước nhét CẢ cụm nhập (file chip + thanh model + ô nhập) vào cột phải 340px
-         nên chật cứng - chỉnh lại: y như màn Naota, các thanh đó phải TRẢI DÀI TOÀN BỀ
-         RỘNG dưới cùng (ở màn Naota chúng nằm NGOÀI .hud-body, vắt ngang đáy), chỉ có
+         nên chật cứng - chỉnh lại: y như màn Vanhanh, các thanh đó phải TRẢI DÀI TOÀN BỀ
+         RỘNG dưới cùng (ở màn Vanhanh chúng nằm NGOÀI .hud-body, vắt ngang đáy), chỉ có
          HỘI THOẠI đứng cột phải. Slot tan vào lưới bằng display:contents để từng con của
          nó tự nhận ô grid riêng. */
       .chatpage-main.edit-on{ display:grid; column-gap:14px;
@@ -7928,11 +7928,11 @@
       flex:1 1 auto; min-height:0; min-width:0; border-radius:12px; }
     .chatpage-slot > *{ width:100%; max-width:900px; margin-left:auto; margin-right:auto; }
     .chatpage-slot .transcript{ flex:1 1 auto; min-height:0; max-height:none; background:transparent; }
-    /* Khung nhập giữ NGUYÊN bộ mặt của thanh nhập ở màn Naota (--bg2 + bo 18px). Trước đây
+    /* Khung nhập giữ NGUYÊN bộ mặt của thanh nhập ở màn Vanhanh (--bg2 + bo 18px). Trước đây
        gõ cứng rgba(24,24,34,.6) nên tông sáng lòi ra một dải xám đen giữa nền giấy. */
     .chatpage-slot .hud-voice{ background:var(--bg2); border:1px solid var(--border); border-radius:24px; }
     .chatpage-slot .attach-bar{ flex:none; }
-    /* Màn hẹp: cả hàng tiêu đề phải nằm gọn MỘT dòng. Trước đây tiêu đề "Trò chuyện với Naota"
+    /* Màn hẹp: cả hàng tiêu đề phải nằm gọn MỘT dòng. Trước đây tiêu đề "Trò chuyện với Vanhanh"
        xuống bốn dòng và chữ "Thu nhỏ" xuống hai dòng, đẩy khung chat tụt hẳn xuống - đã gặp
        đúng cảnh đó. Nay hàng này nhẹ hẳn: tiêu đề tĩnh và nhãn engine đều đã bỏ, chỉ
        còn hai nút (rút về icon) và chip project ở mép phải (tự cắt, xem style.css). */
@@ -8011,14 +8011,14 @@
   }
   // ===== Cho tab "Thư mục" của khung chat MƯỢN chính panel Vault =====
   // Không dựng lại cây thứ hai. Bản đầu của tính năng này viết hẳn một module cây riêng, và
-  // Có ý kiến: "sao không bê nguyên cái cây y hệt bên Naota sang mà phải dựng lại".
+  // Có ý kiến: "sao không bê nguyên cái cây y hệt bên Vanhanh sang mà phải dựng lại".
   // Đúng - cây Vault đã có sẵn tìm theo tên/nội dung, tạo file, tạo thư mục, làm mới, tô sáng
   // file đang mở. Dựng bản thứ hai là chép lại từng đó thứ rồi để hai bản trôi lệch nhau.
   // Mượn node y như cách trang này vẫn mượn #chatArea: cùng một cây, chỉ đổi chỗ đứng.
   // ===== Trình sửa file đứng TRÊN khung chat khi mở file từ tab Thư mục =====
   // Ở màn chính, trình sửa là lớp nổi đè lên visual não - chỗ đó rỗng nên đè là hợp lý. Ở
   // trang Trò chuyện, desktop XẾP CHỒNG: trình sửa trên, khung chat rút gọn ở dưới - chủ
-  // Đã đổi ý (trước đó ẩn hẳn): vừa sửa file vừa nhắn Naota về file đó.
+  // Đã đổi ý (trước đó ẩn hẳn): vừa sửa file vừa nhắn Vanhanh về file đó.
   // Màn hẹp vẫn ẩn hẳn khung chat vì không đủ chỗ. Xem khối CSS .chatpage-main.edit-on.
   // Vẫn MƯỢN chính #noteEditor chứ không dựng trình sửa thứ hai - cùng lý do với cây Vault.
   // `into` = khung sẽ mượn trình sửa. Bỏ trống = khung của trang Trò chuyện (#chatPageEdit).
@@ -8065,20 +8065,20 @@
       if (hep()) { page.classList.toggle("side-open"); return; }
       const thu = !page.classList.contains("side-thu");
       page.classList.toggle("side-thu", thu);
-      try { localStorage.setItem("naota_chatside_thu", thu ? "1" : "0"); } catch (e) {}
+      try { localStorage.setItem("vanhanh_chatside_thu", thu ? "1" : "0"); } catch (e) {}
     };
   }
-  if (typeof window !== "undefined") window.NaotaNeoCotTrai = _neoCotTrai;
+  if (typeof window !== "undefined") window.VanhanhNeoCotTrai = _neoCotTrai;
 
   // The clock button on the title bar did exactly what the
   // panel-left button in the column corner does, so the column now has ONE pair of buttons:
   // collapse in its corner, expand on the narrow strip left behind. On a phone the column is
   // a drawer, so the same corner button closes the drawer and the title bar keeps only a
   // panel-left button to open it (CSS hides that one on a computer).
-  // Call AFTER NaotaChatSide.mount: mount rewrites the column's innerHTML and would drop them.
+  // Call AFTER VanhanhChatSide.mount: mount rewrites the column's innerHTML and would drop them.
   function _setSideFolded(page, folded) {
     page.classList.toggle("side-thu", folded);
-    try { localStorage.setItem("naota_chatside_thu", folded ? "1" : "0"); } catch (e) {}
+    try { localStorage.setItem("vanhanh_chatside_thu", folded ? "1" : "0"); } catch (e) {}
   }
   function _addSideFoldButtons(page, sideEl) {
     if (!page || !sideEl) return;
@@ -8101,7 +8101,7 @@
     openBtn.onclick = () => _setSideFolded(page, false);
     sideEl.appendChild(foldBtn); sideEl.appendChild(openBtn);
   }
-  if (typeof window !== "undefined") window.NaotaSideFoldButtons = _addSideFoldButtons;
+  if (typeof window !== "undefined") window.VanhanhSideFoldButtons = _addSideFoldButtons;
 
   function _borrowNoteEditor(into) {
     const ed = document.getElementById("noteEditor");
@@ -8161,17 +8161,17 @@
     _vaultSlot = null;
   }
   if (typeof window !== "undefined") {
-    window.NaotaVaultPanel = { borrow: _borrowVaultPanel, giveBack: _returnVaultPanel };
+    window.VanhanhVaultPanel = { borrow: _borrowVaultPanel, giveBack: _returnVaultPanel };
     // Cửa chuyển trang cho module ngoài (vd nút "Tạo Agent" ở trang Chatbot). Phơi navigateTo
     // chứ không để module tự đặt store.active: navigateTo còn dọn trang cũ, cất #quickSet và
     // vẽ lại đồ thị - bỏ qua mấy bước đó là để lại rác của trang trước trên trang sau.
     // `go` đi qua store Alpine chứ không gọi thẳng `navigateTo`: store còn BUNG NHÓM chứa trang
-    // vừa mở. Gọi thẳng thì mở trang bằng lời xong thanh bên vẫn gập, người dùng tưởng Naota
+    // vừa mở. Gọi thẳng thì mở trang bằng lời xong thanh bên vẫn gập, người dùng tưởng Vanhanh
     // không hiểu "mở dropdown". Không có store (trang chưa dựng xong) thì lui về navigateTo.
     function _navStore() {
       try { return window.Alpine && window.Alpine.store("nav"); } catch (e) { return null; }
     }
-    window.NaotaNav = {
+    window.VanhanhNav = {
       go(id) { const s = _navStore(); if (s && typeof s.go === "function") s.go(id); else navigateTo(id); },
       // Bung một NHÓM trên thanh bên mà KHÔNG đổi trang. Trả false nếu không có nhóm đó.
       openGroup(groupId) {
@@ -8242,7 +8242,7 @@
               ic("chevron-left") + '<span data-i18n="cs.cp_min">' + esc(window.t("cs.cp_min")) + '</span></button>' +
             // the open conversation's name (sessions-ui.js renderTitle draws it).
             '<span class="cp-conv-host"></span>' +
-            // Tiêu đề tĩnh "Trò chuyện với Naota" ĐÃ BỎ . Nó nói
+            // Tiêu đề tĩnh "Trò chuyện với Vanhanh" ĐÃ BỎ . Nó nói
             // đúng một điều mà rail đang tô sáng và khung trống đã ghi bằng chữ in nghiêng
             // ngay bên dưới, nên nó chỉ ăn chỗ. Chip project lùi về mép phải, chiếm chỗ đó.
             '<span class="proj-chip-host"></span>' +
@@ -8257,25 +8257,25 @@
     _borrowChatNodes(slot);
 
     // Sidebar lịch sử hội thoại (dùng lại module chung của chat workspace)
-    try { if (window.NaotaChatSide) window.NaotaChatSide.mount(el.querySelector("#chatPageSide")); } catch (e) {}
+    try { if (window.VanhanhChatSide) window.VanhanhChatSide.mount(el.querySelector("#chatPageSide")); } catch (e) {}
     // Thanh tiêu đề vừa dựng lại từ đầu nên chip project trong đó đang trống.
-    try { if (window.NaotaChatSide) window.NaotaChatSide.chip(); } catch (e) {}
+    try { if (window.VanhanhChatSide) window.VanhanhChatSide.chip(); } catch (e) {}
 
     // Thu gọn cột Hội thoại/Thư mục: màn hẹp giữ drawer như cũ; desktop thu về dải hẹp
-    // và nhớ lựa chọn. Nút thu/mở gắn SAU khi NaotaChatSide.mount vì mount ghi đè innerHTML
+    // và nhớ lựa chọn. Nút thu/mở gắn SAU khi VanhanhChatSide.mount vì mount ghi đè innerHTML
     // của panel - gắn trước là nút biến mất.
     const sideEl = el.querySelector("#chatPageSide");
     const datSideThu = (thu) => _setSideFolded(page, thu);
-    try { if (localStorage.getItem("naota_chatside_thu") === "1") page.classList.add("side-thu"); } catch (e) {}
+    try { if (localStorage.getItem("vanhanh_chatside_thu") === "1") page.classList.add("side-thu"); } catch (e) {}
     _addSideFoldButtons(page, sideEl);
     // Cột Hội thoại/Thư mục kéo được ở đường biên phải (col-resize.js); màn hẹp là ngăn kéo, CSS ẩn tay kéo.
-    if (sideEl && window.NaotaColResize) {
+    if (sideEl && window.VanhanhColResize) {
       // let go narrower than the fold point and the column folds away, as its collapse button does.
-      const oSide = { host: page, varName: "--cp-side-w", key: "naota_cp_side_w", min: 220, max: 560, edge: "right",
+      const oSide = { host: page, varName: "--cp-side-w", key: "vanhanh_cp_side_w", min: 220, max: 560, edge: "right",
         label: "common.resize_chatside", keep: 420, total: () => page.clientWidth,
-        collapse: { below: window.NaotaColResize.FOLD_AT(220), run: () => datSideThu(true) } };
-      window.NaotaColResize.apply(oSide);
-      window.NaotaColResize.attach(sideEl, oSide);
+        collapse: { below: window.VanhanhColResize.FOLD_AT(220), run: () => datSideThu(true) } };
+      window.VanhanhColResize.apply(oSide);
+      window.VanhanhColResize.attach(sideEl, oSide);
     }
     el.querySelector(".cp-side-toggle").onclick = _neoCotTrai(page, sideEl, slot);
     // Khung chat PHẢI khi đang sửa file (.edit-on): nút thu co vào bên phải + nhớ trạng
@@ -8284,9 +8284,9 @@
     if (mainEl && slot) {
       const datEditThu = (thu) => {
         mainEl.classList.toggle("echat-thu", thu);
-        try { localStorage.setItem("naota_editchat_thu", thu ? "1" : "0"); } catch (e) {}
+        try { localStorage.setItem("vanhanh_editchat_thu", thu ? "1" : "0"); } catch (e) {}
       };
-      try { if (localStorage.getItem("naota_editchat_thu") === "1") mainEl.classList.add("echat-thu"); } catch (e) {}
+      try { if (localStorage.getItem("vanhanh_editchat_thu") === "1") mainEl.classList.add("echat-thu"); } catch (e) {}
       const et = document.createElement("button");
       et.className = "cedit-thu-btn"; et.type = "button";
       et.title = window.t("cs.cp_chat_collapse"); et.dataset.i18nTitle = "cs.cp_chat_collapse"; et.innerHTML = ic("panel-left");
@@ -8297,7 +8297,7 @@
       em.onclick = () => datEditThu(false);
       slot.appendChild(et); slot.appendChild(em);
     }
-    // Đường VỀ. Nút phóng to ở màn Naota nay dẫn thẳng sang trang này (lớp nổi .chat-stage đã
+    // Đường VỀ. Nút phóng to ở màn Vanhanh nay dẫn thẳng sang trang này (lớp nổi .chat-stage đã
     // bỏ), nên trang này phải có nút thu nhỏ, nếu không người dùng chỉ còn cách bấm rail.
     el.querySelector("#cpMinBtn").onclick = () => navigateTo("home");
     // Cuộn xuống đáy + focus ô nhập cho tiện gõ ngay
@@ -8318,7 +8318,7 @@
       // Only a `fold` group (Advanced) opens and shuts; every other group is always open, so the
       // whole rail shows without a click. Holds the label of the fold group that is open, if any.
       openGroup: groupLabelOf("home"),
-      collapsed: (() => { try { return localStorage.getItem("naota_rail_collapsed") === "1"; } catch (e) { return false; } })(),
+      collapsed: (() => { try { return localStorage.getItem("vanhanh_rail_collapsed") === "1"; } catch (e) { return false; } })(),
       collapseIcon: COLLAPSE_ICON,
       // Alpine không biết từ điển i18n đổi (nó là object thuần), nên phải có một biến
       // ĐẾM phản ứng để đá vào getter. Thiếu nó thì đổi ngôn ngữ xong rail vẫn chữ cũ
@@ -8333,7 +8333,7 @@
       toggleGroup(label) { this.openGroup = (this.openGroup === label) ? null : label; },
       toggleCollapsed() {   // thu/mở sidebar: thu → chỉ còn icon; mở → đầy chữ. Nhớ lựa chọn qua localStorage.
         this.collapsed = !this.collapsed;
-        try { localStorage.setItem("naota_rail_collapsed", this.collapsed ? "1" : "0"); } catch (e) {}
+        try { localStorage.setItem("vanhanh_rail_collapsed", this.collapsed ? "1" : "0"); } catch (e) {}
       },
       go(id) {
         const item = RAIL_ITEMS.find(i => i.id === id);
@@ -8766,7 +8766,7 @@
     const vc = document.getElementById("vtCollapse"), ve = document.getElementById("vtExpand");
     const datVaultThu = (thu) => {
       document.body.classList.toggle("vault-thu", thu);
-      try { localStorage.setItem("naota_vault_thu", thu ? "1" : "0"); } catch (e) {}
+      try { localStorage.setItem("vanhanh_vault_thu", thu ? "1" : "0"); } catch (e) {}
     };
     if (vc) vc.onclick = () => datVaultThu(true);
     if (ve) ve.onclick = () => datVaultThu(false);
@@ -8892,10 +8892,10 @@
     if (!confirm(window.t("cs.vt_del_file", { ten: name }))) return;
     const fd = new FormData(); fd.append("brain", fbrain()); fd.append("path", rel);
     try { await fetch("/files/delete", { method: "POST", body: fd }); } catch (e) {}
-    // Ghim trỏ tới file vừa xoá thì bỏ, đừng để Naota đi mở một đường dẫn không còn tồn tại.
+    // Ghim trỏ tới file vừa xoá thì bỏ, đừng để Vanhanh đi mở một đường dẫn không còn tồn tại.
     try {
-      const p = window.NaotaPin && window.NaotaPin.get();
-      if (p && p.rel === rel) window.NaotaPin.clear();
+      const p = window.VanhanhPin && window.VanhanhPin.get();
+      if (p && p.rel === rel) window.VanhanhPin.clear();
     } catch (e) {}
     // Cùng lý do: rút file đã xoá khỏi vệt đường đi, kẻo bấm Lùi lại rơi vào nó.
     const truoc = _neLichSu.slice(0, _neViTri + 1).filter(n => n.rel !== rel).length;
@@ -8918,13 +8918,13 @@
     if (workspace) {
       // Trang Cộng sự không còn tab Thư mục (thay bằng Công việc): "Vị trí file" mở trang Tệp tin, nơi có
       // cây thư mục thật, rồi soi file trong cây đó.
-      if (window.NaotaNav && window.NaotaNav.go) {
-        window.NaotaNav.go("files");
+      if (window.VanhanhNav && window.VanhanhNav.go) {
+        window.VanhanhNav.go("files");
         await new Promise((r) => setTimeout(r, 350));
       }
       document.body.classList.remove("vault-thu");
     } else if (chat) {
-      window.NaotaChatSide?.tab("files");
+      window.VanhanhChatSide?.tab("files");
       chat.classList.remove("side-thu");
       chat.classList.add("side-open");
     } else if (files) {
@@ -8951,23 +8951,23 @@
     const ed = document.getElementById("noteEditor");
     // Chép đường dẫn file đang mở. Đứng đầu hàng nút vì nó nói về CHÍNH file này chứ không
     // sửa gì nó, và vì đây là thứ hay cần nhất khi đang đọc một file rồi muốn nhắc tới nó ở
-    // chỗ khác. Chép đúng chuỗi `rel` (đường dẫn trong brain) - thứ NaotaOpenNoteAt, wikilink
-    // và mọi tool đọc file của Naota nhận vào.
+    // chỗ khác. Chép đúng chuỗi `rel` (đường dẫn trong brain) - thứ VanhanhOpenNoteAt, wikilink
+    // và mọi tool đọc file của Vanhanh nhận vào.
     const bSao = mk(ic("copy"), window.t("common.copy_path") + ": " + rel,
-                    () => { if (window.NaotaCopy) window.NaotaCopy(rel, bSao); });
+                    () => { if (window.VanhanhCopy) window.VanhanhCopy(rel, bSao); });
     actions.appendChild(bSao);
     const locationButton = mk(ic("folder") + " " + esc(window.t("cs.ne_file_location")), window.t("cs.ne_file_location"), () => _neShowLocation(rel));
     locationButton.type = "button";
     actions.appendChild(locationButton);
     actions.appendChild(mk(ic("pencil"), window.t("cs.ne_rename_file"), () => _neRenameCur(rel, it)));
     actions.appendChild(mk(ic("trash-2"), window.t("cs.ne_del_file"), () => _neDeleteCur(rel, it)));
-    // CHIA SE: cung cai nut cua trinh sua modal (window.NaotaShareBtn), chi khac cho ve thanh
+    // CHIA SE: cung cai nut cua trinh sua modal (window.VanhanhShareBtn), chi khac cho ve thanh
     // link ra la #neShare cua khung nay. Truoc day nut chi co o modal, nen nguoi dung
     // mo file tu cay vault - duong pho bien nhat - khong thay nut dau ca.
-    if (window.NaotaShareBtn) {
+    if (window.VanhanhShareBtn) {
       const hop = document.getElementById("neShare");
       if (hop) { hop.innerHTML = ""; hop.hidden = true; }
-      actions.appendChild(window.NaotaShareBtn(fbrain(), rel, hop, ""));
+      actions.appendChild(window.VanhanhShareBtn(fbrain(), rel, hop, ""));
     }
     actions.appendChild(mk("↗", window.t("cs.ne_open_tab"), () => window.open(_vtRaw(rel), "_blank")));
     actions.appendChild(mk("⤓ " + esc(window.t("cs.fm_dl")), window.t("cs.fm_dl_title"), () => _dlFile(rel)));
@@ -9097,7 +9097,7 @@
         } });
       _td.addRule("jvartifact", { filter: (n) => n.nodeName === "DIV" && n.classList.contains("nt-art"),
         replacement: (c, n) => {
-          const art = window.NaotaArtifacts && window.NaotaArtifacts.get && window.NaotaArtifacts.get(n.getAttribute("data-art"));
+          const art = window.VanhanhArtifacts && window.VanhanhArtifacts.get && window.VanhanhArtifacts.get(n.getAttribute("data-art"));
           if (!art) return c;   // registry mất (hiếm): giữ chữ, còn hơn mất trắng
           return "\n\n```" + (art.lang || (art.type === "code" ? "" : art.type)) + "\n" + art.code + "\n```\n\n";
         } });
@@ -9106,12 +9106,12 @@
   }
 
   // Thanh công cụ markdown - hoạt động CẢ trên bản render (WYSIWYG, execCommand) LẪN nguồn thô (chèn cú pháp).
-  // Bảng lệnh nay ở editor-cmds.js (window.NaotaEditorCmds), KHÔNG còn nằm trong hàm này:
+  // Bảng lệnh nay ở editor-cmds.js (window.VanhanhEditorCmds), KHÔNG còn nằm trong hàm này:
   // cùng một bảng đó nuôi luôn phím tắt và menu gõ "/". Để mỗi nơi giữ bảng riêng là ba chỗ
   // trôi khỏi nhau ngay lần thêm lệnh đầu tiên. Hàm này giờ chỉ còn việc vẽ nút.
   function _neBuildToolbar(host, ctx) {
     if (!host) return;
-    const EC = window.NaotaEditorCmds;
+    const EC = window.VanhanhEditorCmds;
     if (!EC) { host.innerHTML = ""; return; }   // index.html nạp editor-cmds.js TRƯỚC console.js
     host.innerHTML = "";
     EC.CMDS.forEach((c) => {
@@ -9133,16 +9133,16 @@
   // `doc()` trả {text, md}: md=true thì bỏ cú pháp markdown trước khi đếm (word-count.js).
   // Đếm lại sau mỗi lần gõ, gom 250 ms để file dài không giật. Trả hàm "đếm lại" cho chỗ gọi.
   function _neGanDemTu(host, doc, nguon) {
-    if (!host || !window.NaotaWordCount) return () => {};
+    if (!host || !window.VanhanhWordCount) return () => {};
     const el = document.createElement("span");
     el.className = "ne-count";
     let lg = "vi";
-    try { lg = window.NaotaI18n.lang(); } catch (e) {}
+    try { lg = window.VanhanhI18n.lang(); } catch (e) {}
     const loc = lg === "en" ? "en-US" : "vi-VN";
     const so = (n) => Number(n || 0).toLocaleString(loc);
     const ve = () => {
       let r;
-      try { const d = doc(); r = window.NaotaWordCount.dem(d.text, { md: d.md }); } catch (e) { return; }
+      try { const d = doc(); r = window.VanhanhWordCount.dem(d.text, { md: d.md }); } catch (e) { return; }
       el.textContent = window.t("cs.ne_count", { words: so(r.words), chars: so(r.chars) });
       el.title = window.t("cs.ne_count_title", { nospace: so(r.charsNoSpace) });
     };
@@ -9157,7 +9157,7 @@
   // Cho khung sua file trong chat (file-editor.js) dung LAI dung bo may WYSIWYG cua editor cay:
   // nap Turndown, doi HTML<->markdown (giu [[wikilink]]/![[anh]]), va thanh cong cu markdown.
   if (typeof window !== "undefined") {
-    window.NaotaNoteEditor = {
+    window.VanhanhNoteEditor = {
       ensureTurndown: _ensureTurndown,
       mdFromHtml: _mdFromHtml,
       buildToolbar: _neBuildToolbar,
@@ -9207,7 +9207,7 @@
   // Nội dung có khác lúc vừa mở không. So với BẢN ĐÃ VÒNG QUA markdown lúc mở, không phải
   // chữ thô đọc từ đĩa: bản render WYSIWYG đổi lại thành markdown luôn lệch đôi chỗ so với
   // file gốc (turndown chuẩn hoá dấu, xuống dòng). So với file gốc thì mỗi lần chỉ ĐỌC rồi
-  // rời đi cũng bị tính là có sửa, và Naota sẽ âm thầm ghi đè định dạng của file đó.
+  // rời đi cũng bị tính là có sửa, và Vanhanh sẽ âm thầm ghi đè định dạng của file đó.
   function _neCoSuaChua() {
     if (!_neSaveFn || !_neLayNoiDung || _neGocText == null) return false;
     try { return _neLayNoiDung() !== _neGocText; } catch (e) { return false; }
@@ -9276,7 +9276,7 @@
     else if (document.body.classList.contains("on-files")) _borrowNoteEditor(document.getElementById("fmEdit"));
     document.removeEventListener("keydown", _neKeyHandler, true);
     document.addEventListener("keydown", _neKeyHandler, true);
-    try { if (window.__naotaGraph && window.__naotaGraph.pause) window.__naotaGraph.pause(); } catch (e) {}
+    try { if (window.__vanhanhGraph && window.__vanhanhGraph.pause) window.__vanhanhGraph.pause(); } catch (e) {}
     document.getElementById("neTitle").innerHTML = `<span class="vt-ico">${_fileIcon(ext)}</span>${esc(it.name || rel)}`;
     const actions = document.getElementById("neActions"); const body = document.getElementById("neBody");
     _neDropPz();
@@ -9287,8 +9287,8 @@
       // zoom and pan (pan-zoom.js) once the picture knows its size; the page itself cannot pinch-zoom.
       const pic = body.querySelector(".ne-img img");
       pic.onload = () => {
-        if (!window.NaotaPanZoom || !pic.isConnected || !pic.naturalWidth) return;
-        _nePz = window.NaotaPanZoom.attach(pic.parentNode, pic, { w: pic.naturalWidth, h: pic.naturalHeight });
+        if (!window.VanhanhPanZoom || !pic.isConnected || !pic.naturalWidth) return;
+        _nePz = window.VanhanhPanZoom.attach(pic.parentNode, pic, { w: pic.naturalWidth, h: pic.naturalHeight });
       };
       _neCommonBtns(actions, rel, it); _vtMarkActive(null); return;
     }
@@ -9315,7 +9315,7 @@
       // Mở file để sửa = GHIM nó vào khung chat làm file đầu vào. Mở file khác thì thay chỗ,
       // nên chỉ cần gọi set() ở đây, không phải dọn ghim cũ. Đóng trình sửa KHÔNG bỏ ghim:
       // đóng ra để quay sang chat về chính file đó là luồng thường gặp nhất.
-      try { if (window.NaotaPin && d.abs) window.NaotaPin.set({ name: d.name || it.name || rel, rel, abs: d.abs }); } catch (e) {}
+      try { if (window.VanhanhPin && d.abs) window.VanhanhPin.set({ name: d.name || it.name || rel, rel, abs: d.abs }); } catch (e) {}
       const isMd = ext === ".md";
       if (isMd) { try { await _ensureTurndown(); } catch (e) {} }   // để lưu bản render (WYSIWYG) → markdown
       const wysOk = isMd && !!window.TurndownService;
@@ -9365,13 +9365,13 @@
         // đi nhánh này vì thanh công cụ soạn thảo tự chèn chữ vào textarea mà không bắn sự
         // kiện input, lớp màu sẽ lệch khỏi nội dung thật.
         try {
-          const hlLang = window.NaotaCodeHL ? window.NaotaCodeHL.langFromPath(rel) : "";
-          if (hlLang) window.NaotaCodeHL.attach(ta, hlLang);
+          const hlLang = window.VanhanhCodeHL ? window.VanhanhCodeHL.langFromPath(rel) : "";
+          if (hlLang) window.VanhanhCodeHL.attach(ta, hlLang);
         } catch (e) {}
         // File chữ khác không có thanh định dạng: bộ đếm đứng đầu thanh nút phía trên, đếm nguyên văn.
         _neGanDemTu(actions, () => ({ text: ta.value, md: false }), [ta]);
         // .html: opens on the PREVIEW, like an artifact, with a Code tab (html-preview.js).
-        if (window.NaotaHtmlPreview && window.NaotaHtmlPreview.isHtmlPath(rel)) _neHtmlTabs(body, actions, ta, rel);
+        if (window.VanhanhHtmlPreview && window.VanhanhHtmlPreview.isHtmlPath(rel)) _neHtmlTabs(body, actions, ta, rel);
       }
       const saveBtn = document.createElement("button"); saveBtn.innerHTML = SAVE_ICON + " " + esc(window.t("common.save")); saveBtn.title = window.t("cs.ne_save_title");
       // Mốc so sánh "đã sửa gì chưa": lấy SAU khi dựng xong khung soạn, tức là bản đã vòng
@@ -9408,7 +9408,7 @@
   // Preview / Code tabs for an .html file in the editor. The preview draws the code in the editor
   // right now, so an edit shows on the next switch back without saving first.
   function _neHtmlTabs(body, actions, ta, rel) {
-    const HP = window.NaotaHtmlPreview;
+    const HP = window.VanhanhHtmlPreview;
     const prev = document.createElement("div");
     prev.className = "ne-prev ne-html-prev";
     body.appendChild(prev);
@@ -9437,7 +9437,7 @@
   // Tooltip NHANH cho rail khi thu gọn (native title trễ ~500ms). 1 node body-level, thoát mọi overflow clip.
   // Từ điển i18n về (hoặc user đổi ngôn ngữ giao diện): đá biến đếm cho Alpine vẽ lại rail
   // và tiêu đề trang, rồi quét lại các nhãn tĩnh trong index.html.
-  window.addEventListener("naota:i18n", () => {
+  window.addEventListener("vanhanh:i18n", () => {
     try {
       const st = window.Alpine && Alpine.store("nav");
       if (st) st.i18nTick++;
@@ -9448,18 +9448,18 @@
     // sẵn (đổi brain cũng gọi thẳng renderPage). Cờ tự hạ sau lần dựng, nên không lặp.
     try {
       const st = window.Alpine && Alpine.store("nav");
-      if (st && st.active === "workspace" && window.NaotaWorkspace
-          && window.NaotaWorkspace.dungKhiChuaCoTuDien && window.NaotaWorkspace.dungKhiChuaCoTuDien()) {
+      if (st && st.active === "workspace" && window.VanhanhWorkspace
+          && window.VanhanhWorkspace.dungKhiChuaCoTuDien && window.VanhanhWorkspace.dungKhiChuaCoTuDien()) {
         renderPage("workspace");
       }
     } catch (e) { /* dựng lại hỏng thì giữ khung cũ, phần quét nhãn tĩnh bên dưới vẫn phải chạy */ }
-    try { window.NaotaI18n && NaotaI18n.applyDom(); } catch (e) { /* noop */ }
+    try { window.VanhanhI18n && VanhanhI18n.applyDom(); } catch (e) { /* noop */ }
     // Hai ô chọn ngôn ngữ (đáy rail + trang Cài đặt) phải chỉ cùng một giá trị: đổi ở đâu
     // thì ô kia tự nhảy theo, không cần F5.
     try {
       for (const id of ["railLang", "vpUiLang"]) {
         const sel = document.getElementById(id);
-        if (sel && window.NaotaI18n && sel.value !== NaotaI18n.lang()) sel.value = NaotaI18n.lang();
+        if (sel && window.VanhanhI18n && sel.value !== VanhanhI18n.lang()) sel.value = VanhanhI18n.lang();
       }
     } catch (e) { /* noop */ }
   });
@@ -9499,7 +9499,7 @@
   // của server rồi nối thêm hướng dẫn, ra một chuỗi dài hơn cả thanh trạng thái nên bị cắt
   // cụt, và nó còn chỉ sai chỗ ("mở terminal gõ /login") vì giờ kết nối ở trang Models.
   // Người dùng cũng không cần biết "bộ não claude" là gì: với họ chỉ có một sự thật là chưa
-  // dùng được Naota, và một việc phải làm là vào Models.
+  // dùng được Vanhanh, và một việc phải làm là vào Models.
   async function refreshEngineBanner() {
     const b = document.getElementById("engineBanner");
     if (!b) return;
@@ -9524,17 +9524,17 @@
     document.body.classList.add("has-rail");
     // Áp lại trạng thái thu gọn panel Vault ĐÃ LƯU ngay lúc tải trang (nút bấm gắn trong
     // _vtWire, nhưng chờ tới đó mới áp thì panel nháy to rồi mới thu).
-    try { if (localStorage.getItem("naota_vault_thu") === "1") document.body.classList.add("vault-thu"); } catch (e) {}
+    try { if (localStorage.getItem("vanhanh_vault_thu") === "1") document.body.classList.add("vault-thu"); } catch (e) {}
     // Thu khung HỘI THOẠI (cột phải màn chính) - co vào bên phải, có nhớ. CSS đã tự vô
     // hiệu ở màn hẹp (cột đó chính là khung chat mobile) nên chỉ cần gắn handler + áp lại.
     const cct = document.getElementById("chatColThu"), ccm = document.getElementById("chatColMo");
     const datChatColThu = (thu) => {
       document.body.classList.toggle("chatcol-thu", thu);
-      try { localStorage.setItem("naota_chatcol_thu", thu ? "1" : "0"); } catch (e) {}
+      try { localStorage.setItem("vanhanh_chatcol_thu", thu ? "1" : "0"); } catch (e) {}
     };
     if (cct) cct.onclick = () => datChatColThu(true);
     if (ccm) ccm.onclick = () => datChatColThu(false);
-    try { if (localStorage.getItem("naota_chatcol_thu") === "1") document.body.classList.add("chatcol-thu"); } catch (e) {}
+    try { if (localStorage.getItem("vanhanh_chatcol_thu") === "1") document.body.classList.add("chatcol-thu"); } catch (e) {}
     refreshEngineBanner();
     setInterval(refreshEngineBanner, 90000);
     // Báo "chưa kết nối" mà không đưa được người ta tới chỗ kết nối thì chỉ là than phiền.
@@ -9542,10 +9542,10 @@
     if (_eb) _eb.addEventListener("click", () => navigateTo("models"));
     const ver = document.getElementById("railVersion");
     if (ver) {
-      // Hiện tạm, thay ngay bằng phiên bản thật từ server. Số tạm lấy từ khối naota-fresh mà index.html (luôn mới) mang
+      // Hiện tạm, thay ngay bằng phiên bản thật từ server. Số tạm lấy từ khối vanhanh-fresh mà index.html (luôn mới) mang
       // theo: /version mà trượt (máy chủ đang khởi động) thì vẫn đúng số, không phải con số dự phòng cũ như từng thấy.
       let verTam = APP_VERSION;
-      try { verTam = JSON.parse(document.getElementById("naota-fresh").textContent).version || APP_VERSION; } catch (e) {}
+      try { verTam = JSON.parse(document.getElementById("vanhanh-fresh").textContent).version || APP_VERSION; } catch (e) {}
       ver.textContent = "v" + verTam;
       fetch("/version").then(r => r.json()).then(d => {
         if (d && d.current) ver.textContent = "v" + d.current;
@@ -9557,7 +9557,7 @@
     const st = document.getElementById("studio");
     if (st) new MutationObserver(recomputeGraph).observe(st, { attributes: true, attributeFilter: ["class"] });
     // Màn hình co/giãn qua ngưỡng mobile → tính lại (chỉ tắt/bật graph, KHÔNG tự nhảy trang:
-    // đang đứng ở màn Naota mà tự bị đẩy sang Trò chuyện là mất chỗ đang xem)
+    // đang đứng ở màn Vanhanh mà tự bị đẩy sang Trò chuyện là mất chỗ đang xem)
     window.matchMedia("(max-width: 860px)").addEventListener("change", recomputeGraph);
     // Đổi brain (Select Brain) → nạp lại trang quản lý đang xem theo brain mới (không cần F5)
     const gs = document.getElementById("graphSource");
@@ -9566,8 +9566,8 @@
       if (active !== "home") renderPage(active);
       // Cây vault ở cột trái sống ngoài hệ cview → tự làm mới theo brain mới
       _vtCache.clear(); _vtIndex = null; _vtActivePath = null; renderVaultTree();
-      // Ghim của brain cũ trỏ ra ngoài brain mới → bỏ, kẻo Naota sửa nhầm file brain khác.
-      try { if (window.NaotaPin) window.NaotaPin.clear(); } catch (e) {}
+      // Ghim của brain cũ trỏ ra ngoài brain mới → bỏ, kẻo Vanhanh sửa nhầm file brain khác.
+      try { if (window.VanhanhPin) window.VanhanhPin.clear(); } catch (e) {}
       // Vệt đường đi cũng thuộc brain cũ: mọi bước trong đó trỏ vào file của brain kia.
       _neLichSu = []; _neViTri = -1; _neVeNutLui();
     });
@@ -9576,7 +9576,7 @@
     renderVaultTree();
     initRailTooltip();   // tooltip nhanh cho rail thu gọn
     // Trang đầu của thiết bị là Trò chuyện; các lần sau quay lại đúng khung đang dùng.
-    // Khôi phục ngay, trước các lời gọi mạng ở freshSettings, để tránh nháy màn Naota.
+    // Khôi phục ngay, trước các lời gọi mạng ở freshSettings, để tránh nháy màn Vanhanh.
     khoiPhucTrang();
 
     freshSettings().then(async s => {
@@ -9586,7 +9586,7 @@
       // (bản cài mới, `ui_lang` rỗng) thì ngược lại: ghi ngôn ngữ vừa đoán lên, để Telegram
       // và việc nền cũng biết chủ máy đọc tiếng gì.
       try {
-        const I = window.NaotaI18n;
+        const I = window.VanhanhI18n;
         const langs0 = s.lang_list || [];
         const srv = String((s.locale && s.locale.ui_lang) || "");
         // Giá trị do dashboard TỰ GHI theo trình duyệt (ui_lang_nguon = "tu_dong") không được áp
@@ -9612,13 +9612,13 @@
         const sel = document.getElementById("railLang");
         const langs = uiLangChoices(s);
         if (wrap && sel && langs.length > 1) {
-          const cur = (window.NaotaI18n && NaotaI18n.lang()) || "vi";
+          const cur = (window.VanhanhI18n && VanhanhI18n.lang()) || "vi";
           sel.innerHTML = langs.map(l =>
             `<option value="${esc(l.ma)}"${l.ma === cur ? " selected" : ""}>${esc(l.ten)}</option>`).join("");
           sel.onchange = async () => {
             // Đổi NGAY trên máy này trước rồi mới lưu lên server - ngôn ngữ giao diện là lựa
             // chọn theo thiết bị, trải nghiệm không được chờ mạng (giống ô ở trang Cài đặt).
-            try { await NaotaI18n.setLang(sel.value); } catch (e) { /* noop */ }
+            try { await VanhanhI18n.setLang(sel.value); } catch (e) { /* noop */ }
             saveSetting("locale", { ui_lang: uiLangForServer(sel.value, s) });
           };
           wrap.hidden = false;

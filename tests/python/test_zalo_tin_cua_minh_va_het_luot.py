@@ -4,13 +4,13 @@
 
 Hai lỗi đã gặp:
 
-1. Tin chủ / nhân viên trả lời bằng điện thoại không vào Hộp thư bot. Gốc ở naota-zalo: `mcp.js` bỏ mọi tin
-   `isSelf` khỏi bộ đệm sống. naota-zalo 1.3.0 giữ chúng kèm `isSelf: true`, nên phía Naota phải chịu được:
+1. Tin chủ / nhân viên trả lời bằng điện thoại không vào Hộp thư bot. Gốc ở vanhanh-zalo: `mcp.js` bỏ mọi tin
+   `isSelf` khỏi bộ đệm sống. vanhanh-zalo 1.3.0 giữ chúng kèm `isSelf: true`, nên phía Vanhanh phải chịu được:
    - tin tay của chủ vào Hộp thư như "người thật" và bot nhường cuộc chat đó;
    - tiếng vọng câu bot vừa gửi KHÔNG bị ghi lần hai (đã có từ trước);
    - tiếng vọng ẢNH bot vừa gửi cũng không (không có chữ để so, trước đây sẽ bị tính là chủ nhắn tay
      và bot im 10 phút);
-   - câu chủ gõ ở Hộp thư (Naota đã tự ghi) không hiện hai lần.
+   - câu chủ gõ ở Hộp thư (Vanhanh đã tự ghi) không hiện hai lần.
 2. Bot đăng nguyên câu "You've hit your session limit · resets 4:40am (UTC)" vào nhóm, tag người hỏi. Câu đó về
    như một câu trả lời bình thường chứ không phải lỗi, nên lọt qua nhánh lỗi kỹ thuật.
 """
@@ -21,7 +21,7 @@ import sys
 import tempfile
 import time
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-zself-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-zself-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -82,7 +82,7 @@ _SO_TIN = __import__("itertools").count(1)
 
 
 def _tin(**kw):
-    """One message in naota-zalo 1.3.0's live-feed shape (normalizeMessage)."""
+    """One message in vanhanh-zalo 1.3.0's live-feed shape (normalizeMessage)."""
     base = {"threadId": "u1", "threadType": "dm", "senderId": "u1", "senderName": "Khách A",
             "isSelf": False, "type": "text", "text": "", "id": f"m{next(_SO_TIN)}", "timestamp": _ms(1)}
     base.update(kw)
@@ -168,7 +168,7 @@ async def chay():
 asyncio.run(chay())
 
 # ============================================================
-# 5. Câu chủ gõ ở Hộp thư được nhớ là tiếng vọng (Naota đã tự ghi nó)
+# 5. Câu chủ gõ ở Hộp thư được nhớ là tiếng vọng (Vanhanh đã tự ghi nó)
 # ============================================================
 src = (SERVER / "routes" / "conversations.py").read_text(encoding="utf-8")
 check("trả lời tay ở Hộp thư nhớ tiếng vọng trước khi gửi", "await _gui_tin(c, txt, tieng_vong=True)" in src)

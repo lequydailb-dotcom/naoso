@@ -13,7 +13,7 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-routing-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-routing-"))
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

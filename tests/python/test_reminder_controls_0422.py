@@ -18,16 +18,16 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-reminder-controls-state-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-reminder-controls-state-")
 
 import once_ledger  # noqa: E402
 import reminders  # noqa: E402
 
-once_ledger.configure(Path(tempfile.mkdtemp(prefix="naota-reminder-controls-ledger-")) / "ledger.sqlite3")
+once_ledger.configure(Path(tempfile.mkdtemp(prefix="vanhanh-reminder-controls-ledger-")) / "ledger.sqlite3")
 
 fails = []
 sent = []
-brain = Path(tempfile.mkdtemp(prefix="naota-reminder-controls-brain-"))
+brain = Path(tempfile.mkdtemp(prefix="vanhanh-reminder-controls-brain-"))
 
 
 def check(name, cond):
@@ -62,7 +62,7 @@ B = str(brain)
 
 
 def stored(rid):
-    data = json.loads((brain / "Naota" / "reminders.json").read_text(encoding="utf-8"))
+    data = json.loads((brain / "Vanhanh" / "reminders.json").read_text(encoding="utf-8"))
     return next(r for r in data["reminders"] if r["id"] == rid)
 
 

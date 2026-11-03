@@ -4,7 +4,7 @@
 
 Bug: the setting says female but the voice heard is male, and saving never fixes it. The Edge
 voice lived only in one browser's localStorage, so a voice picked on the laptop never reached the phone, nor the voice
-notes Naota records for Telegram and Zalo. Checks:
+notes Vanhanh records for Telegram and Zalo. Checks:
   1. POST /settings keeps `edge_voice` (an Edge name or "auto"), refuses anything else, /voice/options returns it;
   2. voice notes use that voice when it can read the text, and the language default when it cannot;
   3. every live voice the server offers has male/female in dashboard/voice-catalog.js (only alloy is neutral), so
@@ -17,7 +17,7 @@ import re
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-gioi-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-gioi-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

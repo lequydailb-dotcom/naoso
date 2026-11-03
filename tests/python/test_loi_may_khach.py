@@ -10,8 +10,8 @@ import os
 import sys
 import tempfile
 
-_tmp = tempfile.mkdtemp(prefix="naota-loi-")
-os.environ["NAOTA_STATE_DIR"] = _tmp
+_tmp = tempfile.mkdtemp(prefix="vanhanh-loi-")
+os.environ["VANHANH_STATE_DIR"] = _tmp
 sys.path.insert(0, str(SERVER))
 import config as cfgmod  # noqa: E402
 cfgmod.STATE_DIR = __import__("pathlib").Path(_tmp)

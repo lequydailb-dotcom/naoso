@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/vuongtex/naota/security/advisories/new
+    url: https://github.com/lequydailb-dotcom/vanhanh/security/advisories/new
     about: Please report security problems privately, never in a public issue. See SECURITY.md.
   - name: Documentation
-    url: https://github.com/vuongtex/naota/blob/main/docs/en/README.md
-    about: Guides for every page of Naota (English). Tiếng Việt - docs/README.md.
+    url: https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/en/README.md
+    about: Guides for every page of Vanhanh (English). Tiếng Việt - docs/README.md.

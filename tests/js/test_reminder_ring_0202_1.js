@@ -12,18 +12,18 @@ const ringReminder = new Function("return " + m[0])();
 let played = 0;
 const audio = { play() { played++; return { catch() {} }; } };
 const el = { querySelector: (s) => (s === "audio.nt-audio" ? audio : null) };
-ringReminder(el, '<!-- NAOTA_VIEC: {"kind": "reminder", "status": "done"} -->\nUống thuốc\n[🔊](attachments/voice/a.mp3)');
+ringReminder(el, '<!-- VANHANH_VIEC: {"kind": "reminder", "status": "done"} -->\nUống thuốc\n[🔊](attachments/voice/a.mp3)');
 check("reminder with a voice note plays", played === 1);
-ringReminder(el, '<!-- NAOTA_VIEC: {"kind": "task", "status": "done"} -->\nxong');
+ringReminder(el, '<!-- VANHANH_VIEC: {"kind": "task", "status": "done"} -->\nxong');
 check("a task result does not ring", played === 1);
-ringReminder({ querySelector: () => null }, '<!-- NAOTA_VIEC: {"kind": "reminder"} -->');
+ringReminder({ querySelector: () => null }, '<!-- VANHANH_VIEC: {"kind": "reminder"} -->');
 check("no player, no error", played === 1);
 const blocked = { querySelector: () => ({ play() { throw new Error("NotAllowedError"); } }) };
 let threw = false;
-try { ringReminder(blocked, '<!-- NAOTA_VIEC: {"kind": "reminder"} -->'); } catch (e) { threw = true; }
+try { ringReminder(blocked, '<!-- VANHANH_VIEC: {"kind": "reminder"} -->'); } catch (e) { threw = true; }
 check("autoplay blocked is swallowed", !threw);
 // a reminder marked "call" rings as an incoming call instead (test_incoming_call_0203.js).
-check("called from the live push branch", /appendNaotaMessage\(data\.content \|\| ""\);\s*recordTurn\("naota"[\s\S]{0,300}?ringReminder\(el, data\.content \|\| ""\);/.test(src));
+check("called from the live push branch", /appendVanhanhMessage\(data\.content \|\| ""\);\s*recordTurn\("vanhanh"[\s\S]{0,300}?ringReminder\(el, data\.content \|\| ""\);/.test(src));
 
 if (fails) { console.log(`\n${fails} FAILED`); process.exit(1); }
 console.log("\nPASS");

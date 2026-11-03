@@ -23,10 +23,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="naota-turnctx-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
-os.environ.pop("NAOTA_ENABLE_USER_PLUGINS", None)
-os.environ.pop("NAOTA_ENABLE_VAULT_PLUGINS", None)
+_STATE = tempfile.mkdtemp(prefix="vanhanh-turnctx-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
+os.environ.pop("VANHANH_ENABLE_USER_PLUGINS", None)
+os.environ.pop("VANHANH_ENABLE_VAULT_PLUGINS", None)
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -71,7 +71,7 @@ def remove_plugins() -> None:
 
 
 def plugin_module(slug: str):
-    return sys.modules.get("naota_plugin_user_" + slug.replace("-", "_"))
+    return sys.modules.get("vanhanh_plugin_user_" + slug.replace("-", "_"))
 
 
 RECORDER = '''
@@ -145,11 +145,11 @@ check("no plugin at all: hook reports nobody listening", plugins_host.has_chatbo
 
 write_plugin("ctx-verdict", VERDICT)
 # User plugins load by default so "off" has to be said explicitly here.
-os.environ["NAOTA_ENABLE_USER_PLUGINS"] = "false"
+os.environ["VANHANH_ENABLE_USER_PLUGINS"] = "false"
 p = turn()
-check("user plugin installed but NAOTA_ENABLE_USER_PLUGINS off: prompt unchanged", p == baseline() and "VERIFIED" not in p)
+check("user plugin installed but VANHANH_ENABLE_USER_PLUGINS off: prompt unchanged", p == baseline() and "VERIFIED" not in p)
 
-os.environ["NAOTA_ENABLE_USER_PLUGINS"] = "true"
+os.environ["VANHANH_ENABLE_USER_PLUGINS"] = "true"
 write_plugin("ctx-verdict", VERDICT, enabled=False)
 p = turn()
 check("plugin disabled in its manifest: prompt unchanged", p == baseline() and "VERIFIED" not in p)

@@ -1,0 +1,6 @@
+#!/bin/bash
+# App bundle entrypoint -> delegates to bin/vanhanh-start.sh.
+# Resolves the repo root relative to this bundle, so keep "VANHANH.app"
+# inside the repo folder (repo/VANHANH.app/Contents/MacOS/vanhanh).
+DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
+exec "${DIR}/bin/vanhanh-start.sh"

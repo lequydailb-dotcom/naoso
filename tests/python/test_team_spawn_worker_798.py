@@ -13,7 +13,7 @@ import asyncio
 import os
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-team-spawn-798-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-team-spawn-798-"))
 
 import team_api  # noqa: E402
 

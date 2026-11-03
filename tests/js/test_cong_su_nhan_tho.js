@@ -9,7 +9,7 @@
    Gốc: console.js khôi phục trang cuối (Trò chuyện hoặc Cộng sự) NGAY lúc khởi động, còn từ điển
    i18n được nạp bất đồng bộ (i18n/index.js). Từ điển về chậm hơn một nhịp (máy vừa cập nhật, server
    vừa khởi động lại, mạng chậm) thì workspace.js dựng khung bằng t() trong lúc từ điển còn rỗng, và
-   t() trả về chính cái khoá. Trang Trò chuyện không dính vì nó dùng `data-i18n` + nghe "naota:i18n";
+   t() trả về chính cái khoá. Trang Trò chuyện không dính vì nó dùng `data-i18n` + nghe "vanhanh:i18n";
    workspace.js không có cả hai nên nhãn kẹt mãi, dù phần danh sách vẽ sau (sau khi tải dữ liệu, lúc
    từ điển đã về) vẫn ra chữ đúng - đó là lý do giao diện trông "nửa Việt nửa mã khoá".
 
@@ -17,7 +17,7 @@
    vẫn là mã khoá.
 
    Cách sửa: workspace.js nhớ "khung này dựng khi từ điển chưa sẵn sàng", console.js nghe
-   "naota:i18n" và dựng lại trang Cộng sự đúng một lần khi từ điển về. Dựng lại tại chỗ là đường đã
+   "vanhanh:i18n" và dựng lại trang Cộng sự đúng một lần khi từ điển về. Dựng lại tại chỗ là đường đã
    có sẵn (đổi brain cũng gọi renderPage thẳng), nên không thêm đường mới. */
 const fs = require("fs");
 const path = require("path");
@@ -46,7 +46,7 @@ function dungVoi(tuDienSan) {
     console,
     window: { t: (k) => k, ic: () => "", addEventListener() {}, removeEventListener() {},
               matchMedia: () => ({ matches: false }),
-              NaotaI18n: { ready: () => tuDienSan } },
+              VanhanhI18n: { ready: () => tuDienSan } },
     document: { getElementById: () => null, createElement: () => phanTuGia(), body: { classList: { add() {}, remove() {}, toggle() {} } },
                 addEventListener() {}, removeEventListener() {}, querySelector: () => null, querySelectorAll: () => [] },
     localStorage: { getItem: () => null, setItem() {} },
@@ -55,7 +55,7 @@ function dungVoi(tuDienSan) {
   ctx.globalThis = ctx;
   vm.createContext(ctx);
   vm.runInContext(WS, ctx);
-  const W = ctx.window.NaotaWorkspace;
+  const W = ctx.window.VanhanhWorkspace;
   try { W.render(phanTuGia(), {}); } catch (e) { /* DOM giả không đủ để dựng hết, không sao */ }
   return W;
 }
@@ -67,21 +67,21 @@ function dungVoi(tuDienSan) {
   const W2 = dungVoi(true);
   check("dựng lúc từ điển đã về thì KHÔNG đòi dựng lại (khỏi dựng lại vô ích mỗi lần vào trang)",
     typeof W2.dungKhiChuaCoTuDien === "function" && W2.dungKhiChuaCoTuDien() === false);
-  // Không có NaotaI18n (trang lỗi tải) thì đừng đòi dựng lại: không bao giờ có sự kiện để gọi.
+  // Không có VanhanhI18n (trang lỗi tải) thì đừng đòi dựng lại: không bao giờ có sự kiện để gọi.
   const ctx3 = { console, window: { t: (k) => k, ic: () => "", addEventListener() {}, removeEventListener() {}, matchMedia: () => ({ matches: false }) },
                  document: { getElementById: () => null, createElement: () => phanTuGia(), body: { classList: { add() {}, remove() {}, toggle() {} } }, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [] },
                  localStorage: { getItem: () => null, setItem() {} }, setTimeout, clearTimeout, Promise, Date, Math, JSON, Object, Array, String, Number, RegExp, Error };
   ctx3.globalThis = ctx3; vm.createContext(ctx3); vm.runInContext(WS, ctx3);
-  try { ctx3.window.NaotaWorkspace.render(phanTuGia(), {}); } catch (e) { /* như trên */ }
-  check("thiếu NaotaI18n thì không đòi dựng lại", ctx3.window.NaotaWorkspace.dungKhiChuaCoTuDien && ctx3.window.NaotaWorkspace.dungKhiChuaCoTuDien() === false);
+  try { ctx3.window.VanhanhWorkspace.render(phanTuGia(), {}); } catch (e) { /* như trên */ }
+  check("thiếu VanhanhI18n thì không đòi dựng lại", ctx3.window.VanhanhWorkspace.dungKhiChuaCoTuDien && ctx3.window.VanhanhWorkspace.dungKhiChuaCoTuDien() === false);
 }
 
 // ---- 2. console.js dựng lại trang Cộng sự khi từ điển về ----
-const i = CON.indexOf('window.addEventListener("naota:i18n", () => {');
+const i = CON.indexOf('window.addEventListener("vanhanh:i18n", () => {');
 const NGHE = i === -1 ? "" : CON.slice(i, CON.indexOf("\n  });", i));
-check("tìm thấy bộ nghe naota:i18n của console.js", NGHE.length > 0);
+check("tìm thấy bộ nghe vanhanh:i18n của console.js", NGHE.length > 0);
 check("bộ nghe hỏi workspace.js xem khung có dựng khi chưa có từ điển không",
-  /NaotaWorkspace\.dungKhiChuaCoTuDien\(\)/.test(NGHE));
+  /VanhanhWorkspace\.dungKhiChuaCoTuDien\(\)/.test(NGHE));
 check("chỉ dựng lại khi đang đứng ở trang Cộng sự",
   /\.active === "workspace"/.test(NGHE));
 check("dựng lại bằng renderPage (đường tại chỗ đã có, giống lúc đổi brain)",
@@ -98,8 +98,8 @@ check("chỉ còn đúng hai chỗ ghi app.graph_stats vào graphStats: veGraphS
 check("veGraphStats nhớ số cuối", /function veGraphStats\(n, l\) \{\s*_graphStatsCuoi = \{ n: n, l: l \};/.test(APP));
 check("cả hai đường cập nhật (tải đồ thị, note mới sinh) đều đi qua veGraphStats",
   /veGraphStats\(stats\.total_notes, stats\.total_links\)/.test(APP) && /veGraphStats\(s\.nodes, s\.links\)/.test(APP));
-check("nghe naota:i18n để vẽ lại số đã nhớ",
-  /addEventListener\("naota:i18n", \(\) => \{\s*if \(_graphStatsCuoi\) graphStats\.textContent = window\.t\("app\.graph_stats", _graphStatsCuoi\);/.test(APP));
+check("nghe vanhanh:i18n để vẽ lại số đã nhớ",
+  /addEventListener\("vanhanh:i18n", \(\) => \{\s*if \(_graphStatsCuoi\) graphStats\.textContent = window\.t\("app\.graph_stats", _graphStatsCuoi\);/.test(APP));
 check("tải đồ thị lỗi thì xoá số đã nhớ (chuỗi lỗi không bị vẽ đè khi từ điển về)",
   /catch \(e\) \{ _graphStatsCuoi = null; graphStats\.textContent = window\.t\("models\.err"\)/.test(APP));
 

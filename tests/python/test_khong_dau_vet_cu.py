@@ -1,4 +1,4 @@
-"""Mã NAOTA không được chứa dấu vết của dự án cũ: tên người, tài khoản, nhóm, cửa hàng, máy chủ, mã ID.
+"""Mã VANHANH không được chứa dấu vết của dự án cũ: tên người, tài khoản, nhóm, cửa hàng, máy chủ, mã ID.
 
     python tests/run.py khong_dau_vet_cu     (KHÔNG mạng)
 

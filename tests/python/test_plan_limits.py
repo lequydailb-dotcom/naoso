@@ -2,7 +2,7 @@
 
     python tests/run.py plan_limits
 
-Câu hỏi: Naota có lấy được số liệu "Plan usage limits" của Claude (phiên, tuần) không. Claude Code tự phát `rate_limit_event` trong luồng, Codex phát
+Câu hỏi: Vanhanh có lấy được số liệu "Plan usage limits" của Claude (phiên, tuần) không. Claude Code tự phát `rate_limit_event` trong luồng, Codex phát
 `account/rateLimits/updated` và ghi `rate_limits` vào file rollout. Test này giữ ba đường đó.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
@@ -10,9 +10,9 @@ import json
 import os
 import tempfile
 
-_TMP = tempfile.mkdtemp(prefix="naota-pl-")
-os.environ["NAOTA_STATE_DIR"] = _TMP
-os.environ["NAOTA_CODEX_SESSIONS_DIR"] = os.path.join(_TMP, "codex")
+_TMP = tempfile.mkdtemp(prefix="vanhanh-pl-")
+os.environ["VANHANH_STATE_DIR"] = _TMP
+os.environ["VANHANH_CODEX_SESSIONS_DIR"] = os.path.join(_TMP, "codex")
 
 import plan_limits as pl  # noqa: E402
 
@@ -82,7 +82,7 @@ x = pl.doc(now=NOW)["codex"]
 check("Codex: 5 giờ 41%", x["five_hour"]["pct"] == 41, x)
 check("Codex: tuần 12%", x["seven_day"]["pct"] == 12, x)
 
-# 6. Codex rollout: snake_case, dòng token_count cuối cùng thắng; dùng Codex ngoài Naota cũng thấy.
+# 6. Codex rollout: snake_case, dòng token_count cuối cùng thắng; dùng Codex ngoài Vanhanh cũng thấy.
 day = os.path.join(_TMP, "codex", "2026", "10", "25")
 os.makedirs(day)
 f = os.path.join(day, "rollout-2026-10-25T10-00-00-abc.jsonl")

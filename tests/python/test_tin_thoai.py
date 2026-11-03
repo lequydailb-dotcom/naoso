@@ -1,4 +1,4 @@
-"""Ghi âm gửi qua Telegram / Zalo thì Naota NGHE được (Whisper qua Groq), chưa đấu key thì nói rõ.
+"""Ghi âm gửi qua Telegram / Zalo thì Vanhanh NGHE được (Whisper qua Groq), chưa đấu key thì nói rõ.
 
     python tests/run.py tin_thoai
 
@@ -24,7 +24,7 @@ import asyncio
 import os
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-thoai-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-thoai-"))
 
 import stt  # noqa: E402
 import telegram_bot as tb  # noqa: E402
@@ -50,7 +50,7 @@ def chay(coro):
 # ============================================================
 kq = chay(stt.groq_nghe(b"xxx", "voice.ogg", ""))
 check("chưa có key -> không ok", not kq["ok"] and kq["ly_do"] == "thieu_key")
-_cau = kq["noi_voi_naota"]
+_cau = kq["noi_voi_vanhanh"]
 check("câu thiếu key gọi đúng tên Groq", "Groq" in _cau)
 check("câu thiếu key chỉ đúng chỗ dán key", "Models" in _cau)
 check("câu thiếu key nói được cả ca đóng vai người thật với khách",
@@ -110,7 +110,7 @@ try:
     _FakeClient.tra = (401, {"error": {"message": "Invalid API Key"}})
     kq = chay(stt.groq_nghe(b"audio", "voice.ogg", "sai"))
     check("Groq từ chối -> nhắc lại LÝ DO THẬT chứ không phải mã HTTP trơn",
-          not kq["ok"] and "Invalid API Key" in kq["noi_voi_naota"])
+          not kq["ok"] and "Invalid API Key" in kq["noi_voi_vanhanh"])
 finally:
     stt.httpx.AsyncClient = _that
 
@@ -176,7 +176,7 @@ check("ảnh + caption lệnh -> vẫn chỉ lấy dòng marker như trước",
 
 # --- nghe hỏng: vẫn phải ra một câu ---
 async def _stt_loi(data, ten):
-    return {"ok": False, "ly_do": "loi", "noi_voi_naota": stt.loi_thanh_dong("loi", "mạng chết")}
+    return {"ok": False, "ly_do": "loi", "noi_voi_vanhanh": stt.loi_thanh_dong("loi", "mạng chết")}
 
 
 out = chay(_bot(_stt_loi)._ingest_attachment(None, _voice_msg()))

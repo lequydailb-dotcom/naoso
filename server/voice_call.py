@@ -1,6 +1,6 @@
 """Chọn ĐƯỜNG GỌI cho nút mic (voice-call-spec mục 3.1).
 
-Bấm mic là gọi Naota. Cuộc gọi chạy bằng một trong ba đường, máy tự chọn theo thứ tự:
+Bấm mic là gọi Vanhanh. Cuộc gọi chạy bằng một trong ba đường, máy tự chọn theo thứ tự:
   chatgpt - ChatGPT Live qua gói ChatGPT (Codex app-server, không cần key);
   api     - Live qua API key (Gemini Live, OpenAI Realtime, GPT-Live);
   basic   - Cơ bản: Web Speech + tai nghe lại + Làn nhanh hay bộ não chính + giọng Edge.

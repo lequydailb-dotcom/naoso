@@ -21,12 +21,12 @@ import tempfile
 
 from _paths import ROOT, SERVER  # noqa: E402,F401
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-homthu-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-homthu-"))
 
 import inbox  # noqa: E402
 import main   # noqa: E402
 
-# Naota Core rings only urgent notices by default (that default is tested in test_notify_commander.py). This
+# Vanhanh Core rings only urgent notices by default (that default is tested in test_notify_commander.py). This
 # file checks how important notices are routed, so every group rings from "important" up, as before.
 import notify_policy  # noqa: E402
 for _g in notify_policy.GROUPS:
@@ -93,8 +93,8 @@ check("CANARY: cắt bớt nhưng KHÔNG xoá thư chưa đọc",
 inbox.STORE.unlink(missing_ok=True)
 n0 = len(inbox.danh_sach(10_000))
 gui = []
-# a `web:` target is that chat only while the chat exists (a deleted one goes to the brain's Naota Core,
-# or stays in the bell when the brain is unknown, test_naota_core_routing.py). These two chats exist.
+# a `web:` target is that chat only while the chat exists (a deleted one goes to the brain's Vanhanh Core,
+# or stays in the bell when the brain is unknown, test_vanhanh_core_routing.py). These two chats exist.
 for _sid in ("phien-abc", "phien-xyz"):
     main.get_store().create_session(session_id=_sid)
 
@@ -207,11 +207,11 @@ check("loop báo kèm cờ quiet", "quiet=not (failed or paused_now)" in _khoi)
 check("CANARY: vòng HỎNG và vòng tự tạm dừng vẫn kêu",
       "failed or paused_now" in _khoi and "quiet=True" not in _khoi)
 
-# Cảnh báo ngân sách là Naota TỰ nói, không phải trả lời ai - inbox.py đặt sẵn nhãn "system"
+# Cảnh báo ngân sách là Vanhanh TỰ nói, không phải trả lời ai - inbox.py đặt sẵn nhãn "system"
 # cho đúng ca này, và nhãn đó là thứ người dùng đọc trên thẻ thư để biết tin từ đâu ra.
 _mp = (ROOT / "server" / "main.py").read_text(encoding="utf-8")
 check("cảnh báo ngân sách vào hòm với nhãn hệ thống",
-      '_notify_owner("", tin, kind="system", source="cost",' in _mp)   # includes its group for Naota Core
+      '_notify_owner("", tin, kind="system", source="cost",' in _mp)   # includes its group for Vanhanh Core
 
 _tk = (ROOT / "server" / "tasks.py").read_text(encoding="utf-8")
 check("CANARY: việc Kanban vẫn giữ luật cũ (xong thì lặng, chặn/chờ duyệt thì kêu)",

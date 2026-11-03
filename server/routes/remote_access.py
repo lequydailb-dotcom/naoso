@@ -41,8 +41,8 @@ def _make_router() -> APIRouter:
         if (loi := _DEPS.browser_session_error(request)) is not None:
             return loi
         if not cfgmod.auth_enabled():
-            return _err("Đặt mật khẩu đăng nhập trước (Cài đặt, mục Tài khoản), rồi mới mở Naota ra Internet.",
-                        "Set a login password first (Settings, Account), then open Naota to the Internet.",
+            return _err("Đặt mật khẩu đăng nhập trước (Cài đặt, mục Tài khoản), rồi mới mở Vanhanh ra Internet.",
+                        "Set a login password first (Settings, Account), then open Vanhanh to the Internet.",
                         409, need_password=True)
         mode = (mode or "").strip().lower()
         if mode not in remote_tunnel.MODES:

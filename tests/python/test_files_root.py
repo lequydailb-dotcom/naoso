@@ -3,7 +3,7 @@
     python tests/run.py files_root
 
 KHÔNG mạng. Phủ: localhost mở tới ổ đĩa (out được ra root), public khoá brain,
-NAOTA_FILES_ROOT override, _safe_path chặn vượt trần, điểm vào mặc định = brain,
+VANHANH_FILES_ROOT override, _safe_path chặn vượt trần, điểm vào mặc định = brain,
 parent=None khi ở trần (ẩn nút Lên).
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401  - nạp server/ vào sys.path (xem tests/python/_paths.py)
@@ -14,7 +14,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-filestest-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-filestest-"))
 
 import main            # noqa: E402
 import config as cfgmod  # noqa: E402
@@ -29,7 +29,7 @@ def check(name, cond):
 
 
 # Brain giả sâu vài cấp để có chỗ "Lên"
-_TMP = Path(tempfile.mkdtemp(prefix="naota-brainroot-")).resolve()
+_TMP = Path(tempfile.mkdtemp(prefix="vanhanh-brainroot-")).resolve()
 BRAIN = _TMP / "brains" / "My Vault"
 (BRAIN / "01 - Daily").mkdir(parents=True)
 (BRAIN / "note.md").write_text("hi", encoding="utf-8")
@@ -47,12 +47,12 @@ main.BRAINS_DIR = str(_TMP / "brains")
 
 
 def _set_env(host=None, files_root=None):
-    for k, v in (("NAOTA_HOST", host), ("NAOTA_FILES_ROOT", files_root)):
+    for k, v in (("VANHANH_HOST", host), ("VANHANH_FILES_ROOT", files_root)):
         if v is None:
             os.environ.pop(k, None)
         else:
             os.environ[k] = v
-    os.environ.pop("NAOTA_REQUIRE_LOGIN", None)
+    os.environ.pop("VANHANH_REQUIRE_LOGIN", None)
 
 
 try:
@@ -74,7 +74,7 @@ try:
     except ValueError:
         check("public: chặn ../ ra ngoài brain", True)
 
-    # ---- 3. NAOTA_FILES_ROOT override ----
+    # ---- 3. VANHANH_FILES_ROOT override ----
     _set_env(host="0.0.0.0", files_root="drive")   # public NHƯNG ép mở ổ đĩa
     check("env=drive: trần = ổ đĩa dù public", main._files_ceiling("brain") == _ANCHOR)
     _set_env(host="127.0.0.1", files_root="brain")  # localhost NHƯNG ép khoá brain
@@ -145,7 +145,7 @@ try:
           console_js.count('data-act="dl"') >= 2
           and console_js.count('title="${window.t("cs.fm_dl_title")}"') >= 2
           and VI.get("cs.fm_dl_title") == "Tải file về máy")
-    check("UI cây file Naota có nút tải cạnh file và trong editor",
+    check("UI cây file Vanhanh có nút tải cạnh file và trong editor",
           'data-a="dl"' in console_js and '"cs.fm_dl_title"' in console_js
           and 'mk("⤓ " + esc(window.t("cs.fm_dl")), window.t("cs.fm_dl_title")' in console_js
           and VI.get("cs.fm_dl") == "Tải" and VI.get("cs.fm_dl_title") == "Tải file về máy")

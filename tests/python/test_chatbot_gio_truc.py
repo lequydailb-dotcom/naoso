@@ -19,8 +19,8 @@ import sys
 import tempfile
 from datetime import datetime
 
-_STATE = tempfile.mkdtemp(prefix="naota-giotruc-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="vanhanh-giotruc-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

@@ -11,8 +11,8 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-docs-")
-BR = Path(tempfile.mkdtemp(prefix="naota-team-docs-brain-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-docs-")
+BR = Path(tempfile.mkdtemp(prefix="vanhanh-team-docs-brain-"))
 (BR / "agents").mkdir()
 for slug, name in (("lan", "Lan"), ("minh", "Minh")):
     (BR / "agents" / f"{slug}.md").write_text(f"---\nname: {name}\nrole: Thành viên\n---\nBạn là {name}.\n", encoding="utf-8")
@@ -124,10 +124,10 @@ check("going inside lists the subfolder's folders", [i["name"] for i in d["items
 check("without subdirs the file browser gets the same rows as before",
       "dirs" not in [i for i in client.get("/files/list", params={"brain": b}).json()["items"] if i["type"] == "dir"][0])
 
-# ---- Naota Core has no jobs of its own: its Jobs tab says "no jobs yet", not "could not load" ----
-import naota_core  # noqa: E402
-r = client.get(f"/agents/{naota_core.SLUG}/jobs", params={"brain": b})
-check("the Jobs tab of Naota Core gets an empty ok list (it used to be a 404 shown as a load error)",
+# ---- Vanhanh Core has no jobs of its own: its Jobs tab says "no jobs yet", not "could not load" ----
+import vanhanh_core  # noqa: E402
+r = client.get(f"/agents/{vanhanh_core.SLUG}/jobs", params={"brain": b})
+check("the Jobs tab of Vanhanh Core gets an empty ok list (it used to be a 404 shown as a load error)",
       r.status_code == 200 and r.json().get("ok") and r.json()["jobs"] == [] and r.json()["total"] == 0, r.text)
 check("an unknown assistant is still a 404", client.get("/agents/khong-co/jobs", params={"brain": b}).status_code == 404)
 

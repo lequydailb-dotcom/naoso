@@ -1,13 +1,13 @@
 /* Mục "Hạn mức tự chạy" của bảng Nhịp một trợ lý (T3 phần L).
 
    Phần P dựng bảng từ GET /agents/{slug}/pulse; mục của phần L nằm ở `view.parts.lessons` (sổ đăng ký phía máy chủ
-   `register_view_part("lessons", ...)`). File này góp hàm vẽ vào sổ phía trang `window.NaotaPulseParts` ({name, render})
+   `register_view_part("lessons", ...)`). File này góp hàm vẽ vào sổ phía trang `window.VanhanhPulseParts` ({name, render})
    theo đúng hợp đồng của agent-pulse.js: `render(view)` trả HTML đã escape.
 
    Bản rút gọn: lý do là bài học cũ của một agent quá lòng vòng, Thu hồi với Dùng ở mọi nơi thì người
    dùng không biết dùng đâu. Mục chỉ còn hạn mức lượt tự phát hôm nay và ô chọn hạn mức. Danh sách bài học theo phạm
    vi, bài học cũ trong MEMORY.md, thay đổi của tự rà soát và đề xuất không còn trên màn hình: người dùng nhắn trong chat
-   ("thôi đừng làm vậy nữa"), Naota dùng tool `naota_memory` (op=lessons, lesson_revoke, lesson_add).
+   ("thôi đừng làm vậy nữa"), Vanhanh dùng tool `vanhanh_memory` (op=lessons, lesson_revoke, lesson_add).
 
    Ô chọn gọi POST /agents/{slug}/budget. Chỉ hiện "Đã lưu" và vẽ lại SAU khi máy chủ trả 200; lỗi thì nói lý do, giữ
    giá trị cũ. `partHtml`, `budgetLine`, `actionRequest` thuần (không DOM, không mạng) để test chạy dưới node. */
@@ -30,9 +30,9 @@
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
   // Nút "i" (info-tip.js): có thì lời giải thích ẩn sau nút cạnh tiêu đề; không có (test Node) thì vẽ thẳng ra.
-  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(tw("info.more")) : ""; }
+  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(tw("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.NaotaInfo;
+    var J = typeof window !== "undefined" && window.VanhanhInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
 
@@ -96,7 +96,7 @@
   }
 
   function brainName() {
-    try { return (window.NaotaSessions && window.NaotaSessions.brain()) || "brain"; } catch (e) { return "brain"; }
+    try { return (window.VanhanhSessions && window.VanhanhSessions.brain()) || "brain"; } catch (e) { return "brain"; }
   }
 
   /* {code, j}: thành công chỉ khi máy chủ trả 200 và ok = true. */
@@ -153,8 +153,8 @@
   var part = { name: "lessons", render: function (view) { return partHtml(view, {}); },
     compact: function (view) { return capHtml(view, {}); } };
   if (typeof window !== "undefined") {
-    window.NaotaPulseParts = window.NaotaPulseParts || [];
-    if (!window.NaotaPulseParts.some(function (x) { return x && x.name === "lessons"; })) window.NaotaPulseParts.push(part);
+    window.VanhanhPulseParts = window.VanhanhPulseParts || [];
+    if (!window.VanhanhPulseParts.some(function (x) { return x && x.name === "lessons"; })) window.VanhanhPulseParts.push(part);
   }
   var apiOut = { partHtml: partHtml, capHtml: capHtml, budgetLine: budgetLine, actionRequest: actionRequest, part: part };
   if (typeof module !== "undefined" && module.exports) module.exports = apiOut;

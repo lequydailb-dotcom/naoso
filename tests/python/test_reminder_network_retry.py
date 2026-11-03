@@ -22,17 +22,17 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-reminder-retry-state-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-reminder-retry-state-")
 
 import once_ledger  # noqa: E402
 import reminders  # noqa: E402
 
-once_ledger.configure(Path(tempfile.mkdtemp(prefix="naota-reminder-retry-ledger-")) / "ledger.sqlite3")
+once_ledger.configure(Path(tempfile.mkdtemp(prefix="vanhanh-reminder-retry-ledger-")) / "ledger.sqlite3")
 
 fails = []
 sent = []
 incidents = []
-brain = Path(tempfile.mkdtemp(prefix="naota-reminder-retry-brain-"))
+brain = Path(tempfile.mkdtemp(prefix="vanhanh-reminder-retry-brain-"))
 NET_ERR = "DeepSeek lỗi: getaddrinfo failed | Claude CLI exit code 3221226505"
 
 
@@ -68,7 +68,7 @@ feature = reminders.RemindersFeature(deps)
 
 
 def stored(rid):
-    data = json.loads((brain / "Naota" / "reminders.json").read_text(encoding="utf-8"))
+    data = json.loads((brain / "Vanhanh" / "reminders.json").read_text(encoding="utf-8"))
     return next(r for r in data["reminders"] if r["id"] == rid)
 
 
@@ -120,7 +120,7 @@ async def run():
     check("error is recorded on the record", "getaddrinfo" in rec.get("error", ""))
     check("the run carried the reminder's ledger job",
           seen == [reminders.ledger_job("r_net", rem["due_at"])])
-    check("one warning went to Naota Core (empty chat id) saying it will retry",
+    check("one warning went to Vanhanh Core (empty chat id) saying it will retry",
           len(sent) == 1 and sent[0]["chat_id"] == ""
           and ("try again" in sent[0]["text"].lower() or "thử lại" in sent[0]["text"]))
     check("the chat card of the warning is failed", sent[0]["viec"]["status"] == "failed")

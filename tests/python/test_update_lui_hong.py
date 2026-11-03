@@ -20,7 +20,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-lui-test-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-lui-test-")
 
 import update_state as us   # noqa: E402
 import updater              # noqa: E402

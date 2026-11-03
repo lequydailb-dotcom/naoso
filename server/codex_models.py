@@ -1,7 +1,7 @@
 """Danh sách model LIVE từ chính Codex CLI.
 
 Codex app-server là giao diện ổn định mà các client Codex dùng để dựng model
-picker.  Hỏi ``model/list`` ở đây giúp Naota tự thấy model mới, model mặc định
+picker.  Hỏi ``model/list`` ở đây giúp Vanhanh tự thấy model mới, model mặc định
 và các đợt ẩn/deprecate mà không phải ghim version model trong source.
 """
 from __future__ import annotations
@@ -63,28 +63,28 @@ def _nho_efforts(items) -> None:
 _THANG = ("minimal", "low", "medium", "high", "xhigh", "max")
 
 
-def muc_cho(model: str, muc_naota: str) -> str:
-    """Mức của Naota -> mức effort của Codex, lấy từ THANG CỦA CHÍNH MODEL ĐÓ. "" = đừng truyền.
+def muc_cho(model: str, muc_vanhanh: str) -> str:
+    """Mức của Vanhanh -> mức effort của Codex, lấy từ THANG CỦA CHÍNH MODEL ĐÓ. "" = đừng truyền.
 
     Không có bảng dịch chép tay, và đó là chủ ý: Codex đổi thang theo từng model và từng đợt
     (`minimal` chỉ vài model có, `xhigh` mới thêm sau). Bảng chép tay thì sai lặng lẽ, còn giá
     trị model không nhận thì hỏng cả lượt chat. Ở đây mọi giá trị trả ra đều LẤY TỪ danh sách
     mà chính Codex vừa khai cho model đó, nên không bao giờ gửi một mức nó không hiểu.
 
-    Luật: "ultra" là nấc trên cùng của Naota nên luôn ra nấc CAO NHẤT model có. Mấy nấc còn
+    Luật: "ultra" là nấc trên cùng của Vanhanh nên luôn ra nấc CAO NHẤT model có. Mấy nấc còn
     lại lấy đúng tên nếu model có, không thì lùi xuống nấc thấp hơn gần nhất - lùi chứ không
     tiến, vì tiến là tiêu nhiều tiền hơn mức người dùng chọn.
     """
     thang = [m for m in _THANG if m in efforts_for(model)]
-    if not thang or not muc_naota or muc_naota == "off":
+    if not thang or not muc_vanhanh or muc_vanhanh == "off":
         return ""
-    if muc_naota == "ultra":
+    if muc_vanhanh == "ultra":
         return thang[-1]
-    if muc_naota in thang:
-        return muc_naota
-    if muc_naota not in _THANG:
+    if muc_vanhanh in thang:
+        return muc_vanhanh
+    if muc_vanhanh not in _THANG:
         return ""
-    i = _THANG.index(muc_naota)
+    i = _THANG.index(muc_vanhanh)
     thap_hon = [m for m in thang if _THANG.index(m) < i]
     return thap_hon[-1] if thap_hon else thang[0]
 
@@ -122,7 +122,7 @@ def _normalize_items(items: Any) -> list[dict]:
             "default_service_tier": raw.get("defaultServiceTier"),
         })
     # Codex thường đã xếp default đầu tiên. Bảo đảm điều đó để fallback của
-    # Naota cũng dùng đúng default hiện hành nếu upstream đổi thứ tự.
+    # Vanhanh cũng dùng đúng default hiện hành nếu upstream đổi thứ tự.
     out.sort(key=lambda x: not x["is_default"])
     return out
 
@@ -186,14 +186,14 @@ def list_models(timeout: float = 20.0, cli_path: Optional[str] = None,
             creationflags=_no_window(),
             env=codex_env(),
         )
-        threading.Thread(target=reader, name="naota-codex-models", daemon=True).start()
+        threading.Thread(target=reader, name="vanhanh-codex-models", daemon=True).start()
         send({
             "method": "initialize",
             "id": 0,
             "params": {
                 "clientInfo": {
-                    "name": "naota",
-                    "title": "NAOTA",
+                    "name": "vanhanh",
+                    "title": "VANHANH",
                     "version": "1.0",
                 }
             },

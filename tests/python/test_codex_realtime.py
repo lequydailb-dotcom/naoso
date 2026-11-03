@@ -18,7 +18,7 @@ import os
 import queue
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-codexrt-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-codexrt-"))
 
 import codex_realtime  # noqa: E402
 

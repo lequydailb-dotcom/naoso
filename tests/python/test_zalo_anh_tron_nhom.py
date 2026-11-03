@@ -23,7 +23,7 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-anhtron-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-anhtron-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -102,7 +102,7 @@ asyncio.run(t.xu_ly(anh(chat_type="private")))
 check("chat riêng không nhớ (không có ai để gọi bot sau)", pol.nho == [])
 
 # ---- 3. Lượt bot trả lời được gắn ảnh vừa nhớ ----
-BRAIN = Path(tempfile.mkdtemp(prefix="naota-brain-anhtron-"))
+BRAIN = Path(tempfile.mkdtemp(prefix="vanhanh-brain-anhtron-"))
 cr.chatbot_store.get_bot = lambda b: {"brain": str(BRAIN), "enabled": True}
 cr._nhom_duoc_phep = lambda cfg, cid: True
 cr._deps["brain_root"] = lambda b: BRAIN

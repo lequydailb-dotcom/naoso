@@ -24,8 +24,8 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-turn-")
-os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="naota-turn-brains-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-turn-")
+os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="vanhanh-turn-brains-")
 
 import turn_context  # noqa: E402
 import plugins_host  # noqa: E402
@@ -232,31 +232,31 @@ async def part_hub_http():
 
 
 async def part_engines():
-    shared = {"naota": {"type": "http", "url": "http://127.0.0.1:7777/hub/mcp",
-                        "headers": {"Authorization": "Bearer T", "X-Naota-Bot": "1"}}}
+    shared = {"vanhanh": {"type": "http", "url": "http://127.0.0.1:7777/hub/mcp",
+                        "headers": {"Authorization": "Bearer T", "X-Vanhanh-Bot": "1"}}}
     snapshot = json.dumps(shared, sort_keys=True)
 
     out = claude_sdk_engine.ClaudeSDK._gan_khoa_luot(shared)
-    check("5 Claude: no turn -> no header", turn_context.HEADER not in out["naota"]["headers"])
+    check("5 Claude: no turn -> no header", turn_context.HEADER not in out["vanhanh"]["headers"])
 
     tok = turn_context.bind(turn_context.make("zalo_personal", "U-an", "private", "U-an", False))
     try:
         out = claude_sdk_engine.ClaudeSDK._gan_khoa_luot(shared)
-        key = out["naota"]["headers"].get(turn_context.HEADER)
+        key = out["vanhanh"]["headers"].get(turn_context.HEADER)
         check("5 Claude: header carries a key of this turn",
               bool(key) and turn_context.resolve_key(key)["sender_id"] == "U-an", out)
-        check("5 Claude: other headers kept", out["naota"]["headers"]["X-Naota-Bot"] == "1")
+        check("5 Claude: other headers kept", out["vanhanh"]["headers"]["X-Vanhanh-Bot"] == "1")
         check("5 Claude: shared config dict not mutated", json.dumps(shared, sort_keys=True) == snapshot)
 
         # The real bot path: config file + allowed_tools (the early-return branch of _mcp_servers).
         cfg = os.path.join(tempfile.mkdtemp(), "hub.json")
         with open(cfg, "w", encoding="utf-8") as f:
             json.dump({"mcpServers": shared}, f)
-        eng = claude_sdk_engine.ClaudeSDK(allowed_tools=["mcp__naota"])
+        eng = claude_sdk_engine.ClaudeSDK(allowed_tools=["mcp__vanhanh"])
         eng.mcp_config = cfg
         servers, _ = eng._mcp_servers()
         check("5 Claude bot path (_mcp_servers) carries the key",
-              servers["naota"]["headers"].get(turn_context.HEADER) == key, servers)
+              servers["vanhanh"]["headers"].get(turn_context.HEADER) == key, servers)
         with open(cfg, encoding="utf-8") as f:
             check("5 Claude: config FILE never gets the key", turn_context.HEADER not in f.read())
 

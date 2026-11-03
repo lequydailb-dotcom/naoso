@@ -112,7 +112,7 @@ fake = [
     {"type": "item.completed", "item": {"type": "command_execution",
                                         "command": "/bin/sh -lc \"sed -n '1,260p' x.md\"",
                                         "status": "completed"}},
-    {"type": "item.completed", "item": {"type": "mcp_tool_call", "server": "naota",
+    {"type": "item.completed", "item": {"type": "mcp_tool_call", "server": "vanhanh",
                                         "tool": "pos_statistics", "arguments": {}}},
     {"type": "item.completed", "item": {"type": "agent_message", "text": "xong"}},
     {"type": "turn.completed", "usage": {}},

@@ -177,5 +177,5 @@
     };
   }
   api.mount = mount;
-  window.NaotaEffortSlider = api;
+  window.VanhanhEffortSlider = api;
 })();

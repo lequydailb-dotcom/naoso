@@ -1,7 +1,7 @@
-"""Kho lịch sử chạy quy trình - SQLite trong NAOTA_STATE_DIR.
+"""Kho lịch sử chạy quy trình - SQLite trong VANHANH_STATE_DIR.
 
 Vì sao có: trước đây, bấm Chạy ở trang Quy trình thì kết quả chỉ stream vào một ngăn kéo tạm,
-đóng là mất, và Naota không có chỗ nào để tra "quy trình chạy gần nhất ra sao". Kho này ghi
+đóng là mất, và Vanhanh không có chỗ nào để tra "quy trình chạy gần nhất ra sao". Kho này ghi
 MỌI lần chạy, bất kể khởi phát từ trang Cộng sự, Kanban, nhắc hẹn hay loop, vì nó được bọc
 ngay trong `execute_workflow` (main.py) chứ không ở từng chỗ gọi.
 

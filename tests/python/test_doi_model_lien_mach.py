@@ -3,7 +3,7 @@
 
     python tests/run.py doi_model
 
-Lỗi thật (đã được báo): đang chat, đổi sang model khác, Naota không nhớ đoạn
+Lỗi thật (đã được báo): đang chat, đổi sang model khác, Vanhanh không nhớ đoạn
 đang nói và trả lời một câu không liên quan.
 
 Nguyên nhân, hai lỗi chồng nhau, đều nằm ở chỗ VÔ HIỆU MẠCH NATIVE:
@@ -28,7 +28,7 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-mach-test-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-mach-test-"))
 
 from sessions import SessionStore  # noqa: E402
 

@@ -2,7 +2,7 @@
 
     python tests/run.py zalo_anh_chu_thich      (KHÔNG mạng)
 
-Lỗi đã gặp, từ báo cáo của một Agent trong nhóm: một khách gửi ảnh kèm chú thích "@Naota An <câu hỏi>" mà bot im, trong khi hai tin chữ
+Lỗi đã gặp, từ báo cáo của một Agent trong nhóm: một khách gửi ảnh kèm chú thích "@Vanhanh An <câu hỏi>" mà bot im, trong khi hai tin chữ
 có tag thì được trả lời. Nguyên nhân: `Transport.xu_ly` bỏ MỌI tin không phải chữ, nên tag nằm trong chú thích của ảnh không bao giờ tới bot.
 
 Dạng tin ảnh THẬT của MCP đọc từ mã nguồn zalo-agent-cli v1.6.2 (`normalizeMessage` ở `src/commands/mcp.js`): `type` = "chat.photo", và
@@ -10,7 +10,7 @@ Dạng tin ảnh THẬT của MCP đọc từ mã nguồn zalo-agent-cli v1.6.2 
 của MCP KHÔNG có trường `mentions`, nên tag chỉ nhận ra được bằng chữ "@Tên" trong chú thích.
 
 Những chỗ phải đúng:
-  1. Chú thích thật thì lấy; đường dẫn ảnh, "[chat.photo]" và chữ giữ chỗ của Naota thì KHÔNG phải lời của người gửi (bot không được trả lời một đường dẫn).
+  1. Chú thích thật thì lấy; đường dẫn ảnh, "[chat.photo]" và chữ giữ chỗ của Vanhanh thì KHÔNG phải lời của người gửi (bot không được trả lời một đường dẫn).
   2. Ảnh có chú thích đi vào bot như tin chữ (cả nhận tag lẫn trả lời), và model được báo tin có kèm ảnh mà nó không xem được.
   3. Ảnh trơn vẫn bị bỏ qua.
   4. Lượt chủ nhờ bot trả lời từ Hòm thư cũng hiểu tin ảnh.
@@ -20,7 +20,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-anh-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-anh-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -43,28 +43,28 @@ def check(name, cond, them=""):
 # 1. Chú thích thật hay chữ "nền"
 # ============================================================
 ct = conversations.chu_thich_anh
-check("chú thích thật được giữ nguyên", ct("@Naota An lỗi này xử lý sao ạ?") == "@Naota An lỗi này xử lý sao ạ?")
-check("khoảng trắng và xuống dòng được gộp", ct("  @Naota An \n xem giúp  ") == "@Naota An xem giúp")
+check("chú thích thật được giữ nguyên", ct("@Vanhanh An lỗi này xử lý sao ạ?") == "@Vanhanh An lỗi này xử lý sao ạ?")
+check("khoảng trắng và xuống dòng được gộp", ct("  @Vanhanh An \n xem giúp  ") == "@Vanhanh An xem giúp")
 check("CANARY: đường dẫn ảnh (ảnh trơn, MCP lấy content.href) KHÔNG phải chú thích", ct("https://f55-zpc.zdn.vn/abc/def.jpg") == "" and ct("http://x.vn/a.png") == "")
 check("CANARY: chữ giữ chỗ '[chat.photo]' của MCP KHÔNG phải chú thích", ct("[chat.photo]") == "" and ct("[photo]") == "" and ct("[image]") == "")
-check("chữ giữ chỗ do Naota tự thêm cũng không phải chú thích", ct("[Zalo cá nhân: khách gửi image]") == "")
+check("chữ giữ chỗ do Vanhanh tự thêm cũng không phải chú thích", ct("[Zalo cá nhân: khách gửi image]") == "")
 check("rỗng và None thì rỗng", ct("") == "" and ct(None) == "" and ct("   ") == "")
 check("chú thích CÓ chứa đường dẫn vẫn là chú thích (chỉ loại khi cả tin chỉ là đường dẫn)", ct("xem ảnh này https://x.vn/a.jpg nhé") == "xem ảnh này https://x.vn/a.jpg nhé")
-check("chú thích bắt đầu bằng '[' nhưng là lời thật vẫn giữ", ct("[Gấp] @Naota An trả lời giúp") == "[Gấp] @Naota An trả lời giúp")
+check("chú thích bắt đầu bằng '[' nhưng là lời thật vẫn giữ", ct("[Gấp] @Vanhanh An trả lời giúp") == "[Gấp] @Vanhanh An trả lời giúp")
 
 # ============================================================
 # 2. Chuẩn hoá tin ảnh đúng dạng MCP
 # ============================================================
-conn = {"id": "zalo-1", "label": "Naota An"}
-ten = {"G1": {"name": "Zoom | NAOTA", "type": "group"}}
+conn = {"id": "zalo-1", "label": "Vanhanh An"}
+ten = {"G1": {"name": "Zoom | VANHANH", "type": "group"}}
 anh = {"id": "m1", "threadId": "G1", "from": "7770555", "senderName": "Lê Văn Hùng", "type": "chat.photo",
-       "text": "@Naota An hướng dẫn thao tác tạo Agent", "threadType": 1, "ts": 1790000000000}
+       "text": "@Vanhanh An hướng dẫn thao tác tạo Agent", "threadType": 1, "ts": 1790000000000}
 ev = zc.chuan_hoa_tin(conn, anh, ten)
-check("tin ảnh có chú thích: loại 'image', text là chú thích (không mất)", ev["message_type"] == "image" and ev["text"] == "@Naota An hướng dẫn thao tác tạo Agent", ev)
+check("tin ảnh có chú thích: loại 'image', text là chú thích (không mất)", ev["message_type"] == "image" and ev["text"] == "@Vanhanh An hướng dẫn thao tác tạo Agent", ev)
 check("vẫn là tin của khách trong nhóm, đủ người gửi", ev["chat_type"] == "group" and ev["sender_type"] == "customer" and ev["sender_name"] == "Lê Văn Hùng")
 tro = zc.chuan_hoa_tin(conn, dict(anh, id="m2", text="https://f55.zdn.vn/x.jpg"), ten)
 check("ảnh trơn: vẫn là 'image' nhưng chú thích rỗng", tro["message_type"] == "image" and ct(tro["text"]) == "")
-check("nhận ra tag bot trong chú thích ảnh (nhan_dien_goi dựa vào chữ '@Tên')", zc.nhan_dien_goi("zalo-1", ev, ("Naota An",)) == (True, False), zc.nhan_dien_goi("zalo-1", ev, ("Naota An",)))
+check("nhận ra tag bot trong chú thích ảnh (nhan_dien_goi dựa vào chữ '@Tên')", zc.nhan_dien_goi("zalo-1", ev, ("Vanhanh An",)) == (True, False), zc.nhan_dien_goi("zalo-1", ev, ("Vanhanh An",)))
 
 # ============================================================
 # 3. Báo cho model biết tin có kèm ảnh

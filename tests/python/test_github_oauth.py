@@ -1,9 +1,9 @@
-"""Sign in to GitHub with one button: the device flow of the NAOTA GitHub App.
+"""Sign in to GitHub with one button: the device flow of the VANHANH GitHub App.
 
     python tests/run.py github_oauth      (no network: a local fake GitHub serves both github.com and the API)
 
 Covered:
-  1. Start asks GitHub for a code with the Naota app's client id and returns what the card shows.
+  1. Start asks GitHub for a code with the Vanhanh app's client id and returns what the card shows.
   2. Polls respect GitHub's interval (an early poll never reaches GitHub), `slow_down` lengthens it.
   3. An approved sign-in stores the token encrypted, as source "app"; status never returns it and reports installs.
   4. Cancel on GitHub, an expired code and a poll with nothing started each end with a plain reason.
@@ -17,8 +17,8 @@ import sys
 import tempfile
 import time
 
-_STATE = tempfile.mkdtemp(prefix="naota-gh-oauth-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="vanhanh-gh-oauth-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -28,8 +28,8 @@ except Exception:
 from _fake_github import FakeGitHub, GOOD_TOKEN  # noqa: E402
 
 fake = FakeGitHub(scopes=None)          # GitHub App tokens carry no X-OAuth-Scopes header
-os.environ["NAOTA_GITHUB_API"] = fake.url
-os.environ["NAOTA_GITHUB_WEB"] = fake.url
+os.environ["VANHANH_GITHUB_API"] = fake.url
+os.environ["VANHANH_GITHUB_WEB"] = fake.url
 
 import config  # noqa: E402
 import github_oauth  # noqa: E402
@@ -64,11 +64,11 @@ try:
     check("start without an app says so", False)
 except github_oauth.OAuthError as e:
     check("start without an app says so", "token" in str(e) and not fake.device["client_ids"])
-os.environ["NAOTA_GITHUB_CLIENT_ID"] = "Iv23test-client"
+os.environ["VANHANH_GITHUB_CLIENT_ID"] = "Iv23test-client"
 check("the app's client id comes from the environment", github_oauth.client_id() == "Iv23test-client"
       and github_oauth.available() is True)
-check("repos are picked on the NAOTA app page",
-      github_oauth.install_url() == "https://github.com/apps/naota/installations/new")
+check("repos are picked on the VANHANH app page",
+      github_oauth.install_url() == "https://github.com/apps/vanhanh/installations/new")
 reset_device(pending=2, slow=True)
 d = github_oauth.start()
 check("start returns the code to type", d["user_code"] == "ABCD-1234")
@@ -106,11 +106,11 @@ github_repos._write_conn(conn)
 check("a stale missing-scopes flag stored for an app sign-in is not shown", github_repos.status()["missing"] == [])
 fake.scopes = None
 check("status says the app is installed somewhere", st["installs"] == 1)
-check("status carries the install link", "naota" in st["install_url"])
+check("status carries the install link", "vanhanh" in st["install_url"])
 check("status never returns the token", GOOD_TOKEN not in json.dumps(st))
 raw = json.loads(config.SETTINGS_PATH.read_text(encoding="utf-8"))
 check("the token is not stored in clear", GOOD_TOKEN not in json.dumps(raw))
-check("Naota uses the app token for GitHub", github_repos.token() == GOOD_TOKEN)
+check("Vanhanh uses the app token for GitHub", github_repos.token() == GOOD_TOKEN)
 fake.installs = 0
 github_repos._INSTALL_CACHE.update(at=0.0, n=-1)
 check("signed in with no repo picked says so", github_repos.status()["installs"] == 0)

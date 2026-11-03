@@ -8,7 +8,7 @@ import time
 
 from _paths import ROOT, SERVER  # noqa: E402,F401
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-ttnm-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-ttnm-"))
 import asyncio  # noqa: E402
 
 import main  # noqa: E402
@@ -38,7 +38,7 @@ chay_tiep = []
 async def runner(text, do_sau):
     chay_tiep.append((text, do_sau))
 
-brain_root = tempfile.mkdtemp(prefix="naota-ttnm-brain-")
+brain_root = tempfile.mkdtemp(prefix="vanhanh-ttnm-brain-")
 os.makedirs(os.path.join(brain_root, "exports"))
 video = os.path.join(brain_root, "exports", "gioi-thieu.mp4")
 open(video, "w").close()

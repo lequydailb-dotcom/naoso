@@ -12,7 +12,7 @@ import os
 import tempfile
 import unittest
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-auxcool-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-auxcool-"))
 
 import aux_engine  # noqa: E402
 
@@ -56,7 +56,7 @@ class ClassifyTests(unittest.TestCase):
         self.assertEqual(aux_engine.cooldown_for("ReadTimeout: timed out"), aux_engine.COOLDOWN_DOWN_S)
         self.assertEqual(aux_engine.cooldown_for("404 model not found"), aux_engine.COOLDOWN_ACCESS_S)
         self.assertEqual(aux_engine.cooldown_for("401 invalid api key"), aux_engine.COOLDOWN_ACCESS_S)
-        self.assertEqual(aux_engine.cooldown_for("tool naota_read_file failed: no such file"), 0.0)
+        self.assertEqual(aux_engine.cooldown_for("tool vanhanh_read_file failed: no such file"), 0.0)
 
     def test_retry_after_wins(self):
         self.assertEqual(aux_engine.cooldown_for("429, Retry-After: 42"), 42.0)

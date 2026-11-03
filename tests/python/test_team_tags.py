@@ -11,8 +11,8 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-tags-")
-BR = Path(tempfile.mkdtemp(prefix="naota-team-tags-brain-")).resolve()
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-tags-")
+BR = Path(tempfile.mkdtemp(prefix="vanhanh-team-tags-brain-")).resolve()
 (BR / "agents").mkdir()
 for slug, name in (("lan", "Lan"), ("minh", "Minh")):
     (BR / "agents" / f"{slug}.md").write_text(f"---\nname: {name}\nrole: Thành viên\n---\nBạn là {name}.\n",

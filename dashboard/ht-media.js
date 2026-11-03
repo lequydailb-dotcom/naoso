@@ -114,24 +114,24 @@
     } catch (e) { return ""; }
   }
 
-  // Clicking a customer's photo opens it inside Naota (the chat lightbox, with a close button and Back closing it)
+  // Clicking a customer's photo opens it inside Vanhanh (the chat lightbox, with a close button and Back closing it)
   // instead of a new tab (easier to go back to the customer's messages). Ctrl/Cmd/middle click
   // and a photo that failed to load keep the link's own new-tab behaviour.
   if (typeof document !== "undefined") {
     document.addEventListener("click", function (e) {
       var a = e.target && e.target.closest ? e.target.closest("a.ht-anh") : null;
-      if (!a || a.classList.contains("hong") || !window.NaotaLightbox) return;
+      if (!a || a.classList.contains("hong") || !window.VanhanhLightbox) return;
       if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button > 0) return;
       e.preventDefault();
       e.stopPropagation();
       // with every photo of this conversation, swipe or arrows go to the others.
-      if (window.NaotaLightbox.openFrom) { window.NaotaLightbox.openFrom(a); return; }
+      if (window.VanhanhLightbox.openFrom) { window.VanhanhLightbox.openFrom(a); return; }
       var href = a.getAttribute("href") || "";
-      window.NaotaLightbox.open(href, tenAnh(href));
+      window.VanhanhLightbox.open(href, tenAnh(href));
     }, true);
   }
 
   var API = { phanTich: phanTich, html: html, chuThich: chuThich, coDungLuong: coDungLuong, tomTat: tomTat, tenAnh: tenAnh };
-  if (typeof window !== "undefined") window.NaotaHtMedia = API;
+  if (typeof window !== "undefined") window.VanhanhHtMedia = API;
   if (typeof module !== "undefined" && module.exports) module.exports = API;
 })();

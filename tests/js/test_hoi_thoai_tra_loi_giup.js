@@ -30,7 +30,7 @@ const win = { t: (k, v) => k + (v ? "#" + Object.keys(v).map((x) => v[x]).join("
 const ctx = { window: win, console, String, Object, Array, Number, JSON };
 vm.createContext(ctx);
 vm.runInContext(V5SRC, ctx);
-const V = win.NaotaInboxV5;
+const V = win.VanhanhInboxV5;
 
 // ---- 1. composer ----
 const COMP = fnBody("function veCompose(c) {");

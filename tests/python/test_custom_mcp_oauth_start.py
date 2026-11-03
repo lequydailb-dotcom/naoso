@@ -6,7 +6,7 @@ import tempfile
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-mcp-oauth-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-mcp-oauth-")
 
 import main  # noqa: E402
 import mcp_store  # noqa: E402

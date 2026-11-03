@@ -14,7 +14,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 TEST_ROOT = Path(tempfile.mkdtemp(prefix="imp-store-"))
-os.environ["NAOTA_STATE_DIR"] = str(TEST_ROOT / "state")
+os.environ["VANHANH_STATE_DIR"] = str(TEST_ROOT / "state")
 os.environ["BRAINS_DIR"] = str(TEST_ROOT / "brains")
 os.environ["OBSIDIAN_VAULT_PATH"] = str(TEST_ROOT / "vault")
 

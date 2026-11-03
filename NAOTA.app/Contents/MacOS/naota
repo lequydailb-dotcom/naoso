@@ -1,6 +1,0 @@
-#!/bin/bash
-# App bundle entrypoint -> delegates to bin/naota-start.sh.
-# Resolves the repo root relative to this bundle, so keep "NAOTA.app"
-# inside the repo folder (repo/NAOTA.app/Contents/MacOS/naota).
-DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
-exec "${DIR}/bin/naota-start.sh"

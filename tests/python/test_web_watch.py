@@ -246,18 +246,18 @@ def test_loi_5_lan_thi_dung_va_bao_mot_lan(tmp_path, monkeypatch):
     f.store.close()
 
 
-# ---------------------------------------------------------------- tool naota_watch
+# ---------------------------------------------------------------- tool vanhanh_watch
 
 
 def _plugin():
     spec = importlib.util.spec_from_file_location(
-        "naota_watch_plugin_t", ROOT / "system" / "plugins" / "naota-watch" / "plugin.py")
+        "vanhanh_watch_plugin_t", ROOT / "system" / "plugins" / "vanhanh-watch" / "plugin.py")
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     return m
 
 
-def test_tool_naota_watch(tmp_path, monkeypatch):
+def test_tool_vanhanh_watch(tmp_path, monkeypatch):
     f, _ = _feature(tmp_path, monkeypatch)
     monkeypatch.setattr(ww, "_CURRENT", f)
     m = _plugin()
@@ -285,7 +285,7 @@ def test_tool_naota_watch(tmp_path, monkeypatch):
 
 def test_khach_cua_bot_khong_thay_tool():
     import mcp_hub
-    assert "naota_watch" in mcp_hub.OWNER_ONLY_TOOLS
+    assert "vanhanh_watch" in mcp_hub.OWNER_ONLY_TOOLS
 
 
 if __name__ == "__main__":

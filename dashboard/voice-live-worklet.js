@@ -6,17 +6,17 @@
 
    Loaded twice: by AudioWorklet.addModule (registers the processor) and by node tests through
    module.exports (the pure helpers). Neither environment has the other's globals. */
-var NAOTA_MIC_BLOCK = 4096, NAOTA_MIC_RATE = 16000;
+var VANHANH_MIC_BLOCK = 4096, VANHANH_MIC_RATE = 16000;
 
 // Nearest-sample decimation, as voice-live.js did on the main thread.
-function naotaDownsample(f32, from, to) {
+function vanhanhDownsample(f32, from, to) {
   if (from === to) return f32;
   var ratio = from / to, n = Math.floor(f32.length / ratio), out = new Float32Array(n);
   for (var i = 0; i < n; i++) out[i] = f32[Math.floor(i * ratio)];
   return out;
 }
 
-function naotaToPcm16(f32) {
+function vanhanhToPcm16(f32) {
   var out = new Int16Array(f32.length);
   for (var i = 0; i < f32.length; i++) {
     var s = Math.max(-1, Math.min(1, f32[i]));
@@ -26,10 +26,10 @@ function naotaToPcm16(f32) {
 }
 
 if (typeof registerProcessor === "function") {
-  class NaotaMicProcessor extends AudioWorkletProcessor {
+  class VanhanhMicProcessor extends AudioWorkletProcessor {
     constructor() {
       super();
-      this.buf = new Float32Array(NAOTA_MIC_BLOCK);
+      this.buf = new Float32Array(VANHANH_MIC_BLOCK);
       this.n = 0;
       this.alive = true;
       this.port.onmessage = (e) => { if (e.data === "stop") this.alive = false; };
@@ -40,11 +40,11 @@ if (typeof registerProcessor === "function") {
       if (ch) {
         for (var i = 0; i < ch.length; i++) {
           this.buf[this.n++] = ch[i];
-          if (this.n === NAOTA_MIC_BLOCK) {
+          if (this.n === VANHANH_MIC_BLOCK) {
             // `sampleRate` is the AudioWorkletGlobalScope's context rate.
-            var pcm = naotaToPcm16(naotaDownsample(this.buf, sampleRate, NAOTA_MIC_RATE));
+            var pcm = vanhanhToPcm16(vanhanhDownsample(this.buf, sampleRate, VANHANH_MIC_RATE));
             this.port.postMessage(pcm.buffer, [pcm.buffer]);
-            this.buf = new Float32Array(NAOTA_MIC_BLOCK);
+            this.buf = new Float32Array(VANHANH_MIC_BLOCK);
             this.n = 0;
           }
         }
@@ -52,9 +52,9 @@ if (typeof registerProcessor === "function") {
       return this.alive;
     }
   }
-  registerProcessor("naota-mic", NaotaMicProcessor);
+  registerProcessor("vanhanh-mic", VanhanhMicProcessor);
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { downsample: naotaDownsample, toPcm16: naotaToPcm16, BLOCK: NAOTA_MIC_BLOCK, RATE: NAOTA_MIC_RATE };
+  module.exports = { downsample: vanhanhDownsample, toPcm16: vanhanhToPcm16, BLOCK: VANHANH_MIC_BLOCK, RATE: VANHANH_MIC_RATE };
 }

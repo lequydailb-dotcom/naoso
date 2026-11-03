@@ -5,7 +5,7 @@ Graph API Explorer. The token was where owners got lost. This module replaces th
 standard Facebook Login redirect flow on the owner's OWN Meta app:
 
   1. `start()` checks the App ID and App secret (an app token call) and returns the Facebook
-     login address. The owner adds this Naota's callback address to the app's Valid OAuth
+     login address. The owner adds this Vanhanh's callback address to the app's Valid OAuth
      Redirect URIs once; the card shows it ready to copy.
   2. Facebook sends the browser back to `/messenger/oauth/callback`; `callback()` trades the code
      for a user token, makes it long-lived and lists the Pages the person manages.
@@ -13,14 +13,14 @@ standard Facebook Login redirect flow on the owner's OWN Meta app:
      hands each ticked Page to `messenger_setup.connect`, which derives the non-expiring Page
      token, registers the webhook and subscribes the Page, exactly as the wizard did.
 
-Why the owner's own app and not one shared "NAOTA" app: every Naota runs at its own address,
+Why the owner's own app and not one shared "VANHANH" app: every Vanhanh runs at its own address,
 Meta wants each redirect URI registered in advance, its webhook takes one callback URL per app,
 and the repo is public so it cannot carry an app secret. A shared app needs a central relay;
-this flow needs nothing outside the owner's Naota.
+this flow needs nothing outside the owner's Vanhanh.
 
 Pending logins live in memory for 15 minutes and are keyed by an unguessable `state`. The user
 token never leaves this module or the server; results carry Page ids, names and pictures only.
-Endpoints are configurable (`NAOTA_FACEBOOK_WEB`) so tests can point the login address elsewhere.
+Endpoints are configurable (`VANHANH_FACEBOOK_WEB`) so tests can point the login address elsewhere.
 """
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ def _c(vi: str, en: str) -> str:
 
 
 def _web() -> str:
-    return (os.environ.get("NAOTA_FACEBOOK_WEB") or "https://www.facebook.com").rstrip("/")
+    return (os.environ.get("VANHANH_FACEBOOK_WEB") or "https://www.facebook.com").rstrip("/")
 
 
 def _purge(now: float = 0.0) -> None:
@@ -93,8 +93,8 @@ async def start(app_id: str, app_secret: str, redirect_uri: str, brain: str = ""
         return {"ok": False, "error": bad}
     if not str(redirect_uri or "").startswith("https://"):
         return {"ok": False, "error": _c(
-            "Naota cần địa chỉ HTTPS (Cài đặt, Truy cập từ xa) và bạn phải mở Naota bằng địa chỉ đó.",
-            "Naota needs an HTTPS address (Settings, Remote access) and you must open Naota through it.")}
+            "Vanhanh cần địa chỉ HTTPS (Cài đặt, Truy cập từ xa) và bạn phải mở Vanhanh bằng địa chỉ đó.",
+            "Vanhanh needs an HTTPS address (Settings, Remote access) and you must open Vanhanh through it.")}
     own = client is None
     client = client or httpx.AsyncClient(timeout=20)
     try:
@@ -133,8 +133,8 @@ async def callback(state: str, code: str, error: str = "", error_description: st
     with _lock:
         p = dict(_pending.get(str(state or "")) or {})
     if not p:
-        return {"ok": False, "error": _c("Phiên đăng nhập đã hết hạn. Quay lại Naota bấm Đăng nhập Facebook lần nữa.",
-                                         "This sign-in expired. Go back to Naota and click Log in with Facebook again.")}
+        return {"ok": False, "error": _c("Phiên đăng nhập đã hết hạn. Quay lại Vanhanh bấm Đăng nhập Facebook lần nữa.",
+                                         "This sign-in expired. Go back to Vanhanh and click Log in with Facebook again.")}
     if error or not code:
         msg = error_description or error or _c("Facebook không trả mã đăng nhập.", "Facebook returned no sign-in code.")
         if error == "access_denied":
@@ -215,12 +215,12 @@ def forget(state: str) -> None:
         _pending.pop(str(state or ""), None)
 
 
-def privacy_html(brand: str = "NAOTA", pages=()) -> str:
+def privacy_html(brand: str = "VANHANH", pages=()) -> str:
     """A plain privacy policy page Meta accepts as the app's Privacy Policy URL and User data deletion
-    instructions URL, served by this Naota itself so the owner can switch the app to Live. Both
+    instructions URL, served by this Vanhanh itself so the owner can switch the app to Live. Both
     languages on one page: Meta's reviewers and the Page's customers may read either."""
     import html as h
-    b = h.escape(str(brand or "NAOTA"))
+    b = h.escape(str(brand or "VANHANH"))
     names = ", ".join(h.escape(str(n)) for n in pages if str(n or "").strip())
     on_vi = f" của {names}" if names else ""
     on_en = f" of {names}" if names else ""

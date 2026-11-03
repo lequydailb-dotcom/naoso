@@ -19,7 +19,7 @@ này từng có, nên file này canh đúng bốn chỗ mà một lần sửa �
    qua bảng dịch nào, và `vault_root` là brain CỦA BOT. Sai một trong hai là hoặc cấp nhầm
    quyền, hoặc mở toang brain của chủ.
 
-4. **Cả tám bộ não đều có tool.** Lời hứa gốc của Naota: đổi bộ não thì năng lực không đổi.
+4. **Cả tám bộ não đều có tool.** Lời hứa gốc của Vanhanh: đổi bộ não thì năng lực không đổi.
    Cấp tool cho sáu engine API rồi bỏ hai gói thuê bao lại là kiểu hỏng im lặng tệ nhất - chủ
    đặt Toàn quyền, bot vẫn lễ phép trả lời, và không làm gì cả.
 """
@@ -29,8 +29,8 @@ import os
 import sys
 import tempfile
 
-_STATE = tempfile.mkdtemp(prefix="naota-mucquyen-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="vanhanh-mucquyen-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -139,7 +139,7 @@ check("cảnh báo Được ghi nói rõ vẫn CHẶN nhóm thao tác ra ngoài"
 # CANARY - cảnh báo phải tả theo LOẠI THAO TÁC, không kể tên việc của một ngành.
 #
 # Bản đầu viết "tạo đơn, tiêu tiền quảng cáo, đăng bài": đọc lọt tai với người bán hàng, vô
-# nghĩa với người dùng Naota để quản lý dự án, chăm sức khoẻ hay dạy học. Tệ hơn: người đó đọc
+# nghĩa với người dùng Vanhanh để quản lý dự án, chăm sức khoẻ hay dạy học. Tệ hơn: người đó đọc
 # xong tưởng cảnh báo không áp cho mình, rồi bật Toàn quyền vì nghĩ mình không có gì để mất.
 # Đúng chỗ này: bot không được cá nhân hoá theo chủ quá mức.
 for nganh in ("đơn hàng", "tạo đơn", "quảng cáo", "khách hàng", "cửa hàng", "bán hàng",
@@ -175,9 +175,9 @@ _da_goi = {}
 async def _discover_gia(mode="full", vault_root=None, **kw):
     _da_goi["mode"] = mode
     _da_goi["vault_root"] = str(vault_root or "")
-    return ([{"fn": "naota_doc_file", "server": "naota", "name": "naota_doc_file",
+    return ([{"fn": "vanhanh_doc_file", "server": "vanhanh", "name": "vanhanh_doc_file",
               "schema": {"type": "object", "properties": {}}}],
-            {"naota_doc_file": {"call": None}})
+            {"vanhanh_doc_file": {"call": None}})
 
 
 mcp_hub.discover_all = _discover_gia
@@ -199,7 +199,7 @@ def _lam_stream_co_tool(prov):
         _goi.append({"prov": prov, "co_tool": True})
 
         async def _gen():
-            yield {"type": "tool_call", "name": "naota_doc_file"}
+            yield {"type": "tool_call", "name": "vanhanh_doc_file"}
             yield {"type": "text", "content": "Em làm xong rồi ạ."}
             yield {"type": "usage", "input": 20, "output": 7}
         return _gen()
@@ -331,7 +331,7 @@ check("Toàn quyền: ảnh khách gửi tới engine dưới dạng đường d
 # ============================================================
 # 5. Mức Được ghi: mọi bộ não có đường công cụ hẹp đều dùng được, hai CLI còn lại nói thật
 # ============================================================
-# Đây là lời hứa gốc của Naota, và là chỗ dễ hụt nhất: `_api_stream_mcp` chỉ phục vụ sáu engine
+# Đây là lời hứa gốc của Vanhanh, và là chỗ dễ hụt nhất: `_api_stream_mcp` chỉ phục vụ sáu engine
 # API, nên copy nguyên nó sang là hai gói thuê bao lặng lẽ chạy không tool. Chủ đặt Toàn quyền,
 # bot vẫn lễ phép trả lời, và không làm gì cả.
 # Grok Build và Antigravity không có đường hẹp an toàn (CLI có lệnh máy riêng). Trước đây chúng rơi

@@ -1,4 +1,4 @@
-"""Tầng CRM trên kho hội thoại khách: hàm mà gói naota.crm cắm vào.
+"""Tầng CRM trên kho hội thoại khách: hàm mà gói vanhanh.crm cắm vào.
 
     python tests/run.py hoi_thoai_crm      (KHÔNG mạng)
 
@@ -13,8 +13,8 @@ import sys
 import tempfile
 import time
 
-_STATE = tempfile.mkdtemp(prefix="naota-crm-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="vanhanh-crm-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")

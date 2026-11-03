@@ -15,9 +15,9 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-budget-")
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
-TEMP = Path(tempfile.mkdtemp(prefix="naota-budget-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-budget-")
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-budget-w-"))
 
 import agent_budget as AB  # noqa: E402
 import agent_ledger as ALG  # noqa: E402
@@ -219,11 +219,11 @@ lid2 = ALS.add(mst, agent_key=key, scope=f"dm:{key}", kind="method", text="Gửi
 rp = client.post(f"/agents/viet/lessons/{lid2}/promote", params={"brain": B})
 check("route chủ nâng bài học lên mọi nơi: 200", rp.status_code == 200
       and ALS.get(mst, rp.json()["result"]["lesson_id"])["scope"] == "*", rp.text)
-# Chốt an toàn: host học mặc định của main.py không bao giờ dựng engine thật trong test (NAOTA_NO_REAL_JUDGE_ENGINE).
+# Chốt an toàn: host học mặc định của main.py không bao giờ dựng engine thật trong test (VANHANH_NO_REAL_JUDGE_ENGINE).
 import asyncio  # noqa: E402
 import agent_review as ARV  # noqa: E402
 
-check("_paths.py đặt chốt NAOTA_NO_REAL_JUDGE_ENGINE cho mọi test", os.environ.get("NAOTA_NO_REAL_JUDGE_ENGINE") == "1")
+check("_paths.py đặt chốt VANHANH_NO_REAL_JUDGE_ENGINE cho mọi test", os.environ.get("VANHANH_NO_REAL_JUDGE_ENGINE") == "1")
 dsid = ss2 = main.get_store()
 dsid = ss2.create_session(brain=B, channel="agent:viet")
 dmid = ss2.append_message(dsid, "assistant", "Tin của Viết")

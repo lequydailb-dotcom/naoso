@@ -13,7 +13,7 @@ function graphTw(khoa, bien) {
 }
 
 // ============================================
-// NAOTA - Knowledge graph "Tinh vân bộ não" (force-graph / d3-force, kiểu Obsidian)
+// VANHANH - Knowledge graph "Tinh vân bộ não" (force-graph / d3-force, kiểu Obsidian)
 // Engine d3-force. Thiết kế: node = sao phát sáng, TÔ MÀU THEO DANH MỤC
 // (thư mục cha, khớp nhãn PERSONAL/BUSINESS...), hover = rọi đèn vùng liên quan (synapse), thở nhẹ
 // lúc nghỉ, nhãn chỉ hiện khi hover / zoom sát / vài hub lớn.
@@ -24,7 +24,7 @@ function graphTw(khoa, bien) {
 // chàm vẫn là chàm, lục vẫn là lục - chỉ đổi độ đậm cho hợp nền.
 // Tối: màu rực để nổi trên nền đen. Sáng: mực sẫm cùng hue, đều đạt >=4.5:1 trên
 // giấy ngà - bê nguyên bảng rực sang nền trắng thì chấm nào cũng nhợt như nhau.
-// Hai màu đầu là vàng và xanh thương hiệu: danh mục đầu tiên (thường đông nhất) mang màu NAOTA.
+// Hai màu đầu là vàng và xanh thương hiệu: danh mục đầu tiên (thường đông nhất) mang màu VANHANH.
 const CAT_COLORS_DARK = ["#fccb1d", "#33b5f0", "#3fdc9a", "#f0a24a", "#ff7a9c", "#8b93ff",
   "#b98cff", "#5ad1c4", "#e07ad1", "#7ed957", "#ff9f6b", "#9fb0cf"];
 const CAT_COLORS_LIGHT = ["#96760a", "#006b9e", "#0f8f63", "#b46a10", "#c93b62", "#4a52c9",
@@ -69,7 +69,7 @@ function _hash(s) { let h = 0; s = String(s || ""); for (let i = 0; i < s.length
 
 // Gán màu danh mục (tuần tự theo danh mục) vào n.color của từng node.
 // Nhớ CHỈ SỐ danh mục (không phải màu) để đổi tông chỉ là tra lại bảng khác.
-window.NaotaCatColorize = function (nodes) {
+window.VanhanhCatColorize = function (nodes) {
   const idx = {}; let next = 0;
   (nodes || []).forEach(n => {
     const segs = (n.path || "").split("/");
@@ -78,9 +78,9 @@ window.NaotaCatColorize = function (nodes) {
     n.__catIdx = idx[cat];
     n.color = CAT_COLORS[idx[cat] % CAT_COLORS.length];   // ghi đè màu mặc định của backend bằng màu danh mục
   });
-  window.__naotaCatIdx = idx;
-  window.__naotaCatMap = _mapFromIdx(idx);   // để nhãn danh mục tô chữ khớp màu
-  return window.__naotaCatMap;
+  window.__vanhanhCatIdx = idx;
+  window.__vanhanhCatMap = _mapFromIdx(idx);   // để nhãn danh mục tô chữ khớp màu
+  return window.__vanhanhCatMap;
 };
 
 function _mapFromIdx(idx) {
@@ -91,7 +91,7 @@ function _mapFromIdx(idx) {
 
 // Mở một lối tra màu cho nhãn danh mục trong app.js.
 // để nó lấy đúng bảng màu của tông đang bật.
-window.NaotaCatColorAt = function (idx) {
+window.VanhanhCatColorAt = function (idx) {
   return CAT_COLORS[(idx || 0) % CAT_COLORS.length];
 };
 
@@ -120,10 +120,10 @@ function _glowSprite(color) {
 function _applyGraphTheme(light) {
   CAT_COLORS = light ? CAT_COLORS_LIGHT : CAT_COLORS_DARK;
   INK = light ? INK_LIGHT : INK_DARK;
-  if (window.__naotaCatIdx) window.__naotaCatMap = _mapFromIdx(window.__naotaCatIdx);
-  const g = window.__naotaGraph;
+  if (window.__vanhanhCatIdx) window.__vanhanhCatMap = _mapFromIdx(window.__vanhanhCatIdx);
+  const g = window.__vanhanhGraph;
   if (g && g._recolor) g._recolor();
-  try { window.dispatchEvent(new Event("naota-catcolors-change")); } catch (e) {}
+  try { window.dispatchEvent(new Event("vanhanh-catcolors-change")); } catch (e) {}
 }
 // Đọc tông hiện tại từ thuộc tính trên <html>. Bọc typeof vì file này còn được nạp
 // trong Node (test JS ở tests/js/) với DOM giả lập tối thiểu, không có documentElement.
@@ -132,11 +132,11 @@ function _themeIsLight() {
     ? document.documentElement.getAttribute("data-theme") === "light"
     : false;
 }
-// KHÔNG dùng window.naotaTheme.on() ở đây: file này có lúc nạp trước theme.js, khi đó
-// window.naotaTheme chưa tồn tại nên đăng ký hụt IM LẶNG và đồ thị kẹt ở bảng màu tối.
+// KHÔNG dùng window.vanhanhTheme.on() ở đây: file này có lúc nạp trước theme.js, khi đó
+// window.vanhanhTheme chưa tồn tại nên đăng ký hụt IM LẶNG và đồ thị kẹt ở bảng màu tối.
 // Nghe thẳng sự kiện + tự đọc thuộc tính thì đúng ở mọi thứ tự nạp.
 if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
-  window.addEventListener("naota-theme-change", function (e) {
+  window.addEventListener("vanhanh-theme-change", function (e) {
     _applyGraphTheme(!!(e && e.detail && e.detail.light));
   });
 }
@@ -154,7 +154,7 @@ function _centerGravity(strength) {
   return force;
 }
 
-class NaotaGraph {
+class VanhanhGraph {
   constructor(container) {
     this.container = container;
     this.graph = null;
@@ -177,8 +177,8 @@ class NaotaGraph {
     this._henGiua = null;      // hẹn giờ về giữa
     this._loaiTro = "";        // "mouse" | "touch" | "pen" của lần chạm cuối
     this._diemCham = null;
-    window.__naotaGraph = this;
-    try { window.dispatchEvent(new Event("naota-graph-created")); } catch (e) {}
+    window.__vanhanhGraph = this;
+    try { window.dispatchEvent(new Event("vanhanh-graph-created")); } catch (e) {}
   }
 
   _prep(nodes) {
@@ -209,8 +209,8 @@ class NaotaGraph {
     const nodes = Array.isArray(data.nodes) ? data.nodes : [];
     this._catMap = null;                     // gán lại màu danh mục tươi cho mỗi lần nạp
     this._prep(nodes);
-    window.__naotaCatIdx = this._catMap;                    // danh mục → chỉ số
-    window.__naotaCatMap = _mapFromIdx(this._catMap);       // để nhãn danh mục (app.js) tô chữ khớp màu node
+    window.__vanhanhCatIdx = this._catMap;                    // danh mục → chỉ số
+    window.__vanhanhCatMap = _mapFromIdx(this._catMap);       // để nhãn danh mục (app.js) tô chữ khớp màu node
     const links = (data.edges || []).map(e => ({ source: e.source, target: e.target }));
 
     if (!this.graph) {
@@ -467,14 +467,14 @@ class NaotaGraph {
       if (this._chuotTren && this._loaiTro === "mouse") return;     // chuột còn trên quả cầu: chờ nó rời đi
       this._daKeo = false;
       this.refit(700);
-    }, NaotaGraph.VE_GIUA_MS);
+    }, VanhanhGraph.VE_GIUA_MS);
   }
 
   _nhipVe() {
     const dong = this.level > 0.02 || this._thinking || this._hoverId != null || this._chuotTren;
     const gio = (typeof performance !== "undefined" ? performance.now() : Date.now());
     if (dong) this._dongLuc = gio;
-    const can = dong || (gio - (this._dongLuc || 0) < NaotaGraph.AN_HAN_MS);
+    const can = dong || (gio - (this._dongLuc || 0) < VanhanhGraph.AN_HAN_MS);
     if (can === this._veLienTuc) return;          // không đổi thì đừng gọi lại thư viện
     this._veLienTuc = can;
     if (this.graph) { try { this.graph.autoPauseRedraw(!can); } catch (e) {} }
@@ -556,7 +556,7 @@ class NaotaGraph {
     if (this._tlTimer) { clearInterval(this._tlTimer); this._tlTimer = null; }
     try { this.graph.warmupTicks(24); } catch (e) {}
     if (this._tlFull) { this.graph.graphData(this._tlFull); this._tlFull = null; }
-    try { window.dispatchEvent(new Event("naota-timelapse-end")); } catch (e) {}
+    try { window.dispatchEvent(new Event("vanhanh-timelapse-end")); } catch (e) {}
   }
 
   get timelapseRunning() { return !!this._tlTimer; }
@@ -593,4 +593,4 @@ class NaotaGraph {
   }
 }
 
-window.NaotaGraph = NaotaGraph;
+window.VanhanhGraph = VanhanhGraph;

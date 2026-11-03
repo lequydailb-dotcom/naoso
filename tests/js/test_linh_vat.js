@@ -1,9 +1,9 @@
-/* Linh vật Naota (dashboard/pet.js) - khoá những dây nối hỏng LẶNG LẼ.
+/* Linh vật Vanhanh (dashboard/pet.js) - khoá những dây nối hỏng LẶNG LẼ.
 
        node tests/js/test_linh_vat.js
 
    Con pet không có lỗi nào lên console khi nó sai: nó chỉ đơn giản là ngồi im, hay nhìn thẳng
-   thay vì liếc, hay trơ ra một biểu cảm trong khi Naota đang nghĩ. Nên những thứ dưới đây phải
+   thay vì liếc, hay trơ ra một biểu cảm trong khi Vanhanh đang nghĩ. Nên những thứ dưới đây phải
    có test, không thể trông vào việc nhìn màn hình:
 
      1. MỌI lớp trạng thái mà app.js có thể bắn qua setOrbState đều có mục trong STATES.
@@ -38,7 +38,7 @@ function check(name, cond) {
 }
 
 // ---- 1. Trạng thái: app.js bắn gì thì pet.js phải đỡ được cái đó ----
-check("app.js đẩy trạng thái orb sang pet", /NaotaPet\.setState\(petState \|\| state \|\| "idle"\)/.test(app));
+check("app.js đẩy trạng thái orb sang pet", /VanhanhPet\.setState\(petState \|\| state \|\| "idle"\)/.test(app));
 // pet tách "ĐÃ BẮT ĐƯỢC giọng" (user_speaking) khỏi "đang chờ nghe", orb thì không.
 check("mic bắt được giọng thì pet sang hearing",
   /setOrbState\(cls, label, cls === "listening" && turn\.state === "user_speaking" \? "hearing" : cls\)/.test(app));
@@ -104,18 +104,18 @@ check("css: [hidden] thắng được display:flex", /\.pet\[hidden\], \.pet-men
 check("css: menu neo tuyệt đối, không nằm trong flex 56px", /\.pet-menu \{[^}]*position: absolute;/.test(css));
 
 // ---- 5. Dấu ấn thay logo ----
-// NAOTA 1.0.0: chỗ logo luôn là logo chữ NAOTA, linh vật không thay vào nữa.
-check("linh vật không thay logo NAOTA",
+// VANHANH 1.0.0: chỗ logo luôn là logo chữ VANHANH, linh vật không thay vào nữa.
+check("linh vật không thay logo VANHANH",
   /function dungDauAn\(\) \{ return false && !!cfg\.enabled && !_logoRieng; \}/.test(pet));
 check("tắt dấu ấn thì trả lại thẻ <img> nguyên bản", /o\.innerHTML = o\.dataset\.brandGoc;/.test(pet));
-// Chữ "NAOTA" nằm CẠNH dấu ấn trong cùng khối .rail-brand. Nếu pet.js thay ruột của cả
+// Chữ "VANHANH" nằm CẠNH dấu ấn trong cùng khối .rail-brand. Nếu pet.js thay ruột của cả
 // khối thì mỗi lần đổi hình dáng hay bảng màu là chữ bị xoá theo - nên nó phải nhắm vào ô
 // con .brand-mark, và index.html phải có sẵn ô con đó.
 check("dấu ấn thay ruột ô .brand-mark, không thay cả khối thương hiệu",
   /var LO_DAU_AN = "\.rail-brand \.brand-mark, \.brand \.brand-icon";/.test(pet));
-check("index.html: .rail-brand có ô dấu ấn riêng và chữ NAOTA",
+check("index.html: .rail-brand có ô dấu ấn riêng và chữ VANHANH",
   /<div class="rail-brand"><span class="brand-mark">/.test(html)
-  && /<span class="rail-brand-text">NAOTA<\/span>/.test(html));
+  && /<span class="rail-brand-text">VANHANH<\/span>/.test(html));
 check("css: thu gọn thanh bên thì giấu chữ, chỉ còn dấu ấn",
   /\.rail\.collapsed \.rail-brand-text \{ display: none; \}/.test(railCss));
 // Quầng sáng cam phải ở ô DẤU ẤN chứ không ở cả khối: filter của cha ăn xuống cả cây con và
@@ -123,7 +123,7 @@ check("css: thu gọn thanh bên thì giấu chữ, chỉ còn dấu ấn",
 check("css: quầng sáng nằm trên .brand-mark, không trên .rail-brand",
   /\.rail-brand \.brand-mark \{[\s\S]{0,120}drop-shadow/.test(railCss)
   && !/\.rail-brand \{[^}]*drop-shadow/.test(railCss));
-check("branding.js báo cho pet khi đổi logo", /NaotaPet\.setLogoRieng\(rieng\)/.test(branding));
+check("branding.js báo cho pet khi đổi logo", /VanhanhPet\.setLogoRieng\(rieng\)/.test(branding));
 check("branding.js truyền đúng true khi tải lên, false khi khôi phục",
   /bustLogos\(true\);/.test(branding) && /bustLogos\(false\);/.test(branding));
 check("css: chỗ logo mang mặt linh vật thì bỏ quầng sáng cam", /\.brand-pet \{ filter: none !important; \}/.test(css));
@@ -251,7 +251,7 @@ check("ws.onclose gọi baoDutMang", /ws\.onclose = \(e?\) => \{[\s\S]{0,320}bao
   const avatarJs = read("dashboard/agent-avatar.js");
   check("avatar trợ lý không đọc màu mắt của pet, chưa chọn thì suy tự động",
     /var mat = mauMatCua\(o\.mat, o\.mauMat\) \|\| mauMatTuDong\(tone\[0\]\);/.test(pet)
-    && !/cfg\.eye|NaotaPet\.get\(\)/.test(avatarJs));
+    && !/cfg\.eye|VanhanhPet\.get\(\)/.test(avatarJs));
   check("trang Linh vật dùng bộ chỉnh chung của pet.js",
     /P\.editorHtml\(cur, OPTS_ED\)/.test(console_js)
     && /P\.editorBind\(host\.querySelector\("\[data-pet-editor\]"\), cur, \(patch, tam\) => P\.setCfg\(patch, tam\), OPTS_ED\)/.test(console_js));
@@ -350,7 +350,7 @@ check("ws.onclose gọi baoDutMang", /ws\.onclose = \(e?\) => \{[\s\S]{0,320}bao
   check("menu nhanh đúng 6 mục theo thứ tự chốt",
     ids.join(",") === "chat,agent,workflow,mic,pet,teams");
   check("Trợ lý / Quy trình đi qua openTab của trang Cộng sự",
-    /window\.NaotaWorkspace\.openTab\(id\)/.test(pet));
+    /window\.VanhanhWorkspace\.openTab\(id\)/.test(pet));
   // Mic: BẤM HỘ nút mic thật, không dựng đường thứ hai. Nút đó còn kéo theo loa, chế độ Live
   // và các câu báo lỗi mic - hai đường song song là sớm muộn nói hai chuyện khác nhau.
   check("mục mic bấm hộ chính nút mic của ô nhập",
@@ -389,8 +389,8 @@ check("ws.onclose gọi baoDutMang", /ws\.onclose = \(e?\) => \{[\s\S]{0,320}bao
 // ---- 10d. Icon trang Linh vật là chính khuôn mặt linh vật ----
 {
   const icons = read("dashboard/icons.js");
-  check("icons.js có icon riêng naota-pet", /"naota-pet":/.test(icons));
-  check("naota-pet có vành cam + mắt liếc lên phải",
+  check("icons.js có icon riêng vanhanh-pet", /"vanhanh-pet":/.test(icons));
+  check("vanhanh-pet có vành cam + mắt liếc lên phải",
     /stroke="#F28C28"/.test(icons) && /cy="10\.74"/.test(icons));
   check("bodyOf tra bảng icon riêng trước Lucide", /if \(RIENG\[name\]\) return RIENG\[name\];/.test(icons));
   check("console.js: trang Avatar dùng icon chân dung",
@@ -425,7 +425,7 @@ check("ws.onclose gọi baoDutMang", /ws\.onclose = \(e?\) => \{[\s\S]{0,320}bao
   check("cỡ mắt được nhân vào mắt SỐNG (veMat)", /function veMat\([\s\S]{0,2600}heSoMat\(\)/.test(pet));
   check("cỡ mắt được nhân vào chân dung TĨNH (chanDung)", /function chanDung\([\s\S]{0,2200}7\.2 \* k/.test(pet));
   check("mắt to thì nới khoảng cách hai mắt cho khỏi chạm nhau", /function cachMat\(/.test(pet));
-  check("NaotaPet phơi danh sách cỡ mắt ra cho trang cài đặt", /eyeSizes: function \(\)/.test(pet));
+  check("VanhanhPet phơi danh sách cỡ mắt ra cho trang cài đặt", /eyeSizes: function \(\)/.test(pet));
 
   check("bộ chỉnh có thanh trượt cỡ mắt",
     /truot\("data-pet-eye-size"/.test(pet) && /settings\.pet_eye_size/.test(pet));
@@ -441,4 +441,4 @@ check("menu dùng icon lucide chứ không phải emoji",
   && /ic: icon\("message-circle"\)/.test(pet));
 
 if (fails.length) { console.log("\nFAIL:", fails.length, fails); process.exit(1); }
-console.log("\nOK - linh vật Naota");
+console.log("\nOK - linh vật Vanhanh");

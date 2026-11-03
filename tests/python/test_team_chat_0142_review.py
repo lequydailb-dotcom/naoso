@@ -17,9 +17,9 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-0142r-")
-TEMP = Path(tempfile.mkdtemp(prefix="naota-team-0142r-w-"))
-BR = Path(tempfile.mkdtemp(prefix="naota-team-0142r-brain-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-0142r-")
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-team-0142r-w-"))
+BR = Path(tempfile.mkdtemp(prefix="vanhanh-team-0142r-brain-"))
 (BR / "agents").mkdir()
 for slug, name, role in (("lan", "Lan", "Chăm khách"), ("minh", "Minh", "Viết bài")):
     (BR / "agents" / f"{slug}.md").write_text(f"---\nname: {name}\nrole: {role}\n---\nBạn là {name}.\n",

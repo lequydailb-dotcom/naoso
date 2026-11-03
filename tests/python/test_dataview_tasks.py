@@ -14,7 +14,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-dvtest-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-dvtest-"))
 
 import main  # noqa: E402
 
@@ -27,12 +27,12 @@ def check(name, cond):
         _fails.append(name)
 
 
-_TMP = Path(tempfile.mkdtemp(prefix="naota-dvbrain-")).resolve()
+_TMP = Path(tempfile.mkdtemp(prefix="vanhanh-dvbrain-")).resolve()
 BRAIN = _TMP / "brains" / "vault"
 (BRAIN / "05 - Việc").mkdir(parents=True)
 main._brain_root = lambda brain: str(BRAIN)
-os.environ["NAOTA_HOST"] = "127.0.0.1"
-os.environ.pop("NAOTA_REQUIRE_LOGIN", None)
+os.environ["VANHANH_HOST"] = "127.0.0.1"
+os.environ.pop("VANHANH_REQUIRE_LOGIN", None)
 
 NOTE = """---
 type: project

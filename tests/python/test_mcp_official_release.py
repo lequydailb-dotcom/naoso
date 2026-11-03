@@ -9,9 +9,9 @@ No network. Three things are guarded here:
    package with `@latest`. A bare name is not enough: npx and uvx reuse whatever version a
    machine cached first, so two machines would run two versions forever. The one exception must
    say why in `ngoai_le_ban_chinh_thuc`: Zalo no longer follows upstream;
-   Naota moves to its own CLI and only zca-js keeps following official releases. Until then it
-   runs the unmodified zalo-agent-cli 1.6.2, whose formats Naota reads directly, so its three
-   pins (catalog, zalo_cli.py, zalo_login.py) must match. The store runs the same rule in naota-store/tools/ban_chinh_thuc.py.
+   Vanhanh moves to its own CLI and only zca-js keeps following official releases. Until then it
+   runs the unmodified zalo-agent-cli 1.6.2, whose formats Vanhanh reads directly, so its three
+   pins (catalog, zalo_cli.py, zalo_login.py) must match. The store runs the same rule in vanhanh-store/tools/ban_chinh_thuc.py.
 2. workspace-mcp 2.x added `run_script_function` (runs Apps Script) and `import_to_google_*`.
    Their names carry no write hint, so classify() used to put both in the READ group.
 3. `call_rules` without `items`: a single-action gateway such as Hostinger 2.x `execute`, which
@@ -23,7 +23,7 @@ import json
 import os
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-official-release-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-official-release-"))
 
 import mcp_catalog  # noqa: E402
 import zalo_cli  # noqa: E402

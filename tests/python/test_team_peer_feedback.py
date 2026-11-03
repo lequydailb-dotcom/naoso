@@ -17,9 +17,9 @@ import tempfile
 from contextlib import closing
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-peer-")
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
-TEMP = Path(tempfile.mkdtemp(prefix="naota-peer-w-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-peer-")
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
+TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-peer-w-"))
 
 import agent_lessons as ALS  # noqa: E402
 import resonance_store as RS  # noqa: E402
@@ -89,7 +89,7 @@ def say(T, key, text="Làm tiếp nhé"):
 
 
 def pf(mid, note):
-    return f'Nhận xét xong.\n<!-- NAOTA_TEAM: {{"op": "peer_feedback", "message_id": {mid}, "note": "{note}"}} -->'
+    return f'Nhận xét xong.\n<!-- VANHANH_TEAM: {{"op": "peer_feedback", "message_id": {mid}, "note": "{note}"}} -->'
 
 
 mB = say(T1, B)
@@ -100,7 +100,7 @@ rows = ALS.peer_feedback(gs, T1["team_id"], B)
 check("trưởng nhóm góp ý: host gán nguồn leader, gắn tin, lượt", len(rows) == 1 and rows[0]["author_role"] == "leader"
       and rows[0]["author_key"] == A and rows[0]["message_id"] == mB and rows[0]["turn_ref"].startswith("turn:")
       and rows[0]["status"] == "active", rows)
-check("lệnh bóc khỏi tin đăng (không hiện khối điều khiển)", "NAOTA_TEAM" not in ss.team_message(T1["session_id"],
+check("lệnh bóc khỏi tin đăng (không hiện khối điều khiển)", "VANHANH_TEAM" not in ss.team_message(T1["session_id"],
                                                                                               mA)["content"])
 box["texts"][A] = "Đã rõ."
 say(T1, B)

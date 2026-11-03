@@ -10,9 +10,9 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-routes-")
-os.environ.setdefault("NAOTA_NO_REAL_TEAM_ENGINE", "1")
-BR = Path(tempfile.mkdtemp(prefix="naota-team-routes-brain-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-routes-")
+os.environ.setdefault("VANHANH_NO_REAL_TEAM_ENGINE", "1")
+BR = Path(tempfile.mkdtemp(prefix="vanhanh-team-routes-brain-"))
 (BR / "agents").mkdir()
 for slug, name in (("lan", "Lan"), ("minh", "Minh")):
     (BR / "agents" / f"{slug}.md").write_text(f"---\nname: {name}\nrole: Thành viên\n---\nBạn là {name}.\n",

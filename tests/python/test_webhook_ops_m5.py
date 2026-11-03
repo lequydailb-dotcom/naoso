@@ -23,10 +23,10 @@ import tempfile
 import time
 from pathlib import Path
 
-STATE = Path(tempfile.mkdtemp(prefix="naota-wh-m5-"))
-os.environ["NAOTA_STATE_DIR"] = str(STATE)
-os.environ["NAOTA_NO_REAL_JUDGE_ENGINE"] = "1"
-os.environ["NAOTA_WH_NO_NETWORK"] = "1"
+STATE = Path(tempfile.mkdtemp(prefix="vanhanh-wh-m5-"))
+os.environ["VANHANH_STATE_DIR"] = str(STATE)
+os.environ["VANHANH_NO_REAL_JUDGE_ENGINE"] = "1"
+os.environ["VANHANH_WH_NO_NETWORK"] = "1"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

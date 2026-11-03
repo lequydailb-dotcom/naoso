@@ -1,12 +1,12 @@
 """Automatic learning from owner chat: skills, agents and workflows improve themselves from real mistakes.
 
-Design: Naota learns while the owner talks to it, with nobody approving anything. The flow:
+Design: Vanhanh learns while the owner talks to it, with nobody approving anything. The flow:
 
 1. Episodes. A chat turn that loaded a skill, an agent chat turn, or a finished workflow run is recorded. The owner's
    next message in that chat is stored with it as the follow-up (a correction, a redo, a complaint).
 2. Judge. Later, a text-only call reads the episode and says `ok`, `mistake` or `unsure`. A mistake comes with what
    went wrong, the right behaviour and one self-contained test case.
-3. Learning run. After enough mistakes on one target, Naota writes its own cases with grading criteria, runs the
+3. Learning run. After enough mistakes on one target, Vanhanh writes its own cases with grading criteria, runs the
    loop (Harness² sequential recursion, baseline wins ties, sealed paired verdict, regression gate) with a
    grader call, and applies the result only when the verdict is "helped". The old version is kept for undo.
 
@@ -61,7 +61,7 @@ def placeholders(text: str) -> set:
 
 
 def check_candidate(kind: str, text: str, original: str) -> str:
-    """Every text Naota would put live is checked like an owner-applied procedure: no host markers, no wording that
+    """Every text Vanhanh would put live is checked like an owner-applied procedure: no host markers, no wording that
     overrides the owner, no settings lines; a workflow task keeps exactly the placeholders it had."""
     import improvement_agent
     if kind == "agent":
@@ -87,20 +87,20 @@ _SKILL_PATH = re.compile(r"(?:^|[\\/])skills[\\/]([^\\/]+)[\\/]SKILL\.md$", re.I
 
 def skill_from_tool(name: str, args: dict) -> str:
     """The skill slug a native engine tool call loads, or "": Claude Code's `Skill` tool, a read of
-    `skills/<slug>/SKILL.md`, or the hub's `naota_use_skill` seen from the CLI side."""
+    `skills/<slug>/SKILL.md`, or the hub's `vanhanh_use_skill` seen from the CLI side."""
     if not isinstance(args, dict):
         return ""
     if name == "Skill":
         return str(args.get("skill") or args.get("command") or args.get("name") or "").strip().lstrip("/")
-    if name.endswith("naota_use_skill"):
+    if name.endswith("vanhanh_use_skill"):
         return ""  # the hub records it itself, with the verified slug
-    if name in ("Read", "read_file", "naota_read_file"):
+    if name in ("Read", "read_file", "vanhanh_read_file"):
         match = _SKILL_PATH.search(str(args.get("file_path") or args.get("path") or ""))
         return match.group(1) if match else ""
     return ""
 
 
-from improvement_store import ConflictError  # noqa: E402 - target changed since Naota wrote it, or nothing to undo
+from improvement_store import ConflictError  # noqa: E402 - target changed since Vanhanh wrote it, or nothing to undo
 
 
 def _today(clock) -> str:
@@ -348,7 +348,7 @@ class Targets:
             return None
         front, body = split_frontmatter(asset.content.decode("utf-8"))
         return Target("skill", slug, -1, body.strip(), lambda v: (
-            "You are a Naota assistant. Follow the skill below.\n\n<skill>\n" + v + "\n</skill>"),
+            "You are a Vanhanh assistant. Follow the skill below.\n\n<skill>\n" + v + "\n</skill>"),
             meta={"hash": asset.content_hash, "front": front, "path": asset.relative_path})
 
     def _read_agent(self, brain, slug, step):
@@ -375,7 +375,7 @@ class Targets:
         def prompt(version, material):  # what the runner sends: placeholders replaced, nothing added; step 0 has no prev
             return version.replace("{{input}}", material).replace("{{prev}}", material if step > 0 else "")
         return Target("workflow", slug, step, str(steps[step].get("task") or ""), lambda v: (
-            persona or "You are a Naota assistant doing one step of a workflow."), prompt,
+            persona or "You are a Vanhanh assistant doing one step of a workflow."), prompt,
             meta={"hash": hashlib.sha256(raw).hexdigest(), "path": str(path)})
 
     # apply returns undo info; undo restores it
@@ -608,7 +608,7 @@ class AutoLearner:
         bad_step = kind == "workflow" and not (isinstance(step, int) and not isinstance(step, bool)
                                                and 0 <= step < len(workflow_steps(target_text)))
         if verdict == "mistake" and (not str(case.get("prompt") or "").strip() or not criteria or bad_step):
-            verdict = "unsure"  # a mistake Naota cannot turn into a test teaches nothing
+            verdict = "unsure"  # a mistake Vanhanh cannot turn into a test teaches nothing
         if verdict == "mistake":
             step = int(step) if kind == "workflow" else -1
             self.store.write(lambda c: c.execute("INSERT INTO mistakes VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", (
@@ -682,7 +682,7 @@ class AutoLearner:
                 return self.host.text_call(target.system(version), target.prompt(version, case_prompt))
 
             def improve(instructions):
-                answer = self.background(f"You improve the instructions of a Naota {kind}. Keep their language "
+                answer = self.background(f"You improve the instructions of a Vanhanh {kind}. Keep their language "
                                              "and style." + (" Keep every {{placeholder}} exactly as it is."
                                                              if kind == "workflow" else ""), instructions)
                 check_candidate(kind, L.extract_skill(answer), target.text)  # unsafe text never enters the run

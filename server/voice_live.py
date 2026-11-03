@@ -22,7 +22,7 @@ Ba nhà cung cấp:
   bằng `conversation.item.truncate` (trình duyệt báo số ms đã phát).
 - GPTLive (`wss://api.openai.com/v1/live/sessions`, 09/2026): song công toàn phần, model tự
   quyết ngắt lời, KHÔNG có sự kiện interrupted / turn_done; ủy nhiệm kiểu `client`: model phát
-  `session.delegation.created`, Naota chạy bộ não chính rồi trả kết quả bằng
+  `session.delegation.created`, Vanhanh chạy bộ não chính rồi trả kết quả bằng
   `session.commentary.append` (model tự thuật lại), tiến độ bằng `session.thinking.append`.
   Khuôn sự kiện lấy từ SDK openai 3.13 (`openai/types/live/*`). CHƯA chạy thật.
 
@@ -70,9 +70,9 @@ PROVIDERS = {
                  "default_model": "gpt-live-1", "default_voice": "marin", "voices": _OPENAI_VOICES, "transport": "pcm"},
 }
 
-ASK_NAOTA_TOOL = {
-    "name": "ask_naota",
-    "description": ("Hỏi bộ não chính của Naota khi cần dữ liệu thật (số liệu kinh doanh, lịch, email, file, "
+ASK_VANHANH_TOOL = {
+    "name": "ask_vanhanh",
+    "description": ("Hỏi bộ não chính của Vanhanh khi cần dữ liệu thật (số liệu kinh doanh, lịch, email, file, "
                     "ghi chú, ký ức), giao việc, nhắc hẹn, mở trang hay app, hoặc bất cứ hành động nào ra "
                     "ngoài. Truyền yêu cầu đầy đủ bằng ngôn ngữ người dùng. Kết quả trả về là chữ, hãy "
                     "thuật lại ngắn gọn."),
@@ -80,30 +80,30 @@ ASK_NAOTA_TOOL = {
 }
 
 SYSTEM_PROMPT = (
-    "Bạn là Naota, trợ lý cá nhân, đang nói chuyện trực tiếp bằng giọng. "
+    "Bạn là Vanhanh, trợ lý cá nhân, đang nói chuyện trực tiếp bằng giọng. "
     "Nói ngắn, tự nhiên. Không bịa dữ liệu: cần dữ liệu "
-    "thật hay hành động thì gọi tool ask_naota "
+    "thật hay hành động thì gọi tool ask_vanhanh "
     "rồi thuật lại kết quả. Đang được ngắt lời thì dừng ngay và nghe. "
     # A spoken sentence BEFORE the call, in the same turn: the person never sits in silence
     # wondering whether they were heard. No sample wording on purpose: a quoted example is what
     # the model parrots every time, and in the language of the example rather than the caller's.
-    "Trước khi gọi ask_naota, nói MỘT câu thật ngắn nêu đúng việc bạn sắp làm, bằng ngôn ngữ người "
+    "Trước khi gọi ask_vanhanh, nói MỘT câu thật ngắn nêu đúng việc bạn sắp làm, bằng ngôn ngữ người "
     "dùng đang nói, rồi gọi tool ngay trong cùng lượt đó. Mỗi lần diễn đạt khác đi, không lặp một câu "
     "đệm quen thuộc, không đọc lại mô tả của tool."
 )
 
 # Gemini 3.1 Live cannot run a tool in the background: it stays silent until the tool answers.
-# On those models the route answers ask_naota at once with DEFERRED_ACK and delivers the brain's
+# On those models the route answers ask_vanhanh at once with DEFERRED_ACK and delivers the brain's
 # result later as a tagged text turn (late_result_messages), so the call never freezes.
-LATE_RESULT_TAG = "[KET_QUA_NAOTA]"
-STATUS_TAG = "[TIEN_DO_NAOTA]"
+LATE_RESULT_TAG = "[KET_QUA_VANHANH]"
+STATUS_TAG = "[TIEN_DO_VANHANH]"
 DEFERRED_ACK = ("Đã giao cho bộ não chính, kết quả sẽ tới sau trong một tin riêng. Nói một câu thật ngắn "
                 "rồi tiếp tục nghe người dùng, chưa thuật kết quả.")
 DEFERRED_RULES = (
-    "Khi gọi ask_naota bạn nhận ngay lời báo việc đã được giao: nói một câu ngắn rồi tiếp tục nghe. "
+    "Khi gọi ask_vanhanh bạn nhận ngay lời báo việc đã được giao: nói một câu ngắn rồi tiếp tục nghe. "
     f"Kết quả tới sau trong một tin có nhãn {LATE_RESULT_TAG}, câu tiến độ có nhãn {STATUS_TAG}. "
     "Những tin đó do ứng dụng gửi, không phải người dùng nói: thuật lại ngắn gọn bằng ngôn ngữ người "
-    "dùng đang nói, không đọc nhãn ra, và không gọi lại ask_naota cho cùng yêu cầu đó."
+    "dùng đang nói, không đọc nhãn ra, và không gọi lại ask_vanhanh cho cùng yêu cầu đó."
 )
 LATE_RESULT_WAIT_S = 20.0   # a late result waits this long for a pause, then goes out anyway
 
@@ -123,7 +123,7 @@ def turn_preset(value) -> str:
 
 # GPT-Live không có tool: nó ỦY NHIỆM. Prompt hội thoại ngắn, nói rõ khi nào giao việc.
 GPT_LIVE_PROMPT = (
-    "Bạn là Naota, trợ lý cá nhân, đang nói chuyện bằng giọng. Nói ngắn và "
+    "Bạn là Vanhanh, trợ lý cá nhân, đang nói chuyện bằng giọng. Nói ngắn và "
     "tự nhiên. Chuyện phiếm, hỏi đáp thường thì trả lời ngay. Câu nào cần dữ liệu thật (số liệu "
     "kinh doanh, lịch, email, file, ghi chú, ký ức), cần làm việc, nhắc hẹn, mở trang hay app, hay "
     "bất cứ hành động nào ra ngoài thì GIAO cho bộ não chính (delegate), nói một câu ngắn như 'để "
@@ -187,7 +187,7 @@ class LiveProvider:
         self.voice = voice or PROVIDERS[self.name]["default_voice"]
         self.recognition_lang = _recognition_language(recognition_lang)
         self.system = system + "\n\n" + _language_instruction(self.recognition_lang)
-        self.tools = tools if tools is not None else [ASK_NAOTA_TOOL]
+        self.tools = tools if tools is not None else [ASK_VANHANH_TOOL]
         self.ws = None
         self.wants_reconnect = False   # nhà cung cấp báo sắp đóng: route gọi reconnect()
         # Optional knobs from Settings > Voice (only the API Live providers read them).
@@ -732,10 +732,10 @@ class OpenAIRealtime(LiveProvider):
 
 
 class GPTLive(LiveProvider):
-    """OpenAI GPT-Live, ủy nhiệm kiểu client: Naota là backend.
+    """OpenAI GPT-Live, ủy nhiệm kiểu client: Vanhanh là backend.
 
     Không có tool theo nghĩa cũ: model tự quyết giao việc và phát `session.delegation.created`
-    (chỉ có metadata, KHÔNG có nội dung việc), nên Naota dựng yêu cầu từ chữ người dùng vừa nói.
+    (chỉ có metadata, KHÔNG có nội dung việc), nên Vanhanh dựng yêu cầu từ chữ người dùng vừa nói.
     Trả kết quả bằng `session.commentary.append` (model tự thuật lại), tiến độ bằng
     `session.thinking.append`. Không có sự kiện interrupted (model tự quyết ngắt lời) lẫn
     turn_done; turn_done được suy ra khi người dùng bắt đầu nói mà trợ lý đang có chữ dở.
@@ -858,7 +858,7 @@ class GPTLive(LiveProvider):
                 return []
             out = self._flush_user()
             req = self._user_last or "(không rõ yêu cầu, hãy hỏi lại người dùng)"
-            out.append({"type": "tool_call", "id": str(d.get("id") or ""), "name": "ask_naota", "args": {"request": req}})
+            out.append({"type": "tool_call", "id": str(d.get("id") or ""), "name": "ask_vanhanh", "args": {"request": req}})
             return out
         if t == "session.closed":
             reason = str(msg.get("reason") or "")
@@ -877,9 +877,9 @@ class GPTLive(LiveProvider):
 
 
 # ChatGPT Live (voice-call-spec mục 3.3): model nói chuyện của OpenAI lo chuyện
-# trò, việc cần dữ liệu thì GIAO cho bộ não Naota. Xưng hô theo người dùng, không ép cố định.
+# trò, việc cần dữ liệu thì GIAO cho bộ não Vanhanh. Xưng hô theo người dùng, không ép cố định.
 CHATGPT_LIVE_PROMPT = (
-    "Bạn là Naota, trợ lý cá nhân, đang nói chuyện với người dùng qua cuộc gọi bằng giọng nói. "
+    "Bạn là Vanhanh, trợ lý cá nhân, đang nói chuyện với người dùng qua cuộc gọi bằng giọng nói. "
     "Nói tự nhiên như người qua điện thoại, ngắn 1 đến 2 câu. Xưng hô đúng theo cách người dùng đang "
     "xưng với bạn (phần bộ nhớ bên dưới cho biết nếu có), không tự đổi. Chuyện trò, hỏi thăm, giải "
     "thích kiến thức chung thì trả lời thẳng. Mọi câu cần dữ liệu thật hay hành động (doanh thu, đơn "
@@ -904,20 +904,20 @@ MEMORY_CHARS = 4000
 # cầu thật chạy SONG SONG với việc đang chạy kèm ngữ cảnh, và bộ não được phép trả FOLLOWUP_NOOP khi
 # chẳng có gì mới. Không còn xếp hàng: trước đó mọi câu nói thêm chờ cả việc dài xong, nên
 # hỏi "xong chưa" giữa chừng im re mấy phút rồi các câu trả lời cũ bị đọc dồn một lượt.
-FOLLOWUP_NOOP = "NAOTA_NOOP"
-# Việc chạy lâu thì Naota tự lên tiếng cho người dùng (đang không nhìn màn hình) biết còn sống.
+FOLLOWUP_NOOP = "VANHANH_NOOP"
+# Việc chạy lâu thì Vanhanh tự lên tiếng cho người dùng (đang không nhìn màn hình) biết còn sống.
 STATUS_FIRST_S = 60.0    # việc chạy quá chừng này thì bắt đầu nói
 STATUS_EVERY_S = 90.0    # rồi cách chừng này mới nói lại
 STATUS_TICK_S = 5.0      # nhịp kiểm tra của vòng nền
 FOLLOWUP_ACK = "Đã ghi nhận. Việc đang làm sẽ báo kết quả ngay khi xong, không có việc mới."
 # A file pasted into the chat during a call. The dashboard sends it to the route as an "ask" frame and the
 # route runs ONE brain turn on it. Before this, the paste opened an ordinary chat turn AND the Live model, hearing
-# "look at this picture", handed the same picture to ask_naota: two brain turns on one image, two voices over each
+# "look at this picture", handed the same picture to ask_vanhanh: two brain turns on one image, two voices over each
 # other, one of them in English. While that turn runs, and a short while after its answer
-# is read, an ask_naota about an image or file gets this acknowledgement instead of a second turn.
+# is read, an ask_vanhanh about an image or file gets this acknowledgement instead of a second turn.
 ATTACHMENT_ACK = ("File người dùng vừa gửi trong khung chat đã giao cho bộ não chính; kết quả được đọc riêng. "
-                  "Không có việc mới: đừng gọi lại ask_naota cho file đó, chỉ nói một câu ngắn rồi tiếp tục nghe.")
-ATTACHMENT_GUARD_S = 45.0   # after the answer is read, an ask_naota about "the image" is still that same file
+                  "Không có việc mới: đừng gọi lại ask_vanhanh cho file đó, chỉ nói một câu ngắn rồi tiếp tục nghe.")
+ATTACHMENT_GUARD_S = 45.0   # after the answer is read, an ask_vanhanh about "the image" is still that same file
 _ATTACHMENT_RE = re.compile(
     r"\b(?:ảnh|hình|hình ảnh|file|tệp|tập tin|tài liệu|chụp|màn hình|đính kèm|dán|"
     r"image|images|picture|photo|photos|screenshot|screen|attachment|attached|pasted|document|pdf)\b",
@@ -925,7 +925,7 @@ _ATTACHMENT_RE = re.compile(
 
 
 def is_about_attachment(request: str, names=()) -> bool:
-    """The model's ask_naota is about a file the user just sent: names an image/file word, or one of the file names."""
+    """The model's ask_vanhanh is about a file the user just sent: names an image/file word, or one of the file names."""
     req = str(request or "")
     if _ATTACHMENT_RE.search(req):
         return True
@@ -937,11 +937,11 @@ def readback_text(result: str) -> str:
     """What the Live model gets to read out the answer of a pasted file (no tool call to answer, so it is a turn)."""
     return (f"{LATE_RESULT_TAG}\nỨng dụng gửi kết quả của bộ não chính cho file người dùng vừa gửi trong khung "
             "chat; đây không phải người dùng nói. Thuật lại thật ngắn bằng ngôn ngữ người dùng đang nói, không đọc "
-            "nhãn ra, không gọi ask_naota.\n\n" + (speakable(result) or "(không có nội dung)"))
+            "nhãn ra, không gọi ask_vanhanh.\n\n" + (speakable(result) or "(không có nội dung)"))
 _ACK_WORDS = frozenset("""
 ok oke okie okay ừ ừm ờ ừa vâng dạ được rồi nhé nha nhá nhỉ nghen thế vậy thì là xong xem kiểm tra
 báo lại cho anh em chị mình tôi tớ bạn biết đi cảm ơn cám chờ đợi tí chút xíu nhanh lên cứ làm khi nào
-có kết quả đó đấy nghe hiểu ạ à nhớ giúp hộ với luôn sau naota
+có kết quả đó đấy nghe hiểu ạ à nhớ giúp hộ với luôn sau vanhanh
 sure yes yeah yep thanks thank you let me know when done fine great cool alright got it please
 """.split())
 _ACK_MAX_WORDS = 16
@@ -1001,7 +1001,7 @@ _PROGRESS_RE = re.compile("|".join((
     r"\b(?:đang|vẫn đang|còn đang) làm (?:gì|việc gì|cái gì|nhiệm vụ nào|đến đâu|tới đâu)\b",
     r"\bmình đang làm (?:nhiệm vụ|việc|gì)\b",
     r"^(?:vẫn|còn) (?:đang )?(?:làm|chạy)\b.{0,25}\b(?:đúng không|không|hả|à)\b",
-    r"\b(?:em|bạn|naota) (?:vẫn |còn )?(?:đang )?(?:làm|chạy)\b.{0,12}\b(?:đúng không|không|chưa|hả)\b",
+    r"\b(?:em|bạn|vanhanh) (?:vẫn |còn )?(?:đang )?(?:làm|chạy)\b.{0,12}\b(?:đúng không|không|chưa|hả)\b",
     r"\bcó nghe (?:thấy|rõ|được)\b.{0,30}\bkhông\b",
     r"\bnghe (?:thấy|rõ) (?:không|chứ)\b",
     r"^(?:alo|a lô)\b",
@@ -1131,7 +1131,7 @@ class ChatGPTLive(LiveProvider):
         self._user_last = ""
         self._user_last_at = 0.0
         self._interrupt_turns: List[str] = []
-        self._held: List[dict] = []   # lời Naota tới lúc người dùng còn đang nói, chờ câu người dùng chốt
+        self._held: List[dict] = []   # lời Vanhanh tới lúc người dùng còn đang nói, chờ câu người dùng chốt
         self._bg: set = set()
         self._speaking = False        # model đang có một lượt nói chưa xong (theo transcript)
         self._last_delta_at = 0.0
@@ -1144,7 +1144,7 @@ class ChatGPTLive(LiveProvider):
         self._closing = False
         self.srv = await self._get_server()
         # Thư mục tạm rỗng: lượt Codex nào lỡ chạy cũng không thấy file thật của người dùng.
-        self._cwd = tempfile.mkdtemp(prefix="naota-live-")
+        self._cwd = tempfile.mkdtemp(prefix="vanhanh-live-")
         res = await self.srv.request("thread/start", {
             "ephemeral": True, "cwd": self._cwd, "sandbox": "read-only", "approvalPolicy": "never",
             "developerInstructions": "Reply only: [FINAL]",
@@ -1244,7 +1244,7 @@ class ChatGPTLive(LiveProvider):
         # Chỉ thông báo `transcript/done` của người dùng mới tạo bong bóng chốt. Đo trên dashboard thật
         # Model hay BẮT ĐẦU trả lời trước khi chữ cuối của người dùng về ("... có khỏe" rồi
         # mới tới " không"), và handoff tới trước cả done. Chốt sớm theo những mốc đó sinh bong bóng
-        # cụt, bong bóng lặp và đảo thứ tự. Nên lời Naota tới lúc người dùng còn đang nói thì GIỮ
+        # cụt, bong bóng lặp và đảo thứ tự. Nên lời Vanhanh tới lúc người dùng còn đang nói thì GIỮ
         # lại, phát ra ngay sau câu người dùng đã chốt.
         if method == "thread/realtime/transcript/delta":
             delta = str(p.get("delta") or "")
@@ -1272,7 +1272,7 @@ class ChatGPTLive(LiveProvider):
                 self._held = []
                 return out
             self._speaking, self._pushed_at, self._quiet_since = False, 0.0, time.monotonic()
-            # Naota nói xong mà câu người dùng vẫn chưa có done (hiếm): chốt phần đã nghe rồi mới nhả.
+            # Vanhanh nói xong mà câu người dùng vẫn chưa có done (hiếm): chốt phần đã nghe rồi mới nhả.
             out = self._flush_user() + self._held + [{"type": "turn_done"}]
             self._held = []
             return out
@@ -1280,11 +1280,11 @@ class ChatGPTLive(LiveProvider):
             item = p.get("item") or {}
             if item.get("type") != "handoff_request":
                 return []
-            return [{"type": "tool_call", "id": str(item.get("handoff_id") or ""), "name": "ask_naota",
+            return [{"type": "tool_call", "id": str(item.get("handoff_id") or ""), "name": "ask_vanhanh",
                      "args": {"request": self._handoff_request(item.get("input_transcript"))},
                      "said": self._recent_speech()}]
         if method == "turn/started":
-            # Mỗi lần giao việc Codex TỰ mở một lượt agent: chặn ngay, việc thật do bộ não Naota làm.
+            # Mỗi lần giao việc Codex TỰ mở một lượt agent: chặn ngay, việc thật do bộ não Vanhanh làm.
             tid = str(((p.get("turn") or {}).get("id")) or p.get("turnId") or "")
             if tid:
                 self._interrupt_turns.append(tid)
@@ -1310,7 +1310,7 @@ class ChatGPTLive(LiveProvider):
     async def events(self) -> AsyncIterator[dict]:
         if self.queue is None:
             return
-        debug = bool(os.environ.get("NAOTA_LIVE_DEBUG"))
+        debug = bool(os.environ.get("VANHANH_LIVE_DEBUG"))
         while True:
             msg = await self.queue.get()
             if debug:
@@ -1346,13 +1346,13 @@ class ChatGPTLive(LiveProvider):
     async def send_tool_result(self, call_id: str, name: str, result: str):
         """Xếp lời đọc kết quả vào hàng, trả về ngay (route không phải đứng chờ model đọc xong)."""
         # Câu tiến độ còn kẹt trong hàng là câu cũ ngay khi kết quả thật về: đọc nó SAU câu trả lời
-        # ("em vẫn đang làm" rồi mới "xong rồi") nghe như Naota lú.
+        # ("em vẫn đang làm" rồi mới "xong rồi") nghe như Vanhanh lú.
         self._speech_q[:] = [t for t in self._speech_q if not isinstance(t, _Status)]
         self._enqueue_speech(speakable(result) or "Em chưa có kết quả.")
 
     async def read_result(self, text: str):
-        # ChatGPT Live speaks results from its own queue, the same way as an ask_naota answer.
-        await self.send_tool_result("", "ask_naota", text)
+        # ChatGPT Live speaks results from its own queue, the same way as an ask_vanhanh answer.
+        await self.send_tool_result("", "ask_vanhanh", text)
 
     async def say_status(self, text: str) -> bool:
         """Câu tiến độ cho người đang không nhìn màn hình. Đi chung hàng với lời đọc kết quả nên không
@@ -1382,7 +1382,7 @@ class ChatGPTLive(LiveProvider):
                 return
             text = self._speech_q.pop(0)
             self._pushed_at = time.monotonic()
-            if os.environ.get("NAOTA_LIVE_DEBUG"):
+            if os.environ.get("VANHANH_LIVE_DEBUG"):
                 print(f"[chatgpt live] {time.monotonic():.1f} appendSpeech ({len(text)} ký tự)", file=sys.stderr)
             try:
                 await self.srv.request("thread/realtime/appendSpeech", {"threadId": self.thread_id, "text": text})

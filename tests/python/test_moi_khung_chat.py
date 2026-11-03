@@ -16,8 +16,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-_TMP = tempfile.mkdtemp(prefix="naota-moikhung-")
-os.environ["NAOTA_STATE_DIR"] = _TMP
+_TMP = tempfile.mkdtemp(prefix="vanhanh-moikhung-")
+os.environ["VANHANH_STATE_DIR"] = _TMP
 
 import coding_store  # noqa: E402
 import main  # noqa: E402
@@ -71,35 +71,35 @@ check("lượt /plan ở khung chat thường bị hạ xuống suggest", "mode=
 ctx = main._coding_ctx_luot({"id": "s-thuong", "channel": "web"}, br)
 tools, route = mcp_hub._builtin_tools("full", br, workspace_root=list(ctx.workspace_roots), coding_ctx_cua_phien=ctx)
 co = set(route)
-check("khung chat thường có terminal và quản lý tiến trình", {"naota_terminal", "naota_process"} <= co)
-check("khung chat thường có sửa, tìm file và web", {"naota_edit_file", "naota_search_files",
-                                                    "naota_web_search", "naota_web_fetch"} <= co)
+check("khung chat thường có terminal và quản lý tiến trình", {"vanhanh_terminal", "vanhanh_process"} <= co)
+check("khung chat thường có sửa, tìm file và web", {"vanhanh_edit_file", "vanhanh_search_files",
+                                                    "vanhanh_web_search", "vanhanh_web_fetch"} <= co)
 _v, _ = mcp_hub._apply_lazy(tools, route, force=True)
-check("sửa và tìm file hiện thẳng ở khung chat thường", {"naota_edit_file", "naota_search_files"}
+check("sửa và tìm file hiện thẳng ở khung chat thường", {"vanhanh_edit_file", "vanhanh_search_files"}
       <= {x["fn"] for x in _v})
-ra = asyncio.run(route["naota_read_file"]["call"]({"path": "notes/a.md"}))
+ra = asyncio.run(route["vanhanh_read_file"]["call"]({"path": "notes/a.md"}))
 check("ghi chú trong brain đọc như cũ, không bị chèn số dòng", ra == "dòng một\ndòng hai\n", ra)
-ra = asyncio.run(route["naota_write_file"]["call"]({"path": "notes/a.md", "content": "mới"}))
+ra = asyncio.run(route["vanhanh_write_file"]["call"]({"path": "notes/a.md", "content": "mới"}))
 check("ghi đè ghi chú trong brain không bị bắt đọc trước", ra.startswith("Đã ghi"), ra)
 _, r_plan = mcp_hub._builtin_tools("suggest", br, workspace_root=list(ctx.workspace_roots), coding_ctx_cua_phien=ctx)
-check("lượt /plan ở khung chat thường không có terminal", "naota_terminal" not in r_plan)
+check("lượt /plan ở khung chat thường không có terminal", "vanhanh_terminal" not in r_plan)
 
 # Thư mục ghim NGOÀI brain thì có rào như trang Code.
 ctx_g = main._coding_ctx_luot({"id": "s-ghim", "channel": "web"}, br)
 _, r_g = mcp_hub._builtin_tools("full", br, workspace_root=list(ctx_g.workspace_roots), coding_ctx_cua_phien=ctx_g)
-ra = asyncio.run(r_g["naota_write_file"]["call"]({"path": str(GHIM / "app.py"), "content": "x"}))
+ra = asyncio.run(r_g["vanhanh_write_file"]["call"]({"path": str(GHIM / "app.py"), "content": "x"}))
 check("thư mục ghim ngoài brain: ghi đè file chưa đọc bị chặn", ra.startswith("ERROR"), ra)
 
 if os.name != "nt":
-    ra = asyncio.run(route["naota_terminal"]["call"]({"command": "pwd"}))
+    ra = asyncio.run(route["vanhanh_terminal"]["call"]({"command": "pwd"}))
     check("terminal của khung chat thường đứng ở gốc brain", ra.rstrip().endswith(br), ra)
 else:
     print("bỏ qua: chạy terminal thật cần bash (Windows CI)")
 
 # ---- 3. Bot của khách ----
 _, r_bot = mcp_hub._builtin_tools("full", br)
-check("lượt không có ngữ cảnh (bot, việc nền) không có terminal", "naota_terminal" not in r_bot)
-check("bot của khách không có tool web", {"naota_web_search", "naota_web_fetch"} <= mcp_hub.OWNER_ONLY_TOOLS)
+check("lượt không có ngữ cảnh (bot, việc nền) không có terminal", "vanhanh_terminal" not in r_bot)
+check("bot của khách không có tool web", {"vanhanh_web_search", "vanhanh_web_fetch"} <= mcp_hub.OWNER_ONLY_TOOLS)
 
 # ---- 4. Hoàn tác ở mọi khung chat ----
 _cd = (ROOT / "dashboard" / "coding.js").read_text(encoding="utf-8")

@@ -3,7 +3,7 @@
     python tests/run.py oauth_scope_clerk      (KHÔNG mạng)
 
 Lỗi đã gặp: kết nối Higgsfield báo invalid_grant. Lỗi thật nằm ở URL callback: Higgsfield đăng nhập qua Clerk,
-Clerk trả invalid_scope "OAuth 2.0 Client is not allowed to request scope 'private_metadata'". Naota đã xin NGUYÊN danh sách
+Clerk trả invalid_scope "OAuth 2.0 Client is not allowed to request scope 'private_metadata'". Vanhanh đã xin NGUYÊN danh sách
 `scopes_supported` của máy chủ đăng nhập, rồi bỏ qua tham số error ở callback và đem code rỗng đi đổi.
 
 File này canh:
@@ -19,7 +19,7 @@ import tempfile
 import urllib.parse
 from unittest.mock import AsyncMock, patch
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-oauth-scope-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-oauth-scope-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

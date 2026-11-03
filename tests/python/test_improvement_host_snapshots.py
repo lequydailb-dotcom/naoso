@@ -18,9 +18,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 TEST_ROOT = Path(tempfile.mkdtemp(prefix="hs-"))
-for key, name in {"NAOTA_STATE_DIR": "boot-state", "BRAIN_PATH": "boot-brain", "BRAINS_DIR": "boot-brains",
+for key, name in {"VANHANH_STATE_DIR": "boot-state", "BRAIN_PATH": "boot-brain", "BRAINS_DIR": "boot-brains",
                   "OBSIDIAN_VAULT_PATH": "boot-vault", "SOURCES_PATH": "boot-sources",
-                  "NAOTA_SESSIONS_DB": "boot-sessions.sqlite3"}.items():
+                  "VANHANH_SESSIONS_DB": "boot-sessions.sqlite3"}.items():
     os.environ[key] = str(TEST_ROOT / name)
 
 from cryptography.fernet import Fernet

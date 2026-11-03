@@ -17,7 +17,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-tudien-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-tudien-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -44,7 +44,7 @@ en = json.loads((ROOT / "dashboard" / "i18n" / "en.json").read_text(encoding="ut
 check("de.json only uses keys that exist in en.json", not [k for k in de if k not in en], [k for k in de if k not in en][:5])
 
 # ---- 2. odd files are never offered ----
-d = Path(tempfile.mkdtemp(prefix="naota-i18n-"))
+d = Path(tempfile.mkdtemp(prefix="vanhanh-i18n-"))
 (d / "fr.json").write_text(json.dumps({"_meta.name": "Français", "nav.x": "y"}), encoding="utf-8")
 (d / "pt-br.json").write_text(json.dumps({"nav.x": "y"}), encoding="utf-8")
 (d / "ja.json").write_text("{ broken", encoding="utf-8")

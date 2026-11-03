@@ -1,4 +1,4 @@
-// The brain picker drawn by Naota, in the owner's order (dashboard/brain-picker.js).
+// The brain picker drawn by Vanhanh, in the owner's order (dashboard/brain-picker.js).
 "use strict";
 const assert = require("node:assert/strict");
 const fs = require("node:fs");

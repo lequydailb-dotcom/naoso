@@ -1,13 +1,13 @@
-"""Sign in to GitHub with one button: the OAuth device flow of the "NAOTA" GitHub App.
+"""Sign in to GitHub with one button: the OAuth device flow of the "VANHANH" GitHub App.
 
-Why the device flow and not the redirect flow Claude uses: every Naota runs at its own address (localhost, a VPS IP,
+Why the device flow and not the redirect flow Claude uses: every Vanhanh runs at its own address (localhost, a VPS IP,
 a tunnel), so there is no single callback URL to register, and the repo is public, so it cannot carry a client
-secret. The device flow needs neither: Naota asks GitHub for a short code, the person types it at
-github.com/login/device and presses Authorize, and Naota polls until GitHub hands over the token. It works the same on
+secret. The device flow needs neither: Vanhanh asks GitHub for a short code, the person types it at
+github.com/login/device and presses Authorize, and Vanhanh polls until GitHub hands over the token. It works the same on
 a VPS with no browser.
 
-Why a GitHub App and not an OAuth App: the person picks which repos Naota can see by installing the app on them
-(github.com/apps/naota/installations/new), and the token only carries the app's fine-grained permissions
+Why a GitHub App and not an OAuth App: the person picks which repos Vanhanh can see by installing the app on them
+(github.com/apps/vanhanh/installations/new), and the token only carries the app's fine-grained permissions
 (Contents, Pull requests, Workflows read/write; Checks, Commit statuses, Actions read).
 
 The app was registered with expiring user tokens turned off, so the token normally lasts until the person revokes
@@ -15,7 +15,7 @@ it. If GitHub still sends `expires_in` and a `refresh_token` (the setting was fl
 `refresh()` tries to renew; when that fails the connection reads as signed out and the card asks to sign in again.
 
 Pending sign-ins live in memory: a code expires in 15 minutes and a restart simply means pressing the button again.
-Endpoints are configurable (`NAOTA_GITHUB_WEB`) so tests run against a local fake. Stdlib plus httpx, no FastAPI.
+Endpoints are configurable (`VANHANH_GITHUB_WEB`) so tests run against a local fake. Stdlib plus httpx, no FastAPI.
 """
 from __future__ import annotations
 
@@ -28,13 +28,13 @@ import httpx
 
 import localefmt
 
-# Public identifiers of the "NAOTA" GitHub App. A client id is not a secret: the device flow is
+# Public identifiers of the "VANHANH" GitHub App. A client id is not a secret: the device flow is
 # built for apps that cannot keep one. Empty until the app is registered: the card then offers only a pasted token.
 # An install that registers its own app sets both through the environment.
 CLIENT_ID = ""
-APP_SLUG = "naota"
+APP_SLUG = "vanhanh"
 DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
-UA = "naota"
+UA = "vanhanh"
 _lock = threading.Lock()
 _pending: Dict[str, Any] = {}
 
@@ -48,7 +48,7 @@ def _c(vi: str, en: str) -> str:
 
 
 def client_id() -> str:
-    return (os.environ.get("NAOTA_GITHUB_CLIENT_ID") or CLIENT_ID).strip()
+    return (os.environ.get("VANHANH_GITHUB_CLIENT_ID") or CLIENT_ID).strip()
 
 
 def available() -> bool:
@@ -57,15 +57,15 @@ def available() -> bool:
 
 
 def app_slug() -> str:
-    return (os.environ.get("NAOTA_GITHUB_APP_SLUG") or APP_SLUG).strip()
+    return (os.environ.get("VANHANH_GITHUB_APP_SLUG") or APP_SLUG).strip()
 
 
 def _web() -> str:
-    return (os.environ.get("NAOTA_GITHUB_WEB") or "https://github.com").rstrip("/")
+    return (os.environ.get("VANHANH_GITHUB_WEB") or "https://github.com").rstrip("/")
 
 
 def install_url() -> str:
-    """Where the person picks the repos Naota may see (install the app, or change an existing install)."""
+    """Where the person picks the repos Vanhanh may see (install the app, or change an existing install)."""
     return f"https://github.com/apps/{app_slug()}/installations/new"
 
 
@@ -94,10 +94,10 @@ def _error_text(code: str, desc: str = "") -> str:
                             "You pressed Cancel on GitHub. Press Sign in again to connect."),
         "expired_token": _c("Mã đã hết hạn. Bấm Đăng nhập lần nữa để lấy mã mới.",
                             "The code expired. Press Sign in again for a new one."),
-        "device_flow_disabled": _c("GitHub App của Naota chưa bật Device Flow.",
-                                   "The Naota GitHub App does not have Device Flow enabled."),
-        "incorrect_client_credentials": _c("GitHub không nhận Client ID của Naota.",
-                                           "GitHub does not recognise the Naota client id."),
+        "device_flow_disabled": _c("GitHub App của Vanhanh chưa bật Device Flow.",
+                                   "The Vanhanh GitHub App does not have Device Flow enabled."),
+        "incorrect_client_credentials": _c("GitHub không nhận Client ID của Vanhanh.",
+                                           "GitHub does not recognise the Vanhanh client id."),
     }
     return known.get(code) or _c(f"GitHub từ chối đăng nhập: {desc or code}", f"GitHub refused the sign-in: {desc or code}")
 
@@ -126,7 +126,7 @@ def poll() -> Dict[str, Any]:
     """One poll. Returns {status: pending} | {status: done, token: {...}} | {status: error, error}.
 
     The dashboard may poll faster than GitHub allows; a call before `next_at` answers pending without reaching GitHub,
-    so Naota never earns a `slow_down`. The token dict stays inside the server (the route stores it and drops it)."""
+    so Vanhanh never earns a `slow_down`. The token dict stays inside the server (the route stores it and drops it)."""
     with _lock:
         p = dict(_pending)
     if not p:

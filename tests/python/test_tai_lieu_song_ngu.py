@@ -29,7 +29,7 @@ R = pathlib.Path(ROOT)
 
 # Cặp bản gốc <-> bản dịch. Thêm một trang dịch = thêm một dòng ở đây.
 CAP = [
-    # NAOTA 1.0.0: README.md là trang đầu tiếng Việt ngắn, bản đầy đủ tiếng Anh là README.en.md,
+    # VANHANH 1.0.0: README.md là trang đầu tiếng Việt ngắn, bản đầy đủ tiếng Anh là README.en.md,
     # bản đầy đủ tiếng Việt ở docs/i18n/vi/.
     ("docs/i18n/vi/README.md", "README.en.md"),
     ("QUICKSTART.md", "QUICKSTART.en.md"),

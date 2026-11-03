@@ -26,7 +26,7 @@ import os
 import sys
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-dago-test-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-dago-test-")
 
 import config as cfgmod   # noqa: E402
 import main               # noqa: E402

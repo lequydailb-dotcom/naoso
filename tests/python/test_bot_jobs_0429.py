@@ -1,13 +1,13 @@
 """Jobs a chatbot made belong to that bot.
 
-Case: the Tasks page listed every job under Naota Core, while most were made by the owner's Zalo assistant
+Case: the Tasks page listed every job under Vanhanh Core, while most were made by the owner's Zalo assistant
 bot. Expected:
   - a dedicated bot's turn carries `bot_id` in turn_context (a string, so a hook cannot edit it for the next reader);
-  - naota_schedule stamps the bot on a reminder (bot_id in POST /reminders) and on a loop (bot_id: in frontmatter),
-    naota_task stamps a Kanban job created_by "bot:<id>"; the owner's own turns stamp nothing;
+  - vanhanh_schedule stamps the bot on a reminder (bot_id in POST /reminders) and on a loop (bot_id: in frontmatter),
+    vanhanh_task stamps a Kanban job created_by "bot:<id>"; the owner's own turns stamp nothing;
   - reminders keep and show bot_id; loops keep it across a save; repeat hints still see bot jobs;
   - older jobs are guessed from the bot's turn log: created during exactly one bot turn (same chat when the job names
-    one), a loop by the chat it reports to on the day it was saved; two bots at once or no turn = Naota Core; a guess
+    one), a loop by the chat it reports to on the day it was saved; two bots at once or no turn = Vanhanh Core; a guess
     is kept once made; another brain's bots are ignored;
   - the stats count a bot's jobs for the bot's assistant, or for the bot when that assistant is not in the brain.
 
@@ -52,7 +52,7 @@ def load_plugin(name):
 
 TZ = timezone(timedelta(hours=7))
 now = time.time()
-BOT = {"id": "bot_vu", "name": "Naota An", "icon": "headset", "agent": "vu"}
+BOT = {"id": "bot_vu", "name": "Vanhanh An", "icon": "headset", "agent": "vu"}
 
 # ---- turn context ----
 t = turn_context.from_meta("zalo_personal", {"chat_id": "c1", "user_id": "u1"}, la_chu=False)
@@ -62,9 +62,9 @@ cur = turn_context.current()
 cur["bot_id"] = "bot_evil"
 check("the bot of the turn is readable, and a reader cannot edit it", turn_context.current()["bot_id"] == "bot_vu")
 
-# ---- naota_schedule ----
-sched = load_plugin("naota-schedule")
-check("naota_schedule reads the bot of the turn", sched._turn_bot() == "bot_vu")
+# ---- vanhanh_schedule ----
+sched = load_plugin("vanhanh-schedule")
+check("vanhanh_schedule reads the bot of the turn", sched._turn_bot() == "bot_vu")
 sent = {}
 
 
@@ -74,16 +74,16 @@ async def fake_post(payload, brain_name=""):
 
 
 sched._post_reminder = fake_post
-vault = Path(tempfile.mkdtemp(prefix="naota-botjobs-"))
+vault = Path(tempfile.mkdtemp(prefix="vanhanh-botjobs-"))
 asyncio.run(sched._do_create(str(vault), {"name": "Báo cáo", "prompt": "Gửi báo cáo", "schedule": "0 7 * * *"}))
 check("a reminder made in a bot turn carries bot_id", sent.get("bot_id") == "bot_vu", sent)
 asyncio.run(sched._do_create(str(vault), {"name": "Soi đơn", "prompt": "Soi đơn mới", "schedule": "2 tiếng",
                                           "chat_id": "zalo:c1"}))
-lp_text = (vault / "Naota" / "loops" / "soi-don.md").read_text(encoding="utf-8")
+lp_text = (vault / "Vanhanh" / "loops" / "soi-don.md").read_text(encoding="utf-8")
 check("a loop made in a bot turn carries bot_id in its frontmatter", "bot_id: \"bot_vu\"" in lp_text, lp_text)
 
-# ---- naota_task ----
-task_pl = load_plugin("naota-task")
+# ---- vanhanh_task ----
+task_pl = load_plugin("vanhanh-task")
 got = {}
 
 
@@ -117,22 +117,22 @@ saved = {}
 rf._save = lambda brain, data: saved.update(data)
 rf._register = lambda brain: None
 rf.notify_status = lambda: (True, "")
-rem = rf._create("b", "Gửi báo cáo", delay_min=5, created_by="naota_schedule", bot_id="bot_vu")
+rem = rf._create("b", "Gửi báo cáo", delay_min=5, created_by="vanhanh_schedule", bot_id="bot_vu")
 bad = rf._create("b", "x", delay_min=5, bot_id="../../etc")
 view = rf._view(rem)
-check("a reminder keeps its bot and shows who made it", view["bot_id"] == "bot_vu" and view["created_by"] == "naota_schedule")
+check("a reminder keeps its bot and shows who made it", view["bot_id"] == "bot_vu" and view["created_by"] == "vanhanh_schedule")
 check("a malformed bot id is dropped", "bot_id" not in bad)
 
 # ---- loops keep bot_id across a save ----
 obj = self_improve.LoopFeature.__new__(self_improve.LoopFeature)
 obj.deps = SimpleNamespace(atomic_write_text=lambda p, s: Path(p).write_text(s, encoding="utf-8"))
-obj._loops_dir = lambda brain: vault / "Naota" / "loops"
-obj._loop_path = lambda brain, slug: vault / "Naota" / "loops" / f"{slug}.md"
+obj._loops_dir = lambda brain: vault / "Vanhanh" / "loops"
+obj._loop_path = lambda brain, slug: vault / "Vanhanh" / "loops" / f"{slug}.md"
 lp = obj._norm_loop({"name": "Soi đơn", "bot_id": "bot_vu", "goal": "custom"}, "Soi đơn mới", "soi-don")
 check("a loop file is read with its bot", lp["bot_id"] == "bot_vu")
 lp["enabled"] = True
 obj.save_loop("b", lp)
-parsed = "bot_id: bot_vu" in (vault / "Naota" / "loops" / "soi-don.md").read_text(encoding="utf-8")
+parsed = "bot_id: bot_vu" in (vault / "Vanhanh" / "loops" / "soi-don.md").read_text(encoding="utf-8")
 check("a loop keeps its bot when it is saved again (toggle, edit)", parsed is True)
 store_hint = TaskStore(Path(tempfile.mkdtemp()) / "k.sqlite3")
 hint_root = str(Path(tempfile.mkdtemp()).resolve())
@@ -141,11 +141,11 @@ for i in range(3):
 check("repeat hints still see jobs a bot made", bool(store_hint.repeat_hints(hint_root)), store_hint.repeat_hints(hint_root))
 
 # ---- guessing older jobs from the turn log ----
-brain = Path(tempfile.mkdtemp(prefix="naota-botjobs-brain-"))
+brain = Path(tempfile.mkdtemp(prefix="vanhanh-botjobs-brain-"))
 root = str(brain.resolve())
-other = Path(tempfile.mkdtemp(prefix="naota-botjobs-other-"))
+other = Path(tempfile.mkdtemp(prefix="vanhanh-botjobs-other-"))
 roots = {"main": root, "other": str(other.resolve())}
-bots = [{"id": "bot_vu", "name": "Naota An", "icon": "headset", "brain": "main", "agent": {"brain": "main", "slug": "vu"}},
+bots = [{"id": "bot_vu", "name": "Vanhanh An", "icon": "headset", "brain": "main", "agent": {"brain": "main", "slug": "vu"}},
         {"id": "bot_shop", "name": "Shop", "brain": "main", "agent": {"brain": "main", "slug": "ghost"}},
         {"id": "bot_far", "name": "Far", "brain": "other", "agent": {}}]
 logs = {
@@ -154,14 +154,14 @@ logs = {
     "bot_shop": [{"ts": now - 1000, "chat_id": "s7", "dap": "ok"}, {"ts": now - 20000, "chat_id": "s7", "dap": "ok"}],
     "bot_far": [{"ts": now - 7000, "chat_id": "f1", "dap": "ok"}],
 }
-(brain / "Naota").mkdir(parents=True)
-(brain / "Naota" / "reminders.json").write_text(json.dumps({"reminders": [
-    {"id": "r_new", "bot_id": "bot_vu", "created_by": "naota_schedule", "created_at": now - 99999},       # stamped
-    {"id": "r_old", "created_by": "naota_schedule", "chat_id": "", "created_at": now - 3100},               # vu's turn
-    {"id": "r_both", "created_by": "naota_schedule", "chat_id": "", "created_at": now - 1100},              # two bots
-    {"id": "r_chat", "created_by": "naota_schedule", "chat_id": "s7", "created_at": now - 1100},            # shop's chat
+(brain / "Vanhanh").mkdir(parents=True)
+(brain / "Vanhanh" / "reminders.json").write_text(json.dumps({"reminders": [
+    {"id": "r_new", "bot_id": "bot_vu", "created_by": "vanhanh_schedule", "created_at": now - 99999},       # stamped
+    {"id": "r_old", "created_by": "vanhanh_schedule", "chat_id": "", "created_at": now - 3100},               # vu's turn
+    {"id": "r_both", "created_by": "vanhanh_schedule", "chat_id": "", "created_at": now - 1100},              # two bots
+    {"id": "r_chat", "created_by": "vanhanh_schedule", "chat_id": "s7", "created_at": now - 1100},            # shop's chat
     {"id": "r_dash", "created_by": "dashboard", "chat_id": "", "created_at": now - 3100},                  # owner typed
-    {"id": "r_far", "created_by": "naota_schedule", "chat_id": "", "created_at": now - 7100},              # other brain
+    {"id": "r_far", "created_by": "vanhanh_schedule", "chat_id": "", "created_at": now - 7100},              # other brain
 ]}), encoding="utf-8")
 kb = TaskStore(Path(tempfile.mkdtemp()) / "kb.sqlite3")
 k_new = kb.enqueue(root, "Gom đơn", "x", created_by="bot:bot_vu")
@@ -181,7 +181,7 @@ J = m["jobs"]
 check("only this brain's bots", {b["id"] for b in m["bots"]} == {"bot_vu", "bot_shop"}, m["bots"])
 check("a stamped reminder keeps its bot", J.get("r:r_new") == "bot_vu")
 check("an old reminder made during one bot turn goes to that bot", J.get("r:r_old") == "bot_vu", J)
-check("two bots answering at that moment: no guess (Naota Core)", "r:r_both" not in J)
+check("two bots answering at that moment: no guess (Vanhanh Core)", "r:r_both" not in J)
 check("a reminder naming a chat goes to the bot of that chat", J.get("r:r_chat") == "bot_shop", J)
 check("a reminder the owner made on the dashboard is never guessed", "r:r_dash" not in J)
 check("another brain's bot is never matched", "r:r_far" not in J)
@@ -205,7 +205,7 @@ today = datetime.now(TZ).date().isoformat()
 ag = {a["key"]: a for a in feat.compute("main", today, today)["ai"]["agents"]}
 check("stats: the bot's job counts for its assistant", ag.get("vu", {}).get("n") == 1 and ag["vu"]["name"] == "Trợ lý Vũ", ag)
 check("stats: a bot whose assistant is not here counts as the bot", ag.get("bot:bot_shop", {}).get("name") == "Shop", ag)
-check("stats: the owner's reminder stays with Naota Core", ag.get("core", {}).get("n") == 1, ag)
+check("stats: the owner's reminder stays with Vanhanh Core", ag.get("core", {}).get("n") == 1, ag)
 
 print(f"\n{len(fails)} failed" if fails else "\nall passed")
 raise SystemExit(1 if fails else 0)

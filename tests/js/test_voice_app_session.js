@@ -53,7 +53,7 @@ test('a delayed correction cannot overwrite a newer user message', () => {
   context.convo = [{ role: 'user', text: 'câu mới' }];
   const div = { dataset: { text: 'câu mới' }, querySelector: () => null };
   context.chatArea.querySelectorAll = () => [div];
-  context.capNhatTinNguoiDung('Naota', 'câu cũ');
+  context.capNhatTinNguoiDung('Vanhanh', 'câu cũ');
   assert.equal(div.dataset.text, 'câu mới'); assert.equal(context.convo[0].text, 'câu mới');
 });
 test('cancelling a session drops its queued barge-in before switching chats', () => {

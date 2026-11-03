@@ -1,4 +1,4 @@
-"""Việc chạy nền engine bỏ lại: Naota nhận theo dõi, xong tự báo, tự làm tiếp.
+"""Việc chạy nền engine bỏ lại: Vanhanh nhận theo dõi, xong tự báo, tự làm tiếp.
 
 Lỗi đã gặp: "Đang render nền, xong mình ghép tiếng và gửi video" rồi im; video xong
 lúc 14:57, tới 16:14 hỏi "xong video chưa" mới biết. Test dựng lại đúng cơ chế bằng TIẾN TRÌNH
@@ -13,7 +13,7 @@ import time
 
 from _paths import ROOT, SERVER  # noqa: E402,F401
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-ttn-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-ttn-")
 import asyncio  # noqa: E402
 import subprocess  # noqa: E402
 
@@ -33,7 +33,7 @@ if os.name == "nt":
     print("BỎ QUA: Windows không có nhóm tiến trình, mọi hàm là no-op.")
     sys.exit(0)
 
-WD = tempfile.mkdtemp(prefix="naota-ttn-wd-")
+WD = tempfile.mkdtemp(prefix="vanhanh-ttn-wd-")
 
 
 def engine_bo_lai(lenh: str) -> int:

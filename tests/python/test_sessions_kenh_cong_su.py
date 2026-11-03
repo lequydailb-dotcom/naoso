@@ -8,15 +8,15 @@ import sys
 import tempfile
 from pathlib import Path
 
-_TMP = tempfile.mkdtemp(prefix="naota-kenh-")
-os.environ["NAOTA_STATE_DIR"] = _TMP
-os.environ["NAOTA_SESSIONS_DB"] = str(Path(_TMP) / "conv.db")
-# main.py:946 đọc BRAINS_DIR (KHÔNG có tiền tố NAOTA_) để tìm brain "brain" mặc định -
+_TMP = tempfile.mkdtemp(prefix="vanhanh-kenh-")
+os.environ["VANHANH_STATE_DIR"] = _TMP
+os.environ["VANHANH_SESSIONS_DB"] = str(Path(_TMP) / "conv.db")
+# main.py:946 đọc BRAINS_DIR (KHÔNG có tiền tố VANHANH_) để tìm brain "brain" mặc định -
 # đặt về thư mục tạm TRƯỚC khi import main, không được đụng vào brains/ thật của máy.
-_BRAINS = tempfile.mkdtemp(prefix="naota-kenh-brains-")
+_BRAINS = tempfile.mkdtemp(prefix="vanhanh-kenh-brains-")
 os.environ["BRAINS_DIR"] = _BRAINS
 # TestClient gửi Host: testserver, không nằm trong allowlist mặc định của web_security.py.
-os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
+os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
 
 import sessions  # noqa: E402
 
@@ -73,7 +73,7 @@ r = cl.get("/sessions", params={"brain": "brain", "channel": "agent:nguoi-viet"}
 check("GET /sessions?channel= tra dung phien", [s["id"] for s in r["sessions"]] == [row["id"]])
 
 # Slug CO DAU tieng Viet. _slugify giu nguyen chu tieng Viet, nen brain that co han
-# "naota-an~.md" va "kiem-chung-vien.md" (dau day du). Khuon cu ^[a-z0-9][a-z0-9-]*$ chan dung
+# "vanhanh-an~.md" va "kiem-chung-vien.md" (dau day du). Khuon cu ^[a-z0-9][a-z0-9-]*$ chan dung
 # nhung file do: bam vao trang Cong su la an 400 kem cau loi THO cua server hien thang ra man
 # hinh. Day la thu canh chuyen do.
 _slug_vn = "kiểm-chứng-viên"

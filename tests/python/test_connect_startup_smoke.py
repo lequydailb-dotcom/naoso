@@ -1,4 +1,4 @@
-"""After a restart or an update, Naota pings every connection once and tells the owner what is broken.
+"""After a restart or an update, Vanhanh pings every connection once and tells the owner what is broken.
 
     python tests/run.py connect_startup_smoke      (no network; spawns small Python servers)
 
@@ -18,8 +18,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-_TMP = Path(tempfile.mkdtemp(prefix="naota-smoke-"))
-os.environ["NAOTA_STATE_DIR"] = str(_TMP / "state")
+_TMP = Path(tempfile.mkdtemp(prefix="vanhanh-smoke-"))
+os.environ["VANHANH_STATE_DIR"] = str(_TMP / "state")
 os.environ["HOME"] = str(_TMP / "home")
 for _d in ("state", "home"):
     (_TMP / _d).mkdir(parents=True, exist_ok=True)

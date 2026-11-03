@@ -1,4 +1,4 @@
-"""The bot reads the Zalo tags (labels) of a chat (naota-zalo 1.6.0 `zalo_get_labels`).
+"""The bot reads the Zalo tags (labels) of a chat (vanhanh-zalo 1.6.0 `zalo_get_labels`).
 
     python tests/run.py zalo_labels      (no network, fake MCP and engine)
 
@@ -18,7 +18,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-labels-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-labels-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

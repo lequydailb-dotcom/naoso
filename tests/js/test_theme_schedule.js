@@ -65,7 +65,7 @@ function boot(store, clock) {
     fs.readFileSync(path.join(ROOT, "dashboard", "theme.js"), "utf8"))(
     win, doc, ls, CustomEvent, FakeDate, (fn, ms) => { timers.push({ fn, ms }); return timers.length; });
   return {
-    T: win.naotaTheme, root, btn, meta, store, events, timers,
+    T: win.vanhanhTheme, root, btn, meta, store, events, timers,
     light: () => root.getAttribute("data-theme") === "light",
     fire: (ev, e) => (listeners[ev] || []).forEach(f => f(e || {})),
     fireDoc: (ev) => (docListeners[ev] || []).forEach(f => f({})),
@@ -74,31 +74,31 @@ function boot(store, clock) {
 const at = (h, m) => new Date(2026, 9, 4, h, m || 0).getTime();
 
 // ---- Defaults and manual modes ----
-// Since NAOTA 1.0.0 a device that never picked a theme is LIGHT; Auto only when chosen.
+// Since VANHANH 1.0.0 a device that never picked a theme is LIGHT; Auto only when chosen.
 {
   const b = boot({}, { now: at(12) });
   check("no saved choice means Light", b.T.mode() === "light");
   check("so a fresh device is light at noon", b.light());
-  check("and nothing is written until the user picks", !("naota.theme" in b.store));
+  check("and nothing is written until the user picks", !("vanhanh.theme" in b.store));
   check("a fresh device is still light at night", boot({}, { now: at(22) }).light());
-  check("an explicit Auto choice is dark at night", !boot({ "naota.theme": "auto" }, { now: at(22) }).light());
-  check("an explicit dark choice is kept", !boot({ "naota.theme": "dark" }, { now: at(12) }).light());
+  check("an explicit Auto choice is dark at night", !boot({ "vanhanh.theme": "auto" }, { now: at(22) }).light());
+  check("an explicit dark choice is kept", !boot({ "vanhanh.theme": "dark" }, { now: at(12) }).light());
   check("default schedule is 06:00 to 18:00", JSON.stringify(b.T.schedule()) === '{"light":"06:00","dark":"18:00"}');
   b.T.setMode("light");
-  check("manual light turns light", b.light() && b.store["naota.theme"] === "light");
+  check("manual light turns light", b.light() && b.store["vanhanh.theme"] === "light");
   check("browser bar colour follows the tone", b.meta.attrs.content === "#ffffff");
   b.T.setMode("bogus");
-  check("unknown mode falls back to Auto", b.store["naota.theme"] === "auto" && b.light());
+  check("unknown mode falls back to Auto", b.store["vanhanh.theme"] === "auto" && b.light());
 }
 {
-  const b = boot({ "naota.theme": "dim" }, { now: at(12) });
-  check("old 'dim' value is migrated to dark", b.store["naota.theme"] === "dark" && !b.light());
+  const b = boot({ "vanhanh.theme": "dim" }, { now: at(12) });
+  check("old 'dim' value is migrated to dark", b.store["vanhanh.theme"] === "dark" && !b.light());
 }
 
 // ---- Auto: the clock decides ----
 {
   const clock = { now: at(12) };
-  const b = boot({ "naota.theme": "auto" }, clock);
+  const b = boot({ "vanhanh.theme": "auto" }, clock);
   check("auto at noon is light", b.light());
   check("next change is the evening time", b.T.nextChange() === "18:00");
   check("button tooltip says Auto", /Auto by time, light now/.test(b.btn.title), b.btn.title);
@@ -135,11 +135,11 @@ const at = (h, m) => new Date(2026, 9, 4, h, m || 0).getTime();
 // ---- Schedules: custom, overnight, equal, broken ----
 {
   const clock = { now: at(21) };
-  const b = boot({ "naota.theme": "auto" }, clock);
+  const b = boot({ "vanhanh.theme": "auto" }, clock);
   check("setSchedule rejects garbage", b.T.setSchedule("25:00", "18:00") === false
     && b.T.setSchedule("abc", "18:00") === false);
   check("setSchedule accepts and normalises", b.T.setSchedule("7:05", "22:30") === true
-    && b.store["naota.theme.schedule"] === "07:05-22:30");
+    && b.store["vanhanh.theme.schedule"] === "07:05-22:30");
   check("21:00 inside 07:05-22:30 is light right away", b.light());
 
   b.T.setSchedule("20:00", "04:00");      // night-shift worker: light overnight
@@ -151,27 +151,27 @@ const at = (h, m) => new Date(2026, 9, 4, h, m || 0).getTime();
   b.T.setSchedule("08:00", "08:00");
   check("equal times mean dark all day", !b.light() && b.T.nextChange() === "");
 
-  const bad = boot({ "naota.theme": "auto", "naota.theme.schedule": "nonsense" }, { now: at(12) });
+  const bad = boot({ "vanhanh.theme": "auto", "vanhanh.theme.schedule": "nonsense" }, { now: at(12) });
   check("a broken stored schedule falls back to the default", bad.light()
     && bad.T.schedule().light === "06:00");
 }
 
 // ---- Another tab changes the setting ----
 {
-  const store = { "naota.theme": "dark" };
+  const store = { "vanhanh.theme": "dark" };
   const clock = { now: at(12) };
   const b = boot(store, clock);
-  store["naota.theme"] = "auto";
-  b.fire("storage", { key: "naota.theme" });
+  store["vanhanh.theme"] = "auto";
+  b.fire("storage", { key: "vanhanh.theme" });
   check("a change in another tab applies here", b.light());
-  store["naota.theme.schedule"] = "13:00-14:00";
-  b.fire("storage", { key: "naota.theme.schedule" });
+  store["vanhanh.theme.schedule"] = "13:00-14:00";
+  b.fire("storage", { key: "vanhanh.theme.schedule" });
   check("a schedule change in another tab applies here", !b.light());
 }
 
 // ---- The pre-paint script in index.html must agree with theme.js ----
 const html = fs.readFileSync(path.join(ROOT, "dashboard", "index.html"), "utf8");
-const pre = (html.match(/<script>(\(function\(\)\{try\{var m=localStorage\.getItem\('naota\.theme'\)[\s\S]*?)<\/script>/) || [])[1];
+const pre = (html.match(/<script>(\(function\(\)\{try\{var m=localStorage\.getItem\('vanhanh\.theme'\)[\s\S]*?)<\/script>/) || [])[1];
 check("found the pre-paint script", !!pre);
 check("theme.js is cache-busted past the old version", /\/static\/theme\.js\?v=([3-9]|\d\d)/.test(html));
 if (pre) {
@@ -186,8 +186,8 @@ if (pre) {
   const cases = ["unset", undefined, "06:00-18:00", "07:05-22:30", "20:00-04:00", "08:00-08:00", "nonsense"];
   let mismatch = "";
   for (const sch of cases) {
-    const store = sch === "unset" ? {} : { "naota.theme": "auto" };
-    if (sch && sch !== "unset") store["naota.theme.schedule"] = sch;
+    const store = sch === "unset" ? {} : { "vanhanh.theme": "auto" };
+    if (sch && sch !== "unset") store["vanhanh.theme.schedule"] = sch;
     for (let m = 0; m < 1440 && !mismatch; m += 1) {
       const now = at(0, m);
       const b = boot(Object.assign({}, store), { now });
@@ -195,13 +195,13 @@ if (pre) {
     }
   }
   check("pre-paint and theme.js agree for every minute of the day", !mismatch, mismatch);
-  check("pre-paint keeps manual light", runPre({ "naota.theme": "light" }, at(23)));
-  check("pre-paint keeps manual dark", !runPre({ "naota.theme": "dark" }, at(12)));
+  check("pre-paint keeps manual light", runPre({ "vanhanh.theme": "light" }, at(23)));
+  check("pre-paint keeps manual dark", !runPre({ "vanhanh.theme": "dark" }, at(12)));
   check("pre-paint: no saved choice is Light (at noon)", runPre({}, at(12)));
   check("pre-paint: no saved choice is Light (at night too)", runPre({}, at(22)));
-  check("pre-paint: explicit Auto is dark at night", !runPre({ "naota.theme": "auto" }, at(22)));
+  check("pre-paint: explicit Auto is dark at night", !runPre({ "vanhanh.theme": "auto" }, at(22)));
   check("pre-paint: old 'dim' stays dark, no flash before the migration",
-    !runPre({ "naota.theme": "dim" }, at(12)) && !boot({ "naota.theme": "dim" }, { now: at(12) }).light());
+    !runPre({ "vanhanh.theme": "dim" }, at(12)) && !boot({ "vanhanh.theme": "dim" }, { now: at(12) }).light());
 }
 
 // ---- Settings card in console.js ----
@@ -233,18 +233,18 @@ for (const lang of ["vi", "en"]) {
     const box = { innerHTML: "", querySelectorAll: () => [], querySelector: () => null };
     const themeNowText = new Function("t", "T", nowBody).bind(null, t);
     new Function("box", "window", "t", "esc", "toast", "themeNowText", renderBody)(
-      box, { naotaTheme: b.T }, t, esc, () => {}, themeNowText);
+      box, { vanhanhTheme: b.T }, t, esc, () => {}, themeNowText);
     return box.innerHTML;
   };
-  const manual = draw(boot({ "naota.theme": "light" }, { now: at(12) }));
+  const manual = draw(boot({ "vanhanh.theme": "light" }, { now: at(12) }));
   check(`[${lang}] three choices drawn`, ["dark", "light", "auto"].every(v => manual.includes(`data-theme-mode="${v}"`)));
   check(`[${lang}] the current choice is selected`, /seg-btn sel" data-theme-mode="light"/.test(manual));
   check(`[${lang}] no time fields in manual mode`, !manual.includes('type="time"'));
-  const auto = draw(boot({ "naota.theme": "auto" }, { now: at(20) }));
+  const auto = draw(boot({ "vanhanh.theme": "auto" }, { now: at(20) }));
   check(`[${lang}] Auto shows both time fields`, auto.includes('id="vpThemeLight" value="06:00"')
     && auto.includes('id="vpThemeDark" value="18:00"'));
   check(`[${lang}] Auto says when it switches next`, auto.includes("06:00"));
-  const flat = draw(boot({ "naota.theme": "auto", "naota.theme.schedule": "08:00-08:00" }, { now: at(20) }));
+  const flat = draw(boot({ "vanhanh.theme": "auto", "vanhanh.theme.schedule": "08:00-08:00" }, { now: at(20) }));
   check(`[${lang}] equal times explain the all-dark result`, flat.includes(esc(dict["settings.theme.now_flat"])));
   const all = manual + auto + flat;
   check(`[${lang}] every label has a translation`, !all.includes("!!MISSING:"),

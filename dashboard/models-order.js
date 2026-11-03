@@ -132,5 +132,5 @@
 
   api.place = place;
   api.bindDrag = bindDrag;
-  window.NaotaModelsOrder = api;
+  window.VanhanhModelsOrder = api;
 })();

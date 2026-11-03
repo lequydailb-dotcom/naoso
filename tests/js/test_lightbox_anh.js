@@ -78,8 +78,8 @@ check("CANARY: Ctrl/Cmd/Shift/giữa chuột KHÔNG bị nuốt",
 check("không bung lightbox khi đang soạn trong editor",
       /contenteditable="true"\], \.jvfe-modal, \.note-editor/.test(SRC));
 // Module còn phải require được dưới node -> mọi thứ chạm `window` phải nằm trong khối có DOM.
-check("CANARY: gán window.NaotaLightbox nằm TRONG khối kiểm tra DOM",
-      SRC.indexOf('window.NaotaLightbox') > SRC.indexOf('if (typeof document !== "undefined")'));
+check("CANARY: gán window.VanhanhLightbox nằm TRONG khối kiểm tra DOM",
+      SRC.indexOf('window.VanhanhLightbox') > SRC.indexOf('if (typeof document !== "undefined")'));
 
 // ---- 6. CSS ----
 function than(sel) {

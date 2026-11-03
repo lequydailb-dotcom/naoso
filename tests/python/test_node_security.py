@@ -3,7 +3,7 @@
     python tests/run.py node_security      (no network)
 
 Node.js security release of 2026-10-21 (CVE-2026-111497 Brotli RCE and 9 more) fixed 22.23.4,
-24.22.1 and 26.12.1. Naota runs Claude Code, Codex and npx MCP servers on the machine's Node.js,
+24.22.1 and 26.12.1. Vanhanh runs Claude Code, Codex and npx MCP servers on the machine's Node.js,
 so three places carry that floor: the Docker image pin, install.sh and server/node_security.py.
 This test keeps them in step and checks the News item only appears on an unpatched machine.
 """
@@ -15,7 +15,7 @@ import re
 import sys
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-node-sec-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-node-sec-"))
 import node_security  # noqa: E402
 
 _fails = []
@@ -54,7 +54,7 @@ check("notice id is scoped under the advisory id",
 check("notice links the official advisory", (item or {}).get("cta", {}).get("url") == ns.ADVISORY_URL)
 check("Windows notice says how to upgrade with winget", "winget" in (item or {}).get("body", ""))
 docker_item = ns.notice((20, 18, 0), "docker")
-check("Docker notice says to update Naota, not Node.js by hand",
+check("Docker notice says to update Vanhanh, not Node.js by hand",
       "update.sh" in (docker_item or {}).get("body", ""), docker_item)
 _dash = re.compile("[–—]")
 for mode in ("docker", "windows", "native"):
@@ -76,7 +76,7 @@ check("install.sh node_floor matches node_security.PATCHED", floors == want, (fl
 
 ann = json.loads((ROOT / "ANNOUNCEMENTS.json").read_text(encoding="utf-8"))
 ids = [a.get("id") for a in ann.get("announcements", [])]
-# NAOTA 1.0.0 has no older installs to broadcast to; the feed check below still covers the machine item.
+# VANHANH 1.0.0 has no older installs to broadcast to; the feed check below still covers the machine item.
 
 # --- the feed replaces the broadcast with the machine's own result ------------------------------
 import main  # noqa: E402

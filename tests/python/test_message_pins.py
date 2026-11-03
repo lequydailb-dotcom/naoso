@@ -10,7 +10,7 @@ from _paths import ROOT, SERVER  # noqa: E402,F401
 import os
 import tempfile
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-msg-pins-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-msg-pins-")
 
 import main  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

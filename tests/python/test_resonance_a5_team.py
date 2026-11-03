@@ -3,7 +3,7 @@
     python tests/run.py resonance_a5_team -v
 
 Kho SQLite thật, engine GIẢ hai vai (lượt review nhận `R.REVIEW_SYSTEM`), đồng hồ giả. Mục tiêu tạo qua `form_goal` thật
-(đường của tool naota_goal và /goal-requests; T31, T32 đi qua chính plugin và chính route), chạy qua `R.advance` thật
+(đường của tool vanhanh_goal và /goal-requests; T31, T32 đi qua chính plugin và chính route), chạy qua `R.advance` thật
 (cổng, scheduler, kho). Không gọi model thật. Tên ca theo ma trận nghiệm thu mục 15 của
 resonance-a5-maker-reviewer. Mỗi ca kiểm: trạng thái và lý do, lượt (maker,
 reviewer, tổng), số lần engine giả được gọi, và kết quả nào được phép dùng.
@@ -19,9 +19,9 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
-_STATE = Path(tempfile.mkdtemp(prefix="naota-res-a5-"))
-os.environ["NAOTA_STATE_DIR"] = str(_STATE)
-os.environ.pop("NAOTA_RESONANCE_CALL_CEILING", None)
+_STATE = Path(tempfile.mkdtemp(prefix="vanhanh-res-a5-"))
+os.environ["VANHANH_STATE_DIR"] = str(_STATE)
+os.environ.pop("VANHANH_RESONANCE_CALL_CEILING", None)
 
 import resonance as R  # noqa: E402
 import resonance_heartbeat as HB  # noqa: E402
@@ -137,8 +137,8 @@ check("T4 tin goal.review_exhausted (loại phải gửi)", ("goal.review_exhaus
 check("T4 không tự nới: chạy thêm không gọi model", (t.run(g), t.work.queries, t.rev.queries)[1:] == (3, 3))
 
 # ═══════════ T31 tới T36: gắn đội trong giao dịch tạo (R1) ═══════════
-# T31: tạo qua CHÍNH tool naota_goal (plugin), trong lượt chat của agent làm, kho mặc định của host.
-_spec = importlib.util.spec_from_file_location("naota_goal_plugin", str(Path(ROOT) / "system" / "plugins" / "naota-goal"
+# T31: tạo qua CHÍNH tool vanhanh_goal (plugin), trong lượt chat của agent làm, kho mặc định của host.
+_spec = importlib.util.spec_from_file_location("vanhanh_goal_plugin", str(Path(ROOT) / "system" / "plugins" / "vanhanh-goal"
                                                                           / "plugin.py"))
 PLUG = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(PLUG)
@@ -161,14 +161,14 @@ def _no_assign(*a, **k):
 RS.GoalStore.assign_goal = _no_assign
 mid, ref = t.next()
 with RA.turn(t.ag(), t.sid, mid, T.USER, t.brain, slug=T.MAKER, store=t.store):
-    out = asyncio.run(PLUG.naota_goal({"op": "create", **t.proposal()}, _Ctx(t.brain)))
+    out = asyncio.run(PLUG.vanhanh_goal({"op": "create", **t.proposal()}, _Ctx(t.brain)))
 RS.GoalStore.assign_goal = orig_assign
 g = t.store.find_by_key(t.owner, ref)
 tm = t.team(g)
 created = [e for e in t.store.events(t.owner, g.id) if e["kind"] in ("created", "team_attached")]
-# bỏ người review cố định. Đường thật (tool naota_goal mở kho mặc định của host, không bật cờ của test) KHÔNG
+# bỏ người review cố định. Đường thật (tool vanhanh_goal mở kho mặc định của host, không bật cờ của test) KHÔNG
 # gắn đội nữa, kể cả khi trợ lý còn một cặp làm/review cũ trong kho.
-check("T31 tool naota_goal: mục tiêu mới KHÔNG có đội dù có cặp cũ, không lấy ngân sách đội 8, chỉ một sự kiện tạo",
+check("T31 tool vanhanh_goal: mục tiêu mới KHÔNG có đội dù có cặp cũ, không lấy ngân sách đội 8, chỉ một sự kiện tạo",
       "Đã lập mục tiêu" in out and tm is None and t.g(g).budget_calls != 8
       and [e["kind"] for e in created] == ["created"], (out[:200], tm, created))
 try:

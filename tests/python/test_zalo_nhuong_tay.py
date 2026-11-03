@@ -22,9 +22,9 @@ import tempfile
 import time
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="naota-zpnhuong-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
-os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
+_STATE = tempfile.mkdtemp(prefix="vanhanh-zpnhuong-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
+os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -315,7 +315,7 @@ async def chay():
     tb.stop()
 
     # ---- review point 3: tin trả lời tin của nick, mang FILE, trong lúc nhường -------------------------
-    inbox = Path(tempfile.mkdtemp(prefix="naota-zpfile-")) / "inbox" / "khach"
+    inbox = Path(tempfile.mkdtemp(prefix="vanhanh-zpfile-")) / "inbox" / "khach"
     inbox.mkdir(parents=True)
     TAI = []
 

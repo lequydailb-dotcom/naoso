@@ -4,13 +4,13 @@
 
 LỖI THẬT
 Trên VPS Linux, brain "Brain Default" có ĐỒNG THỜI `memory/` và `Memory/`. Lúc 11:37 trợ lý
-ghi một ký ức về skill `lam-tho` vào `Memory/facts/`, và ký ức đó biến mất khỏi Naota.
+ghi một ký ức về skill `lam-tho` vào `Memory/facts/`, và ký ức đó biến mất khỏi Vanhanh.
 
 Vì sao mất, theo đúng thứ tự:
 
 1. Linux phân biệt hoa thường nên đó là HAI thư mục thật sự khác nhau. Trên máy Mac thì
    không - nên lỗi này không bao giờ lộ ra lúc chạy thử ở máy dev.
-2. Tài liệu của chính Naota dạy sai đường: `CLAUDE.md` và `SCHEMA_SEED` (ghi thành AGENTS.md
+2. Tài liệu của chính Vanhanh dạy sai đường: `CLAUDE.md` và `SCHEMA_SEED` (ghi thành AGENTS.md
    trong MỌI brain) đều viết `Memory/` hoa, trong khi mọi đường đọc lấy `memory/` thường.
    Model làm theo tài liệu là ghi vào đúng chỗ không ai đọc.
 3. `_brain_memory_dir` ưu tiên bản thường, nên chỉ mục nạp vào prompt mỗi lượt không có dòng
@@ -34,8 +34,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-_TMP = tempfile.mkdtemp(prefix="naota-memcase-")
-os.environ.setdefault("NAOTA_STATE_DIR", _TMP)
+_TMP = tempfile.mkdtemp(prefix="vanhanh-memcase-")
+os.environ.setdefault("VANHANH_STATE_DIR", _TMP)
 
 import main  # noqa: E402
 import learn  # noqa: E402

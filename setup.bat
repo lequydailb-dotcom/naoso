@@ -1,9 +1,9 @@
 @echo off
 chcp 65001 >nul
-title NAOTA
+title VANHANH
 echo.
 echo  ==========================================
-echo   NAOTA
+echo   VANHANH
 echo  ==========================================
 echo   Muon cai MOT LUOT ca 4 bo nao CLI
 echo   (claude, codex, agy, grok) thi chay:
@@ -36,7 +36,7 @@ call .venv\Scripts\activate.bat
 pip install -r requirements.txt -q
 if errorlevel 1 (
   echo.
-  echo  [LOI] Cai thu vien Python THAT BAI - Naota se thieu claude-agent-sdk va khong chay duoc.
+  echo  [LOI] Cai thu vien Python THAT BAI - Vanhanh se thieu claude-agent-sdk va khong chay duoc.
   echo        Chay tay de doc loi day du:
   echo          .venv\Scripts\python.exe -m pip install -r requirements.txt
   echo.
@@ -47,7 +47,7 @@ if errorlevel 1 (
 REM ---- BON bo nao CLI chay bang GOI DANG DANG NHAP (khong can mua API key) ----
 REM Bon engine nay can binary tren may moi hien o trang Models, va trong app KHONG cai ho duoc.
 REM Hai cai dau cai bang npm, hai cai sau bang script cua nha cung cap.
-REM BEST-EFFORT het: chua co Node thi bo qua hai cai dau, Naota van chay bang engine dung API key.
+REM BEST-EFFORT het: chua co Node thi bo qua hai cai dau, Vanhanh van chay bang engine dung API key.
 echo [3/4] Kiem tra cac bo nao CLI...
 where npm >nul 2>&1
 if errorlevel 1 (
@@ -63,10 +63,10 @@ REM script cai ghi vao registry, nen "chua thay" o day khong co nghia la chua ca
 call :cai_script agy "Antigravity CLI cua Google" https://antigravity.google/cli/install.ps1
 call :cai_script grok "Grok Build cua xAI" https://x.ai/cli/install.ps1
 
-REM bat tu khoi dong cung Windows (dang nhap may la Naota tu chay va tu mo dashboard).
-REM Khong muon thi dat NAOTA_NO_AUTOSTART=1 truoc khi chay, hoac tat trong trang Cai dat sau.
-if not "%NAOTA_NO_AUTOSTART%"=="1" (
-  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0naota-autostart.ps1" install >nul 2>&1
+REM bat tu khoi dong cung Windows (dang nhap may la Vanhanh tu chay va tu mo dashboard).
+REM Khong muon thi dat VANHANH_NO_AUTOSTART=1 truoc khi chay, hoac tat trong trang Cai dat sau.
+if not "%VANHANH_NO_AUTOSTART%"=="1" (
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0vanhanh-autostart.ps1" install >nul 2>&1
   if not errorlevel 1 echo     OK  Tu khoi dong cung Windows: BAT
 )
 
@@ -79,7 +79,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":7777" ^| findstr "LISTENING
 
 echo.
 echo  ==========================================
-echo   NAOTA dang chay tai: http://localhost:7777
+echo   VANHANH dang chay tai: http://localhost:7777
 echo   (Chon bo nao o trang Models - khong bat buoc mua API key)
 echo   Nhan Ctrl+C de dung.
 echo  ==========================================
@@ -128,6 +128,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "try { irm %3 -UseBasicPa
 if errorlevel 1 (
   echo       [!] Chua cai duoc. Cai tay: irm %3 ^| iex
 ) else (
-  echo       Da chay script cai. Neu trang Models van bao chua cai thi khoi dong lai Naota.
+  echo       Da chay script cai. Neu trang Models van bao chua cai thi khoi dong lai Vanhanh.
 )
 goto :eof

@@ -10,7 +10,7 @@ tin ra ngoài". Kết cục: đúng giờ nó vẫn thức dậy, chạy, rồi 
 việc thì vẫn chưa ai làm.
 
 Hướng đã chốt: bỏ các quyền chặn, có cảnh báo là được. Sau đó bỏ luôn luật an toàn "không giao tự động tiền/đơn/đăng bài/nhắn khách" trên
-toàn Naota: câu cảnh báo lúc tạo (`canh_bao`) và hộp cảnh báo đỏ trên form được gỡ, loop cũng
+toàn Vanhanh: câu cảnh báo lúc tạo (`canh_bao`) và hộp cảnh báo đỏ trên form được gỡ, loop cũng
 mặc định toàn quyền như nhắc hẹn.
 
 Test này khoá ba thứ: mặc định toàn quyền, ba mức dựng engine khác nhau thật, và phần cảnh báo
@@ -23,8 +23,8 @@ import tempfile
 
 from _paths import ROOT, SERVER  # noqa: E402,F401
 
-_STATE = tempfile.mkdtemp(prefix="naota-nhachen-")
-os.environ.setdefault("NAOTA_STATE_DIR", _STATE)
+_STATE = tempfile.mkdtemp(prefix="vanhanh-nhachen-")
+os.environ.setdefault("VANHANH_STATE_DIR", _STATE)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -80,7 +80,7 @@ _GHI = {}
 class _Deps:
     safe_tools = ["Read", "Write", "Edit"]
     readonly_tools = ["Read", "Glob", "Grep"]
-    mcp_allow_patterns = staticmethod(lambda: ["mcp__naota__*"])
+    mcp_allow_patterns = staticmethod(lambda: ["mcp__vanhanh__*"])
     aux_swap = None
     aux_model = staticmethod(lambda: None)
 
@@ -131,7 +131,7 @@ check("toàn quyền: prompt dặn đừng hỏi lại rồi ngồi đợi (khô
 g = _chay("auto")
 check("ghi file: allowlist là bộ tool ghi được", "Write" in (g["allowed_tools"] or []))
 check("ghi file: vẫn kèm pattern MCP để gọi được tool đọc",
-      "mcp__naota__*" in (g["allowed_tools"] or []))
+      "mcp__vanhanh__*" in (g["allowed_tools"] or []))
 check("ghi file: hub chạy ở mức auto", g["hub_mode"] == "auto")
 check("ghi file: prompt vẫn cấm hành động ra ngoài",
       "KHÔNG tạo đơn" in g["prompt"] and "gửi tin ra ngoài" in g["prompt"])
@@ -153,9 +153,9 @@ check("reminders.py không còn hằng cảnh báo toàn quyền", not hasattr(R
 SRC = (SERVER / "reminders.py").read_text(encoding="utf-8")
 check("endpoint tạo không còn trả canh_bao", '"canh_bao"' not in SRC)
 
-PLUGIN = (ROOT / "system" / "plugins" / "naota-schedule" / "plugin.py").read_text(encoding="utf-8")
-check("tool naota_schedule không còn đọc lại cảnh báo", 'data.get("canh_bao")' not in PLUGIN)
-check("tool naota_schedule nói mức quyền của nhắc hẹn vừa tạo", 'data.get("muc_quyen")' in PLUGIN)
+PLUGIN = (ROOT / "system" / "plugins" / "vanhanh-schedule" / "plugin.py").read_text(encoding="utf-8")
+check("tool vanhanh_schedule không còn đọc lại cảnh báo", 'data.get("canh_bao")' not in PLUGIN)
+check("tool vanhanh_schedule nói mức quyền của nhắc hẹn vừa tạo", 'data.get("muc_quyen")' in PLUGIN)
 check("tool nhận tham số muc_quyen", '"muc_quyen"' in PLUGIN)
 
 CLAUDEMD = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")

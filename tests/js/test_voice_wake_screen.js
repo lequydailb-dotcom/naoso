@@ -1,8 +1,8 @@
 /* Im lâu thì ngắt, nói là nối lại; giữ màn hình sáng khi gọi.
 
-   Hai lỗi đã được báo: (1) gọi "Naota" sau khi cuộc gọi ChatGPT Live ngắt vì im thì không
+   Hai lỗi đã được báo: (1) gọi "Vanhanh" sau khi cuộc gọi ChatGPT Live ngắt vì im thì không
    nối lại được, vì trình duyệt chép tên thành "Nau ta"; (2) trên iPhone (app mở từ màn hình chính),
-   màn hình tắt giữa cuộc gọi là Naota không nghe, không đáp. Quyết định: bỏ công tắc Tập trung, im 30
+   màn hình tắt giữa cuộc gọi là Vanhanh không nghe, không đáp. Quyết định: bỏ công tắc Tập trung, im 30
    giây thì ngắt, câu nói thật là nối lại (không cần tên, không dùng Groq), và giữ màn hình sáng.
 
    Chạy: node tests/js/test_voice_wake_screen.js
@@ -68,8 +68,8 @@ const { create } = require("../../dashboard/screen-awake.js");
   const vi = JSON.parse(read("dashboard/i18n/vi.json"));
   const en = JSON.parse(read("dashboard/i18n/en.json"));
   assert.match(html, /screen-awake\.js\?v=\d+"><\/script>[\s\S]{0,200}<script src="\/static\/app\.js/, "screen-awake.js loads before app.js");
-  assert.match(app, /window\.NaotaScreenAwake\.hold\(\)/, "opening a call keeps the screen on");
-  assert.match(app, /window\.NaotaScreenAwake\.release\(\)/, "hanging up lets the screen sleep");
+  assert.match(app, /window\.VanhanhScreenAwake\.hold\(\)/, "opening a call keeps the screen on");
+  assert.match(app, /window\.VanhanhScreenAwake\.release\(\)/, "hanging up lets the screen sleep");
   assert.match(app, /attention\.wakes\(text\)/, "the waiting listener wakes on real speech");
   assert.ok(!/!attention\.accept\(text\)\) return;\s*\n\s*resumeVoiceFocus/.test(app), "the old name-only rule is gone");
   assert.match(app, /function datCheDoGiong\(mode\) \{\s*\n\s*voiceMode = mode;\s*\n\s*attention\.enabled = mode === "live";/,
@@ -79,12 +79,12 @@ const { create } = require("../../dashboard/screen-awake.js");
   assert.ok(!/focus_mode/.test(app), "app.js no longer reads the removed Focus setting");
   assert.match(app, /else if \(!nghe\) batNgheAmLuong\(\);/, "no browser recogniser: fall back to the level detector");
   assert.match(app, /_liveWaitingWake = false;\s*\n\s*tatNgheAmLuong\(\);/, "the level detector releases the mic before Live reopens");
-  assert.match(app, /tatNgheAmLuong\(\);\s*\n\s*if \(window\.NaotaScreenAwake\) window\.NaotaScreenAwake\.release\(\);/,
+  assert.match(app, /tatNgheAmLuong\(\);\s*\n\s*if \(window\.VanhanhScreenAwake\) window\.VanhanhScreenAwake\.release\(\);/,
     "hang up stops the level detector and the screen lock");
   assert.ok(!/id="vcFocus"/.test(html) && !/vcFocus/.test(con), "the Focus switch is gone from Settings");
   assert.ok(!("settings.vc_focus" in vi) && !("settings.vc_focus_hint" in en));
   assert.ok(!/gọi/i.test(vi["call.waiting_wake"]) && /nói/.test(vi["call.waiting_wake"]), "the call bar says: just speak");
-  assert.ok(!/say "?Naota/i.test(en["call.waiting_wake"]));
+  assert.ok(!/say "?Vanhanh/i.test(en["call.waiting_wake"]));
   // lúc chờ, câu trọn ý chốt sau 0,7 giây; câu dở dang giữ độ chờ dài của đạo diễn.
   assert.match(app, /endpointDelay: text => doTreChotCauCho\(text\)/);
   const fnSrc = app.slice(app.indexOf("const CHOT_CAU_CHO_MS"), app.indexOf("function noiSom()"));

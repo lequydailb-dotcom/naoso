@@ -18,11 +18,11 @@ import os
 import tempfile
 from pathlib import Path
 
-state = tempfile.mkdtemp(prefix="naota-setup-")
-os.environ["NAOTA_STATE_DIR"] = state
+state = tempfile.mkdtemp(prefix="vanhanh-setup-")
+os.environ["VANHANH_STATE_DIR"] = state
 os.environ["BRAINS_DIR"] = str(Path(state) / "brains")
-os.environ["NAOTA_SESSIONS_DB"] = str(Path(state) / "sessions.db")
-os.environ["NAOTA_REQUIRE_LOGIN"] = "1"      # giả lập deploy public
+os.environ["VANHANH_SESSIONS_DB"] = str(Path(state) / "sessions.db")
+os.environ["VANHANH_REQUIRE_LOGIN"] = "1"      # giả lập deploy public
 
 import main  # noqa: E402
 import config as cfgmod  # noqa: E402

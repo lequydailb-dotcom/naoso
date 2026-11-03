@@ -1,8 +1,8 @@
-"""Durable SQLite store for the autonomous Naota task queue.
+"""Durable SQLite store for the autonomous Vanhanh task queue.
 
-The queue is runtime state, so SQLite lives in NAOTA_STATE_DIR instead of inside a
+The queue is runtime state, so SQLite lives in VANHANH_STATE_DIR instead of inside a
 brain that may be synchronized by Git. A JSON snapshot is still exported by
-``tasks.py`` for portability and backwards compatibility with older Naota builds.
+``tasks.py`` for portability and backwards compatibility with older Vanhanh builds.
 """
 from __future__ import annotations
 
@@ -81,7 +81,7 @@ def agent_prefix(idempotency_key: Any) -> str:
     """`agent:<mã>:` của việc giao trực tiếp cho một trợ lý (khoá `agent:<mã>:<slug>:...`), rỗng nếu không phải.
 
     Một trợ lý chạy MỘT việc giao trực tiếp một lúc: giao nhiều việc không tự mở nhiều lượt model đồng thời cho cùng
-    trợ lý. Việc của trợ lý khác, việc Kanban thường vẫn chạy song song tới trần NAOTA_KANBAN_MAX_WORKERS."""
+    trợ lý. Việc của trợ lý khác, việc Kanban thường vẫn chạy song song tới trần VANHANH_KANBAN_MAX_WORKERS."""
     k = str(idempotency_key or "")
     if not k.startswith("agent:"):
         return ""
@@ -677,7 +677,7 @@ class TaskStore:
 
         Khác archive_old_terminal (chỉ ẩn khỏi bảng, vẫn tra được): đây là dọn thật, dùng
         khi bảng đầy việc rác không còn giá trị tra cứu. Mặc định giữ 'done' vì đó là lịch
-        sử việc Naota làm được; muốn dọn cả thì truyền statuses vào."""
+        sử việc Vanhanh làm được; muốn dọn cả thì truyền statuses vào."""
         allowed = tuple(s for s in statuses if s in self._PURGEABLE)
         if not allowed:
             return 0
@@ -733,7 +733,7 @@ class TaskStore:
                 raise
 
     # a stopped job only the owner can move on (a question, a permission, a result to approve), as opposed
-    # to one Naota handles itself (technical hitch, usage limit). The Work page and the notices split on this.
+    # to one Vanhanh handles itself (technical hitch, usage limit). The Work page and the notices split on this.
     OWNER_BLOCK_KINDS = ("needs_input", "capability")
 
     @classmethod
@@ -742,8 +742,8 @@ class TaskStore:
         return st == "review" or (st == "blocked" and str(task.get("block_kind") or "") in cls.OWNER_BLOCK_KINDS)
 
     def archive_attention(self, brain_root: str, owner: bool) -> int:
-        """Wipe one of the two stopped-job areas: `owner=True` the "Naota is asking you" area (review + owner
-        kinds), False the "Naota is handling it" area (every other blocked job). Same rules as archive_by_status."""
+        """Wipe one of the two stopped-job areas: `owner=True` the "Vanhanh is asking you" area (review + owner
+        kinds), False the "Vanhanh is handling it" area (every other blocked job). Same rules as archive_by_status."""
         with self._lock:
             rows = self._db.execute(
                 """SELECT id, status, block_kind FROM tasks WHERE brain_root=? AND lane<>'team'
@@ -1387,7 +1387,7 @@ class TaskStore:
                     self._db.rollback()
                     return False
                 # Người dùng tự kéo việc: bỏ luôn mốc hoãn (họ muốn chạy NGAY, kể cả khi
-                # Naota đang đợi gói thuê bao mở lại).
+                # Vanhanh đang đợi gói thuê bao mở lại).
                 self._db.execute(
                     """UPDATE tasks SET status=?, block_kind='', block_reason='',
                        claimed_by='', claim_expires_at=0, not_before=0, current_run_id='',
@@ -1822,7 +1822,7 @@ class TaskStore:
         return self._team_move(task_id, TEAM_OPEN_STATUS, "cancelled", "team_cancelled", reason,
                                block_kind="cancelled", block_reason=reason, run_status="cancelled")
 
-    # ───── Naota Core giao việc cho nhóm ─────
+    # ───── Vanhanh Core giao việc cho nhóm ─────
     # Việc nhóm không dùng `metadata_json` ở đâu khác, nên nơi giao việc nằm ở đó: `core` (mã đối chiếu, nơi báo kết
     # quả, kênh), `core_said` (trạng thái đã báo gần nhất), `core_closed` (đã báo lần cuối, thôi theo dõi).
 

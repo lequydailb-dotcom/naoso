@@ -1334,8 +1334,8 @@
  {
   "order": 133,
   "type": "APIRoute",
-  "path": "/naota-core/session",
-  "name": "naota_core_session",
+  "path": "/vanhanh-core/session",
+  "name": "vanhanh_core_session",
   "methods": [
    "POST"
   ],
@@ -3112,8 +3112,8 @@
  {
   "order": 312,
   "type": "APIRoute",
-  "path": "/naota/index",
-  "name": "naota_index",
+  "path": "/vanhanh/index",
+  "name": "vanhanh_index",
   "methods": [
    "GET"
   ],
@@ -3292,8 +3292,8 @@
  {
   "order": 330,
   "type": "APIRoute",
-  "path": "/naota-core/cite",
-  "name": "naota_core_cite",
+  "path": "/vanhanh-core/cite",
+  "name": "vanhanh_core_cite",
   "methods": [
    "POST"
   ],

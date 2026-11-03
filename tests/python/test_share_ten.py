@@ -12,9 +12,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="naota-share-ten-")
-_BRAINS = tempfile.mkdtemp(prefix="naota-share-ten-brains-")
-os.environ["NAOTA_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="vanhanh-share-ten-")
+_BRAINS = tempfile.mkdtemp(prefix="vanhanh-share-ten-brains-")
+os.environ["VANHANH_STATE_DIR"] = _STATE
 os.environ["BRAINS_DIR"] = _BRAINS
 
 BRAIN = os.path.join(_BRAINS, "brain")

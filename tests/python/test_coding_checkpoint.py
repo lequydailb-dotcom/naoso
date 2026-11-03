@@ -19,8 +19,8 @@ import tempfile
 import time
 from pathlib import Path
 
-_TMP = tempfile.mkdtemp(prefix="naota-checkpoint-")
-os.environ["NAOTA_STATE_DIR"] = _TMP
+_TMP = tempfile.mkdtemp(prefix="vanhanh-checkpoint-")
+os.environ["VANHANH_STATE_DIR"] = _TMP
 
 import coding_checkpoint as cc  # noqa: E402
 

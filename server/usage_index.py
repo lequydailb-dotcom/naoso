@@ -28,7 +28,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from config import STATE_DIR
-import session_brain   # {session_id: brain} - nhan du an dung cho phien Naota (cwd luon la goc project)
+import session_brain   # {session_id: brain} - nhan du an dung cho phien Vanhanh (cwd luon la goc project)
 import usage_parsers as up
 
 # Múi giờ để cắt NGÀY của thống kê. Đọc từ cấu hình qua `localefmt`, KHÔNG còn là hằng số.
@@ -73,11 +73,11 @@ _EVENT_LOCAL = {"ollama-local"}
 
 
 def _claude_dir() -> str:
-    return os.getenv("NAOTA_CLAUDE_PROJECTS_DIR") or os.path.expanduser("~/.claude/projects")
+    return os.getenv("VANHANH_CLAUDE_PROJECTS_DIR") or os.path.expanduser("~/.claude/projects")
 
 
 def _codex_dir() -> str:
-    return os.getenv("NAOTA_CODEX_SESSIONS_DIR") or os.path.expanduser("~/.codex/sessions")
+    return os.getenv("VANHANH_CODEX_SESSIONS_DIR") or os.path.expanduser("~/.codex/sessions")
 
 
 def _conversations_db() -> Path:
@@ -467,7 +467,7 @@ _EVENT_CODEX = {"codex", "openai-oauth", "chatgpt", "oauth"}
 # xAI la duong TRA TIEN theo luot goi, con day la duong THUE BAO - hai thu khac hoan toan ve
 # hoa don du cung ten model.
 _EVENT_GROK_CLI = {"grok-cli", "grok_cli", "grok"}
-# Antigravity CLI (Google plan) has no raw log Naota reads, so these lines are its only record.
+# Antigravity CLI (Google plan) has no raw log Vanhanh reads, so these lines are its only record.
 _EVENT_ANTIGRAVITY = {"antigravity-cli", "agy"}
 
 
@@ -544,22 +544,22 @@ def _ingest_events(conn) -> int:
             conn.execute("INSERT INTO usage_daily_events(event_key,payload) VALUES(?,?) "
                          "ON CONFLICT(event_key) DO UPDATE SET payload=excluded.payload", (event_key, json.dumps(e)))
         if prov in _API_PROVIDERS:
-            events.append({**chung, "provider": "api", "source": "naota", "activity": "chat",
+            events.append({**chung, "provider": "api", "source": "vanhanh", "activity": "chat",
                            "project": "(api)"})
         elif prov in _EVENT_CLAUDE:
-            events.append({**chung, "provider": "claude", "source": "naota", "activity": "chat",
+            events.append({**chung, "provider": "claude", "source": "vanhanh", "activity": "chat",
                            "project": "(events)"})
         elif prov in _EVENT_CODEX:
-            events.append({**chung, "provider": "codex", "source": "naota", "activity": "chat",
+            events.append({**chung, "provider": "codex", "source": "vanhanh", "activity": "chat",
                            "project": "(events)"})
         elif prov in _EVENT_GROK_CLI:
-            events.append({**chung, "provider": "grok-cli", "source": "naota",
+            events.append({**chung, "provider": "grok-cli", "source": "vanhanh",
                            "activity": "chat", "project": "(events)"})
         elif prov in _EVENT_ANTIGRAVITY:
-            events.append({**chung, "provider": "antigravity-cli", "source": "naota",
+            events.append({**chung, "provider": "antigravity-cli", "source": "vanhanh",
                            "activity": "chat", "project": "(events)"})
         elif prov in _EVENT_LOCAL:
-            events.append({**chung, "provider": "local", "source": "naota",
+            events.append({**chung, "provider": "local", "source": "vanhanh",
                            "activity": "chat", "project": "(local)"})
         elif prov:
             # Never drop a line silently: a provider added later without a mapping here used
@@ -672,7 +672,7 @@ def _project_improvement_usage(conn):
                 continue
             inp, out, read, create = vector
             rows.append({"day": event.get("day") or "", "ts": event.get("ts") or 0,
-                "model": event.get("model") or "?", "provider": "claude", "source": "naota",
+                "model": event.get("model") or "?", "provider": "claude", "source": "vanhanh",
                 "activity": "background", "project": project, "input": inp, "output": out,
                 "cache_read": read, "cache_create": create,
                 "turns": int(bool(sum(vector))) if use_summary else 1})
@@ -1173,19 +1173,19 @@ def cua_so(gio: float = 5.0, provider: str = None, now: datetime = None) -> dict
             "tu": h_tu, "den": h_den, "moc_reset": (tu + timedelta(hours=n)).isoformat()}
 
 
-def luot_theo_ngay(period: str = "this_month", nguon: tuple = ("naota",),
+def luot_theo_ngay(period: str = "this_month", nguon: tuple = ("vanhanh",),
                    bo_subagent: bool = True, today: date = None) -> list:
-    """[{day, turns}] cua rieng nhung luot DO NAOTA chay. Dung lam mau so tinh tiet kiem.
+    """[{day, turns}] cua rieng nhung luot DO VANHANH chay. Dung lam mau so tinh tiet kiem.
 
     Vi sao khong dung thang `summary()["timeseries"]["turns"]`: no cong turns cua MOI dong,
     trong do co source='manual' - la nhung phien nguoi dung tu mo `claude` trong terminal o
-    bat ky repo nao tren cung may. Nhung luot do KHONG di qua prompt cua Naota, nen che do
-    tiet kiem cua Naota khong he lam chung re di. Nhan chung vao la thoi phong con so tiet
-    kiem len nhieu lan, va tren mot may vua dung Naota vua dung Claude Code tay thi phan thoi
+    bat ky repo nao tren cung may. Nhung luot do KHONG di qua prompt cua Vanhanh, nen che do
+    tiet kiem cua Vanhanh khong he lam chung re di. Nhan chung vao la thoi phong con so tiet
+    kiem len nhieu lan, va tren mot may vua dung Vanhanh vua dung Claude Code tay thi phan thoi
     phong con lon hon phan that.
 
     Bo luon 'subagent': agent con do engine tu de ra mang prompt rieng cua no, khong phai goi
-    ngu canh ma muc tiet kiem cua Naota cat. Tha dem thieu con hon khoe thua.
+    ngu canh ma muc tiet kiem cua Vanhanh cat. Tha dem thieu con hon khoe thua.
     """
     (cs, ce), _prev = resolve_period(period, today)
     where = ["day BETWEEN ? AND ?"]

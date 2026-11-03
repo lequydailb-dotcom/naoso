@@ -1,5 +1,5 @@
 # ============================================================
-# NAOTA - CAI MOT LAN TREN WINDOWS
+# VANHANH - CAI MOT LAN TREN WINDOWS
 #
 #   powershell -ExecutionPolicy Bypass -File install.ps1
 #
@@ -16,8 +16,8 @@
 #   2. Cai CLI xong ma PATH cua PHIEN HIEN TAI chua co -> buoc tong ket bao "chua cai" cho
 #      mot CLI vua cai xong. Refresh-Path doc lai PATH tu registry sau moi lan cai.
 #
-# QUAN TRONG: Naota doc PATH LUC NO BAT. Cai them CLI sau khi server dang chay thi phai
-# khoi dong lai Naota moi thay (stop-naota.bat roi start-naota.vbs).
+# QUAN TRONG: Vanhanh doc PATH LUC NO BAT. Cai them CLI sau khi server dang chay thi phai
+# khoi dong lai Vanhanh moi thay (stop-vanhanh.bat roi start-vanhanh.vbs).
 #
 # KHONG dung ky tu co dau trong file .ps1: PowerShell tren Windows doc file khong BOM bang
 # ANSI codepage, chu co dau se thanh rac ngay tren man hinh nguoi dung.
@@ -47,7 +47,7 @@ function Refresh-Path {
   $env:PATH = (@($m, $u) | Where-Object { $_ }) -join ";"
   # Where the vendor installers drop agy and grok when they do not (or not yet) write PATH.
   # The server searches the same folders (antigravity_cli.py, grok_cli.py), so the summary
-  # below should not call a CLI "missing" that Naota will find anyway.
+  # below should not call a CLI "missing" that Vanhanh will find anyway.
   foreach ($d in @((Join-Path $env:USERPROFILE ".local\bin"),
                    (Join-Path $env:LOCALAPPDATA "agy\bin"),
                    (Join-Path $env:LOCALAPPDATA "Programs\antigravity"),
@@ -62,7 +62,7 @@ function Have($cmd) { return [bool](Get-Command $cmd -ErrorAction SilentlyContin
 
 Line ""
 Line " =========================================="
-Line "  NAOTA - cai dat tren Windows"
+Line "  VANHANH - cai dat tren Windows"
 Line " =========================================="
 
 # ---------------------------------------------------------------- [1] Python
@@ -257,34 +257,34 @@ foreach ($it in @(
 }
 Line ""
 Line "  Dang nhap tung bo nao NGAY TRONG trang Models cua dashboard - khong can go lenh."
-Line "  Cai them CLI sau nay thi phai KHOI DONG LAI Naota (stop-naota.bat roi start-naota.vbs),"
+Line "  Cai them CLI sau nay thi phai KHOI DONG LAI Vanhanh (stop-vanhanh.bat roi start-vanhanh.vbs),"
 Line "  vi tien trinh dang chay giu PATH cua luc no bat."
 Line ""
 
 # ---------------------------------------------------------------- [5b] tu khoi dong
-# Mac dinh cai naota tren Windows hoac Mac thi cai khoi dong cung trinh duyet.
-# Dang nhap may la Naota tu chay nen roi tu mo dashboard. Tat: -NoAutostart, naota-autostart.bat uninstall,
+# Mac dinh cai vanhanh tren Windows hoac Mac thi cai khoi dong cung trinh duyet.
+# Dang nhap may la Vanhanh tu chay nen roi tu mo dashboard. Tat: -NoAutostart, vanhanh-autostart.bat uninstall,
 # hoac nut trong trang Cai dat.
 if (-not $NoAutostart) {
-  $as = Join-Path $Root "naota-autostart.ps1"
+  $as = Join-Path $Root "vanhanh-autostart.ps1"
   if (Test-Path $as) {
     & powershell -NoProfile -ExecutionPolicy Bypass -File $as install | Out-Null
-    if ($LASTEXITCODE -eq 0) { Ok "Tu khoi dong cung Windows: BAT (dang nhap may la Naota tu mo)" }
-    else { Warn "Chua bat duoc tu khoi dong. Bat sau: naota-autostart.bat install" }
+    if ($LASTEXITCODE -eq 0) { Ok "Tu khoi dong cung Windows: BAT (dang nhap may la Vanhanh tu mo)" }
+    else { Warn "Chua bat duoc tu khoi dong. Bat sau: vanhanh-autostart.bat install" }
   }
 }
 
 # ---------------------------------------------------------------- [6] bat server
 if ($NoStart) {
-  Line "  Cai xong. Bat server: start-naota.vbs (chay nen) hoac setup.bat (hien cua so)."
+  Line "  Cai xong. Bat server: start-vanhanh.vbs (chay nen) hoac setup.bat (hien cua so)."
   exit 0
 }
-Step 6 "Bat Naota"
-$vbs = Join-Path $Root "start-naota.vbs"
+Step 6 "Bat Vanhanh"
+$vbs = Join-Path $Root "start-vanhanh.vbs"
 if (Test-Path $vbs) {
   # /open: cho server len roi mo dashboard luon.
   Start-Process "wscript.exe" -ArgumentList "//nologo `"$vbs`" /open" -WorkingDirectory $Root
-  Ok "Server dang chay nen, dashboard se tu mo. Log: server\naota.log"
+  Ok "Server dang chay nen, dashboard se tu mo. Log: server\vanhanh.log"
 } else {
   Start-Process $vpy -ArgumentList "main.py" -WorkingDirectory (Join-Path $Root "server")
   Ok "Server dang chay"

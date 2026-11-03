@@ -18,7 +18,7 @@ import json
 import os
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-vbrain-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-vbrain-"))
 
 import voice_brain as vb  # noqa: E402
 
@@ -32,13 +32,13 @@ def check(name, cond):
 
 
 # ---- 1. marker ----
-f, a = vb.parse_marker("Để mình xem.\nNAOTA_ASK_MAIN: doanh thu hôm nay bao nhiêu\n")
+f, a = vb.parse_marker("Để mình xem.\nVANHANH_ASK_MAIN: doanh thu hôm nay bao nhiêu\n")
 check("marker: câu chờ + yêu cầu", f == "Để mình xem." and a == "doanh thu hôm nay bao nhiêu")
 f, a = vb.parse_marker("Hai cộng hai bằng bốn.")
 check("không marker: yêu cầu None, chữ giữ nguyên", a is None and f == "Hai cộng hai bằng bốn.")
-f, a = vb.parse_marker("NAOTA_ASK_MAIN: mở Chrome")
+f, a = vb.parse_marker("VANHANH_ASK_MAIN: mở Chrome")
 check("marker không câu chờ: filler rỗng", f == "" and a == "mở Chrome")
-f, a = vb.parse_marker("  NAOTA_ASK_MAIN:   có khoảng trắng  \nchữ thừa sau")
+f, a = vb.parse_marker("  VANHANH_ASK_MAIN:   có khoảng trắng  \nchữ thừa sau")
 check("marker có khoảng trắng: vẫn bắt, cắt gọn", a == "có khoảng trắng")
 
 # ---- 2. build_messages ----
@@ -112,14 +112,14 @@ async def main():
 
     b = vb.AntigravityVoiceBrain(model="gemini-3.8-flash-low", spawn=spawn)
     out = ""
-    async for d in b.stream("Chào Naota", [{"role": "user", "content": "trước đó"}, {"role": "assistant", "content": "ừ"}]):
+    async for d in b.stream("Chào Vanhanh", [{"role": "user", "content": "trước đó"}, {"role": "assistant", "content": "ừ"}]):
         out += d
     check("agy: stream ghép text_delta", out == "Xin chào.")
     check("agy: args có --input-format stream-json + model", "--input-format" in procs[0].args and "gemini-3.8-flash-low" in procs[0].args)
     first = json.loads(procs[0].stdin.lines[0])
     check("agy: khuôn stdin event=user, message.role=user", first["event"] == "user" and first["message"]["role"] == "user")
     check("agy: lượt đầu ghép hướng dẫn + lịch sử + câu", "HƯỚNG DẪN" in first["message"]["content"]
-          and "trước đó" in first["message"]["content"] and first["message"]["content"].endswith("Chào Naota"))
+          and "trước đó" in first["message"]["content"] and first["message"]["content"].endswith("Chào Vanhanh"))
     out = ""
     async for d in b.stream("Câu hai", []):
         out += d
@@ -334,7 +334,7 @@ async def main():
 
     # ---- 5. dây nối main.py ----
     src5 = (SERVER / "main.py").read_text(encoding="utf-8")
-    check("main: gặp NAOTA_ASK_MAIN thì kết thúc lượt giọng ngay và giao việc nền, không await run_turn",
+    check("main: gặp VANHANH_ASK_MAIN thì kết thúc lượt giọng ngay và giao việc nền, không await run_turn",
           "asyncio.create_task(_voice_bg_task(ask, conv_sid, brain, call_lang=_call_lang))" in src5
           and '"background": ask' in src5
           and "await run_turn(conv_sid, user_message, brain, turn_tag, runtime_trace)\n\n        async def _voice_bg_task" not in src5)
@@ -343,7 +343,7 @@ async def main():
     # nói qua `phien_kho` (xem test_viec_nen_giong_dung_khung_chat).
     check("main: việc nền có khoá phiên riêng để chạy song song, xong thì push_to_chat",
           'f"voice:{conv_sid}:{uuid.uuid4().hex[:8]}"' in src5
-          and "_voice_ask_naota(request, conv_sid, brain, key=khoa_mach, call_lang=call_lang)" in src5
+          and "_voice_ask_vanhanh(request, conv_sid, brain, key=khoa_mach, call_lang=call_lang)" in src5
           and "await push_to_chat(conv_sid, out" in src5
           and 'meta={"chat_id": key, "call_lang": call_lang}' in src5)
     check("main: câu gửi bộ não giọng ghép pending_note", "voice_brain.pending_note(conv_sid)" in src5)
@@ -380,70 +380,70 @@ check("split: final đẩy nốt phần đuôi thành MỘT mẩu", _ss("Câu m�
 long = "a" * 100 + ", " + "b" * 150
 ch, pos = _ss(long)
 check("split: đoạn dở dài quá SPEAK_MAX thì cắt sau dấu phẩy", ch == ["a" * 100 + ", "] and pos == 102)
-check("split: dòng bắt đầu bằng đầu marker thì giữ lại", _ss("Để mình xem.\nNAOTA_ASK") == (["Để mình xem.\n"], len("Để mình xem.\n")))
+check("split: dòng bắt đầu bằng đầu marker thì giữ lại", _ss("Để mình xem.\nVANHANH_ASK") == (["Để mình xem.\n"], len("Để mình xem.\n")))
 check("split: dòng marker bị bỏ cả khi final",
-      _ss("Để mình xem.\nNAOTA_ASK_MAIN: doanh thu tháng này", final=True) == (["Để mình xem.\n"], len("Để mình xem.\nNAOTA_ASK_MAIN: doanh thu tháng này")))
+      _ss("Để mình xem.\nVANHANH_ASK_MAIN: doanh thu tháng này", final=True) == (["Để mình xem.\n"], len("Để mình xem.\nVANHANH_ASK_MAIN: doanh thu tháng này")))
 check("split: dòng marker giữa chừng bị bỏ, dòng sau vẫn phát",
-      _ss("Để mình xem.\nNAOTA_ASK_MAIN: x\nXong rồi.\n") == (["Để mình xem.\n", "Xong rồi.\n"], len("Để mình xem.\nNAOTA_ASK_MAIN: x\nXong rồi.\n")))
+      _ss("Để mình xem.\nVANHANH_ASK_MAIN: x\nXong rồi.\n") == (["Để mình xem.\n", "Xong rồi.\n"], len("Để mình xem.\nVANHANH_ASK_MAIN: x\nXong rồi.\n")))
 check("split: gọi nối tiếp từ vị trí cũ", _ss("Câu một. Câu hai.", start=len("Câu một.")) == ([" Câu hai."], len("Câu một. Câu hai.")))
 
 # ---- parse_ui: đường tắt giao diện, không đánh thức bộ não chính ----
 check("ui: mở trang -> (câu nói, action, target)",
-      vb.parse_ui("Mở ngay.\nNAOTA_UI: open_page models") == ("Mở ngay.", ("open_page", "models")))
+      vb.parse_ui("Mở ngay.\nVANHANH_UI: open_page models") == ("Mở ngay.", ("open_page", "models")))
 check("ui: bung nhóm thanh bên",
-      vb.parse_ui("Bung mục Năng lực nhé.\nNAOTA_UI: open_group nang_luc") == ("Bung mục Năng lực nhé.", ("open_group", "nang_luc")))
-check("ui: không có câu nói kèm thì câu nói rỗng", vb.parse_ui("NAOTA_UI: sidebar close") == ("", ("sidebar", "close")))
+      vb.parse_ui("Bung mục Năng lực nhé.\nVANHANH_UI: open_group nang_luc") == ("Bung mục Năng lực nhé.", ("open_group", "nang_luc")))
+check("ui: không có câu nói kèm thì câu nói rỗng", vb.parse_ui("VANHANH_UI: sidebar close") == ("", ("sidebar", "close")))
 check("ui: action model tự bịa thì BỎ QUA, không nuốt câu và không chạy gì",
-      vb.parse_ui("NAOTA_UI: rm -rf /") == ("NAOTA_UI: rm -rf /", None))
+      vb.parse_ui("VANHANH_UI: rm -rf /") == ("VANHANH_UI: rm -rf /", None))
 check("ui: câu thường không dính", vb.parse_ui("Doanh thu hôm nay bao nhiêu?") == ("Doanh thu hôm nay bao nhiêu?", None))
-check("ui: dòng NAOTA_UI không bao giờ ra loa",
-      _ss("Mở ngay.\nNAOTA_UI: open_page models", final=True)[0] == ["Mở ngay.\n"])
+check("ui: dòng VANHANH_UI không bao giờ ra loa",
+      _ss("Mở ngay.\nVANHANH_UI: open_page models", final=True)[0] == ["Mở ngay.\n"])
 check("ui: đang stream dở chữ đầu trùng marker thì giữ lại, chưa phát",
-      _ss("Mở ngay.\nNAOTA_U") == (["Mở ngay.\n"], len("Mở ngay.\n")))
-check("prompt bộ não giọng có dạy khuôn NAOTA_UI", vb.UI_MARKER in vb.SYSTEM_PROMPT
+      _ss("Mở ngay.\nVANHANH_U") == (["Mở ngay.\n"], len("Mở ngay.\n")))
+check("prompt bộ não giọng có dạy khuôn VANHANH_UI", vb.UI_MARKER in vb.SYSTEM_PROMPT
       and "open_group" in vb.SYSTEM_PROMPT)
 # Model giọng là model NHỎ: nó chỉ viết đúng id khi prompt nói rõ id nào ứng với nhãn tiếng
 # Việt người dùng đọc lên ("mở trang công cụ" -> plugins).
 check("prompt kèm nhãn tiếng Việt của trang", "plugins (công cụ)" in vb.SYSTEM_PROMPT
       and "skills (kỹ năng)" in vb.SYSTEM_PROMPT and "workspace (cộng sự, trợ lý, quy trình)" in vb.SYSTEM_PROMPT)
 
-# ---- 7. Dòng NAOTA_NGHE: câu người dùng đã diễn giải ----
-# Vì sao: bong bóng người dùng hiện chữ thô của máy nghe ("Nauta"), Naota lại trả lời như đã
-# hiểu "Naota"; người dùng không biết đã diễn giải hay chưa. Bộ não giọng viết dòng đầu
-# NAOTA_NGHE, server bóc ra thay tin người dùng, không bao giờ đọc ra loa.
-check("prompt bộ não giọng dạy dòng NAOTA_NGHE ở dòng đầu", vb.NGHE_MARKER in vb.SYSTEM_PROMPT)
-r, n = vb.parse_nghe("NAOTA_NGHE: Naota ơi mở lịch\nỪ, để xem ngay.\nNAOTA_ASK_MAIN: mở lịch")
+# ---- 7. Dòng VANHANH_NGHE: câu người dùng đã diễn giải ----
+# Vì sao: bong bóng người dùng hiện chữ thô của máy nghe ("Nauta"), Vanhanh lại trả lời như đã
+# hiểu "Vanhanh"; người dùng không biết đã diễn giải hay chưa. Bộ não giọng viết dòng đầu
+# VANHANH_NGHE, server bóc ra thay tin người dùng, không bao giờ đọc ra loa.
+check("prompt bộ não giọng dạy dòng VANHANH_NGHE ở dòng đầu", vb.NGHE_MARKER in vb.SYSTEM_PROMPT)
+r, n = vb.parse_nghe("VANHANH_NGHE: Vanhanh ơi mở lịch\nỪ, để xem ngay.\nVANHANH_ASK_MAIN: mở lịch")
 check("parse_nghe: bóc dòng đầu, giữ phần còn lại nguyên vẹn",
-      n == "Naota ơi mở lịch" and r == "Ừ, để xem ngay.\nNAOTA_ASK_MAIN: mở lịch")
-r, n = vb.parse_nghe("Ừ.\n  NAOTA_NGHE:   hey Naota  ")
-check("parse_nghe: marker không ở dòng đầu vẫn bắt, cắt khoảng trắng", n == "hey Naota" and r == "Ừ.\n")
+      n == "Vanhanh ơi mở lịch" and r == "Ừ, để xem ngay.\nVANHANH_ASK_MAIN: mở lịch")
+r, n = vb.parse_nghe("Ừ.\n  VANHANH_NGHE:   hey Vanhanh  ")
+check("parse_nghe: marker không ở dòng đầu vẫn bắt, cắt khoảng trắng", n == "hey Vanhanh" and r == "Ừ.\n")
 check("parse_nghe: không marker -> y nguyên, None", vb.parse_nghe("Hai cộng hai bằng bốn.") == ("Hai cộng hai bằng bốn.", None))
-check("parse_nghe: marker rỗng coi như không có", vb.parse_nghe("NAOTA_NGHE:\nỪ")[1] is None)
+check("parse_nghe: marker rỗng coi như không có", vb.parse_nghe("VANHANH_NGHE:\nỪ")[1] is None)
 check("tach_nghe_dau: chỉ xét dòng đầu đã khép",
-      vb.tach_nghe_dau("NAOTA_NGHE: Naota ơi\nỪ") == ("Ừ", "Naota ơi")
-      and vb.tach_nghe_dau("Ừ.\nNAOTA_NGHE: x") == ("Ừ.\nNAOTA_NGHE: x", None)
-      and vb.tach_nghe_dau("NAOTA_NGHE: chưa khép") == ("NAOTA_NGHE: chưa khép", None))
-check("split_speakable: dòng NAOTA_NGHE đang dở thì giữ lại, không đọc",
-      vb.split_speakable("NAOTA_NGHE: Naota ơi mở lịch.", 0, False) == ([], 0))
-check("split_speakable: final thì bỏ hẳn dòng NAOTA_NGHE",
-      vb.split_speakable("NAOTA_NGHE: Naota ơi mở lịch.", 0, True)[0] == [])
-check("split_speakable: dòng NAOTA_NGHE đã khép bị bỏ, câu sau vẫn đọc",
-      vb.split_speakable("NAOTA_NGHE: Naota ơi.\nỪ, để xem.\n", 0, False)[0] == ["Ừ, để xem.\n"])
+      vb.tach_nghe_dau("VANHANH_NGHE: Vanhanh ơi\nỪ") == ("Ừ", "Vanhanh ơi")
+      and vb.tach_nghe_dau("Ừ.\nVANHANH_NGHE: x") == ("Ừ.\nVANHANH_NGHE: x", None)
+      and vb.tach_nghe_dau("VANHANH_NGHE: chưa khép") == ("VANHANH_NGHE: chưa khép", None))
+check("split_speakable: dòng VANHANH_NGHE đang dở thì giữ lại, không đọc",
+      vb.split_speakable("VANHANH_NGHE: Vanhanh ơi mở lịch.", 0, False) == ([], 0))
+check("split_speakable: final thì bỏ hẳn dòng VANHANH_NGHE",
+      vb.split_speakable("VANHANH_NGHE: Vanhanh ơi mở lịch.", 0, True)[0] == [])
+check("split_speakable: dòng VANHANH_NGHE đã khép bị bỏ, câu sau vẫn đọc",
+      vb.split_speakable("VANHANH_NGHE: Vanhanh ơi.\nỪ, để xem.\n", 0, False)[0] == ["Ừ, để xem.\n"])
 
 from pathlib import Path as _P  # noqa: E402
 from sessions import SessionStore  # noqa: E402
-_st = SessionStore(_P(os.environ["NAOTA_STATE_DIR"]) / "nghe.db")
+_st = SessionStore(_P(os.environ["VANHANH_STATE_DIR"]) / "nghe.db")
 _sid = _st.create_session(brain="b", engine="e", model="m")
 _st.append_message(_sid, "user", "hey Nauta mở lịch")
 check("replace_last_message: thay tin người dùng cuối",
-      _st.replace_last_message(_sid, "user", "hey Naota mở lịch") is True
-      and _st.get_messages(_sid)[-1]["content"] == "hey Naota mở lịch")
+      _st.replace_last_message(_sid, "user", "hey Vanhanh mở lịch") is True
+      and _st.get_messages(_sid)[-1]["content"] == "hey Vanhanh mở lịch")
 _st.append_message(_sid, "assistant", "Rồi.")
 check("replace_last_message: tin cuối sai vai thì không đụng",
       _st.replace_last_message(_sid, "user", "x") is False and _st.get_messages(_sid)[-1]["content"] == "Rồi.")
 
 _src_main = (SERVER / "main.py").read_text(encoding="utf-8", errors="replace")
-check("main: làn nhanh bóc NAOTA_NGHE giữa lúc stream và ở lưới sau",
+check("main: làn nhanh bóc VANHANH_NGHE giữa lúc stream và ở lưới sau",
       "voice_brain.tach_nghe_dau(text)" in _src_main and "voice_brain.parse_nghe(text)" in _src_main)
 # Storage/UI correction and destructive rewrites are executed by test_voice_turn_integrity.py.
 _src_app = (ROOT / "dashboard" / "app.js").read_text(encoding="utf-8", errors="replace")

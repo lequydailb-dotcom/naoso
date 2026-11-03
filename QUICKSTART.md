@@ -1,50 +1,50 @@
-# NAOTA - Quick start
+# VANHANH - Quick start
 
 *[English](QUICKSTART.en.md) · **Tiếng Việt** · [简体中文](docs/i18n/zh/QUICKSTART.md) · [Español](docs/i18n/es/QUICKSTART.md) · [日本語](docs/i18n/ja/QUICKSTART.md) · [हिन्दी](docs/i18n/hi/QUICKSTART.md) · [Português](docs/i18n/pt-BR/QUICKSTART.md) · [한국어](docs/i18n/ko/QUICKSTART.md) · [Русский](docs/i18n/ru/QUICKSTART.md) · [Deutsch](docs/i18n/de/QUICKSTART.md) · [Français](docs/i18n/fr/QUICKSTART.md) · [Bahasa Indonesia](docs/i18n/id/QUICKSTART.md)*
 
-Chạy NAOTA trong vài phút. Chi tiết từng phần: [docs/](docs/README.md).
+Chạy VANHANH trong vài phút. Chi tiết từng phần: [docs/](docs/README.md).
 
 ## Máy tính cá nhân (Windows, macOS) - tải bộ cài
 
-Cài Naota như một ứng dụng bình thường: tải một file, bấm mở, xong thì có biểu tượng NAOTA để bấm vào mỗi ngày. Bộ cài tự kiểm tra máy còn thiếu gì (Git, Python, Node, các bộ não AI) và tự cài phần thiếu.
+Cài Vanhanh như một ứng dụng bình thường: tải một file, bấm mở, xong thì có biểu tượng VANHANH để bấm vào mỗi ngày. Bộ cài tự kiểm tra máy còn thiếu gì (Git, Python, Node, các bộ não AI) và tự cài phần thiếu.
 
-- **Windows 10/11:** tải [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), bấm đúp, bấm Next tới hết. Một cửa sổ đen hiện tiến trình cài (vài phút). Xong thì có biểu tượng NAOTA trên Desktop và Start menu.
-- **macOS 11 trở lên:** tải [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), mở ra, kéo **NAOTA** vào **Applications**, rồi mở từ Launchpad. Lần đầu Terminal mở ra để cài (có thể hỏi đặt tài khoản quản trị Naota và mật khẩu máy Mac một lần).
+- **Windows 10/11:** tải [Vanhanh-Setup.exe](https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/Vanhanh-Setup.exe), bấm đúp, bấm Next tới hết. Một cửa sổ đen hiện tiến trình cài (vài phút). Xong thì có biểu tượng VANHANH trên Desktop và Start menu.
+- **macOS 11 trở lên:** tải [Vanhanh-macOS.dmg](https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/Vanhanh-macOS.dmg), mở ra, kéo **VANHANH** vào **Applications**, rồi mở từ Launchpad. Lần đầu Terminal mở ra để cài (có thể hỏi đặt tài khoản quản trị Vanhanh và mật khẩu máy Mac một lần).
 
-Bấm vào biểu tượng là Naota mở thành cửa sổ riêng (không thanh địa chỉ), Naota tự chạy cùng máy, nút **Cập nhật** trong app dùng được như thường. Dữ liệu nằm ở thư mục `Naota` trong thư mục người dùng; gỡ app không xoá thư mục này.
+Bấm vào biểu tượng là Vanhanh mở thành cửa sổ riêng (không thanh địa chỉ), Vanhanh tự chạy cùng máy, nút **Cập nhật** trong app dùng được như thường. Dữ liệu nằm ở thư mục `Vanhanh` trong thư mục người dùng; gỡ app không xoá thư mục này.
 
-**Cách cài không bị màn hình cảnh báo (khuyên dùng).** Hai bộ cài chưa ký số, nên tải bằng trình duyệt thì lần đầu máy sẽ chặn lại. Dán một dòng lệnh dưới đây thì không bị chặn, vẫn ra đúng bộ cài có logo Naota:
+**Cách cài không bị màn hình cảnh báo (khuyên dùng).** Hai bộ cài chưa ký số, nên tải bằng trình duyệt thì lần đầu máy sẽ chặn lại. Dán một dòng lệnh dưới đây thì không bị chặn, vẫn ra đúng bộ cài có logo Vanhanh:
 - **Windows:** bấm Start, gõ `PowerShell`, mở lên, dán dòng này rồi Enter:
   ```
-  irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-naota.ps1 | iex
+  irm https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/packaging/windows/get-vanhanh.ps1 | iex
   ```
 - **macOS:** mở **Terminal** (Launchpad, gõ Terminal), dán dòng này rồi Enter:
   ```
-  curl -fsSL https://raw.githubusercontent.com/vuongtex/naota/main/packaging/macos/get-naota.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/packaging/macos/get-vanhanh.sh | bash
   ```
 
 Nếu đã tải file bằng trình duyệt và bị chặn:
 - Windows hiện "Windows protected your PC": bấm **More info** rồi **Run anyway**.
-- macOS báo không mở được: vào **System Settings → Privacy & Security**, kéo xuống bấm **Open Anyway**, rồi mở lại NAOTA.
+- macOS báo không mở được: vào **System Settings → Privacy & Security**, kéo xuống bấm **Open Anyway**, rồi mở lại VANHANH.
 
 ## Cách 1 - Hostinger VPS (Docker Manager, 1-click)
 
-> 🛒 **Chưa có VPS?** [Đăng ký VPS Hostinger tại đây](https://www.hostinger.com). VPS có sẵn Docker Manager nên cài Naota đúng một cú bấm. Thuê xong quay lại làm các bước dưới.
+> 🛒 **Chưa có VPS?** [Đăng ký VPS Hostinger tại đây](https://www.hostinger.com). VPS có sẵn Docker Manager nên cài Vanhanh đúng một cú bấm. Thuê xong quay lại làm các bước dưới.
 
 1. hPanel → VPS → **Docker Manager** → **Compose** → **Compose from URL**.
 2. Dán URL:
    ```
-   https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.yml
+   https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.hostinger.yml
    ```
 3. (Tùy chọn, để có HTTPS + tên miền) ở ô **Environment** đặt:
    ```
-   DOMAIN_NAME=naota.<hostname-vps>.hstgr.cloud
+   DOMAIN_NAME=vanhanh.<hostname-vps>.hstgr.cloud
    ```
-   (hostname xem ở hPanel → VPS; ví dụ `naota.srv1234567.hstgr.cloud`.)
+   (hostname xem ở hPanel → VPS; ví dụ `vanhanh.srv1234567.hstgr.cloud`.)
 4. **Deploy**. Đợi 1-3 phút. Mở app bằng nút **Open** (hoặc `https://<DOMAIN_NAME>`).
 5. Lần đầu: màn hình sẽ hỏi tạo tài khoản admin. Sau đó đăng nhập Claude Code trong terminal container 1 lần: `claude auth login --claudeai`.
 
-VPS cài **Ubuntu 26** hay hệ điều hành trắng, không có Traefik của Hostinger: vẫn dán đúng link trên, bỏ trống `DOMAIN_NAME` cũng được: bấm **Open** là Naota tự chuyển sang `https://naota.srvXXXX.hstgr.cloud` hoặc `https://srvXXXX.hstgr.cloud`. **Cài đặt → Tên miền** cho biết link đã chạy chưa. Container `naota-gateway` đi kèm tự cấp HTTPS cho `DOMAIN_NAME` khi cổng 80/443 trống; nhớ mở cổng 80, 443 ở tường lửa.
+VPS cài **Ubuntu 26** hay hệ điều hành trắng, không có Traefik của Hostinger: vẫn dán đúng link trên, bỏ trống `DOMAIN_NAME` cũng được: bấm **Open** là Vanhanh tự chuyển sang `https://vanhanh.srvXXXX.hstgr.cloud` hoặc `https://srvXXXX.hstgr.cloud`. **Cài đặt → Tên miền** cho biết link đã chạy chưa. Container `vanhanh-gateway` đi kèm tự cấp HTTPS cho `DOMAIN_NAME` khi cổng 80/443 trống; nhớ mở cổng 80, 443 ở tường lửa.
 
 Cập nhật bản mới: bấm **⬆ Cập nhật ngay** trong app (trang Cập nhật), hoặc **Redeploy** trong Docker Manager (image `:latest`, `pull_policy: always`). Dữ liệu brain giữ nguyên trong volume.
 
@@ -61,7 +61,7 @@ Mở http://localhost:7777. Muốn HTTPS qua Caddy: thêm `-f docker-compose.htt
 
 1. Cài Python 3.12 + Node 22.
 2. Trong thư mục dự án: `setup.bat` một lần - tạo .venv, cài deps, và cài sẵn hai engine CLI (Claude Code, Codex).
-3. `start-naota.bat` để chạy nền (tắt: `stop-naota.bat`).
+3. `start-vanhanh.bat` để chạy nền (tắt: `stop-vanhanh.bat`).
 4. Mở http://localhost:7777.
 
 ## Sau khi chạy
@@ -77,6 +77,6 @@ Xem [docs/README.md](docs/README.md) - hướng dẫn từng chức năng (chat/
 
 ## Sự cố hay gặp
 
-- **Nút cập nhật trong app không chạy trên Hostinger**: nút cần container `naota-watchtower` đi kèm (có sẵn). Stack hiện "Partially running" thì mở log container đó; không sửa được thì cập nhật bằng **Redeploy** trong Docker Manager.
+- **Nút cập nhật trong app không chạy trên Hostinger**: nút cần container `vanhanh-watchtower` đi kèm (có sẵn). Stack hiện "Partially running" thì mở log container đó; không sửa được thì cập nhật bằng **Redeploy** trong Docker Manager.
 - **ChatGPT/Codex báo "model không hỗ trợ"**: chọn model Codex hợp lệ ở trang Models (vd `gpt-5.5`), không dùng `gpt-5-mini`/`gpt-4o` (đó là model API, Codex account không chạy).
 - Thêm: [docs/17 - Khắc phục sự cố](docs/17-khac-phuc-su-co.md).

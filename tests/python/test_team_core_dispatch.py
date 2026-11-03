@@ -1,4 +1,4 @@
-"""Naota Core giao việc cho một nhóm có sẵn và nhận kết quả về đúng khung chat.
+"""Vanhanh Core giao việc cho một nhóm có sẵn và nhận kết quả về đúng khung chat.
 
     python tests/run.py team_core_dispatch
 
@@ -14,9 +14,9 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-core-dispatch-")
-BR = Path(tempfile.mkdtemp(prefix="naota-core-dispatch-brain-"))
-BR2 = Path(tempfile.mkdtemp(prefix="naota-core-dispatch-brain2-"))
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-core-dispatch-")
+BR = Path(tempfile.mkdtemp(prefix="vanhanh-core-dispatch-brain-"))
+BR2 = Path(tempfile.mkdtemp(prefix="vanhanh-core-dispatch-brain2-"))
 for root, slugs in ((BR, ("lan", "minh")), (BR2, ("xa",))):
     (root / "agents").mkdir()
     for slug in slugs:
@@ -61,7 +61,7 @@ def _fake_report(owner_chat, text, **kw):
 
 main._TEAM_API.deps.report = _fake_report
 
-spec = importlib.util.spec_from_file_location("naota_team_plugin", ROOT / "system" / "plugins" / "naota-team" / "plugin.py")
+spec = importlib.util.spec_from_file_location("vanhanh_team_plugin", ROOT / "system" / "plugins" / "vanhanh-team" / "plugin.py")
 plugin = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(plugin)
 regs = []
@@ -70,7 +70,7 @@ regs = []
 class Ctx:
     def __init__(self, vault_root):
         self.vault_root = vault_root
-        self.slug = "naota-team"
+        self.slug = "vanhanh-team"
 
     def register_tool(self, *a, **kw):
         regs.append((a, kw))
@@ -148,7 +148,7 @@ check("tiêu đề là đoạn đầu của mục tiêu, cả mục tiêu là y�
 check("trả về mã việc và mã đối chiếu", t1["id"] in r and core.get("correlation_id", "x") in r, r)
 check("lời trả không hứa sẽ chờ: kết quả tự báo về", "tự báo về" in r, r)
 msg = main.get_store().message_by_client_id(A["session_id"], "core:" + core["correlation_id"]) or {}
-check("tin giao việc nằm trong khung chat nhóm, của chủ, ghi rõ qua Naota Core",
+check("tin giao việc nằm trong khung chat nhóm, của chủ, ghi rõ qua Vanhanh Core",
       t1["source_ref"] == f"msg:{A['session_id']}:{msg.get('id')}"
       and (msg.get("meta") or {}).get("via_core", {}).get("correlation_id") == core["correlation_id"], msg)
 r2 = run({"op": "dispatch", "team": "Phòng nội dung", "objective": "Viết 3 bài về nước mắm\n\nMỗi bài 500 chữ"},
@@ -200,7 +200,7 @@ check("kênh hỏng: không đánh dấu đã báo", asyncio.run(api.core_report
 REPORT_OK[0] = True
 SENT.clear()
 n = asyncio.run(api.core_reports())
-check("chờ chủ quyết: báo về, nói rõ Naota không tự duyệt", n == 1 and "Naota không tự duyệt" in SENT[0]["text"]
+check("chờ chủ quyết: báo về, nói rõ Vanhanh không tự duyệt", n == 1 and "Vanhanh không tự duyệt" in SENT[0]["text"]
       and "cần chủ duyệt đăng bài" in SENT[0]["text"], SENT)
 check("cổng duyệt vẫn là của chủ: việc vẫn bị chặn sau khi báo", store.get_task(t2["id"])["status"] == "team_blocked")
 check("việc còn chờ chủ: vẫn theo dõi tiếp", any(t["id"] == t2["id"] for t in store.team_core_watch()))
@@ -239,8 +239,8 @@ check("mã đối chiếu từ model bị lọc ký tự lạ", team_dispatch.co
 JS = (ROOT / "dashboard" / "teams.js").read_text(encoding="utf-8")
 VI = json.loads((ROOT / "dashboard" / "i18n" / "vi.json").read_text(encoding="utf-8"))
 EN = json.loads((ROOT / "dashboard" / "i18n" / "en.json").read_text(encoding="utf-8"))
-check("khung chat nhóm ghi 'qua Naota Core' trên tin Core gửi", "meta.via_core" in JS
-      and VI.get("teams.via_core") == "qua Naota Core" and EN.get("teams.via_core") == "via Naota Core")
+check("khung chat nhóm ghi 'qua Vanhanh Core' trên tin Core gửi", "meta.via_core" in JS
+      and VI.get("teams.via_core") == "qua Vanhanh Core" and EN.get("teams.via_core") == "via Vanhanh Core")
 check("host nối báo về bằng _notify_owner", main._TEAM_API.deps.report is _fake_report
       and "report=_notify_owner" in (SERVER / "main.py").read_text(encoding="utf-8"))
 

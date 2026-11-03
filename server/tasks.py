@@ -1,4 +1,4 @@
-"""Autonomous task queue and dispatcher for NAOTA.
+"""Autonomous task queue and dispatcher for VANHANH.
 
 This module treats Kanban as an agent runtime, not a manual Trello board:
 
@@ -9,7 +9,7 @@ This module treats Kanban as an agent runtime, not a manual Trello board:
 * New goals pass through a lightweight AI specification stage before execution.
 * Claude, Codex and API/OpenRouter workers share the auxiliary-engine adapter.
 
-The legacy ``Naota/kanban.json`` file is imported once and then maintained as a
+The legacy ``Vanhanh/kanban.json`` file is imported once and then maintained as a
 readable snapshot so older installations and brain backups keep working.
 """
 from __future__ import annotations
@@ -72,7 +72,7 @@ CAPABILITIES = {"auto", "files", "research", "mcp-read", "code", "external-write
 # Read/Write/Edit/Glob/Grep/LS, so a job that needed a square post image could never reach the
 # image tool, and opening Full for it also opened posting and messaging. These plugin tools are granted one by one; their own
 # min_mode ("safe") is still checked at call time, so a suggest-level job cannot write images.
-IMAGE_TOOLS = ("naota_generate_image", "naota_describe_image")
+IMAGE_TOOLS = ("vanhanh_generate_image", "vanhanh_describe_image")
 # Acceptance check after a worker finishes (see `_check_acceptance`). Read-only tools only: the
 # checker opens the files the report claims, it never fixes them.
 ACCEPTANCE_TOOLS = ["Read", "Glob", "Grep", "LS"]
@@ -171,7 +171,7 @@ class TasksDeps:
     # (root) -> [{slug, name, role, key}] the brain's assistants, so the specifier can hand a job to the one
     # whose speciality it matches. None or [] = no routing, the job runs as a plain Kanban job.
     agent_roster: Optional[Callable[[str], list]] = None
-    # (source, ref, brain=, title=, error=, request=) -> report a broken job to Naota Core (incident_desk.py).
+    # (source, ref, brain=, title=, error=, request=) -> report a broken job to Vanhanh Core (incident_desk.py).
     incident_hook: Optional[Callable] = None
 
 
@@ -182,7 +182,7 @@ class TasksFeature:
         self.store = TaskStore(state_dir / "kanban.sqlite3")
         # Sổ "làm đúng một lần" nằm cạnh kho việc: cùng thư mục trạng thái, sao lưu cùng nhau.
         once_ledger.configure(state_dir / "once_ledger.sqlite3")
-        self.max_workers = max(1, min(8, int(os.getenv("NAOTA_KANBAN_MAX_WORKERS", "2"))))
+        self.max_workers = max(1, min(8, int(os.getenv("VANHANH_KANBAN_MAX_WORKERS", "2"))))
         self._workers: dict[str, asyncio.Task] = {}
         self._worker_ids: dict[str, str] = {}
         self._worker_brains: dict[str, str] = {}
@@ -205,7 +205,7 @@ class TasksFeature:
         return str(Path(self.deps.brain_root(brain)).resolve())
 
     def _legacy_path(self, root: str) -> Path:
-        return Path(root) / "Naota" / "kanban.json"
+        return Path(root) / "Vanhanh" / "kanban.json"
 
     def _ensure(self, brain: str) -> str:
         root = self._root(brain)
@@ -334,7 +334,7 @@ class TasksFeature:
                 self._snapshot(root)
         self._closing = False
         self._dispatcher_task = asyncio.create_task(
-            self._dispatcher_loop(), name="naota-kanban-dispatcher"
+            self._dispatcher_loop(), name="vanhanh-kanban-dispatcher"
         )
         self.wake()
 
@@ -451,7 +451,7 @@ class TasksFeature:
         root = str(claimed["brain_root"])
         worker = asyncio.create_task(
             self._run_worker(claimed, worker_id),
-            name=f"naota-task-{task_id}",
+            name=f"vanhanh-task-{task_id}",
         )
         self._workers[task_id] = worker
         self._worker_ids[task_id] = worker_id
@@ -479,7 +479,7 @@ class TasksFeature:
         tid = str(task["id"])
         root = str(task["brain_root"])
         heartbeat = asyncio.create_task(
-            self._heartbeat(tid, worker_id), name=f"naota-heartbeat-{tid}"
+            self._heartbeat(tid, worker_id), name=f"vanhanh-heartbeat-{tid}"
         )
         final_task: Optional[dict] = None
         try:
@@ -678,8 +678,8 @@ class TasksFeature:
             tag=f"dispatch:{task['id']}:{tag_suffix}",
             allowed_tools=allowed_tools,
         )
-        cli.naota_vault = root
-        cli.naota_mode = mode
+        cli.vanhanh_vault = root
+        cli.vanhanh_mode = mode
         if self.deps.apply_mcp and mode in ("auto", "full"):
             try:
                 self.deps.apply_mcp(cli, mode=mode, brain=root)
@@ -692,7 +692,7 @@ class TasksFeature:
                 cli.mcp_strict = True
         cli = aux_engine.apply(self.deps, cli, mode=mode, tag=cli.tag)
         try:
-            # Trần chung cho fork nền (mặc định 1 giờ, env NAOTA_BG_MAX_WALL_S) - việc Kanban
+            # Trần chung cho fork nền (mặc định 1 giờ, env VANHANH_BG_MAX_WALL_S) - việc Kanban
             # thật có thể chạy 30-60 phút, 600s cũ chặt ngang giữa chừng.
             cli.max_wall_s = aux_engine.bg_max_wall_s()
         except Exception:
@@ -754,7 +754,7 @@ class TasksFeature:
         if not roster:
             return 'agent: luôn để rỗng ("").'
         dong = ["Trợ lý sẵn có trong brain. Chọn MỘT slug nếu việc khớp RÕ chuyên môn của trợ lý đó, "
-                'không khớp rõ thì để rỗng ("") cho Naota tự làm:']
+                'không khớp rõ thì để rỗng ("") cho Vanhanh tự làm:']
         for a in roster:
             vai = str(a.get("role") or "").strip().replace("\n", " ")[:120]
             dong.append(f"- {a['slug']}: {str(a.get('name') or a['slug'])[:60]}" + (f" ({vai})" if vai else ""))
@@ -765,7 +765,7 @@ class TasksFeature:
         roster = self._roster(task)
         roster_block = self._roster_block(roster)
         prompt = f"""
-Bạn là specifier của hàng đợi AI Naota. Chuẩn hoá goal dưới đây thành một task có thể
+Bạn là specifier của hàng đợi AI Vanhanh. Chuẩn hoá goal dưới đây thành một task có thể
 chạy headless. Không thực thi task, không hỏi người dùng, không thêm mục tiêu ngoài phạm vi.
 
 Tiêu đề: {task.get('title', '')}
@@ -845,14 +845,14 @@ nói rõ đã được phép tự hành động; nếu không thì để auto đ
 
         Vì sao phải kẹp, và đây là hai lỗi tách rời nhau:
 
-        1. NÓI MỘT ĐẰNG CHẠY MỘT NẺO. `naota_task` tạo việc mức `suggest` rồi báo lại với
+        1. NÓI MỘT ĐẰNG CHẠY MỘT NẺO. `vanhanh_task` tạo việc mức `suggest` rồi báo lại với
            người dùng đúng chữ "chỉ đọc và đề xuất". Nhưng `prepared()` ghi đè execution_mode
            bằng thứ specifier trả về, mà prompt của specifier lại dặn "files/research/mcp-read/
            code dùng auto" - nên gần như MỌI việc tạo từ chat đều lặng lẽ chạy ở mức auto (được
            ghi file trong brain). Người dùng được hứa một mức và nhận một mức khác.
 
         2. MỘT MODEL TỰ CẤP `full`. `full` là mức tháo sạch rào (`_lane_tools` trả None) để
-           việc tự thao tác thật ra ngoài. `naota_task` cố ý TỪ CHỐI tạo mức đó, và CLAUDE.md
+           việc tự thao tác thật ra ngoài. `vanhanh_task` cố ý TỪ CHỐI tạo mức đó, và CLAUDE.md
            ghi rõ full "phải do chính người dùng đặt ở trang Việc". Vậy mà specifier - cũng là
            một model - chỉ cần trả về chuỗi "full" là có, chốt chặn duy nhất là một câu dặn
            trong prompt cộng một bộ lọc từ khoá. Kẹp trần biến luật đó thành luật của MÃ.
@@ -1044,7 +1044,7 @@ nói rõ đã được phép tự hành động; nếu không thì để auto đ
             pass
         acceptance = task.get("metadata", {}).get("acceptance") or []
         prompt = f"""
-Bạn là autonomous worker của Naota. Hãy hoàn thành đúng task được giao trong brain đã
+Bạn là autonomous worker của Vanhanh. Hãy hoàn thành đúng task được giao trong brain đã
 ghim. Tự kiểm tra kết quả trước khi kết thúc. Không mở rộng phạm vi và không hỏi trong
 chat vì đây là worker headless.
 
@@ -1089,7 +1089,7 @@ gì, dữ liệu/file/artifact nào được tạo và cách đã kiểm chứng
 
     @staticmethod
     def _muc_chay(tran, xin) -> str:
-        """Mức quyền việc chạy thật. Người dùng đã đặt `full` lúc giao việc (qua naota_task
+        """Mức quyền việc chạy thật. Người dùng đã đặt `full` lúc giao việc (qua vanhanh_task
         hay trang Việc) thì GIỮ full: specifier là một model, nó không bao giờ đề xuất full,
         nên kẹp theo nó là việc "toàn quyền, tự gửi" lặng lẽ tụt xuống auto rồi dừng lại xin
         phép ở bước ra ngoài - đúng ngược lời đã hứa với người dùng. Mọi mức khác vẫn kẹp
@@ -1315,7 +1315,7 @@ Trả DUY NHẤT một dòng JSON, không markdown:
 
         Gom theo TỪNG người nhận: hai việc của hai kênh khác nhau không được trộn vào một tin.
         """
-        # One bucket per recipient AND source brain: an empty chat id means "this brain's Naota Core", and
+        # One bucket per recipient AND source brain: an empty chat id means "this brain's Vanhanh Core", and
         # two brains' blocked jobs must not merge into one message.
         chat_id = str(task.get("chat_id") or "") + _BUCKET_SEP + str(task.get("brain_root") or "")
         try:
@@ -1344,7 +1344,7 @@ Trả DUY NHẤT một dòng JSON, không markdown:
         """Bắn rổ đã gom, tách làm hai loại tin.
 
         Trước đây mọi việc kẹt đều thành "⚠ ... bị chặn, cần bạn xem", và người dùng không rành kỹ thuật thì lo mà
-        không biết làm gì: phần lớn việc kẹt là lỗi kỹ thuật họ không sửa được, cũng không cần sửa (Naota Core nhận
+        không biết làm gì: phần lớn việc kẹt là lỗi kỹ thuật họ không sửa được, cũng không cần sửa (Vanhanh Core nhận
         sự cố qua incident_hook, tự thử lại khi an toàn, và tự nhắn khi thật sự cần người). Nên:
           - xin quyền (`capability`): việc CHỈ chủ quyết được. Vẫn kêu, nói rõ đồng ý thì bấm gì, không thì thôi.
           - mọi thứ khác: báo LẶNG vào hòm thư, nói thẳng là không cần làm gì, chi tiết kỹ thuật để cuối.
@@ -1392,9 +1392,9 @@ Trả DUY NHẤT một dòng JSON, không markdown:
             return parts
         if len(items) == 1:
             parts = [localefmt.chu(
-                f"Việc '{items[0]['title']}' tạm dừng vì một trục trặc kỹ thuật. Bạn không cần làm gì: Naota đã ghi lại, "
+                f"Việc '{items[0]['title']}' tạm dừng vì một trục trặc kỹ thuật. Bạn không cần làm gì: Vanhanh đã ghi lại, "
                 "sẽ tự thử lại khi được, và chỉ nhắn bạn nếu thật sự cần bạn.",
-                f"Job '{items[0]['title']}' paused on a technical hitch. You do not need to do anything: Naota logged "
+                f"Job '{items[0]['title']}' paused on a technical hitch. You do not need to do anything: Vanhanh logged "
                 "it, will retry when it can, and only messages you if it really needs you.")]
             cho = items[0].get("waiting") or []
             if cho:
@@ -1408,8 +1408,8 @@ Trả DUY NHẤT một dòng JSON, không markdown:
                 parts.append(localefmt.chu("Chi tiết kỹ thuật: ", "Technical detail: ") + items[0]["reason"][:240])
         else:
             parts = [localefmt.chu(
-                f"{len(items)} việc tạm dừng vì trục trặc kỹ thuật. Bạn không cần làm gì, Naota đang lo:",
-                f"{len(items)} jobs paused on technical hitches. You do not need to do anything, Naota is on it:")]
+                f"{len(items)} việc tạm dừng vì trục trặc kỹ thuật. Bạn không cần làm gì, Vanhanh đang lo:",
+                f"{len(items)} jobs paused on technical hitches. You do not need to do anything, Vanhanh is on it:")]
             parts += [f"- {it['title']}" for it in items[:BAO_GOM_LIET_KE]]
             if len(items) > BAO_GOM_LIET_KE:
                 con = len(items) - BAO_GOM_LIET_KE
@@ -1430,7 +1430,7 @@ Trả DUY NHẤT một dòng JSON, không markdown:
     async def _hoc_tu_viec(self, root: str, task: dict) -> None:
         """Đẩy MỘT việc nền vừa kết thúc sang hàng đợi tự học.
 
-        Trước đây tự học chỉ nghe luồng chat (`_persist_turn`), nên mọi thứ Naota tự làm trong
+        Trước đây tự học chỉ nghe luồng chat (`_persist_turn`), nên mọi thứ Vanhanh tự làm trong
         nền trôi qua không để lại gì - kể cả việc BỊ CHẶN, thứ đáng học nhất vì nó chỉ đúng chỗ
         hệ thống còn thiếu. Ở đây chỉ XẾP HÀNG; mẻ học thật vẫn chạy trong `learn.tick` với đủ
         debounce, rate-limit, fork read-only và vòng verify như luồng chat.
@@ -1466,12 +1466,12 @@ Trả DUY NHẤT một dòng JSON, không markdown:
         if len(treo) > 5:
             dong += localefmt.chu(f"\n- ...và {len(treo) - 5} thao tác nữa", f"\n- ...and {len(treo) - 5} more")
         return localefmt.chu(
-            f"Lần chạy trước có {len(treo)} thao tác ra ngoài mà Naota không chắc đã tới nơi (máy chủ dừng hoặc mất "
-            f"kết nối đúng lúc đang gọi):\n{dong}\nBạn kiểm tra giúp rồi trả lời \"đã gửi\" (Naota bỏ qua, không làm "
-            "lại) hoặc \"chưa gửi\" (Naota làm lại).",
-            f"The previous run made {len(treo)} outside action(s) that Naota cannot confirm went through (the server "
-            f"stopped or the connection dropped mid-call):\n{dong}\nPlease check, then answer \"sent\" (Naota skips "
-            "them) or \"not sent\" (Naota does them again).")
+            f"Lần chạy trước có {len(treo)} thao tác ra ngoài mà Vanhanh không chắc đã tới nơi (máy chủ dừng hoặc mất "
+            f"kết nối đúng lúc đang gọi):\n{dong}\nBạn kiểm tra giúp rồi trả lời \"đã gửi\" (Vanhanh bỏ qua, không làm "
+            "lại) hoặc \"chưa gửi\" (Vanhanh làm lại).",
+            f"The previous run made {len(treo)} outside action(s) that Vanhanh cannot confirm went through (the server "
+            f"stopped or the connection dropped mid-call):\n{dong}\nPlease check, then answer \"sent\" (Vanhanh skips "
+            "them) or \"not sent\" (Vanhanh does them again).")
 
     @staticmethod
     def _cau_hoi_dang_cho(task: dict) -> str:
@@ -1631,13 +1631,13 @@ Trả DUY NHẤT một dòng JSON, không markdown:
         if kind == "limit" and reason:
             return reason  # already written for people: which plan, and when it runs again
         if st == "blocked":
-            return localefmt.chu("Tạm dừng vì một trục trặc kỹ thuật. Bạn không cần làm gì: Naota đã ghi lại, tự thử "
+            return localefmt.chu("Tạm dừng vì một trục trặc kỹ thuật. Bạn không cần làm gì: Vanhanh đã ghi lại, tự thử "
                                  "lại khi được, và chỉ nhắn bạn nếu thật sự cần.",
-                                 "Paused on a technical hitch. You do not need to do anything: Naota logged it, retries "
+                                 "Paused on a technical hitch. You do not need to do anything: Vanhanh logged it, retries "
                                  "when it can, and only messages you if it really needs you.")
         if st in ("ready", "todo", "triage") and kind:
-            return localefmt.chu("Lần trước gặp trục trặc, Naota sẽ tự chạy lại.",
-                                 "The last try hit a hitch; Naota will run it again by itself.")
+            return localefmt.chu("Lần trước gặp trục trặc, Vanhanh sẽ tự chạy lại.",
+                                 "The last try hit a hitch; Vanhanh will run it again by itself.")
         return ""
 
     @classmethod
@@ -1689,8 +1689,8 @@ Trả DUY NHẤT một dòng JSON, không markdown:
             if self._worker_brains.get(tid) == root
         ]
         health = self.store.health(root)
-        # "Naota is asking you" holds only what the owner alone can move on; every other stopped job sits in
-        # "Naota is handling it", which asks nothing of them.
+        # "Vanhanh is asking you" holds only what the owner alone can move on; every other stopped job sits in
+        # "Vanhanh is handling it", which asks nothing of them.
         stopped = columns["blocked"] + columns["review"]
         attention = [t for t in stopped if t["waits_for_owner"]]
         handled = [t for t in stopped if not t["waits_for_owner"]]
@@ -1781,7 +1781,7 @@ Trả DUY NHẤT một dòng JSON, không markdown:
                 self._verifying.discard(task_id)
                 await self._asnapshot(str(task.get("brain_root") or ""))
 
-        job = asyncio.create_task(run(), name=f"naota-verify-{task_id}")
+        job = asyncio.create_task(run(), name=f"vanhanh-verify-{task_id}")
         self._verify_jobs.add(job)                      # a bare create_task can be garbage-collected mid-run
         job.add_done_callback(self._verify_jobs.discard)
         return {"ok": True, "started": True}
@@ -1789,7 +1789,7 @@ Trả DUY NHẤT một dòng JSON, không markdown:
     async def answer(self, task_id: str, text: str, brain: str = "", by: str = "owner") -> dict:
         """Chủ trả lời câu hỏi của một việc đang chờ: việc về hàng đợi và chạy tiếp với câu trả lời.
 
-        Một cửa cho cả trang Việc (`POST /kanban/task/answer`) lẫn tool `naota_task` op=answer,
+        Một cửa cho cả trang Việc (`POST /kanban/task/answer`) lẫn tool `vanhanh_task` op=answer,
         nên chat web, Telegram hay Zalo đi cùng một đường. `brain` rỗng thì không kiểm brain
         (tool đã tự kiểm theo vault của nó)."""
         task = self.store.get_task(task_id)
@@ -2093,12 +2093,12 @@ Trả DUY NHẤT một dòng JSON, không markdown:
 
 
 # Bản đang chạy, để CODE TRONG CÙNG TIẾN TRÌNH gọi tới hàng đợi mà không phải đi vòng qua HTTP.
-# Người dùng đầu tiên: plugin `naota-task` - nó chạy in-process nên gọi thẳng `enqueue()` được.
+# Người dùng đầu tiên: plugin `vanhanh-task` - nó chạy in-process nên gọi thẳng `enqueue()` được.
 #
-# Vì sao không cho plugin POST /kanban/task như naota-schedule vẫn POST /reminders: đường đó đòi
+# Vì sao không cho plugin POST /kanban/task như vanhanh-schedule vẫn POST /reminders: đường đó đòi
 # đăng nhập, và cách duy nhất để mở là thêm nó vào `_AUTH_LOCAL_EXACT` (danh sách miễn auth cho
 # localhost). Làm vậy nghĩa là BẤT KỲ tiến trình nào trên cùng máy chủ cũng giao được việc cho
-# Naota mà không cần credential - một lỗ hổng thật, chỉ để tránh ba dòng code này.
+# Vanhanh mà không cần credential - một lỗ hổng thật, chỉ để tránh ba dòng code này.
 _FEATURE: Optional["TasksFeature"] = None
 
 

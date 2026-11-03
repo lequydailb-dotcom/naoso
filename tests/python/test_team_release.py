@@ -14,7 +14,7 @@ import time
 from contextlib import closing
 from pathlib import Path
 
-os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-release-")
+os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-release-")
 
 import team_store  # noqa: E402
 
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS agent_busy(
   agent_key TEXT PRIMARY KEY, team_id TEXT NOT NULL, turn_id TEXT NOT NULL, lease_until REAL NOT NULL);
 """
 
-d = Path(tempfile.mkdtemp(prefix="naota-team-release-store-"))
+d = Path(tempfile.mkdtemp(prefix="vanhanh-team-release-store-"))
 path = d / "team.sqlite3"
 now = time.time()
 with closing(sqlite3.connect(str(path))) as c:
@@ -100,7 +100,7 @@ ts2 = team_store.TeamStore(path)
 check("mở lại lần hai: không lỗi, dữ liệu mới còn", ts2.get("tm_old")["pinned_at"] is not None)
 
 # Review tích hợp: snapshot và bản giữ lại của MỌI kho bị nâng (chứa toàn bộ chat, việc) không được lên git khi
-# Naota chạy với thư mục state mặc định server/ (bản fork phải sạch).
+# Vanhanh chạy với thư mục state mặc định server/ (bản fork phải sạch).
 import subprocess  # noqa: E402
 names = [f"server/{base}{tag}" for base in ("conversations.db", "kanban.sqlite3", "team.sqlite3")
          for tag in (".pre-team-chat", ".post-team-chat-20261014-120000")]

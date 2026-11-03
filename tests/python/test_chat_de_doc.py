@@ -4,7 +4,7 @@
 
 Lỗi đã gặp: những câu trả lời dài trên khung chat đổ ra thành hết đoạn
 văn xuôi này tới đoạn văn xuôi khác, không gạch đầu dòng, không tiêu đề, không chỗ nào cho mắt
-bám. Lý do: trước đây Naota được chỉnh cho dễ đọc thành tiếng (voice), còn giờ phần lớn là
+bám. Lý do: trước đây Vanhanh được chỉnh cho dễ đọc thành tiếng (voice), còn giờ phần lớn là
 chat, và văn xuôi liền khối render ra rất khó đọc.
 
 Gốc rễ là một luật trong CLAUDE.md có thật: "KHÔNG dùng bảng markdown, dấu gạch ngang dày, hay
@@ -28,7 +28,7 @@ import os
 import re
 import tempfile
 
-os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-dedoc-"))
+os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-dedoc-"))
 
 import channel_context  # noqa: E402
 import context_compiler  # noqa: E402

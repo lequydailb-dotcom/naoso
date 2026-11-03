@@ -280,5 +280,5 @@
     const ready=load().catch(failure);
     return {ready,dispose};
   }
-  window.NaotaImprovementExperiments={mount};
+  window.VanhanhImprovementExperiments={mount};
 })();
