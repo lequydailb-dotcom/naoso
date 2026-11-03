@@ -104,7 +104,7 @@ import webpush       # thông báo đẩy trình duyệt (Web Push, tự mã ho�
 import stt            # nghe tin thoại (Whisper qua Groq) -> chữ, cho kênh Telegram/Zalo
 import luot_dang_chay # sổ lượt chat đang chạy theo brain: tool giao việc tự biết khung chat nào hỏi
 import tool_label     # một dòng mô tả lệnh gọi công cụ (lệnh nào, file nào) cho khối tiến trình
-import nghe_sua       # sửa chữ nghe nhầm theo ngữ cảnh (Nauta -> Vanhanh) + hotwords cho Whisper
+import nghe_sua       # sửa chữ nghe nhầm theo ngữ cảnh (Vân Hạnh -> Vanhanh) + hotwords cho Whisper
 import phien_am       # từ tiếng Anh -> cách đọc kiểu Việt (đọc loa + so âm câu nghe được)
 import voice_privacy
 voice_privacy.install()
@@ -19256,10 +19256,10 @@ async def _chat_socket(ws):
             brain = payload.get("brain", "brain")
             _cfg_luot = cfgmod.read_settings()
             mcfg = _cfg_luot.get("model", {})
-            # Tin từ MIC: sửa TÊN nghe nhầm ("Nauta", "Nota", "Nau ta" -> "Vanhanh" và từ vựng
+            # Tin từ MIC: sửa TÊN nghe nhầm ("Vân Hạnh", "Văn Hạnh", "Van Hanh" -> "Vanhanh" và từ vựng
             # người dùng khai) TRƯỚC khi lưu, bằng so khớp âm tất định của nghe_sua - không phải
             # AI hay STT phụ. Bản trước gỡ lớp này cùng lúc với việc chặn AI viết lại câu, làm
-            # Vanhanh đáp "anh nói là Nauta". Lớp này không đụng từ phủ định, số,
+            # Vanhanh đáp "anh nói là Vân Hạnh". Lớp này không đụng từ phủ định, số,
             # lệnh (PROTECTED_WORDS), không sửa tên người thứ ba, và báo lại bong bóng kèm chữ thô
             # nên không âm thầm. Idempotent nên tin gửi lại cùng utterance_id vẫn khớp receipt.
             _nghe_tho = ""
@@ -24551,7 +24551,7 @@ async def _stt_nghe(data, ten=""):
     _ma = (lang_registry.chuan_hoa(_lc2.get("reply_lang") or "")
            or lang_registry.chuan_hoa(_lc2.get("ui_lang") or ""))
     # Cùng bộ từ vựng và lớp sửa nghe nhầm như mic trên dashboard (nghe_sua): tin thoại Telegram
-    # hay Zalo nói "Nauta" cũng phải ra "Vanhanh" trước khi vào bộ não.
+    # hay Zalo nói "Vân Hạnh" cũng phải ra "Vanhanh" trước khi vào bộ não.
     _tv = nghe_sua.tu_vung(_cfg)
     # not Groq only any more. Every ear the owner has is tried in turn (Groq, OpenAI, Gemini, then the
     # offline Whisper from the Tools page); one missing or failing hands over to the next (`stt.listen_any`).

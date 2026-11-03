@@ -4956,7 +4956,7 @@
   "ib.st_new": "no data the period before",
   "ib.st_same": "same as before",
   "ib.st_vs": "{d} vs the period before",
-  "ib.st_note": "From the Vanhanh inbox: AI messages, messages typed by hand (Vanhanh or phone), first-answer waits.",
+  "ib.st_note": "From the Vanhanh inbox: AI messages, hand-typed ones (Vanhanh or phone), first-answer waits.",
   "ib.st_period": "Period",
   "dr.title": "Pick a period",
   "dr.all": "Any time",

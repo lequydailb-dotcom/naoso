@@ -1,15 +1,15 @@
 """Sửa chữ NGHE NHẦM theo ngữ cảnh, trước khi câu nói đi vào bộ não.
 
 Vì sao có lớp này: người dùng nói lẫn tiếng Việt và tiếng Anh, và máy nghe (Web
-Speech của trình duyệt lẫn Whisper) chép tên lạ thành từ gần âm: "Vanhanh" thành "Nauta",
-"Nota", "Nau ta"; tên công cụ, tên dự án cũng cùng số phận. Câu đến bộ não mang
-từ sai đó, Vanhanh trả lời bám nghĩa đen ("Nauta là ai?") nghe rất buồn cười. Sửa ở tầng máy
+Speech của trình duyệt lẫn Whisper) chép tên lạ thành từ gần âm: "Vanhanh" thành "Vân Hạnh",
+"Văn Hạnh", "Van Hanh"; tên công cụ, tên dự án cũng cùng số phận. Câu đến bộ não mang
+từ sai đó, Vanhanh trả lời bám nghĩa đen ("Vân Hạnh là ai?") nghe rất buồn cười. Sửa ở tầng máy
 nghe thì không được: Web Speech không nhận từ điển riêng, còn Whisper chỉ nhận một gợi ý.
 
 Cách làm, ba lớp bổ trợ nhau:
   1. `goi_y_whisper` - đưa bộ từ vựng vào tham số `prompt` của Whisper để nó ưu tiên viết
      đúng những tên này (hotwords). Chỉ Groq Whisper có, Web Speech không.
-  2. `sua` - so khớp MỜ THEO ÂM: mỗi từ (hoặc cặp từ, vì "Vanhanh" hay bị tách thành "Nau ta")
+  2. `sua` - so khớp MỜ THEO ÂM: mỗi từ (hoặc cặp từ, vì "Vanhanh" hay bị tách thành "Van Hanh")
      được rút về một khoá âm (bỏ dấu, gộp những âm máy nghe hay lẫn: j/gi/d/z, v/w, đuôi
      s/t/d) rồi so với khoá âm của từng từ trong bộ từ vựng. Trùng gần như hoàn toàn thì sửa ở
      mọi vị trí; trùng vừa phải thì CHỈ sửa khi từ đứng ở vị trí GỌI TÊN (đầu câu, trước "ơi",
@@ -40,7 +40,7 @@ import unicodedata
 # settings `voice.hotwords` (chuỗi, ngăn bằng dấu phẩy hoặc xuống dòng).
 TU_VUNG_GOC = ("Vanhanh",)
 MAX_TU_VUNG = 60          # Whisper chỉ nhìn ~224 token cuối của prompt; hơn nữa là vô ích
-MAX_GHEP = 3              # ghép tối đa 3 tiếng liền nhau làm một ứng viên ("Nau ta", "Open Router")
+MAX_GHEP = 3              # ghép tối đa 3 tiếng liền nhau làm một ứng viên ("Van Hanh", "Open Router")
 MAX_GOI_Y = 600           # trần độ dài prompt gửi Whisper (stt.groq_nghe cũng cắt ở mức này)
 
 # Từ tiếng Anh người Việt hay nói xen, CHỈ để mồi Whisper, không đưa vào lớp sửa mờ `sua` (sửa
@@ -259,8 +259,8 @@ def sua(text, tv) -> str:
     ra, pos, i, doi = [], 0, 0, False
     while i < len(toks):
         # Xét mọi cách ghép n tiếng từ vị trí i, lấy cách TRÙNG NHẤT (hoà thì cụm ngắn hơn).
-        # Duyệt theo thứ tự "n dài trước" rồi lấy khớp đầu tiên là sai: "hey Nau ta" ghép ba
-        # tiếng trùng 0,91 thắng "Nau ta" hai tiếng trùng 1,0, và cả "hey" bị nuốt vào tên.
+        # Duyệt theo thứ tự "n dài trước" rồi lấy khớp đầu tiên là sai: "hey Van Hanh" ghép ba
+        # tiếng trùng 0,91 thắng "Van Hanh" hai tiếng trùng 1,0, và cả "hey" bị nuốt vào tên.
         best = None      # (d, n, term)
         for n in range(1, min(MAX_GHEP, len(toks) - i) + 1):
             uv = _ung_vien(toks, i, n, s)
@@ -273,7 +273,7 @@ def sua(text, tv) -> str:
                 continue
             if n >= 2:
                 # Cụm ghép không được chứa tiếng đệm ("hey", "ơi", "cho"), và không tiếng nào
-                # trong cụm tự nó trùng tốt hơn cả cụm: "ơn Nauta" thua "Nauta".
+                # trong cụm tự nó trùng tốt hơn cả cụm: "ơn Vân Hạnh" thua "Vân Hạnh".
                 if any(bo_dau(toks[j].group(0)) in dem for j in range(i, i + n)):
                     continue
             for term, kt, so_tieng in ds:

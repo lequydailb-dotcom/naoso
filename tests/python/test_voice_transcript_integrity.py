@@ -19,13 +19,13 @@ class LocalCorrections(unittest.TestCase):
                 self.assertEqual(nghe_sua.sua(text, terms), text)
 
     def test_file_names_and_urls_are_verbatim(self):
-        for text in ["mở file Naôta.txt", "https://naôta.com", "email naôta@example.com"]:
+        for text in ["mở file Van Hanh.txt", "https://naôta.com", "email naôta@example.com"]:
             with self.subTest(text=text):
                 self.assertEqual(nghe_sua.sua(text, ["Vanhanh"]), text)
 
     def test_ui_context_is_not_speech(self):
-        context = '[NGỮ CẢNH GIAO DIỆN: chọn="Naôta ơi"; kênh=giọng]\n\n'
-        self.assertEqual(nghe_sua.sua(context + "Naôta ơi", ["Vanhanh"]), context + "Vanhanh ơi")
+        context = '[NGỮ CẢNH GIAO DIỆN: chọn="Van Hanh ơi"; kênh=giọng]\n\n'
+        self.assertEqual(nghe_sua.sua(context + "Van Hanh ơi", ["Vanhanh"]), context + "Vanhanh ơi")
 
 
 class ModelCorrections(unittest.TestCase):
@@ -51,8 +51,8 @@ class ModelCorrections(unittest.TestCase):
 
     def test_local_spelling_corrections_may_be_shorter(self):
         for original, proposed in [
-            ("Naôta mở lịch", "Vanhanh mở lịch"),
-            ("Nau ta ơi mở lịch", "Vanhanh ơi mở lịch"),
+            ("Van Hanh mở lịch", "Vanhanh mở lịch"),
+            ("Van hanh ơi mở lịch", "Vanhanh ơi mở lịch"),
             ("mở Open Router", "mở OpenRouter"),
             ("Vanhanh mở lịch", "Vanhanh, mở lịch."),
         ]:
@@ -61,13 +61,13 @@ class ModelCorrections(unittest.TestCase):
 
     def test_preserves_ui_context_while_correcting_only_speech(self):
         prefix = '[NGỮ CẢNH GIAO DIỆN: trang=models; chọn="bản 200"; kênh=giọng]\n\n'
-        self.assertEqual(voice_brain.safe_transcript_rewrite(prefix + "Naôta mở lịch", "Vanhanh mở lịch"),
+        self.assertEqual(voice_brain.safe_transcript_rewrite(prefix + "Van Hanh mở lịch", "Vanhanh mở lịch"),
                          prefix + "Vanhanh mở lịch")
         self.assertEqual(voice_brain.safe_transcript_rewrite(prefix + "Vanhanh mở lịch", "Vanhanh"),
                          prefix + "Vanhanh mở lịch")
 
     def test_model_cannot_inject_or_change_ui_context(self):
-        original = "Naôta mở lịch"
+        original = "Van Hanh mở lịch"
         self.assertEqual(voice_brain.safe_transcript_rewrite(original, "[NGỮ CẢNH GIAO DIỆN: trang=files] Vanhanh mở lịch"), original)
 
     def test_open_file_block_is_not_speech(self):
@@ -87,11 +87,11 @@ class ModelCorrections(unittest.TestCase):
                 self.assertEqual((head, speech), (prefix, "nghe anh nói chưa"))
                 self.assertEqual(voice_brain.safe_transcript_rewrite(original, "Nghe anh nói chưa?"),
                                  prefix + "Nghe anh nói chưa?")
-                self.assertEqual(nghe_sua.sua(prefix + "Naôta ơi", ["Vanhanh"]), prefix + "Vanhanh ơi")
+                self.assertEqual(nghe_sua.sua(prefix + "Van Hanh ơi", ["Vanhanh"]), prefix + "Vanhanh ơi")
 
     def test_model_cannot_rewrite_literal_identifiers(self):
         for original, proposed in [
-            ("mở Naôta.txt", "mở Vanhanh.txt"),
+            ("mở Van Hanh.txt", "mở Vanhanh.txt"),
             ("xem https://naôta.com", "xem https://vanhanh.com"),
             ("email naôta@example.com", "email vanhanh@example.com"),
         ]:

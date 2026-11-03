@@ -14,7 +14,7 @@ Ba lớp rào cho chữ của tai, giống nhau với mọi tai:
   - `stt.loc_ao_giac`: Whisper bịa câu outro YouTube khi gặp im lặng hay tiếng ồn.
   - `stt.khop_ban_nhap`: chữ tai lệch hẳn bản nháp của trình duyệt thì giữ bản nháp. Rào này
     bắt kiểu lỗi model nghe âm thanh trả về nguyên một câu không liên quan.
-  - `nghe_sua.sua`: sửa tên trợ lý nghe nhầm ("Nauta" thành "Vanhanh").
+  - `nghe_sua.sua`: sửa tên trợ lý nghe nhầm ("Vân Hạnh" thành "Vanhanh").
 """
 from __future__ import annotations
 

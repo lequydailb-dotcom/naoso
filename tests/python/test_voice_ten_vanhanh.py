@@ -1,8 +1,8 @@
-"""Nói "Vanhanh" mà máy nghe chép "Naôta" thì Vanhanh vẫn hiểu là gọi mình.
+"""Nói "Vanhanh" mà máy nghe chép "Van Hanh" thì Vanhanh vẫn hiểu là gọi mình.
 
 Việc gỡ lớp sửa tên ở cửa WebSocket cùng lúc với việc chặn AI viết lại câu, và dặn bộ não
-giọng "không tự đoán tên người". Kết quả: Vanhanh đáp "anh nói là Naôta" và
-bong bóng giữ nguyên "Naôta". Test này giữ cả ba mắt xích: lớp sửa tất định, chỗ gọi nó trước
+giọng "không tự đoán tên người". Kết quả: Vanhanh đáp "anh nói là Van Hanh" và
+bong bóng giữ nguyên "Van Hanh". Test này giữ cả ba mắt xích: lớp sửa tất định, chỗ gọi nó trước
 khi lưu tin, và lời dặn bộ não giọng.
 """
 import os
@@ -19,11 +19,11 @@ import voice_brain  # noqa: E402
 class TenVanhanh(unittest.TestCase):
     def test_cau_that_cua_nguoi_dung(self):
         tv = nghe_sua.tu_vung({})
-        self.assertEqual(nghe_sua.sua("Ok bây giờ giọng nói chắc là tốt rồi đúng không Naôta", tv),
+        self.assertEqual(nghe_sua.sua("Ok bây giờ giọng nói chắc là tốt rồi đúng không Van Hanh", tv),
                          "Ok bây giờ giọng nói chắc là tốt rồi đúng không Vanhanh")
-        self.assertEqual(nghe_sua.sua("Naôta ơi", tv), "Vanhanh ơi")
+        self.assertEqual(nghe_sua.sua("Van Hanh ơi", tv), "Vanhanh ơi")
         # Người thứ ba và câu không có tên thì để yên.
-        self.assertEqual(nghe_sua.sua("nhắn cho Naôta là mai họp", tv), "nhắn cho Naôta là mai họp")
+        self.assertEqual(nghe_sua.sua("nhắn cho Van Hanh là mai họp", tv), "nhắn cho Van Hanh là mai họp")
         self.assertEqual(nghe_sua.sua("Em phải trả lời vâng", tv), "Em phải trả lời vâng")
 
     def test_websocket_sua_ten_truoc_khi_luu(self):
@@ -37,7 +37,7 @@ class TenVanhanh(unittest.TestCase):
     def test_bo_nao_giong_hieu_theo_ngu_canh(self):
         p = voice_brain.SYSTEM_PROMPT
         self.assertIn("HIỂU CÂU THEO NGỮ CẢNH", p)
-        self.assertIn("không nói người dùng đã nói 'Nauta'", p)
+        self.assertIn("không nói người dùng đã nói 'Vân Hạnh'", p)
         self.assertNotIn("NGUYÊN VĂN", voice_brain.GHI_CHU_TAT_LOC)
 
     def test_bo_nao_chinh_duoc_dan_hieu_theo_ngu_canh(self):

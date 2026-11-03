@@ -122,8 +122,8 @@ SYSTEM_PROMPT = (
     "không kèm dòng lệnh nào; hệ thống đã tự huỷ trước khi bạn kịp nói.\n"
     "Chuyện trò thường, hỏi ý kiến, giải thích khái niệm, tính nhẩm, chuyển ngữ: trả lời thẳng.\n"
     "Câu của người dùng đến từ MÁY NGHE GIỌNG NÓI, và họ hay nói lẫn tiếng Việt với tiếng "
-    "Anh, nên từ hay bị chép thành từ GẦN ÂM: tên bạn (Vanhanh) thành 'Nauta', 'Nota', 'Nau "
-    "ta'; từ tiếng Anh, tên công cụ, tên dự án, tên sản phẩm thành một từ nghe na ná. Hãy "
+    "Anh, nên từ hay bị chép thành từ GẦN ÂM: tên bạn (Vanhanh) thành 'Vân Hạnh', 'Văn Hạnh', 'Van "
+    "Hanh' (còn 'vận hành' giữa câu thường là chữ thật, chỉ là tên khi họ đang gọi bạn); từ tiếng Anh, tên công cụ, tên dự án, tên sản phẩm thành một từ nghe na ná. Hãy "
     "HIỂU CÂU THEO NGỮ CẢNH cuộc trò chuyện. DÒNG ĐẦU TIÊN luôn là " + NGHE_MARKER + " rồi "
     "câu người dùng ĐÚNG NHƯ HỌ ĐỊNH NÓI trên một dòng, bỏ khối ngữ cảnh giao diện nếu có: "
     "chép lại nguyên văn, CHỈ thay từ nghe sai bằng từ gần âm đúng với ngữ cảnh (từ tiếng Anh "
@@ -132,7 +132,7 @@ SYSTEM_PROMPT = (
     "không dịch, không tóm tắt, không thêm bớt ý; không chắc thì chép y nguyên. Hệ thống tự "
     "kiểm lại dòng này, sửa quá tay thì bị bỏ. Từ dòng thứ hai mới trả lời hoặc dùng "
     + MARKER + " hay " + UI_MARKER + ", và trả lời theo câu đã hiểu đó: không bám nghĩa đen "
-    "của từ nghe sai, không nói người dùng đã nói 'Nauta', không bình luận về từ nghe sai. "
+    "của từ nghe sai, không nói người dùng đã nói 'Vân Hạnh', không bình luận về từ nghe sai. "
     "Câu vẫn không rõ nghĩa thì hỏi lại ngắn bằng tiếng Việt, không tự đoán tên người khác hay đổi "
     "giọng đọc. Người dùng nói dùng 'vâng' thay 'ừ' là yêu cầu cách đáp lễ phép; không suy "
     "thành đổi danh tính sang người tên Vân. Ưu tiên xưng em, gọi người dùng là anh và đáp vâng.\n"
@@ -210,7 +210,7 @@ def _giong_doc(cu: list, moi: list) -> float:
 
 def _giong_am(cu: list, moi: list) -> float:
     """Độ giống âm giữa cụm máy nghe và cụm bộ não sửa, lấy cách so CAO HƠN trong hai:
-      - theo mặt chữ (nghe_sua.khoa_am) như trước: "Nauta" với "Vanhanh";
+      - theo mặt chữ (nghe_sua.khoa_am) như trước: "Vân Hạnh" với "Vanhanh";
       - theo cách người Việt ĐỌC từ tiếng Anh (phien_am): "action" viết một đằng đọc một
         nẻo, so mặt chữ "huyết áp Action" với "GitHub Actions" chỉ được 0,6 và bị chặn,
         còn so cách đọc ("ghít hắp ác sừn") thì khớp.
@@ -220,7 +220,7 @@ def _giong_am(cu: list, moi: list) -> float:
     try:
         # Chữ cũ là tiếng Việt, chữ mới là tiếng Anh: so MẶT CHỮ là so hai thứ khác loại
         # ("việc" với chính tả "Webhook" được 0,67 và từng lọt, đổi hẳn trang cần mở). Khi đó
-        # chỉ tin cách ĐỌC ("việc" với "quép húc" 0,44). Hai bên cùng tiếng Anh ("Nauta" ->
+        # chỉ tin cách ĐỌC ("việc" với "quép húc" 0,44). Hai bên cùng tiếng Anh ("Vân Hạnh" ->
         # "Vanhanh") hay cùng tiếng Việt thì mặt chữ vẫn có nghĩa, lấy điểm cao hơn.
         anh_moi = all(phien_am.la_tu_tieng_anh(w) for w in moi)
         anh_cu = all(phien_am.la_tu_tieng_anh(w) for w in cu)
