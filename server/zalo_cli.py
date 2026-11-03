@@ -5,7 +5,7 @@ Vì sao có file này. Tool gửi tin của MCP chỉ nhận CHỮ, trong khi ch
 đúng CLI đó bằng lệnh con nó đã có, với `HOME` trỏ vào thư mục phiên của kết nối Zalo đang đăng nhập (xem `zalo_login.py`): không
 viết lại giao thức, không bắt quét QR lần hai.
 
-CLI là bản riêng của Vanhanh (github.com/vuongtex/naota-zalo, thay cho zalo-agent-cli 1.6.2 của tác giả ngoài), cài
+CLI là bản riêng của Vanhanh (github.com/lequydailb-dotcom/vanhanh-zalo, thay cho zalo-agent-cli 1.6.2 của tác giả ngoài), cài
 bằng tarball của tag phát hành. Chỉ zca-js bên dưới đi theo bản chính thức trên npm. Muốn lên bản CLI mới: ra tag mới ở repo đó rồi
 đổi CẢ BA chỗ ghim (catalog, `CLI_PACKAGE` ở đây, `_CLI_PACKAGE` ở zalo_login.py).
 
@@ -40,7 +40,7 @@ from typing import Any, List, Optional, Tuple
 import winproc
 
 CONNECTOR_ID = "zalo"
-CLI_PACKAGE = "https://codeload.github.com/vuongtex/naota-zalo/tar.gz/refs/tags/v1.9.0"  # ghim đúng bản mà connector Zalo đang chạy
+CLI_PACKAGE = "https://codeload.github.com/lequydailb-dotcom/vanhanh-zalo/tar.gz/refs/tags/v1.9.0"  # ghim đúng bản mà connector Zalo đang chạy
 CLI_NAME = "vanhanh-zalo"                   # tên gói trong package.json của bản ghim: thư mục trong node_modules
 DEFAULT_TIMEOUT = 120                     # tải file lên Zalo có thể lâu, nhưng không lâu vô hạn
 TIMEOUT_MARK = "giây chưa xong"          # đuôi câu báo hết giờ; `is_timeout` nhận ra câu đó

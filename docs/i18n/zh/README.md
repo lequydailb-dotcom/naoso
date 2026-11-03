@@ -9,7 +9,6 @@
 
 在你的笔记本或一台小型 VPS 上运行。用语音和它对话。接入 Claude、ChatGPT、Grok、Gemini 或 12 家提供商中的任意一家，切换模型时所有工具都保留，还能在你睡觉时于后台继续工作。
 
-[![GitHub stars](https://img.shields.io/github/stars/lequydailb-dotcom/vanhanh?style=flat&logo=github&label=stars)](https://github.com/lequydailb-dotcom/vanhanh/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/lequydailb-dotcom/vanhanh?color=f97316)](https://github.com/lequydailb-dotcom/vanhanh/commits/main)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white)](../../../requirements.txt)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ed?logo=docker&logoColor=white)](https://github.com/lequydailb-dotcom/vanhanh/pkgs/container/vanhanh)

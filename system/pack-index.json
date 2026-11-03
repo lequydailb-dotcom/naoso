@@ -4,9 +4,9 @@
   "updated": "2026-09-05",
   "store": {
     "name": "Kho cài đặt Vanhanh",
-    "url": "https://github.com/vuongtex/naota-store"
+    "url": "https://github.com/lequydailb-dotcom/vanhanh-store"
   },
-  "_doc": "ĐÃ ĐÔNG LẠI - kho thật nằm ở repo riêng https://github.com/vuongtex/naota-store. Tệp này ở lại để các bản Vanhanh cũ (vốn trỏ cứng vào đây) vẫn xem và cài được, nên mục bên dưới dùng địa chỉ TUYỆT ĐỐI trỏ sang kho mới. Không thêm gì vào đây nữa; thêm gói mới ở repo kho.",
+  "_doc": "ĐÃ ĐÔNG LẠI - kho thật nằm ở repo riêng https://github.com/lequydailb-dotcom/vanhanh-store. Tệp này ở lại để các bản Vanhanh cũ (vốn trỏ cứng vào đây) vẫn xem và cài được, nên mục bên dưới dùng địa chỉ TUYỆT ĐỐI trỏ sang kho mới. Không thêm gì vào đây nữa; thêm gói mới ở repo kho.",
   "packs": [
     {
       "id": "vanhanh.tinh-gia",
@@ -23,9 +23,9 @@
       "tier": "code",
       "verified": true,
       "updated": "2026-09-04",
-      "homepage": "https://github.com/vuongtex/naota-store",
+      "homepage": "https://github.com/lequydailb-dotcom/vanhanh-store",
       "download": {
-        "url": "https://raw.githubusercontent.com/vuongtex/naota-store/main/dist/vanhanh-tinh-gia-1.0.0.zip",
+        "url": "https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh-store/main/dist/vanhanh-tinh-gia-1.0.0.zip",
         "sha256": "704d4857f2581f5390b28edbf87d7875d8fd7488d3dd308cd73297c42e1d4e1f",
         "size": 5276
       }

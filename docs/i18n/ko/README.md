@@ -9,7 +9,6 @@
 
 노트북이나 작은 VPS에서 실행합니다. 음성으로 대화합니다. Claude, ChatGPT, Grok, Gemini 등 12개 제공자 중 무엇이든 연결하고, 바꿔도 모든 도구는 그대로 유지되며, 잠자는 동안에도 백그라운드에서 일하게 할 수 있습니다.
 
-[![GitHub stars](https://img.shields.io/github/stars/lequydailb-dotcom/vanhanh?style=flat&logo=github&label=stars)](https://github.com/lequydailb-dotcom/vanhanh/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/lequydailb-dotcom/vanhanh?color=f97316)](https://github.com/lequydailb-dotcom/vanhanh/commits/main)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white)](../../../requirements.txt)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ed?logo=docker&logoColor=white)](https://github.com/lequydailb-dotcom/vanhanh/pkgs/container/vanhanh)

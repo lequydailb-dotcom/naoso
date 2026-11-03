@@ -18,7 +18,7 @@
 > Dùng cả ba cùng lúc cũng được, chúng không đụng nhau.
 
 Vanhanh kết nối Zalo cá nhân bằng MCP của
-[`vanhanh-zalo`](https://github.com/vuongtex/naota-zalo), bản CLI Zalo riêng của Vanhanh. Chỉ có
+[`vanhanh-zalo`](https://github.com/lequydailb-dotcom/vanhanh-zalo), bản CLI Zalo riêng của Vanhanh. Chỉ có
 một tiến trình MCP: đăng nhập QR, đọc hoặc tìm hội thoại và gửi tin qua các tool của nó.
 
 > `vanhanh-zalo` dùng API Zalo không chính thức qua `zca-js`. Zalo không hỗ trợ cách
@@ -303,6 +303,6 @@ hỏi Vanhanh; MCP có thể dùng `zalo_get_messages` cho tin đang đệm ho�
 
 ## Tham khảo
 
-- [Repository `vanhanh-zalo`](https://github.com/vuongtex/naota-zalo)
+- [Repository `vanhanh-zalo`](https://github.com/lequydailb-dotcom/vanhanh-zalo)
 - [zca-js](https://github.com/RFS-ADRENO/zca-js), thư viện nói chuyện với Zalo bên dưới
 - [Kết nối và phân quyền MCP trong Vanhanh](09-mcp-va-so-lieu.md)

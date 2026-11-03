@@ -4,8 +4,8 @@
 
 Vì sao file này tồn tại: người dùng nói lẫn Việt - Anh, máy nghe chép sai tên trợ lý
 rồi bộ não trả lời bám nghĩa đen. Lớp này sửa theo ÂM và NGỮ CẢNH trước khi câu đi vào bộ não.
-VANHANH 1.0.0: mẫu nghe nhầm đổi theo tên mới ("Naôta", "Nauta", "Nota", "Nau ta"). Ranh giới quan
-trọng: không đổi tên người thứ ba ("nhắn cho Nauta"), không đổi tên riêng hai chữ ("Naôta
+VANHANH 1.0.0: mẫu nghe nhầm đổi theo tên mới ("Vận Hành", "Vân Hạnh", "Vạn Hạnh", "Van hanh"). Ranh giới quan
+trọng: không đổi tên người thứ ba ("nhắn cho Vân Hạnh"), không đổi tên riêng hai chữ ("Vận Hành
 Beckham"), không đụng câu tiếng Việt thường có âm gần ("nào ta", "lao ta"), không sửa gì thì trả
 y nguyên.
 """
@@ -26,31 +26,32 @@ TV = ["Vanhanh"]
 S = lambda s, tv=TV: nghe_sua.sua(s, tv)   # noqa: E731
 
 # ---- 1. Khoá âm: cách viết khác của "Vanhanh" phải về cùng một khoá ----
-for w in ("Vanhanh", "VANHANH", "vanhanh", "Naôta"):
+for w in ("Vanhanh", "VANHANH", "vanhanh", "Vận Hành"):
     check(f"khoá âm của {w!r} trùng Vanhanh", nghe_sua.khoa_am(w) == nghe_sua.khoa_am("Vanhanh"))
 check("Java KHÔNG trùng khoá Vanhanh", nghe_sua.khoa_am("Java") != nghe_sua.khoa_am("Vanhanh"))
 
 # ---- 2. Gọi tên: sửa ở mọi vị trí khi trùng âm hoàn toàn ----
-check("đầu câu: Naôta -> Vanhanh", S("Naôta mở trang việc giúp anh") == "Vanhanh mở trang việc giúp anh")
-check("hey Naôta", S("hey Naôta, doanh thu hôm nay bao nhiêu") == "hey Vanhanh, doanh thu hôm nay bao nhiêu")
-check("cuối câu: cảm ơn Naôta", S("cảm ơn Naôta") == "cảm ơn Vanhanh")
+check("đầu câu không gọi tên: 'Vận Hành' là chữ thật, giữ nguyên", S("Vận Hành mở trang việc giúp anh") == "Vận Hành mở trang việc giúp anh")
+check("giữa câu: 'vận hành' là chữ thật, giữ nguyên", S("hệ thống vận hành ổn định") == "hệ thống vận hành ổn định")
+check("hey Vận Hành", S("hey Vận Hành, doanh thu hôm nay bao nhiêu") == "hey Vanhanh, doanh thu hôm nay bao nhiêu")
+check("cuối câu: cảm ơn Vận Hành", S("cảm ơn Vận Hành") == "cảm ơn Vanhanh")
 check("sửa nhiều chỗ trong một câu",
-      S("Naôta ơi, Naôta nghe rõ không") == "Vanhanh ơi, Vanhanh nghe rõ không")
+      S("Vận Hành ơi, Vận Hành nghe rõ không") == "Vanhanh ơi, Vanhanh nghe rõ không")
 check("giữ nguyên xuống dòng và dấu câu quanh chỗ sửa",
-      S("Ok Naôta.\nMở trang cài đặt!") == "Ok Vanhanh.\nMở trang cài đặt!")
+      S("Ok Vận Hành.\nMở trang cài đặt!") == "Ok Vanhanh.\nMở trang cài đặt!")
 
 # ---- 3. Trùng vừa phải: CHỈ sửa ở vị trí gọi tên ----
-check("Nauta ơi (gọi tên) -> Vanhanh", S("Nauta ơi, mấy giờ rồi") == "Vanhanh ơi, mấy giờ rồi")
-check("bị tách hai tiếng: Nau ta, đầu câu -> Vanhanh", S("Nau ta, đọc tin mới") == "Vanhanh, đọc tin mới")
-check("cảm ơn Nota -> Vanhanh", S("cảm ơn Nota") == "cảm ơn Vanhanh")
-check("Nauta đầu câu mà không gọi tên thì giữ nguyên",
-      S("Nauta mở trang việc giúp anh") == "Nauta mở trang việc giúp anh")
+check("Vân Hạnh ơi (gọi tên) -> Vanhanh", S("Vân Hạnh ơi, mấy giờ rồi") == "Vanhanh ơi, mấy giờ rồi")
+check("bị tách hai tiếng: Van hanh, đầu câu -> Vanhanh", S("Van hanh, đọc tin mới") == "Vanhanh, đọc tin mới")
+check("cảm ơn Vạn Hạnh -> Vanhanh", S("cảm ơn Vạn Hạnh") == "cảm ơn Vanhanh")
+check("Vân Hạnh đầu câu mà không gọi tên thì giữ nguyên",
+      S("Vân Hạnh mở trang việc giúp anh") == "Vân Hạnh mở trang việc giúp anh")
 
 # ---- 4. Không sửa bừa ----
 GIU = [
-    "nhắn cho Naôta là tôi đến muộn",           # người thứ ba
-    "gặp Nauta lúc 3 giờ",
-    "Naôta Beckham đá bóng hay",                 # tên riêng hai chữ
+    "nhắn cho Vận Hành là tôi đến muộn",           # người thứ ba
+    "gặp Vân Hạnh lúc 3 giờ",
+    "Vận Hành Beckham đá bóng hay",                 # tên riêng hai chữ
     "hôm nay nào ta cùng xem số liệu",           # "nào ta" là tiếng Việt thường
     "Nào ta đi thôi",
     "lao ta về quê",
@@ -64,8 +65,8 @@ for s in GIU:
 check("không có gì sửa thì trả CÙNG đối tượng", S("xin chào") == "xin chào")
 check("đã đúng Vanhanh thì không đổi gì", S("Vanhanh ơi mở lịch") == "Vanhanh ơi mở lịch")
 check("chạy hai lần ra cùng kết quả (idempotent)",
-      S(S("Naôta ơi Nau ta nghe không")) == S("Naôta ơi Nau ta nghe không"))
-check("bộ từ vựng rỗng: trả y nguyên", nghe_sua.sua("Naôta ơi", []) == "Naôta ơi")
+      S(S("Vận Hành ơi Van hanh nghe không")) == S("Vận Hành ơi Van hanh nghe không"))
+check("bộ từ vựng rỗng: trả y nguyên", nghe_sua.sua("Vận Hành ơi", []) == "Vận Hành ơi")
 
 # ---- 5. Từ vựng người dùng khai: nhiều từ, cụm hai tiếng ----
 TV2 = ["Vanhanh", "OpenRouter", "Pancake"]

@@ -52,7 +52,7 @@ FORMAT_VERSION = 1
 #
 # Tách repo còn mở được đường đóng góp: người lạ gửi Pull Request vào kho, chủ kho đọc mã rồi mới
 # trộn - mà không ai phải có quyền ghi vào mã nguồn Vanhanh.
-STORE_MAC_DINH = ("https://raw.githubusercontent.com/vuongtex/naota-store/"
+STORE_MAC_DINH = ("https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh-store/"
                   "main/index.json")
 
 # Loại năng lực một mục trong kho mang lại. Đây là thứ chia lưới thành các tab "Trợ lý /

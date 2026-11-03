@@ -123,7 +123,7 @@ def bo_dau(s: str) -> str:
 def khoa_am(tu: str) -> str:
     """Rút một từ (hay cụm đã ghép liền) về khoá âm để so mờ.
 
-    Ví dụ: Vanhanh, Naôta, Na ô ta -> đều là "vanhanh"; Nauta, Nau ta -> đều là "nauta".
+    Ví dụ: Vanhanh, Vận Hành, Van Hanh -> cùng một khoá âm.
     """
     s = re.sub(r"[^a-z]", "", bo_dau(tu))
     if not s:
@@ -297,7 +297,10 @@ def sua(text, tv) -> str:
             i += n                     # đã đúng sẵn: khoá cả cụm, khỏi sửa từng tiếng bên trong
             continue
         if (_ngoi_thu_ba(toks, i, s) or _ten_rieng_hai_chu(toks, i, n, s, term)
-                or (d < NGUONG_MOI_NOI and not _o_vi_tri_goi_ten(toks, i, n, s))):
+                or ((d < NGUONG_MOI_NOI or bo_dau(uv) != uv.lower())
+                    and not _o_vi_tri_goi_ten(toks, i, n, s))):
+            # VANHANH: tên trợ lý đọc như "vận hành" (từ tiếng Việt rất thường gặp). Cụm có DẤU
+            # tiếng Việt là chữ thật, chỉ sửa khi đứng ở vị trí gọi tên, không sửa giữa câu.
             i += 1
             continue
         dau, cuoi = toks[i].start(), toks[i + n - 1].end()

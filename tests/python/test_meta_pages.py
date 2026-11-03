@@ -26,7 +26,7 @@ def check(n, c):
 
 # ---- 1. Connector: đã dọn sang kho ----
 # Khuôn connector `facebook-pages` rời `system/mcp-catalog.json` và giờ sống trong gói
-# `vanhanh.facebook-pages` của repo kho (vuongtex/naota-store). Những assert về HÌNH DẠNG của nó
+# `vanhanh.facebook-pages` của repo kho (lequydailb-dotcom/vanhanh-store). Những assert về HÌNH DẠNG của nó
 # (provider, scope, fields, default_perm, phân loại tool, chữ cảnh báo) đi theo dữ liệu sang đó:
 # `tools/kiem-tra.py` của repo kho chạy đúng các phép kiểm ấy trên mọi Pull Request.
 #

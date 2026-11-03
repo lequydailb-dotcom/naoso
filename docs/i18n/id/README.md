@@ -9,7 +9,6 @@
 
 Jalankan di laptop atau VPS kecil. Ajak bicara dengan suara. Pasang Claude, ChatGPT, Grok, Gemini atau salah satu dari 12 provider, semua tool tetap ada saat Anda berganti, dan biarkan ia bekerja di background selagi Anda tidur.
 
-[![GitHub stars](https://img.shields.io/github/stars/lequydailb-dotcom/vanhanh?style=flat&logo=github&label=stars)](https://github.com/lequydailb-dotcom/vanhanh/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/lequydailb-dotcom/vanhanh?color=f97316)](https://github.com/lequydailb-dotcom/vanhanh/commits/main)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white)](../../../requirements.txt)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ed?logo=docker&logoColor=white)](https://github.com/lequydailb-dotcom/vanhanh/pkgs/container/vanhanh)

@@ -9,7 +9,6 @@
 
 Запускайте его на ноутбуке или небольшом VPS. Говорите с ним голосом. Подключите Claude, ChatGPT, Grok, Gemini или любого из 12 провайдеров, сохраняйте все инструменты при смене модели и позвольте ему работать в фоне, пока вы спите.
 
-[![GitHub stars](https://img.shields.io/github/stars/lequydailb-dotcom/vanhanh?style=flat&logo=github&label=stars)](https://github.com/lequydailb-dotcom/vanhanh/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/lequydailb-dotcom/vanhanh?color=f97316)](https://github.com/lequydailb-dotcom/vanhanh/commits/main)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white)](../../../requirements.txt)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ed?logo=docker&logoColor=white)](https://github.com/lequydailb-dotcom/vanhanh/pkgs/container/vanhanh)

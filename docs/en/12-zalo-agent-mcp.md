@@ -18,7 +18,7 @@
 > Running all three at once is fine, they do not collide.
 
 Vanhanh connects a personal Zalo account through the MCP of
-[`vanhanh-zalo`](https://github.com/vuongtex/naota-zalo), Vanhanh's own Zalo CLI. There is a single
+[`vanhanh-zalo`](https://github.com/lequydailb-dotcom/vanhanh-zalo), Vanhanh's own Zalo CLI. There is a single
 MCP process: sign in by QR, read or search conversations and send messages through its tools.
 
 > `vanhanh-zalo` uses the unofficial Zalo API via `zca-js`. Zalo does not support this way
@@ -305,6 +305,6 @@ want to check messages, ask Vanhanh; MCP can use `zalo_get_messages` for buffere
 
 ## References
 
-- [The `vanhanh-zalo` repository](https://github.com/vuongtex/naota-zalo)
+- [The `vanhanh-zalo` repository](https://github.com/lequydailb-dotcom/vanhanh-zalo)
 - [zca-js](https://github.com/RFS-ADRENO/zca-js), the library that talks to Zalo underneath
 - [Connections and MCP permissions in Vanhanh](09-connections-and-business-data.md)

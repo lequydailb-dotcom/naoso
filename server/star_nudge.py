@@ -96,7 +96,10 @@ def chon_khoanh_khac(st: dict, ly_do: str, dung: dict, phien_ban: str, now: floa
     """Mời lúc này không, và mời bằng lời chào nào. Trả (kind, n) hoặc None.
 
     kind: heart | work | milestone (n = số lượt) | anniversary (n = số ngày) | update | manual.
-    `manual` (người dùng tự mở từ trang Cập nhật hay nút sao ở góc) luôn có."""
+    `manual` (người dùng tự mở từ trang Cập nhật hay nút sao ở góc) luôn có.
+
+    VANHANH (Đại Lê): đã TẮT hẳn lời mời tặng sao, luôn trả None."""
+    return None
     if ly_do == "manual":
         return ("manual", 0)
     if _con_cho(st, now):
@@ -156,7 +159,10 @@ def ap_hanh_dong(st: dict, hanh_dong: str, now: float) -> dict:
 
 def _hoi_github(timeout: float = 5.0) -> int:
     """Gọi API công khai của GitHub (không cần đăng nhập, 60 lượt/giờ mỗi IP - dư cho một lần
-    mỗi ngày). urllib tự đi qua HTTPS_PROXY của máy nếu có."""
+    mỗi ngày). urllib tự đi qua HTTPS_PROXY của máy nếu có.
+
+    VANHANH: đã tắt tặng sao, không gọi GitHub nữa."""
+    raise RuntimeError("đã tắt")
     req = urllib.request.Request(API_URL, headers={
         "Accept": "application/vnd.github+json", "User-Agent": "vanhanh"})
     with urllib.request.urlopen(req, timeout=timeout) as r:      # noqa: S310 - URL cố định https

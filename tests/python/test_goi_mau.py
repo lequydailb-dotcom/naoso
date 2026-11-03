@@ -13,7 +13,7 @@ loại năng lực có vòng đời khác nhau, và chính chỗ khác nhau đó
     thứ họ viết thì không.
 
 Gói dựng ngay trong test chứ không đọc từ đĩa. Trước đây nó đọc `examples/packs/`, nhưng
-gói thật đã dọn sang repo kho riêng (`vuongtex/naota-store`) - và một test của VANHANH thì
+gói thật đã dọn sang repo kho riêng (`lequydailb-dotcom/vanhanh-store`) - và một test của VANHANH thì
 không được phụ thuộc vào nội dung một repo khác, càng không phụ thuộc vào mạng.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401

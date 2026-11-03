@@ -38,7 +38,7 @@ _RESERVED = {"vanhanh_connections", "vanhanh_read_file", "vanhanh_list_dir", "va
 _GOAL_FILE = Path(__file__).resolve().parent.parent / "system" / "plugins" / "vanhanh-goal" / "plugin.py"
 # Pin the audited data-only branch; a coherent edited source+cache is still not
 # authority to reinterpret an arbitrary predicate as the ordinary-owner result.
-_GOAL_SOURCE_HASH = "27c99bed5ac7f042fe188929a43c2241f505e0cb806bc3b0cabc042fbfd5c76d"
+_GOAL_SOURCE_HASH = "84c0effa11365af4d6bfb3372ee1b00d4ec7133bd54ec6eb1110b68292c5c438"
 
 
 def _plain(value):

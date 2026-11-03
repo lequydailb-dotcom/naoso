@@ -41,7 +41,7 @@ def check(name, cond, them=""):
         _fails.append(name)
 
 
-URL = "https://codeload.github.com/vuongtex/naota-zalo/tar.gz/refs/tags/v1.6.1"
+URL = "https://codeload.github.com/lequydailb-dotcom/vanhanh-zalo/tar.gz/refs/tags/v1.6.1"
 
 # ---- 1. ledger ---------------------------------------------------------------------------------------
 check("markers: last long arg plus the package name of a tarball URL",
