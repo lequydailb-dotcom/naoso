@@ -18,7 +18,7 @@ root = fso.GetParentFolderName(WScript.ScriptFullName)
 
 port = sh.ExpandEnvironmentStrings("%VANHANH_PORT%")
 If port = "%VANHANH_PORT%" Or port = "" Then port = "7777"
-url = "http://127.0.0.1:" & port
+url = "http://localhost:" & port
 
 If ServerUp() Then
   OpenWindow

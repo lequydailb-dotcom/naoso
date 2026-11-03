@@ -31,7 +31,7 @@ Sub MoDashboard()
   Dim port, url, i, http, ok, cands, c
   port = sh.ExpandEnvironmentStrings("%VANHANH_PORT%")
   If port = "%VANHANH_PORT%" Or port = "" Then port = "7777"
-  url = "http://127.0.0.1:" & port
+  url = "http://localhost:" & port
   ok = False
   For i = 1 To 60
     WScript.Sleep 1000
