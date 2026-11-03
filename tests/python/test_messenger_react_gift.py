@@ -178,6 +178,43 @@ pub = [c for c in calls if c[0].endswith("/comments")]
 check("comment: private reply failed -> public reply has no link",
       pub and all("http" not in c[1]["message"] for c in pub), pub)
 
+# 6a. comment already privately replied by another tool -> gift goes to the person's conversation
+async def _already():
+    async def answer(t, meta, progress):
+        return {"text": f"Quà đây [QUA_RIENG]{GIFT}[/QUA_RIENG]"}
+    calls = []
+    bot = messenger_bot.MessengerBot({"page_id": PAGE, "access_token": TOKEN, "app_secret": SECRET}, "",
+                                     answer, giau_trang_thai=True)
+
+    async def fake_post(client, path, payload):
+        calls.append((path, payload))
+        if (payload.get("recipient") or {}).get("comment_id"):
+            return {"ok": False, "code": 10900, "error": "Activity already replied to"}
+        return {"ok": True, "id": "x"}
+
+    async def fake_psid(client, cid):
+        return "psid-777"
+
+    async def fake_post_text(client, post_id):
+        return ""
+    bot._post_json, bot._psid_of_comment, bot._post_text = fake_post, fake_psid, fake_post_text
+    orig = messenger_bot.comment_mode
+    messenger_bot.comment_mode = lambda aid: "reply"
+    try:
+        await bot._on_comment(com())
+        await _drain(bot)
+    finally:
+        messenger_bot.comment_mode = orig
+    return calls
+
+calls = run(_already())
+direct = [c for c in calls if (c[1].get("recipient") or {}).get("id") == "psid-777"]
+pub = [c for c in calls if c[0].endswith("/comments")]
+check("comment already replied privately: gift goes to the person's conversation",
+      direct and GIFT in direct[0][1]["message"]["text"], calls)
+check("comment already replied privately: public reply is tagged, no link",
+      pub and pub[0][1]["message"].startswith("@[777] ") and "http" not in pub[0][1]["message"], pub)
+
 # 6b. a comment answer without a gift is not tagged and not private
 calls = run(_comment_turn({"text": "Dạ bên em có lớp tối thứ 3 ạ."}))
 check("comment: plain answer stays plain", not any((c[1].get("recipient") or {}).get("comment_id") for c in calls)

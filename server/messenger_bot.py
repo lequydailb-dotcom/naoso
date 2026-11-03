@@ -485,6 +485,19 @@ class MessengerBot(HangLuot):
                 await self._send_one(client, psid, more)
         return d
 
+    async def _psid_of_comment(self, client, comment_id) -> str:
+        """The commenter's Page-scoped id, from the conversation the comment's private reply opened. "" if unknown."""
+        try:
+            r = await client.get(f"{GRAPH}/{comment_id}", params={
+                "fields": "private_reply_conversation{participants}", "access_token": self.token})
+            parts = (((r.json() or {}).get("private_reply_conversation") or {}).get("participants") or {}).get("data") or []
+            for p in parts:
+                if str(p.get("id") or "") and str(p.get("id")) != str(self.page_id):
+                    return str(p["id"])
+        except Exception:
+            pass
+        return ""
+
     async def _comment_answer(self, client, chat, text, meta):
         """Public reply under a comment, with the gift part sent privately first. If the private message fails the
         link stays private anyway: the public reply asks the person to message the Page."""
@@ -493,6 +506,12 @@ class MessengerBot(HangLuot):
         if priv:
             cid = str(meta.get("comment_id") or str(chat)[len(COMMENT_PREFIX):])
             d = await self._private_reply(client, cid, priv)
+            if not d.get("ok") and str(d.get("code")) == "10900" and meta.get("user_id"):
+                # The comment already got its one private reply (another tool, or Meta's own automation): the
+                # person has a conversation with the Page now, so the gift goes there as a normal message.
+                psid = await self._psid_of_comment(client, cid)
+                if psid:
+                    d = await self._send_one(client, psid, unwrap_private(md_to_plain(priv))[:MAX_MSG])
             if d.get("ok"):
                 pub = pub or gift_public_line(meta.get("user_name", ""))
                 uid = str(meta.get("user_id") or "")
