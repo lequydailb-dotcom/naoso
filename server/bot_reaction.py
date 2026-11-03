@@ -28,14 +28,14 @@ EMOJI = {
     "sad": "😞", "big_laugh": "😄", "cool": "😎",
 }
 NAMES = ("heart", "like", "haha", "wow", "cry", "angry")
-CHANNELS = ("zalo_personal",)       # channels whose transport can put a reaction (`channels.zalo_personal.Transport._tha`)
+CHANNELS = ("zalo_personal", "messenger")   # channels whose transport can put a reaction (Zalo `_tha`, Messenger `_react`)
 QUOTE_MAX = 80
 _MARK_RE = re.compile(r"\[\s*cam_xuc\s*:\s*([a-z_]*)\s*\]", re.I)
 
 PROMPT_HINT = f"""
 ## Thả cảm xúc vào tin khách
 
-Bạn được thả một cảm xúc lên tin khách vừa nhắn, như người thật bấm giữ tin trên Zalo: thêm một dòng
+Bạn được thả một cảm xúc lên tin khách vừa nhắn, như người thật bấm giữ tin trên Zalo hay Messenger: thêm một dòng
 `[CAM_XUC:<tên>]`, tên là một trong {", ".join(NAMES)}. Có thể vừa thả vừa trả lời, hoặc chỉ thả mà
 không nhắn gì (viết đúng dòng đó và không viết gì khác). Tự cân nhắc theo hướng dẫn vai: đừng thả cho
 mọi tin. Tin dạng "[... thả cảm xúc ...]" là khách thả cảm xúc lên một tin, không phải lời khách viết.

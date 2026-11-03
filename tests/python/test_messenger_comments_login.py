@@ -145,8 +145,9 @@ check("reply mode: the bot gets the comment text in the thread's conversation",
       and m.get("user_name") == "Chị Lan" and m.get("message_id") == REPLY, seen)
 check("reply mode: the model is told the reply is public, the inbox title names the post",
       "CÔNG KHAI" in m.get("ghi_chu_dau", "") and "Áo thun" in m.get("chat_title", ""), m)
-check("reply mode: the answer goes under the top-level comment as plain text, once",
-      calls == [(f"{TOP}/comments", {"message": "Dạ 150k ạ, chị nhắn Page để em tư vấn thêm nhé."})], calls)
+check("reply mode: the comment is liked, then the answer goes under the top-level comment as plain text, once",
+      calls == [(f"{REPLY}/likes", {}),
+                (f"{TOP}/comments", {"message": "Dạ 150k ạ, chị nhắn Page để em tư vấn thêm nhé."})], calls)
 check("reply mode: no seen marker or typing on a comment", not any(c[1].get("sender_action") for c in calls), calls)
 
 calls, seen = run(_comment_turn("inbox", top))

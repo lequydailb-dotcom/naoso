@@ -66,6 +66,13 @@ COMMENT_PREFIX = "cmt:"       # conversation id of a comment thread: cmt:<top-le
 COMMENT_MODES = ("off", "inbox", "reply")
 COMMENT_MODE_DEFAULT = "inbox"
 MAX_COMMENT = 7900            # a comment takes 8000 characters
+QUA_RIENG = "[QUA_RIENG]"     # part of a comment answer sent privately to the commenter (Private Replies), never public
+QUA_RIENG_END = "[/QUA_RIENG]"
+_QUA_RIENG_RE = re.compile(r"\[\s*qua_rieng\s*\](.*?)(?:\[\s*/\s*qua_rieng\s*\]|$)", re.I | re.S)
+# Reaction names the bot may pick (bot_reaction.NAMES) -> what Messenger shows. Messenger takes the emoji itself.
+REACT_EMOJI = {"heart": "\u2764\ufe0f", "like": "\U0001f44d", "haha": "\U0001f606", "wow": "\U0001f62e",
+               "cry": "\U0001f622", "angry": "\U0001f620", "love": "\u2764\ufe0f"}
+REACT_DEFAULT = "heart"       # put on every message the bot answers, before the answer (account meta react="off" stops it)
 
 # page_id -> MessengerBot currently running for it.
 _REGISTRY: dict = {}
@@ -166,7 +173,60 @@ def comment_note(post: str = "") -> str:
             + (f' (bài viết: "{post[:300]}")' if post else "")
             + ". Câu trả lời của bạn hiện công khai ngay dưới bình luận này, ai cũng đọc được: trả lời ngắn gọn, "
               "lịch sự, không nêu số điện thoại, địa chỉ hay thông tin riêng của khách; cần trao đổi riêng thì mời "
-              "khách nhắn tin cho Page.]")
+              "khách nhắn tin cho Page. Khi cần gửi link, quà tặng hay thông tin riêng cho người bình luận, đặt phần đó giữa "
+              f"{QUA_RIENG} và {QUA_RIENG_END}: phần này được nhắn riêng vào Messenger của họ, không hiện công khai; "
+              "phần còn lại là câu trả lời công khai, ví dụ báo đã gửi quà vào tin nhắn. Không bao giờ để link quà ngoài "
+              "cặp dấu này.]")
+
+
+def split_private(text):
+    """(public part, private part) of an answer. The private part is everything between [QUA_RIENG] and
+    [/QUA_RIENG] (or the end of the text when the closing marker is missing); every marker leaves both parts, so a
+    gift link never ends up in a public comment by mistake."""
+    s = str(text or "")
+    priv = [m.group(1).strip() for m in _QUA_RIENG_RE.finditer(s)]
+    pub = _QUA_RIENG_RE.sub("", s)
+    pub = re.sub(r"\[\s*/\s*qua_rieng\s*\]", "", pub, flags=re.I)
+    pub = re.sub(r"[ \t]+\n", "\n", pub)
+    pub = re.sub(r"\n{3,}", "\n\n", pub).strip()
+    return pub, "\n\n".join(x for x in priv if x).strip()
+
+
+def gift_public_line(name: str = "") -> str:
+    """The public reply when the bot sent something privately and wrote nothing public itself. Customer text: Vietnamese."""
+    return "Mình đã gửi quà vào tin nhắn riêng cho bạn rồi nhé, bạn mở Messenger kiểm tra giúp mình ạ \u2764\ufe0f"
+
+
+def react_on(account_id: str) -> bool:
+    """Heart/like before answering: on unless the account's meta says react="off"."""
+    try:
+        import channel_accounts
+        a = channel_accounts.get_account(str(account_id or "")) or {}
+        return str((a.get("meta") or {}).get("react") or "").strip().lower() != "off"
+    except Exception:
+        return True
+
+
+_URL_RE = re.compile(r"(?:https?://|www\.)\S+|\b(?:zalo\.me|drive\.google\.com|docs\.google\.com|bit\.ly)/\S+", re.I)
+
+
+def links_to_private(pub: str, priv: str):
+    """A comment is public: any link the bot left outside the markers goes private as well (gift links are never
+    posted under a post, even when the model forgets the markers)."""
+    links = [m.group(0).rstrip(".,;:!?)\"'") for m in _URL_RE.finditer(pub or "")]
+    if not links:
+        return pub, priv
+    pub = _URL_RE.sub("", pub)
+    pub = re.sub(r"[ \t]{2,}", " ", pub)
+    pub = re.sub(r"[ \t]*[:\-–]\s*$", "", pub, flags=re.M).strip()
+    extra = "\n".join(x for x in links if x not in (priv or ""))
+    return pub, "\n".join(x for x in (priv, extra) if x).strip()
+
+
+def unwrap_private(text) -> str:
+    """A private chat is private already: the gift markers just go, their content stays."""
+    s = re.sub(r"\[\s*/?\s*qua_rieng\s*\]", "", str(text or ""), flags=re.I)
+    return re.sub(r"\n{3,}", "\n\n", s).strip()
 
 
 def comment_mode(account_id: str) -> str:
@@ -302,6 +362,18 @@ class MessengerBot(HangLuot):
             return False, localefmt.chu("thiếu Page id hoặc Page access token Messenger",
                                         "missing the Messenger Page id or Page access token")
         async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+            if is_comment_chat(chat):
+                pub, priv = links_to_private(*split_private(text))
+                if priv:
+                    d = await self._private_reply(client, str(chat)[len(COMMENT_PREFIX):], priv)
+                    if not d.get("ok"):
+                        return False, d.get("error", "")
+                    pub = pub or gift_public_line()
+                text = pub
+                if not text:
+                    return True, ""
+            else:
+                text = unwrap_private(text)
             for chunk in _chunks(text, MAX_COMMENT if is_comment_chat(chat) else MAX_MSG):
                 d = await self._send_one(client, chat, chunk)
                 if not d.get("ok"):
@@ -371,6 +443,72 @@ class MessengerBot(HangLuot):
             return
         await self._post_json(client, f"{self.page_id}/messages",
                               {"recipient": {"id": str(chat)}, "sender_action": action})
+
+    async def _react(self, client, chat, target, name=None):
+        """Heart on a Messenger message, like on a comment, before the answer. Best effort: a failure only logs.
+        A comment can only be liked (the Graph API has no other reaction for a Page)."""
+        if not target:
+            return {"ok": False, "error": "no target"}
+        if is_comment_chat(chat):
+            d = await self._post_json(client, f"{target}/likes", {})
+        else:
+            emoji = REACT_EMOJI.get(str(name or REACT_DEFAULT).lower(), REACT_EMOJI[REACT_DEFAULT])
+            payload = {"recipient": {"id": str(chat)}, "sender_action": "react",
+                       "payload": {"message_id": str(target), "reaction": emoji}}
+            d = await self._post_json(client, f"{self.page_id}/messages", payload)
+            if not d.get("ok") and not d.get("net_error"):
+                payload["payload"]["reaction"] = "love"   # older API versions want the name
+                d = await self._post_json(client, f"{self.page_id}/messages", payload)
+        if not d.get("ok"):
+            print(f"[messenger react] {d.get('error')}", file=sys.stderr)
+        return d
+
+    async def _private_reply(self, client, comment_id, text):
+        """Private Replies: one message into the commenter's Messenger, tied to their comment. Facebook allows a
+        single private reply per comment (within 7 days); a longer text continues to the person it reached."""
+        text = unwrap_private(md_to_plain(text))
+        parts = _chunks(text, MAX_MSG) or [text]
+        d = await self._post_json(client, f"{self.page_id}/messages", {
+            "recipient": {"comment_id": str(comment_id)}, "message": {"text": parts[0]}})
+        if not d.get("ok"):
+            if str(d.get("code")) in ("10", "200", "230", "551"):
+                d["error"] = localefmt.chu(
+                    f"không nhắn riêng được cho người bình luận ({d.get('code')}): cần quyền pages_messaging, "
+                    "và mỗi bình luận chỉ được nhắn riêng một lần trong 7 ngày",
+                    f"could not message the commenter privately ({d.get('code')}): pages_messaging is needed, and "
+                    "each comment takes one private reply within 7 days")
+            print(f"[messenger private reply] {d.get('error')}", file=sys.stderr)
+            return d
+        psid = str(d.get("recipient_id") or "")
+        for more in parts[1:]:
+            if psid:
+                await self._send_one(client, psid, more)
+        return d
+
+    async def _comment_answer(self, client, chat, text, meta):
+        """Public reply under a comment, with the gift part sent privately first. If the private message fails the
+        link stays private anyway: the public reply asks the person to message the Page."""
+        meta = meta or {}
+        pub, priv = links_to_private(*split_private(text))
+        if priv:
+            cid = str(meta.get("comment_id") or str(chat)[len(COMMENT_PREFIX):])
+            d = await self._private_reply(client, cid, priv)
+            if d.get("ok"):
+                pub = pub or gift_public_line(meta.get("user_name", ""))
+                uid = str(meta.get("user_id") or "")
+                if uid and not is_comment_chat(uid):
+                    # @mention the commenter; the Page Mentioning feature may be off, then plain text goes.
+                    tagged = f"@[{uid}] {pub}"
+                    t = await self._send_one(client, chat, md_to_plain(tagged)[:MAX_COMMENT])
+                    if t.get("ok"):
+                        return
+                    name = str(meta.get("user_name") or "").strip()
+                    pub = (f"{name} ơi, " + pub[:1].lower() + pub[1:]) if name else pub
+            else:
+                self.last_error = d.get("error", "")
+                pub = pub or ("Bạn nhắn tin trực tiếp cho Page để mình gửi quà riêng cho bạn nhé \u2764\ufe0f")
+        if pub.strip():
+            await self._send(client, chat, pub)
 
     async def _name_of(self, client, psid) -> str:
         """Display name of a person (User Profile API). Empty when the app may not read it."""
@@ -595,17 +733,28 @@ class MessengerBot(HangLuot):
                 from telegram_bot import CAU_LOI_NGUOI_THAT
                 reply = (CAU_LOI_NGUOI_THAT if self.giau_trang_thai else f"⚠ {type(e).__name__}: {e}")
             silent = False
+            reaction = None
             if isinstance(reply, dict):
                 files = reply.get("files") or []
                 silent = bool(reply.get("im_lang"))
+                reaction = reply.get("reaction")
                 reply = reply.get("text") or ""
+            speaks = bool(str(reply or "").strip() or files)
+            # Heart (Messenger) or like (comment) before answering. A silent turn ([IM_LANG], [BAO_CHU], a
+            # personal message left for the owner) gets nothing, unless the Agent chose a reaction itself.
+            if (reaction or (speaks and not silent)) and react_on(getattr(self, "account_id", "")):
+                m = meta or {}
+                target = m.get("comment_id") if is_comment_chat(chat) else m.get("message_id")
+                await self._react(client, chat, target, reaction or REACT_DEFAULT)
             if silent and not str(reply or "").strip() and not files:
                 return
             if not self.giau_trang_thai:
                 trail = dong_vet(tools, time.monotonic() - t0)
                 reply = ((str(reply or "").rstrip() + "\n\n") if str(reply or "").strip() else "") + trail
-            if str(reply or "").strip() or not files:
-                await self._send(client, chat, reply)
+            if is_comment_chat(chat) and str(reply or "").strip():
+                await self._comment_answer(client, chat, reply, meta)
+            elif str(reply or "").strip() or not files:
+                await self._send(client, chat, unwrap_private(reply) if str(reply or "").strip() else reply)
             for f in files:
                 fpath, fcap = (f.get("path"), f.get("caption", "")) if isinstance(f, dict) else (f, "")
                 ok, err = await self.send_file(fpath, fcap, chat=chat)
