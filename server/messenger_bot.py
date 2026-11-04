@@ -353,6 +353,7 @@ class MessengerBot(HangLuot):
                 self.last_error = d.get("error", "")
                 print(f"[messenger send] {d.get('error')}", file=sys.stderr)
                 break
+            self.last_error = ""     # a reply went out: an older failure no longer describes this Page
 
     async def send_text(self, chat, text):
         text = md_to_plain(str(text or "").strip())
@@ -524,7 +525,8 @@ class MessengerBot(HangLuot):
                     name = str(meta.get("user_name") or "").strip()
                     pub = (f"Dạ {name} ơi, " + pub[:1].lower() + pub[1:]) if name else pub
             else:
-                self.last_error = d.get("error", "")
+                if str(d.get("code")) != "10900":     # already replied privately elsewhere: not a fault of this Page
+                    self.last_error = d.get("error", "")
                 pub = pub or ("Dạ anh/chị nhắn tin trực tiếp cho Page để em gửi quà riêng cho anh/chị nha \u2764\ufe0f")
         if pub.strip():
             await self._send(client, chat, pub)
