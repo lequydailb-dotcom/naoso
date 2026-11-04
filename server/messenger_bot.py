@@ -194,7 +194,7 @@ def split_private(text):
 
 def gift_public_line(name: str = "") -> str:
     """The public reply when the bot sent something privately and wrote nothing public itself. Customer text: Vietnamese."""
-    return "Mình đã gửi quà vào tin nhắn riêng cho bạn rồi nhé, bạn mở Messenger kiểm tra giúp mình ạ \u2764\ufe0f"
+    return "Dạ em đã gửi quà vào tin nhắn riêng cho anh/chị rồi ạ, anh/chị mở Messenger kiểm tra giúp em nha \u2764\ufe0f"
 
 
 def react_on(account_id: str) -> bool:
@@ -522,10 +522,10 @@ class MessengerBot(HangLuot):
                     if t.get("ok"):
                         return
                     name = str(meta.get("user_name") or "").strip()
-                    pub = (f"{name} ơi, " + pub[:1].lower() + pub[1:]) if name else pub
+                    pub = (f"Dạ {name} ơi, " + pub[:1].lower() + pub[1:]) if name else pub
             else:
                 self.last_error = d.get("error", "")
-                pub = pub or ("Bạn nhắn tin trực tiếp cho Page để mình gửi quà riêng cho bạn nhé \u2764\ufe0f")
+                pub = pub or ("Dạ anh/chị nhắn tin trực tiếp cho Page để em gửi quà riêng cho anh/chị nha \u2764\ufe0f")
         if pub.strip():
             await self._send(client, chat, pub)
 

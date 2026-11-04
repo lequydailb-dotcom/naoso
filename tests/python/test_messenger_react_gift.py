@@ -162,7 +162,7 @@ calls = run(_comment_turn({"text": f"Đã gửi quà nhé [QUA_RIENG]{GIFT}[/QUA
                           fail=(lambda p, d: p.endswith("/comments") and "@[" in d.get("message", ""),)))
 pub = [c for c in calls if c[0].endswith("/comments")]
 check("comment: when tagging is refused the name is written instead",
-      len(pub) == 2 and pub[-1][1]["message"].startswith("Chị Lan ơi") and "http" not in pub[-1][1]["message"], pub)
+      len(pub) == 2 and pub[-1][1]["message"].startswith("Dạ Chị Lan ơi") and "http" not in pub[-1][1]["message"], pub)
 
 # 5. link outside the markers still goes private
 calls = run(_comment_turn({"text": f"Quà đây bạn: {GIFT}"}))
