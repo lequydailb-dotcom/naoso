@@ -31,10 +31,25 @@ check("ngăn kéo không trượt bằng transform", /transform: none;/.test(rai
 check("ngăn kéo đóng thì ẩn hẳn", /visibility: hidden;/.test(rail)
   && /body\.nav-open \.rail \{ left: 0; visibility: visible;/.test(CSS));
 check("danh sách menu không tự cuộn bên trong ngăn kéo",
-  /\.rail-nav \{ flex: 0 0 auto; flex-direction: column; overflow: visible;/.test(CSS));
-// Menu dài hơn màn hình điện thoại: danh sách giữ đủ chiều cao (không co theo ngăn kéo), nếu co thì các mục cuối
-// tràn đè lên ô ngôn ngữ, ô chọn bộ não và số phiên bản bên dưới.
-check("danh sách menu giữ đủ chiều cao, không tràn đè hàng dưới", /\.rail-nav \{ flex: 0 0 auto;/.test(CSS));
+  /\.rail-nav \{ flex-direction: column; overflow: visible;/.test(CSS));
+// iPhone 13 Safari: the "System" group spilled over the language picker. The desktop rule
+// gives the nav list `min-height: 0`, so inside the drawer (which scrolls itself) a long menu was squeezed below its
+// content. Nothing in the drawer may shrink.
+var mobile = (CSS.match(/@media \(max-width: 860px\) \{[\s\S]*?\/\* Rail: từ thanh đáy[\s\S]*?\.nav-backdrop, /) || [""])[0];
+check("drawer: the nav list grows but never shrinks below its content",
+  /\.rail-nav \{ flex-direction: column; overflow: visible;[^}]*flex: 1 0 auto;/.test(mobile));
+check("drawer: no child of the drawer shrinks (language picker, System block, version row)",
+  /\.rail > \* \{ flex-shrink: 0; \}/.test(mobile));
+// Same day, same iPhone (app added to the home screen from Chrome): opened, it looked frozen, taps did nothing. On a
+// slid page iOS hit-tests fixed layers away from where it draws them, so the page is slid back whenever nobody types.
+check("page is slid back to the top on scroll, touch, pageshow and return from background",
+  /function pageToTop\(\)/.test(SRC)
+  && /addEventListener\("scroll", pageToTop/.test(SRC)
+  && /addEventListener\("touchstart", pageToTop, \{ capture: true, passive: true \}\)/.test(SRC)
+  && /addEventListener\("pageshow"/.test(SRC)
+  && /visibilitychange[\s\S]{0,80}pageToTop/.test(SRC));
+check("slide-back leaves the page alone while the keyboard is up",
+  /function pageToTop\(\) \{\s*if \(!mq\.matches \|\| dangGo\(\)\) return;/.test(SRC));
 check("nền mờ mặc định ẩn, kể cả khi thiếu thuộc tính hidden",
   /\.nav-backdrop, \.nav-backdrop\[hidden\] \{[^}]*display: none;/.test(CSS));
 check("nền mờ chỉ hiện khi ngăn kéo mở", /body\.nav-open \.nav-backdrop \{ display: block; \}/.test(CSS));
@@ -81,6 +96,20 @@ mqListeners.forEach(function (f) { f(); });
 check("trình duyệt báo đổi khổ mà vẫn là điện thoại: ngăn kéo không tự đóng", open());
 mq.matches = false; mqListeners.forEach(function (f) { f(); });
 check("sang màn rộng thì đóng", !open());
+
+// Bấm gì trong ngăn kéo thì đóng nó. Lỗi đã gặp (03/11/2026, điện thoại): bấm nút Cập nhật ở đáy, trang Cập nhật mở
+// ra nhưng menu vẫn che. Nút đó không phải .rail-item nên lọt khỏi bộ chọn đóng ngăn kéo.
+var sel = (SRC.match(/e\.target\.closest\("([^"]+)"\) && mq\.matches\) closeNav\(\)/) || [])[1] || "";
+check("tìm thấy bộ chọn đóng ngăn kéo", !!sel);
+function khop(cls) {   // đủ cho dạng ".a" và ".a:not(.b)" mà bộ chọn này dùng
+  return sel.split(",").some(function (p) {
+    var m = p.trim().match(/^\.([\w-]+)(?::not\(\.([\w-]+)\))?$/);
+    return !!m && cls.indexOf(m[1]) >= 0 && !(m[2] && cls.indexOf(m[2]) >= 0);
+  });
+}
+check("bấm một mục trên menu thì đóng", khop(["rail-item"]));
+check("bấm nút Cập nhật ở đáy thì đóng", khop(["rf-upd"]));
+check("bấm Nâng cao (chỉ bung danh sách con) thì KHÔNG đóng", !khop(["rail-item", "rail-adv-btn"]));
 
 if (fails.length) { console.log("\nFAIL " + fails.length + ": " + fails.join(", ")); process.exit(1); }
 console.log("\nOK - test_ngan_keo_dien_thoai: all pass");

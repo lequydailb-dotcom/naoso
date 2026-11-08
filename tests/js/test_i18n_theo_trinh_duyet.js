@@ -89,6 +89,14 @@ const cho = (ms = 30) => new Promise((r) => setTimeout(r, ms));
   check("đã lưu vi trên máy -> vẫn tiếng Việt dù trình duyệt tiếng Anh", I.lang() === "vi", I.lang());
   check("đã lưu thì daChon() = true", I.daChon() === true);
 
+  // German was removed: a device that saved "de" shows English, tagged English, not "de".
+  let k2;
+  ({ I, kho: k2 } = nap({ trinhDuyet: ["de-DE"], luu: "de" }));
+  await cho();
+  check("saved language with no dictionary any more -> English", I.lang() === "en", I.lang());
+  check("the saved choice is left alone (a failed download must not wipe it)", k2.v === "de", k2.v);
+  check("its text is English", I.t(KHOA) === EN[KHOA], I.t(KHOA));
+
   // Chọn đúng ngôn ngữ đang đoán: vẫn phải ghi lại thành lựa chọn.
   ({ I, kho } = nap({ trinhDuyet: ["en-US"] }));
   await cho();
@@ -146,9 +154,10 @@ const cho = (ms = 30) => new Promise((r) => setTimeout(r, ms));
         helpers.uiLangChoices(S).some((l) => l.ma === "de") && helpers.uiLangChoices({ lang_list: S.lang_list }).length === 2);
   check("console.js: không còn chỗ nào ghi thẳng ui_lang chưa qua uiLangForServer",
         !/ui_lang: (sel|selUi)\.value/.test(con) && !/ui_lang: I\.lang\(\)/.test(con)
-        && (con.match(/ui_lang: uiLangForServer\(/g) || []).length === 3);
-  check("console.js: cả hai ô chọn ngôn ngữ giao diện lấy danh sách từ uiLangChoices",
-        (con.match(/uiLangChoices\(s\)/g) || []).length >= 3);
+        // 1.3.0: the sidebar language box is gone (language lives in Settings only), so two writes remain.
+        && (con.match(/ui_lang: uiLangForServer\(/g) || []).length === 2);
+  check("console.js: ô chọn ngôn ngữ giao diện (trang Cài đặt) lấy danh sách từ uiLangChoices",
+        (con.match(/uiLangChoices\(s\)/g) || []).length >= 2);
   const cfg = fs.readFileSync(path.join(ROOT, "server/config.py"), "utf8");
   check("config.py: ui_lang mặc định rỗng cho bản cài mới", /"ui_lang": "",/.test(cfg));
 

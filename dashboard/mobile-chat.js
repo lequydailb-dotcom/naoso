@@ -61,13 +61,17 @@
       sysHost.className = "rail-sys";
       sysLbl = document.createElement("div");
       sysLbl.className = "rail-sys-lbl";
-      sysLbl.textContent = window.t("nav.group.he_thong");
+      // 1.3.0: the sidebar has its own "System" block, so this one is named after what it holds, the brain.
+      sysLbl.textContent = window.t("nav.group.bo_nao");
       sysHost.appendChild(sysLbl);
       sysBtns = document.createElement("div");
       sysBtns.className = "rail-sys-btns";
       sysHost.appendChild(sysBtns);
-      var foot = railEl.querySelector(".rail-foot");
-      railEl.insertBefore(sysHost, foot || null);
+      // 1.3.1 (owner): at the top of the drawer, right under the logo, so opening the menu shows
+      // which brain every page is reading before any item.
+      var nav = railEl.querySelector(".rail-nav");
+      if (nav) nav.parentNode.insertBefore(sysHost, nav);
+      else railEl.insertBefore(sysHost, railEl.firstChild);
     }
     // `toFoot` (owner): the light/dark switch goes to the drawer's foot, just left of the collapse button,
     // instead of a row of its own under the "System" label.
@@ -97,6 +101,7 @@
       if (mq.matches) {
         if (!moved.length) {
           moveEl(document.querySelector(".navbar-brain"), false);
+          moveEl(document.getElementById("soundToggle"), true, true);   // loa ngay trước nút sáng/tối
           moveEl(document.getElementById("themeToggle"), true, true);
           // Nút loa header đã bỏ, nút loa thanh nhập cũng bỏ: giọng đi theo
           // mic, bấm mic là bật loa. Không còn nút loa nào để dời cả.
@@ -159,7 +164,9 @@
     if (backdrop) backdrop.addEventListener("click", closeByTap);
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeNav(); });
     if (railEl) railEl.addEventListener("click", function (e) {
-      if (e.target.closest(".rail-item") && mq.matches) closeNav();  // chọn mục điều hướng -> đóng
+      // Chọn mục điều hướng -> đóng. Nút Cập nhật ở đáy (.rf-upd) cũng mở một trang nên cũng đóng;
+      // còn nút "Nâng cao" chỉ bung danh sách con, đóng ngăn kéo thì người ta không chọn được gì.
+      if (e.target.closest(".rail-item:not(.rail-adv-btn), .rf-upd") && mq.matches) closeNav();
     });
 
     // ---- 6) Bung/thu khoang não (mobile-only) ----
@@ -209,8 +216,9 @@
     // (iPhone cài như app): lúc KHÔNG gõ, 100dvh của iOS standalone có khi lệch với phần
     // màn hình thật sự nhìn thấy (đầu khung chat bị hụt, dưới ô nhập thừa một dải trống). Khung chat lúc nghỉ dùng đúng
     // chiều cao visualViewport (`--app-h`, chỉ chiều cao, không cộng độ lệch: không có bàn phím thì vùng nhìn thấy bắt
-    // đầu từ mép trên), và bàn phím hạ xuống mà iOS để trang trượt lên thì kéo trang về đầu. Giữ nguyên thanh trạng
-    // thái trong suốt (black-translucent) nên giao diện không đổi.
+    // đầu từ mép trên), và bàn phím hạ xuống mà iOS để trang trượt lên thì kéo trang về đầu.
+    // the status bar is now "default" (solid, page starts below it) to stop the iOS 26/27 top blur; see the
+    // note on that meta tag in index.html. Nothing here depends on the bar style.
     var vv = window.visualViewport;
     var rootStyle = document.documentElement.style;
     var mocCao = 0, kbHen = 0, vuaGo = false, vuaMo = false;
@@ -264,6 +272,24 @@
       window.addEventListener("orientationchange", function () { mocCao = 0; setTimeout(syncKeyboard, 400); });
     }
 
+    // ---- 8) The page itself never stays slid ----
+    // Every screen is one fixed frame and scrolls inside its own boxes, so the document scroll should always be 0. iOS
+    // can still slide it: a launch from the home screen (standalone), a swipe on a page whose
+    // 100dvh is off by the status bar, a return from the background. On a slid page iOS draws the fixed layers in one
+    // place and hit-tests them in another (see above), so every tap lands beside its button and the app looks
+    // frozen (owner, iPhone 13, app added from Chrome). Slide it back whenever nobody is typing; while
+    // the keyboard is up the slide is iOS's own and section 7 handles it. A touch also checks first, so the next tap
+    // after any missed one already lands right.
+    function pageToTop() {
+      if (!mq.matches || dangGo()) return;
+      if (window.scrollY || document.documentElement.scrollTop || document.body.scrollTop) window.scrollTo(0, 0);
+    }
+    window.addEventListener("scroll", pageToTop, { passive: true });
+    window.addEventListener("pageshow", function () { pageToTop(); setTimeout(pageToTop, 300); });
+    window.addEventListener("load", function () { setTimeout(pageToTop, 300); });
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) setTimeout(pageToTop, 60); });
+    document.addEventListener("touchstart", pageToTop, { capture: true, passive: true });
+
     function applyAll() { placeHeader(); placeSystem(); setPlaceholder(); syncBrainMax(); syncKeyboard(); }
     applyAll();
 
@@ -271,7 +297,7 @@
     // vẽ bằng window.t() ở trên đều chạy TRƯỚC khi có từ điển. Vẽ lại đúng những chỗ đó.
     window.addEventListener("vanhanh:i18n", function () {
       setPlaceholder();
-      if (sysLbl) sysLbl.textContent = window.t("nav.group.he_thong");
+      if (sysLbl) sysLbl.textContent = window.t("nav.group.bo_nao");
       if (brainMaxBtn) {
         var dangBung = document.body.classList.contains("brain-max");
         brainMaxBtn.title = dangBung ? window.t("mchat.brain_min_title") : window.t("orb.max_title");

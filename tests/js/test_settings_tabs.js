@@ -8,10 +8,17 @@ const vm = require("node:vm");
 const src = fs.readFileSync(path.join(__dirname, "../../dashboard/console.js"), "utf8");
 const railCtx = { ICON: {}, GICON: {}, t: k => k };
 vm.createContext(railCtx);
-vm.runInContext(src.slice(src.indexOf("  const RAIL_ITEMS ="), src.indexOf("  // Nhãn nhóm chứa")) + "\nglobalThis.groups = railGroups();", railCtx);
-assert.deepEqual(Array.from(railCtx.groups.find(g => g.foot).items, i => i.id), ["models", "settings", "account", "logs"]);  // Models under System, Update right under Account
-assert.ok(!railCtx.groups.flatMap(g => g.items).some(i => ["pet", "usage", "chatbots"].includes(i.id)),
+vm.runInContext(src.slice(src.indexOf("  const RAIL_ITEMS ="), src.indexOf("  // icon lấy từ VIEW_ICON")) +
+  "\nglobalThis.groups = railGroups(); globalThis.menu = railMenu();", railCtx);
+// 1.3.0: one flat column; Models, Settings and Account close it (as in 1.2.1). Update is only the button by the
+// version at the foot (one place per item), so it is in no list at all; the foot menu holds the advanced pages.
+assert.deepEqual(Array.from(railCtx.groups.at(-1).items, i => i.id), ["models", "settings", "account"]);
+assert.deepEqual(Array.from(railCtx.menu.main, i => i.id), []);
+assert.deepEqual(Array.from(railCtx.menu.adv, i => i.id), ["terminal", "plugins", "webhooks", "logins", "share"]);
+const onRail = railCtx.groups.flatMap(g => g.items).map(i => i.id);
+assert.ok(!onRail.some(id => ["pet", "usage", "chatbots"].includes(id)),
   "legacy targets must not reappear through the ungrouped-items fallback");
+assert.ok(!onRail.some(id => ["logs", "terminal"].includes(id)), "menu pages must not show twice");
 function fn(name) {
   const start = src.search(new RegExp("  (?:async )?function " + name + "\\("));
   assert.ok(start >= 0, "missing " + name);

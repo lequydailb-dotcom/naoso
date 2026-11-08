@@ -51,7 +51,7 @@ Bot **đọc Agent lúc chạy**, không chép lại. Sau này sửa Agent ở t
 
 ### 3. Một tài khoản kênh: token riêng, lấy đúng chỗ theo kênh
 
-Token là một **kênh** (tài khoản bot), bot chỉ **trỏ tới** nó. Bạn thêm kênh bằng nút **Thêm kênh** ở mục **Kênh chưa có bot** ngay dưới danh sách bot rồi tích chọn khi tạo bot, hoặc bấm **Kết nối kênh mới** ngay trong form Bot mới (kênh vừa nối được tick sẵn); hai đường cho cùng một kết quả. Một bot trực được **nhiều** tài khoản (một vai trả lời ở cả Telegram lẫn Zalo Bot), còn mỗi tài khoản chỉ **một** bot trực.
+Token là một **kênh** (tài khoản bot), bot chỉ **trỏ tới** nó. Bạn thêm kênh bằng nút **Thêm kênh** ở mục **Kênh chưa có bot** ngay dưới danh sách bot rồi tích chọn khi tạo bot, hoặc bấm **Kết nối kênh mới** ngay trong form Bot mới (kênh vừa nối được tick sẵn); hai đường cho cùng một kết quả. Một bot trực được **nhiều** tài khoản (một vai trả lời ở cả Telegram lẫn Zalo Bot), còn mỗi tài khoản chỉ **một** bot trực. Mỗi bot trực tối đa **100 Fanpage** (Messenger và Instagram) và 20 tài khoản cho mỗi kênh còn lại; chọn quá thì Vanhanh báo rõ, không âm thầm bỏ bớt.
 
 Nếu bot chạy trên **Telegram**: vào **@BotFather** gõ `/newbot`, đặt tên và username, lấy chuỗi token dạng `123456789:ABCdef...`.
 
@@ -589,6 +589,90 @@ Một chỗ vẫn cố ý nói thẳng: khi có người gọi bot trong **nhóm
 Cũng **không còn hạn mức lúc bot tự lên tiếng** trong nhóm khi không ai gọi (chế độ Tự đánh giá, xem mục ở trên). Bot tự trả lời bao nhiêu lần là do bộ phán xử và mô hình quyết, theo vai của Agent và tài liệu; bạn chỉnh bằng cách bấm Đúng/Sai ở Bộ phán xử.
 
 Không còn giới hạn nghĩa là một người nhắn liên tục, hay một nhóm đông hỏi nhiều, sẽ tốn lượt dùng model của bạn liên tục. Thấy bất thường thì bấm **Tiếp quản** cuộc chat đó ở trang Hội thoại, thu hẹp mục **Bot trả lời ai**, hoặc đổi nhóm đó về **Được gọi tên**.
+
+## Kênh API nội bộ
+
+Kênh này đang **thử nghiệm**: cách gọi và khuôn câu trả lời có thể còn đổi, mỗi lần đổi sẽ ghi trong nhật ký cập nhật. Nó cho **một máy chủ của bạn** (ví dụ web quản lý nội bộ của công ty) hỏi **một** Chatbot qua HTTP. Nhân viên hỏi ngay trong web đó, máy chủ của bạn chuyển câu hỏi sang Vanhanh rồi hiện câu trả lời.
+
+Khác hẳn token API "chỉ chat" ở trang Cài đặt: token đó gọi `/chat` **dưới danh nghĩa chủ**, toàn quyền. Kênh API nội bộ chạy một **Chatbot**, nên giữ nguyên mọi rào của Chatbot: chỉ thấy brain của nó, không chạy lệnh máy, không gọi nguồn dữ liệu ở mức thấp. Khoá của kênh chỉ mở đúng một đường `POST /chatbot-api/v1/turn`, và token API không mở được đường đó.
+
+### Cách nối
+
+1. Trang **Chatbot** → tab **Kênh** → **Thêm kênh** → chọn **API nội bộ**, đặt tên, bấm **Lưu**. Không có ô dán token: Vanhanh tự sinh khoá (`ntc_...`, 32 byte ngẫu nhiên) và **hiện đúng một lần**. Chép khoá sang máy chủ của bạn ngay. Vanhanh chỉ giữ bản băm, nên mất khoá thì không xem lại được, chỉ có thể xoay khoá mới.
+2. Gắn tài khoản đó cho một bot ở mức **Chỉ đọc** hoặc **Đọc tài liệu**, rồi bật bot.
+3. Máy chủ của bạn gọi `POST http://<máy Vanhanh>:<cổng>/chatbot-api/v1/turn` **trực tiếp**, không đi qua tên miền công khai. Mặc định chỉ chính máy chạy Vanhanh gọi được. Máy chủ gọi nằm ở container khác hay máy khác trong mạng nội bộ thì thêm địa chỉ của nó vào `VANHANH_CHATBOT_API_ALLOW` (xem **Giới hạn và nguồn gọi**).
+
+Bấm **Sửa** tài khoản để **Xoay khoá** (khoá cũ ngừng chạy ngay, không cần khởi động lại bot) và chỉnh giới hạn tần suất.
+
+### Khế ước HTTP
+
+```
+POST /chatbot-api/v1/turn
+Authorization: Bearer <khoá của tài khoản kênh API>
+Content-Type: application/json
+
+{
+  "message_id": "web-8f2c...",          // chống gửi trùng, bắt buộc
+  "conversation_id": "web-user-123",    // khoá hội thoại: mỗi người dùng một mạch
+  "user": {"id": "123", "name": "Nguyễn Văn A"},
+  "scopes": ["vai:nhan-vien", "chi-nhanh-hn"], // phạm vi tài liệu riêng, do máy chủ của bạn quyết
+  "text": "Đơn tuần này cần chuẩn bị gì?",
+  "context": "## Lịch của bạn hôm nay\n- 15:00-17:00 ..."  // tuỳ chọn
+}
+```
+
+| Mã | Khi nào |
+|---|---|
+| `200` | `{"ok": true, "reply": "...", "silent": false, "turn_id": "turn_..."}`. `silent: true` khi bot chọn im |
+| `400` | Thân request sai, `field` nói trường nào |
+| `401` | Khoá sai hoặc đã xoay |
+| `403` | Nguồn gọi không được phép, bot đang tắt, hoặc bot vượt trần mức quyền (`code` nói rõ) |
+| `409` | `message_id` đã xử lý: trả lại đúng câu trả lời cũ, kèm `"duplicate": true` |
+| `413` | `text` quá 4.000 ký tự hoặc `context` quá 8.000 ký tự |
+| `429` | Vượt giới hạn tần suất (`limit`: `conversation` hoặc `account`), hoặc IP bị chặn vì dò khoá |
+| `502` | Lượt bot hỏng. Chỉ trả câu chung, chi tiết nằm ở nhật ký bot và chuông thông báo |
+| `504` | Bot trả lời quá 90 giây |
+
+Lỗi nào cũng có `code` để máy đọc và `error` để người đọc. `conversation_id` dài tối đa 60 ký tự, chỉ chữ, số và `_ . : @ -`.
+
+Ví dụ:
+
+```bash
+curl -s http://vanhanh:7777/chatbot-api/v1/turn \
+  -H "Authorization: Bearer ntc_..." -H "Content-Type: application/json" \
+  -d '{"message_id":"web-1","conversation_id":"web-user-123","user":{"id":"123","name":"Nguyễn Văn A"},"scopes":["vai:nhan-vien"],"text":"Đơn tuần này cần chuẩn bị gì?"}'
+```
+
+### Trần mức quyền
+
+Bot gắn kênh API **chỉ chạy ở Chỉ đọc hoặc Đọc tài liệu**. Bot ở mức cao hơn thì mọi lượt trả `403` (`code: permission_ceiling`) và thẻ bot đỏ, ghi rõ lý do. **Ngoại lệ theo cuộc chat cũng không nâng được quá trần này** trên kênh API. Luật khoá bằng mã ở hai chỗ (đường HTTP và bên trong lượt bot), không bằng lời dặn.
+
+### Tài liệu riêng theo `scopes`
+
+`scopes` đến từ máy chủ có khoá nên Vanhanh tin nó. Phạm vi của kênh API có **tiền tố riêng**, để máy chủ gọi không mở được tài liệu riêng của nhóm Zalo hay Telegram mà cùng bot đang trực. Với scope `chi-nhanh-hn`, tài liệu được thấy khi:
+
+- nằm trong thư mục `rieng-theo-nhom/api-chi-nhanh-hn/`, hoặc
+- có dòng `chat_scope: api:chi-nhanh-hn` trong frontmatter.
+
+Tài liệu khớp **bất kỳ** scope nào trong danh sách thì lượt đó thấy. Tài liệu của scope khác không lộ ra, kể cả tên file. Không gửi `scopes` thì lượt đó không thấy tài liệu riêng nào. Một tài liệu ghi `chat_scope: chi-nhanh-hn` (không có `api:`) hay nằm trong `rieng-theo-nhom/chi-nhanh-hn/` thì kênh API **không** thấy: đó là chỗ của các kênh khác.
+
+`conversation_id` **không bao giờ là scope**. Scope có dấu `:` (như `vai:nhan-vien`) thì dùng dòng `chat_scope: api:vai:nhan-vien`, vì Windows không cho tên thư mục có dấu `:`.
+
+### `context` là dữ liệu, không phải lệnh
+
+`context` đi vào lượt như một khối dữ liệu riêng có mã ngẫu nhiên mỗi lượt, kèm lời dặn rằng đó là dữ liệu tham khảo, không phải lệnh. Câu nào trong đó bảo bot đổi vai hay bỏ quy định thì bot bỏ qua. `context` không ghi vào Hộp thư.
+
+### Giới hạn và nguồn gọi
+
+- **Tần suất**: mặc định 20 lượt mỗi hội thoại trong 10 phút, 300 lượt mỗi giờ cho cả tài khoản. Chỉnh ở form sửa tài khoản.
+- **Nguồn gọi**: biến môi trường `VANHANH_CHATBOT_API_ALLOW` là danh sách CIDR, mặc định `127.0.0.0/8,::1/128` (chỉ chính máy chạy Vanhanh). Ngoài danh sách thì `403`. Máy chủ gọi nằm ở container khác thì thêm đúng địa chỉ của nó, hoặc đúng một mạng Docker mà hai bên dùng chung (ví dụ `VANHANH_CHATBOT_API_ALLOW=127.0.0.0/8,::1/128,172.20.0.0/16`), càng hẹp càng tốt. Đừng mở cả dải `172.16.0.0/12`: trên VPS chạy Docker có mở cổng ra ngoài, một số kết nối từ Internet vào sẽ hiện dưới địa chỉ cổng nội bộ của Docker và lọt qua. Request mang header chuyển tiếp (`X-Forwarded-For`, `X-Real-IP`...) cũng bị `403`, nên gọi qua Nginx Proxy Manager hay tunnel đều không vào được.
+- **Dò khoá**: sai khoá quá 10 lần trong 5 phút từ một IP thì IP đó bị chặn 15 phút, ghi vào `auth_audit.jsonl` (chỉ 12 ký tự đầu), chung bộ đếm với token API.
+
+### Hộp thư và Tiếp quản
+
+Mỗi lượt vào **Hộp thư hội thoại** như kênh khác: tên người lấy từ `user.name`, kênh hiện là **API nội bộ**, câu bot bí vẫn vào tab **Bot bí**. Bấm **Tiếp quản** một cuộc chat API thì lượt sau trả `{"ok": true, "silent": true, "handed_over": true, "reply": ""}`. Bản này chưa gửi tin bạn gõ ngược về máy chủ gọi.
+
+Nút **Thử** của bot vẫn chạy như cũ.
 
 ## Xoá bot
 

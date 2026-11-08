@@ -76,8 +76,8 @@ check("nút thu nhỏ có chữ cho biết nó làm gì", /Thu nhỏ/.test(CONSO
 check("còn xuất window.VanhanhChatStage", ZOOM.indexOf("window.VanhanhChatStage") !== -1);
 check("CANARY: isOpen() luôn false (các nhát 'thu lại' còn sót thành vô hại)",
       /isOpen: function \(\) \{ return false; \}/.test(ZOOM_CODE));
-check("nút Lịch sử vẫn có đường vào", ZOOM.indexOf("showSide") !== -1
-      && SESS.indexOf("VanhanhChatStage.showSide()") !== -1);
+// nút Lịch sử ở thanh trên cùng vẫn còn, sessions-ui.js dựng nó.
+check("sessions-ui.js vẫn dựng nút Lịch sử", SESS.indexOf("nt-sess-btn") !== -1);
 
 // ---- 6. Không còn chỗ nào chờ lớp nổi ----
 check("CANARY: navigateTo không còn nhát thu lớp nổi",

@@ -18,7 +18,13 @@
        rồi "Thêm vào MH chính" lại thì iOS mới đọc lại và chạy standalone. -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- Status bar "default", NOT "black-translucent" (iOS 27). With a see-through bar the page
+       draws under the clock, and iOS 26/27 lays a blur strip over that band in a home-screen app that no CSS turns off:
+       our fixed opaque header was already there and the strip still showed. With "default" the bar is solid and the
+       page starts below it, so nothing sits under it to blur. iOS reads this tag when the app is added to the Home
+       Screen: an icon added before this change keeps the blur until it is removed and added again. The CSS still
+       pads with env(safe-area-inset-*), which is 0 at the top now and still covers the notch in landscape. -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="VANHANH">
   <meta name="theme-color" content="#ffffff">
   <!-- manifest.json khai icon PNG vuông 192/512 có sizes rõ ràng: đó là điều kiện để
@@ -31,8 +37,8 @@
   <!-- Biến --ic-* cho icon dùng trong content: của CSS. Phải đứng TRƯỚC style.css
        vì style.css tham chiếu các biến này. -->
   <link rel="stylesheet" href="/static/vendor/lucide-icons.css?v=1">
-  <link rel="stylesheet" href="/static/style.css?v=159">
-  <link rel="stylesheet" href="/static/console.css?v=137">
+  <link rel="stylesheet" href="/static/style.css?v=174">
+  <link rel="stylesheet" href="/static/console.css?v=158">
   <!-- Áp tông đã lưu TRƯỚC khi vẽ để không nháy tối rồi mới đổi sang sáng.
        Giá trị cũ "dim" (tông tối-nhạt, gỡ) quy về tối; theme.js sẽ ghi đè lại.
        Chưa chọn gì thì SÁNG (VANHANH 1.0.0). Chế độ "auto" (chỉ khi người dùng tự chọn) tính theo khung giờ "HH:MM-HH:MM", cùng quy tắc với
@@ -96,6 +102,22 @@
             <path d="M12 6v6M9.5 9.5 12 12l2.5-2.5"/>
           </svg>
           <span class="install-app-label" data-i18n="top.install_label">Mở như app</span>
+        </button>
+        <!-- Bật/tắt âm thanh hiệu ứng, cạnh nút sáng/tối: chỉ bật hoặc tắt, không chỉnh âm lượng.
+             Loa có sóng khi đang bật, loa gạch chéo khi đang tắt; ui-sound.js đặt aria-pressed và tooltip. -->
+        <button class="hud-icon-btn sound-toggle" id="soundToggle" type="button" aria-pressed="true"
+                title="Sound effects are on - click to turn them off"
+                aria-label="Sound effects are on - click to turn them off">
+          <svg class="ic-son" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 5 6 9H3v6h3l5 4V5Z"/>
+            <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>
+          </svg>
+          <svg class="ic-soff" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 5 6 9H3v6h3l5 4V5Z"/>
+            <path d="m16 9 6 6M22 9l-6 6"/>
+          </svg>
         </button>
         <button class="hud-icon-btn theme-toggle" id="themeToggle" type="button" aria-pressed="false"
                 title="Đang dùng tông tối - bấm để chuyển sang tông sáng"
@@ -380,7 +402,7 @@
                   <span class="vc-saved" id="vcVoiceSaved" aria-live="polite"></span>
                 </div>
               </div>
-              <div class="qs-hint" id="vcVoiceNote" data-i18n="qs.voice_ml_note" hidden>Giọng đa ngôn ngữ hỗ trợ tiếng Việt.</div>
+              <div class="qs-hint" id="vcVoiceNote" data-i18n="qs.voice_ml_note" hidden>Tiếng Việt đọc bằng Hoài My hoặc Nam Minh, tiếng Anh bằng giọng đa ngôn ngữ, cùng giới giọng chọn.</div>
               <div class="vc-mismatch" id="vcMismatch" role="status" hidden>
                 <span id="vcMismatchTxt"></span>
                 <button class="gcard-btn" type="button" id="vcMismatchFix"></button>
@@ -622,7 +644,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
           <canvas class="dict-wave" id="dictWave" aria-hidden="true"></canvas>
-          <span class="dict-busy" id="dictBusy" hidden data-i18n="dict.busy">Đang chuyển thành chữ...</span>
+          <span class="dict-busy" id="dictBusy" hidden data-i18n="dict.busy">Đang viết lại câu cho đúng...</span>
           <span class="dict-time" id="dictTime" aria-live="off">0:00</span>
           <button type="button" class="dict-stop" id="dictStop" title="Dừng ghi, giữ chữ để sửa" data-i18n-title="dict.stop" aria-label="Dừng ghi, giữ chữ để sửa" data-i18n-aria="dict.stop">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
@@ -668,54 +690,67 @@
            bảng màu là chữ bị xoá theo. .brand .brand-icon trên thanh trên cũng cùng vai trò. -->
       <div class="rail-brand"><span class="brand-mark"><img src="/brand-logo" alt="Vanhanh" style="width:30px;height:30px;border-radius:8px;display:block;object-fit:cover"></span><span class="rail-brand-text">VANHANH</span></div>
     </div>
-    <!-- GIỮA cuộn được - gom theo nhóm; nhóm foot (Hệ thống) tự ghim xuống đáy -->
+    <!-- GIỮA cuộn được: một cột phẳng, mỗi khúc có tên nhỏ màu nhạt (RAIL_SECTIONS trong console.js) -->
     <div class="rail-nav">
-      <template x-for="g in $store.nav.groups" :key="g.label">
-        <!-- Every group is always open and its name is only a section label. Only a `fold` group
-             (Advanced) is a button that folds, which keeps the rail on one screen. -->
-        <div class="rail-group" :class="{ foot: g.foot, fold: g.fold, open: $store.nav.isOpen(g.label), 'has-active': g.items.some(it => it.id === $store.nav.active) }">
-          <template x-if="g.fold">
-            <button class="rail-grp-lbl" @click="$store.nav.toggleGroup(g.label)" :title="g.label"
-                    :aria-expanded="$store.nav.isOpen(g.label) ? 'true' : 'false'">
-              <span class="rail-grp-ico" x-html="g.icon"></span>
-              <span class="grp-name" x-text="g.label"></span>
-            </button>
-          </template>
-          <template x-if="!g.fold">
-            <div class="rail-grp-lbl" x-text="g.label"></div>
-          </template>
+      <template x-for="(g, gi) in $store.nav.groups" :key="gi">
+        <div class="rail-group">
+          <div class="rail-sec-lbl" x-show="g.label" x-text="($store.nav.i18nTick, g.label)"></div>
           <div class="rail-grp-items">
             <template x-for="it in g.items" :key="it.id">
               <button class="rail-item" :class="{ active: $store.nav.active === it.id }"
-                      @click="$store.nav.go(it.id)" :title="it.label">
+                      @click="$store.nav.go(it.id)" :title="it.railLabel" :data-page="it.id">
                 <span class="rail-ico" x-html="it.icon"></span>
-                <span class="rail-lbl" x-text="it.label"></span>
-                <span class="rail-new" x-show="it.id === 'logs' && $store.nav.updAvail"
-                      x-text="($store.nav.i18nTick, t('rail.upd_new'))"></span>
+                <span class="rail-lbl" x-text="($store.nav.i18nTick, it.railLabel)"></span>
               </button>
             </template>
           </div>
         </div>
       </template>
+      <!-- Nâng cao: last row of the System block, right under Account (owner 03/11/2026). A click unfolds the
+           advanced pages in place, with the VANHANH community link last. Language lives in Settings only. -->
+      <div class="rail-adv" :class="{ open: $store.nav.advOpen }">
+        <button class="rail-item rail-adv-btn" :class="{ 'has-active': $store.nav.menuActive && !$store.nav.advOpen }"
+                @click="$store.nav.toggleAdv($el)" :aria-expanded="$store.nav.advOpen ? 'true' : 'false'"
+                :title="($store.nav.i18nTick, t('nav.group.nang_cao'))">
+          <span class="rail-ico"><i data-ic="ellipsis"></i></span>
+          <span class="rail-lbl" data-i18n="nav.group.nang_cao">Nâng cao</span>
+          <span class="rail-adv-chev"><i data-ic="chevron-down"></i></span>
+        </button>
+        <div class="rail-adv-items" x-show="$store.nav.advOpen">
+          <template x-for="it in $store.nav.menu.adv" :key="it.id">
+            <button class="rail-item" :class="{ active: $store.nav.active === it.id }" @click="$store.nav.go(it.id)" :title="it.label">
+              <span class="rail-ico" x-html="it.icon"></span>
+              <span class="rail-lbl" x-text="($store.nav.i18nTick, it.label)"></span>
+            </button>
+          </template>
+          <a class="rail-item" href="https://github.com/lequydailb-dotcom/vanhanh" target="_blank" rel="noopener"
+             :title="($store.nav.i18nTick, t('rail.community'))">
+            <span class="rail-ico"><i data-ic="users"></i></span>
+            <span class="rail-lbl" data-i18n="rail.community">Cộng đồng VANHANH</span>
+          </a>
+        </div>
+      </div>
     </div>
-    <!-- Ô đổi ngôn ngữ GIAO DIỆN ngay trên hàng version: console.js đổ danh sách từ /settings
-         (lang_list - sổ đăng ký phía server, cùng nguồn với trang Cài đặt). Đổi là
-         VanhanhI18n.setLang áp NGAY trên máy này rồi mới lưu ui_lang lên server. Ẩn cho tới khi
-         có danh sách để không hiện một ô select trống. -->
-    <div class="rail-lang" id="railLangWrap" hidden>
-      <i data-ic="globe"></i>
-      <select id="railLang" class="rail-lang-sel" aria-label="Ngôn ngữ giao diện" data-i18n-aria="settings.ui_lang.title"></select>
+    <!-- Version and an Update button, always in sight at the foot of the rail (03/11/2026:
+         like 1.2.1, the version shows at the bottom with a button to update). The button opens the
+         Update page and turns yellow when the server reports a new version. -->
+    <div class="rf-meta">
+      <div class="rf-ver-row">
+        <span class="rf-ver" id="railVersion">v0.0.0</span>
+        <button type="button" class="rf-upd" :class="{ on: $store.nav.updAvail }" @click="$store.nav.go('logs')"
+                :title="($store.nav.i18nTick, t('page.logs.label'))">
+          <i data-ic="rocket"></i>
+          <span x-text="($store.nav.i18nTick, $store.nav.updAvail ? t('rail.upd_avail') : t('page.logs.label'))"></span>
+        </button>
+      </div>
+      <a class="rf-author" href="https://lequydai.com" target="_blank" rel="noopener">by ĐẠI LÊ AI</a>
+      <a class="rf-author" href="https://zalo.me/0972782782" target="_blank" rel="noopener">Zalo: 0972782782</a>
     </div>
-    <!-- ĐÁY cố định: nút thu/mở + version + tác giả -->
+    <!-- ĐÁY cố định: nút thu/mở -->
     <div class="rail-foot">
       <button class="rail-collapse-btn" @click="$store.nav.toggleCollapsed()"
               :title="($store.nav.i18nTick, $store.nav.collapsed ? t('rail.expand') : t('rail.collapse'))"
               x-html="$store.nav.collapseIcon"></button>
-      <div class="rf-meta">
-        <div class="rf-ver" id="railVersion">v0.0.0</div>
-        <a class="rf-author" href="https://lequydai.com" target="_blank" rel="noopener">by ĐẠI LÊ AI</a>
-        <a class="rf-author" href="https://zalo.me/0972782782" target="_blank" rel="noopener">Zalo: 0972782782</a>
-      </div>
     </div>
   </nav>
 
@@ -830,6 +865,12 @@
             <input id="wzOrKeyInput" placeholder="Ví dụ: sk-or-v1-… (tùy chọn)" data-i18n-ph="wz.or_key_ph">
           </div>
           <div id="wzProvHint"></div>
+        </div>
+        <div class="set-sec">
+          <h4 data-i18n="wz.s4">4. Múi giờ</h4>
+          <div class="set-note" data-i18n="wz.tz_note">Vanhanh dùng múi giờ này cho hôm nay, hôm qua, ngày mai, nhắc hẹn và kỳ báo cáo.</div>
+          <select id="wzTz" aria-label="Múi giờ" data-i18n-aria="wz.s4"></select>
+          <div class="set-note" id="wzTzNow"></div>
         </div>
         <div class="set-actions"><button class="s-btn" id="wzFinish" data-i18n="wz.start">Bắt đầu dùng Vanhanh →</button></div>
         <div class="auth-err" id="wzErr"></div>
@@ -957,35 +998,38 @@
   <!-- Hộp đen lỗi giao diện (loi-may-khach.js): đứng sớm để bắt được lỗi của mọi file phía dưới. -->
   <script src="/static/loi-may-khach.js?v=1"></script>
   <!-- Gộp các lượt đọc trùng nhau lúc mở app (fetch-gop.js). Đứng trước mọi file gọi máy chủ. -->
-  <script src="/static/fetch-gop.js?v=1"></script>
+  <script src="/static/fetch-gop.js?v=4"></script>
+  <!-- Recently opened chats kept in this browser for an instant first paint (chat-cache.js). Before app.js. -->
+  <script src="/static/chat-cache.js?v=2"></script>
   <!-- Code của từng trang nạp khi cần (nap-cham.js): các file LỚN chỉ một trang dùng không còn chặn lúc mở app.
        Nhóm nào trang nào cần: console.js renderPage. Trang rảnh thì nạp nốt ở nền theo đúng thứ tự dưới đây. -->
   <script id="vanhanh-lazy" type="application/json">{
  "congviec": [
-  "/static/agent-jobs.js?v=6",
+  "/static/agent-jobs.js?v=7",
   "/static/agent-pulse.js?v=4",
   "/static/agent-lessons-ui.js?v=4",
   "/static/agent-judge-ui.js?v=2"
  ],
  "teams": [
-  "/static/teams.js?v=21"
+  "/static/team-github.js?v=1",
+  "/static/teams.js?v=29"
  ],
  "packs": [
-  "/static/packs.js?v=4"
+  "/static/packs.js?v=6"
  ],
  "hoithoai": [
   "/static/inbox-v5.css?v=12",
-  "/static/inbox-compact.css?v=5",
+  "/static/inbox-compact.css?v=7",
   "/static/date-range.css?v=1",
   "/static/chatbots-reply-policy.js?v=1",
   "/static/chatbots-try.js?v=1",
-  "/static/chatbots.js?v=20",
-  "/static/conversations-filters.js?v=6",
+  "/static/chatbots.js?v=21",
+  "/static/conversations-filters.js?v=7",
   "/static/date-range.js?v=1",
   "/static/inbox-v5.js?v=4",
   "/static/inbox-channels.js?v=5",
   "/static/inbox-stats.js?v=4",
-  "/static/conversations.js?v=27"
+  "/static/conversations.js?v=32"
  ],
  "usage": [
   "/static/usage.js?v=4"
@@ -996,23 +1040,26 @@
  ],
  "nhiemvu": [
   "/static/date-range.css?v=1",
-  "/static/tasks.css?v=10",
+  "/static/tasks.css?v=13",
   "/static/date-range.js?v=1",
   "/static/tasks-stats.js?v=1",
-  "/static/tasks.js?v=9"
+  "/static/tasks.js?v=15"
  ]
 }</script>
-  <script src="/static/nap-cham.js?v=1"></script>
+  <script src="/static/nap-cham.js?v=2"></script>
   <script src="/static/auto-domain.js?v=1"></script>
-  <script src="/static/i18n/index.js?v=2"></script>
-  <script src="/static/vendor/lucide-icons.js?v=17"></script>
-  <script src="/static/icons.js?v=2"></script>
+  <script src="/static/i18n/index.js?v=3"></script>
+  <script src="/static/vendor/lucide-icons.js?v=19"></script>
+  <script src="/static/icons.js?v=3"></script>
   <script src="/static/info-tip.js?v=2"></script>
+  <!-- Timezone picker shared by the first-run setup and Settings (tz-picker.js). -->
+  <script src="/static/tz-picker.js?v=1"></script>
 
   <!-- theme.js phải nạp TRƯỚC mọi file khác: graph.js / app.js đăng ký
        hàm vẽ lại theo tông ngay lúc parse, nếu window.vanhanhTheme chưa có thì chúng
        đăng ký hụt và các lớp canvas kẹt ở bảng màu tối. -->
   <script src="/static/theme.js?v=5"></script>
+  <script src="/static/ui-sound.js?v=2"></script>
   <!-- Voice V1: đạo diễn hội thoại (thuần) phải nạp TRƯỚC voice.js và app.js. -->
   <script src="/static/voice-turn.js?v=3"></script>
   <script src="/static/voice-turn-policy.js?v=1"></script>
@@ -1021,11 +1068,11 @@
   <script src="/static/voice-attention.js?v=2"></script>
   <script src="/static/mic-test.js?v=1" defer></script>
   <script src="/static/voice-chunker.js?v=2"></script>
-  <script src="/static/voice-lang.js?v=1"></script>
-  <script src="/static/voice.js?v=29"></script>
+  <script src="/static/voice-lang.js?v=2"></script>
+  <script src="/static/voice.js?v=31"></script>
   <script src="/static/graph.js?v=18"></script>
   <script src="/static/pan-zoom.js?v=1"></script>
-  <script src="/static/chat-render.js?v=23"></script>
+  <script src="/static/chat-render.js?v=24"></script>
   <script src="/static/code-hl.js?v=1"></script>
   <script src="/static/dataview.js?v=2"></script>
   <!-- window.VanhanhCopy: chép một chuỗi vào bảng nhớ tạm, có đường lui cho http trần. Đứng
@@ -1039,7 +1086,7 @@
   <script src="/static/word-count.js?v=1"></script>
   <!-- .html opens on its preview with a Code tab: before file-editor.js and console.js. -->
   <script src="/static/html-preview.js?v=1"></script>
-  <script src="/static/file-editor.js?v=15"></script>
+  <script src="/static/file-editor.js?v=16"></script>
   <!-- Insert images into a note (paste/drop/button): compress, then save into images/. After
        editor-cmds.js because it shares its editor lookup (contextFor). -->
   <script src="/static/note-images.js?v=1"></script>
@@ -1051,6 +1098,7 @@
   <script src="/static/chat-goal.js?v=1"></script>
   <script src="/static/chat-lenh.js?v=2"></script>
   <script src="/static/chat-acts.js?v=7"></script>
+  <script src="/static/chat-suggest.js?v=2"></script>
   <!-- One POST /upload with progress and stall watch, shared by the main chat and the Team chat (app.js, teams.js). -->
   <script src="/static/chat-upload.js?v=1"></script>
   <!-- Stick to the latest message, the jump button and its "New messages" pill, shared by app.js and teams.js. -->
@@ -1069,23 +1117,23 @@
   <!-- Khối tiến trình từng bước trong khung chat: phải đứng TRƯỚC app.js vì app.js gọi
        window.VanhanhSteps ngay khi khung tool_call đầu tiên về. -->
   <script src="/static/chat-steps.js?v=2"></script>
-  <script src="/static/chat-viec.js?v=6"></script>
+  <script src="/static/chat-viec.js?v=7"></script>
   <script src="/static/chat-nho.js?v=1"></script>
   <script src="/static/chat-doi.js?v=1"></script>
   <script src="/static/chat-card.js?v=2"></script>
   <script src="/static/chat-resonance.js?v=3"></script>
-  <script src="/static/resonance-agent.js?v=5"></script>
+  <script src="/static/resonance-agent.js?v=6"></script>
   <!-- Voice V1: khối ngữ cảnh giao diện + bộ nhận lệnh ui_action, nạp TRƯỚC app.js. -->
   <!-- Kéo đổi bề rộng cột ở trang đồ thị và trang Trò chuyện: nạp TRƯỚC app.js và console.js. -->
   <script src="/static/col-resize.js?v=2"></script>
   <script src="/static/ui-context.js?v=1"></script>
   <script src="/static/ui-actions.js?v=3"></script>
   <!-- Voice V2: nghe nói thẳng (Live), app.js gọi lười khi bấm mic ở chế độ Live. -->
-  <script src="/static/voice-live.js?v=7"></script>
+  <script src="/static/voice-live.js?v=8"></script>
   <script src="/static/screen-awake.js?v=1"></script>
   <script src="/static/incoming-call.js?v=1"></script>
   <script src="/static/call-bar.js?v=1"></script>
-  <script src="/static/app.js?v=157"></script>
+  <script src="/static/app.js?v=165"></script>
   <!-- Sau app.js: dải việc nền đọc window.VanhanhSessions (app.js dựng) để biết phiên + brain. -->
   <script src="/static/background-strip.js?v=3"></script>
   <!-- Thân bảng chọn model dùng chung: phải đứng TRƯỚC model-picker.js (thanh chat) và
@@ -1094,38 +1142,41 @@
   <script src="/static/effort-slider.js?v=3"></script>
   <!-- Models page usage order: drag, swap, popover placement. console.js calls window.VanhanhModelsOrder. -->
   <script src="/static/models-order.js?v=1"></script>
+  <script src="/static/provider-logos.js?v=2"></script>
   <script src="/static/plan-limit.js?v=2"></script>
-  <script src="/static/model-picker.js?v=18"></script>
+  <script src="/static/model-picker.js?v=21"></script>
   <script src="/static/composer-plus.js?v=3"></script>
   <script src="/static/composer-folder.js?v=4"></script>
-  <script src="/static/github-connect.js?v=3"></script>
-  <script src="/static/branding.js?v=11"></script>
+  <script src="/static/github-connect.js?v=7"></script>
+  <script src="/static/branding.js?v=12"></script>
   <script src="/static/quick-settings.js?v=11"></script>
   <script src="/static/remote-access.js?v=2"></script>
   <script src="/static/chat-zoom.js?v=6"></script>
-  <script src="/static/brains-ui.js?v=9"></script>
+  <script src="/static/brains-ui.js?v=10"></script>
   <!-- Brain picker drawn by Vanhanh over #graphSource: after brains-ui.js and app.js. -->
-  <script src="/static/brain-picker.js?v=1"></script>
-  <script src="/static/sessions-ui.js?v=25"></script>
+  <script src="/static/brain-picker.js?v=5"></script>
+  <!-- One Reorder box (drag or arrows) for projects, pinned chats and tags. Before sessions-ui.js. -->
+  <script src="/static/reorder-dialog.js?v=3"></script>
+  <script src="/static/sessions-ui.js?v=29"></script>
   <link rel="stylesheet" href="/static/improvement-candidates.css?v=3">
   <script src="/static/improvement-experiments.js?v=1"></script>
   <script src="/static/improvement-candidates.js?v=3"></script>
   <script src="/static/agent-picker.js?v=1"></script>
-  <script src="/static/studio.js?v=49"></script>
+  <script src="/static/studio.js?v=50"></script>
   <!-- Trang Cộng sự: nạp SAU studio.js (mượn trình sửa agent/workflow của Studio) và TRƯỚC
        console.js (renderWorkspace ủy quyền cho window.VanhanhWorkspace). -->
   <!-- Tab Công việc của trợ lý: nạp TRƯỚC workspace.js, workspace.js gọi window.VanhanhAgentJobs. -->
   <script src="/static/pulse-seen.js?v=1"></script>
   <!-- Tag filter bar and tag picker shared by Cộng sự and Team: load BEFORE workspace.js and teams.js. -->
   <script src="/static/tag-picker.js?v=1"></script>
-  <script src="/static/workspace.js?v=33"></script>
+  <script src="/static/workspace.js?v=39"></script>
   <!-- Hộp chọn thành viên kiểu Zalo: nạp TRƯỚC teams.js, teams.js gọi window.VanhanhTeamPicker. -->
   <script src="/static/team-picker.js?v=1"></script>
   <!-- Bộ phán xử nói / chờ / im của từng trợ lý: lịch sử quyết định và nút sửa. Nạp TRƯỚC teams.js
        (ngăn Nhóm gọi window.VanhanhAgentJudge.hydrate); góp phần "judge" vào khung nhịp qua window.VanhanhPulseParts. -->
   <!-- Nút mic nhập chữ của khung soạn Nhóm: nạp TRƯỚC teams.js. -->
-  <script src="/static/dictate.js?v=4"></script>
-  <script src="/static/composer-dictate.js?v=4"></script>
+  <script src="/static/dictate.js?v=8"></script>
+  <script src="/static/composer-dictate.js?v=9"></script>
   <!-- Trang Hội thoại (hộp thư khách): nạp TRƯỚC console.js để renderConversations uỷ quyền được. -->
   <script src="/static/ht-media.js?v=3"></script>
   <!-- Dashboard Token (trang Mức dùng nâng cấp): nạp TRƯỚC console.js để renderUsage ủy quyền được. -->
@@ -1146,17 +1197,19 @@
   <!-- Watch tab of the Recurring work page: token-free web page watching (server/web_watch.py). -->
   <script src="/static/web-watch.js?v=3"></script>
   <script src="/static/login-vault.js?v=2"></script>
-  <script src="/static/messenger-connect.js?v=3"></script>
+  <script src="/static/messenger-connect.js?v=4"></script>
   <script src="/static/voice-catalog.js?v=1"></script>
-  <script src="/static/console.js?v=208"></script>
-  <script src="/static/mobile-chat.js?v=16"></script>
+  <script src="/static/console.js?v=222"></script>
+  <script src="/static/mobile-chat.js?v=23"></script>
   <script src="/static/brain-view.js?v=1"></script>
   <script src="/static/push.js?v=3"></script>
-  <script src="/static/install-nudge.js?v=1"></script>
-  <script src="/static/notifications.js?v=11"></script>
+  <script src="/static/install-nudge.js?v=2"></script>
+  <script src="/static/notifications.js?v=12"></script>
   <!-- Linh vật ở mép màn hình. Nạp SAU app.js vì nó chỉ được app.js gọi vào
        (setOrbState -> VanhanhPet.setState), và sau console.js để trang Cài đặt vẽ được thẻ chọn. -->
-  <script src="/static/pet.js?v=2"></script>
+  <!-- Mascot menu the owner arranges (Settings > Mascot): load BEFORE pet.js, which builds its menu from it. -->
+  <script src="/static/pet-menu.js?v=5"></script>
+  <script src="/static/pet.js?v=6"></script>
   <script src="/static/agent-avatar.js?v=4"></script>
   <!-- (Nút đổi tông TỐI ↔ SÁNG: theme.js đã nạp ở đầu khối script phía trên) -->
   <!-- Alpine self-host (dashboard/vendor): bản unpkg đo được 2.1s lúc first load + chết khi offline -->

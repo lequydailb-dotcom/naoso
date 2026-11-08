@@ -94,12 +94,44 @@ Tiêu đề lặp lại chỉ tốn diện tích hiển thị. Đầu mỗi tran
 - Tiết kiệm chỗ nói chung: phần tổng quan đầu trang giữ một hàng thấp, cái gì bấm mới cần thì mở trong popup thay vì
   xổ xuống đẩy cả trang.
 
+## Khung chat: sửa một chỗ là rà và đồng bộ mọi màn (từ 2026-11-05)
+
+Chủ repo chốt 05/11/2026: "từ lần sau các thay đổi về giao diện khung chat là phải rà soát lại toàn bộ các màn khác để
+đồng bộ cùng". Lý do: lần đổi mic thành kiểu máy ghi âm chỉ làm ở ô chat chính, chủ phải nhắc thêm một lượt cho trang
+Nhóm và trang Hội thoại.
+
+- Đổi cách khung chat trông hoặc chạy (ô nhập, nút mic, nút gửi, đính kèm, Enter, trích dẫn, thẻ tin nhắn...) thì
+  **trong cùng PR** phải áp cho mọi màn có khung chat tương tự, không đợi chủ nhắc.
+- Các màn hiện có: chat chính (`app.js`, `composer-dictate.js`), Nhóm (`teams.js`), Hội thoại/Chatbot
+  (`conversations.js`). Mic đọc chữ dùng chung `dictate.js`: tìm mọi chỗ gọi bằng `grep -n "VanhanhDictate" dashboard/*.js`.
+  Có màn chat mới thì thêm tên vào danh sách này.
+- Màn nào cố ý để khác thì ghi lý do trong mô tả PR, và nói rõ với chủ.
+- Thêm test cho từng màn đã đổi, để lần sau lệch là CI đỏ.
+
+## Tính năng Zalo mới vào plugin `zalo-extras`, không tạo plugin mới
+
+"nếu mà update tính năng mới thì cho vào trong plugin của Zalo luôn chứ đừng tạo một plugin
+mới". Lý do: mỗi tính năng Zalo từng đẻ thêm một plugin (gửi ảnh, nhóm, đọc ảnh, kết bạn), trang Plugin bị phân mảnh
+thành bốn mục cho một thứ chủ coi là một. Gói `vanhanh.zalo` 2.0.0 (kho `vanhanh-store`) đã gộp cả bốn thành MỘT plugin.
+
+- Tool Zalo mới mà MCP của vanhanh-zalo chưa có thì viết trong gói `vanhanh.zalo` của `vanhanh-store`, vào plugin
+  `packs/vanhanh.zalo/plugins/zalo-extras/`: thêm hàm vào module đúng mảng (`send_media.py`, `group.py`,
+  `read_images.py`, `friend.py`), hoặc một module mới cạnh đó rồi thêm tên vào `_PARTS` trong `plugin.py`. Thêm tên
+  tool vào `tools` của `plugin.yaml`, nâng số bản của plugin và của gói cùng nhau.
+- **Không tạo thư mục plugin Zalo thứ hai**, trong gói đó hay trong `system/plugins/` của lõi.
+  `tests/vanhanh.zalo/test_zalo_extras.py` của kho đỏ khi gói có thêm thư mục plugin, mất một tool hay một tool bị đổi
+  mức quyền.
+- Mỗi tool tự khai mức quyền khi đăng ký (`min_mode`): đọc là `readonly`, ghi vào brain là `safe`, gửi hay đổi gì trên
+  Zalo là `full`.
+- Không thuộc luật này: phần lõi của kênh Zalo (đăng nhập QR, vòng đọc Hộp thư, bot trả lời) vẫn nằm trong
+  `server/zalo_*.py` như trước. Luật chỉ nói về tool mới cho model gọi.
+
 ## Viết CHANGELOG.md
 
 Nhật ký cập nhật được đọc trên màn hình dọc, nên viết CHO NGƯỜI ĐỌC TRÊN ĐIỆN
 THOẠI, không phải cho lập trình viên đọc diff:
 
-- Nhiều nhất 3 đến 4 gạch đầu dòng mỗi phiên bản, mỗi cái 1 đến 2 câu.
+- **Ghi đủ:** mọi tính năng thêm, lỗi đã sửa và thay đổi người dùng nhìn thấy đều có một gạch riêng, 1 đến 2 câu. Không gom nhiều việc vào một gạch, không bỏ việc nhỏ. Việc nội bộ (test, CI) thì không ghi.
 - Nói NGƯỜI DÙNG THẤY GÌ KHÁC, đừng kể tên hàm và đường dẫn file. Chi tiết kỹ thuật để trong
   thân commit và phần mô tả PR.
 - Dùng `**` và dấu nháy ngược vừa phải. Trang có render markdown, nhưng một dòng dày đặc ký

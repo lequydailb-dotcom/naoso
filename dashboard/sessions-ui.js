@@ -17,6 +17,40 @@
   function brain() { try { return (window.VanhanhSessions && window.VanhanhSessions.brain()) || "brain"; } catch (e) { return "brain"; } }
   function currentId() { try { return (window.VanhanhSessions && window.VanhanhSessions.current()) || null; } catch (e) { return null; } }
 
+  // unread chats. The server marks a chat unread when Vanhanh answered after the owner last looked at it; the
+  // chat open on a visible screen counts as read, so its row never shows the dot and the server is told.
+  function chatOnScreen() {
+    if (document.visibilityState && document.visibilityState !== "visible") return false;
+    var area = document.getElementById("chatArea");
+    return !!(area && area.getClientRects().length);
+  }
+  // One timer per chat: a quick switch from chat A to chat B must still report A as read.
+  var readTimers = {};
+  function markRead(sid) {
+    if (!sid || readTimers[sid]) return;
+    // Several events fire for one turn; they collapse into one request.
+    readTimers[sid] = setTimeout(function () {
+      delete readTimers[sid];
+      try { fetch("/sessions/" + encodeURIComponent(sid) + "/read", { method: "POST" }).catch(function () {}); } catch (e) {}
+    }, 400);
+  }
+  function markCurrentRead() {
+    var sid = currentId();
+    if (sid && chatOnScreen()) { markRead(sid); clearDot(sid); }
+  }
+  // Drop the dot of one chat from the rows on screen and from the cached list, without reloading.
+  function clearDot(sid) {
+    if (cached && cached.items) cached.items.forEach(function (x) { if (x.id === sid) x.unread = false; });
+    if (!listEl) return;
+    var rows = listEl.querySelectorAll(".cside-item[data-sid]");
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].getAttribute("data-sid") !== sid) continue;
+      rows[i].classList.remove("has-unread");
+      var dot = rows[i].querySelector(".ci-unread");
+      if (dot && dot.parentNode) dot.parentNode.removeChild(dot);
+    }
+  }
+
   function fmtT(ts) {
     try {
       var d = new Date(ts * 1000), now = new Date();
@@ -176,7 +210,37 @@
     });
     rows.push({ sep: true });
     rows.push({ label: window.t("sess.proj_new"), run: function () { newProject(); } });
+    // Drag the projects into the owner's own order (reorder-dialog.js), like the brain picker.
+    if (projects.length > 1 && window.VanhanhReorder) {
+      rows.push({ label: window.t("reorder.menu_projects"), icon: "arrow-up-down", run: function () { reorderProjects(); } });
+    }
     openMenu(anchor, rows);
+  }
+
+  function reorderProjects() {
+    var R = window.VanhanhReorder, b = brain();
+    R.open({ title: window.t("reorder.title_projects"),
+      items: projects.map(function (p) { return { id: p.id, label: p.name, icon: p.icon || "folder" }; }),
+      save: function (ids) {
+        return R.post("/projects/order", { brain: b, order: JSON.stringify(ids) }).then(function (res) {
+          if (!res.ok) return (res.d && res.d.error) || window.t("reorder.save_err");
+          return Promise.resolve(loadProjects()).then(function () { return ""; });
+        });
+      } });
+  }
+
+  // Drag the pinned chats into the owner's own order. `pins` are the pinned rows shown in the list.
+  function reorderPins(pins) {
+    var R = window.VanhanhReorder;
+    R.open({ title: window.t("reorder.title_pins"),
+      items: pins.map(function (s) { return { id: s.id, label: s.title || s.preview || window.t("sess.untitled"), icon: "pin" }; }),
+      save: function (ids) {
+        return R.post("/sessions/pin-order", { order: JSON.stringify(ids) }).then(function (res) {
+          if (!res.ok) return (res.d && res.d.error) || window.t("reorder.save_err");
+          cached = null;
+          return Promise.resolve(loadList()).then(function () { return ""; });
+        });
+      } });
   }
 
   /** Hộp chức năng của MỘT project. Đi sâu vào cùng một popover (có hàng quay lại) chứ không
@@ -1650,6 +1714,7 @@
           '<div class="cside-list"></div>' +
         '</div>';
       listEl = side.querySelector(".cside-list");
+      ganTaiTruoc(listEl);
       searchEl = side.querySelector(".cside-search");
       projBar = null;
       cayEl = null;
@@ -1675,6 +1740,7 @@
       '</div>' +
       '<div class="cside-pane" data-pane="files"></div>';
     listEl = side.querySelector(".cside-list");
+    ganTaiTruoc(listEl);
     searchEl = side.querySelector(".cside-search");
     projBar = side.querySelector(".cside-proj");
     cayEl = side.querySelector('[data-pane="files"]');
@@ -1756,6 +1822,42 @@
     if (page) page.classList.remove("side-open");
   }
 
+  // start fetching a chat the moment the pointer rests on it (or a finger touches it), so the click that
+  // follows usually finds it ready (app.js prefetchSession keeps it). One listener on the list, not one per row:
+  // the list is redrawn often.
+  function ganTaiTruoc(el) {
+    if (!el || el._taiTruoc) return;
+    el._taiTruoc = true;
+    var hen = null;
+    var sidCua = function (e) {
+      var it = e.target && e.target.closest ? e.target.closest("[data-sid]") : null;
+      return it ? it.getAttribute("data-sid") : "";
+    };
+    var tai = function (sid) {
+      try { if (sid && window.VanhanhSessions && window.VanhanhSessions.prefetch) window.VanhanhSessions.prefetch(sid); } catch (e) {}
+    };
+    el.addEventListener("pointerover", function (e) {
+      var sid = sidCua(e);
+      clearTimeout(hen);
+      if (sid) hen = setTimeout(function () { tai(sid); }, 80);   // a pass over the list on the way elsewhere fetches nothing
+    }, { passive: true });
+    el.addEventListener("pointerdown", function (e) { clearTimeout(hen); tai(sidCua(e)); }, { passive: true });
+  }
+
+  // Light the row of the chat on screen without asking the server. False (the caller then reloads the list) when the
+  // list is not up, is showing search results, belongs to another brain, or does not hold that chat yet.
+  function chiToDongDangMo() {
+    if (!side || !listEl || brain() !== lastBrain) return false;
+    if (searchEl && searchEl.value.trim()) return false;
+    var cur = currentId();
+    if (!cur) return false;
+    var rows = listEl.querySelectorAll(".cside-item[data-sid]"), found = false;
+    for (var i = 0; i < rows.length; i++) { if (rows[i].getAttribute("data-sid") === cur) { found = true; break; } }
+    if (!found) return false;
+    for (var j = 0; j < rows.length; j++) rows[j].classList.toggle("active", rows[j].getAttribute("data-sid") === cur);
+    return true;
+  }
+
   function openSession(id) {
     if (window.VanhanhSessions) window.VanhanhSessions.open(id);
     closeDrawerIfNarrow();
@@ -1792,12 +1894,21 @@
     var keepScroll = listEl.scrollTop;
     listEl.innerHTML = "";
     var cur = currentId(), lastGroup = null;
+    var pins = items.filter(function (s) { return s.pinned; });
     items.forEach(function (s) {
       // Mục ghim gom thành MỘT nhóm trên đầu, không xếp theo thời gian nữa - ghim chính là để
       // thoát khỏi thứ tự thời gian. Server đã sắp pinned trước nên chỉ cần đổi nhãn nhóm.
       var g = s.pinned ? window.t("sess.grp_pinned") : groupOf(s.updated_at || 0);
       if (g !== lastGroup) {
-        listEl.appendChild(el('<div class="cside-group">' + g + '</div>'));
+        var head = el('<div class="cside-group">' + g + '</div>');
+        // The pinned group gets a Reorder button (two or more pinned chats).
+        if (s.pinned && pins.length > 1 && window.VanhanhReorder) {
+          var rb = el('<button type="button" class="cside-reorder" title="' + esc(window.t("reorder.title_pins")) +
+            '" aria-label="' + esc(window.t("reorder.title_pins")) + '">' + ic("arrow-up-down") + '</button>');
+          rb.onclick = function (ev) { ev.stopPropagation(); reorderPins(pins); };
+          head.appendChild(rb);
+        }
+        listEl.appendChild(head);
         lastGroup = g;
       }
       var eng = (s.engine || "").toString().slice(0, 10);
@@ -1807,8 +1918,11 @@
       // chiếm chỗ của giờ và số tin trong một cột hẹp ("agent:ng" trên từng dòng).
       // Lịch sử của một Agent gồm cả hội thoại của bot chuyên trách với khách (kênh `bot:<tên>`):
       // ở đó nhãn kênh KHÔNG thừa, vì nó phân biệt cuộc khách nhắn với cuộc chủ tự chat với Agent.
-      var laBot = (s.channel || "").toString().indexOf("bot:") === 0;
-      var ch = kenhLoc ? "" : (s.channel || "").toString();
+      // the owner's admin-channel chats join the histories too (Vanhanh Core's: `zalo`, `telegram`...; an
+      // agent's: `zalo@<slug>`), labelled by the app they came from. The `@<slug>` part never shows.
+      var rawCh = (s.channel || "").toString();
+      var laBot = rawCh.indexOf("bot:") === 0;
+      var ch = (kenhLoc && rawCh === kenhLoc) ? "" : rawCh.split("@")[0];
       var chLabel = (kenhLoc && laBot) ? window.t("sess.bot_badge")
         : (ch === "telegram" ? "TG" : (ch && ch !== "web" ? ch.slice(0, 8) : ""));
       var isRun = !!(window.VanhanhRunning && window.VanhanhRunning.has(s.id));
@@ -1823,8 +1937,12 @@
       // Lớp `ghim` cho hàng ĐÃ GHIM: nhóm "Đã ghim" trên đầu nói được thứ tự, nhưng cuộn
       // xuống giữa danh sách thì không còn thấy cái nhãn ấy nữa. Vạch màu bên trái và dấu ghim
       // luôn hiện đi theo từng hàng, đúng khuôn danh sách trợ lý / quy trình của trang Cộng sự.
-      var item = el('<div class="cside-item' + (s.id === cur ? " active" : "") + (isRun ? " running" : "") + (s.pinned ? " ghim" : "") + '">' +
-        '<div class="ci-title">' + (isRun ? '<span class="ci-run" title="' + esc(window.t("sess.running")) + '">' + ic("loader", { cls: "ic-spin" }) + '</span> ' : '') +
+      // Red dot for a chat Vanhanh answered after the owner last looked. The chat open on screen is being read right now.
+      var chuaDoc = !!s.unread;
+      if (chuaDoc && s.id === cur && chatOnScreen()) { chuaDoc = false; s.unread = false; markRead(s.id); }
+      var item = el('<div class="cside-item' + (s.id === cur ? " active" : "") + (isRun ? " running" : "") + (s.pinned ? " ghim" : "") + (chuaDoc ? " has-unread" : "") + '">' +
+        '<div class="ci-title">' + (chuaDoc ? '<span class="ci-unread" role="img" title="' + esc(window.t("sess.unread")) + '" aria-label="' + esc(window.t("sess.unread")) + '"></span>' : '') +
+        (isRun ? '<span class="ci-run" title="' + esc(window.t("sess.running")) + '">' + ic("loader", { cls: "ic-spin" }) + '</span> ' : '') +
         (tt.dau || "") +
         esc(s.title || s.preview || window.t("sess.untitled")) + '</div>' +
         '<div class="ci-meta"><span>' + fmtT(s.updated_at) + '</span>' + (tt.meta || "") +
@@ -1868,6 +1986,13 @@
       listEl.appendChild(more);
     }
     listEl.scrollTop = keepScroll;
+    // warm the first chats of the list once the page is idle (app.js prefetchMany), so the first tap on a
+    // phone, which has no hover, finds them ready too.
+    try {
+      if (window.VanhanhSessions && window.VanhanhSessions.prefetchMany) {
+        window.VanhanhSessions.prefetchMany(items.slice(0, 8).map(function (s) { return s.id; }));
+      }
+    } catch (e) {}
   }
 
   async function doSearch(q) {
@@ -1896,6 +2021,7 @@
           togglePin({ id: h.session_id, pinned: h.pinned }, q);
         };
         item.onclick = function () { openSession(h.session_id); };
+        item.setAttribute("data-sid", h.session_id);
         listEl.appendChild(item);
       });
     } catch (e) { listEl.innerHTML = '<div class="cside-empty">' + esc(window.t("sess.search_err")) + '</div>'; }
@@ -1984,7 +2110,21 @@
   };
 
   // Cập nhật khi có lượt chat mới / đổi phiên / đổi brain
-  window.addEventListener("vanhanh:sessions-changed", refresh);
+  window.addEventListener("vanhanh:sessions-changed", function (e) {
+    // Every change of chat, every finished turn and every background message that lands: the chat on
+    // screen is read, so its red dot goes out here and on the server.
+    markCurrentRead();
+    // Performance: a plain switch to a chat already in the list changes nothing in the list but which row
+    // is lit. Re-fetching it (and its GitHub icons) on every click cost two round trips and redrew every row.
+    if (e && e.detail && e.detail.reason === "open" && chiToDongDangMo()) return;
+    refresh();
+  });
+  document.addEventListener("visibilitychange", markCurrentRead);
+  // Read in this tab or another one: the dot goes away here too.
+  window.addEventListener("vanhanh:session-read", function (e) {
+    var sid = e && e.detail && e.detail.session_id;
+    if (sid) clearDot(sid);
+  });
   // Chip phải tự sống KHÔNG phụ thuộc cột trái: refresh() thoát sớm khi chưa mount sidebar,
   // mà chip còn đứng ở màn Vanhanh nơi cột đó chưa bao giờ mount. Đổi phiên là đổi project có
   // hiệu lực, nên bỏ cache rồi vẽ lại.

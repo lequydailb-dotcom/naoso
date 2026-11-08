@@ -71,7 +71,7 @@ _DEFAULT = {
         # cho `ear` ở đây: khoá thiếu nghĩa là "auto", còn stt_provider = "groq" người dùng đã
         # lưu thì voice_ear.setting vẫn coi là đã chọn Groq. Có mặc định thì mất phân biệt đó.
         "stt_provider": "browser",     # browser (Web Speech) | groq (Whisper, key model.groq_api_key)
-        "stt_model": "",               # rỗng = whisper-large-v3 (stt.STT_MODEL_MAC_DINH)
+        "stt_model": "",               # rỗng = Whisper mới nhất Groq có (stt_models), ghim tên nào thì dùng đúng tên đó
         "live_provider": "gemini",     # gemini | openai (đều cần API key ở trang Models)
         "live_model": "",              # rỗng = gợi ý trong voice_live.PROVIDERS
         "live_voice": "",
@@ -183,7 +183,7 @@ _DEFAULT = {
                               "claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"],
             "openai": ["gpt-4o", "gpt-4o-mini", "o3-mini"],                        # OpenAI API
             "gemini": ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"],  # Google Gemini API (picker load động)
-            "groq": ["llama-3.3-70b-versatile", "qwen3-32b", "openai/gpt-oss-120b"],  # Groq (picker load động)
+            "groq": ["openai/gpt-oss-120b", "qwen3-32b"],  # Groq (picker load động)
             "deepseek": ["deepseek-flash", "deepseek-v4-pro"],                     # DeepSeek (picker load động)
             # Không ghim model Codex: /provider/models lấy catalog LIVE bằng
             # codex app-server model/list và nhớ lại lần thành công gần nhất.
@@ -1535,7 +1535,10 @@ def verify_api_token(raw: str, path: str = ""):
     for x in _load_tokens():
         if secrets.compare_digest(str(x.get("hash") or ""), h):
             if str(x.get("scope")) == "chat" and path:
-                if not any(str(path).startswith(p) for p in TOKEN_SCOPE_CHAT):
+                # 2026-11-05 audit: a bare startswith let "/chat" match "/chatbots*" (create, edit, delete bots,
+                # read their logs). A listed path matches itself and what lies under it, nothing that merely
+                # shares its first letters.
+                if not any(str(path) == p or str(path).startswith(p + "/") for p in TOKEN_SCOPE_CHAT):
                     return None
             x["last_used_at"] = _time.time()
             _save_tokens(_load_tokens_touch(x))

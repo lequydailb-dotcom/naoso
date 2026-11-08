@@ -141,7 +141,7 @@ def _skill_frontmatter(name: str, desc: str, group: str, today: str) -> str:
 #
 # SKILL có thêm HAI rào nữa, vì hai đường hỏng dưới đây không tồn tại với agent/workflow:
 #   5. Skill HỆ THỐNG (vanhanh-builder, ingest-source, query-wiki, lint-wiki, notes,
-#      html-to-webcake) là CẤM. Chúng do app ship và tự cập nhật theo bản mới; đụng vào một
+#      html-to-webcake, security-audit) là CẤM. Chúng do app ship và tự cập nhật theo bản mới; đụng vào một
 #      cái là nó thành bản của người dùng và app ngừng cập nhật đè lên - mất im lặng một
 #      năng lực mặc định. `system_sync.is_system_skill` là nguồn chuẩn duy nhất.
 #   6. Skill user đã TẮT (nằm trong `.disabled/`) cũng cấm - sửa nó là hồi sinh thứ người
@@ -1057,7 +1057,7 @@ class LearnFeature:
                "  11. KHÔNG update chỉ để chữ đẹp hơn: phải có BẰNG CHỨNG trong batch này "
                "rằng làm theo skill cũ đã ra kết quả sai hoặc thiếu. Không có thì để yên. "
                "Skill hệ thống (vanhanh-builder, ingest-source, query-wiki, lint-wiki, notes, "
-               "html-to-webcake) và skill ghi [chủ đã khoá] thì cấm đụng.\n\n"
+               "html-to-webcake, security-audit) và skill ghi [chủ đã khoá] thì cấm đụng.\n\n"
                if caps.get("skill") else "")
             + ("TASK (chống spam backlog): worker nền là HEADLESS - chỉ đọc/ghi file TRONG brain này "
                "và đọc dữ liệu qua MCP. Nó KHÔNG có tay user, KHÔNG có trình duyệt đã đăng nhập, "
@@ -1186,6 +1186,8 @@ class LearnFeature:
     # ── VERIFY agent + workflow (cùng lý do với skill: blast radius lớn - hiện thẳng Studio).
     # Gộp 1 spawn cho cả hai để không nhân đôi chi phí fork mỗi batch. ──
     async def _verify_agents_workflows(self, brain: str, manifest: dict, cfg: dict) -> None:
+        # Vanhanh Core's file is the owner's to edit on its card; a learning round never rewrites it.
+        manifest["agents"] = [a for a in (manifest.get("agents") or []) if str(a.get("slug") or "").lower() != "vanhanh-core"]
         agents = manifest.get("agents") or []
         wfs = manifest.get("workflows") or []
         if not agents and not wfs:
@@ -2213,7 +2215,7 @@ class LearnFeature:
             return {"ok": True, "cancelled": cancel_all("learn") + cancel_all("curator")}
 
         @router.get("/learn/review")
-        async def learn_review(brain: str = Query("brain"), limit: int = Query(20)):
+        def learn_review(brain: str = Query("brain"), limit: int = Query(20)):
             """Danh sách commit học gần nhất (cho panel 'Vanhanh đã tự học gì') + trạng thái git."""
             root = self.deps.brain_root(brain)
             return {"git_repo": git_brain.is_git_checkout(root),
@@ -2225,7 +2227,7 @@ class LearnFeature:
             return git_brain.revert_last_learn(self.deps.brain_root(brain))
 
         @router.get("/learn/log")
-        async def learn_log(brain: str = Query("brain"), limit: int = Query(15)):
+        def learn_log(brain: str = Query("brain"), limit: int = Query(15)):
             """Nhật ký học, mới nhất trước.
 
             Đọc tới khi ĐỦ `limit` mục chứ không cắt cứng ở 3 file như trước. Nhật ký ghi mỗi
@@ -2258,7 +2260,7 @@ class LearnFeature:
             return {"entries": entries[:want], "running": self.lock.locked()}
 
         @router.get("/learn/metrics")
-        async def learn_metrics(brain: str = Query("brain")):
+        def learn_metrics(brain: str = Query("brain")):
             cfg = self.read_config()
             root = self.deps.brain_root(brain)
             try:

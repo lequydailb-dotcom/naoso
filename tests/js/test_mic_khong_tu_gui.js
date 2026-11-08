@@ -78,8 +78,12 @@ check("onTranscript vẫn gửi thẳng, không qua bước xác nhận",
 // lượt cũ nữa mà xếp hàng, gửi khi lượt xong và loa đọc xong (guiCauChoLuot).
 const goiGui = (app.match(/(?<!function )\bsendMessage\(/g) || []).length;
 // nút "Gửi lại câu này" nhường chỗ cho nút Tua lại, vốn chỉ đưa câu hỏi về ô nhập, không tự gửi: bớt một chỗ.
-check("có 10 chỗ gọi sendMessage (giọng nói, Enter, nút gửi, sau khi tải file xong, sau khi dừng lượt cũ, sau khi nối lại mạng, sau khi mở agent/workflow, adaptive commit, câu chờ lượt trong cuộc gọi, bấm Nghe cuộc gọi hẹn giờ)",
-  goiGui === 10, goiGui);
+// thêm một chỗ HOÃN, không phải đường mới: câu người dùng vừa nói cho ChatGPT Live lúc nó hết lượt
+// được gửi qua đường Cơ bản (chuyenSangCoBan), thay vì mất. Chỉ chạy khi máy chủ báo hết lượt (code quota/use_basic).
+check("có 11 chỗ gọi sendMessage (giọng nói, Enter, nút gửi, sau khi tải file xong, sau khi dừng lượt cũ, sau khi nối lại mạng, sau khi mở agent/workflow, adaptive commit, câu chờ lượt trong cuộc gọi, bấm Nghe cuộc gọi hẹn giờ, câu dở khi Live hết lượt)",
+  goiGui === 11, goiGui);
+check("chỗ thứ 11 chỉ gửi câu đã nói dở, khi chuyển đường Cơ bản",
+  /function chuyenSangCoBan\(cauDangNoi = ""[\s\S]{0,500}if \(cauDangNoi\) sendMessage\(cauDangNoi\);/.test(app));
 // Chỗ thứ 11 KHÔNG phải mic tự gửi: người dùng bấm Nghe trên thẻ cuộc gọi hẹn giờ, đường giọng cơ bản
 // gửi câu mở đầu nhờ Vanhanh đọc nhắc hẹn (goiDenTheoLich, test_incoming_call_0203.js).
 // Reconnect sends and cancellation across chats execute in test_voice_app_session.js.
@@ -99,8 +103,11 @@ check("push_to_chat ghi vai assistant, không bao giờ là user",
 // của câu họ vừa NÓI do nhà cung cấp trả về - đó là giọng thật của họ, không phải máy tự nhập.
 // Con số này nhích lên là có đường mới đẻ ra tin của người dùng - phải đọc lại xem nó đến từ
 // đâu trước khi sửa test.
-const ghiUser = (server.match(/append_message\([^)]*"user"/g) || []).length;
-// thêm chỗ thứ sáu: lượt nối tiếp sau khi việc chạy nền xong (_start_followup_turn)
+// A write may run in a worker thread, `asyncio.to_thread(store.append_message, sid,
+// "user", ...)`: the same write, so both spellings count.
+const GHI_USER = /append_message(?:\(|, )[^)]*"user"/g;
+const ghiUser = (server.match(GHI_USER) || []).length;
+// Sau đó thêm chỗ thứ sáu: lượt nối tiếp sau khi việc chạy nền xong (_start_followup_turn)
 // ghi tin mở lượt, có đánh dấu "[Việc chạy nền đã xong]", để mở lại hội thoại vẫn hiểu vì sao
 // Vanhanh tự nói tiếp. Không phải chữ của mic nên không đụng luật "mic không tự gửi".
 // thêm chỗ thứ bảy: tin GÕ thêm trong lúc lượt đang chạy (action "steer", steer_inbox.py), ghi ngay khi tới để
@@ -117,10 +124,10 @@ check("chỗ thứ sáu nằm TRONG _start_followup_turn",
   /async def _start_followup_turn[\s\S]{0,1600}store\.append_message\(conv_sid, "user", text\)/.test(server));
 const approvalBody = server.slice(server.indexOf('if action == "wf_resume":'), server.indexOf('if action == "resume_now":'));
 check("đường ghi thứ năm chỉ thuộc thao tác duyệt quy trình",
-  (approvalBody.match(/append_message\([^)]*"user"/g) || []).length === 1
+  (approvalBody.match(GHI_USER) || []).length === 1
   && approvalBody.includes('store.append_message(_sid, "user", _msg)'));
 const liveBody = (server.match(/async def voice_live_ws\([\s\S]*?\n@app\./) || [""])[0];
-check("ba chỗ nằm TRONG voice_live_ws (gõ chữ, câu đã nói, tin có file)", (liveBody.match(/append_message\([^)]*"user"/g) || []).length === 3);
+check("ba chỗ nằm TRONG voice_live_ws (gõ chữ, câu đã nói, tin có file)", (liveBody.match(GHI_USER) || []).length === 3);
 
 // ---- 5. cache-bust ----
 const v = (f) => Number((html.match(new RegExp(f.replace(/\./g, "\\.") + "\\?v=(\\d+)")) || [])[1] || 0);

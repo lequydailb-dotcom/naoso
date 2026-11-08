@@ -128,9 +128,9 @@ check("cảnh báo Toàn quyền nói rõ không hoàn tác được", "hoàn t�
 # khác" giờ là lời nói dối, và chủ đọc nó TRƯỚC khi bấm đồng ý.
 check("cảnh báo Toàn quyền nói thẳng là quyền của kênh admin", "kênh admin" in _full)
 check("và kể ra lệnh máy, mọi file kể cả brain khác, mọi kết nối",
-      "chạy lệnh" in _full and "brain khác" in _full and "kết nối" in _full)
-check("KHÔNG còn hứa rào lệnh máy hay brain khác ở mức Toàn quyền",
-      "không chạy lệnh máy" not in _full and "không thấy brain khác" not in _full)
+      "chạy lệnh" in _full and "bộ não khác" in _full and "kết nối" in _full)
+check("KHÔNG còn hứa rào lệnh máy hay bộ não khác ở mức Toàn quyền",
+      "không chạy lệnh máy" not in _full and "không thấy bộ não khác" not in _full)
 check("chỉ cách giảm rủi ro: chỉ cho người tin cậy nhắn", "bot trả lời ai" in _full)
 _auto = " ".join(chatbot_store.canh_bao_muc("auto")).lower()
 check("cảnh báo Được ghi nói rõ vẫn CHẶN nhóm thao tác ra ngoài",
@@ -151,8 +151,8 @@ for nganh in ("đơn hàng", "tạo đơn", "quảng cáo", "khách hàng", "c�
 # chủ tin vào một rào không tồn tại. (Toàn quyền thì KHÔNG còn hai rào này, xem ngay trên.)
 for m in ("auto",):
     t = " ".join(chatbot_store.canh_bao_muc(m)).lower()
-    check(f"mức '{m}' nhắc hai rào giữ nguyên (brain khác + lệnh máy)",
-          "brain khác" in t and "lệnh máy" in t)
+    check(f"mức '{m}' nhắc hai rào giữ nguyên (bộ não khác + lệnh máy)",
+          "bộ não khác" in t and "lệnh máy" in t)
 
 check("KHÔNG có em dash trong cảnh báo",
       all("—" not in s for m in chatbot_store.MUC_QUYEN

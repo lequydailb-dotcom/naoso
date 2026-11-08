@@ -632,6 +632,23 @@ _AUTH_LOI = {"ts": 0.0}
 _AUTH_TTL_LOI = 30.0
 
 
+def _ten_goi_dong(goi: str, email: str = "", folder=None, chi_ten_that: bool = False) -> str:
+    """Name a Claude plan the way Anthropic names it now, never from a table Vanhanh keeps.
+
+    `claude auth status` only gives a CODE ("max" covers both Max and the renamed Ultra since
+    2026-10-30). The CLI also stores the profile's `plan_display_name` in `.claude.json`; that wins.
+    Without it, vanhanh-store's plan-name catalog, then the code tidied ("max" -> "Max"). `chi_ten_that`: return "" rather than the
+    tidied code, so a caller can tell a vendor name from a guess."""
+    if not goi:
+        return ""
+    try:
+        import plan_limits
+        ten = plan_limits.ten_goi_claude(folder, email)
+        return ten or ("" if chi_ten_that else plan_limits.ten_goi(goi, "claude"))
+    except Exception:  # noqa: BLE001
+        return "" if chi_ten_that else goi
+
+
 def auth_status(bo_qua_cache: bool = False):
     """Trạng thái đăng nhập Claude Code: {connected, email, plan, org}.
 
@@ -672,10 +689,13 @@ def auth_status(bo_qua_cache: bool = False):
                            encoding="utf-8", errors="replace",
                            timeout=25 if bo_qua_cache else 8, creationflags=_no_window())
         d = json.loads((r.stdout or "").strip() or "{}")
+        goi = d.get("subscriptionType", "") or ""
         ra = {"connected": bool(d.get("loggedIn")), "email": d.get("email", ""),
-              "plan": d.get("subscriptionType", "") or d.get("authMethod", ""), "org": d.get("orgName", ""),
-              # The plan alone (pro, max...), never the auth method: the usage ring names the plan.
-              "goi": d.get("subscriptionType", "") or ""}
+              "plan": _ten_goi_dong(goi, d.get("email", "")) or d.get("authMethod", ""), "org": d.get("orgName", ""),
+              # The plan CODE alone (pro, max...), never the auth method: the usage ring names the plan.
+              "goi": goi,
+              # The plan's name as Anthropic names it today ("Ultra"), read from the CLI's own profile copy.
+              "goi_ten": _ten_goi_dong(goi, d.get("email", ""), chi_ten_that=True)}
         cu = _AUTH_CACHE["val"] or {}
         if cu.get("connected") and not ra["connected"]:
             # Đang đăng nhập mà CLI báo mất - in dấu vết CÓ GIỜ để lần sau có ai báo "thi thoảng
@@ -707,7 +727,7 @@ def auth_status_folder(folder) -> dict:
                            env={**os.environ, "CLAUDE_CONFIG_DIR": str(folder)})
         d = json.loads((r.stdout or "").strip() or "{}")
         return {"connected": bool(d.get("loggedIn")), "email": d.get("email", ""),
-                "plan": d.get("subscriptionType", "") or ""}
+                "plan": _ten_goi_dong(d.get("subscriptionType", "") or "", d.get("email", ""), folder=folder)}
     except Exception as e:  # noqa: BLE001
         return {"connected": False, "unknown": True, "error": f"{type(e).__name__}: {e}"}
 
@@ -1653,6 +1673,15 @@ def _codex_home() -> Path:
 # tài khoản không có hồ sơ là Codex mù home, không thấy auth.json, trong khi Vanhanh (đọc
 # USERPROFILE/HOME qua `_home_dir`) vẫn thấy đăng nhập ChatGPT đầy đủ. Đặt CODEX_HOME thì Codex
 # bỏ qua hẳn bước hỏi Windows, và cả hai bên nhìn cùng một thư mục.
+def _mark_env(env, tag):
+    """`env` plus the background-work mark of turn `tag` (tien_trinh_nen.mark_env). Never fails a turn."""
+    try:
+        import tien_trinh_nen
+        return tien_trinh_nen.mark_env(env, tag)
+    except Exception:  # noqa: BLE001
+        return env
+
+
 def codex_env(codex_home: Optional[str] = None) -> dict:
     """Biến môi trường cho MỌI tiến trình Codex mà Vanhanh bật.
 
@@ -1943,12 +1972,10 @@ class CodexCLI:
             tinfo = {"timed_out": False}
             last = {"t": time.time()}
             from claude_sdk_engine import tran_watchdog
-            # Ba trần, None = không giới hạn. Parity với engine Claude SDK, kể cả mặc định:
-            # hai trần đo sự IM LẶNG của model đều bỏ trần (im lặng không phải treo - xem
-            # `tran_watchdog`), riêng trần chờ TOOL giữ 1 tiếng vì nó đo một tiến trình con
-            # có thật đang sống ngoài kia.
+            # Ba trần, None = không giới hạn. Parity với engine Claude SDK, kể cả mặc định: cả ba
+            # đều bỏ trần. Trần chờ TOOL (1 tiếng) cũng bỏ; muốn có lại thì đặt VANHANH_CLAUDE_TOOL_TIMEOUT.
             IDLE = tran_watchdog("VANHANH_CLAUDE_IDLE_TIMEOUT", "0")
-            TOOL_IDLE = tran_watchdog("VANHANH_CLAUDE_TOOL_TIMEOUT", "3600")
+            TOOL_IDLE = tran_watchdog("VANHANH_CLAUDE_TOOL_TIMEOUT", "0")
             FIRST_IDLE = tran_watchdog("VANHANH_CLAUDE_FIRST_TIMEOUT", "0")
             busy = {"n": 0}   # số item tool/lệnh đã started mà chưa completed
             seen = {"dong_dau": False}   # đã có dòng đầu tiên chưa (quyết định dùng trần nào)
@@ -1960,7 +1987,7 @@ class CodexCLI:
                     args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     cwd=self.cwd, text=True, encoding="utf-8", errors="replace", bufsize=1,
                     creationflags=creationflags, start_new_session=(os.name != "nt"),
-                    env=codex_env(getattr(self, "codex_home", None)),
+                    env=_mark_env(codex_env(getattr(self, "codex_home", None)), self.tag),
                 )
                 with _PROC_LOCK:
                     _ACTIVE_PROCS[proc] = self.tag

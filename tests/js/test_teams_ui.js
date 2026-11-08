@@ -290,7 +290,8 @@ const qm = TM.messageHtml({ id: 9, author_kind: "owner", content: "> Lan: Câu <
 check("owner reply shows the quote block (name bold) above the text, both escaped",
       qm.includes('<span class="tm-quote-body"><b>Lan</b>Câu &lt;cũ&gt;</span></div>') && qm.includes('<div class="tm-text utext">Sai rồi em</div>'), qm);
 check("sending a reply puts the quote on top and calls the assistant replied to when nobody is @-mentioned",
-      /var text = S\.replyTo && Q \? Q\.ghep\(S\.replyTo\.quote, typed\) : typed;/.test(teamsJs)
+      /var text = S\.replyTo && Q \? Q\.ghep\(S\.replyTo\.quote, words\) : words;/.test(teamsJs)
+      && /var words = call \? call\.rest : typed;/.test(teamsJs)
       && /if \(S\.replyTo && S\.replyTo\.key && !mentions\.length\) mentions = \[S\.replyTo\.key\];/.test(teamsJs));
 check("list preview drops the quote", TM.previewText({ last: { text: "> Lan: cũ\n\nmới", author_kind: "owner" } }) ===
       vi["teams.you"] + ": mới");
@@ -837,6 +838,13 @@ check("khoá chữ ghim có ở vi và en", ["teams.pin_team", "teams.unpin_team
           teamsJs.includes('lease_lost: "teams.status.lease_lost"') && teamsJs.includes('"leader_changed", "lease_lost"]') &&
           teamsJs.includes('lease_lost: "teams.reply.why.lease_lost"') && !!vi["teams.reply.why.lease_lost"] && !!en["teams.reply.why.lease_lost"] &&
           !!vi["teams.status.lease_lost"] && !!en["teams.status.lease_lost"]);
+    // a team chat's GitHub repo shows the same GitHub logo as the main chat, not a branch icon.
+    const ghJs = fs.readFileSync(path.join(ROOT, "dashboard", "github-connect.js"), "utf8");
+    check("GitHub logo: github-connect.js shares its logo", /current: function \(\) \{ return attached\.slice\(\); \}, logo: LOGO \}/.test(ghJs));
+    check("GitHub logo: the team's + menu, repo chip and info panel use it",
+          teamsJs.includes("item('role=\"menuitem\" data-plus-github=\"1\"', ghLogo(), tw(\"gh.menu\"))") &&
+          teamsJs.includes('esc(tw("gh.chip_label", { names: names.join(", ") })) + \'">\' + ghLogo() +') &&
+          (teamsJs.match(/ic\("git-branch"\)/g) || []).length === 1);
   })();
   process.exit(fails ? 1 : 0);
 })();

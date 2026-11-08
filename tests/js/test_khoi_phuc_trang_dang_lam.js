@@ -28,7 +28,7 @@ function storage(seed = {}) {
 // First launch opens the graph. Only chat/workspace can become the next launch target.
 function navCase(seed, expected) {
   const localStorage = storage(seed);
-  const route = { active: "home", openGroup: "" };
+  const route = { active: "home" };
   const rendered = [];
   const classes = new Set();
   const ctx = {
@@ -37,7 +37,6 @@ function navCase(seed, expected) {
     RAIL_BY_ID: { home: {}, chat: {}, workspace: {}, settings: {} },
     TRANG_GOP: { agents: "workspace" },
     TRANG_CUOI_KEY: "vanhanh_last_page",
-    groupLabelOf: id => "group:" + id,
     document: { body: { classList: {
       toggle: (c, on) => on ? classes.add(c) : classes.delete(c),
     } } },
@@ -51,7 +50,6 @@ function navCase(seed, expected) {
   ctx.khoiPhucTrang();
   assert.equal(route.active, expected);
   assert.equal(rendered.at(-1), expected === "home" ? undefined : expected);
-  assert.equal(route.openGroup, "group:" + expected);
   assert.equal(classes.has("in-console"), expected !== "home");
   ctx.navigateTo("chat");
   assert.equal(localStorage.data.vanhanh_last_page, "chat");
@@ -112,7 +110,7 @@ navCase({ vanhanh_last_page: "not-a-page" }, "home");
 // A live socket has already delivered chat events while the page is in memory. Returning
 // from another app must leave the existing transcript DOM intact.
 {
-  let reloads = 0, dongBo = 0, pings = 0;
+  let reloads = 0, dongBo = 0, pings = 0, drops = 0, overdue = false;
   const ctx = {
     _hiddenAt: Date.now() - 30000,
     ws: { readyState: 1 },
@@ -124,6 +122,8 @@ navCase({ vanhanh_last_page: "not-a-page" }, "home");
     _dongBoNeuLech() { dongBo++; },
     // a live-looking socket is asked right away whether it is really alive.
     _pingNow() { pings++; },
+    _unackedOverdue: () => overdue,
+    _dropDeadSocket() { drops++; },
   };
   vm.createContext(ctx);
   vm.runInContext(fn(appJs, "_resumeSauNgu", ""), ctx);
@@ -136,6 +136,14 @@ navCase({ vanhanh_last_page: "not-a-page" }, "home");
   ctx._resumeSauNgu(false);
   assert.equal(reloads, 1, "missed events must still be recovered after disconnect");
   assert.equal(pings, 1, "a closed socket is reconnected, not pinged");
+  // a message sent before the swipe and never confirmed means the socket died under it. Back in
+  // the app, even after a short sleep, drop it at once so `hello` resends the message.
+  ctx.ws.readyState = 1;
+  ctx._hiddenAt = Date.now() - 3000;
+  overdue = true;
+  ctx._resumeSauNgu(false);
+  assert.equal(drops, 1, "an unconfirmed message must make the page drop the socket on return");
+  assert.equal(reloads, 1, "dropping the socket leaves the resync to hello");
 }
 
 console.log("OK - khoi phuc trang dang lam va phien tro ly");

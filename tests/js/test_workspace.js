@@ -259,12 +259,20 @@ check("phan tram", W.phanTram(W.tienDoMoi(4)) === 0 && W.phanTram(st) === 100);
   check("agent: thanh loc hien Tat ca agent, khong co nut tao nhom/tag rieng",
     tagBar.includes("ws.tag_all") && !tagBar.includes("cs-proj-add") && !tagBar.includes("cs-proj-x"));
   check("agent: khong chia tieu de theo tag (agent nhieu tag khong hien hai lan)", !tagDs.includes("data-nhom="));
-  // (yêu cầu: thẻ "nhiều thông tin"): tag KHÔNG vẽ thành chip trên thẻ nữa, đã có ô lọc theo tag ở đầu
-  // cột; tên tag vẫn đọc được ở tooltip của thẻ.
-  check("agent: the khong ve chip tag, ten tag nam o tooltip",
-    !/class="ws-tag"/.test(tagDs) && /title="[^"]*ws\.tags_aria: /.test(tagDs), tagDs.slice(0, 300));
+  // Tags are back on the card, as chips on the one line under the name (cardSubHtml), and the full
+  // list still reads in the card's tooltip.
+  check("agent card: tag chips on the line under the name, full list in the tooltip",
+    /<\/strong><\/span><span class="ws-item-sub"><span class="ws-tags"[^>]*><span class="ws-tag" title="Marketing">/.test(tagDs)
+    && /title="[^"]*ws\.tags_aria: /.test(tagDs), tagDs.slice(0, 300));
   ds[0].tags = ["Marketing", "Viết nội dung"]; ds[1].tags = []; ds[2].tags = ["marketing"];
   ctx.veTrai();
+  check("agent card: an assistant without tags gets no empty sub line",
+    nodes["#wsList"].innerHTML.includes("Kế toán</strong></span>")
+    && !nodes["#wsList"].innerHTML.includes("Kế toán</strong></span><span class=\"ws-item-sub\">")
+    && nodes["#wsList"].innerHTML.includes("Người viết</strong></span><span class=\"ws-item-sub\">"));
+  check("agent card: at most two chips on the card, the rest folded into +n",
+    (W.chipTagHtml({ tags: ["A", "B", "C", "D"] }, 2).match(/class="ws-tag"/g) || []).length === 2
+    && /ws-tag-more" title="C, D"/.test(W.chipTagHtml({ tags: ["A", "B", "C", "D"] }, 2)));
   check("agent nhieu tag xuat hien DUNG MOT lan o Tat ca",
     (nodes["#wsList"].innerHTML.match(/<strong>Người viết<\/strong>/g) || []).length === 1);
   ctx.chonNhom("Marketing");
@@ -631,7 +639,7 @@ check("studio.js editAgent nhan host + onSaved", /function editAgent\(a, opts\)/
     // với kênh agent:<slug> cả hai còn xin gộp hội thoại của bot chuyên trách (bots=1).
     && /kenhLoc \? "&channel=" \+ encodeURIComponent\(kenhLoc\)( \+ \(kenhLoc\.indexOf\("agent:"\) === 0 \? "&bots=1" : ""\))? : ""\) \+ "&limit=40"/.test(sess));
   const mainPy = fs.readFileSync(path.join(root, "server", "main.py"), "utf8");
-  check("server: /sessions/search nhan channel", /async def sessions_search[\s\S]{0,200}channel: str = Query\(""\)/.test(mainPy));
+  check("server: /sessions/search nhan channel", /(async )?def sessions_search[\s\S]{0,200}channel: str = Query\(""\)/.test(mainPy));
   const css2 = fs.readFileSync(path.join(root, "dashboard", "console.css"), "utf8");
   check("co kieu cho che do gon cua cot lich su", /\.cside-gon \.cside-pane \{/.test(css2)
     && /side\.classList\.add\("cside-gon"\)/.test(sess));

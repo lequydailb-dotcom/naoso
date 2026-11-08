@@ -83,6 +83,8 @@ const at = (h, m) => new Date(2026, 9, 4, h, m || 0).getTime();
   check("a fresh device is still light at night", boot({}, { now: at(22) }).light());
   check("an explicit Auto choice is dark at night", !boot({ "vanhanh.theme": "auto" }, { now: at(22) }).light());
   check("an explicit dark choice is kept", !boot({ "vanhanh.theme": "dark" }, { now: at(12) }).light());
+  check("an explicit Auto choice is kept (dark at night)", !boot({ "vanhanh.theme": "auto" }, { now: at(22) }).light()
+    && boot({ "vanhanh.theme": "auto" }, { now: at(22) }).T.mode() === "auto");
   check("default schedule is 06:00 to 18:00", JSON.stringify(b.T.schedule()) === '{"light":"06:00","dark":"18:00"}');
   b.T.setMode("light");
   check("manual light turns light", b.light() && b.store["vanhanh.theme"] === "light");

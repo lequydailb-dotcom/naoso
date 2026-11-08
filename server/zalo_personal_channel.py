@@ -324,6 +324,50 @@ def _loai_tin(msg: dict) -> str:
     return "other"
 
 
+def _dict_tu(v: Any) -> dict:
+    """`v` as a dict: already one, or a JSON object in a string. Anything else is {}."""
+    if isinstance(v, dict):
+        return v
+    if isinstance(v, str) and v.lstrip().startswith("{"):
+        try:
+            d = json.loads(v)
+        except ValueError:
+            return {}
+        return d if isinstance(d, dict) else {}
+    return {}
+
+
+def _danh_thiep(msg: dict) -> Optional[dict]:
+    """{"name", "phone"} of a contact card, None for any other message.
+
+    Zalo sends cards as `chat.recommended` with the details in a JSON object (in `text` or `content`, the phone sometimes
+    nested in `description` or `params`). It uses the same type for a shared link, so a message only counts as a card
+    when it carries a phone or says `recommened.user` (Zalo's own spelling): shared links stay as they were."""
+    if "recommen" not in str(_lay(msg, "type", "msgType", "message_type", mac_dinh="") or "").lower():
+        return None
+    for k in ("text", "content", "msg", "message"):
+        d = _dict_tu(msg.get(k))
+        if not d:
+            continue
+        phone = ""
+        for nguon in (d, _dict_tu(d.get("description")), _dict_tu(d.get("params"))):
+            phone = re.sub(r"[^\d+]", "", str(nguon.get("phone") or ""))[:20]
+            if phone:
+                break
+        if not phone and "user" not in str(d.get("action") or "").lower():
+            continue
+        ten = " ".join(str(_lay(d, "title", "displayName", "zaloName", "name", mac_dinh="") or "").split())[:100]
+        return {"name": ten, "phone": phone}
+    return None
+
+
+def _chu_danh_thiep(card: dict) -> str:
+    """The one line the inbox and the bot read for a contact card."""
+    ten = card.get("name") or localefmt.chu("không rõ tên", "no name")
+    sdt = card.get("phone") or localefmt.chu("không hiện số", "number hidden")
+    return localefmt.chu(f"[Danh thiếp] {ten}, SĐT {sdt}", f"[Contact card] {ten}, phone {sdt}")
+
+
 def _link_anh(msg: dict) -> str:
     """Link of the photo in an image message, or "".
 
@@ -449,6 +493,10 @@ def chuan_hoa_tin(conn: dict, msg: dict, ten: Dict[str, dict]) -> Optional[dict]
     if isinstance(text, dict):
         text = _lay(text, "text", "title", "description", "href", mac_dinh="")
     text = strip_mention_markup(str(text or ""))
+    card = _danh_thiep(msg)
+    if card is not None:
+        # As plain text, so the merged turn keeps it and the bot sees the number (an "other" message is dropped there).
+        loai, text = "text", _chu_danh_thiep(card)
     if loai != "text" and not text.strip():
         # The account's own photo (isSelf, from the owner's phone) is not "the customer sent".
         text = (f"[{conversations.KENH_NHAN[KENH]}: gửi {loai}]" if _la_cua_minh(msg)
@@ -582,6 +630,213 @@ async def nhap_lich_su(conn_id: str, ngay: int = NHAP_NGAY) -> dict:
         return {"ok": True, "so_tin": so_tin, "so_cuoc_chat": so_chat, "bo_qua": bo_qua, "het_tran": het_tran}
     finally:
         _DANG_NHAP.discard(cid)
+
+
+# ============================================================
+# Catching up from the history (private chats)
+# ============================================================
+# Field report a private chat stopped in the inbox at 09:28 while the phone went on until 09:53,
+# messages both ways. `zalo_get_history` had every one of them, so they reached vanhanh-zalo but never its live buffer
+# (or never left it): the read loop above only sees that buffer. vanhanh-zalo files each message in its history first,
+# and also fills the history from Zalo's replay after each reconnect, while the live feed only gets the replayed
+# messages of an outage it noticed.
+#
+# Driven by a signal, not a schedule ("only work where there is a signal, never on dead chats").
+# vanhanh-zalo (>= 1.5.0) appends every message it files to `<HOME>/.zalo-agent-cli/history.jsonl`, one JSON line each,
+# and nothing else touches that file. So after each read the loop only asks the OS for the file's size: unchanged (an
+# idle day) costs one stat call and nothing more, no MCP call, no query. When it grew, the new lines are read and their
+# private-chat messages wait in `history_pending`; once old enough, only their ids are looked up in the inbox and the
+# missing ones written. A chat nobody writes in is never looked at.
+#
+# Rules:
+#   1. Private chats only. Groups keep only `conversations.GIU_TIN_NHOM` messages, so a trimmed one would come back.
+#   2. A new line waits RECONCILE_MIN_AGE seconds, and only a read that emptied the buffer releases it: a message still
+#      on its way through the read loop must arrive there, since that is where the bot gets it.
+#   3. A recovered message is never handed to the bot (it is late; the owner sees it unread in the inbox). The owner's
+#      own recovered message still counts as typing by hand, so the bot keeps yielding in that chat.
+#   4. The account's own message is skipped when the inbox already holds the same sentence from the bot or the owner
+#      around that time (written before Zalo gave it an id); that row gets the id instead.
+#   5. Stickers and short emoji stay out, as in the live feed (vanhanh-zalo `ThreadFilter.shouldKeep`).
+#   6. A message from before this server started reading the account is only written when the inbox already holds an
+#      older message of that chat (a hole in a chat it follows), so turning an account on never pulls hours of old
+#      chats in through this door ("Import old messages" does that). Nothing older than RECONCILE_WINDOW is written.
+RECONCILE_WINDOW = 2 * 3600  # a filed message older than this is never written (an old replay, not a hole of now)
+RECONCILE_MIN_AGE = 90       # seconds a new line waits so the live read gets its message first
+RECONCILE_OWN_MATCH_S = 600  # rule 4 looks this far around the message's time
+HISTORY_FILE = (".zalo-agent-cli", "history.jsonl")
+HISTORY_READ_MAX = 4 * 1024 * 1024   # bytes read per turn at most (a big replay is read over several turns)
+HISTORY_TAIL = 512 * 1024            # bytes looked at after a start or a rewrite of the file
+HISTORY_PENDING_MAX = 5000
+_EMOJI_ONLY = re.compile(r"^[\s\U0001F000-\U0001FAFF☀-➿️‍]*$")
+
+
+def history_path(conn: dict) -> str:
+    """vanhanh-zalo's history file for this connection (its session HOME, else this user's home)."""
+    import os
+    home = str(((conn or {}).get("env") or {}).get("HOME") or "") or os.path.expanduser("~")
+    return os.path.join(home, *HISTORY_FILE)
+
+
+def _is_dm(msg: dict, names: dict) -> bool:
+    kind = str(_lay(msg, "threadType", "thread_type", mac_dinh="") or "").strip().lower()
+    if kind:
+        return kind in ("dm", "0", "user", "private")
+    return str(((names or {}).get(_thread_cua(msg)) or {}).get("type") or "").lower() == "dm"
+
+
+def _live_feed_keeps(ev: dict) -> bool:
+    """Rule 5: the same noise the live feed drops."""
+    if ev.get("message_type") in ("sticker", "reaction"):
+        return False
+    text = str(ev.get("text") or "")
+    return not (text and len(text) < 3 and _EMOJI_ONLY.match(text))
+
+
+def _own_already_stored(conn_id: str, ev: dict) -> bool:
+    """Rule 4. True when the inbox already holds this sentence of the account around the message's time."""
+    echo = _chuan(ev.get("text"))
+    if not echo:
+        return False
+    ts = float(ev.get("created_at") or time.time())
+    for row in conversations.own_messages_between(KENH, conn_id, ev["external_chat_id"],
+                                                  ts - RECONCILE_OWN_MATCH_S, ts + RECONCILE_OWN_MATCH_S):
+        if str(row.get("external_message_id") or ""):
+            continue        # a message Zalo already named: another one, even with the same words ("ok" twice)
+        sent = _chuan(row.get("text"))
+        if sent and (echo == sent or sent.startswith(echo[:80]) or echo.startswith(sent[:80])):
+            conversations.set_message_id(int(row["id"]), str(ev.get("external_message_id") or ""))
+            return True
+    return False
+
+
+def _parse_lines(raw: bytes, names: dict, oldest_ms: int) -> List[dict]:
+    """Private-chat messages of some history lines (complete lines only) not older than `oldest_ms`."""
+    out = []
+    for line in raw.split(b"\n"):
+        if not line.strip():
+            continue
+        try:
+            m = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(m, dict) and m.get("msgId") not in (None, "") and _is_dm(m, names) \
+                and float(m.get("timestamp") or 0) >= oldest_ms:
+            out.append(m)
+    return out
+
+
+def watch_history(conn: dict, now: Optional[float] = None) -> int:
+    """The signal: read what vanhanh-zalo appended to its history file since the last look and queue its private-chat
+    messages. Returns how many were queued. One stat call when nothing changed. Never raises."""
+    import os
+    now = time.time() if now is None else float(now)
+    tt = _TT.setdefault(str(conn["id"]), {})
+    path = history_path(conn)
+    try:
+        st = os.stat(path)
+    except OSError:
+        return 0        # no file yet (nothing filed, or vanhanh-zalo older than 1.5.0)
+    size, ident = st.st_size, (st.st_dev, st.st_ino)
+    off = tt.get("history_off")
+    if off is not None and ident == tt.get("history_id") and size == off:
+        return 0        # the usual case: nothing new
+    oldest_ms = int((now - RECONCILE_WINDOW) * 1000)
+    try:
+        with open(path, "rb") as f:
+            if off is None or ident != tt.get("history_id") or size < off:
+                # First look in this lifetime, or vanhanh-zalo rewrote the file (compaction): only its tail matters, and
+                # everything already in the inbox is filtered out later by id.
+                start = max(0, size - HISTORY_TAIL)
+                f.seek(start)
+                raw = f.read(size - start)
+                if start:
+                    raw = raw.split(b"\n", 1)[1] if b"\n" in raw else b""
+            else:
+                f.seek(off)
+                raw = f.read(min(size - off, HISTORY_READ_MAX))
+                cut = raw.rfind(b"\n")
+                raw = raw[:cut + 1] if cut >= 0 else b""     # a line still being written waits for the next look
+                size = off + len(raw)
+    except OSError as e:
+        print(f"[zalo-personal {conn.get('label')}] history file: {e}", file=sys.stderr)
+        return 0
+    tt["history_off"], tt["history_id"] = size, ident
+    found = _parse_lines(raw, tt.get("ten") or {}, oldest_ms)
+    pending = tt.setdefault("history_pending", [])
+    pending.extend((now, m) for m in found)
+    if len(pending) > HISTORY_PENDING_MAX:
+        del pending[:len(pending) - HISTORY_PENDING_MAX]
+    return len(found)
+
+
+def catch_up(conn: dict, messages: List[dict], now: Optional[float] = None) -> int:
+    """Write the private-chat messages among `messages` (history shape) the inbox does not have. Returns how many."""
+    now = time.time() if now is None else float(now)
+    cid = str(conn["id"])
+    tt = _TT.setdefault(cid, {})
+    names = tt.get("ten") or {}
+    oldest = now - RECONCILE_WINDOW
+    by_chat: Dict[str, List[dict]] = {}
+    for m in messages:
+        if not isinstance(m, dict) or not _is_dm(m, names):
+            continue
+        ev = chuan_hoa_tin(conn, m, names)
+        if not ev or not ev.get("external_message_id") or ev["chat_type"] != "private":
+            continue
+        if float(ev.get("created_at") or 0) < oldest or not _live_feed_keeps(ev):
+            continue
+        by_chat.setdefault(ev["external_chat_id"], []).append(ev)
+    written = 0
+    first_read = float(tt.get("first_read") or now)
+    for chat, evs in by_chat.items():
+        known = conversations.known_message_ids(KENH, cid, chat, [e["external_message_id"] for e in evs])
+        evs.sort(key=lambda e: float(e.get("created_at") or 0))
+        first_stored = None
+        for ev in evs:
+            if known is not None and ev["external_message_id"] in known:
+                continue
+            at = float(ev.get("created_at") or 0)
+            if at < first_read:
+                if first_stored is None:
+                    first_stored = conversations.first_message_at(KENH, cid, chat) or float("inf")
+                if at < first_stored:
+                    continue        # rule 6
+            if ev["sender_type"] == "human" and _own_already_stored(cid, ev):
+                continue
+            ev["metadata"] = dict(ev.get("metadata") or {}, recovered=True)
+            r = conversations.ghi_su_kien(ev, late=True)
+            if not (r.get("ok") and not r.get("trung")):
+                continue
+            written += 1
+            if known is None:
+                known = set()
+            known.add(ev["external_message_id"])
+            if ev["sender_type"] == "human":
+                key = (cid, chat)
+                _TAY[key] = max(float(_TAY.get(key) or 0), at)
+    if written:
+        print(f"[zalo-personal {conn.get('label')}] recovered {written} private message(s) from the history",
+              file=sys.stderr)
+    tt["recovered"] = int(tt.get("recovered") or 0) + written
+    return written
+
+
+def _history_turn(conn: dict, tt: dict, now: Optional[float] = None) -> None:
+    """After each successful read: look at the history file (the signal), then release the queued messages that are
+    old enough, but only when that read emptied the buffer (rule 2). Never raises: it must not cost the read loop."""
+    now = time.time() if now is None else float(now)
+    try:
+        watch_history(conn, now)
+        pending = tt.get("history_pending")
+        if not pending or not tt.get("drained", True):
+            return
+        due = [m for seen, m in pending if now - seen >= RECONCILE_MIN_AGE]
+        if not due:
+            return
+        tt["history_pending"] = [(seen, m) for seen, m in pending if now - seen < RECONCILE_MIN_AGE]
+        catch_up(conn, due, now)
+    except Exception as e:      # noqa: BLE001
+        print(f"[zalo-personal {conn.get('label')}] history catch-up: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 # ============================================================
@@ -753,6 +1008,7 @@ async def doc_mot_lan(conn: dict) -> dict:
     bat_dau = time.time()       # mọi tin tới trước mốc này đã nằm trong lượt đọc này
     moi = trung = 0
     since = 0
+    drained = True      # False when the page cap stopped this round with messages still waiting in the buffer
     if tt.get("since") and tt.get("ep") and tt["ep"] == _epoch(conn):
         since = int(tt["since"])
     for _ in range(MAX_TRANG):
@@ -784,6 +1040,10 @@ async def doc_mot_lan(conn: dict) -> dict:
         if not (d.get("hasMore") and tin and nc > since):
             break
         since = nc
+    else:
+        drained = False
+    tt["drained"] = drained
+    tt.setdefault("first_read", bat_dau)
     tt["lan_cuoi"] = time.time()
     tt["loi"] = ""
     tt["so_tin"] = int(tt.get("so_tin") or 0) + moi
@@ -794,6 +1054,9 @@ async def doc_mot_lan(conn: dict) -> dict:
     return {"moi": moi, "trung": trung}
 
 
+# vanhanh-zalo prints "Not logged in" when its stored sign-in no longer works: autoLogin swallows the real reason.
+_SIGNED_OUT_RE = re.compile(r"not logged in|auto-login failed|re-login retry failed|re-login failed", re.I)
+SIGNED_OUT_BELL_GAP_S = 6 * 3600
 # Lỗi chết của tiến trình vanhanh-zalo (src/commands/mcp.js) mà người dùng tự xử được, dịch ra lời thường.
 _LOI_ZALO = (
     (re.compile(r"duplicate zalo web session", re.I),
@@ -803,7 +1066,7 @@ _LOI_ZALO = (
      "Zalo closed Vanhanh's session because this account was just opened somewhere else: Zalo Web in a "
      "browser (chat.zalo.me) or another Vanhanh machine signed in to the same account. An account keeps only "
      "one such session. Close the other one; Vanhanh reconnects by itself in about 2 minutes."),
-    (re.compile(r"auto-login failed|re-login retry failed|re-login failed", re.I),
+    (_SIGNED_OUT_RE,
      "Phiên đăng nhập Zalo của tài khoản này đã hết hạn hoặc bị đăng xuất. Vào trang Kết nối, đăng nhập "
      "lại Zalo bằng mã QR.",
      "This account's Zalo sign-in has expired or was signed out. Go to the Connections page and sign in "
@@ -825,6 +1088,49 @@ def mo_ta_loi(raw: str, cap: int = 300) -> str:
             return localefmt.chu(vi, en)
     s = _DONG_CAU_HINH.sub("", s).strip()
     return s if len(s) <= cap else "..." + s[-(cap - 3):]
+
+
+def _signed_out_bell_time(conn: dict) -> float:
+    """When the owner was last told this account is signed out. Kept in the inbox store so a restart does not ring again."""
+    cid = str(conn.get("id") or "")
+    tt = _TT.setdefault(cid, {})
+    if tt.get("signed_out_bell") is None:
+        try:
+            tt["signed_out_bell"] = float(conversations.doc_trang_thai(f"zalo_signed_out_bell:{cid}", "0") or 0)
+        except (TypeError, ValueError):
+            tt["signed_out_bell"] = 0.0
+    return tt["signed_out_bell"]
+
+
+def _ring_signed_out(conn: dict, raw: str) -> None:
+    """A failed read that means the account is signed out: the bot hears nothing until someone signs in again, so tell
+    the owner. Once every `SIGNED_OUT_BELL_GAP_S` while it lasts; the read loop retries far more often than that."""
+    if NOTIFY_OWNER is None or not _SIGNED_OUT_RE.search(str(raw or "")):
+        return
+    try:
+        if time.time() - _signed_out_bell_time(conn) < SIGNED_OUT_BELL_GAP_S:
+            return
+        cid = str(conn.get("id") or "")
+        now = time.time()
+        _TT[cid]["signed_out_bell"] = now
+        conversations.ghi_trang_thai(f"zalo_signed_out_bell:{cid}", str(now))
+        cau = f"Zalo ({conn.get('label') or 'Zalo'}): {mo_ta_loi(raw)}"
+        t = asyncio.get_running_loop().create_task(NOTIFY_OWNER("", cau, kind="system", label="Zalo", source="zalo"))
+        _VIEC.add(t)
+        t.add_done_callback(_VIEC.discard)
+    except Exception as e:      # noqa: BLE001 - the notice must never cost a read
+        print(f"[zalo-personal {conn.get('label')}] signed-out notice: {type(e).__name__}: {e}", file=sys.stderr)
+
+
+def _clear_signed_out(conn: dict) -> None:
+    """A good read: the next time this account is signed out rings at once, not after the gap."""
+    try:
+        if _signed_out_bell_time(conn):
+            cid = str(conn.get("id") or "")
+            _TT[cid]["signed_out_bell"] = 0.0
+            conversations.ghi_trang_thai(f"zalo_signed_out_bell:{cid}", "0")
+    except Exception as e:      # noqa: BLE001
+        print(f"[zalo-personal {conn.get('label')}] signed-out notice: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 async def _vong() -> None:
@@ -854,8 +1160,11 @@ async def _vong() -> None:
                         tt["loi"] = mo_ta_loi(f"{type(e).__name__}: {e}")
                         tt["nghi_toi"] = time.time() + NHIP_LOI
                         print(f"[zalo-personal {conn.get('label')}] {tt['loi']}", file=sys.stderr)
+                        _ring_signed_out(conn, str(e))
                     else:
+                        _clear_signed_out(conn)
                         _nhan_loi_moi(conn)
+                        _history_turn(conn, tt)
                     _soi_tranh_phien(conn)
                     # Hạn sớm hơn một nhịp chút ít: vòng ngủ đúng một nhịp thì lần thức sau chắc chắn đã tới hạn.
                     tt["doc_toi"] = luc + _nhip_cua(conn["id"]) * 0.9
@@ -1071,6 +1380,59 @@ _NONG: Dict[str, float] = {}        # conn_id -> giờ thấy tin khách chat ri
 _SEQ: Dict[tuple, int] = {}         # (conn_id, thread) -> số tin khách chat riêng CÓ CHỮ đã thấy (xem "Câu trả lời đã cũ")
 _BO_DO: Dict[tuple, dict] = {}      # (conn_id, thread) -> {"texts": [...], "n": số lần bỏ, "luc": giờ}: tin khách của câu trả lời đã bỏ
 _ID_MINH: Dict[str, dict] = {}      # conn_id -> {"uid", "ten"} của CHÍNH nick này, học từ tin của nó
+_ID_MINH_NAP = False
+
+
+def _file_danh_tinh():
+    from pathlib import Path
+    return Path(cfgmod.STATE_DIR) / "zalo_self.json"
+
+
+def _nap_danh_tinh() -> None:
+    """Nạp danh tính đã học từ đĩa, một lần mỗi tiến trình.
+
+    Trước đây `_ID_MINH` chỉ sống trong bộ nhớ: khởi động lại server là quên, và nick chưa tự gửi
+    tin nào sau đó thì bot không biết tên Zalo của chính mình. Tag "@<tên Zalo>" trong nhóm khi ấy
+    không khớp gì (nhãn kết nối thường đặt khác tên Zalo), bot coi là "không ai gọi" và im - lỗi
+    chủ đã gặp ngày 03/11/2026 với nhãn "Vanhanh Cường", tên Zalo "Tly Đại Lê"."""
+    global _ID_MINH_NAP
+    if _ID_MINH_NAP:
+        return
+    _ID_MINH_NAP = True
+    try:
+        f = _file_danh_tinh()
+        d = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+    except Exception as e:      # noqa: BLE001 - file hỏng thì học lại từ tin như cũ
+        print(f"[zalo-personal] đọc danh tính đã học lỗi: {type(e).__name__}", file=sys.stderr)
+        return
+    for cid, v in (d.items() if isinstance(d, dict) else ()):
+        if not isinstance(v, dict) or str(cid) in _ID_MINH:
+            continue
+        cu: dict = {}
+        uid = str(v.get("uid") or "").strip()
+        if uid:
+            cu["uid"], cu["_da_thay"] = uid, {uid}
+        if str(v.get("ten") or "").strip():
+            cu["ten"] = str(v["ten"]).strip()
+        if cu:
+            _ID_MINH[str(cid)] = cu
+
+
+def _luu_danh_tinh() -> None:
+    d = {cid: {k: v[k] for k in ("uid", "ten") if v.get(k)} for cid, v in _ID_MINH.items()}
+    try:
+        f = _file_danh_tinh()
+        tmp = f.with_suffix(".tmp")
+        tmp.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
+        tmp.replace(f)
+    except Exception as e:      # noqa: BLE001 - không lưu được thì vẫn dùng bản trong bộ nhớ
+        print(f"[zalo-personal] lưu danh tính lỗi: {type(e).__name__}", file=sys.stderr)
+
+
+def danh_tinh(conn_id: str) -> dict:
+    """{"uid", "ten"} đã học của nick `conn_id` (nạp từ đĩa nếu tiến trình vừa khởi động)."""
+    _nap_danh_tinh()
+    return _ID_MINH.get(str(conn_id)) or {}
 
 
 def _hoc_danh_tinh(conn_id: str, msg: dict) -> None:
@@ -1086,13 +1448,17 @@ def _hoc_danh_tinh(conn_id: str, msg: dict) -> None:
     uid = str(_lay(msg, "from", "senderId", "sender_id", "uidFrom", mac_dinh="") or "").strip()
     thread = str(_lay(msg, "threadId", "thread_id", "chatId", mac_dinh="") or "").strip()
     ten = str(_lay(msg, "senderName", "sender_name", "fromName", "dName", mac_dinh="") or "").strip()
+    _nap_danh_tinh()
     cu = _ID_MINH.setdefault(str(conn_id), {})
+    truoc = (cu.get("uid"), cu.get("ten"))
     if uid and uid != thread:
         thay = cu.setdefault("_da_thay", set())
         thay.add(uid)
         cu["uid"] = uid if len(thay) == 1 else ""
     if ten:
         cu["ten"] = ten
+    if (cu.get("uid"), cu.get("ten")) != truoc:
+        _luu_danh_tinh()
 
 
 def _chuan_ten(s: Any) -> str:
@@ -1115,7 +1481,7 @@ def nhan_dien_goi(conn_id: str, ev: dict, ten_khac=()) -> tuple:
     KHÔNG dùng tên Agent/bot: "@Lan" trong nhóm thường là một thành viên tên Lan.
     Không nhận ra thì cùng lắm chế độ Tự đánh giá vẫn bắt được câu hỏi thuộc tài liệu.
     """
-    minh = _ID_MINH.get(str(conn_id)) or {}
+    minh = danh_tinh(conn_id)
     uid = str(minh.get("uid") or "").strip()
     ten = {_chuan_ten(x) for x in (list(ten_khac or ()) + [minh.get("ten")]) if x}
     ten.discard("")

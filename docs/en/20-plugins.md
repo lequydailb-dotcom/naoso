@@ -104,7 +104,7 @@ These ship with the app (the **Bundled** label). All are on by default except `t
 
 | Name on the card | slug | Tools provided | Minimum level | Default |
 |---|---|---|---|---|
-| Time and date (VN) | `datetime-vn` | `vanhanh_now`, `vanhanh_date_add` | read only | On |
+| Time and date (timezone picked in Settings) | `datetime-vn` | `vanhanh_now`, `vanhanh_date_add` | read only | On |
 | Recurring jobs and reminders | `vanhanh-schedule` | `vanhanh_schedule` | write (safe) | On |
 | Queue Kanban work | `vanhanh-task` | `vanhanh_task` | write (safe) | On |
 | Attach another MCP | `vanhanh-connect` | `vanhanh_add_mcp` | write (safe) | On |

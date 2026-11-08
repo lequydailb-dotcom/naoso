@@ -355,7 +355,7 @@ git add -A && git commit -m "..." && git push     # → CI tự build image mớ
 cd vanhanh && ./update.sh          # tự pull image + restart (dữ liệu trong volume KHÔNG mất)
 ```
 
-Trong app: mở **Cập nhật** (nhóm Hệ thống) → **⬆ Cập nhật ngay** nếu môi trường hỗ trợ, có thanh tiến trình và nút lùi bản khi bản mới hỏng.
+Trong app: mở **Cập nhật** (bấm ô tài khoản dưới đáy thanh bên) → **⬆ Cập nhật ngay** nếu môi trường hỗ trợ, có thanh tiến trình và nút lùi bản khi bản mới hỏng.
 
 ## 🌐 Truy cập từ xa (VPS không phải Hostinger)
 

@@ -111,11 +111,12 @@
     "home", "chat", "settings", "workspace", "teams", "skills", "chatbots", "conversations", "files",
     "terminal", "coding", "tasks", "webhooks", "learn", "models", "channels", "mcp", "plugins",
     "packs", "logs", "account", "usage", "logins", "pet", "share",
-  ].map(id => ({ id, icon: ICON[id], get label() { return t(`page.${id}.label`); } }));
+  ].map(id => ({ id, icon: ICON[id], get label() { return t(`page.${id}.label`); },
+    // The sidebar may carry its own shorter name (rail.lbl.<id>); page titles keep page.<id>.label.
+    get railLabel() { const k = `rail.lbl.${id}`, v = t(k); return v === k ? this.label : v; } }));
 
-  // ---- Gom rail thành nhóm theo chức năng (dễ tìm hơn danh sách phẳng 18 mục) ----
-  // Nhóm cuối (foot:true) được ghim xuống ĐÁY rail; các nhóm còn lại cuộn ở giữa.
-  // Thứ tự & thành viên đổi ở đây; RAIL_ITEMS vẫn là nguồn icon/label + tra cứu cho go().
+  // ---- Nhóm theo chức năng, cho lệnh bằng lời (open_group). Thanh bên vẽ theo RAIL_SECTIONS. ----
+  // RAIL_ITEMS vẫn là nguồn icon/label + tra cứu cho go().
   const RAIL_GROUPS = [
     // `id` là tên máy đọc của nhóm, dùng cho lệnh bằng lời (`vanhanh_ui` action open_group).
     // Nhãn đổi theo ngôn ngữ nên KHÔNG dùng nhãn làm khoá tra cứu được.
@@ -132,11 +133,9 @@
     { id: "nang_luc", get label() { return t("nav.group.nang_luc"); },    icon: GICON.nang_luc,    ids: ["workspace", "teams", "conversations", "skills"] },
     { id: "viec", get label() { return t("nav.group.viec"); },        icon: GICON.viec,        ids: ["tasks"] },
     { id: "ket_noi", get label() { return t("nav.group.ket_noi"); },     icon: GICON.ket_noi,     ids: ["mcp", "packs", "channels"] },
-    // The rail shows every item at once (no accordion), so the pages a beginner rarely opens sit
-    // in this one folded group to keep the rail on one screen. It unfolds by itself when one of
-    // its pages is open.
-    { id: "nang_cao", get label() { return t("nav.group.nang_cao"); },    icon: GICON.nang_cao,    ids: ["terminal", "plugins", "webhooks", "logins", "share"], fold: true },
-    { id: "he_thong", get label() { return t("nav.group.he_thong"); },    icon: GICON.he_thong,    ids: ["models", "settings", "account", "logs"], foot: true },
+    // The pages a beginner rarely opens: they sit in the account menu (RAIL_MENU_ADV below).
+    { id: "nang_cao", get label() { return t("nav.group.nang_cao"); },    icon: GICON.nang_cao,    ids: ["terminal", "plugins", "webhooks", "logins", "share"] },
+    { id: "he_thong", get label() { return t("nav.group.he_thong"); },    icon: GICON.he_thong,    ids: ["models", "settings", "account", "logs"] },
   ];
   const RAIL_BY_ID = Object.fromEntries(RAIL_ITEMS.map(i => [i.id, i]));
 
@@ -158,32 +157,47 @@
   // "logs" (Cập nhật) ra lại thanh bên dưới Tài khoản (anh Vương 02/11/2026): người dùng phải
   // THẤY có bản mới thì mới cập nhật đều, nên nó không còn là một tab chìm trong Cài đặt.
   const RAIL_AN = new Set(["chatbots", "usage", "pet", "coding"]);
-  // Trả về [{label, foot, items:[...]}], bỏ id không tồn tại. Mục nào chưa xếp nhóm → dồn vào "Khác".
+
+  // What the rail DRAWS, top to bottom: one flat column, nothing to unfold (owner 03/11/2026: as
+  // plain as Claude), with a small quiet name over each section after the first so a newcomer sees
+  // what belongs together. RAIL_GROUPS above still names the groups for voice commands
+  // (open_group). Pages in RAIL_MENU sit in the account menu at the foot of the rail instead, the
+  // advanced ones under their own small label there.
+  // The brain map leads the column (owner 03/11/2026: the brain is what matters, top left).
+  const RAIL_SECTIONS = [
+    { ids: ["home", "chat", "tasks"] },
+    { lbl: "nav.group.nang_luc", ids: ["workspace", "teams", "conversations", "skills"] },
+    { lbl: "nav.sec.kien_thuc", ids: ["learn", "files"] },
+    { lbl: "nav.group.ket_noi", ids: ["mcp", "channels", "packs"] },
+    // Account sits under Settings again, as in 1.2.1 (owner 03/11/2026); the foot box is only "Advanced" now.
+    { lbl: "nav.group.he_thong", ids: ["models", "settings", "account"] },
+  ];
+  const RAIL_MENU = [];
+  const RAIL_MENU_ADV = ["terminal", "plugins", "webhooks", "logins", "share"];
+  // Reached from the Update button by the version at the foot, so it sits in no list (owner 03/11/2026:
+  // one place per item).
+  const RAIL_FOOT = ["logs"];
+  const _railPick = (ids, seen) => ids
+    .map(id => { if (seen) seen.add(id); return RAIL_AN.has(id) ? null : RAIL_BY_ID[id]; })
+    .filter(Boolean);
+  // Trả về [{label, items:[...]}], bỏ id không tồn tại. Mục nào chưa xếp chỗ → dồn vào khúc cuối.
   function railGroups() {
-    const seen = new Set();
-    const groups = RAIL_GROUPS.map(g => {
-      const items = (g.ids || [])
-        .map(id => { seen.add(id); return RAIL_AN.has(id) ? null : RAIL_BY_ID[id]; })
-        .filter(Boolean);
-      return { label: g.label, icon: g.icon || "", foot: !!g.foot, fold: !!g.fold, items };
-    }).filter(g => g.items.length);
+    const seen = new Set([...RAIL_MENU, ...RAIL_MENU_ADV, ...RAIL_FOOT]);
+    const groups = RAIL_SECTIONS.map(s => ({
+      get label() { return s.lbl ? t(s.lbl) : ""; },
+      items: _railPick(s.ids, seen),
+    })).filter(g => g.items.length);
     // Mục chưa xếp nhóm cũng phải đi qua RAIL_AN. Thiếu chỗ này là một lỗi thật, sống từ
     // Trước đây `chatbots` nằm trong RAIL_AN nhưng KHÔNG nằm trong `ids` của nhóm
     // nào, nên `seen` không bao giờ chứa nó, nên nó rơi vào nhánh "dồn vào nhóm cuối" và
     // hiện ra ở cuối nhóm Hệ thống - đúng chỗ chẳng ai ngờ . Chú thích
     // của RAIL_AN thì vẫn khẳng định nó đã bị ẩn.
     const rest = RAIL_ITEMS.filter(i => !seen.has(i.id) && !RAIL_AN.has(i.id));
-    if (rest.length) {
-      const foot = groups.find(g => g.foot);
-      if (foot) foot.items.push(...rest); else groups.push({ label: t("nav.group.khac"), foot: false, items: rest });
-    }
+    if (rest.length) groups[groups.length - 1].items.push(...rest);
     return groups;
   }
-  // Nhãn nhóm chứa một mục id (cho accordion: mở đúng nhóm của trang đang xem).
-  function groupLabelOf(id) {
-    if (["pet", "usage", "runtime"].includes(id)) id = "settings";
-    const g = RAIL_GROUPS.find(gr => (gr.ids || []).includes(id));
-    return g ? g.label : (RAIL_GROUPS[0] && RAIL_GROUPS[0].label) || "";
+  function railMenu() {
+    return { main: _railPick(RAIL_MENU), adv: _railPick(RAIL_MENU_ADV) };
   }
 
   // icon lấy từ VIEW_ICON ở đầu file - đừng khai icon riêng ở đây, hai bảng
@@ -326,6 +340,30 @@
   // Hook "rời trang": trang nào mượn DOM dùng chung (vd tab Trò chuyện mượn khung chat của
   // cockpit) đặt _pageLeave để TRẢ node về chỗ cũ TRƯỚC khi cviewBody bị ghi đè / cview bị ẩn.
   let _pageLeave = null;
+  // Unsaved-changes guard (mascot menu, pet-menu.js): a function returning the question to ask, or "" when nothing
+  // is pending. One at a time; the card that set it clears it. Checked on every page or settings tab change, and by
+  // the browser before a reload or close.
+  let _leaveGuard = null;
+  function _leaveOk() {
+    let msg = "";
+    try { msg = _leaveGuard ? _leaveGuard() : ""; } catch (e) { msg = ""; }
+    if (!msg) return true;
+    if (!confirm(msg)) return false;
+    _leaveGuard = null;
+    return true;
+  }
+  if (typeof window !== "undefined") {
+    window.VanhanhLeaveGuard = {
+      set(fn) { _leaveGuard = typeof fn === "function" ? fn : null; },
+      clear(fn) { if (!fn || _leaveGuard === fn) _leaveGuard = null; },
+      ok: _leaveOk,
+    };
+    window.addEventListener("beforeunload", (e) => {
+      let msg = "";
+      try { msg = _leaveGuard ? _leaveGuard() : ""; } catch (er) { msg = ""; }
+      if (msg) { e.preventDefault(); e.returnValue = msg; }
+    });
+  }
   // Trang cũ đã gộp đi đâu. Giữ bảng này thay vì xoá trắng: người dùng có bookmark, có nút
   // trong chat, và có thói quen. Bấm vào một id đã biến mất mà không có chỗ đáp là màn hình
   // trắng không giải thích gì.
@@ -341,8 +379,6 @@
       const resolved = TRANG_GOP[saved] || saved;
       if (resolved === "chat" || resolved === "workspace") id = resolved;
     } catch (e) {}
-    const store = Alpine.store("nav");
-    store.openGroup = groupLabelOf(id);
     navigateTo(id, true);
   }
   function navigateTo(id) {
@@ -362,6 +398,8 @@
     if (tab && !["general", "voice", "pet", "usage"].includes(tab)) tab = "general";
     if (oldTab) id = "settings";
     if (store.active === id && (!tab || store.settingsTab === tab)) return;
+    // A page holding unsaved edits (the mascot menu card) asks first: OK drops them, Cancel stays on the page.
+    if (window.VanhanhLeaveGuard && !window.VanhanhLeaveGuard.ok()) return;
     const swap = () => {
       const leave = _pageLeave; _pageLeave = null;
       if (leave) { try { leave(); } catch (e) {} }   // dọn trang cũ trước khi thay nội dung
@@ -531,14 +569,49 @@
     conversations: ["hoithoai"], chatbots: ["hoithoai"], usage: ["usage"], webhooks: ["webhooks"],
     tasks: ["nhiemvu"],
   };
+  // Performance: pointing at (or touching) a page in the side rail starts loading that page's code, so by the
+  // time the click lands it is usually there. Costs nothing on a group that is already loaded.
+  document.addEventListener("pointerover", (e) => {
+    const b = e.target && e.target.closest ? e.target.closest(".rail-item[data-page]") : null;
+    const nhom = b && NHOM_TRANG[b.dataset.page];
+    if (nhom && window.VanhanhNapCham && !window.VanhanhNapCham.daXong(nhom)) window.VanhanhNapCham.cho(nhom);
+  }, { passive: true });
   // Tab Hội thoại cần chọn khi conversations.js còn chưa nạp (navigateTo("chatbots") lúc đầu): renderPage chọn hộ sau khi nạp.
   let _tabHoiThoaiCho = "";
   // Gọi một hàm của module nạp chậm từ chỗ khác trang: chờ nhóm của nó rồi mới gọi.
   const _goiNhom = (nhom, fn) => (window.VanhanhNapCham ? window.VanhanhNapCham.goi(nhom, fn) : Promise.resolve(fn()));
 
+  // pages drawn from the copy of the last visit (fetch-gop.js) are drawn again once the server's answer
+  // differs, unless the owner has already clicked or typed on the page (a redraw would undo that). Only pages that are
+  // plain lists and cards; chat pages, the file editor and the live Tasks board keep their own refresh.
+  const REDRAW_PAGES = new Set(["learn", "skills", "plugins", "mcp", "packs", "channels", "logins", "models", "settings",
+    "usage", "share", "account", "webhooks"]);
+  let _pageTouched = false, _redrawTimer = 0;
+  ["click", "keydown", "input", "change"].forEach((ev) => document.addEventListener(ev, (e) => {
+    const cv = document.getElementById("cview");
+    if (cv && e.target && cv.contains(e.target)) _pageTouched = true;
+  }, true));
+  window.addEventListener("vanhanh:page-data", (e) => {
+    const id = e && e.detail && e.detail.page;
+    if (!id || !REDRAW_PAGES.has(id) || !window.Alpine || Alpine.store("nav").active !== id) return;
+    clearTimeout(_redrawTimer);
+    _redrawTimer = setTimeout(() => {
+      const cv = document.getElementById("cview"), focused = document.activeElement;
+      if (Alpine.store("nav").active !== id || _pageTouched) return;
+      if (cv && focused && cv.contains(focused) && /^(INPUT|TEXTAREA|SELECT)$/.test(focused.tagName)) return;
+      const top = body() ? body().scrollTop : 0;
+      const leave = _pageLeave; _pageLeave = null;
+      if (leave) { try { leave(); } catch (err) {} }
+      Promise.resolve(renderPage(id)).then(() => { const b = body(); if (b && top) b.scrollTop = top; }).catch(() => {});
+    }, 120);
+  });
+
   async function renderPage(id) {
     let el = body();
     if (!el) return;
+    // This visit's first read of each page key may come from the last visit's copy (fetch-gop.js).
+    try { if (window.VanhanhFetchGop && window.VanhanhFetchGop.pageStart) window.VanhanhFetchGop.pageStart(id); } catch (e) {}
+    _pageTouched = false;
     // Cả đổi TAB trong Cài đặt cũng thay cviewBody. Trả node tĩnh về trước khi tháo nó.
     parkQuickSet();
     // Thay #cviewBody bằng node MỚI mỗi lần đổi trang: renderer async của trang CŨ (đang await
@@ -3254,6 +3327,16 @@
     chay();
   }
 
+  // Cards that hold a list of gateways (an address and a key each), used top to bottom. "OpenAI
+  // Compatible" carries the advanced API keys (the seller lists its models itself), "Claude Compatible" is the
+  // Anthropic-compatible route. Two separate cards, two separate lists, several keys each.
+  const GW_CARDS = ["openai-compat", "anthropic-compat"];
+  const GW_TEXT = {
+    "openai-compat": { add: "models.adv_add_note", base: "models.oc_base_ph", key: "models.oc_key_ph", needKey: false },
+    "anthropic-compat": { add: "models.ac_add_note", base: "models.ac_base_ph", key: "models.ac_key_ph", needKey: true },
+  };
+  const isGw = (pid) => GW_CARDS.indexOf(pid) >= 0;
+
   async function renderModelsCloudTab(el) {
     el.innerHTML = `<div class="cview-placeholder"><div class="ph-ico">${ic("loader", { cls: "ic-xl ic-spin" })}</div><div>${esc(t("common.loading"))}</div></div>`;
     const s = await freshSettings();
@@ -3307,6 +3390,14 @@
     const prof = (id) => (R.profiles || {})[id] || { model: "", reasoning: "off" };
     const multiKey = R.multi_key || [];
     const accts = m.accounts || {};
+    ACCT_NAMES = {};
+    ACCT_ITEMS = {};
+    PLAN_CLI.forEach(pid => {
+      const l = accts[pid] || [];
+      ACCT_ITEMS[pid] = l;
+      const a = l.find(x => x.main || x.id === "main");
+      if (a && a.label) ACCT_NAMES[pid] = a.label;
+    });
     const bgCfg = R.background || { provider: "anthropic-cli", model: "", reasoning: "off" };
     const bgP = pById(bgCfg.provider) || {};
     const bgUse = R.bg_in_use || null;
@@ -3318,30 +3409,58 @@
     const KEYFIELD = { "openrouter": "openrouter_key", "anthropic-api": "anthropic_api_key", "openai": "openai_api_key", "gemini": "gemini_api_key", "groq": "groq_api_key", "deepseek": "deepseek_api_key", "ollama": "ollama_key", "openai-compat": "openai_compat_key", "anthropic-compat": "anthropic_compat_key" };
     // ---- Usage order cards. `ord` = {idx} for a card in the order, null for a card still to connect. ----
     const effName = (v) => t((window.VanhanhEffortSlider && window.VanhanhEffortSlider.LABEL_KEY[v]) || "eff.off");
+    const FAST_BOLT = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>';
     const ORD_GRIP = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>';
     const ORD_SWAP = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M7 4L3.5 7.5M7 4l3.5 3.5M17 20V4M17 20l-3.5-3.5M17 20l3.5-3.5"/></svg>';
     const chatLive = (p, ord) => !!ord && ord.idx > 0 && R.chat_in_use === p.id;
     const ordGrip = (p, ord) => ord && connList.length > 1
       ? `<button type="button" class="ord-grip" aria-label="${esc(t("models.ord_drag", { ten: p.label }))}">${ORD_GRIP}</button>` : "";
-    // `cls` "ord-badges-m": the same badges again at the end of the chip row, shown instead of the head's on a phone,
-    // where the head is too narrow for name, kind label and badge on one line.
-    const ordBadges = (p, ord, cls) => !ord ? "" : `<div class="${cls || "ord-badges"}">${ord.idx === 0
-      ? `<span class="prov-badge">${esc(t("models.ord_main"))}</span>`
+    // the badges stand at the end of the
+    // chip row on every screen, so the head keeps the name and status whole: MAIN or Fallback N, IN USE when chat
+    // runs on a fallback right now, BACKGROUND on the card background work is set to.
+    const isBg = (p) => bgCfg.provider === p.id;
+    const ordBadges = (p, ord) => !ord ? "" : `<div class="ord-badges-m">${ord.idx === 0
+      ? `<span class="prov-badge">${ic("star")}${esc(t("models.ord_main"))}</span>`
       : `<span class="ord-pos">${esc(t("models.ord_backup", { n: ord.idx }))}</span>`}${chatLive(p, ord)
-      ? `<span class="prov-badge ord-live">${esc(t("models.ord_live"))}</span>` : ""}</div>`;
+      ? `<span class="prov-badge ord-live">${ic("zap")}${esc(t("models.ord_live"))}</span>` : ""}${isBg(p)
+      ? `<span class="prov-badge ord-bgb">${ic("workflow")}${esc(t("models.badge_bg"))}</span>` : ""}</div>`;
+    // Fast mode is one setting for the whole app (the composer's bolt); a chip shows the bolt while it is on and the
+    // card's model supports it, same rule as the composer (VanhanhModelBar.fastNote).
+    const fastOk = (pid, model) => !!(window.VanhanhModelBar && window.VanhanhModelBar.fastNote
+      && window.VanhanhModelBar.fastNote(pid, model).supported);
+    const effChip = (pid, level) => {
+      const model = pid === "__bg" ? bgCfg.model : prof(pid).model;
+      const prov = pid === "__bg" ? bgCfg.provider : pid;
+      return `<button type="button" class="cp-eff ord-echip" data-ordpop="eff" aria-expanded="false" title="${esc(t("eff.head"))}"><span class="ord-etxt">${esc(effName(level))}</span><span class="cp-eff-fast ord-fast" data-ok="${fastOk(prov, model) ? 1 : 0}"${m.fast === true && fastOk(prov, model) ? "" : " hidden"}>${FAST_BOLT}</span><span class="mb-caret">▾</span></button>`;
+    };
     const ordChips = (p, ord) => {
       if (!ord) return "";
       const pr = prof(p.id);
       return `<div class="ord-chips" data-p="${esc(p.id)}">
-          <button type="button" class="mb-chip ord-mchip" data-ordpop="model" aria-expanded="false" title="${esc(t("models.change_model"))}"><span class="mb-dot"></span><span class="ord-mtxt">${esc(pr.model || defName(p.id))}</span><span class="mb-caret">▾</span></button>
-          <button type="button" class="cp-eff ord-echip" data-ordpop="eff" aria-expanded="false" title="${esc(t("eff.head"))}"><span class="ord-etxt">${esc(effName(pr.reasoning))}</span><span class="mb-caret">▾</span></button>
-          ${ordBadges(p, ord, "ord-badges-m")}
+          <button type="button" class="mb-chip ord-mchip" data-ordpop="model" aria-expanded="false" title="${esc(t("models.change_model"))}">${ic("cpu")}<span class="ord-mtxt">${esc(pr.model || defName(p.id))}</span>${ic("chevron-up", { cls: "ord-up" })}</button>
+          ${effChip(p.id, pr.reasoning)}
+          ${ordBadges(p, ord)}
         </div>`;
     };
-    const cardOpen = (p, ord) => `<div class="prov-card${(ord ? ord.idx === 0 : p.is_main) ? " main" : ""}${ord ? " ord-card" : ""}${chatLive(p, ord) ? " ord-inuse" : ""}"${ord ? ` data-dnd="prov" data-p="${esc(p.id)}"` : ""}>`;
+    // every card in the order has a
+    // ⋯ button that opens one sheet with all it can do (model, effort, make MAIN, move, add, check, disconnect).
+    const cardMenuBtn = (p, ord) => ord
+      ? `<button type="button" class="ord-ib ord-cmenu" data-cmenu="${esc(p.id)}" aria-haspopup="dialog" aria-label="${esc(t("models.card_menu", { ten: p.label }))}">${ic("ellipsis")}</button>` : "";
+    // A card the router skips because a quota refusal marked it: say so and until when, with "Use again now". Before,
+    // the page only showed the next card as "in use" and the owner could not tell why MAIN was passed over.
+    const limitedAt = R.limited || {};
+    const limitLine = (p, ord) => {
+      const u = ord && limitedAt[p.id];
+      if (!u) return "";
+      const gio = new Date(u * 1000).toLocaleString([], { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+      return `<div class="ord-limit">${WARN_ICON} <span>${esc(t("models.limited_until", { gio }))}</span>
+          <button type="button" class="gcard-btn ghost" data-retry="${esc(p.id)}">${esc(t("models.retry_now"))}</button></div>`;
+    };
+    const cardOpen = (p, ord) => `<div class="prov-card${(ord ? ord.idx === 0 : p.is_main) ? " main" : ""}${ord ? " ord-card" : ""}${chatLive(p, ord) ? " ord-inuse" : ""}"${ord ? ` data-dnd="prov" data-p="${esc(p.id)}"` : ` data-offp="${esc(p.id)}"`}>`;
     // The account a provider runs on now: the first one switched on and not resting (model_routing.active_account).
     const nowS = Date.now() / 1000;
     const acctReady = (a) => a.enabled && !(a.resting_until > nowS);
+    const ST_IC = { ready: "circle-check", rest: "clock", off: "pause" };
     const acctList = (p) => {
       const list = accts[p.id] || [];
       const n = list.length;
@@ -3356,33 +3475,15 @@
         const pills = (isCur && useChat ? `<span class="ord-pill chat">${esc(t("models.acct_chat"))}</span>` : "")
           + (isCur && useBg ? `<span class="ord-pill bg">${esc(t("models.acct_bg"))}</span>` : "");
         return `<li class="ord-acct${a.enabled ? "" : " off"}${isCur && useChat ? " inuse" : isCur && useBg ? " inuse-bg" : ""}" data-dnd="acct:${esc(p.id)}" data-id="${esc(a.id)}">
-            ${n > 1 ? `<button type="button" class="ord-grip" aria-label="${esc(t("models.ord_drag", { ten: a.label }))}">${ORD_GRIP}</button>` : ""}
-            <span class="ord-num">${i + 1}</span>
-            <span class="ord-atxt"><span class="ord-aname"><span class="ord-dot ${cls}">●</span> ${esc(a.label)}</span>
-              <span class="ord-ast">${a.key ? esc(a.key) + " · " : ""}${esc(st)}</span>${pills}</span>
+            <span class="ord-ai">${ic("key-round")}</span>
+            <span class="ord-atxt"><span class="ord-aname">${esc(a.label)}</span>
+              <span class="ord-ast ${cls}">${ic(ST_IC[cls])}${a.key ? esc(a.key) + " · " : ""}${esc(st)}</span>${pills}</span>
             <span class="ord-actl">
-              ${n > 1 ? `<button type="button" class="ord-ib" data-acct-move="-1" ${i === 0 ? "disabled" : ""} aria-label="${esc(t("models.acct_up", { ten: a.label }))}">${ic("chevron-up")}</button>
-              <button type="button" class="ord-ib" data-acct-move="1" ${i === n - 1 ? "disabled" : ""} aria-label="${esc(t("models.acct_down", { ten: a.label }))}">${ic("chevron-down")}</button>` : ""}
-              <button type="button" class="ord-ib" data-acct-menu="1" aria-expanded="false" aria-label="${esc(t("models.acct_menu", { ten: a.label }))}">${ic("ellipsis")}</button>
+              <button type="button" class="ord-ib" data-acct-menu="1" aria-haspopup="dialog" aria-label="${esc(t("models.acct_menu", { ten: a.label }))}">${ic("ellipsis")}</button>
             </span>
-            <div class="ord-menu" hidden>
-              <button type="button" class="gcard-btn ghost" data-acct-act="toggle">${esc(a.enabled ? t("models.acct_disable") : t("models.acct_enable"))}</button>
-              <button type="button" class="gcard-btn ghost" data-acct-act="rekey">${esc(t("models.acct_rekey"))}</button>
-              <button type="button" class="gcard-btn ghost danger" data-acct-act="remove">${esc(t("models.acct_rm"))}</button>
-              <div class="ord-rekey" hidden><input class="js-input" type="password" autocomplete="off" placeholder="${esc(t("models.acct_key_ph"))}">
-                <button type="button" class="gcard-btn" data-acct-act="rekey-save">${esc(t("common.save"))}</button></div>
-            </div>
           </li>`;
       }).join("");
-      return `<ol class="ord-accts" data-p="${esc(p.id)}">${rows}</ol>
-        <button type="button" class="ord-add" data-acct-add="${esc(p.id)}">＋ ${esc(t("models.acct_add"))}</button>
-        <div class="ord-addbox" data-acct-box="${esc(p.id)}" hidden>
-          <input class="js-input" data-f="label" placeholder="${esc(t("models.acct_label_ph"))}">
-          <input class="js-input" data-f="key" type="password" autocomplete="off" placeholder="${esc(t("models.acct_key_ph"))}">
-          <div class="prov-action" style="margin-top:0"><button type="button" class="gcard-btn" data-acct-addsave="${esc(p.id)}">${esc(t("common.save"))}</button>
-            <button type="button" class="gcard-btn ghost" data-acct-addcancel="1">${esc(t("common.cancel"))}</button>
-            <span class="gcard-meta ord-addmsg"></span></div>
-        </div>`;
+      return `<ol class="ord-accts" data-p="${esc(p.id)}">${rows}</ol>`;
     };
     const multiPlan = R.multi_plan || [];
     const planReady = (a) => a.enabled && a.signed_in && !(a.resting_until > nowS);
@@ -3414,48 +3515,64 @@
         const pills = (isCur && useChat ? `<span class="ord-pill chat">${esc(t("models.acct_chat"))}</span>` : "")
           + (isCur && useBg ? `<span class="ord-pill bg">${esc(t("models.acct_bg"))}</span>` : "");
         return `<li class="ord-acct${a.enabled ? "" : " off"}${isCur && useChat ? " inuse" : isCur && useBg ? " inuse-bg" : ""}" data-dnd="pacct:${esc(p.id)}" data-id="${esc(a.id)}">
-            <button type="button" class="ord-grip" aria-label="${esc(t("models.ord_drag", { ten: name }))}">${ORD_GRIP}</button>
-            <span class="ord-num">${i + 1}</span>
-            <span class="ord-atxt"><span class="ord-aname"><span class="ord-dot ${cls}">●</span> ${esc(name)}</span>
-              <span class="ord-ast">${esc(st)}</span>${pills}</span>
+            <span class="ord-ai">${ic("user")}</span>
+            <span class="ord-atxt"><span class="ord-aname">${esc(name)}</span>
+              <span class="ord-ast ${cls}">${ic(ST_IC[cls])}${esc(st)}</span>${pills}</span>
             <span class="ord-actl">
-              <button type="button" class="ord-ib" data-pacct-move="-1" ${i === 0 ? "disabled" : ""} aria-label="${esc(t("models.acct_up", { ten: name }))}">${ic("chevron-up")}</button>
-              <button type="button" class="ord-ib" data-pacct-move="1" ${i === n - 1 ? "disabled" : ""} aria-label="${esc(t("models.acct_down", { ten: name }))}">${ic("chevron-down")}</button>
-              <button type="button" class="ord-ib" data-acct-menu="1" aria-expanded="false" aria-label="${esc(t("models.acct_menu", { ten: name }))}">${ic("ellipsis")}</button>
+              <button type="button" class="ord-ib" data-acct-menu="1" aria-haspopup="dialog" aria-label="${esc(t("models.acct_menu", { ten: name }))}">${ic("ellipsis")}</button>
             </span>
-            <div class="ord-menu" hidden>
-              <button type="button" class="gcard-btn ghost" data-pacct-act="toggle">${esc(a.enabled ? t("models.acct_disable") : t("models.acct_enable"))}</button>
-              ${a.main ? "" : `<button type="button" class="gcard-btn ghost" data-pacct-act="relogin">${esc(t("models.pacct_relogin"))}</button>
-              <button type="button" class="gcard-btn ghost danger" data-pacct-act="remove">${esc(t("models.acct_rm"))}</button>`}
-            </div>
           </li>`;
       }).join("");
-      return `<div class="ord-pacct" data-p="${esc(p.id)}">
-          ${n > 1 ? `<div class="prov-auth-title">${esc(t("models.pacct_h"))}${infoBtn()}</div>${infoBody(esc(t("models.pacct_note")))}
-          <ol class="ord-accts">${rows}</ol>` : ""}
-          <button type="button" class="ord-add" data-pacct-add="${esc(p.id)}">＋ ${esc(t("models.pacct_add"))}</button>
-          <div class="ord-addbox" data-pacct-box="${esc(p.id)}" hidden>
-            <input class="js-input" data-f="label" placeholder="${esc(t("models.pacct_label_ph"))}">
-            <div class="prov-auth-warn">${esc(t("models.pacct_warn"))}<br>${esc(t("models.pacct_warn2"))}</div>
-            <div class="ord-pstep"></div>
-            <div class="prov-action" style="margin-top:0"><button type="button" class="gcard-btn" data-pacct-go="${esc(p.id)}">${esc(t("models.pacct_get_link"))}</button>
-              <button type="button" class="gcard-btn ghost" data-pacct-cancel="1">${esc(t("common.cancel"))}</button>
-              <span class="gcard-meta ord-addmsg"></span></div>
-          </div>
-        </div>`;
+      // Adding an account happens in a pull-up sheet (bindOrderCards); the card lists the accounts once there are two.
+      return n > 1 ? `<div class="ord-pacct" data-p="${esc(p.id)}">
+          <div class="prov-auth-title">${esc(t("models.pacct_h"))}${infoBtn()}</div>${infoBody(esc(t("models.pacct_note")))}
+          <ol class="ord-accts">${rows}</ol>
+        </div>` : "";
     };
 
     // withInfo: an (i) after the name; the card puts infoBody(...) right after this head.
+    // The provider's own logo in a tile, with a dot for its state: green signed in, amber resting, grey otherwise
+    // ("the cards need the providers' real logos"). Advanced API key holds keys of many sellers,
+    // so it shows a key.
+    const logoTile = (p, on) => {
+      const L = window.VanhanhProviderLogos, svg = L ? L.svg(p.id) : "";
+      return `<span class="prov-logo${svg ? "" : " ic-tile"}">${svg || ic("key-round")}<span class="prov-dot${limitedAt[p.id] ? " rest" : on ? " on" : ""}"></span></span>`;
+    };
+    // The small tag after the name says what pays for the card: the plan, or an API key.
+    const PLAN_TAG = { "openai-oauth": "models.tag_chatgpt", "grok-cli": "models.tag_xai", "antigravity-cli": "models.tag_google",
+                       "anthropic-cli": "models.tag_claude" };
+    const kindTag = (p) => {
+      if (p.id === "anthropic-cli" && p.auth_mode === "api_key") return t("models.tag_api");
+      if (PLAN_TAG[p.id]) return p.plan ? t("models.tag_plan", { goi: p.plan }) : t(PLAN_TAG[p.id]);
+      if (isGw(p.id)) return t("models.tag_keys", { n: (accts[p.id] || []).length || (p.configured ? 1 : 0) });
+      return t(p.id === "ollama-local" ? "models.tag_addr" : "models.tag_api");
+    };
+    // The button row under a card in the order, in the Tasks page's style: what the owner does most, with an icon
+    // each, Disconnect last and in red. `o.check` is the attribute of the card's own check handler, `o.add` "plan"
+    // (sign in another account) or "key" (another API key).
+    const ordActs = (p, ord, o) => {
+      if (!ord) return "";
+      o = o || {};
+      const canDisc = !(p.id === "anthropic-cli" && p.auth_mode === "api_key");
+      return `<div class="ord-acts">
+          ${isBg(p) ? "" : `<button type="button" class="ord-act" data-setbg="${esc(p.id)}">${ic("workflow")}<span>${esc(t("models.use_bg"))}</span></button>`}
+          ${o.check ? `<button type="button" class="ord-act" ${o.check}="1">${ic("refresh-cw")}<span>${esc(t("models.check_short"))}</span></button>` : ""}
+          ${o.add === "plan" ? `<button type="button" class="ord-act" data-addacc="${esc(p.id)}">${ic("user-plus")}<span>${esc(t("models.pacct_add"))}</span></button>` : ""}
+          ${o.add === "key" ? `<button type="button" class="ord-act" data-addkey="${esc(p.id)}">${ic("plus")}<span>${esc(t("models.acct_add"))}</span></button>` : ""}
+          ${canDisc ? `<button type="button" class="ord-act danger" data-disccard="${esc(p.id)}">${ic("log-out")}<span>${esc(t("models.disconnect"))}</span></button>` : ""}
+        </div>`;
+    };
+    const statusIc = (p, on) => limitedAt[p.id] ? ic("clock") : on ? ic("circle-check") : "";
     const provHead = (p, on, kindLabel, statusText, withInfo, ord) => `
         <div class="prov-head${ord ? " ord-head" : ""}">
           ${ordGrip(p, ord)}
-          <span class="prov-shield ${on ? "on" : ""}">${_shield(on)}</span>
+          ${logoTile(p, on)}
           <div class="prov-info">
-            <div class="prov-name">${esc(p.label)} <span class="prov-kind">${kindLabel}</span>${withInfo ? infoBtn() : ""}</div>
-            <div class="prov-status ${on ? "on" : ""}">${statusText}${ord ? esc(ordStatus(p)) : ""}</div>
+            <div class="prov-name">${esc(p.label)} <span class="prov-kind">${esc(kindTag(p))}</span>${withInfo ? infoBtn() : ""}</div>
+            <div class="prov-status ${limitedAt[p.id] && ord ? "rest" : on ? "on" : ""}">${statusIc(p, on)}<span>${statusIc(p, on) ? String(statusText).replace(/^●\s*/, "") : statusText}${ord ? esc(ordStatus(p)) : ""}</span></div>
           </div>
-          ${ordBadges(p, ord)}
-        </div>${ordChips(p, ord)}`;
+          ${cardMenuBtn(p, ord)}
+        </div>${ordChips(p, ord)}${limitLine(p, ord)}`;
     // CLI chưa có trên máy (thẻ agy và grok). Bản Docker tự cài hai CLI này lúc khởi động,
     // nên trong lúc nó đang cài thì nói đúng như vậy, đừng đưa một dòng lệnh cho người cài qua
     // Hostinger không có chỗ nào để gõ. `tu_cai` rỗng = máy không tự cài (bản cài tay): giữ lệnh như cũ.
@@ -3496,19 +3613,20 @@
       };
       if (p.kind === "oauth") {
         const st = on
-          ? t("models.st_connected") + (p.plan ? " · " + esc(p.plan) : "") + " · " + p.models.length + " model"
+          ? t("models.st_connected") + esc(acctNameTag(p.id)) + (p.plan ? " · " + esc(p.plan) : "") + " · " + p.models.length + " model"
           : t("models.st_not_connected") + " · " + p.models.length + " model";
         return `${cardOpen(p, ord)}
           ${provHead(p, on, "Device code", st, false, ord)}
           ${cliWarn("codex")}
+          ${on ? planAccts(p, ord) : ""}
+          ${ordActs(p, ord, { add: on && ord && multiPlan.indexOf(p.id) >= 0 ? "plan" : "" })}
           <div class="prov-action" style="flex-wrap:wrap">
-            ${on
+            ${on && ord ? "" : on
               ? `<button class="gcard-btn ghost" data-oauth-disc="1">${esc(t("models.disconnect"))}</button>`
-              : `<button class="gcard-btn" data-oauth-login="1">${esc(t("models.login_gpt"))}</button>
+              : `${acctNameField(p.id)}<button class="gcard-btn" data-oauth-login="1">${esc(t("models.login_gpt"))}</button>
                  <button class="gcard-btn ghost" data-oauth-browser="1">${esc(t("models.via_browser"))}</button>`}
             <span id="oauthMsg" class="gcard-meta" style="margin-left:10px;flex:1;min-width:220px"></span>
           </div>
-          ${on ? planAccts(p, ord) : ""}
         </div>`;
       }
       if (p.id === "grok-cli") {
@@ -3518,7 +3636,7 @@
         // Từng thử (và tắc trên Windows vì không có pseudo-terminal).
         const dn = p.dang_nhap || {};
         const st = on
-          ? t("models.st_logged_in") + (p.account ? " · " + esc(p.account) : "")
+          ? t("models.st_logged_in") + esc(acctNameTag(p.id)) + (p.account ? " · " + esc(p.account) : "")
             + (p.plan ? " · " + esc(p.plan) : "") + " · " + p.models.length + " model"
           : (p.cli_found ? t("models.st_cli_no_login") : t("models.st_no_cli", { ten: "Grok Build CLI" }));
         return `${cardOpen(p, ord)}
@@ -3526,15 +3644,16 @@
           ${infoBody(esc(t("models.grok_note")))}
           ${cliSetup(p, "Grok Build")}
           <div id="grokBox" class="prov-steps" style="display:none"></div>
+          ${on ? planAccts(p, ord) : ""}
+          ${ordActs(p, ord, { check: "data-grokcheck", add: on && multiPlan.indexOf(p.id) >= 0 ? "plan" : "" })}
           <div class="prov-action" style="flex-wrap:wrap">
-            ${on
+            ${on && ord ? "" : on
               ? `<button class="gcard-btn ghost" data-grokcheck="1">${esc(t("qs.recheck"))}</button>
                  <button class="gcard-btn ghost" data-grokdisc="1">${esc(t("models.disconnect"))}</button>`
-              : `<button class="gcard-btn" data-groklogin="1">${esc(t("auth.submit"))}</button>
+              : `${acctNameField(p.id)}<button class="gcard-btn" data-groklogin="1">${esc(t("auth.submit"))}</button>
                  <button class="gcard-btn ghost" data-grokcheck="1">${esc(t("qs.recheck"))}</button>`}
             <span id="grokMsg" class="gcard-meta" style="margin-left:10px;flex:1;min-width:200px">${on ? "" : esc(p.auth_error || "")}</span>
           </div>
-          ${on ? planAccts(p, ord) : ""}
         </div>`;
       }
       if (p.id === "antigravity-cli") {
@@ -3544,23 +3663,33 @@
         // giả - chạy được trên Linux nhưng trên trang hiện ra một ô terminal bấm không ăn, còn
         // Windows không có pseudo-terminal nên luôn tắc. Người dùng `agy` vốn là dân code, gõ
         // một lệnh nhanh hơn hẳn. Nên thẻ này chỉ đưa đúng lệnh cần gõ.
+        // the card has Disconnect too. The keyring stays out of reach, so the server runs the
+        // CLI's own sign-out when it has one and otherwise switches the card off in Vanhanh; "Connect again" undoes it.
         const dn = p.dang_nhap || {};
+        const off = !!p.vanhanh_off;
         const st = on
-          ? t("models.st_logged_in") + (p.auth_method ? " · " + esc(p.auth_method) : "")
+          ? t("models.st_logged_in") + esc(acctNameTag(p.id)) + (p.auth_method ? " · " + esc(p.auth_method) : "")
             + " · " + p.models.length + " model"
+          : off ? t("models.agy_off")
           : (p.cli_found ? t("models.st_cli_no_login") : t("models.st_no_cli", { ten: "Antigravity CLI" }));
         return `${cardOpen(p, ord)}
           ${provHead(p, on, "MCP/skill", st, true, ord)}
           ${infoBody(esc(t("models.agy_note")))}
           ${cliSetup(p, "Antigravity CLI")}
-          ${on ? "" : `<div class="prov-steps">
+          ${on || off ? "" : `<div class="prov-steps">
             <div><b>${esc(t("models.agy_login"))}</b> <code>${esc(dn.dang_nhap || "agy")}</code>${dn.ghi_chu || dn.cuu_ho ? infoBtn() : ""}</div>
             ${dn.ghi_chu || dn.cuu_ho ? infoBody(esc(dn.ghi_chu || "") + (dn.cuu_ho ? `<div>${esc(dn.cuu_ho)}</div>` : "")) : ""}
             <div>${esc(t("models.agy_done"))}</div>
           </div>`}
+          ${off ? `<div class="ord-offnote">${ic("info")}<span>${esc(t("models.agy_off_note"))}</span></div>` : ""}
+          ${on ? planAccts(p, ord) : ""}
+          ${ordActs(p, ord, { check: "data-agycheck", add: on && multiPlan.indexOf(p.id) >= 0 ? "plan" : "" })}
           <div class="prov-action" style="flex-wrap:wrap">
-            <button class="gcard-btn ghost" data-agycheck="1">${esc(t("qs.recheck"))}</button>
-            <span id="agyMsg" class="gcard-meta" style="margin-left:10px;flex:1;min-width:200px">${on ? "" : esc(p.auth_error || "")}</span>
+            ${off
+              ? `<button class="gcard-btn" data-agyon="1">${ic("plug-zap")} ${esc(t("models.reconnect"))}</button>`
+              : on && ord ? "" : `${on ? "" : acctNameField(p.id)}<button class="gcard-btn ghost" data-agycheck="1">${esc(t("qs.recheck"))}</button>
+                 ${on ? `<button class="gcard-btn ghost" data-agydisc="1">${esc(t("models.disconnect"))}</button>` : ""}`}
+            <span id="agyMsg" class="gcard-meta" style="margin-left:10px;flex:1;min-width:200px">${on || off ? "" : esc(p.auth_error || "")}</span>
           </div>
         </div>`;
       }
@@ -3572,14 +3701,14 @@
         return `${cardOpen(p, ord)}
           <div class="prov-head${ord ? " ord-head" : ""}">
             ${ordGrip(p, ord)}
-            <span class="prov-shield ${p.cli_found === false ? "" : "on"}">${_shield(p.cli_found !== false)}</span>
+            ${logoTile(p, p.cli_found !== false)}
             <div class="prov-info">
-              <div class="prov-name">${esc(p.label)} <span class="prov-kind">MCP/skill</span></div>
+              <div class="prov-name">${esc(p.label)} <span class="prov-kind">${esc(kindTag(p))}</span></div>
               <div class="prov-status" id="cliStatus">${esc(p.cli_found === false
                 ? t("models.st_no_cli", { ten: "Claude Code" }) : t("models.checking"))}</div>
             </div>
-            ${ordBadges(p, ord)}
-          </div>${ordChips(p, ord)}
+            ${cardMenuBtn(p, ord)}
+          </div>${ordChips(p, ord)}${limitLine(p, ord)}
           ${cliWarn("claude")}
           <div id="cliAction"></div>
           <div class="prov-note" id="cliUpd"></div>
@@ -3596,16 +3725,46 @@
               ${p.auth_api_key_set ? "" : ` <i>${esc(t("models.auth_key_none"))}</i>`}</span></label>
           </div>
           ${planAccts(p, ord)}
+          ${ordActs(p, ord, { check: "data-cccheck", add: ord && multiPlan.indexOf(p.id) >= 0 && !byKey ? "plan" : "" })}
         </div>`;
       }
       const masked = (m[KEYFIELD[p.id]] || "").slice(-4);
+      // A gateway card in the order: its gateways as a list like the keys of an API card, each
+      // with its own address; ⋯ edits one, "Add key" opens the form in a sheet.
+      if (ord && isGw(p.id)) {
+        const gws = accts[p.id] || [];
+        const ready = gws.filter(g => g.enabled && !(g.resting_until > nowS));
+        const rows = gws.map((g) => {
+          const cls = !g.enabled ? "off" : g.resting_until > nowS ? "rest" : "ready";
+          const st = cls === "off" ? t("models.acct_off") : cls === "rest"
+            ? t("models.acct_rest", { gio: new Date(g.resting_until * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })
+            : t("models.acct_ready");
+          const live = !!ready[0] && ready[0].id === g.id && R.chat_in_use === p.id;
+          return `<li class="ord-acct${g.enabled ? "" : " off"}${live ? " inuse" : ""}" data-dnd="adv:${esc(p.id)}" data-id="${esc(g.id)}">
+              <span class="ord-ai">${ic("key-round")}</span>
+              <span class="ord-atxt"><span class="ord-aname">${esc(g.label)}</span>
+                <span class="ord-ast ${cls}">${ic(ST_IC[cls])}${esc(g.host)}${g.key ? " · " + esc(g.key) : ""} · ${esc(st)}</span></span>
+              <span class="ord-actl"><button type="button" class="ord-ib" data-adv-menu="1" aria-haspopup="dialog" aria-label="${esc(t("models.acct_menu", { ten: g.label }))}">${ic("ellipsis")}</button></span>
+            </li>`;
+        }).join("");
+        return `${cardOpen(p, ord)}
+          ${provHead(p, on, "", esc(t("models.adv_status", { ok: ready.length, n: gws.length })), true, ord)}
+          ${infoBody(esc(t("models.adv_note")))}
+          <ol class="ord-accts" data-p="${esc(p.id)}">${rows}</ol>
+          ${ordActs(p, ord, { add: "key" })}
+        </div>`;
+      }
       if (p.id === "openai-compat") {
-        // Endpoint tự khai: thứ quyết định "đã kết nối" là Base URL, key có thể bỏ trống.
+        // OpenAI Compatible, the advanced API keys: any seller speaking the OpenAI API (NVIDIA Build, Kimi, OpenRouter
+        // clones, LiteLLM, vLLM...). The key may be blank for a server that needs none; the model list comes from the
+        // seller, and the model box opens only for a seller that lists none.
         return `${cardOpen(p, ord)}
           ${provHead(p, on, "MCP Vanhanh", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", true, ord)}
           ${infoBody(esc(t("models.oc_note")))}
           <div class="prov-action" style="flex-wrap:wrap">
+            <input class="js-input" id="ocLabel" spellcheck="false" style="flex:1 1 100%" placeholder="${esc(t("models.adv_label_ph"))}">
             <input class="js-input" id="ocBase" inputmode="url" spellcheck="false" style="flex:1 1 100%" value="${esc(m.openai_compat_base || "")}" placeholder="${esc(t("models.oc_base_ph"))}">
+            <input class="js-input" id="ocModels" spellcheck="false" autocomplete="off" style="flex:1 1 100%;display:none" placeholder="${esc(t("models.adv_models_ph"))}">
             <input class="js-input" id="ocKey" type="password" style="flex:1" placeholder="${on && masked ? esc(t("models.key_change_ph", { duoi: masked })) : esc(t("models.oc_key_ph"))}">
             <button class="gcard-btn" id="ocSave">${on ? esc(t("common.save")) : esc(t("models.connect"))}</button>
             ${on ? `<button class="gcard-btn ghost" data-disc="${p.id}">${esc(t("models.disconnect"))}</button>` : ""}
@@ -3621,6 +3780,7 @@
           ${provHead(p, on, "MCP Vanhanh", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", true, ord)}
           ${infoBody(esc(t("models.ac_note")))}
           <div class="prov-action" style="flex-wrap:wrap">
+            <input class="js-input" id="acLabel" spellcheck="false" style="flex:1 1 100%" placeholder="${esc(t("models.adv_label_ph"))}">
             <input class="js-input" id="acBase" inputmode="url" spellcheck="false" style="flex:1 1 100%" value="${esc(m.anthropic_compat_base || "")}" placeholder="${esc(t("models.ac_base_ph"))}">
             <input class="js-input" id="acModels" list="acModelSug" spellcheck="false" autocomplete="off" style="flex:1 1 100%${typed ? "" : ";display:none"}" value="${esc(typed)}" placeholder="${esc(t("models.ac_models_ph"))}">
             <datalist id="acModelSug"></datalist>
@@ -3634,8 +3794,9 @@
       return `${cardOpen(p, ord)}
         ${provHead(p, on, p.kind === "cli" ? "MCP/skill" : "MCP Vanhanh", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", false, ord)}
         ${ord && multiKey.indexOf(p.id) >= 0 ? acctList(p) : p.needs_key
-          ? `<div class="prov-action"><input class="js-input" id="pk-${p.id}" type="password" placeholder="${on ? esc(t("models.key_change_ph", { duoi: masked })) : esc(t("models.key_ph"))}"><button class="gcard-btn" data-pk="${p.id}">${on ? esc(t("models.key_change")) : esc(t("models.connect"))}</button>${on ? `<button class="gcard-btn ghost" data-disc="${p.id}">${esc(t("models.disconnect"))}</button>` : ""}</div>`
+          ? `<div class="prov-action">${!on && multiKey.indexOf(p.id) >= 0 ? acctNameField(p.id) : ""}<input class="js-input" id="pk-${p.id}" type="password" placeholder="${on ? esc(t("models.key_change_ph", { duoi: masked })) : esc(t("models.key_ph"))}"><button class="gcard-btn" data-pk="${p.id}">${on ? esc(t("models.key_change")) : esc(t("models.connect"))}</button>${on && !ord ? `<button class="gcard-btn ghost" data-disc="${p.id}">${esc(t("models.disconnect"))}</button>` : ""}</div>`
           : `<div class="prov-note">${esc(t("models.no_key_note"))}</div>`}
+        ${ordActs(p, ord, { add: ord && multiKey.indexOf(p.id) >= 0 ? "key" : "" })}
       </div>`;
     };
 
@@ -3647,7 +3808,13 @@
           dung: (useP.label || bgUse.provider) + " · " + (bgUse.model || defName(bgUse.provider)) }))}</div>` : "";
     const moreHtml = offList.length ? `<div class="cview-section${connList.length ? "" : " ord-first"}">
         ${connList.length ? "" : `<div class="prov-note warn">${WARN_ICON} ${esc(t("models.ord_empty"))}</div>`}
-        <button type="button" class="ord-more" id="ordMore" aria-expanded="${showOff ? "true" : "false"}">＋ ${esc(t("models.ord_more", { n: offList.length }))}</button>
+        <button type="button" class="ord-more" id="ordMore" aria-controls="ordOff" aria-expanded="${showOff ? "true" : "false"}">
+          <span class="ord-stack">${offList.filter(p => window.VanhanhProviderLogos && window.VanhanhProviderLogos.has(p.id)).slice(0, 3)
+            .map(p => `<span class="prov-logo mini">${window.VanhanhProviderLogos.svg(p.id)}</span>`).join("") || `<span class="prov-logo mini ic-tile">${ic("plug")}</span>`}</span>
+          <span class="ord-more-t"><b>${esc(t("models.connect_more"))}</b><span>${esc(offList.slice(0, 4).map(p => p.label).join(", ")
+            + (offList.length > 4 ? " " + t("models.connect_more_n", { n: offList.length - 4 }) : ""))}</span></span>
+          ${ic("chevron-down", { cls: "ord-more-c" })}
+        </button>
         <div class="prov-list ord-off" id="ordOff" ${showOff ? "" : "hidden"}>${offList.map(p => provCard(p, null)).join("")}</div>
       </div>` : "";
     el.innerHTML = `
@@ -3662,12 +3829,13 @@
         ${infoBody(esc(t("models.bg_note")))}
         <div class="gcard aux-card">
           <div class="aux-now">
+            <span class="prov-logo ic-tile aux-ic">${ic("cpu")}</span>
             <div class="aux-now-txt">
               <div class="aux-now-model">${esc(bgName)}</div>
               <div class="aux-now-prov">${esc(bgP.label || bgCfg.provider)}</div>
             </div>
             <div class="aux-now-act ord-chips" data-p="__bg">
-              <button type="button" class="cp-eff ord-echip" data-ordpop="eff" aria-expanded="false" title="${esc(t("eff.head"))}"><span class="ord-etxt">${esc(effName(bgCfg.reasoning))}</span><span class="mb-caret">▾</span></button>
+              ${effChip("__bg", bgCfg.reasoning)}
               <button type="button" class="gcard-btn" id="auxChange" aria-expanded="false">${esc(t("models.change_model"))}</button>
             </div>
           </div>
@@ -3677,7 +3845,9 @@
       </div>
       ${connList.length ? moreHtml : ""}`;
 
-    bindOrderCards(el, { order, connList, prof, accts, bgCfg, effName, again: () => renderModelsCloudTab(el) });
+    bindOrderCards(el, { order, connList, offList, prof, accts, bgCfg, effName, multiKey, multiPlan, limited: limitedAt,
+                         fast: m.fast === true, kindTag,
+                         again: () => renderModelsCloudTab(el) });
     // Nguồn xác thực của gói Claude Code. Vẽ lại cả trang sau khi lưu vì cảnh báo phụ thuộc
     // cả lựa chọn này LẪN model việc nền - chỉ server mới ghép được hai thứ đó.
     el.querySelectorAll('input[name="claudeAuth"]').forEach((r) => {
@@ -3692,9 +3862,11 @@
         const pid = b.dataset.pk;
         const inp = document.getElementById("pk-" + pid);
         const val = (inp && inp.value || "").trim();
+        const name = takeAcctName(el, pid);
+        if (name === null) return;
         if (!val) { if (inp) inp.focus(); return; }
         b.disabled = true; b.textContent = t("settings.saving");
-        await saveSetting("model", { [KEYFIELD[pid]]: val });
+        await saveSetting("model", name ? { [KEYFIELD[pid]]: val, key_label: name } : { [KEYFIELD[pid]]: val });
         renderModelsCloudTab(el);
       };
     });
@@ -3705,12 +3877,19 @@
       const msg = document.getElementById("ocMsg");
       if (!/^https?:\/\//i.test(base)) { msg.textContent = t("models.oc_need_base"); document.getElementById("ocBase").focus(); return; }
       ocSave.disabled = true; ocSave.textContent = t("settings.checking");
-      // Server gọi thử {base}/models bằng key này, chỉ lưu khi thành công.
+      // The server reads {base}/models with this key (the seller's own model list) and saves only on success. A seller
+      // that lists none gets the model box opened, then one tiny chat call with the typed model.
       let r;
-      try { r = await postJson("/provider/openai-compat/connect", { base: base, key: key }, 30000); } catch (e) { r = { ok: false, error: String(e) }; }
+      const lab = ((document.getElementById("ocLabel") || {}).value || "").trim();
+      const models = ((document.getElementById("ocModels") || {}).value || "").trim();
+      try { r = await postJson("/provider/openai-compat/connect", { base: base, key: key, models: models, label: lab }, 60000); } catch (e) { r = { ok: false, error: String(e) }; }
       if (!r || !r.ok) {
         ocSave.disabled = false; ocSave.textContent = t("models.connect");
         msg.innerHTML = WARN_ICON + " " + esc((r && r.error) || t("app.err_cap"));
+        if (r && r.need_models) {
+          const box = document.getElementById("ocModels");
+          if (box) { box.style.display = ""; box.focus(); }
+        }
         return;
       }
       await freshSettings();
@@ -3726,7 +3905,8 @@
       acSave.disabled = true; acSave.textContent = t("settings.checking");
       // The server tries {base}/v1/models, else one tiny /v1/messages call with the first model; saves only on success.
       let r;
-      try { r = await postJson("/provider/anthropic-compat/connect", { base: base, key: key, models: models }, 60000); } catch (e) { r = { ok: false, error: String(e) }; }
+      const lab = ((document.getElementById("acLabel") || {}).value || "").trim();
+      try { r = await postJson("/provider/anthropic-compat/connect", { base: base, key: key, models: models, label: lab }, 60000); } catch (e) { r = { ok: false, error: String(e) }; }
       if (!r || !r.ok) {
         acSave.disabled = false; acSave.textContent = t("models.connect");
         msg.innerHTML = WARN_ICON + " " + esc((r && r.error) || t("app.err_cap"));
@@ -3750,12 +3930,23 @@
       };
     });
     const ol = el.querySelector("[data-oauth-login]");
-    if (ol) ol.onclick = () => startOauthLogin(el);
+    // The first sign-in waits for the account's name and saves it as account 1's label before the link opens.
+    const named = (pid, go) => async () => {
+      const name = takeAcctName(el, pid);
+      if (name === null) return;
+      try { await savePlanName(pid, name); } catch (e) {}
+      go();
+    };
+    if (ol) ol.onclick = named("openai-oauth", () => startOauthLogin(el));
     const ob = el.querySelector("[data-oauth-browser]");
-    if (ob) ob.onclick = () => startOauthBrowser(el);
+    if (ob) ob.onclick = named("openai-oauth", () => startOauthBrowser(el));
     const agk = el.querySelector("[data-agycheck]");
     if (agk) agk.onclick = async () => {
       const msg = el.querySelector("#agyMsg");
+      // Antigravity signs in from a terminal, so its name is saved when the owner checks the card afterwards.
+      const name = takeAcctName(el, "antigravity-cli");
+      if (name === null) return;
+      try { await savePlanName("antigravity-cli", name); } catch (e) {}
       agk.disabled = true; const cu2 = agk.textContent; agk.textContent = t("models.trying");
       if (msg) msg.textContent = t("models.testing");
       let r = null;
@@ -3780,10 +3971,28 @@
         setTimeout(() => renderModelsCloudTab(el), 700);
       } else if (msg) msg.innerHTML = Icons.warn((r && r.error) || t("models.not_works")) + mcpTxt;
     };
+    const agd = el.querySelector("[data-agydisc]");
+    if (agd) agd.onclick = () => disconnectCard(el, "antigravity-cli", agd);
+    const agon = el.querySelector("[data-agyon]");
+    if (agon) agon.onclick = async () => {
+      const msg = el.querySelector("#agyMsg");
+      agon.disabled = true; agon.textContent = t("models.trying");
+      let r = null;
+      try { r = await (await fetch("/antigravity/reconnect", { method: "POST" })).json(); }
+      catch (e) { r = { ok: false, error: t("common.net_err") }; }
+      _daHoiModel.delete("antigravity-cli");
+      if (r && r.connected) { renderModelsCloudTab(el); return; }
+      agon.disabled = false; agon.textContent = t("models.reconnect");
+      if (msg) msg.innerHTML = Icons.warn((r && r.error) || t("models.not_works"));
+      setTimeout(() => renderModelsCloudTab(el), 1500);
+    };
     // ---- Grok Build CLI: đăng nhập device code ngay trên trang ----
     const gkl = el.querySelector("[data-groklogin]");
     if (gkl) gkl.onclick = async () => {
       const msg = el.querySelector("#grokMsg"), box = el.querySelector("#grokBox");
+      const name = takeAcctName(el, "grok-cli");
+      if (name === null) return;
+      try { await savePlanName("grok-cli", name); } catch (e) {}
       gkl.disabled = true; const cu = gkl.textContent; gkl.textContent = t("models.opening");
       if (msg) msg.textContent = t("models.grok_ask");
       let r = null;
@@ -3936,6 +4145,35 @@
   // every draw of the tab; each change saves at once and draws the tab again from the server's answer.
   // "default" alone tells nothing, so it names the model it stands for when the server knows it.
   let MODEL_DEFAULTS = {};
+  // the first sign-in of a card asks for the account's name, so two accounts never read alike. A plan
+  // card keeps it as account 1's label (plan_accounts), an API card as its first key's label. Filled on every draw.
+  let ACCT_NAMES = {};      // plan card id -> account 1's label
+  let ACCT_ITEMS = {};      // plan card id -> its account list, so saving a name keeps order and on/off
+  const acctNameField = (pid) => `<input class="js-input prov-acname" data-acname="${esc(pid)}" maxlength="60" autocomplete="off"
+    spellcheck="false" placeholder="${esc(t("models.acname_ph"))}" value="${esc(ACCT_NAMES[pid] || "")}">`;
+  // The typed name, "" when the card has no name box, or null after pointing at the empty box: the sign-in waits.
+  function takeAcctName(el, pid) {
+    const inp = el.querySelector(`[data-acname="${pid}"]`);
+    if (!inp) return "";
+    const v = inp.value.trim();
+    if (!v) {
+      inp.classList.add("need");
+      inp.placeholder = t("models.acname_need");
+      inp.focus();
+      return null;
+    }
+    inp.classList.remove("need");
+    return v;
+  }
+  async function savePlanName(pid, name) {
+    if (!name || name === ACCT_NAMES[pid]) return;
+    const items = (ACCT_ITEMS[pid] && ACCT_ITEMS[pid].length ? ACCT_ITEMS[pid] : [{ id: "main", label: "", enabled: true }])
+      .map(a => ({ id: a.id, label: a.id === "main" ? name : (a.label || ""), enabled: a.enabled !== false }));
+    ACCT_NAMES[pid] = name;
+    await saveSetting("model", { accounts: { provider: pid, items: items } });
+  }
+  // " · name" for a plan card's status line, "" when account 1 has none yet.
+  const acctNameTag = (pid) => ACCT_NAMES[pid] ? " · " + ACCT_NAMES[pid] : "";
   // A subscription CLI with nothing set picks its own model by plan, which Vanhanh cannot read: say so instead of "default".
   const PLAN_CLI = ["anthropic-cli", "openai-oauth", "grok-cli", "antigravity-cli"];
   const defName = (pid) => MODEL_DEFAULTS[pid] ? t("models.mp_default_is", { m: MODEL_DEFAULTS[pid] })
@@ -3956,83 +4194,258 @@
       if (key === "prov") save({ order: MO.move(c.order, from, to) });
       else if (key.indexOf("acct:") === 0) saveAcc(key.slice(5), MO.move(items(key.slice(5)), from, to));
       else if (key.indexOf("pacct:") === 0) saveAcc(key.slice(6), MO.move(items(key.slice(6)), from, to));
+      else if (key.indexOf("adv:") === 0) save({ adv_keys: { provider: key.slice(4), items: MO.move(items(key.slice(4)), from, to) } });
     } });
 
+    // ---- pull-up sheets: every picker, menu, form and confirmation of this page ----
+    // A phone used to get a bottom sheet and a computer a popover under the chip. The owner asked
+    // for the Tasks page style everywhere: "use pull up, not drop down" (approved design:
+    // The model list, the Effort slider, the background model, a card's ⋯, a
+    // key's or an account's ⋯, the add forms and the Disconnect question all slide up from the bottom on every
+    // screen, with a title and a close button; nothing unfolds inside a card any more.
+    let openPop = null;
+    const closePop = () => {
+      if (!openPop) return;
+      const o = openPop;
+      openPop = null;
+      if (o.slider) o.slider.destroy();
+      if (o.onClose) o.onClose();
+      o.el.remove();
+      if (o.back) o.back.remove();
+      if (o.btn) o.btn.setAttribute("aria-expanded", "false");
+    };
+    // A phone keeps its keyboard down until a box is tapped; a computer types at once.
+    const phone = () => window.matchMedia("(max-width: 600px)").matches;
+    const shell = (wrap, cls, title, sub, logo) => {
+      const back = document.createElement("div");
+      back.className = "ord-sheet-back";
+      const pop = document.createElement("div");
+      pop.className = "ord-pop ord-sheet " + cls;
+      pop.setAttribute("aria-modal", "true");
+      pop.innerHTML = `<div class="ord-sheet-grab" aria-hidden="true"></div>
+        <div class="ord-sheet-head">${logo || ""}<b>${esc(title)}${sub ? `<small>${esc(sub)}</small>` : ""}</b>
+          <button type="button" class="ord-sheet-x" aria-label="${esc(t("common.close"))}">${X_ICON}</button></div>
+        <div class="ord-sheet-body"></div>`;
+      document.body.appendChild(back);
+      document.body.appendChild(pop);
+      pop.querySelector(".ord-sheet-x").onclick = () => closePop();
+      return { pop: pop, body: pop.querySelector(".ord-sheet-body"), sheet: true, back: back };
+    };
+    el._ordClose = closePop;
+    if (!el._ordDocBound) {
+      el._ordDocBound = true;
+      document.addEventListener("pointerdown", (e) => {
+        if (el._ordClose && !(e.target.closest && e.target.closest(".ord-chips, .ord-pop"))) el._ordClose();
+      }, true);
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && el._ordClose) el._ordClose(); });
+    }
+    const opened = (btn, sh, slider, onClose) => {
+      openPop = { el: sh.pop, btn: btn || null, slider: slider || null, back: sh.back || null, onClose: onClose || null };
+      if (btn) btn.setAttribute("aria-expanded", "true");
+    };
+    const cardOf = (pid) => c.connList.concat(c.offList || []).find(p => p.id === pid) || { id: pid, label: pid };
+    const logoOf = (pid) => {
+      const L = window.VanhanhProviderLogos, s = L ? L.svg(pid) : "";
+      return `<span class="prov-logo sm${s ? "" : " ic-tile"}">${s || ic("key-round")}</span>`;
+    };
+    // A menu in the Tasks page's style: groups of finger-sized rows, an icon tile in front, a short line under the
+    // label, the risky one in red at the end. Row: { ic, label, sub, tone, danger, sel, run }. A falsy row is skipped.
+    const menuSheet = (btn, title, groups, sub, logo) => {
+      closePop();
+      const sh = shell(null, "ord-msheet", title, sub, logo);
+      sh.pop.setAttribute("role", "dialog");
+      sh.pop.setAttribute("aria-label", title);
+      const flat = [];
+      sh.body.innerHTML = groups.map(g => (g || []).filter(Boolean)).filter(g => g.length).map(g => `<div class="ord-mgrp">${g.map(m => {
+        flat.push(m);
+        return `<button type="button" class="ord-mi${m.danger ? " danger" : ""}${m.tone ? " " + m.tone : ""}" data-mi="${flat.length - 1}"${m.sel ? ' aria-current="true"' : ""}><span class="ord-mic">${ic(m.ic)}</span><span class="ord-mt">${esc(m.label)}${m.sub ? `<span class="ord-ms">${esc(m.sub)}</span>` : ""}</span></button>`;
+      }).join("")}</div>`).join("");
+      sh.body.onclick = (e) => {
+        const b = e.target.closest(".ord-mi[data-mi]");
+        if (!b) return;
+        const m = flat[Number(b.dataset.mi)];
+        if (m.sel) return;
+        closePop();
+        m.run();
+      };
+      opened(btn, sh);
+      return sh;
+    };
+    // The browser's confirm box is replaced by a sheet: Keep, and the risky button in red.
+    const confirmSheet = (btn, title, text, okLabel, okIcon, run) => {
+      closePop();
+      const sh = shell(null, "ord-msheet", title);
+      sh.pop.setAttribute("role", "alertdialog");
+      sh.pop.setAttribute("aria-label", title);
+      sh.body.innerHTML = `<p class="ord-cq">${esc(text)}</p>
+        <div class="ord-btns"><button type="button" class="ord-btn" data-cf="no">${esc(t("models.keep"))}</button>
+          <button type="button" class="ord-btn red" data-cf="yes">${ic(okIcon)}${esc(okLabel)}</button></div>`;
+      sh.body.onclick = (e) => {
+        const b = e.target.closest("[data-cf]");
+        if (!b) return;
+        closePop();
+        if (b.dataset.cf === "yes") run();
+      };
+      opened(btn, sh);
+    };
+    // A small form in a sheet. `fields`: [{ f, ph, type, mode, value }]. `onSave(val)` returns nothing when done (the
+    // sheet closes), an error text to show, or true to stay open quietly (it focused the box that needs filling).
+    const formSheet = (btn, title, sub, fields, okLabel, onSave, note) => {
+      closePop();
+      const sh = shell(null, "ord-msheet", title, sub);
+      sh.pop.setAttribute("role", "dialog");
+      sh.pop.setAttribute("aria-label", title);
+      sh.body.innerHTML = `<div class="ord-sform">${fields.map(x => `<input class="js-input" data-f="${x.f}"${x.type ? ` type="${x.type}" autocomplete="off"` : ""}${x.mode ? ` inputmode="${x.mode}" spellcheck="false"` : ""} placeholder="${esc(x.ph)}" value="${esc(x.value || "")}">`).join("")}
+        ${note ? `<div class="ord-offnote">${ic("info")}<span>${esc(note)}</span></div>` : ""}
+        <div class="ord-sfmsg gcard-meta"></div>
+        <div class="ord-btns"><button type="button" class="ord-btn" data-sf="cancel">${esc(t("common.cancel"))}</button>
+          <button type="button" class="ord-btn pri" data-sf="save">${ic("check")}${esc(okLabel)}</button></div></div>`;
+      const box = (f) => sh.body.querySelector(`[data-f="${f}"]`);
+      const val = (f) => ((box(f) || {}).value || "").trim();
+      sh.body.onclick = async (e) => {
+        const b = e.target.closest("[data-sf]");
+        if (!b) return;
+        if (b.dataset.sf === "cancel") { closePop(); return; }
+        b.disabled = true;
+        const err = await onSave(val, box);
+        if (err) {
+          b.disabled = false;
+          if (err !== true) sh.body.querySelector(".ord-sfmsg").innerHTML = WARN_ICON + " " + esc(err);
+          return;
+        }
+        closePop();
+      };
+      opened(btn, sh);
+      if (!phone()) { const f = sh.body.querySelector("input"); if (f) f.focus(); }
+      return sh;
+    };
+    const need = (box, f) => { const x = box(f); if (x) x.focus(); return true; };
+
     // ---- the keys of an API card ----
+    const addKeySheet = (btn, pid) => formSheet(btn, t("models.acct_add"), cardOf(pid).label, [
+      { f: "label", ph: t("models.acct_label_ph") },
+      { f: "key", ph: t("models.acct_key_ph"), type: "password" },
+    ], t("common.save"), (v, box) => {
+      if (!v("key")) return need(box, "key");
+      const l = items(pid);
+      l.push({ label: v("label") || t("models.acct_n", { n: l.length + 1 }), enabled: true, key: v("key") });
+      saveAcc(pid, l);
+    }, t("models.acct_add_note"));
+    el.querySelectorAll("[data-addkey]").forEach(b => b.onclick = () => (isGw(b.dataset.addkey)
+      ? advSheet(b, null, b.dataset.addkey) : addKeySheet(b, b.dataset.addkey)));
+
+    // ---- A gateway card (OpenAI Compatible or Claude Compatible): one gateway
+    // = a name, an address, a key and (for a seller that lists none) model names. The server checks the address and
+    // the key before it saves (/provider/<card>/connect). ----
+    const advSheet = (btn, g, ADV) => formSheet(btn, t(g ? "models.adv_edit" : "models.acct_add"), g ? g.label : cardOf(ADV).label, [
+      { f: "label", ph: t("models.adv_label_ph"), value: g ? g.label : "" },
+      { f: "base", ph: t(GW_TEXT[ADV].base), mode: "url", value: g ? g.base : "" },
+      { f: "key", ph: g && g.key ? t("models.key_change_ph", { duoi: g.key.slice(-4) }) : t(GW_TEXT[ADV].key), type: "password" },
+      { f: "models", ph: t("models.adv_models_ph"), value: g ? (g.models || []).join(", ") : "" },
+    ], t(g ? "common.save" : "models.connect"), async (v, box) => {
+      if (!/^https?:\/\//i.test(v("base"))) { box("base").focus(); return t("models.oc_need_base"); }
+      if (!g && GW_TEXT[ADV].needKey && !v("key")) return need(box, "key");
+      let r;
+      try {
+        r = await postJson("/provider/" + ADV + "/connect", { id: g ? g.id : "", add: !g, label: v("label"),
+          base: v("base"), key: v("key"), models: v("models") }, 60000);
+      } catch (e) { r = { ok: false, error: String(e) }; }
+      if (!r || !r.ok) {
+        if (r && r.need_models) box("models").focus();
+        return (r && r.error) || t("app.err_cap");
+      }
+      setTimeout(c.again, 0);
+    }, t(GW_TEXT[ADV].add));
+    el.querySelectorAll('.ord-acct[data-dnd^="adv:"]').forEach(li => {
+      const id = li.dataset.id, ADV = li.dataset.dnd.slice(4);
+      const idx = () => items(ADV).findIndex(a => a.id === id);
+      li.querySelector("[data-adv-menu]").onclick = (ev) => {
+        const btn = ev.currentTarget, g = (c.accts[ADV] || []).find(x => x.id === id) || {};
+        const i = idx(), n = items(ADV).length;
+        const saveAdv = (list, removed) => save({ adv_keys: { provider: ADV, items: list, removed: removed || [] } });
+        menuSheet(btn, g.label || id, [[
+          { ic: g.enabled ? "pause" : "play", label: t(g.enabled ? "models.acct_disable" : "models.acct_enable"),
+            sub: g.enabled ? t("models.acct_disable_d") : "", run: () => {
+              const l = items(ADV);
+              l[idx()].enabled = !l[idx()].enabled;
+              saveAdv(l);
+            } },
+          { ic: "pencil", label: t("models.adv_edit"), sub: t("models.adv_edit_d"), run: () => advSheet(btn, g, ADV) },
+          i > 0 && { ic: "arrow-up", label: t("models.move_up"), run: () => saveAdv(MO.move(items(ADV), idx(), idx() - 1)) },
+          i < n - 1 && { ic: "arrow-down", label: t("models.move_down"), run: () => saveAdv(MO.move(items(ADV), idx(), idx() + 1)) },
+        ], [
+          { ic: "trash-2", label: t("models.acct_rm"), danger: true, run: () => confirmSheet(btn, t("models.rm_t", { ten: g.label }),
+            t(n > 1 ? "models.acct_rm_q" : "models.acct_rm_last_q", { ten: g.label }), t("models.acct_rm"), "trash-2", () => {
+              if (n > 1) { const l = items(ADV); l.splice(idx(), 1); saveAdv(l, [id]); }
+              else disconnectCard(el, ADV, null, cardOf(ADV).label, true);
+            }) },
+        ]], g.host);
+      };
+    });
     el.querySelectorAll('.ord-acct[data-dnd^="acct:"]').forEach(li => {
       const pid = li.dataset.dnd.slice(5), id = li.dataset.id;
       const idx = () => items(pid).findIndex(a => a.id === id);
-      li.querySelectorAll("[data-acct-move]").forEach(b => b.onclick = () => {
-        const i = idx();
-        saveAcc(pid, MO.move(items(pid), i, i + Number(b.dataset.acctMove)));
-      });
-      const menu = li.querySelector(".ord-menu"), mb = li.querySelector("[data-acct-menu]");
-      mb.onclick = () => {
-        const open = menu.hidden;
-        el.querySelectorAll(".ord-menu").forEach(x => { x.hidden = true; });
-        el.querySelectorAll("[data-acct-menu]").forEach(x => x.setAttribute("aria-expanded", "false"));
-        menu.hidden = !open;
-        mb.setAttribute("aria-expanded", String(open));
+      li.querySelector("[data-acct-menu]").onclick = (ev) => {
+        const btn = ev.currentTarget, a = items(pid)[idx()] || {}, i = idx(), n = items(pid).length;
+        const name = a.label || t("models.acct_n", { n: i + 1 });
+        menuSheet(btn, name, [[
+          { ic: a.enabled ? "pause" : "play", label: t(a.enabled ? "models.acct_disable" : "models.acct_enable"),
+            sub: a.enabled ? t("models.acct_disable_d") : "", run: () => {
+              const l = items(pid);
+              l[idx()].enabled = !l[idx()].enabled;
+              saveAcc(pid, l);
+            } },
+          { ic: "pencil", label: t("models.acct_rename"), run: () => formSheet(btn, t("models.acct_rename"), name,
+            [{ f: "label", ph: t("models.acct_label_ph"), value: a.label }], t("common.save"), (v, box) => {
+              if (!v("label")) return need(box, "label");
+              const l = items(pid);
+              l[idx()].label = v("label");
+              saveAcc(pid, l);
+            }) },
+          { ic: "key-round", label: t("models.acct_rekey"), sub: t("models.acct_rekey_d"), run: () => formSheet(btn,
+            t("models.acct_rekey"), name, [{ f: "key", ph: t("models.acct_key_ph"), type: "password" }], t("common.save"), (v, box) => {
+              if (!v("key")) return need(box, "key");
+              const l = items(pid);
+              l[idx()].key = v("key");
+              saveAcc(pid, l);
+            }) },
+          i > 0 && { ic: "arrow-up", label: t("models.move_up"), run: () => saveAcc(pid, MO.move(items(pid), idx(), idx() - 1)) },
+          i < n - 1 && { ic: "arrow-down", label: t("models.move_down"), run: () => saveAcc(pid, MO.move(items(pid), idx(), idx() + 1)) },
+        ], [
+          { ic: "trash-2", label: t("models.acct_rm"), danger: true, run: () => confirmSheet(btn, t("models.rm_t", { ten: name }),
+            t(n > 1 ? "models.acct_rm_q" : "models.acct_rm_last_q", { ten: name }), t("models.acct_rm"), "trash-2", () => {
+              const l = items(pid);
+              l.splice(idx(), 1);
+              saveAcc(pid, l);
+            }) },
+        ]], cardOf(pid).label);
       };
-      menu.querySelector('[data-acct-act="toggle"]').onclick = () => {
-        const l = items(pid);
-        l[idx()].enabled = !l[idx()].enabled;
-        saveAcc(pid, l);
-      };
-      const rk = menu.querySelector(".ord-rekey");
-      menu.querySelector('[data-acct-act="rekey"]').onclick = () => {
-        rk.hidden = !rk.hidden;
-        if (!rk.hidden) rk.querySelector("input").focus();
-      };
-      menu.querySelector('[data-acct-act="rekey-save"]').onclick = () => {
-        const v = rk.querySelector("input").value.trim();
-        if (!v) { rk.querySelector("input").focus(); return; }
-        const l = items(pid);
-        l[idx()].key = v;
-        saveAcc(pid, l);
-      };
-      menu.querySelector('[data-acct-act="remove"]').onclick = () => {
-        const l = items(pid), i = idx();
-        if (!window.confirm(t(l.length > 1 ? "models.acct_rm_q" : "models.acct_rm_last_q", { ten: l[i].label }))) return;
-        l.splice(i, 1);
-        saveAcc(pid, l);
-      };
-    });
-    el.querySelectorAll("[data-acct-add]").forEach(b => b.onclick = () => {
-      const box = el.querySelector(`[data-acct-box="${b.dataset.acctAdd}"]`);
-      box.hidden = !box.hidden;
-      if (!box.hidden) box.querySelector('[data-f="label"]').focus();
-    });
-    el.querySelectorAll("[data-acct-addcancel]").forEach(b => b.onclick = () => { b.closest(".ord-addbox").hidden = true; });
-    el.querySelectorAll("[data-acct-addsave]").forEach(b => b.onclick = () => {
-      const pid = b.dataset.acctAddsave, box = b.closest(".ord-addbox");
-      const keyIn = box.querySelector('[data-f="key"]'), key = keyIn.value.trim();
-      if (!key) { keyIn.focus(); return; }
-      const l = items(pid);
-      l.push({ label: box.querySelector('[data-f="label"]').value.trim() || t("models.acct_n", { n: l.length + 1 }), enabled: true, key: key });
-      b.disabled = true;
-      saveAcc(pid, l);
     });
 
-    // ---- the accounts of a plan card: order, on/off, sign in again, remove, add ----
-    const menuToggle = (menu, mb) => {
-      const open = menu.hidden;
-      el.querySelectorAll(".ord-menu").forEach(x => { x.hidden = true; });
-      el.querySelectorAll("[data-acct-menu]").forEach(x => x.setAttribute("aria-expanded", "false"));
-      menu.hidden = !open;
-      mb.setAttribute("aria-expanded", String(open));
+    // ---- the accounts of a plan card: order, on/off, sign in again, rename, remove, add ----
+    // A new account needs its name before the sign-in starts (accounts must never read alike).
+    const needLabel = (box) => {
+      const inp = box.querySelector('[data-f="label"]');
+      if (!inp || inp.value.trim()) return true;
+      inp.classList.add("need");
+      inp.placeholder = t("models.acname_need");
+      inp.focus();
+      return false;
     };
-    const planBox = (pid) => el.querySelector(`[data-pacct-box="${pid}"]`);
-    const resetBox = (box) => {
-      box.querySelector(".ord-pstep").innerHTML = "";
-      box.querySelector(".ord-addmsg").textContent = "";
-      box.querySelector("[data-pacct-go]").hidden = false;
-      delete box.dataset.acc;
-      delete box.dataset.re;
-    };
+    // Rename one account of a plan card; account 1 too, which is the card's own sign-in.
+    const renamePlan = (btn, pid, id, name, label) => formSheet(btn, t("models.acct_rename"), name,
+      [{ f: "label", ph: t("models.pacct_label_ph"), value: label || "" }], t("common.save"), (v, box) => {
+        if (!v("label")) return need(box, "label");
+        const l = items(pid), x = l.find(a => a.id === id);
+        if (x) x.label = v("label");
+        saveAcc(pid, l);
+      });
     async function planLogin(pid, box) {
       const msg = box.querySelector(".ord-addmsg"), step = box.querySelector(".ord-pstep");
       const go = box.querySelector("[data-pacct-go]");
+      // Signed in: the sheet closes (without cancelling the finished sign-in) and the card draws the new account.
+      const done = () => { delete box.dataset.acc; closePop(); c.again(); };
+      if (!box.dataset.re && !needLabel(box)) return;
       go.disabled = true;
       msg.textContent = t("models.opening");
       let r;
@@ -4043,7 +4456,7 @@
       go.disabled = false;
       msg.textContent = "";
       if (!r || !r.ok) { msg.innerHTML = WARN_ICON + " " + esc((r && r.error) || t("app.err_cap")); return; }
-      if (r.connected) { c.again(); return; }
+      if (r.connected) { done(); return; }
       box.dataset.acc = r.account_id;
       go.hidden = true;
       step.innerHTML = `<div>${esc(t("models.pacct_open"))}</div>
@@ -4063,7 +4476,7 @@
           try { d = await postJson("/plan-accounts/login-code", { provider: pid, account_id: r.account_id, code: code }, 60000); }
           catch (e) { d = { ok: false, error: String(e) }; }
           btn.disabled = false;
-          if (d && d.ok) { c.again(); return; }
+          if (d && d.ok) { done(); return; }
           msg.innerHTML = WARN_ICON + " " + esc((d && d.error) || t("app.err_cap"));
         };
         return;
@@ -4071,125 +4484,163 @@
       // ChatGPT and Grok finish on the web: ask every 3 seconds, for up to 15 minutes (the code's lifetime).
       const han = Date.now() + 15 * 60 * 1000;
       const tick = async () => {
-        if (!box.isConnected || box.hidden || box.dataset.acc !== r.account_id) return;
+        if (!box.isConnected || box.dataset.acc !== r.account_id) return;
         let d = null;
         try {
           d = await (await fetch("/plan-accounts/login-poll?provider=" + encodeURIComponent(pid)
             + "&account_id=" + encodeURIComponent(r.account_id))).json();
         } catch (e) {}
-        if (d && d.connected) { c.again(); return; }
+        if (d && d.connected) { done(); return; }
         if (d && d.ok === false && d.error) { msg.innerHTML = WARN_ICON + " " + esc(d.error); return; }
         if (Date.now() < han) setTimeout(tick, 3000);
         else msg.innerHTML = WARN_ICON + " " + esc(t("models.timeout_login"));
       };
       setTimeout(tick, 3000);
     }
+    // Add (or sign in again) an account of a plan card, in a sheet. Closing it stops a sign-in that never finished.
+    const planSheet = (btn, pid, reId, reLabel) => {
+      if (pid === "antigravity-cli") return agySheet(btn, reId, reLabel);
+      closePop();
+      const sh = shell(null, "ord-msheet", t(reId ? "models.pacct_relogin" : "models.pacct_add"), cardOf(pid).label, logoOf(pid));
+      sh.pop.setAttribute("role", "dialog");
+      sh.body.innerHTML = `<div class="ord-addbox ord-sform" data-pacct-box="${esc(pid)}">
+          <input class="js-input" data-f="label" placeholder="${esc(t("models.pacct_label_ph"))}" value="${esc(reLabel || "")}">
+          <div class="ord-offnote">${ic("info")}<span>${esc(t("models.pacct_warn"))} ${esc(t("models.pacct_warn2"))}</span></div>
+          <div class="ord-pstep"></div>
+          <span class="gcard-meta ord-addmsg"></span>
+          <div class="ord-btns"><button type="button" class="ord-btn" data-pacct-cancel="1">${esc(t("common.cancel"))}</button>
+            <button type="button" class="ord-btn pri" data-pacct-go="${esc(pid)}">${ic("external-link")}${esc(t("models.pacct_get_link"))}</button></div>
+        </div>`;
+      const box = sh.body.querySelector(".ord-addbox");
+      if (reId) box.dataset.re = reId;
+      box.querySelector("[data-pacct-go]").onclick = () => planLogin(pid, box);
+      box.querySelector("[data-pacct-cancel]").onclick = () => closePop();
+      opened(btn, sh, null, () => {
+        if (box.dataset.acc) postJson("/plan-accounts/login-cancel", { provider: pid, account_id: box.dataset.acc }).catch(() => {});
+      });
+      if (reId) planLogin(pid, box);
+    };
+    // An extra Google account for Antigravity (Linux only, plan_accounts). agy signs in on a keyboard screen, so the
+    // sheet copies a sign-in command made for this account and opens Vanhanh's Terminal page (same user as Vanhanh);
+    // the page then waits for the account's token file and adds the account.
+    const agySheet = (btn, reId, reLabel) => {
+      const pid = "antigravity-cli";
+      closePop();
+      const sh = shell(null, "ord-msheet", t(reId ? "models.pacct_relogin" : "models.agy_acc_add"), cardOf(pid).label, logoOf(pid));
+      sh.pop.setAttribute("role", "dialog");
+      sh.body.innerHTML = `<div class="ord-addbox ord-sform" data-pacct-box="${pid}">
+          <input class="js-input" data-f="label" placeholder="${esc(t("models.agy_acc_label_ph"))}" value="${esc(reLabel || "")}">
+          <div class="ord-mgrp ord-steps">
+            <div class="ord-mi"><span class="ord-mic">${ic("terminal")}</span><span class="ord-mt">${esc(t("models.agy_step1"))}<span class="ord-ms">${esc(t("models.agy_step1_d"))}</span></span></div>
+            <div class="ord-mi"><span class="ord-mic">${ic("log-in")}</span><span class="ord-mt">${esc(t("models.agy_step2"))}<span class="ord-ms">${esc(t("models.agy_step2_d"))}</span></span></div>
+            <div class="ord-mi"><span class="ord-mic">${ic("circle-check")}</span><span class="ord-mt">${esc(t("models.agy_step3"))}<span class="ord-ms">${esc(t("models.agy_step3_d"))}</span></span></div>
+          </div>
+          <div class="ord-pstep"></div>
+          <div class="ord-offnote">${ic("info")}<span>${esc(t("models.agy_acc_note"))}</span></div>
+          <span class="gcard-meta ord-addmsg"></span>
+          <div class="ord-btns"><button type="button" class="ord-btn" data-pacct-cancel="1">${esc(t("common.cancel"))}</button>
+            <button type="button" class="ord-btn pri" data-pacct-go="${pid}">${ic("terminal")}${esc(t("models.agy_open_term"))}</button></div>
+        </div>`;
+      const box = sh.body.querySelector(".ord-addbox");
+      if (reId) box.dataset.re = reId;
+      const msg = box.querySelector(".ord-addmsg"), step = box.querySelector(".ord-pstep");
+      box.querySelector("[data-pacct-cancel]").onclick = () => closePop();
+      box.querySelector("[data-pacct-go]").onclick = async (ev) => {
+        const go = ev.currentTarget;
+        if (!box.dataset.re && !needLabel(box)) return;
+        go.disabled = true;
+        let r;
+        try {
+          r = await postJson("/plan-accounts/login-start", { provider: pid, account_id: box.dataset.re || "",
+            label: box.querySelector('[data-f="label"]').value.trim() }, 30000);
+        } catch (e) { r = { ok: false, error: String(e) }; }
+        go.disabled = false;
+        if (!r || !r.ok || !r.terminal) { msg.innerHTML = WARN_ICON + " " + esc((r && r.error) || t("app.err_cap")); return; }
+        box.dataset.acc = r.account_id;
+        let copied = false;
+        try { await navigator.clipboard.writeText(r.terminal); copied = true; } catch (e) {}
+        step.innerHTML = `<div>${esc(t(copied ? "models.agy_copied" : "models.agy_copy_this"))}</div><code class="ord-cmd">${esc(r.terminal)}</code>`;
+        go.hidden = true;
+        // Wait for the account's token file for up to 15 minutes; the sheet stays open meanwhile.
+        // Wait for the account's token file for up to 15 minutes, also while the owner is on the Terminal page.
+        const job = { live: true };
+        const han = Date.now() + 15 * 60 * 1000;
+        const tick = async () => {
+          if (!job.live) return;
+          let d = null;
+          try {
+            d = await (await fetch("/plan-accounts/login-poll?provider=" + pid + "&account_id=" + encodeURIComponent(r.account_id))).json();
+          } catch (e) {}
+          if (d && d.connected) {
+            job.live = false;
+            delete box.dataset.acc;
+            if (box.isConnected) closePop();
+            if (el.isConnected) c.again();
+            return;
+          }
+          if (Date.now() < han) setTimeout(tick, 3000);
+          else { job.live = false; if (box.isConnected) msg.innerHTML = WARN_ICON + " " + esc(t("models.timeout_login")); }
+        };
+        setTimeout(tick, 3000);
+        box._job = job;
+        // Going to the Terminal page closes the sheet but keeps the sign-in waiting; back on this page the new account
+        // shows once agy has written its token.
+        step.insertAdjacentHTML("beforeend", `<button type="button" class="ord-btn pri" data-open-term="1">${ic("terminal")}${esc(t("models.agy_open_term"))}</button>`);
+        step.querySelector("[data-open-term]").onclick = () => {
+          delete box.dataset.acc;   // closing must not cancel the sign-in now
+          closePop();
+          try { window.VanhanhNav.go("terminal"); } catch (e) {}
+        };
+      };
+      opened(btn, sh, null, () => {
+        if (!box.dataset.acc) return;
+        if (box._job) box._job.live = false;
+        postJson("/plan-accounts/login-cancel", { provider: pid, account_id: box.dataset.acc }).catch(() => {});
+      });
+    };
+    el.querySelectorAll("[data-addacc]").forEach(b => b.onclick = () => planSheet(b, b.dataset.addacc));
     el.querySelectorAll('.ord-acct[data-dnd^="pacct:"]').forEach(li => {
       const pid = li.dataset.dnd.slice(6), id = li.dataset.id;
       const idx = () => items(pid).findIndex(a => a.id === id);
-      li.querySelectorAll("[data-pacct-move]").forEach(b => b.onclick = () => {
-        const i = idx();
-        saveAcc(pid, MO.move(items(pid), i, i + Number(b.dataset.pacctMove)));
-      });
-      const menu = li.querySelector(".ord-menu"), mb = li.querySelector("[data-acct-menu]");
-      mb.onclick = () => menuToggle(menu, mb);
-      menu.querySelector('[data-pacct-act="toggle"]').onclick = () => {
-        const l = items(pid);
-        l[idx()].enabled = !l[idx()].enabled;
-        saveAcc(pid, l);
+      li.querySelector("[data-acct-menu]").onclick = (ev) => {
+        const btn = ev.currentTarget, a = (c.accts[pid] || []).find(x => x.id === id) || {};
+        const i0 = idx(), n = items(pid).length;
+        const name = a.label || (a.main ? t("models.pacct_main") : t("models.pacct_n", { n: i0 + 1 }));
+        const rows = [{ ic: a.enabled ? "pause" : "play", label: t(a.enabled ? "models.acct_disable" : "models.acct_enable"),
+          sub: a.enabled ? t("models.acct_disable_d") : "", run: () => {
+            const l = items(pid);
+            l[idx()].enabled = !l[idx()].enabled;
+            saveAcc(pid, l);
+          } }];
+        // Account 1 is the machine's own sign-in: it can be turned off here, not removed or signed in again.
+        rows.push({ ic: "pencil", label: t("models.acct_rename"), run: () => renamePlan(btn, pid, id, name, a.label) });
+        if (!a.main) rows.push({ ic: "log-in", label: t("models.pacct_relogin"), run: () => planSheet(btn, pid, id, a.label || "") });
+        if (i0 > 0) rows.push({ ic: "arrow-up", label: t("models.move_up"), run: () => saveAcc(pid, MO.move(items(pid), idx(), idx() - 1)) });
+        if (i0 < n - 1) rows.push({ ic: "arrow-down", label: t("models.move_down"), run: () => saveAcc(pid, MO.move(items(pid), idx(), idx() + 1)) });
+        menuSheet(btn, name, [rows, a.main ? [] : [{ ic: "trash-2", label: t("models.acct_rm"), danger: true, run: () =>
+          confirmSheet(btn, t("models.rm_t", { ten: name }), t("models.pacct_rm_q", { ten: name }), t("models.acct_rm"), "trash-2", () => {
+            const l = items(pid), i = idx();
+            const gone = l.splice(i, 1)[0];
+            saveAcc(pid, l, [gone.id]);
+          }) }]], cardOf(pid).label);
       };
-      const rl = menu.querySelector('[data-pacct-act="relogin"]');
-      if (rl) rl.onclick = () => {
-        const box = planBox(pid);
-        resetBox(box);
-        box.dataset.re = id;
-        box.querySelector('[data-f="label"]').value = (items(pid)[idx()] || {}).label || "";
-        box.hidden = false;
-        menu.hidden = true;
-        planLogin(pid, box);
-      };
-      const rm = menu.querySelector('[data-pacct-act="remove"]');
-      if (rm) rm.onclick = () => {
-        const l = items(pid), i = idx();
-        if (!window.confirm(t("models.pacct_rm_q", { ten: l[i].label || t("models.pacct_n", { n: i + 1 }) }))) return;
-        const gone = l.splice(i, 1)[0];
-        saveAcc(pid, l, [gone.id]);
-      };
-    });
-    el.querySelectorAll("[data-pacct-add]").forEach(b => b.onclick = () => {
-      const box = planBox(b.dataset.pacctAdd);
-      box.hidden = !box.hidden;
-      if (!box.hidden) { resetBox(box); box.querySelector('[data-f="label"]').focus(); }
-    });
-    el.querySelectorAll("[data-pacct-go]").forEach(b => b.onclick = () => planLogin(b.dataset.pacctGo, b.closest(".ord-addbox")));
-    el.querySelectorAll("[data-pacct-cancel]").forEach(b => b.onclick = () => {
-      const box = b.closest(".ord-addbox"), pid = box.dataset.pacctBox;
-      if (box.dataset.acc) postJson("/plan-accounts/login-cancel", { provider: pid, account_id: box.dataset.acc }).catch(() => {});
-      resetBox(box);
-      box.hidden = true;
     });
 
+    // ---- "Connect another provider": one tap unfolds every provider not signed in yet, right under the button, and
+    // a second tap folds them ("no popup there, a click should just open all the connections"). ----
     const more = el.querySelector("#ordMore");
-    if (more) more.onclick = () => {
+    const showOff = (open) => {
       const box = el.querySelector("#ordOff");
-      box.hidden = !box.hidden;
-      el._ordUi.showOff = !box.hidden;
+      if (!box) return null;
+      box.hidden = !open;
+      el._ordUi.showOff = open;
       el._ordUi.set = true;
-      more.setAttribute("aria-expanded", String(!box.hidden));
+      if (more) more.setAttribute("aria-expanded", String(open));
+      return box;
     };
-
-    // ---- popovers: the model chip and the Effort chip of a card, the background model on a phone ----
-    let openPop = null;
-    const closePop = () => {
-      if (!openPop) return;
-      if (openPop.slider) openPop.slider.destroy();
-      openPop.el.remove();
-      if (openPop.back) openPop.back.remove();
-      if (openPop.raised) openPop.raised.classList.remove("ord-raise");
-      openPop.btn.setAttribute("aria-expanded", "false");
-      openPop = null;
-    };
-    // A phone gets a bottom sheet instead of a popover (the popover opened over the card,
-    // the keyboard came up at once and covered the list). The sheet slides up from the bottom with a title and a close
-    // button, rows are finger-sized, and the keyboard waits until the search box is tapped.
-    const phone = () => window.matchMedia("(max-width: 600px)").matches;
-    const shell = (wrap, cls, title) => {
-      if (!phone()) {
-        const pop = document.createElement("div");
-        pop.className = cls + " ord-pop";
-        wrap.appendChild(pop);
-        return { pop: pop, body: pop, sheet: false };
-      }
-      const back = document.createElement("div");
-      back.className = "ord-sheet-back";
-      const pop = document.createElement("div");
-      pop.className = "ord-pop ord-sheet";
-      pop.setAttribute("aria-modal", "true");
-      pop.innerHTML = `<div class="ord-sheet-grab" aria-hidden="true"></div>
-        <div class="ord-sheet-head"><b>${esc(title)}</b>
-          <button type="button" class="ord-sheet-x" aria-label="${esc(t("common.close"))}">${X_ICON}</button></div>
-        <div class="ord-sheet-body"></div>`;
-      document.body.appendChild(back);
-      document.body.appendChild(pop);
-      pop.querySelector(".ord-sheet-x").onclick = () => closePop();
-      return { pop: pop, body: pop.querySelector(".ord-sheet-body"), sheet: true, back: back };
-    };
-    el._ordClose = closePop;
-    if (!el._ordDocBound) {
-      el._ordDocBound = true;
-      document.addEventListener("pointerdown", (e) => {
-        if (el._ordClose && !(e.target.closest && e.target.closest(".ord-chips, .ord-pop"))) el._ordClose();
-      }, true);
-      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && el._ordClose) el._ordClose(); });
-    }
-    const opened = (btn, sh, slider) => {
-      // Each card is its own stacking layer (backdrop-filter), so a popover that opens downward was painted UNDER the
-      // next card . The card holding the open popover is lifted above its neighbours.
-      const raised = sh.sheet ? null : btn.closest(".prov-card, .gcard");
-      if (raised) raised.classList.add("ord-raise");
-      openPop = { el: sh.pop, btn: btn, slider: slider || null, back: sh.back || null, raised: raised };
-      btn.setAttribute("aria-expanded", "true");
-      if (!sh.sheet) MO.place(sh.pop);
+    if (more) more.onclick = () => {
+      const box = showOff(el.querySelector("#ordOff").hidden);
+      if (box && !box.hidden) more.scrollIntoView({ block: "start", behavior: "smooth" });
     };
 
     el.querySelectorAll("[data-ordpop]").forEach(btn => btn.onclick = () => {
@@ -4202,12 +4653,22 @@
       if (btn.dataset.ordpop === "eff") {
         const S = window.VanhanhEffortSlider;
         const label = isBg ? t("models.h_aux") : ((c.connList.find(p => p.id === pid) || {}).label || pid);
-        const sh = shell(wrap, "eff-pop", t("eff.head") + " · " + label);
+        const sh = shell(wrap, "eff-pop", t("models.eff_title"), label);
         sh.pop.setAttribute("role", "dialog");
         sh.pop.setAttribute("aria-label", t("eff.head"));
         const locked = S.isLocked(curProv, cur.model);
         let tm = 0;
+        // Fast mode: the composer's bolt ("the bolt is missing"). One setting for the whole app; it
+        // is greyed out on a model without Fast mode, same rule as the composer (VanhanhModelBar.fastNote).
+        const fn = (window.VanhanhModelBar && window.VanhanhModelBar.fastNote) ? window.VanhanhModelBar.fastNote(curProv, cur.model)
+          : { supported: false, note: "fast.none" };
         const slider = S.mount(sh.body, { value: cur.reasoning, locked: locked, lockedValue: locked ? S.lockedLevel(cur.model) : "",
+          fast: { supported: fn.supported, on: c.fast, title: () => "Fast mode\n" + t(fn.note), onToggle: async (on) => {
+            c.fast = on;
+            el.querySelectorAll(".ord-echip .ord-fast").forEach(x => { x.hidden = !(on && x.dataset.ok === "1"); });
+            await saveSetting("model", { fast: on });
+            window.dispatchEvent(new CustomEvent("vanhanh:fast-changed", { detail: { on: on } }));
+          } },
           onChange: (v) => {
             cur.reasoning = v;
             btn.querySelector(".ord-etxt").textContent = c.effName(v);
@@ -4216,7 +4677,7 @@
               : { profile: { provider: pid, reasoning: v } }), 300);
           } });
         opened(btn, sh, slider);
-        if (slider.focus && !sh.sheet) slider.focus();
+        if (slider.focus && !phone()) slider.focus();
         return;
       }
       // One card's own models: "Default" (the provider picks) first, then the model in use, then the rest A-Z, so a
@@ -4226,7 +4687,7 @@
       const pop = sh.pop;
       pop.setAttribute("role", "listbox");
       sh.body.innerHTML = `<input class="mb-search" type="search" enterkeyhint="search" placeholder="${esc(t("mpick.search_ph"))}">`
-        + (sh.sheet ? "" : `<div class="mb-prov"><span>${esc(label)}</span></div>`) + `<div class="ord-mlist"></div>`;
+        + `<div class="ord-mlist"></div>`;
       const ML = window.VanhanhModelList;
       let ids = ML ? ML.peek(pid) : [], q = "";
       const row = (id) => {
@@ -4248,7 +4709,7 @@
       };
       draw();
       opened(btn, sh);
-      if (ids == null && ML) ML.models(pid).then(x => { ids = x; if (openPop && openPop.el === pop) { draw(); if (!sh.sheet) MO.place(pop); } });
+      if (ids == null && ML) ML.models(pid).then(x => { ids = x; if (openPop && openPop.el === pop) draw(); });
       const inp = sh.body.querySelector(".mb-search");
       inp.oninput = () => { q = inp.value; draw(); };
       sh.body.onclick = (e) => {
@@ -4261,14 +4722,14 @@
       };
       sh.body.onkeydown = (e) => { if (e.key === "Enter" && e.target.classList.contains("mb-item")) e.target.click(); };
       // A computer types at once; a phone keeps the keyboard down until the search box is tapped.
-      if (!sh.sheet) inp.focus();
+      if (!phone()) inp.focus();
     });
 
-    // Background model: the two-column picker on a computer, the composer-style list on a phone. Both list signed-in
-    // providers only (spec 2.4.4).
+    // Background model: the composer-style list in a pull-up sheet on every screen (05/11/2026; the two-column picker only
+    // when that list did not load). Both list signed-in providers only (spec 2.4.4).
     const auxChg = el.querySelector("#auxChange");
     if (auxChg) auxChg.onclick = () => {
-      if (!window.matchMedia("(max-width: 600px)").matches || !window.VanhanhModelList) {
+      if (!window.VanhanhModelList) {
         closePop();
         openModelPicker(c.connList, { provider: c.bgCfg.provider, model: c.bgCfg.model }, c.again, {
           title: t("models.aux_title"),
@@ -4293,7 +4754,6 @@
         if (!openPop || openPop.el !== pop) return;
         const typing = document.activeElement && document.activeElement.id === "ordBgSearch";
         sh.body.innerHTML = html;
-        if (!sh.sheet) MO.place(pop);
         const inp = sh.body.querySelector("#ordBgSearch");
         if (inp) {
           inp.oninput = () => { st.filter = inp.value; draw(); };
@@ -4309,6 +4769,88 @@
       };
       draw();
     };
+
+    // ---- "Use again now" on a card the router skips for a quota refusal ----
+    const retry = async (pid) => {
+      const fd = new FormData();
+      fd.append("provider", pid);
+      try { await fetch("/routing/retry", { method: "POST", body: fd }); } catch (e) {}
+      c.again();
+    };
+    el.querySelectorAll("[data-retry]").forEach(b => b.onclick = () => { b.disabled = true; retry(b.dataset.retry); });
+
+    // ---- background work runs on this card ("the card should say which one does background work") --
+    const setBg = (pid) => save({ auxiliary: { provider: pid, model: c.prof(pid).model || "" } });
+    el.querySelectorAll("[data-setbg]").forEach(b => b.onclick = () => { b.disabled = true; setBg(b.dataset.setbg); });
+    el.querySelectorAll("[data-cccheck]").forEach(b => b.onclick = () => refreshClaudeCard(el, true));
+
+    // ---- Disconnect asks in a sheet first; each provider then leaves its own way (disconnectCard) ----
+    const discSheet = (btn, pid) => {
+      const p = cardOf(pid);
+      const q = pid === "anthropic-cli" ? t("models.cc_logout_confirm")
+        : t(pid === "antigravity-cli" ? "models.agy_disc_q" : "models.disc_q", { ten: p.label });
+      confirmSheet(btn, t("models.disc_t", { ten: p.label }), q, t("models.disconnect"), "log-out",
+        () => disconnectCard(el, pid, btn, p.label, true));
+    };
+    el.querySelectorAll("[data-disccard]").forEach(b => b.onclick = () => discSheet(b, b.dataset.disccard));
+
+    // ---- a card's ⋯: every action of the card in one pull-up sheet, grouped as in the approved design ----
+    el.querySelectorAll("[data-cmenu]").forEach(b => b.onclick = () => {
+      const pid = b.dataset.cmenu, p = cardOf(pid);
+      const i = c.order.indexOf(pid), n = c.order.length;
+      const card = b.closest(".prov-card");
+      const q = (sel) => card && card.querySelector(sel);
+      const chip = (k) => () => { const x = q(`.ord-chips[data-p="${pid}"] [data-ordpop="${k}"]`); if (x) x.click(); };
+      const pr = c.prof(pid);
+      const check = q("[data-agycheck], [data-grokcheck]");
+      const until = c.limited[pid] ? new Date(c.limited[pid] * 1000).toLocaleString([], { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }) : "";
+      menuSheet(b, p.label, [
+        [{ ic: "cpu", label: t("models.change_model").replace(/\s*▾$/, ""), sub: pr.model || defName(pid), run: chip("model") },
+         { ic: "gauge", label: t("models.eff_title"), sub: c.effName(pr.reasoning), run: chip("eff") }],
+        [c.limited[pid] && { ic: "rotate-cw", label: t("models.retry_now"), sub: t("models.retry_now_d", { gio: until }), tone: "warn", run: () => retry(pid) }],
+        [c.bgCfg.provider === pid
+          ? { ic: "workflow", label: t("models.bg_running"), sub: t("models.bg_d"), tone: "bgsel", sel: true }
+          : { ic: "workflow", label: t("models.use_bg"), sub: t("models.bg_d"), run: () => setBg(pid) }],
+        [i > 0 && { ic: "star", label: t("models.make_main"), sub: t("models.make_main_d"), tone: "acc", run: () => save({ order: MO.move(c.order, i, 0) }) },
+         i > 1 && { ic: "arrow-up", label: t("models.move_up"), run: () => save({ order: MO.move(c.order, i, i - 1) }) },
+         i >= 0 && i < n - 1 && { ic: "arrow-down", label: t("models.move_down"), run: () => save({ order: MO.move(c.order, i, i + 1) }) }],
+        [q("[data-addkey]") && { ic: "key-round", label: t("models.acct_add"), sub: t("models.acct_add_d"), run: () => (isGw(pid) ? advSheet(b, null, pid) : addKeySheet(b, pid)) },
+         q("[data-addacc]") && { ic: "user-plus", label: t("models.pacct_add"), sub: t("models.pacct_add_d"), run: () => planSheet(b, pid) },
+         // A plan card with one account has no list to rename it from: its name is edited here.
+         PLAN_CLI.indexOf(pid) >= 0 && (c.accts[pid] || []).length < 2 && !(pid === "anthropic-cli" && p.auth_mode === "api_key")
+           && { ic: "pencil", label: t("models.acname_edit"), sub: ACCT_NAMES[pid] || t("models.acname_none"),
+                run: () => renamePlan(b, pid, "main", p.label, ACCT_NAMES[pid]) },
+         pid === "anthropic-cli" ? { ic: "refresh-cw", label: t("qs.recheck"), sub: t("models.check_d"), run: () => refreshClaudeCard(el, true) }
+           : check && { ic: "refresh-cw", label: t("qs.recheck"), sub: t("models.check_d"), run: () => check.click() }],
+        // Claude Code on an API key: the key is chosen with the card's own switch, there is no plan login to drop.
+        [!(pid === "anthropic-cli" && p.auth_mode === "api_key") && { ic: "log-out", label: t("models.disconnect_full"), sub: t("models.disc_d"),
+          danger: true, run: () => discSheet(b, pid) }],
+      ], i === 0 ? "MAIN · " + c.kindTag(p) : t("models.ord_backup", { n: i }) + " · " + c.kindTag(p), logoOf(pid));
+    });
+  }
+
+  // One Disconnect for every card ("check that every model card can be disconnected"). Each
+  // provider keeps its own way out: a plan logs out, an API card forgets its keys, a home Ollama forgets its address,
+  // Antigravity runs its own sign-out when it has one and is switched off in Vanhanh either way. The card then leaves
+  // the usage order and the next card becomes MAIN.
+  const DISC_URL = { "anthropic-cli": "/claude/logout", "openai-oauth": "/oauth/openai/disconnect",
+                     "grok-cli": "/grok/logout", "antigravity-cli": "/antigravity/logout" };
+  // `sure`: the Models page already asked in its own sheet.
+  async function disconnectCard(el, pid, btn, label, sure) {
+    const q = pid === "anthropic-cli" ? t("models.cc_logout_confirm")
+      : t(pid === "antigravity-cli" ? "models.agy_disc_q" : "models.disc_q", { ten: label || pid });
+    if (!sure && !window.confirm(q)) return;
+    if (btn) { btn.disabled = true; btn.textContent = t("models.disconnecting"); }
+    try {
+      if (DISC_URL[pid]) await fetch(DISC_URL[pid], { method: "POST" });
+      else if (pid === "ollama-local") {
+        const fd = new FormData();
+        fd.append("endpoint", "");
+        await fetch("/ollama-local/endpoint", { method: "POST", body: fd });
+      } else await saveSetting("model", { clear_key: pid });
+    } catch (e) {}
+    _daHoiModel.delete(pid);
+    if (el.isConnected) renderModelsCloudTab(el);
   }
 
   async function refreshClaudeCard(el, ep) {
@@ -4359,8 +4901,10 @@
     }
     if (d.connected) {
       st.className = "prov-status on";
-      st.textContent = t("models.st_connected") + (d.email ? " · " + d.email : "") + (d.plan ? " · " + d.plan : "")
+      st.textContent = t("models.st_connected") + acctNameTag("anthropic-cli") + (d.email ? " · " + d.email : "") + (d.plan ? " · " + d.plan : "")
         + (d.stale ? " · " + t("models.st_stale") : "");
+      // A card in the usage order has Disconnect in its own button row (and its ⋯ sheet), so none here.
+      if (act.closest && act.closest(".ord-card")) { act.innerHTML = ""; return; }
       act.innerHTML = `<div class="prov-action"><button class="gcard-btn ghost" id="cliLogout">${esc(t("models.disconnect"))}</button></div>`;
       el.querySelector("#cliLogout").onclick = async () => {
         // Signing out drops the plan login on this machine and only a fresh sign-in brings it
@@ -4376,7 +4920,7 @@
       st.className = "prov-status";
       st.textContent = t("models.st_no_login");
       act.innerHTML = `<div class="prov-action">
-          <button class="gcard-btn" id="cliLogin">${esc(t("models.login_claude"))}</button>
+          ${acctNameField("anthropic-cli")}<button class="gcard-btn" id="cliLogin">${esc(t("models.login_claude"))}</button>
           <button class="gcard-btn ghost" id="cliRecheck">${esc(t("models.recheck"))}</button>${infoBtn()}</div>
         <div id="cliMsg" class="prov-msg">${d.error ? Icons.warn(d.error) : ""}</div>
         ${infoBody(`${esc(t("models.cli_login_note"))}
@@ -4447,6 +4991,9 @@
   }
 
   async function startClaudeLogin(el) {
+    const name = takeAcctName(el, "anthropic-cli");
+    if (name === null) return;
+    try { await savePlanName("anthropic-cli", name); } catch (e) {}
     const act = el.querySelector("#cliAction");
     const msg = el.querySelector("#cliMsg");
     if (msg) msg.textContent = t("models.getting_link");
@@ -4896,13 +5443,17 @@
   const GROUP_META = {
     google: { name: "Google", icon: '<span class="gico">G</span>', category: "Văn phòng",
               desc_key: "cs.cn_g_google" },
+    // Built in, a default connection next to GitHub: two ways in, token or web sign-in.
+    // No category here: the card takes its members' category from the catalog, so the filter chip matches it.
+    cloudflare: { name: "Cloudflare", icon: iconInner({ icon: "/static/logos/cloudflare.jpg" }), desc_key: "cs.cn_g_cloudflare" },
   };
   function catSolo(cat) { return cat.filter(c => !c.group); }
   function groupCards(cat, conns) {
     const byGroup = {};
     cat.forEach(c => { if (c.group) (byGroup[c.group] = byGroup[c.group] || []).push(c); });
     return Object.keys(byGroup).map(g => {
-      const meta = GROUP_META[g] || { name: g, icon: ic("plug"), category: "Khác", desc: "" };
+      const meta = Object.assign({ name: g, icon: ic("plug"), category: byGroup[g][0].category || "Khác", desc: "" },
+                                 GROUP_META[g] || {});
       const ids = byGroup[g].map(c => c.id);
       const nConn = (conns || []).filter(x => ids.includes(x.connector_id)).length;
       const gDesc = meta.desc_key ? window.t(meta.desc_key) : (meta.desc || "");
@@ -5723,6 +6274,9 @@
     if (window.VanhanhGithubRepos) window.VanhanhGithubRepos.mount(document.getElementById("mcpGithub"));
     el.querySelectorAll("#catGrid [data-msc-open]").forEach(b => b.onclick = () => {
       if (window.VanhanhMessenger && window.VanhanhMessenger.openForm) window.VanhanhMessenger.openForm(null);
+    });
+    el.querySelectorAll("#catGrid [data-th-open]").forEach(b => b.onclick = () => {
+      if (window.VanhanhMessenger && window.VanhanhMessenger.openThreadsForm) window.VanhanhMessenger.openThreadsForm();
     });
     const nutSanCo = document.getElementById("mcpDiSanCo");
     if (nutSanCo) nutSanCo.onclick = () => doiTab("sanco");
@@ -6639,7 +7193,12 @@
       catch (e) { acStatus.innerHTML = WARN_ICON + " " + esc(window.t("cs.ch_net_err")); }
     };
     const lo = document.getElementById("acLogout");
-    if (lo) lo.onclick = async () => { await fetch("/auth/logout", { method: "POST" }); location.reload(); };
+    if (lo) lo.onclick = async () => {
+      await fetch("/auth/logout", { method: "POST" });
+      // chats kept in this browser for a quick first paint (chat-cache.js) leave with the session.
+      try { if (window.VanhanhChatCache) await window.VanhanhChatCache.clear(); } catch (e) {}
+      location.reload();
+    };
     const dis = document.getElementById("acDisable");
     // the server wants the current password (+ a 2FA code) and refuses on a public
     // server, so the button is hidden there. The flow lives in app.js, shared with the settings block.
@@ -6820,6 +7379,24 @@
   }
 
   // ---- Lưu 1 section settings ----
+  // A short status line at the bottom of the screen. The Settings handlers called `toast(...)` but nothing in
+  // this file defined it, so changing the reply language threw a ReferenceError and the "saved" note never showed.
+  // Reuses the `.mp-toast` look from msg-press so every short notice in the app reads the same.
+  let _toastTimer = 0;
+  function toast(text, isError) {
+    const old = document.getElementById("csToast");
+    if (old) old.remove();
+    clearTimeout(_toastTimer);
+    const n = document.createElement("div");
+    n.id = "csToast";
+    n.className = "mp-toast";
+    n.setAttribute("role", isError ? "alert" : "status");
+    if (isError) n.style.background = "var(--danger, #b42318)";
+    n.textContent = String(text || "");
+    document.body.appendChild(n);
+    _toastTimer = setTimeout(() => n.remove(), isError ? 5000 : 2500);
+  }
+
   async function saveSetting(section, dataObj) {
     const fd = new FormData();
     fd.append("section", section);
@@ -6911,6 +7488,7 @@
   };
   const CHATGPT_DETAIL = {
     no_cli: "settings.vc_detail_no_cli", no_login: "settings.vc_detail_no_login", old_cli: "settings.vc_detail_old_cli",
+    quota: "settings.vc_detail_quota",
   };
 
   async function renderVoiceCard() {
@@ -7213,172 +7791,319 @@
   // Vì sao trang này bắt buộc phải có: link chia sẻ không hết hạn và không mật khẩu, ai cầm
   // cũng xem được. Chỉ tạo được mà không có chỗ nhìn lại toàn bộ thì người dùng sẽ quên mình
   // đã mở những gì, và một link lỡ gửi nhầm sẽ sống mãi. Đã gặp đúng chỗ đó.
-  // Số link mỗi trang, và ngưỡng bắt đầu hiện ô tìm. Cùng một con số cho cả hai thì lạ mắt:
-  // đúng 20 link là vừa một trang mà đã phải gõ để tìm, nên ngưỡng tìm đặt thấp hơn.
-  const SHARE_MOI_TRANG = 20;
-  // Ô tìm hiện từ link thứ HAI ("có thêm tìm kiếm và phân trang nữa nhé" - ngưỡng
-  // 8 cũ khiến người có 5-6 link không thấy ô tìm đâu, tưởng chưa có).
-  const SHARE_NGUONG_TIM = 1;
+  // What the page is for, in order: see which links are live and who reads them, find one fast, then copy, edit or kill it.
+  // - One low summary row: links, total views, views in the last 7 days.
+  // - Filter chips (all / files / conversations / never viewed) and a sort (newest, most viewed, recently viewed):
+  //   "never viewed" plus "oldest" is how a forgotten link gets found and revoked.
+  // - Row actions are icons like the Tasks page (open, copy, edit, revoke); revoke asks first, it cannot be undone.
+  // - Edit is one dialog for the name AND the custom address (/s/<slug>); the random token keeps working.
+  // Links per page, and the list size from which the search box shows.
+  const SHARE_PER_PAGE = 20;
+  // Ô tìm hiện từ link thứ HAI (có thêm tìm kiếm và phân trang).
+  const SHARE_SEARCH_MIN = 1;
 
   async function renderSharePage(el) {
     const gen = _renderGen;
-    let tuKhoa = "";
+    const state = { query: "", filter: "all", sort: "new", page: 0 };
+    try {
+      const saved = JSON.parse(localStorage.getItem("vanhanh.share.view") || "{}");
+      if (["all", "file", "chat", "unseen"].indexOf(saved.filter) >= 0) state.filter = saved.filter;
+      if (["new", "views", "recent"].indexOf(saved.sort) >= 0) state.sort = saved.sort;
+    } catch (e) {}
     el.innerHTML = `<div class="cview-placeholder"><div class="ph-ico">${ic("loader", { cls: "ic-xl ic-spin" })}</div><div>${esc(t("common.loading"))}</div></div>`;
-    let ds = [];
+    let links = [];
     try {
       const r = await fetch("/share/list");
       const d = await r.json();
-      ds = (d && d.items) || [];
+      links = (d && d.items) || [];
     } catch (e) {
       el.innerHTML = `<div class="settings-page"><div class="settings-card compact"><p>${esc(t("app.err_net"))}</p></div></div>`;
       return;
     }
     if (gen !== _renderGen) return;
-    ve();
+    const stats = (m) => m.stats || { views: 0, visitors: 0, last: 0, week: 0, days: [] };
+    const num = (n) => Number(n || 0).toLocaleString();
+    draw();
 
-    // Bỏ dấu để gõ "ghi chu" vẫn ra "ghi-chú". Khai TẠI ĐÂY chứ không mượn _vtNoAccent ở dưới
-    // file: hàm này phải đứng một mình được (test bóc nó ra chạy riêng), và một chỗ nữa cần
-    // sửa khi đổi cách bỏ dấu vẫn rẻ hơn một phụ thuộc vô hình.
-    function khongDau(x) {
-      return String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    function remember() {
+      try { localStorage.setItem("vanhanh.share.view", JSON.stringify({ filter: state.filter, sort: state.sort })); } catch (e) {}
+    }
+    // Strip marks so "ghi chu" finds "ghi-chú". Declared here, not borrowed: tests run this function on its own.
+    function plain(x) {
+      return String(x || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
         .replace(/[đĐ]/g, "d").toLowerCase();
     }
-    // Lọc theo TÊN LINK, tên file lẫn ĐƯỜNG DẪN: nhớ tên đã đặt thì gõ tên, nhớ nó nằm thư mục
-    // nào thì gõ thư mục. Gõ nhiều từ cách nhau bởi dấu cách thì phải khớp HẾT, để thu hẹp dần.
-    function loc(tu) {
-      const k = khongDau(tu).trim();
-      if (!k) return ds;
-      const tus = k.split(/\s+/);
-      return ds.filter(m => {
-        const d = khongDau((m.ten || "") + " " + (m.path || ""));
-        return tus.every(x => d.indexOf(x) >= 0);
+    // Search by link name, path or custom address; several words must ALL match, to narrow down step by step.
+    function visible() {
+      const words = plain(state.query).trim().split(/\s+/).filter(Boolean);
+      let out = links.filter((m) => {
+        if (state.filter === "file" && m.loai === "hoi_thoai") return false;
+        if (state.filter === "chat" && m.loai !== "hoi_thoai") return false;
+        if (state.filter === "unseen" && stats(m).views > 0) return false;
+        if (!words.length) return true;
+        const hay = plain((m.ten || "") + " " + (m.path || "") + " " + (m.slug || ""));
+        return words.every((w) => hay.indexOf(w) >= 0);
       });
+      const by = {
+        new: (a, b) => (b.tao_luc || 0) - (a.tao_luc || 0),
+        views: (a, b) => stats(b).views - stats(a).views || (b.tao_luc || 0) - (a.tao_luc || 0),
+        recent: (a, b) => (stats(b).last || 0) - (stats(a).last || 0) || (b.tao_luc || 0) - (a.tao_luc || 0),
+      }[state.sort];
+      return out.slice().sort(by);
     }
 
-    function ve() {
-      if (!ds.length) {
+    function draw() {
+      if (!links.length) {
         el.innerHTML = `<div class="settings-page"><div class="settings-card compact">
           <p>${esc(t("share.empty"))}</p></div></div>`;
         return;
       }
-      // Ô tìm chỉ hiện khi danh sách đã đủ dài để phải tìm. Dưới ngưỡng đó nó là một ô trống
-      // chiếm chỗ, và mắt vẫn quét hết danh sách nhanh hơn là gõ.
-      const coTim = ds.length > SHARE_NGUONG_TIM;
-      // (i) next to the heading; local helpers since tests run this body on its own.
       const JI = window.VanhanhInfo;
       const infoBtn = () => (JI ? JI.btn(t("info.more")) : "");
       const infoBody = (h) => (JI ? JI.body(h) : '<div class="info-body">' + h + "</div>");
-      el.innerHTML = `<div class="settings-page"><div class="settings-card">
-        <div class="settings-card-head"><b><span class="share-total">${ds.length}</span> ${esc(t("share.live_links"))}${infoBtn()}</b></div>
-        ${infoBody(esc(t("share.warn")))}
-        ${coTim ? `<input id="shareSearch" class="share-search" type="search" spellcheck="false"
-          autocomplete="off" placeholder="${esc(t("share.search_ph"))}" value="${esc(tuKhoa)}">
-        <div class="share-count" id="shareCount"></div>` : ""}
+      const total = links.reduce((s, m) => s + stats(m).views, 0);
+      const week = links.reduce((s, m) => s + stats(m).week, 0);
+      const showSearch = links.length > SHARE_SEARCH_MIN;
+      const chip = (v, key) => `<button type="button" class="share-chip${state.filter === v ? " on" : ""}" data-share-filter="${v}" aria-pressed="${state.filter === v}">${esc(t(key))}</button>`;
+      const opt = (v, key) => `<option value="${v}"${state.sort === v ? " selected" : ""}>${esc(t(key))}</option>`;
+      el.innerHTML = `<div class="settings-page"><div class="settings-card share-card">
+        <div class="share-sum">
+          <span class="share-stat"><b class="share-total">${links.length}</b> ${esc(t("share.live_links"))}</span>
+          <span class="share-stat">${ic("eye")}<b>${num(total)}</b> ${esc(t("share.views"))}</span>
+          <span class="share-stat">${ic("trending-up")}<b>${num(week)}</b> ${esc(t("share.in_7_days"))}</span>
+          ${infoBtn()}
+        </div>
+        ${infoBody(esc(t("share.warn")) + "<br><br>" + esc(t("share.stats_info")))}
+        ${showSearch ? `<input id="shareSearch" class="share-search" type="search" spellcheck="false"
+          autocomplete="off" placeholder="${esc(t("share.search_ph"))}" value="${esc(state.query)}">` : ""}
+        <div class="share-tools">
+          <div class="share-chips" role="group">${chip("all", "share.f_all")}${chip("file", "share.f_file")}${chip("chat", "share.f_chat")}${chip("unseen", "share.f_unseen")}</div>
+          <label class="share-sort">${ic("arrow-up-down")}<select id="shareSort" aria-label="${esc(t("share.sort"))}">${opt("new", "share.s_new")}${opt("views", "share.s_views")}${opt("recent", "share.s_recent")}</select></label>
+        </div>
+        <div class="share-count" id="shareCount"></div>
         <div class="share-list" id="shareList"></div>
       </div></div>`;
-      veDanhSach();
-      const o = el.querySelector("#shareSearch");
-      if (o) {
-        o.oninput = () => { tuKhoa = o.value; veDanhSach(); };
-        // Gõ xong mà con trỏ nhảy về đầu trang thì mỗi chữ là một lần mất chỗ. Vẽ lại CHỈ
-        // danh sách (veDanhSach), không đụng ô tìm, nên ô giữ nguyên tiêu điểm.
-      }
+      drawList();
+      const box = el.querySelector("#shareSearch");
+      // Typing redraws ONLY the list, never this card, so the box keeps focus and the caret stays put.
+      if (box) box.oninput = () => { state.query = box.value; state.page = 0; drawList(); };
+      el.querySelectorAll("[data-share-filter]").forEach((b) => {
+        b.onclick = () => { state.filter = b.dataset.shareFilter; state.page = 0; remember(); draw(); };
+      });
+      const sel = el.querySelector("#shareSort");
+      if (sel) sel.onchange = () => { state.sort = sel.value; state.page = 0; remember(); drawList(); };
     }
 
-    // Vẽ lại RIÊNG phần danh sách: lọc theo từ khoá rồi phân trang bằng pager() dùng chung
-    // (window.VanhanhPager - cùng bản với trang Kỹ năng và khung nhật ký, không đẻ bản thứ hai).
-    function veDanhSach() {
+    // Filter, sort, then page with the shared pager (window.VanhanhPager, same as Skills and the log panel).
+    function drawList() {
       const box = el.querySelector("#shareList");
       if (!box) return;
-      const hien = loc(tuKhoa);
-      // Dòng đếm: đang gõ thì thấy ngay còn bao nhiêu link khớp, khỏi phải lật trang đếm tay.
-      const dem = el.querySelector("#shareCount");
-      if (dem) dem.textContent = (tuKhoa || "").trim()
-        ? t("share.count", { so: hien.length, tong: ds.length }) : "";
+      const rows = visible();
+      const count = el.querySelector("#shareCount");
+      if (count) count.textContent = (state.query.trim() || state.filter !== "all")
+        ? t("share.count", { so: rows.length, tong: links.length }) : "";
+      const empty = `<div class="share-empty">${esc(t("share.no_match"))}</div>`;
       const P = (typeof window !== "undefined" && window.VanhanhPager) || null;
-      const trong = `<div class="share-empty">${esc(t("share.no_match"))}</div>`;
       if (P) {
-        P(box, hien, SHARE_MOI_TRANG, (rows) => rows.map(m => hang(m)).join(""), trong);
+        P(box, rows, SHARE_PER_PAGE, (page) => page.map(row).join(""), empty,
+          { page: state.page, onPage: (p) => { state.page = p; } });
       } else {
-        box.innerHTML = hien.length ? hien.map(m => hang(m)).join("") : trong;
+        box.innerHTML = rows.length ? rows.map(row).join("") : empty;
       }
-      box.querySelectorAll("[data-share-revoke]").forEach(b => { b.onclick = () => thuHoi(b); });
-      box.querySelectorAll("[data-share-copy]").forEach(b => { b.onclick = () => chep(b); });
-      box.querySelectorAll("[data-share-rename]").forEach(b => { b.onclick = () => doiTen(b); });
+      // ONE handler on the list box, not one per button: the pager redraws the rows when the page turns, and buttons
+      // wired one by one were dead from page 2 on (an earlier bug).
+      box.onclick = (e) => {
+        const b = e && e.target && e.target.closest
+          ? e.target.closest("[data-share-revoke],[data-share-copy],[data-share-qr],[data-share-edit]") : null;
+        if (!b || b.disabled) return undefined;
+        if (b.dataset.shareRevoke) return revoke(b);
+        if (b.dataset.shareCopy) return copy(b);
+        if (b.dataset.shareQr) return qr(b.dataset.shareQr);
+        return edit(b.dataset.shareEdit);
+      };
     }
 
-    function hang(m) {
+    function ago(sec) {
+      const s = Math.max(0, Date.now() / 1000 - sec);
+      if (s < 60) return t("share.ago_now");
+      if (s < 3600) return t("share.ago_min", { n: Math.floor(s / 60) });
+      if (s < 86400) return t("share.ago_hour", { n: Math.floor(s / 3600) });
+      if (s < 30 * 86400) return t("share.ago_day", { n: Math.floor(s / 86400) });
+      return when(sec);
+    }
+    function when(sec) {
+      try { return new Date(sec * 1000).toLocaleDateString(); } catch (e) { return ""; }
+    }
+    // 14 bars, oldest first; a bar's height is its share of the busiest day. Only drawn once the link has views.
+    function spark(days) {
+      const top = Math.max.apply(null, (days || []).concat([0]));
+      if (!top) return "";
+      return `<span class="share-spark" title="${esc(t("share.chart"))}" aria-hidden="true">${days.map((n) =>
+        `<i style="height:${n ? Math.max(12, Math.round((n / top) * 100)) : 4}%"${n ? "" : ' class="z"'}></i>`).join("")}</span>`;
+    }
+
+    function row(m) {
       const url = location.origin + m.url;
-      // TÊN LINK (tự lấy theo tiêu đề file, đổi được) để NHẬN RA; đường dẫn đầy đủ để
-      // phân biệt hai file trùng tên ở hai thư mục. Máy chủ cũ chưa trả `ten` thì dùng tên file.
-      const ten = m.ten || String(m.path || "").split("/").pop() || m.path;
+      const name = m.ten || String(m.path || "").split("/").pop() || m.path;
+      const st = stats(m);
+      const chat = m.loai === "hoi_thoai";
+      const where = chat ? ic("messages-square") + " " + esc(t("share.chat_label")) : esc(m.path || "");
+      const seen = st.views
+        ? `<span class="share-views">${ic("eye")}<b>${num(st.views)}</b></span>`
+          + `<span>${esc(t("share.visitors", { n: num(st.visitors) }))}</span>`
+          + `<span>${esc(t("share.week", { n: num(st.week) }))}</span>`
+          + (st.last ? `<span>${esc(t("share.last_seen", { t: ago(st.last) }))}</span>` : "")
+        : `<span class="share-views none">${ic("eye-off")}${esc(t("share.never"))}</span>`;
+      const b = (attr, val, icon, key, cls) => `<button type="button" class="share-ib${cls ? " " + cls : ""}" ${attr}="${esc(val)}" aria-label="${esc(t(key) + ": " + name)}" title="${esc(t(key))}">${ic(icon)}</button>`;
       return `<div class="share-row" data-token="${esc(m.token)}">
         <div class="share-info">
-          <div class="share-name">${esc(ten)}</div>
-          <div class="share-path">${m.loai === "hoi_thoai" ? ic("messages-square") + " " + esc(t("share.chat_label")) : esc(m.path || "")}${m.tao_luc ? " · " + esc(ngayGio(m.tao_luc)) : ""}</div>
+          <div class="share-name">${esc(name)}</div>
+          <div class="share-path">${where}${m.tao_luc ? " · " + esc(when(m.tao_luc)) : ""}</div>
           <a class="share-url" href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>
+          <div class="share-meta">${seen}${spark(st.days)}</div>
         </div>
         <div class="share-acts">
-          <button class="gcard-btn ghost" type="button" data-share-rename="${esc(m.token)}">${esc(t("share.rename"))}</button>
-          <button class="gcard-btn" type="button" data-share-copy="${esc(url)}">${esc(t("common.copy"))}</button>
-          <button class="gcard-btn ghost" type="button" data-share-revoke="${esc(m.token)}">${esc(t("fedit.share_revoke"))}</button>
+          <a class="share-ib" href="${esc(url)}" target="_blank" rel="noopener" aria-label="${esc(t("share.a_open") + ": " + name)}" title="${esc(t("share.a_open"))}">${ic("external-link")}</a>
+          ${b("data-share-copy", url, "copy", "share.a_copy")}
+          ${b("data-share-qr", m.token, "qr-code", "share.a_qr")}
+          ${b("data-share-edit", m.token, "pencil", "share.a_edit")}
+          ${b("data-share-revoke", m.token, "trash-2", "share.a_revoke", "bad")}
         </div>
       </div>`;
     }
 
-    function ngayGio(giay) {
-      try { return new Date(giay * 1000).toLocaleString(); } catch (e) { return ""; }
-    }
-
-    function chep(b) {
+    function copy(b) {
       const url = b.dataset.shareCopy;
-      const xong = () => {
-        b.textContent = t("common.copied");
-        setTimeout(() => { b.textContent = t("common.copy"); }, 1400);
+      const done = () => {
+        b.innerHTML = ic("check");
+        b.classList.add("ok");
+        b.title = t("common.copied");
+        setTimeout(() => { b.innerHTML = ic("copy"); b.classList.remove("ok"); b.title = t("share.a_copy"); }, 1400);
       };
-      // Đường lui execCommand: navigator.clipboard không tồn tại trên HTTP trong mạng LAN.
+      writeClipboard(url, done);
+    }
+    // The QR dialog's labelled Copy button: same clipboard path, its own "copied" feedback.
+    function copyText(url, b) {
+      writeClipboard(url, () => {
+        const was = b.innerHTML;
+        b.innerHTML = ic("check") + " " + esc(t("common.copied"));
+        setTimeout(() => { b.innerHTML = was; }, 1400);
+      });
+    }
+    function writeClipboard(url, done) {
+      // execCommand fallback: navigator.clipboard does not exist over plain HTTP on a LAN.
       if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(url).then(xong).catch(() => {});
+        navigator.clipboard.writeText(url).then(done).catch(() => {});
       } else {
         const o = document.createElement("textarea");
         o.value = url; document.body.appendChild(o); o.select();
-        try { document.execCommand("copy"); xong(); } catch (e) {}
+        try { document.execCommand("copy"); done(); } catch (e) {}
         o.remove();
       }
     }
 
-    // Đổi tên link. Hộp nhập của trình duyệt chạy được cả trên iPhone mở từ màn hình
-    // chính. Để trống là quay về tên tự lấy theo tiêu đề file. Token không đổi: link đã gửi vẫn sống.
-    async function doiTen(b) {
-      const token = b.dataset.shareRename;
-      const m = ds.find(x => x.token === token);
+    // QR of the link's current address: drawn by the server (/share/qr, segno), shown big enough to
+    // scan off a screen, with a PNG download for print. Same dialog shell as Edit.
+    function qr(token) {
+      const m = links.find((x) => x.token === token);
       if (!m) return;
-      const moi = window.prompt(t("share.rename_ask"), m.ten || "");
-      if (moi === null || moi === undefined) return;          // bấm Huỷ
-      b.disabled = true;
-      try {
-        const r = await (await fetch("/share/rename", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token, nhan: moi }),
-        })).json();
-        if (r && r.ok) { m.ten = r.ten; veDanhSach(); return; }
-      } catch (e) {}
-      b.disabled = false;
-      b.textContent = t("share.rename_fail");
+      const url = location.origin + m.url;
+      const src = (fmt, dl) => "/share/qr?token=" + encodeURIComponent(token) + "&origin=" + encodeURIComponent(location.origin)
+        + "&fmt=" + fmt + (dl ? "&dl=1" : "");
+      const dlg = document.createElement("div");
+      dlg.className = "share-dlg-wrap";
+      dlg.innerHTML = `<div class="share-dlg-scrim" data-dlg="close"></div>
+        <div class="share-dlg share-qr-dlg" role="dialog" aria-modal="true" aria-label="${esc(t("share.qr_title"))}">
+          <div class="share-dlg-h"><b>${esc(m.ten || t("share.qr_title"))}</b>
+            <button type="button" class="share-ib" data-dlg="close" aria-label="${esc(t("common.cancel"))}">${ic("x")}</button></div>
+          <img class="share-qr-img" src="${esc(src("svg"))}" alt="${esc(t("share.qr_title") + ": " + url)}" width="240" height="240">
+          <div class="share-qr-url">${esc(url)}</div>
+          <div class="share-dlg-acts">
+            <button type="button" class="gcard-btn ghost" data-dlg="copy">${ic("copy")} ${esc(t("share.a_copy"))}</button>
+            <a class="gcard-btn" data-dlg="png" href="${esc(src("png", true))}" download>${ic("download")} ${esc(t("share.qr_png"))}</a>
+          </div>
+        </div>`;
+      document.body.appendChild(dlg);
+      const close = () => { document.removeEventListener("keydown", onKey); dlg.remove(); };
+      const onKey = (e) => { if (e.key === "Escape") close(); };
+      document.addEventListener("keydown", onKey);
+      dlg.querySelectorAll('[data-dlg="close"]').forEach((x) => { x.onclick = close; });
+      const cp = dlg.querySelector('[data-dlg="copy"]');
+      if (cp) cp.onclick = () => copyText(url, cp);
     }
 
-    async function thuHoi(b) {
+    // One dialog for the name and the custom address. Phone: a sheet from the bottom (CSS), like the Tasks page.
+    function edit(token) {
+      const m = links.find((x) => x.token === token);
+      if (!m) return;
+      const dlg = document.createElement("div");
+      dlg.className = "share-dlg-wrap";
+      dlg.innerHTML = `<div class="share-dlg-scrim" data-dlg="close"></div>
+        <div class="share-dlg" role="dialog" aria-modal="true" aria-label="${esc(t("share.edit_title"))}">
+          <div class="share-dlg-h"><b>${esc(t("share.edit_title"))}</b>
+            <button type="button" class="share-ib" data-dlg="close" aria-label="${esc(t("common.cancel"))}">${ic("x")}</button></div>
+          <label class="share-fld"><span>${esc(t("share.f_name"))}</span>
+            <input type="text" data-dlg-name="1" maxlength="120" value="${esc(m.ten || "")}" placeholder="${esc(t("share.f_name_ph"))}"></label>
+          <label class="share-fld"><span>${esc(t("share.f_slug"))}</span>
+            <span class="share-slug"><span class="share-slug-pre">/s/</span>
+            <input type="text" data-dlg-slug="1" maxlength="64" spellcheck="false" autocapitalize="off" autocomplete="off" value="${esc(m.slug || "")}" placeholder="${esc(t("share.f_slug_ph"))}"></span></label>
+          <div class="share-dlg-note">${esc(t("share.slug_note"))}</div>
+          <div class="share-dlg-note">${esc(t("share.token_url"))}: <span class="share-tok">${esc(location.origin + (m.token_url || "/s/" + m.token))}</span></div>
+          <div class="share-dlg-err" data-dlg-err="1" role="alert"></div>
+          <div class="share-dlg-acts">
+            <button type="button" class="gcard-btn ghost" data-dlg="close">${esc(t("common.cancel"))}</button>
+            <button type="button" class="gcard-btn" data-dlg="save">${esc(t("common.save"))}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(dlg);
+      const nameIn = dlg.querySelector("[data-dlg-name]");
+      const slugIn = dlg.querySelector("[data-dlg-slug]");
+      const err = dlg.querySelector("[data-dlg-err]");
+      const close = () => { document.removeEventListener("keydown", onKey); dlg.remove(); };
+      const onKey = (e) => {
+        if (e.key === "Escape") close();
+        else if (e.key === "Enter" && e.target && e.target.tagName === "INPUT") save();
+      };
+      document.addEventListener("keydown", onKey);
+      dlg.querySelectorAll('[data-dlg="close"]').forEach((x) => { x.onclick = close; });
+      const saveBtn = dlg.querySelector('[data-dlg="save"]');
+      if (saveBtn) saveBtn.onclick = () => save();
+      if (nameIn && nameIn.focus) nameIn.focus();
+      async function save() {
+        if (saveBtn) saveBtn.disabled = true;
+        try {
+          const r = await (await fetch("/share/rename", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token, nhan: nameIn ? nameIn.value : m.ten, slug: slugIn ? slugIn.value : m.slug }),
+          })).json();
+          if (r && r.ok) {
+            m.ten = r.ten; m.slug = r.slug || ""; if (r.url) m.url = r.url;
+            close();
+            drawList();
+            return;
+          }
+          if (err) err.textContent = (r && r.error) || t("share.rename_fail");
+        } catch (e) {
+          if (err) err.textContent = t("share.rename_fail");
+        }
+        if (saveBtn) saveBtn.disabled = false;
+      }
+    }
+
+    async function revoke(b) {
       const token = b.dataset.shareRevoke;
+      const m = links.find((x) => x.token === token);
+      if (!window.confirm(t("share.revoke_ask", { ten: (m && m.ten) || token }))) return;
       b.disabled = true;
       try {
         await fetch("/share/revoke", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token }),
         });
-        ds = ds.filter(x => x.token !== token);
-        // Vẽ lại CẢ thẻ: con số tổng ở đầu thẻ vừa giảm đi một, mà ô tìm có thể vừa tụt xuống
-        // dưới ngưỡng hiện. Từ khoá đang gõ nằm ở `tuKhoa` nên nó sống qua lần vẽ này.
-        ve();
+        links = links.filter((x) => x.token !== token);
+        // Redraw the WHOLE card: the totals drop and the search box may fall under its threshold. The query lives in
+        // `state`, so it survives, and so does the page number (the pager clamps it when the last page empties).
+        draw();
       } catch (e) { b.disabled = false; }
     }
   }
@@ -7392,8 +8117,12 @@
     // MỘT CỘT, không phải lưới hai ô. Đã chốt: kiểu hai hàng hai ô trên điện
     // thoại rất khó xem, và trang này hay được mở trên điện thoại (chỉnh con pet đang nằm ở
     // mép màn hình đó). Một cột thì thứ tự đọc trên mọi khổ màn là như nhau.
-    el.innerHTML = '<div class="settings-page"><div class="settings-group-body pet-page-body" id="petPageBody"></div></div>';
+    el.innerHTML = '<div class="settings-page"><div class="settings-group-body pet-page-body" id="petPageBody"></div>' +
+      '<div class="settings-group-body pet-page-body" id="petMenuBody"></div></div>';
     renderPetCard(el.querySelector("#petPageBody"), (s.dashboard || {}).pet);
+    // Mascot menu (pet-menu.js): add features and reorder them, last on the page. Its own host, so redrawing the
+    // look editor above never throws away a menu draft.
+    if (window.VanhanhPetMenu) window.VanhanhPetMenu.renderSettings(el.querySelector("#petMenuBody"));
   }
 
   function renderPetCard(host, tuMayChu) {
@@ -7410,7 +8139,8 @@
     //
     // Kích cỡ và cỡ mắt là THANH TRƯỢT: lúc kéo (tam = true) con pet đổi ngay nhưng chưa ghi
     // máy chủ, thả tay mới ghi. Màu thân và màu mắt có thêm ô TỰ CHỌN kèm ô gõ mã màu.
-    const OPTS_ED = { size: true, vanh: true };
+    // image: the "Own picture" block (upload, back to the Vanhanh face, use as tab icon) sits first on this page only.
+    const OPTS_ED = { size: true, vanh: true, image: true };
     const ve = () => {
       const cur = P.get();
       // Thứ tự: HÌNH DÁNG trước (thứ người ta tới đây để đổi), rồi cỡ, màu, màu mắt, và CUỐI
@@ -7448,7 +8178,7 @@
         stt.innerHTML = Icons.warn(t("settings.pet_save_fail") + (r.lech.length ? " (" + r.lech.join(", ") + ")" : ""));
       };
       host.querySelector("#setPetToggle").onclick = () => { P.setEnabled(!cur.enabled); ve(); };
-      host.querySelector("#setPetReset").onclick = () => { P.setCfg({ shape: "star", palette: "nang", size: 72, side: "right", pos: 0.62, eye: "den", eyeSize: 1, enabled: true }); ve(); };
+      host.querySelector("#setPetReset").onclick = () => { P.setCfg({ shape: "star", palette: "nang", size: 72, side: "right", pos: 0.62, eye: "den", eyeSize: 1, enabled: true, image: "", favicon: true }); ve(); };
       P.editorBind(host.querySelector("[data-pet-editor]"), cur, (patch, tam) => P.setCfg(patch, tam), OPTS_ED);
     };
     ve();
@@ -7599,6 +8329,9 @@
     const langs = (s.lang_list || []);
     const replyLang = lc.reply_lang || "auto";
     const uiLang = (window.VanhanhI18n && VanhanhI18n.lang()) || "vi";
+    // Timezone: what "today", "yesterday", reminders and report periods mean for Vanhanh. Lives with the language
+    // pickers because both are "where and how I live", but it is saved separately (locale.tz), never inferred from language.
+    const tzName = lc.tz || (s.locale_fmt && s.locale_fmt.tz) || "Asia/Ho_Chi_Minh";
     // MỘT thẻ cho cả hai ô ngôn ngữ. Trước là hai thẻ riêng nằm cạnh nhau trong lưới,
     // mỗi thẻ đúng một ô chọn - hai cái khung cho hai dòng chữ.
     const langHtml = `
@@ -7620,6 +8353,14 @@
           </select>
         </div>
         ${infoBody(esc(t("settings.lang.hint")))}
+        <div class="qs-field">
+          <label class="qs-lbl" for="vpTz">${esc(t("settings.tz.title"))}${infoBtn()}</label>
+          <select class="js-input" id="vpTz">
+            ${window.VanhanhTz ? VanhanhTz.options(tzName) : opt(tzName, tzName, tzName)}
+          </select>
+        </div>
+        ${infoBody(esc(t("settings.tz.hint")))}
+        <div class="gcard-meta" id="vpTzNow"></div>
       </div>`;
 
     el.innerHTML = `<div class="settings-page">
@@ -7706,6 +8447,17 @@
       if (sel) sel.onchange = async () => {
         const r = await saveSetting("locale", { reply_lang: sel.value });
         toast(r && r.ok ? t("settings.lang.saved") : t("settings.save_failed"), !(r && r.ok));
+      };
+      const selTz = document.getElementById("vpTz");
+      const tzNow = document.getElementById("vpTzNow");
+      const showTzNow = () => {
+        if (tzNow && selTz && window.VanhanhTz) tzNow.textContent = t("tz.now_there").replace("{time}", VanhanhTz.nowIn(selTz.value));
+      };
+      showTzNow();
+      if (selTz) selTz.onchange = async () => {
+        const r = await saveSetting("locale", { tz: selTz.value });
+        if (r && r.ok) { showTzNow(); toast(t("settings.tz.saved")); }
+        else { selTz.value = tzName; showTzNow(); toast((r && r.error) || t("settings.save_failed"), true); }
       };
       const selUi = document.getElementById("vpUiLang");
       if (selUi) selUi.onchange = async () => {
@@ -8172,14 +8924,20 @@
       try { return window.Alpine && window.Alpine.store("nav"); } catch (e) { return null; }
     }
     window.VanhanhNav = {
+      // For the mascot menu (pet-menu.js): the rail icon of a page, and whether this Vanhanh has that page at all.
+      iconName(id) { return VIEW_ICON[id] || ""; },
+      has(id) { return Object.prototype.hasOwnProperty.call(VIEW_META, id); },
       go(id) { const s = _navStore(); if (s && typeof s.go === "function") s.go(id); else navigateTo(id); },
-      // Bung một NHÓM trên thanh bên mà KHÔNG đổi trang. Trả false nếu không có nhóm đó.
+      // Cho THẤY một nhóm trên thanh bên mà KHÔNG đổi trang. Mọi mục đã nằm sẵn trên cột trái,
+      // nên chỉ cần bung thanh bên; nhóm có trang nằm trong menu tài khoản (Nâng cao, Hệ thống)
+      // thì mở menu đó. Trả false nếu không có nhóm đó.
       openGroup(groupId) {
         const g = RAIL_GROUPS.find(gr => gr.id === groupId);
         const s = _navStore();
         if (!g || !s) return false;
-        s.openGroup = g.label;
-        if (s.collapsed) s.toggleCollapsed();   // đang thu gọn thì bung ra, không thì mở nhóm cũng vô hình
+        if (s.collapsed) s.toggleCollapsed();   // đang thu gọn thì bung ra, không thì mục vẫn vô hình
+        const trongMenu = [...RAIL_MENU, ...RAIL_MENU_ADV];
+        if ((g.ids || []).some(id => trongMenu.includes(id))) s.advOpen = true;
         return true;
       },
       setCollapsed(thu) {
@@ -8315,9 +9073,7 @@
       active: "home",
       items: RAIL_ITEMS,
       updAvail: false,   // máy chủ báo có bản mới (/version), vẽ chấm trên mục Cập nhật
-      // Only a `fold` group (Advanced) opens and shuts; every other group is always open, so the
-      // whole rail shows without a click. Holds the label of the fold group that is open, if any.
-      openGroup: groupLabelOf("home"),
+      advOpen: false,    // danh sách Nâng cao (dưới Tài khoản) đang xổ
       collapsed: (() => { try { return localStorage.getItem("vanhanh_rail_collapsed") === "1"; } catch (e) { return false; } })(),
       collapseIcon: COLLAPSE_ICON,
       // Alpine không biết từ điển i18n đổi (nó là object thuần), nên phải có một biến
@@ -8325,22 +9081,27 @@
       // cho tới khi F5 - một kiểu hỏng nhìn như "lưu không ăn".
       i18nTick: 0,
       get groups() { void this.i18nTick; return railGroups(); },
+      get menu() { void this.i18nTick; return railMenu(); },
       get meta() { void this.i18nTick; return VIEW_META[this.active] || VIEW_META.home; },
-      isOpen(label) {
-        const g = RAIL_GROUPS.find(gr => gr.label === label);
-        return !(g && g.fold) || this.openGroup === label;
+      // Trang đang mở là một trang Nâng cao: khi danh sách gập, dòng Nâng cao sáng lên thay cho nó.
+      get menuActive() { return RAIL_MENU.includes(this.active) || RAIL_MENU_ADV.includes(this.active); },
+      // Xổ/gập Nâng cao. Xổ ra thì cuộn cột tới dòng cuối (Cộng đồng VANHANH), kẻo nó nằm khuất dưới hàng phiên bản.
+      toggleAdv(btn) {
+        this.advOpen = !this.advOpen;
+        if (!this.advOpen || !btn) return;
+        setTimeout(() => {
+          const last = btn.parentElement && btn.parentElement.querySelector(".rail-adv-items > :last-child");
+          if (last) last.scrollIntoView({ block: "nearest" });
+        }, 60);
       },
-      toggleGroup(label) { this.openGroup = (this.openGroup === label) ? null : label; },
       toggleCollapsed() {   // thu/mở sidebar: thu → chỉ còn icon; mở → đầy chữ. Nhớ lựa chọn qua localStorage.
         this.collapsed = !this.collapsed;
         try { localStorage.setItem("vanhanh_rail_collapsed", this.collapsed ? "1" : "0"); } catch (e) {}
       },
       go(id) {
         const item = RAIL_ITEMS.find(i => i.id === id);
+        if (RAIL_MENU_ADV.includes(id)) this.advOpen = true;   // mở trang Nâng cao từ chỗ khác: cho thấy nó nằm đâu
         if (item && item.launch) { item.launch(); recomputeGraph(); return; }  // launcher: không đổi view
-        // A page inside the fold group unfolds it; opening any other page leaves it as it was.
-        const fg = RAIL_GROUPS.find(gr => gr.fold && (gr.ids || []).includes(id));
-        if (fg) this.openGroup = fg.label;
         navigateTo(id);
       },
     });
@@ -9454,10 +10215,9 @@
       }
     } catch (e) { /* dựng lại hỏng thì giữ khung cũ, phần quét nhãn tĩnh bên dưới vẫn phải chạy */ }
     try { window.VanhanhI18n && VanhanhI18n.applyDom(); } catch (e) { /* noop */ }
-    // Hai ô chọn ngôn ngữ (đáy rail + trang Cài đặt) phải chỉ cùng một giá trị: đổi ở đâu
-    // thì ô kia tự nhảy theo, không cần F5.
+    // Ô chọn ngôn ngữ ở trang Cài đặt (1.3.0: chỗ duy nhất) đi theo ngôn ngữ đang dùng, không cần F5.
     try {
-      for (const id of ["railLang", "vpUiLang"]) {
+      for (const id of ["vpUiLang"]) {
         const sel = document.getElementById(id);
         if (sel && window.VanhanhI18n && sel.value !== VanhanhI18n.lang()) sel.value = VanhanhI18n.lang();
       }
@@ -9539,8 +10299,7 @@
     setInterval(refreshEngineBanner, 90000);
     // Báo "chưa kết nối" mà không đưa được người ta tới chỗ kết nối thì chỉ là than phiền.
     const _eb = document.getElementById("engineBanner");
-    if (_eb) _eb.addEventListener("click", () => navigateTo("models"));
-    const ver = document.getElementById("railVersion");
+    if (_eb) _eb.addEventListener("click", () => navigateTo("models"));    const ver = document.getElementById("railVersion");
     if (ver) {
       // Hiện tạm, thay ngay bằng phiên bản thật từ server. Số tạm lấy từ khối vanhanh-fresh mà index.html (luôn mới) mang
       // theo: /version mà trượt (máy chủ đang khởi động) thì vẫn đúng số, không phải con số dự phòng cũ như từng thấy.
@@ -9604,27 +10363,7 @@
           }
         }
       } catch (e) { /* lỗi thì giữ ngôn ngữ đang hiện, không chặn phần còn lại */ }
-      // Ô đổi ngôn ngữ giao diện dưới đáy rail. Danh sách từ sổ đăng ký phía server
-      // (s.lang_list) - cùng nguồn với trang Cài đặt, không khai lại ở client. Chỉ hiện khi
-      // có từ 2 ngôn ngữ: một ngôn ngữ thì ô chọn là đồ trang trí.
-      try {
-        const wrap = document.getElementById("railLangWrap");
-        const sel = document.getElementById("railLang");
-        const langs = uiLangChoices(s);
-        if (wrap && sel && langs.length > 1) {
-          const cur = (window.VanhanhI18n && VanhanhI18n.lang()) || "vi";
-          sel.innerHTML = langs.map(l =>
-            `<option value="${esc(l.ma)}"${l.ma === cur ? " selected" : ""}>${esc(l.ten)}</option>`).join("");
-          sel.onchange = async () => {
-            // Đổi NGAY trên máy này trước rồi mới lưu lên server - ngôn ngữ giao diện là lựa
-            // chọn theo thiết bị, trải nghiệm không được chờ mạng (giống ô ở trang Cài đặt).
-            try { await VanhanhI18n.setLang(sel.value); } catch (e) { /* noop */ }
-            saveSetting("locale", { ui_lang: uiLangForServer(sel.value, s) });
-          };
-          wrap.hidden = false;
-        }
-      } catch (e) { /* thiếu ô thì rail vẫn sống */ }
-      graphEnabled = !(s.dashboard && s.dashboard.graph_enabled === false);
+      graphEnabled =!(s.dashboard && s.dashboard.graph_enabled === false);
       recomputeGraph();
       // Deep-link mở tab mới từ link file trong chat: #open=<đường-dẫn-vault>.
       // Đi qua openVaultPath chứ KHÔNG phải openFilesAt: file sửa được thì mở thẳng trình sửa,

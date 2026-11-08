@@ -197,8 +197,12 @@ check("form nạp Agent của brain đang mở",
   /var br = brain\(\)/.test(CB) && /napAgent\(br\)/.test(CB));
 check("lưu bot thì Agent và tài liệu cùng một brain", /agent_brain: br, brain: br,/.test(CB));
 check("trang nói rõ đang xem bot của brain nào",
-  /window\.t\("cb\.intro_1"\)\) \+ ' <b>' \+ esc\(brain\(\)\)/.test(CB)
+  /window\.t\("cb\.intro_1"\)\) \+ ' <b>' \+ esc\(tenBrain\(\)\)/.test(CB)
   && tu("cb.intro_1", "Bot của bộ não"));
+// tenBrain() đọc tên trên ô chọn bộ não. In thẳng brain() là in ĐỊA CHỈ: chữ "brain" với bộ não
+// mặc định, đường dẫn máy chủ (/opt/vanhanh/app/brains/...) với bộ não khác - đúng lỗi chủ đã thấy.
+check("CANARY: tên bộ não lấy từ ô chọn, không in địa chỉ",
+  /dataset\.brainLabel/.test(CB) && !/esc\(brain\(\)\)/.test(CB));
 check("trang chỉ cách xem brain khác", noi("cb.intro_8", "Đổi bộ não ở đầu trang"));
 // Thẻ bot bỏ dòng brain: mọi bot ở đây đều cùng một brain nên nhắc lại từng thẻ chỉ là nhiễu.
 check("thẻ bot không nhắc lại brain", !/ic\("brain"\) \+ ' ' \+ esc\(b\.brain\)/.test(CB));

@@ -104,7 +104,7 @@ Nếu tool bị chặn vì mức quyền, câu trả lời sẽ chứa nguyên v
 
 | Tên trên thẻ | slug | Tool cung cấp | Quyền tối thiểu | Mặc định |
 |---|---|---|---|---|
-| Thời gian & ngày (VN) | `datetime-vn` | `vanhanh_now`, `vanhanh_date_add` | chỉ đọc | Bật |
+| Thời gian & ngày (múi giờ chọn ở Cài đặt) | `datetime-vn` | `vanhanh_now`, `vanhanh_date_add` | chỉ đọc | Bật |
 | Đặt việc định kỳ & nhắc hẹn | `vanhanh-schedule` | `vanhanh_schedule` | ghi (safe) | Bật |
 | Giao việc Kanban | `vanhanh-task` | `vanhanh_task` | ghi (safe) | Bật |
 | Quản lý nhóm chat | `vanhanh-team` | `vanhanh_team` | ghi (safe), chỉ chủ | Bật |

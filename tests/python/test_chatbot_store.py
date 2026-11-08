@@ -66,7 +66,7 @@ bad, why = chatbot_store.create_bot({"name": "Bot", "brain": "shop"})
 check("tạo thiếu Agent -> từ chối", bad is None and "agent" in why.lower())
 
 bad, why = chatbot_store.create_bot({"name": "Bot", "agent_slug": "cskh"})
-check("tạo thiếu brain -> từ chối", bad is None and "brain" in why.lower())
+check("tạo thiếu brain -> từ chối", bad is None and ("bộ não" in why.lower() or "brain" in why.lower()))
 
 # Slug Agent = TÊN FILE trong Vanhanh/agents, và tên đó do người dùng đặt. Rào ở đây canh AN
 # TOÀN ĐƯỜNG DẪN chứ không canh hình dạng: khuôn cũ chỉ nhận ASCII nên nó chặn đúng những
@@ -451,7 +451,7 @@ check("có bot thì rẽ sang đường riêng", "return await _bot_tra_loi(" in
 # Bot sống TRONG một brain: Agent nó dùng và tài liệu nó đọc là cùng một chỗ. Giao diện không
 # hỏi brain nữa (trang thuộc về brain đang mở), nên server phải tự giữ hai trường bằng nhau -
 # lệch được thì bot trỏ vào Agent nằm ngoài brain nó đọc, và không có gì báo.
-check("trang Chatbot lọc bot theo brain", "async def chatbots_list(brain: str = \"\")" in _SRC)
+check("trang Chatbot lọc bot theo brain", "def chatbots_list(brain: str = \"\")" in _SRC)
 check("bỏ trống brain thì trả tất cả (bộ giám sát cần thấy hết)",
       'if loc and not brain_ident.same_brain(b.get("brain"), loc):' in _SRC)
 check("tạo bot: hai trường brain tự bù cho nhau",
