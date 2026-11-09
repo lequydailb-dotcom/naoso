@@ -614,3 +614,36 @@ def handoffs(brain: Path, now: float, tz: tzinfo, day: str, teams: list | None, 
             prev = to
     out.sort(key=lambda x: x["ts"])
     return out[-300:]
+
+
+
+# ---------- teams talking and meeting right now ----------
+TALK_ROLES = ("leader_reply", "member_reply", "member_volunteer", "plan", "synthesize", "work", "help")
+
+
+def talk_view(brain: Path, talk: list | None) -> dict:
+    """Who is talking in a team right now and which teams sit in the meeting room.
+
+    talk = [{"team": row, "members": [...], "turn": {agent_key, role, engine_at}}] from active team turns.
+    Returns {"talk": [{slug, name, role, team, since}], "meetings": [{team, leader, members: [slugs]}]}: a team
+    meets while its leader plans the job (role "plan") or sums it up ("synthesize"); every active member sits in.
+    """
+    names = staff_names(brain)
+    talking, meetings = [], {}
+    for x in talk or []:
+        team = x.get("team") or {}
+        turn = x.get("turn") or {}
+        mem = {str(m.get("agent_key")): m for m in x.get("members") or []}
+        key = str(turn.get("agent_key") or "")
+        slug = _member_slug(mem[key]) if key in mem else key
+        role = str(turn.get("role") or "")
+        if role not in TALK_ROLES or not slug:
+            continue
+        talking.append({"slug": slug, "name": scrub(names.get(slug) or ((mem.get(key) or {}).get("identity") or {}).get("name") or slug, 60),
+                        "role": role, "team": scrub(team.get("name") or "", 80), "since": float(turn.get("engine_at") or 0)})
+        if role in ("plan", "synthesize"):
+            tid = str(team.get("team_id") or "")
+            members = [_member_slug(m) for m in x.get("members") or [] if (m.get("status") or "active") == "active"]
+            meetings[tid] = {"team": scrub(team.get("name") or "", 80), "leader": slug,
+                             "members": [s for s in members if s]}
+    return {"talk": talking, "meetings": list(meetings.values())}

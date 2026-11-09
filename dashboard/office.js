@@ -66,7 +66,41 @@
       + cell(t.broken, "office.k_broken", t.broken ? "bad" : "")
       + cell(t.waiting, "office.k_waiting", t.waiting ? "ask" : "")
       + cell(t.empty_depts, "office.k_empty", t.empty_depts ? "ask" : "")
+      + aiCell(d)
       + "</div>";
+  }
+  // what AI calls cost that day on this server; an engine on a monthly plan counts 0, so the note says so
+  function aiCell(d) {
+    var a = d && d.ai;
+    var v = a ? "$" + (a.cost < 10 ? a.cost.toFixed(2) : Math.round(a.cost)) : "[?]";
+    return '<div class="of-kpi" title="' + esc(tw("office.k_ai_note")) + '"><b>' + esc(v) + "</b><span>"
+      + esc(a ? tw("office.k_ai", { n: a.turns }) : tw("office.k_ai_none")) + "</span></div>";
+  }
+
+  // The line of news running along the bottom of the 3D office: handoffs and runs, newest first.
+  function tickerItems(d) {
+    var who_ = function (n, id) { return id === "owner" ? tw("office.owner") : (n || id); };
+    var hs = ((d && d.handoffs) || []).map(function (h) {
+      return { ts: h.ts || 0, text: tw("office.tk_hand", { at: h.hm, from: who_(h.from_name, h.from), to: who_(h.to_name, h.to), title: h.title }),
+        tone: HAND_TONE[h.status] || "calm" };
+    });
+    var fs = ((d && d.feed) || []).map(function (f) {
+      return { ts: f.ts || 0, text: tw("office.tk_run", { at: f.at, name: f.name, result: tw(RESULT_KEY[f.result] || "office.r_other") }),
+        tone: FEED_TONE[f.result] || "calm" };
+    });
+    return hs.concat(fs).sort(function (a, b) { return b.ts - a.ts; }).slice(0, 14);
+  }
+  function tickerHtml(d) {
+    return tickerItems(d).map(function (x) { return '<span class="o3-tki o3-' + x.tone + '">' + esc(x.text) + "</span>"; }).join("");
+  }
+
+  // The sign over each department in 3D: its state, then how many assistants, jobs and runs it has today.
+  function zoneSub(d, dep) {
+    var js = (dep.jobs || []).map(function (id) { return jobById(d, id); }).filter(Boolean);
+    var runs = js.reduce(function (a, j) { return a + ((j.day && j.day.runs) || 0); }, 0);
+    var fails = js.reduce(function (a, j) { return a + ((j.day && j.day.fail) || 0); }, 0);
+    return tw(STATUS_KEY[dep.status] || "office.ds_ok") + " · "
+      + tw("office.zone_sub", { s: (dep.staff || []).length, r: runs }) + (fails ? " · " + tw("office.zone_fail", { f: fails }) : "");
   }
 
   function jobById(d, id) { return ((d && d.jobs) || []).filter(function (j) { return j.id === id; })[0]; }
@@ -113,12 +147,23 @@
       + '<div class="of-id"><b>' + esc(tw("office.todo")) + "</b> " + esc(todo) + "</div></li>";
   }
 
+  // Does a failure reach the owner's phone? One line under "Needs you", with a way to fix it when it does not.
+  var ALERT_KEY = { ok: "office.tg_ok", off: "office.tg_off", no_owner: "office.tg_no_owner", error: "office.tg_error" };
+  function alertHtml(d) {
+    var a = d && d.alert;
+    if (!a || !ALERT_KEY[a.tg]) return "";
+    var ok = a.tg === "ok";
+    return '<div class="of-alert of-alert-' + (ok ? "ok" : "warn") + '">' + ic(ok ? "bell" : "bell-off") + " "
+      + esc(tw(ALERT_KEY[a.tg]))
+      + (ok ? "" : ' <button type="button" class="btn btn-sm ofTg">' + esc(tw("office.tg_fix")) + "</button>") + "</div>";
+  }
+
   function issuesHtml(d) {
     var list = (d && d.issues) || [];
-    if (!list.length) return '<section class="of-box"><h3>' + esc(tw("office.needs_you")) + '</h3><div class="of-none">'
-      + ic("check") + " " + esc(tw("office.none")) + "</div></section>";
+    if (!list.length) return '<section class="of-box"><h3>' + esc(tw("office.needs_you")) + "</h3>" + alertHtml(d)
+      + '<div class="of-none">' + ic("check") + " " + esc(tw("office.none")) + "</div></section>";
     return '<section class="of-box"><h3>' + esc(tw("office.needs_you")) + ' <span class="of-count">' + list.length + "</span></h3>"
-      + '<ul class="of-issues">' + list.map(function (it) { return issueHtml(d, it); }).join("") + "</ul></section>";
+      + alertHtml(d) + '<ul class="of-issues">' + list.map(function (it) { return issueHtml(d, it); }).join("") + "</ul></section>";
   }
 
   function jobRowHtml(j) {
@@ -169,6 +214,8 @@
   }
 
   // ---- what runs at this second (GET /office/live, asked every 5 seconds) ----
+  var TALK_KEY = { plan: "office.talk_plan", synthesize: "office.talk_sum", work: "office.talk_work", help: "office.talk_help",
+    leader_reply: "office.talk_reply", member_reply: "office.talk_reply", member_volunteer: "office.talk_reply" };
   var NOW_KIND = { loop: "office.k_loop", reminder: "office.k_reminder", task: "office.k_task", job: "office.k_job",
     team: "office.k_team" };
   function dur(secs) {
@@ -325,12 +372,16 @@
           describe: function (pick) { return describe(st.data, pick); },
           deptName: deptName,
           ownerName: function () { return tw("office.owner"); },
-          deptStatus: function (dep) { return tw(STATUS_KEY[dep.status] || "office.ds_ok"); },
+          deptStatus: function (dep) { return zoneSub(st.data, dep); },
+          ticker: function (dd) { return tickerHtml(dd); },
+          meetingName: function () { return tw("office.meeting_room"); },
+          talkText: function (role) { return tw(TALK_KEY[role] || "office.talk_reply"); },
         });
       }
       slot.appendChild(st.host3d);
       st.v3.update(d);
       st.v3.running(runningIds());
+      if (st.live) st.v3.people(st.live);
     }
     function ago() { return st.liveAt ? Date.now() / 1000 - st.liveAt : 0; }
     // loop and reminder ids running now, the ones that own a desk in the 3D office
@@ -356,13 +407,14 @@
       var gone = before.some(function (x) { return !live.items.some(function (y) { return y.kind === x.kind && y.id === x.id; }); });
       st.live = live; st.liveAt = Date.now() / 1000;
       paintNow();
-      if (st.v3) st.v3.running(runningIds());
+      if (st.v3) { st.v3.running(runningIds()); st.v3.people(live); }
       var added = live.items.some(function (y) { return !before.some(function (x) { return x.kind === y.kind && x.id === y.id; }); });
       // a run just ended or new work was handed out: fetch the office again so the result or the handoff shows at once
       if ((gone || (added && st.liveSeen)) && !st.day) load();
       st.liveSeen = true;
     }
     box.addEventListener("click", function (ev) {
+      if (ev.target.closest(".ofTg")) { try { window.VanhanhNav.go("channels"); } catch (e) {} return; }
       if (!ev.target.closest(".ofView") || !st.data) return;
       st.view3d = !st.view3d && !!(O3 && O3.supported());
       saveView(st.view3d);
@@ -396,7 +448,7 @@
   }
 
   var api_ = { mount: mount, unmount: unmount, pageHtml: pageHtml, issueHtml: issueHtml, deptHtml: deptHtml,
-    jobRowHtml: jobRowHtml, kpiHtml: kpiHtml, feedHtml: feedHtml, nowHtml: nowHtml, dur: dur, handoffsHtml: handoffsHtml, deptName: deptName, describe: describe };
+    jobRowHtml: jobRowHtml, kpiHtml: kpiHtml, feedHtml: feedHtml, nowHtml: nowHtml, dur: dur, handoffsHtml: handoffsHtml, tickerItems: tickerItems, zoneSub: zoneSub, alertHtml: alertHtml, issuesHtml: issuesHtml, deptName: deptName, describe: describe };
   if (typeof window !== "undefined") window.VanhanhOffice = api_;
   if (typeof module !== "undefined" && module.exports) module.exports = api_;
 })();

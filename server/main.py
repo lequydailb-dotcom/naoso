@@ -7,7 +7,9 @@ Vanhanh KHÔNG gọi Anthropic API trực tiếp. Mọi reasoning + tool calling
 """
 import brain_seed_i18n   # file hạt giống của brain mới theo ngôn ngữ người dùng
 import brain_label   # tên hiển thị của brain, tách khỏi thư mục
+import brain_export   # xuất/nhập cả bộ não thành một file .zip
 import brain_order   # thứ tự brain trong bảng chọn: chủ tự sắp, còn lại theo tên hiển thị
+import default_brain   # which brain is the default: the owner's choice, `Brain Default` until one is made
 import localefmt   # múi giờ theo cấu hình, thay UTC+7 nhúng cứng
 import html as html_mod   # escape lời báo lỗi OAuth trên trang callback (biến cục bộ `html` che tên module)
 import posixpath
@@ -103,6 +105,7 @@ import cred_exchange   # đổi credential hộ user (vd App Password -> Google 
 import ops_index_watch   # keeps every brain's Vanhanh/index.md current, cheaply
 import plugins_host   # hệ PLUGIN: thư mục Python thả vào, tự thêm tool/hook cho mọi engine qua hub
 import web_security   # chống CSRF-to-localhost + DNS-rebinding cho web API cục bộ
+import security_log   # account security log: sign-ins, account changes, outside edits
 import image_gen      # tạo ảnh bằng gói ChatGPT (OAuth) - Codex Responses + tool image_generation
 import media_gc       # dọn vùng cache media (attachments/ + inbox/) theo hạn tuổi + trần dung lượng
 import inbox         # hòm thư: mọi kết quả chạy nền để lại một mẩu thư bền ở server
@@ -111,6 +114,7 @@ import webpush       # thông báo đẩy trình duyệt (Web Push, tự mã ho�
 import stt            # nghe tin thoại (Whisper qua Groq) -> chữ, cho kênh Telegram/Zalo
 import luot_dang_chay # sổ lượt chat đang chạy theo brain: tool giao việc tự biết khung chat nào hỏi
 import tool_label     # một dòng mô tả lệnh gọi công cụ (lệnh nào, file nào) cho khối tiến trình
+import turn_plan     # the engine's task plan (TodoWrite, update_plan) for the plan card in the chat
 import nghe_sua       # sửa chữ nghe nhầm theo ngữ cảnh (Nauta -> Vanhanh) + hotwords cho Whisper
 import transcript_fix  # rewrites what the mic heard at the end of a dictation: the main brain, with the chat as context
 import next_prompt  # suggests the owner's next message after a reply (ghost text, Tab fills it in)
@@ -124,6 +128,8 @@ import agent_rules   # mục Luật chủ dặn / Bổ sung (tự học) + chố
 import skill_router   # nguồn chân lý khám phá skill (canonical <brain>/skills) dùng chung mọi engine
 import skill_usage     # telemetry: đếm skill nào THẬT SỰ được dùng qua vanhanh_use_skill (tín hiệu DƯƠNG một chiều)
 import share_bundle   # xuất/nhập gói agent/skill/workflow (.zip) để chia sẻ giữa brain/người dùng
+import ssl_shared   # one SSL context for every httpx client, built off the event loop
+ssl_shared.install()
 import share_store    # link CHIA SẺ CÔNG KHAI của một file trong brain (/s/<token>)
 import share_stats    # view counter of those public links
 import share_render   # dựng trang xem cho link chia sẻ (markdown -> html, khung trang)
@@ -265,10 +271,11 @@ _REGISTRY_SHADOW_TASKS = set()
 # Nén gzip câu trả lời trọn một cục của API (xem nen_phan_hoi.py). Gắn ĐẦU TIÊN để nằm trong cùng: các
 # middleware gắn sau bọc response thành stream, đứng ngoài chúng thì không còn thấy câu trả lời nào là một cục.
 import nen_phan_hoi
+import bot_shield
 app.add_middleware(nen_phan_hoi.NenPhanHoi)
 # CORS KHÔNG dùng '*' nữa: dashboard cùng-origin (không cần CORS). Chống trang web độc ĐỌC API qua trình duyệt;
 # phần chống GHI/CSRF ở _csrf_guard bên dưới.
-# Vá bảo mật 2026-11-05: cửa CORS cho MỌI localhost:<cổng> (để tiện dev) giờ chỉ mở khi VANHANH_DEV_CORS=1. Trên
+# Vá bảo mật: cửa CORS cho MỌI localhost:<cổng> (để tiện dev) giờ chỉ mở khi VANHANH_DEV_CORS=1. Trên
 # máy không đặt mật khẩu, nó cho bất kỳ trang nào chạy ở một cổng localhost khác (dev server, app khác) đọc được
 # cả API: file trong brain, hội thoại. Dashboard, CLI và plugin không cần nó.
 if (os.getenv("VANHANH_DEV_CORS", "") or "").strip().lower() in ("1", "true", "yes", "on"):
@@ -290,6 +297,8 @@ if (os.getenv("VANHANH_DEV_CORS", "") or "").strip().lower() in ("1", "true", "y
 _AUTH_PUBLIC_PREFIX = ("/static/", "/s/", "/hooks/")
 # /brand-logo: hiện trên màn đăng nhập (trước session). /tls-check: Caddy gọi (không đăng nhập được).
 _AUTH_PUBLIC_EXACT = ("/", "/favicon.ico", "/health", "/auth/status", "/auth/login", "/auth/setup",
+                      # /robots.txt: crawlers must read it with no session, see bot_shield.py.
+                      "/robots.txt",
                       "/brand-logo", "/brand-theme.css", "/tls-check",
                       # /pet-icon: the mascot picture as the tab icon, shown on the login screen too.
                       "/pet-icon",
@@ -412,6 +421,12 @@ async def _auth_guard(request: Request, call_next):
                 return JSONResponse({"error": "unauthorized", "auth_required": True,
                                      "setup_required": not cfgmod.auth_enabled()},
                                     status_code=401)
+        elif not public:
+            try:
+                # "last active" in the device list of Account > Security
+                cfgmod.touch_session(request.cookies.get("vanhanh_session", ""), security_log.client_ip(request))
+            except Exception:  # noqa: BLE001
+                pass
     return await call_next(request)
 
 
@@ -442,6 +457,7 @@ def _token_ok(request, path: str) -> bool:
     return False
 
 DASHBOARD_PATH = Path(__file__).parent.parent / "dashboard"
+_PROCESS_STARTED = time.time()   # when this server process started (start-up screen, see root())
 # Windows/mimetypes không biết .webp -> StaticFiles trả text/plain; khai rõ để logo webp đúng kiểu ảnh.
 import mimetypes
 mimetypes.add_type("image/webp", ".webp")
@@ -452,6 +468,11 @@ for _mt, _ext in (("application/vnd.openxmlformats-officedocument.spreadsheetml.
                   ("application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx")):
     mimetypes.add_type(_mt, _ext)
 import tinh_gon  # noqa: E402
+import static_bundle  # noqa: E402
+
+# Minified scripts and styles survive a restart (tinh_gon.set_cache_dir): outside the code tree, so an update
+# never ships a stale copy, and keyed by each file's bytes, so an update re-minifies only what it changed.
+tinh_gon.set_cache_dir(Path(cfgmod.STATE_DIR) / "cache" / "static-min")
 
 
 class _TinhGonStatic(StaticFiles):
@@ -461,6 +482,11 @@ class _TinhGonStatic(StaticFiles):
     ngày sửa file (ngày đó nói về bản gốc, không phải bản nén). Mọi thứ khác (ảnh, json, file .min.*) đi đường cũ."""
 
     async def get_response(self, path, scope):
+        rel = str(path).replace("\\", "/")
+        bundle = static_bundle.get(rel)
+        if bundle is not None:
+            # The startup scripts as one file (static_bundle.py): built by root(), served from memory.
+            return self._send(scope, bundle[0], bundle[1], bundle[2], "application/javascript")
         resp = await super().get_response(path, scope)
         if resp.status_code != 200 or not tinh_gon.nen_duoc(path):
             return resp
@@ -470,14 +496,25 @@ class _TinhGonStatic(StaticFiles):
         try:
             # The first serve after a restart minifies in pure Python (1.5 s for all files on a fast CPU,
             # several seconds on a 1 vCPU VPS): a worker thread, so /health and other pages keep answering.
-            data, crc = await asyncio.to_thread(tinh_gon.ban_phuc_vu, Path(full), path)
+            # the gzip comes from the same cache (made once per file version, not per request on the loop).
+            data, gz, crc = await asyncio.to_thread(tinh_gon.gzip_of, Path(full), path)
         except OSError:
             return resp
-        etag = '"' + crc + '"'
+        return self._send(scope, data, gz, crc, resp.media_type)
+
+    @staticmethod
+    def _send(scope, data: bytes, gz: bytes, crc: str, media_type: str) -> Response:
+        """ETag answer, or the bytes: already gzipped when the browser takes gzip (the `/static/` gzip middleware leaves
+        a response that carries Content-Encoding alone)."""
         from starlette.datastructures import Headers as _Headers
-        if _Headers(scope=scope).get("if-none-match") == etag:
+        h = _Headers(scope=scope)
+        etag = '"' + crc + '"'
+        if h.get("if-none-match") == etag:
             return Response(status_code=304, headers={"etag": etag})
-        return Response(data, media_type=resp.media_type, headers={"etag": etag})
+        if "gzip" in (h.get("accept-encoding") or "").lower() and len(gz) < len(data):
+            return Response(gz, media_type=media_type,
+                            headers={"etag": etag, "content-encoding": "gzip", "vary": "Accept-Encoding"})
+        return Response(data, media_type=media_type, headers={"etag": etag, "vary": "Accept-Encoding"})
 
 
 app.mount("/static", _TinhGonStatic(directory=str(DASHBOARD_PATH)), name="static")
@@ -574,6 +611,13 @@ async def _server_timing(request: Request, call_next):
     except Exception:  # noqa: BLE001 - header là đồ thêm, không được làm hỏng response
         pass
     return response
+
+
+# Added LAST so it runs FIRST (outermost): X-Robots-Tag noindex on every answer, and a 403 for requests that declare
+# themselves a crawler, AI agent, SEO tool or scanner, before the CSRF and login gates spend anything on them. Keeps a
+# leaked admin link out of search results and away from AI. Share links (/s/) keep noindex but are never 403.
+# See bot_shield.py.
+app.add_middleware(bot_shield.BotShield)
 
 CLAUDE_MD_PATH = Path(__file__).parent.parent / "CLAUDE.md"
 SYSTEM_PROMPT = CLAUDE_MD_PATH.read_text(encoding="utf-8") if CLAUDE_MD_PATH.exists() else None
@@ -1333,6 +1377,18 @@ async def app_version():
     return {"version": _app_version() or "0", "assets": await asyncio.to_thread(_asset_fps, html)}
 
 
+def _stamp_asset_keys(html: str, fps: dict, ver: str) -> str:
+    """Every /static/ .js/.css URL keyed by its file's fingerprint (see root()), the app version when it has none."""
+    return re.sub(r'(/static/([\w./-]+\.(?:js|css)))\?v=[\w.]+',
+                  lambda m: m.group(1) + "?v=" + (fps.get(m.group(2)) or ver), html)
+
+
+def _warm_bundle() -> None:
+    """Build the startup bundle the way root() will ask for it, so the first page finds it ready (static_bundle.py)."""
+    html = (DASHBOARD_PATH / "index.html").read_text(encoding="utf-8")
+    static_bundle.apply(_stamp_asset_keys(html, _asset_fps(html), _app_version() or "0"), DASHBOARD_PATH)
+
+
 @app.get("/")
 async def root():
     html = (DASHBOARD_PATH / "index.html").read_text(encoding="utf-8")
@@ -1355,8 +1411,12 @@ async def root():
     # `fps` ngay dòng trên đã có sẵn crc32 từng file (dùng cho freshness.js), nên đổi khoá
     # sang nó là miễn phí. File nào thật sự đổi mới đổi URL; file không đổi giữ nguyên cache.
     # Rơi về `ver` khi không băm được (file lạ, lỗi đọc) - thà bể cache còn hơn phục vụ đồ cũ.
-    html = re.sub(r'(/static/([\w./-]+\.(?:js|css)))\?v=[\w.]+',
-                  lambda m: m.group(1) + "?v=" + (fps.get(m.group(2)) or ver), html)
+    html = _stamp_asset_keys(html, fps, ver)
+    # the ~110 startup scripts go out as one bundle (static_bundle.py); vanhanh-fresh then lists the bundle in
+    # place of the files it holds, so freshness.js checks exactly what the browser ran.
+    html, swap = await asyncio.to_thread(static_bundle.apply, html, DASHBOARD_PATH)
+    if swap:
+        fps = {k: v for k, v in {**fps, **swap}.items() if v}
     # /brand-logo cũng phải bể cache theo phiên bản. Nó KHÔNG nằm dưới /static nên không lọt
     # vào regex trên, và nó được phục vụ kèm max-age=60 - nghĩa là đổi logo mặc định trong
     # một bản cập nhật xong người dùng vẫn thấy logo cũ cho tới khi tự bấm Ctrl+Shift+R.
@@ -1376,7 +1436,9 @@ async def root():
     # Operator theme (STATE_DIR/branding/theme.css): outside the code tree, survives updates.
     html = _inject_brand_theme(html)
     moc = ('<script id="vanhanh-fresh" type="application/json">'
-           + json.dumps({"version": ver, "assets": fps}, ensure_ascii=False)
+           # `up`: seconds since this server process started; the start-up screen says a fresh restart
+           # can take a little longer (boot-splash.js).
+           + json.dumps({"version": ver, "assets": fps, "up": int(time.time() - _PROCESS_STARTED)}, ensure_ascii=False)
            + "</script>\n</head>")
     html = html.replace("</head>", moc, 1)
     return HTMLResponse(html, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
@@ -1428,6 +1490,27 @@ def _session_cookie(resp, token, request=None):
     return resp
 
 
+def _sec(request, event: str, **kw) -> None:
+    """One line in the security log (security_log.py) with where the request came from."""
+    try:
+        ip, ua = security_log.request_meta(request)
+        security_log.record(event, ip=ip, ua=ua, **kw)
+    except Exception as e:  # noqa: BLE001
+        print(f"[security_log] {event}: {type(e).__name__}: {e}", file=sys.stderr)
+
+
+def _new_login_session(request, user: str = "", how: str = "") -> str:
+    """A session for a successful sign-in, recorded with its device; a network never seen before is an alert."""
+    ip, ua = security_log.request_meta(request)
+    tok = cfgmod.new_session(ip, ua)
+    try:
+        new_net = security_log.note_login_network(ip)
+        security_log.record("login_new_network" if new_net else "login_ok", ip=ip, ua=ua, user=user, detail=how)
+    except Exception as e:  # noqa: BLE001
+        print(f"[security_log] login: {type(e).__name__}: {e}", file=sys.stderr)
+    return tok
+
+
 def _env_bat(ten: str) -> bool:
     """Biến môi trường có đang bật không (1/true/yes/on). Dùng cho cờ gợi ý, không phải rào."""
     return (os.getenv(ten, "") or "").strip().lower() in ("1", "true", "yes", "on")
@@ -1475,7 +1558,9 @@ async def auth_setup(request: Request, username: str = Form(...), password: str 
     cfg["auth"] = {**cfgmod.kept_totp(cfg), "username": username.strip() or "admin",
                    "password_hash": h, "salt": salt}
     cfgmod.write_settings(cfg)
-    return _session_cookie(JSONResponse({"ok": True}), cfgmod.new_session(), request)
+    _sec(request, "setup", user=username.strip() or "admin")
+    return _session_cookie(JSONResponse({"ok": True}), _new_login_session(request, username.strip() or "admin", "setup"),
+                           request)
 
 
 # Rate-limit đăng nhập (chống brute-force) - đếm theo IP, khoá tạm sau N lần sai.
@@ -1508,11 +1593,14 @@ async def auth_login(request: Request, username: str = Form(...), password: str 
     """
     ip = request.client.host if request.client else "?"
     if _login_locked(ip):
+        _sec(request, "login_locked", user=username)
         return JSONResponse({"ok": False, "error": localefmt.chu("Quá nhiều lần sai - thử lại sau ít phút.", "Too many failed attempts - try again in a few minutes.")}, status_code=429)
     cfg = cfgmod.read_settings()
     if not cfgmod.auth_enabled(cfg):
         return {"ok": True, "note": localefmt.chu("auth chưa bật", "auth is not enabled")}
     if not cfgmod.username_matches(username, cfg) or not cfgmod.verify_password(password, cfg):
+        _sec(request, "login_fail", user=username,
+             detail="unknown username" if not cfgmod.username_matches(username, cfg) else "wrong password")
         _login_fail(ip)
         await asyncio.sleep(0.5)   # làm chậm brute-force online
         loi = localefmt.chu("Sai tài khoản hoặc mật khẩu.", "Wrong username or password.")
@@ -1552,7 +1640,9 @@ async def auth_login(request: Request, username: str = Form(...), password: str 
         elif cfgmod.totp_dung_ma_khoi_phuc(ma):
             con = cfgmod.totp_recovery_left()
             print(f"[auth] đăng nhập bằng MÃ KHÔI PHỤC, còn {con} mã", file=__import__('sys').stderr)
+            _sec(request, "login_recovery_code", user=username, detail=f"recovery codes left={con}")
         else:
+            _sec(request, "login_2fa_fail", user=username)
             _login_fail(ip)
             await asyncio.sleep(0.5)
             return JSONResponse({"ok": False, "needs_2fa": True,
@@ -1571,7 +1661,8 @@ async def auth_login(request: Request, username: str = Form(...), password: str 
                                                               "The code is wrong or has already been used."))},
                                 status_code=401)
     _LOGIN_FAILS.pop(ip, None)
-    return _session_cookie(JSONResponse({"ok": True}), cfgmod.new_session(), request)
+    _how = "password+2fa" if (cfgmod.totp_enabled(cfg) or _tfa_hong) else "password"
+    return _session_cookie(JSONResponse({"ok": True}), _new_login_session(request, username.strip(), _how), request)
 
 
 # ---- Xác thực 2 lớp: bật / xác nhận / tắt ----
@@ -1644,6 +1735,7 @@ async def auth_2fa_enable(request: Request, code: str = Form(...)):
     ma_khoi_phuc = totp.sinh_ma_khoi_phuc()
     cfgmod.totp_set(secret=cho["secret"], enabled=True, recovery=ma_khoi_phuc, last_step=buoc)
     _TOTP_CHO.clear()
+    _sec(request, "2fa_enabled")
     return {"ok": True, "recovery": ma_khoi_phuc}
 
 
@@ -1666,6 +1758,7 @@ async def auth_2fa_disable(request: Request, password: str = Form(...), code: st
             and not cfgmod.totp_dung_ma_khoi_phuc(ma):
         return JSONResponse({"ok": False, "error": localefmt.chu("Mã xác thực không đúng.", "Wrong verification code.")}, status_code=401)
     cfgmod.totp_tat()
+    _sec(request, "2fa_disabled")
     return {"ok": True}
 
 
@@ -1681,6 +1774,7 @@ async def auth_2fa_recovery(request: Request, password: str = Form(...)):
         return JSONResponse({"ok": False, "error": localefmt.chu("Sai mật khẩu.", "Wrong password.")}, status_code=401)
     ma_khoi_phuc = totp.sinh_ma_khoi_phuc()
     cfgmod.totp_set(secret=None, recovery=ma_khoi_phuc)
+    _sec(request, "2fa_recovery_regenerated")
     return {"ok": True, "recovery": ma_khoi_phuc}
 
 
@@ -1718,12 +1812,17 @@ async def auth_password(request: Request, current_password: str = Form(""),
     # GHI ĐÈ TỪNG KHOÁ, không thay cả object `auth`: 2FA cũng nằm trong đó, gán đè nguyên cục
     # là lặng lẽ tắt xác thực 2 lớp của người ta ngay lúc họ vừa đổi mật khẩu.
     a = dict(cfg.get("auth") or {})
+    ten_cu = str(a.get("username") or "")
     if ten:
         a["username"] = ten
     if password:
         a["password_hash"], a["salt"] = cfgmod.hash_password(password)
     cfg["auth"] = a
     cfgmod.write_settings(cfg)
+    if ten and ten != ten_cu:
+        _sec(request, "username_changed", user=ten, detail=f"from {ten_cu}")
+    if password:
+        _sec(request, "password_changed", user=a.get("username", ""))
     if not password:
         return {"ok": True, "username": a.get("username", "")}
     # Đổi mật khẩu = hạ MỌI phiên cũ (máy khác, trình duyệt khác) rồi cấp lại phiên cho chính
@@ -1731,7 +1830,7 @@ async def auth_password(request: Request, current_password: str = Form(""),
     # 30 ngày, và việc đổi coi như không có tác dụng.
     cfgmod.clear_sessions()
     return _session_cookie(JSONResponse({"ok": True, "username": a.get("username", "")}),
-                           cfgmod.new_session(), request)
+                           cfgmod.new_session(*security_log.request_meta(request)), request)
 
 
 @app.get("/auth/tokens")
@@ -1755,14 +1854,19 @@ async def auth_tokens_create(request: Request, name: str = Form(""), scope: str 
             "Creating a token requires signing in from a browser "
             "(a token cannot create another token).")},
                             status_code=403)
-    return {"ok": True, **cfgmod.create_api_token(name, scope)}
+    made = cfgmod.create_api_token(name, scope)
+    _sec(request, "token_created", detail=f"{made.get('name', '')} ({made.get('scope', '')}, {made.get('prefix', '')})")
+    return {"ok": True, **made}
 
 
 @app.post("/auth/tokens/revoke")
 async def auth_tokens_revoke(request: Request, id: str = Form(...)):
     """Thu hồi. Cho phép dùng chính token đang cầm để tự thu hồi mình: mất máy thì phải hạ
     được credential ngay, kể cả khi không mở nổi trình duyệt."""
-    return {"ok": cfgmod.revoke_api_token(id)}
+    ok = cfgmod.revoke_api_token(id)
+    if ok:
+        _sec(request, "token_revoked", detail=str(id)[:40])
+    return {"ok": ok}
 
 
 @app.post("/auth/logout")
@@ -1773,13 +1877,16 @@ async def auth_logout(request: Request):
         webpush.huy_theo_phien(_phien_bam(tok))
     except Exception as e:  # noqa: BLE001
         print(f"[webpush] logout cleanup: {type(e).__name__}: {e}", file=sys.stderr)
+    if tok and cfgmod.valid_session(tok):
+        _sec(request, "logout")
     cfgmod.drop_session(tok)
     resp = JSONResponse({"ok": True})
     resp.delete_cookie("vanhanh_session", path="/")
     return resp
 
 
-_FORWARD_HEADERS = ("x-forwarded-for", "x-real-ip", "forwarded", "cf-connecting-ip")
+# One list for every local-request check (bot_shield.BotShield exempts local tools the same way).
+_FORWARD_HEADERS = bot_shield.FORWARD_HEADERS
 
 
 def _direct_local_request(request: Request) -> bool:
@@ -1871,7 +1978,64 @@ async def auth_disable(request: Request, password: str = Form(""), code: str = F
     cfg["auth"] = a
     cfgmod.write_settings(cfg)
     cfgmod.clear_sessions()
+    _sec(request, "login_disabled")
     return {"ok": True}
+
+
+# ---- Security tab of the Account page ----
+# Session-only like /auth/2fa/*: a leaked API token must not list or end the owner's devices.
+@app.get("/auth/security")
+async def auth_security(request: Request, limit: int = 100):
+    """Everything the Security tab shows: account state, devices signed in, and the security log."""
+    if (loi := _doi_phien_that(request)) is not None:
+        return loi
+    cfg = cfgmod.read_settings()
+    tok = request.cookies.get("vanhanh_session", "")
+    events = security_log.recent(max(1, min(int(limit or 100), 500)))
+    last_ok = next((e for e in events if e.get("event") in ("login_ok", "login_new_network")), None)
+    since = time.time() - 7 * 86400
+    fails_7d = sum(1 for e in events if e.get("event") in ("login_fail", "login_2fa_fail", "login_locked")
+                   and float(e.get("ts") or 0) >= since)
+    outside = next((e for e in events if e.get("event") == "auth_changed_outside"), None)
+    return {"ok": True,
+            "username": (cfg.get("auth") or {}).get("username", ""),
+            "has_password": cfgmod.auth_enabled(cfg),
+            "totp_enabled": cfgmod.totp_enabled(cfg),
+            "totp_broken": cfgmod.totp_hong(cfg),
+            "public": cfgmod.require_login(),
+            "env_password_set": bool(cfgmod.clean_password(os.getenv("VANHANH_ADMIN_PASSWORD", ""))),
+            "reset_2fa_env_set": bool(str(os.getenv("VANHANH_RESET_2FA", "") or "").strip()),
+            "tokens": len(cfgmod.list_api_tokens()),
+            "sessions": cfgmod.list_sessions(tok),
+            "last_login": last_ok,
+            "fails_7d": fails_7d,
+            "outside_change": outside,
+            "events": events}
+
+
+@app.post("/auth/sessions/revoke")
+async def auth_sessions_revoke(request: Request, id: str = Form(""), others: str = Form("")):
+    """Sign out one device (`id` from /auth/security), or every device but this one (`others=1`).
+    No password needed: ending sessions only takes access away, it never hands any out."""
+    if (loi := _doi_phien_that(request)) is not None:
+        return loi
+    tok = request.cookies.get("vanhanh_session", "")
+    if others:
+        n = max(0, len(cfgmod.SESSIONS) - (1 if tok in cfgmod.SESSIONS else 0))
+        cfgmod.clear_sessions(keep=tok)
+        _sec(request, "sessions_revoked", detail=f"all other devices ({n})")
+        return {"ok": True, "ended": n}
+    if not id:
+        return JSONResponse({"ok": False, "error": localefmt.chu("Thiếu thiết bị cần đăng xuất.",
+                                                                 "No device given.")}, status_code=400)
+    if tok and cfgmod.session_id(tok) == id:
+        return JSONResponse({"ok": False, "error": localefmt.chu("Đây là thiết bị đang dùng: bấm Đăng xuất.",
+                                                                 "This is the device you are using: use Log out.")},
+                            status_code=400)
+    ok = cfgmod.drop_session_by_id(id)
+    if ok:
+        _sec(request, "sessions_revoked", detail=f"one device ({id[:8]})")
+    return {"ok": ok, "ended": 1 if ok else 0}
 
 
 # ============================================================
@@ -3521,7 +3685,7 @@ async def _claude_sub_doc(cli, prompt, model):
                 yield {"type": "text", "content": txt}
         elif et == "tool_call":
             yield {"type": "tool_call", "tool": ev.get("name") or "",
-                   "detail": tool_label.chi_tiet(ev),
+                   "detail": tool_label.chi_tiet(ev), **turn_plan.fields(ev),
                    "content": f"⚙ {ev.get('name') or 'tool'}"}
         elif et == "final":
             txt = ev.get("content") or ""
@@ -3665,7 +3829,7 @@ async def _cli_sub_doc(g, prompt, model):
                 yield {"type": "text", "content": txt}
         elif et == "tool_call":
             yield {"type": "tool_call", "tool": ev.get("name") or "",
-                   "detail": tool_label.chi_tiet(ev),
+                   "detail": tool_label.chi_tiet(ev), **turn_plan.fields(ev),
                    "content": f"⚙ {ev.get('name') or 'tool'}"}
         elif et == "usage":
             yield {"type": "usage", "input": int(ev.get("input_tokens") or 0),
@@ -3867,6 +4031,16 @@ async def _api_stream_mcp(prov, key, model, messages, reasoning="off", brain=Non
                     inventory_tools, inventory_route = tools, route
         except Exception as e:
             print(f"[mcp discover] {e}", file=__import__('sys').stderr)
+        # The owner's chat turn gets vanhanh_plan (plan_tool.py): the checklist Claude Code, Codex and Grok keep with their
+        # own tools, drawn as the plan card. Not for a customer bot or a background job (no chat to draw in).
+        if (owner_sid or coding_row) and tools:
+            try:
+                import plan_tool
+                if plan_tool.enabled(cfgmod.read_settings()):
+                    tools, route = list(tools), dict(route)   # the hub's lists are cached and shared: copy first
+                    plan_tool.add_to(tools, route)
+            except Exception as e:  # noqa: BLE001
+                print(f"[plan tool] {type(e).__name__}: {e}", file=sys.stderr)
     # Phase 0-1: chỉ đo metadata payload sau khi đã biết tool schema thật. Không lưu content,
     # không chặn quota và không thay danh sách tool. ContextVar giữ trace riêng từng asyncio task.
     _trace = context_runtime.current_trace()
@@ -5225,6 +5399,13 @@ async def _widen_io_pool():
 
 
 @app.on_event("startup")
+async def _warm_shared_ssl():
+    """Build the one SSL context every httpx client shares (ssl_shared.py) on a worker thread, so not even the first
+    client loads the certificate bundle on the event loop."""
+    await asyncio.to_thread(ssl_shared.warm)
+
+
+@app.on_event("startup")
 async def _routing_migrate_on_start():
     """move the settings to the usage-order layout once (model-routing-spec, part 4)."""
     def _run():
@@ -6509,6 +6690,9 @@ async def settings_set(section: str = Form(...), data: str = Form("{}")):
         # The suggested next message (next_prompt.py): the "+" menu of the composer switches it on and off.
         if "suggest_next" in patch:
             cfg.setdefault("chat", {})["suggest_next"] = bool(patch["suggest_next"])
+        # vanhanh_plan for the API brains (plan_tool.py): the "+" menu of the composer switches it on and off.
+        if "plan_tool" in patch:
+            cfg.setdefault("chat", {})["plan_tool"] = bool(patch["plan_tool"])
     elif section == "general":
         if "workspace_name" in patch:
             cfg["workspace_name"] = patch["workspace_name"] or "VANHANH"
@@ -6920,7 +7104,7 @@ def _do_backup(brain: str = "") -> dict:
         if res.get("restored"):
             bits.append("khôi phục từ backup")
         detail = (" · " + ", ".join(bits)) if bits else ""
-        cfg["backup"]["last_status"] = "✓ Đồng bộ 2 chiều " + time.strftime("%H:%M %d/%m") + detail
+        cfg["backup"]["last_status"] = "✓ Đồng bộ 2 chiều " + localefmt.now().strftime("%H:%M %d/%m") + detail
     else:
         cfg["backup"]["last_status"] = "✗ " + (res.get("error") or "lỗi")[:150]
     cfg["backup"]["last_report"] = {
@@ -7500,8 +7684,11 @@ def _default_brain_dir() -> Path:
     """Brain mặc định = <BRAINS_DIR>/Brain Default. BRAINS_DIR = thư mục CHA chứa mọi brain
     (mỗi folder con = 1 brain). Docker = /brains (mount riêng, ghi được, git-backup được).
     Local = <project>/brains. Đây là 'bộ não khởi đầu' - user vẫn chọn brain khác trong danh
-    sách hoặc folder ngoài bất kỳ qua 'path:<thư mục>'. KHÔNG hardcode vault cá nhân nào."""
-    p = Path(BRAINS_DIR) / "Brain Default"
+    sách hoặc folder ngoài bất kỳ qua 'path:<thư mục>'. KHÔNG hardcode vault cá nhân nào.
+
+    the owner can make another brain the default (POST /brains/default, server/default_brain.py);
+    `Brain Default` is only the folder used until they do."""
+    p = default_brain.path(BRAINS_DIR)
     try:
         p.mkdir(parents=True, exist_ok=True)
     except Exception:
@@ -8016,7 +8203,7 @@ def _migrate_legacy_brain():
         print(f"[brain migrate] {e}", file=__import__('sys').stderr)
 
 @app.get("/vault/check")
-async def vault_check(brain: str = Query("brain")):
+def vault_check(brain: str = Query("brain")):
     """Kiểm tra cấu trúc chuẩn của vault đang chọn."""
     root = Path(_brain_root(brain))
     items = _check_structure(root)
@@ -8155,8 +8342,8 @@ def _bad_order():
 
 
 @app.get("/ui/order")
-async def ui_order_get():
-    """The owner's order of the tag lists (ui_order.py), one list of tag keys per page."""
+def ui_order_get():
+    """the owner's order of the tag lists (ui_order.py), one list of tag keys per page."""
     import ui_order
     return {"ok": True, "orders": ui_order.read(cfgmod.read_settings() or {})}
 
@@ -8174,7 +8361,7 @@ async def ui_order_set(scope: str = Form(...), order: str = Form("[]")):
 
 
 @app.get("/pet/menu")
-async def pet_menu_get():
+def pet_menu_get():
     """The mascot menu the owner arranged (pet_menu.py): {state, rev, items}. Never customised = the default six."""
     import pet_menu
     return {"ok": True, "menu": pet_menu.read(cfgmod.read_settings() or {})}
@@ -8304,7 +8491,8 @@ async def delete_brain(name: str = Form(...), confirm: str = Form("")):
     if root == base or base not in root.parents:
         return JSONResponse({"ok": False, "error": localefmt.chu("Brain ngoài phạm vi quản lý", "Brain is outside the managed area")}, status_code=400)
     if root == _default_brain_dir().resolve():
-        return JSONResponse({"ok": False, "error": localefmt.chu("Không thể xoá Brain mặc định", "The default Brain cannot be deleted")}, status_code=400)
+        return JSONResponse({"ok": False, "error": localefmt.chu("Không thể xoá Brain mặc định. Đặt brain khác làm mặc định trước.",
+                                                                 "The default Brain cannot be deleted. Make another brain the default first.")}, status_code=400)
     if not root.is_dir():
         return JSONResponse({"ok": False, "error": localefmt.chu("Brain không tồn tại", "Brain does not exist")}, status_code=404)
     trash_dir = str(cfgmod.STATE_DIR / "brain-trash")
@@ -8327,7 +8515,13 @@ async def delete_brain(name: str = Form(...), confirm: str = Form("")):
         return JSONResponse({"ok": False, "error": localefmt.chu(f"Không xoá được (brain đang bận?): {e}", f"Could not delete (is the brain busy?): {e}")},
                             status_code=500)
 
-    # Eager sync (nền, best-effort): đẩy lệnh xoá + tombstone lên remote NGAY thay vì chờ chu kỳ 6h.
+    _eager_brain_sync()   # đẩy lệnh xoá + tombstone lên remote NGAY thay vì chờ chu kỳ 6h
+    return {"ok": True, "name": safe, "trashed": bool(dest)}
+
+
+def _eager_brain_sync() -> None:
+    """Push a brain-level change (a delete, a new default brain) to the GitHub backup now instead of at the next
+    6-hour round, so the other machines learn it before they can undo it. Background and best effort."""
     try:
         _b = cfgmod.read_settings().get("backup", {}) or {}
         if _b.get("enabled") and _b.get("repo_url") and _b.get("token") and git_brain.has_git():
@@ -8337,7 +8531,211 @@ async def delete_brain(name: str = Form(...), confirm: str = Form("")):
     except Exception:
         pass
 
-    return {"ok": True, "name": safe, "trashed": bool(dest)}
+
+def _top_brain_dir(brain: str):
+    """A brain folder DIRECTLY inside BRAINS_DIR, named "brain", "path:<folder>" or a folder name; None otherwise.
+    Only such a folder can be the default brain or be deleted (POST /brains/delete takes a folder name too)."""
+    root = _managed_brain_dir(brain)
+    if root is None:
+        return None
+    try:
+        if root.parent != Path(BRAINS_DIR).resolve():
+            return None
+    except OSError:
+        return None
+    return root
+
+
+@app.post("/brains/default")
+async def brain_set_default(brain: str = Form(...)):
+    """Make another brain the default one, so the old default can be deleted.
+    The choice is a file at the top of BRAINS_DIR (server/default_brain.py), so it travels with the GitHub
+    backup and every synced machine agrees on it.
+
+    What follows the default: everything that names the default brain by its short name "brain" (the brain picker's
+    "default" entry, records saved that way, a chat turn whose brain folder is gone). What stays with its folder: the
+    brain's own files, loops and reminders, and anything saved with the folder's path. The old default becomes an
+    ordinary brain and can be deleted like any other."""
+    root = _top_brain_dir(brain)
+    if root is None:
+        return JSONResponse({"ok": False, "error": localefmt.chu("Brain không tồn tại hoặc nằm ngoài phạm vi quản lý",
+                                                                 "Brain does not exist or is outside the managed area")},
+                            status_code=404)
+    try:
+        old = _default_brain_dir().resolve()
+    except OSError:
+        old = None
+    if old is not None and root == old:
+        return {"ok": True, "name": root.name, "label": brain_label.display(root), "unchanged": True}
+    ok, why = await asyncio.to_thread(default_brain.set_folder, BRAINS_DIR, root.name)
+    if not ok:
+        return JSONResponse({"ok": False, "error": localefmt.chu("Không đặt được brain này làm mặc định",
+                                                                 "Could not make this brain the default")},
+                            status_code=400 if why == "invalid" else 404)
+    # The loop scheduler visits the default brain on its own, other brains only once registered: register the old
+    # default so its loops keep running now that it is an ordinary brain.
+    if old is not None and old.is_dir():
+        try:
+            loop_feature.register_brain(str(old))
+        except Exception:
+            pass
+    _eager_brain_sync()
+    return {"ok": True, "name": root.name, "label": brain_label.display(root),
+            "previous": old.name if old is not None else ""}
+
+
+def _brain_ties_sync(root: Path) -> dict:
+    """What stops or loses its brain when `root` is deleted: its loops and pending reminders (they go to the trash
+    with the folder) and the bots that answer from it or use one of its agents."""
+    path = str(root)
+    try:
+        loops = len(loop_feature.list_loops(path))
+    except Exception:
+        loops = 0
+    try:
+        reminders = len(reminders_feature.live_views(path))
+    except Exception:
+        reminders = 0
+    bots = []
+    try:
+        for b in chatbot_store.list_bots():
+            agent_brain = (b.get("agent") or {}).get("brain")
+            if brain_ident.same_brain(b.get("brain"), path) or brain_ident.same_brain(agent_brain, path):
+                bots.append({"id": b.get("id") or "", "name": b.get("name") or b.get("id") or ""})
+    except Exception:
+        pass
+    return {"loops": loops, "reminders": reminders, "bots": bots}
+
+
+@app.get("/brains/ties")
+async def brain_ties(brain: str = Query(...)):
+    """The delete form asks this first, so it can say what a delete would stop."""
+    root = _top_brain_dir(brain)
+    if root is None:
+        return JSONResponse({"ok": False, "error": localefmt.chu("Brain không tồn tại", "Brain does not exist")},
+                            status_code=404)
+    return {"ok": True, **(await asyncio.to_thread(_brain_ties_sync, root))}
+
+
+# ---- a whole brain as one .zip file, out and back in (server/brain_export.py) ----
+
+def _managed_brain_dir(brain: str):
+    """The folder of a brain Vanhanh manages ("brain", "path:<folder>" or a folder name), or None. Only brains inside
+    BRAINS_DIR are exported: an external folder may be anything on the disk."""
+    b = (brain or "").strip()
+    if b == "brain" or not b:
+        root = _default_brain_dir()
+    else:
+        raw = b[5:] if b.startswith("path:") else (b if os.path.isabs(b) else str(Path(BRAINS_DIR) / _safe_brain_name(b)))
+        root = Path(raw)
+    try:
+        root = root.resolve()
+        base = Path(BRAINS_DIR).resolve()
+    except OSError:
+        return None
+    if root == base or base not in root.parents or not root.is_dir():
+        return None
+    return root
+
+
+def _brain_zip_name(root) -> str:
+    name = re.sub(r'[\\/:*?"<>|\x00-\x1f]+', "", brain_label.display(root)).strip() or root.name or "brain"
+    return name + ".zip"
+
+
+def _brain_io_dir(kind: str) -> Path:
+    return cfgmod.STATE_DIR / kind
+
+
+@app.post("/brains/export/start")
+async def brain_export_start(brain: str = Form("brain")):
+    """Pack a whole brain into one .zip in the background (brain picker: Export on each row). Poll
+    /brains/export/status, then download /brains/export/file: a big brain takes longer to pack than a proxy such as
+    Cloudflare Tunnel waits for a reply, and this way the download starts at once. Private files stay out
+    (brain_export.kept_out); the disk must keep brain_export.KEEP_FREE free."""
+    root = _managed_brain_dir(brain)
+    if root is None:
+        return JSONResponse({"ok": False, "error": localefmt.chu("Chỉ xuất được bộ não Vanhanh quản lý", "Only brains Vanhanh manages can be exported")},
+                            status_code=404)
+    job = await asyncio.to_thread(brain_export.export_start, root, _brain_io_dir("brain-export"),
+                                  _brain_zip_name(root), _app_version())
+    return {"ok": True, **job}
+
+
+@app.get("/brains/export/status")
+def brain_export_status(id: str = Query("")):
+    j = brain_export.export_status(id)
+    if not j:
+        return JSONResponse({"ok": False, "error": localefmt.chu("Không thấy việc nén này (máy chủ vừa khởi động lại?)",
+                                                                 "This export is gone (did the server restart?)")}, status_code=404)
+    return {"ok": True, **j}
+
+
+@app.get("/brains/export/file")
+def brain_export_file(id: str = Query("")):
+    f = brain_export.export_file(id)
+    if not f:
+        return JSONResponse({"ok": False, "error": localefmt.chu("File chưa sẵn sàng hoặc đã hết hạn", "The file is not ready or has expired")},
+                            status_code=404)
+    return FileResponse(f[0], media_type="application/zip", filename=f[1])
+
+
+def _after_brain_import(res: dict) -> None:
+    git_brain.clear_tombstone(BRAINS_DIR, res["name"])   # a brain once deleted under this name must not be swept again
+    _ensure_brain_scaffold(Path(res["path"]))
+
+
+def _brain_import_error(e: Exception):
+    if isinstance(e, brain_export.Offset):
+        return JSONResponse({"ok": False, "received": e.received}, status_code=409)
+    if isinstance(e, brain_export.NoSpace):
+        return JSONResponse({"ok": False, "error": brain_export.no_space_text(e)}, status_code=507)
+    if isinstance(e, brain_export.BadFile):
+        return JSONResponse({"ok": False, "error": brain_export.bad_file_text()}, status_code=400)
+    return JSONResponse({"ok": False, "error": localefmt.chu(f"Không nhập được: {e}", f"Could not import: {e}")}, status_code=500)
+
+
+@app.post("/brains/import/start")
+async def brain_import_start(size: int = Form(0), name: str = Form("")):
+    """Open an upload of a brain file made by Export (brain picker: "Upload a brain"). The file then comes in pieces of
+    `chunk` bytes (POST /brains/import/chunk), well under the ~100MB a request may carry through Cloudflare Tunnel, and
+    /brains/import/finish unpacks it into a NEW brain in the background."""
+    try:
+        return {"ok": True, **await asyncio.to_thread(brain_export.upload_start, _brain_io_dir("brain-import"), size, name)}
+    except Exception as e:  # noqa: BLE001
+        return _brain_import_error(e)
+
+
+@app.post("/brains/import/chunk")
+async def brain_import_chunk(request: Request, id: str = Query(""), offset: int = Query(0)):
+    """One piece, raw bytes in the body, at `offset`. A 409 carries `received`: where the server stands, to resume."""
+    data = await request.body()
+    try:
+        got = await asyncio.to_thread(brain_export.upload_chunk, _brain_io_dir("brain-import"), id, offset, data)
+    except Exception as e:  # noqa: BLE001
+        return _brain_import_error(e)
+    return {"ok": True, "received": got}
+
+
+@app.post("/brains/import/finish")
+async def brain_import_finish(id: str = Form(""), label: str = Form("")):
+    """All pieces are in: unpack in the background. Poll /brains/import/status. Plugins, loops and pending reminders in
+    the file arrive switched off (brain_export.import_zip says why)."""
+    try:
+        j = await asyncio.to_thread(brain_export.upload_finish, _brain_io_dir("brain-import"), id, BRAINS_DIR, label,
+                                    _after_brain_import)
+    except Exception as e:  # noqa: BLE001
+        return _brain_import_error(e)
+    return {"ok": True, **j}
+
+
+@app.get("/brains/import/status")
+def brain_import_status(id: str = Query("")):
+    j = brain_export.import_status(id)
+    if not j:
+        return JSONResponse({"ok": False, "error": localefmt.chu("Không thấy việc nhập này (máy chủ vừa khởi động lại?)",
+                                                                 "This import is gone (did the server restart?)")}, status_code=404)
+    return {"ok": True, **j}
 
 # ============================================================
 # STUDIO - Agents / Skills / Workflows
@@ -9988,7 +10386,7 @@ def _share_asset(ban, p: str):
     def _vung_rieng(x) -> bool:
         """inbox/ (files customers and the owner's Telegram send), memory/, or any dot folder, relative to the brain.
 
-        Vá bảo mật 2026-11-05: a note shared from the brain root made "its folder" the whole brain, so the token served
+        Vá bảo mật: a note shared from the brain root made "its folder" the whole brain, so the token served
         every image or audio file in it, inbox photos named by sequential message id included."""
         try:
             parts = x.resolve().relative_to(goc_brain).parts
@@ -10741,7 +11139,7 @@ def load_workflow_graph(brain: str, slug: str):
 
 
 @app.get("/workflows")
-async def list_workflows(brain: str = Query("brain")):
+def list_workflows(brain: str = Query("brain")):
     return {"workflows": workflows_index(brain)}
 
 @app.post("/workflows")
@@ -11797,11 +12195,16 @@ def _workflow_agent_helpers(brain, tools, mode=None):
     Tương đương giữa hai đường phải đến từ việc dùng chung code, không phải từ việc
     chép cho giống. Mọi thay đổi ở đây tự động áp cho cả hai.
 
-    `mode`: permission level of a GATED run (tools is not None), e.g. the Kanban job's
-    execution_mode. Plugin tools a step declares are checked against it; None = "auto".
+    `mode`: permission level of the run, e.g. the Kanban job's execution_mode. A GATED run (tools is not None) checks
+    the plugin tools a step declares against it (None = "auto"); an UNGATED one gets the hub at it (None = "full").
     """
     vault_root = str(_brain_root(brain))
     gated_mode = str(mode or "auto") if str(mode or "auto") in ("suggest", "auto") else "auto"
+    # Level of an UNGATED run (tools is None): Kanban passes its execution_mode ("full" there); a run started from chat
+    # passes nothing and is the owner's own, so "full", as a chat turn.
+    ungated_mode = str(mode or "full").strip().lower()
+    if ungated_mode not in ("suggest", "auto", "full"):
+        ungated_mode = "suggest"
 
     def _mk(sysprompt, model=None, provider="", extra_tools=()):
         # An interactive step whose agent pins no model runs on the owner's MAIN model, like a chat turn
@@ -11849,6 +12252,11 @@ def _workflow_agent_helpers(brain, tools, mode=None):
             # workflow quét dữ liệu thật cũng có thể chạy quá 300s như việc lịch/Kanban.
             c.max_wall_s = aux_engine.bg_max_wall_s()
         else:
+            # An ungated step (a workflow run from chat, or a Kanban `wf:` job at `full`) gets the Vanhanh hub at
+            # the run's level, like the Codex branch above (_apply_codex_hub) and like route `auto`. Before, only
+            # vanhanh_vault was set: in-process plugins worked, every MCP registered in Vanhanh did not, so the agent
+            # reported "missing tool" and the job stopped at its acceptance check.
+            _apply_mcp(c, mode=ungated_mode, brain=vault_root)
             c.vanhanh_vault = vault_root
         # `tools is not None` = workflow chạy NỀN ở chế độ giới hạn công cụ. Ở đó agent luôn
         # phải là Claude Code, y như nhánh Codex ngay trên: giới hạn an toàn nằm ở
@@ -12485,7 +12893,7 @@ async def _execute_workflow_raw(brain, slug, input="", tools=None, session_id=""
         step_extra = workflow_graph.step_tools(step)
         agent_name, sysprompt, agent_model, agent_prov = _agent_sysprompt(agent_slug, "workflow")
         task_f = task.replace("{{input}}", input or "").replace("{{prev}}", prev or "")
-        yield {"type": "step_start", "i": i, "agent": agent_name, "task": task_f}
+        yield {"type": "step_start", "i": i, "agent": agent_name, "agent_slug": agent_slug, "task": task_f}
 
         cur_prompt = task_f
         out = ""
@@ -12614,7 +13022,15 @@ async def _ghi_lich_su(gen, *, brain, slug, name, input, source, session_id, run
             if t == "start":
                 ev = dict(ev, run_id=rid)
             elif t == "step_start":
-                st.ghi_buoc(rid, int(ev.get("i", 0)), agent=ev.get("agent", ""), task=ev.get("task", ""))
+                _aslug = str(ev.get("agent_slug") or "")
+                _akey = ""
+                if _aslug:
+                    try:   # the assistant's lasting key: a later assistant reusing the slug does not inherit the run
+                        _akey = await asyncio.to_thread(_agent_jobs_key, brain, _aslug) or ""
+                    except Exception:  # noqa: BLE001
+                        _akey = ""
+                st.ghi_buoc(rid, int(ev.get("i", 0)), agent=ev.get("agent", ""), task=ev.get("task", ""),
+                            agent_slug=_aslug, agent_key=_akey)
             elif t == "step_done":
                 st.ghi_buoc(rid, int(ev.get("i", 0)), output=ev.get("output", ""), verified=ev.get("verified"))
             elif t == "step_error":
@@ -12876,6 +13292,52 @@ READONLY_TOOLS = ["Read", "Glob", "Grep", "LS"]
 # thực thi TUẦN TỰ (1 lock). main.py chỉ tiêm helper + giữ shim mỏng cho code cũ.
 # Endpoints /loops/* (mới) + /loop/* (shim legacy) nằm trong router của self_improve.
 import self_improve
+
+
+_SECURITY_ALERT_TEXT = {
+    "login_new_network": ("Đăng nhập Vanhanh từ một mạng mới", "Vanhanh sign-in from a new network"),
+    "login_recovery_code": ("Có người đăng nhập Vanhanh bằng MÃ KHÔI PHỤC 2FA", "Someone signed in to Vanhanh with a 2FA RECOVERY CODE"),
+    "setup": ("Tài khoản quản trị Vanhanh vừa được tạo", "The Vanhanh admin account was just created"),
+    "username_changed": ("Tên đăng nhập Vanhanh vừa bị đổi", "The Vanhanh username was just changed"),
+    "password_changed": ("Mật khẩu Vanhanh vừa bị đổi", "The Vanhanh password was just changed"),
+    "2fa_enabled": ("Xác thực 2 lớp vừa được BẬT", "Two-factor authentication was just turned ON"),
+    "2fa_disabled": ("Xác thực 2 lớp vừa bị TẮT", "Two-factor authentication was just turned OFF"),
+    "2fa_recovery_regenerated": ("Bộ mã khôi phục 2FA vừa được tạo lại", "The 2FA recovery codes were just regenerated"),
+    "token_created": ("Một token API mới vừa được tạo", "A new API token was just created"),
+    "login_disabled": ("Yêu cầu đăng nhập vừa bị tắt", "The login requirement was just turned off"),
+    "env_account_created": ("Tài khoản admin được tạo từ biến môi trường", "Admin account created from the environment"),
+    "env_account_reset": ("Tài khoản admin được đặt lại từ biến môi trường (Redeploy)", "Admin account reset from the environment (redeploy)"),
+    "env_2fa_reset": ("2FA được gỡ bằng VANHANH_RESET_2FA", "2FA removed with VANHANH_RESET_2FA"),
+    "auth_changed_outside": ("CẢNH BÁO: file cài đặt bị sửa tài khoản từ BÊN NGOÀI Vanhanh. Mọi phiên đã bị đăng xuất.",
+                             "WARNING: the account in the settings file was changed OUTSIDE Vanhanh. Every session was signed out."),
+}
+
+
+def _security_alert_text(ev: dict) -> str:
+    """The owner's notice for one security event: what happened, from where, and what to do if it was not them."""
+    vi, en = _SECURITY_ALERT_TEXT.get(ev.get("event", ""), (ev.get("event", ""), ev.get("event", "")))
+    head = localefmt.chu(vi, en)
+    bits = [f"[{localefmt.chu('Bảo mật', 'Security')}] {head}."]
+    when = localefmt.format_ts(ev.get("ts") or time.time(), "%d/%m %H:%M")
+    where = " · ".join(x for x in (when, ev.get("ip", ""), _ua_short(ev.get("ua", "")), ev.get("detail", "")) if x)
+    if where:
+        bits.append(where)
+    bits.append(localefmt.chu("Không phải anh/chị? Mở Tài khoản > Bảo mật để đăng xuất thiết bị lạ và đổi mật khẩu.",
+                              "Not you? Open Account > Security to sign out unknown devices and change the password."))
+    return "\n".join(bits)
+
+
+def _ua_short(ua: str) -> str:
+    """A readable device name from a user agent: "Chrome · Windows". Only for notices; the full string is logged."""
+    ua = str(ua or "")
+    if not ua:
+        return ""
+    br = next((n for k, n in (("Edg/", "Edge"), ("OPR/", "Opera"), ("Zalo", "Zalo"), ("Chrome/", "Chrome"),
+                               ("Firefox/", "Firefox"), ("Safari/", "Safari"), ("curl/", "curl"),
+                               ("python", "Python")) if k.lower() in ua.lower()), "")
+    os_ = next((n for k, n in (("iPhone", "iPhone"), ("iPad", "iPad"), ("Android", "Android"), ("Windows", "Windows"),
+                                ("Mac OS", "macOS"), ("Linux", "Linux")) if k in ua), "")
+    return " · ".join(x for x in (br, os_) if x) or ua[:40]
 
 
 async def _loop_notify(text: str, source: str = "loop", level: str = "important") -> None:
@@ -13238,6 +13700,24 @@ def _owner_telegram_id() -> str:
     if own and own in ids:
         return own
     return ids[0] if len(ids) == 1 else ""
+
+
+async def _alert_owner_telegram(text: str, *, source: str, level: str = "urgent", group: str = "") -> tuple:
+    """One copy of a "needs you" notice to the owner's own Telegram, for notices whose main route never goes there
+    (a web chat that made the job, a Team notice kept in the bell). A failure must reach the phone even when nobody
+    has the dashboard open. Vanhanh Core's filter still decides: a group the owner turned off or a muted kind is not
+    sent. Returns (sent, reason)."""
+    own = _owner_telegram_id()
+    if not own:
+        return False, "no_owner_telegram"
+    try:
+        g = notify_policy.group_of(source=source, kind="report", group=group)
+        lv = notify_policy.level_of(level=level, group=g)
+        if notify_policy.decide(g, lv, inbox._tieu_de(text), record=False).get("verdict") != "loud":
+            return False, "filtered"
+    except Exception as e:  # noqa: BLE001 - a broken rule store rings, like _notify_decide
+        print(f"[alert telegram] policy check failed: {type(e).__name__}: {e}", file=sys.stderr)
+    return await _gui_qua_kenh(own, text)
 
 
 def _report_route(owner_chat, brain, kind, quiet=False, filtered=False) -> dict:
@@ -13909,10 +14389,18 @@ async def _incident_post(brain: str, text: str, chat: str = "") -> None:
     # Empty chat id: the brain's Vanhanh Core chat, the inbox and the owner's Telegram (_report_route).
     # `chat` is the chat the broken job came from (a partner chat, a Telegram id): the notice goes there, and a
     # deleted chat falls back to Vanhanh Core (_report_route, lost_origin).
+    # A failure that needs the owner is urgent: Vanhanh Core rings only urgent notices by default, so at "important" a
+    # broken job never reached the owner's Telegram on a fresh install. The owner can still mute the group.
     await _notify_owner(chat, text, kind="report", source="incident", brain=brain,
-                        level="important" if text.startswith("⚠") else "info",
+                        level="urgent" if text.startswith("⚠") else "info",
                         viec={"kind": "incident", "status": "failed" if text.startswith("⚠") else "done",
                               "title": text[:120], "id": ""})
+    # A job made in a web chat (or someone else's channel) reports its failures there only, so the owner away from
+    # the computer never heard. A failure that needs them also goes to their own Telegram, once.
+    if text.startswith("⚠") and chat and chat != _owner_telegram_id():
+        ok, why = await _alert_owner_telegram(text, source="incident", level="urgent")
+        if not ok and why not in ("no_owner_telegram", "filtered"):
+            print(f"[incident] Telegram copy not sent: {why}", file=sys.stderr)
 
 
 async def _incident_retry_kanban(inc: dict) -> tuple:
@@ -14179,7 +14667,7 @@ def _viec_nen_view(brain: str, chat_id: str = "") -> dict:
 
 
 @app.get("/background")
-async def background_active(brain: str = Query("brain"), chat_id: str = Query("")):
+def background_active(brain: str = Query("brain"), chat_id: str = Query("")):
     """Việc nền đang sống, cho dải trạng thái trong khung chat.
 
     `chat_id`: "web:<mã phiên>" khi gọi từ dashboard. Việc khớp chat_id được đánh dấu `mine`
@@ -15079,17 +15567,47 @@ async def _start_scheduler():
     except Exception as e:
         print(f"[connect health start] {e}", file=_sys.stderr)
     try:
+        # Account block edited while Vanhanh was stopped: caught here, before the env reset below re-stamps the file.
+        cfgmod.auth_guard_check(grace=0)
+    except Exception as e:
+        print(f"[auth guard] {e}", file=_sys.stderr)
+    try:
         _env_admin = cfgmod.provision_admin_from_env()
         if _env_admin == "created":
             print("[auth] Đã tạo tài khoản admin từ VANHANH_ADMIN_PASSWORD (env).", file=_sys.stderr)
+            security_log.record("env_account_created", user=os.getenv("VANHANH_ADMIN_USER", "admin"), source="env")
         elif _env_admin == "reset":
             print("[auth] VANHANH_ADMIN_PASSWORD/VANHANH_ADMIN_USER đổi so với lần trước: đã đặt lại "
                   "tài khoản admin theo env (giữ 2FA, huỷ các phiên cũ).", file=_sys.stderr)
+            security_log.record("env_account_reset", user=os.getenv("VANHANH_ADMIN_USER", "admin"), source="env",
+                                detail="2FA kept, all sessions ended")
+        if cfgmod.reset_2fa_from_env() == "reset":
+            print("[auth] VANHANH_RESET_2FA: đã TẮT xác thực 2 lớp và huỷ mọi phiên. Đăng nhập lại, bật 2FA mới, "
+                  "rồi xoá biến VANHANH_RESET_2FA.", file=_sys.stderr)
+            security_log.record("env_2fa_reset", source="env", detail="2FA turned off, all sessions ended")
+        if str(os.getenv("VANHANH_ADMIN_PASSWORD", "") or "").strip():
+            print("[auth] Nhắc: VANHANH_ADMIN_PASSWORD vẫn nằm trong biến môi trường dạng chữ thường. Tài khoản đã "
+                  "được đặt, có thể xoá biến này rồi khởi động lại (tài khoản không bị ảnh hưởng).", file=_sys.stderr)
         # Mã thiết lập đã bỏ: dọn file .setup_token còn sót từ bản cũ, để không còn
         # một "chìa khoá" nằm trong thư mục state mà không ai dùng tới.
         cfgmod.clear_setup_token()
     except Exception as e:
         print(f"[auth bootstrap] {e}", file=_sys.stderr)
+    async def _security_alert_loop():
+        """Security events of level alert (security_log.EVENTS) to the owner: bell, web push, own Telegram.
+        Also re-checks the account block every few seconds, so an outside edit is reported even when nobody
+        has the dashboard open."""
+        while True:
+            try:
+                await asyncio.sleep(10)
+                await asyncio.to_thread(cfgmod.auth_guard_check)
+                for ev in security_log.drain_alerts():
+                    await _loop_notify(_security_alert_text(ev), source="security", level="urgent")
+            except asyncio.CancelledError:
+                raise
+            except Exception as se:  # noqa: BLE001
+                print(f"[security alert] {type(se).__name__}: {se}", file=_sys.stderr)
+    asyncio.create_task(_security_alert_loop())
     async def _scheduler_loop():
         while True:
             try:
@@ -16474,7 +16992,7 @@ async def _notifications_data():
 
 
 @app.get("/notifications/read")
-async def notifications_read_get():
+def notifications_read_get():
     """This account's read set of the shared news: kept on the server, the same on every device."""
     return inbox.news_state()
 
@@ -16498,9 +17016,8 @@ def _cite_text(src: str, item: dict, brain: str) -> str:
 
     Written as data with its source and time, and said to be a snapshot: Vanhanh must check live state with tools
     before talking about "now". The marker lets a second click reuse it instead of posting it twice."""
-    import datetime as _dt
     ts = item.get("ts") or 0
-    when = item.get("published_at") or (_dt.datetime.fromtimestamp(float(ts)).strftime("%d/%m/%Y %H:%M") if ts else "")
+    when = item.get("published_at") or (localefmt.format_ts(ts, "%d/%m/%Y %H:%M") if ts else "")
     title = str(item.get("title") or "").strip()
     body = str(item.get("body") or item.get("summary") or "").strip()
     if src == "news" and item.get("summary") and item.get("body"):
@@ -16564,7 +17081,7 @@ async def vanhanh_core_cite(payload: dict = Body(None)):
 # đếm giống nhau giữa điện thoại và máy tính, và không được bay mất khi xoá dữ liệu duyệt web.
 # ============================================
 @app.get("/inbox")
-async def inbox_list(limit: int = 50):
+def inbox_list(limit: int = 50):
     items = inbox.danh_sach(limit)
     for it in items:
         # opening an item first switches the dashboard to the brain it belongs to.
@@ -16849,6 +17366,13 @@ async def pet_icon():
         return JSONResponse({"error": "no icon"}, status_code=404)
     return FileResponse(str(p), media_type=_ICON_MEDIA.get(p.suffix.lower(), "image/png"),
                         headers={"Cache-Control": "public, max-age=60", "X-Content-Type-Options": "nosniff"})
+
+
+@app.get("/robots.txt", include_in_schema=False)
+async def robots_txt():
+    """Tells AI crawlers and unknown robots to fetch nothing (bot_shield.robots_txt explains why the big search engines
+    are let through to a 403 + noindex instead). Public: a crawler has no session."""
+    return PlainTextResponse(bot_shield.robots_txt(), headers={"Cache-Control": "public, max-age=3600"})
 
 
 @app.get("/favicon.ico")
@@ -17138,6 +17662,13 @@ def chat_suggest_state():
     return {"enabled": next_prompt.enabled(cfgmod.read_settings())}
 
 
+@app.get("/chat/plan")
+def chat_plan_state():
+    """Whether the API brains get vanhanh_plan (plan_tool.py); the "+" menu of the composer shows the switch."""
+    import plan_tool
+    return {"enabled": plan_tool.enabled(cfgmod.read_settings())}
+
+
 @app.post("/chat/suggest")
 async def chat_suggest(request: Request):
     """The owner's likely next message once Vanhanh has answered, see next_prompt.py.
@@ -17153,14 +17684,14 @@ async def chat_suggest(request: Request):
 
 
 @app.get("/voice/call")
-async def voice_call_route():
+def voice_call_route():
     """Đường gọi của nút mic (voice_call.select_call_engine). Nhẹ, không hỏi mạng: dashboard gọi
     mỗi lần nạp cài đặt giọng để biết bấm mic là mở ChatGPT Live, Live API hay đường Cơ bản."""
     return {"ok": True, **voice_call.select_call_engine(cfgmod.read_settings())}
 
 
 @app.get("/voice/ear")
-async def voice_ear_route():
+def voice_ear_route():
     """Tai nghe lại đang dùng cho lượt nói (voice_ear.select_ear). Nhẹ, không hỏi mạng: dashboard
     gọi mỗi lần nạp cài đặt giọng, khác /voice/options (có thể mất tới 30 giây vì `agy models`)."""
     cfg = cfgmod.read_settings()
@@ -17492,7 +18023,7 @@ def _voice_quota_frame(prov) -> dict:
         print(f"[chatgpt live] rest: {type(e).__name__}: {e}", file=sys.stderr)
     when = ""
     if reset > time.time():
-        when = time.strftime("%H:%M", time.localtime(reset))
+        when = localefmt.format_ts(reset, "%H:%M")
     vi = "ChatGPT Live đã hết lượt của gói ChatGPT" + (f" (mở lại lúc {when})" if when else "") + \
         ". Vanhanh chuyển sang tài khoản hoặc đường gọi kế tiếp."
     en = "ChatGPT Live is out of quota on the ChatGPT plan" + (f" (back at {when})" if when else "") + \
@@ -18719,7 +19250,7 @@ async def _chat_socket(ws):
                         if et == "tool_call":
                             await ws.send_text(json.dumps({
                                 "type": "tool_call", "tool": ev.get("name", ""),
-                                "detail": tool_label.chi_tiet(ev),
+                                "detail": tool_label.chi_tiet(ev), **turn_plan.fields(ev),
                                 "content": localefmt.chu(f"⚙ Đang gọi: {ev.get('name', '')}",
                                                          f"⚙ Calling: {ev.get('name', '')}")}))
                         elif et == "delta":
@@ -18802,7 +19333,7 @@ async def _chat_socket(ws):
                         if et == "tool_call":
                             await ws.send_text(json.dumps({
                                 "type": "tool_call", "tool": ev.get("name", ""),
-                                "detail": tool_label.chi_tiet(ev),
+                                "detail": tool_label.chi_tiet(ev), **turn_plan.fields(ev),
                                 "content": localefmt.chu(f"⚙ Đang gọi: {ev.get('name', '')}",
                                                          f"⚙ Calling: {ev.get('name', '')}")}))
                         elif et == "delta":
@@ -18942,14 +19473,14 @@ async def _chat_socket(ws):
                                 # bước chỉ hiện lúc đã xong, lệnh dài trông như treo.
                                 if ev.get("id"):
                                     dang_chay.add(ev["id"])
-                                await ws.send_text(json.dumps({"type": "tool_call", "tool": ev.get("name", ""), "detail": tool_label.chi_tiet(ev), "content": f"⚙ {ev.get('name', '')}"}))
+                                await ws.send_text(json.dumps({"type": "tool_call", "tool": ev.get("name", ""), "detail": tool_label.chi_tiet(ev), **turn_plan.fields(ev), "content": f"⚙ {ev.get('name', '')}"}))
                             elif et == "tool_call" and ev.get("id") and ev["id"] in dang_chay:
                                 # Bước đã hiện lúc bắt đầu: giờ chỉ đánh dấu xong, không thêm bước đôi.
                                 dang_chay.discard(ev["id"])
                                 out = str((ev.get("item") or {}).get("aggregated_output") or "")
                                 await ws.send_text(json.dumps({"type": "tool_result", "content": out[:200]}))
                             elif et == "tool_call":
-                                await ws.send_text(json.dumps({"type": "tool_call", "tool": ev.get("name", ""), "detail": tool_label.chi_tiet(ev), "content": f"⚙ {ev.get('name', '')}"}))
+                                await ws.send_text(json.dumps({"type": "tool_call", "tool": ev.get("name", ""), "detail": tool_label.chi_tiet(ev), **turn_plan.fields(ev), "content": f"⚙ {ev.get('name', '')}"}))
                             elif et == "text":
                                 final_text += ev["content"]
                                 await ws.send_text(json.dumps({"type": "stream", "content": ev["content"], "tts": False}))
@@ -19297,7 +19828,7 @@ async def _chat_socket(ws):
                                 elif ev["type"] == "tool_call":
                                     await ws.send_text(json.dumps({
                                         "type": "tool_call", "tool": ev.get("name", ""),
-                                        "detail": tool_label.chi_tiet(ev),
+                                        "detail": tool_label.chi_tiet(ev), **turn_plan.fields(ev),
                                         "content": f"⚙ MCP: {ev.get('name', '')}",
                                     }))
                                 elif ev["type"] == "delta":
@@ -19481,7 +20012,7 @@ async def _chat_socket(ws):
                         elif etype in ("final", "error"):
                             _engine_outcome_note(conv_sid, event)
                         if etype == "tool_call":
-                            await ws.send_text(json.dumps({"type": "tool_call", "tool": event["name"], "detail": tool_label.chi_tiet(event),
+                            await ws.send_text(json.dumps({"type": "tool_call", "tool": event["name"], "detail": tool_label.chi_tiet(event), **turn_plan.fields(event),
                                                            "content": localefmt.chu(f"⚙ Đang gọi: {event['name']}",
                                                                                     f"⚙ Calling: {event['name']}")}))
                             # Nhặt mọi thứ trông giống đường dẫn trong tham số tool (Write/Edit có
@@ -20915,17 +21446,23 @@ async def terminal_ws(ws: WebSocket, session: str = Query(""), brain: str = Quer
 # mà màn hình đứng yên - đã gặp đúng cảnh này. Kho phiên đã có khoá riêng.
 @app.get("/sessions")
 def sessions_list(brain: str = Query(None), limit: int = Query(50),
-                        project: str = Query(""), channel: str = Query(""), bots: int = Query(0)):
+                        project: str = Query(""), channel: str = Query(""), bots: int = Query(0),
+                        archived: int = Query(0)):
     """project: bỏ trống = mọi hội thoại; "none" = cuộc chưa xếp nhóm; còn lại = id project.
     channel: bỏ trống = loại các kênh cộng sự (agent:/workflow:); có giá trị = đúng kênh đó
     (trang Cộng sự mở một trợ lý/quy trình).
     bots: 1 = với kênh `agent:<slug>`, gộp cả hội thoại của các bot chuyên trách dùng Agent đó (CHỈ cột lịch sử
     xin cái này). Mặc định 0: lúc trang Cộng sự chọn "phiên gần nhất để mở tiếp" (limit=1) mà lẫn phiên của khách
-    vào thì tin chủ gõ sẽ rơi vào cuộc chat của khách."""
-    return {"sessions": get_store().list_sessions(limit=limit, brain=_brain_keys(brain),
-                                                  project=project or None,
-                                                  channel=channel or None,
-                                                  also_channels=_agent_history_channels(brain, channel) if bots else [])}
+    vào thì tin chủ gõ sẽ rơi vào cuộc chat của khách.
+    archived: 1 = only the archived chats (the history column's "Archived" view). Every answer also carries
+    `archived_count`, the number behind the "Archived" row at the bottom of the column."""
+    keys = _brain_keys(brain)
+    also = _agent_history_channels(brain, channel) if bots else []
+    store = get_store()
+    return {"sessions": store.list_sessions(limit=limit, brain=keys, project=project or None, channel=channel or None,
+                                            also_channels=also, archived_only=bool(archived)),
+            "archived_count": store.count_archived(brain=keys, project=project or None, channel=channel or None,
+                                                   also_channels=also)}
 
 
 def _agent_history_channels(brain, channel) -> list:
@@ -21439,6 +21976,22 @@ def sessions_pin(session_id: str, pinned: str = Form("1")):
     """Ghim hội thoại lên đầu danh sách (hoặc bỏ ghim khi pinned=0)."""
     get_store().set_pinned(session_id, str(pinned).strip() not in ("0", "false", ""))
     return {"ok": True}
+
+
+@app.post("/sessions/{session_id}/archive")
+def sessions_archive(session_id: str, archived: str = Form("1")):
+    """Archive a chat (history menu): it leaves the list but keeps every message, so Vanhanh still remembers
+    it and search still finds it. archived=0 brings it back. A new message from a person also brings it back
+    (SessionStore.append_message)."""
+    on = str(archived).strip() not in ("0", "false", "")
+    get_store().archive(session_id, on)
+    return {"ok": True, "archived": on}
+
+
+@app.post("/sessions/{session_id}/unread")
+def sessions_unread(session_id: str):
+    """"Mark as unread" from the history menu: the red dot comes back until the chat is opened again."""
+    return {"ok": True, "unread": get_store().mark_unread(session_id)}
 
 
 @app.post("/sessions/{session_id}/read")
@@ -26993,7 +27546,7 @@ async def threads_check(request: Request):
                            "Turn on a bot for this channel so Vanhanh renews the token, or log in to Threads again.")))
     last = float(meta.get("last_webhook") or 0)
     items.append(item("webhook", True if last else None, ("Threads đã gửi bình luận về Vanhanh", "Threads has sent replies to Vanhanh"),
-                      time.strftime("%Y-%m-%d %H:%M", time.localtime(last)) if last else localefmt.chu("chưa nhận lần nào", "none received yet"),
+                      localefmt.format_ts(last, "%Y-%m-%d %H:%M") if last else localefmt.chu("chưa nhận lần nào", "none received yet"),
                       ("Trong App Dashboard, Threads API, Webhooks: dán Địa chỉ webhook và Mã xác minh ở thẻ này, đăng ký "
                        "trường replies, rồi chuyển app sang Live. Thử bình luận một bài của bạn để kiểm tra.",
                        "In the App Dashboard, Threads API, Webhooks: paste this card's Webhook address and Verify token, "
@@ -27447,7 +28000,8 @@ async def chatbots_create(name: str = Form(...), agent_slug: str = Form(...),
                           account_label: str = Form(""), reply_policy: str = Form(""),
                           gio_truc: str = Form(""), nhuong_tay_phut: str = Form(""),
                           ngoai_le: str = Form(""), xac_nhan_ngoai_le: str = Form(""),
-                          nhan_ket_ban: str = Form(""), skip_labels: str = Form("")):
+                          nhan_ket_ban: str = Form(""), skip_labels: str = Form(""),
+                          group_typing: str = Form("")):
     # Bot sống TRONG một brain: Agent nó dùng và tài liệu nó đọc là cùng một chỗ. Nhận cả hai
     # tên tham số và tự bù cho nhau, nên người gọi chỉ cần gửi một cái.
     br = (brain or agent_brain or "").strip()
@@ -27487,6 +28041,8 @@ async def chatbots_create(name: str = Form(...), agent_slug: str = Form(...),
         "nhan_ket_ban": nhan_ket_ban,
         # Zalo labels the bot stays out of (personal Zalo): JSON list of label names.
         "skip_labels": skip_labels,
+        # "Đang soạn tin" in groups once the bot decided to answer (personal Zalo): "0" = off, blank = on.
+        "group_typing": group_typing,
     })
     if err:
         return JSONResponse({"ok": False, "error": err}, status_code=400)
@@ -28725,7 +29281,7 @@ TEAM_WORK_MODE = "full"
 
 
 def _codex_user_mcp_servers():
-    """MCP servers in the user's own Codex config besides Vanhanh' hub: Codex would call them without the gate."""
+    """MCP servers in the user's own Codex config besides Vanhanh's hub: Codex would call them without the gate."""
     try:
         import tomllib
         p = claude_cli._codex_home() / "config.toml"
@@ -29096,6 +29652,13 @@ async def _team_notify(session_id, text):
     await _bo_vao_hom_thu(f"{WEB_CHAT_PREFIX}{session_id}", text, kind="report",
                           label=localefmt.chu("Team", "Team"), source="team",
                           group="question" if asks else "team", level="urgent" if asks else "important")
+    # every team notice is a job blocked, failed, or waiting on the owner: it reaches their phone too, not the bell
+    # only, and as urgent (Vanhanh Core rings only urgent by default; the owner can still mute a team or the group)
+    try:
+        await _alert_owner_telegram(str(text or ""), source="team", group="question" if asks else "team",
+                                    level="urgent")
+    except Exception as e:  # noqa: BLE001 - a lost Telegram copy never breaks the team
+        print(f"[team notify] Telegram copy failed: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 _FEEDBACK_PROJECTOR = [None]
@@ -30000,6 +30563,36 @@ def _agent_jobs_keys(root):
     return {a["slug"]: keys.get(a["slug"], "") for a in agents_index(root, kem_prompt=False)}
 
 
+def _workflow_runs_store():
+    """The workflow run history (workflow_runs.sqlite3), or None when it cannot open: the Jobs tab then just has no
+    Workflow source instead of failing."""
+    try:
+        import workflow_runs
+        return workflow_runs.get_store()
+    except Exception as e:  # noqa: BLE001
+        print(f"[agents] workflow runs: {type(e).__name__}: {e}", file=sys.stderr)
+        return None
+
+
+def _workflow_steps_of(root):
+    """slug -> step count of a workflow in this brain, read once per slug (the "2/4 steps" line of a run card)."""
+    memo = {}
+
+    def steps_of(wf_slug):
+        if wf_slug not in memo:
+            n = None
+            try:
+                f = _workflows_dir(root) / f"{wf_slug}.md"
+                if f.is_file():
+                    meta, _ = _read_md(f)
+                    n = len(meta.get("steps") or []) or None
+            except Exception:  # noqa: BLE001
+                n = None
+            memo[wf_slug] = n
+        return memo[wf_slug]
+    return steps_of
+
+
 def _agent_jobs_teams(key, root):
     """Nhóm đang hoạt động trong brain mà trợ lý là thành viên đang tham gia: nơi nhận kết quả của Giao việc."""
     if not key or not _TEAM_API.exists():
@@ -30090,7 +30683,8 @@ async def agent_jobs_counts(brain: str = "brain"):
         goals, teams, principal = _agent_jobs_sources(root, any(keys.values()))
         counts = agent_jobs.active_counts(keys, root, brain_keys=_brain_keys(brain), teams=teams,
                                           tasks=tasks_feature.store, sessions=get_store(), goals=goals,
-                                          principal=principal)
+                                          principal=principal, marks=job_marks.marks(root),
+                                          runs=_workflow_runs_store())
         return {"ok": True, "counts": counts}
     return await asyncio.to_thread(_do)
 
@@ -30131,7 +30725,8 @@ async def agent_jobs_list(slug: str, brain: str = "brain", source: str = "all", 
         goals, teams, principal = _agent_jobs_sources(root, key)
         out = agent_jobs.collect(key or "", slug, root, brain_keys=_brain_keys(brain), teams=teams,
                                  tasks=tasks_feature.store, sessions=get_store(), goals=goals, principal=principal,
-                                 source=source, bucket=bucket, cursor=cursor, limit=limit, marks=job_marks.marks(root))
+                                 source=source, bucket=bucket, cursor=cursor, limit=limit, marks=job_marks.marks(root),
+                                 runs=_workflow_runs_store(), steps_of=_workflow_steps_of(root))
         out["board"] = tasks_feature.store.board_mode(root)
         out["max_workers"] = tasks_feature.max_workers
         out["teams"] = _agent_jobs_teams(key, root)
@@ -31018,6 +31613,25 @@ async def share_qr(token: str = Query(...), origin: str = Query(...), fmt: str =
 
 
 # ── Event loop watchdog ("Mất kết nối tới máy chủ" more and more often) ──
+_STATIC_WARM: list = []   # strong ref to the warm-up task (asyncio keeps only a weak one)
+
+
+@app.on_event("startup")
+async def _warm_static_files():
+    """Minify, gzip and bundle the dashboard right after startup, so the first page opened after a restart
+    or an update does not wait for it: that work is pure Python and held up every other request while it ran. With the
+    disk cache (tinh_gon) a plain restart only reads files back; an update re-minifies the files it changed."""
+    async def run():
+        try:
+            r = await asyncio.to_thread(static_bundle.warm, DASHBOARD_PATH)
+            await asyncio.to_thread(_warm_bundle)
+            print(f"[static] warmed {r.get('files')} files, pruned {r.get('pruned')} stale cache entries",
+                  file=sys.stderr)
+        except Exception as e:  # noqa: BLE001 - the page builds all of it on demand anyway
+            print(f"[static] warm-up skipped: {type(e).__name__}: {e}", file=sys.stderr)
+    _STATIC_WARM.append(asyncio.create_task(run()))
+
+
 # Synchronous work on the event loop freezes every socket at once; the watchdog names the code (loop_watch.py).
 import loop_watch  # noqa: E402
 
@@ -31094,7 +31708,7 @@ improvement_api.register(app, improvement_api.ImprovementApiDeps(
     read_store=_improvement_read_store,
     write_store=_improvement_write_store,
     resolve_brain=lambda value: improvement_api.strict_brain(value,
-        default_root=Path(BRAINS_DIR) / "Brain Default", brains_root=Path(BRAINS_DIR)),
+        default_root=default_brain.path(BRAINS_DIR), brains_root=Path(BRAINS_DIR)),
     agent_key=lambda root, slug: _agent_jobs_key(root, slug, register=True),
 ))
 
@@ -31505,7 +32119,7 @@ improvement_activation_api.register(app, improvement_activation_api.ActivationAp
         _improvement_write_store(), principal, ids, version=_read_version()),
     review_proposals=_agent_review_proposals,
     resolve_brain=lambda value: improvement_api.strict_brain(value,
-        default_root=Path(BRAINS_DIR) / "Brain Default", brains_root=Path(BRAINS_DIR)),
+        default_root=default_brain.path(BRAINS_DIR), brains_root=Path(BRAINS_DIR)),
 ))
 
 
@@ -31588,7 +32202,7 @@ improvement_trial_api.register(app, improvement_trial_api.TrialApiDeps(
     read_store=_improvement_read_store,
     write_store=_improvement_write_store,
     resolve_brain=lambda value: improvement_api.strict_brain(value,
-        default_root=Path(BRAINS_DIR) / "Brain Default", brains_root=Path(BRAINS_DIR)),
+        default_root=default_brain.path(BRAINS_DIR), brains_root=Path(BRAINS_DIR)),
     owner_session=_doi_phien_that,
     capture_host=_improvement_trial_host,
     service=_improvement_trial_service,
@@ -31639,7 +32253,7 @@ improvement_candidate_api.register(app, improvement_candidate_api.CandidateApiDe
     read_store=_improvement_read_store,
     write_store=_improvement_write_store,
     resolve_brain=lambda value: improvement_api.strict_brain(value,
-        default_root=Path(BRAINS_DIR) / "Brain Default", brains_root=Path(BRAINS_DIR)),
+        default_root=default_brain.path(BRAINS_DIR), brains_root=Path(BRAINS_DIR)),
     owner_session=_doi_phien_that,
     operations=_improvement_candidate_operations,
     pack_state_dir=lambda: Path(cfgmod.STATE_DIR) / "packs-state",
@@ -31654,7 +32268,7 @@ improvement_experiment_api.register(app, improvement_experiment_api.ExperimentAp
     read_store=_improvement_read_store,
     write_store=_improvement_write_store,
     resolve_brain=lambda value: improvement_api.strict_brain(value,
-        default_root=Path(BRAINS_DIR) / "Brain Default", brains_root=Path(BRAINS_DIR)),
+        default_root=default_brain.path(BRAINS_DIR), brains_root=Path(BRAINS_DIR)),
     owner_session=_doi_phien_that,
     service=_improvement_experiment_service,
     after_report=_improvement_after_report,
@@ -31747,9 +32361,36 @@ async def plan_limits_get(goi: int = 0):
 @app.get("/office")
 async def office_get(brain: str = "brain", day: str = ""):
     import office
-    root = Path(_brain_root(brain))
-    return await asyncio.to_thread(office.build, root, time.time(), localefmt.tz(), day,
-                                   lambda d: _office_gather(brain, d))
+    return await asyncio.to_thread(_office_build, brain, day)
+
+
+def _office_build(brain: str, day: str) -> dict:
+    import office
+    import usage_store
+    d = office.build(Path(_brain_root(brain)), time.time(), localefmt.tz(), day, lambda dd: _office_gather(brain, dd))
+    # what AI calls cost that day, for the whole server (usage.json keeps 30 days); plan engines count 0
+    try:
+        row = next((x for x in usage_store.daily(30) if x.get("day") == d.get("day")), None)
+        d["ai"] = {"cost": round(float(row["cost"]), 4), "turns": int(row["turns"])} if row else None
+    except Exception:
+        d["ai"] = None
+    d["alert"] = _office_alert()
+    return d
+
+
+def _office_alert() -> dict:
+    """Does a failure reach the owner's phone? {"tg": ok|off|no_owner|error}. Read only, no secret leaves here."""
+    try:
+        tg = cfgmod.read_settings().get("telegram", {}) or {}
+        if not (tg.get("enabled") and tg.get("token") and tg_parse_ids(tg.get("chat_id"))):
+            return {"tg": "off"}
+        if not _owner_telegram_id():
+            return {"tg": "no_owner"}
+        if _TG_BOT and _TG_BOT.status in ("error", "conflict"):
+            return {"tg": "error"}
+        return {"tg": "ok"}
+    except Exception:
+        return {"tg": "off"}
 
 
 def _office_teams(brain: str) -> list:
@@ -31823,7 +32464,7 @@ def _office_live_sync(brain: str) -> dict:
         procs = tien_trinh_nen.dang_chay(brain_root=root)
     except Exception:
         procs = []
-    team_now = []
+    team_now, talk = [], []
     teams = _office_teams(brain)
     if teams:
         store = _TEAM_API.teams()
@@ -31831,9 +32472,13 @@ def _office_live_sync(brain: str) -> dict:
             try:
                 for s in store.steps_running(t["team"]["team_id"]):
                     team_now.append({"team": t["team"], "members": t["members"], "step": s})
+                for turn in store.active_turns(t["team"]["team_id"]):
+                    talk.append({"team": t["team"], "members": t["members"], "turn": turn})
             except Exception:
                 pass
-    return office.live(Path(root), time.time(), localefmt.tz(), loop_now, rem_now, tasks, procs, team_now)
+    out = office.live(Path(root), time.time(), localefmt.tz(), loop_now, rem_now, tasks, procs, team_now)
+    out.update(office.talk_view(Path(root), talk))
+    return out
 
 # Batched reads (performance stage 2): many dashboard GETs in one round trip, streamed back as each one
 # finishes. read_batch.py. Registered at the end so the route table only grows at the end.

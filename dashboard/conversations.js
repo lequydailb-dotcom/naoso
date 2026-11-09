@@ -71,7 +71,7 @@
   // dictate.js does the listening; the state lives here because the 5-second redraw rebuilds the box.
   var _dict = null, _dictState = "idle", _dictBase = "", _dictHeard = "", _dictConv = 0, _dictSend = false;
   var _statusLoc = "", _typeLoc = "";   // bộ lọc, lưu ở trình duyệt qua VanhanhConvFilters
-  var _contactLoc = "";     // 2026-10-25: "1" = only chats where the customer left a phone number or email
+  var _contactLoc = "";     // "1" = only chats where the customer left a phone number or email
   // Chatbot v5 (docs/dev/2026-10-chatbot-v5-spec.md): who is handling the chat (the quick filters), the ticked
   // channel accounts (the channel picker) and tags any/none (the Filter menu). Saved with the rest by VanhanhConvFilters.
   var _who = "you", _accs = [], _tagsAny = [], _tagsNone = [], _whoCounts = null;
@@ -315,7 +315,7 @@
   // The "needs you" counts without drawing the list (Channels tab badges, after a change there).
   async function whoCounts() {
     try {
-      var d = await api("/conversations?limit=1");
+      var d = await api("/conversations?limit=1" + brainParam());
       if (d.who_counts) _whoCounts = d.who_counts;
     } catch (e) { /* keep the last counts */ }
   }
@@ -438,9 +438,13 @@
   function saveFilters() { if (window.VanhanhConvFilters) window.VanhanhConvFilters.save(filterState()); }
   function onFilterChange() { saveFilters(); paintHead(); tai(); }
 
+  // The list is the open brain's, like the Channels tab: chats of a Page moved to another brain leave it. The
+  // Channels tab's "every brain" switch shows them all again.
+  function brainParam() { return _tkMoiBrain ? "" : "&brain=" + encodeURIComponent(brain()); }
   function urlDanhSach(limit, offset) {
     return "/conversations?limit=" + limit + (offset ? "&offset=" + offset : "") +
-      "&q=" + encodeURIComponent(_q) + (window.VanhanhConvFilters ? window.VanhanhConvFilters.query(filterState()) : "");
+      "&q=" + encodeURIComponent(_q) + brainParam() +
+      (window.VanhanhConvFilters ? window.VanhanhConvFilters.query(filterState()) : "");
   }
 
   // The channel accounts the picker offers: the ones of the open brain (`/channels/accounts`), each with its key.
@@ -1278,7 +1282,7 @@
       veThread();
     } else {
       var th = _host.querySelector(".ht-thread");
-      if (th) th.innerHTML = '<div class="ht-empty ht-thread-empty">' + esc(window.t("common.loading")) + '</div>';
+      if (th) th.innerHTML = '<div class="ht-empty ht-thread-empty pg-loading">' + esc(window.t("common.loading")) + '</div>';
     }
     // `read=1`: the same request marks it read first, so an opened chat leaves "Needs you" and the bar
     // above it does not still say it, without a round trip of its own.
@@ -2906,7 +2910,6 @@
       var bao = r.so_tin
         ? window.t("ht.da_nhap_cu", { tin: r.so_tin, chat: r.so_cuoc_chat })
         : window.t("ht.khong_co_tin_cu");
-      if (r.bo_qua) bao += "\n" + window.t("ht.nhap_cu_bo_qua", { count: r.bo_qua });
       if (r.het_tran) bao += "\n" + window.t("ht.nhap_cu_het_tran");
       alert(bao);
     } catch (e) { alert(window.t("ht.loi_nhap_cu") + " " + e.message); }

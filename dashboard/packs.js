@@ -304,7 +304,7 @@
             + tw("store.inspect.already.body",
                  { ver: '<b>' + esc(d.da_cai.version || "?") + '</b>' })
             + '</div></div>' : "")
-      // Vá bảo mật 2026-11-05: gói khai `replaces` sẽ gỡ gói cũ và nhận dữ liệu plugin của nó. Màn hình đồng ý
+      // Vá bảo mật gói khai `replaces` sẽ gỡ gói cũ và nhận dữ liệu plugin của nó. Màn hình đồng ý
       // trước đây chỉ nói "đang chạy bản X", người cài không biết gói nào bị thay.
       + (Array.isArray(d.replaces) && d.replaces.length
           ? '<div class="pkm-canh vang"><div class="pkm-canh-tieu">' + ic("info")
@@ -601,7 +601,7 @@
     const dai = moTa.length > 90;
     return '<div class="cat-card kho-the" data-loai="' + esc(g.kind || "bundle") + '"'
       + ' data-nhom="' + esc(g.nhom || "") + '" data-ng="' + (g.verified ? "1" : "0") + '">'
-      // Tags (owner): no kind tag (the open tab already says it) and no official/community
+      // Tags: no kind tag (the open tab already says it) and no official/community
       // tag (community packs keep their own filter and their own warning on the confirm screen).
       // Of the tier only the exception shows: "Runs code", a small amber chip beside the group one.
       // "Data only" is most packs and the safe case, so a tag on every card would say nothing.
@@ -1304,7 +1304,7 @@
   }
 
   async function veLai(el) {
-    el.innerHTML = '<div class="cview-placeholder">' + tw("sess.loading") + '</div>';
+    el.innerHTML = '<div class="pg-loading pg-page">' + esc(tw("sess.loading")) + '</div>';
     let d;
     try { d = await (await fetch("/packs")).json(); }
     catch (e) {

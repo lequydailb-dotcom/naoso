@@ -522,6 +522,11 @@
     return true;
   }
 
+  // A small "Loading..." line with a spinner (.pg-loading in console.css), shared look with the Teams page.
+  function dangTaiHtml(key) {
+    return '<div class="pg-loading" role="status" aria-live="polite">' + esc(t(key)) + '</div>';
+  }
+
   // ---------- dựng khung ----------
   function render(el, opts) {
     // Đọc TRƯỚC khi vẽ gì: khung bên dưới dùng t() ngay lúc dựng. Thiếu VanhanhI18n thì không bao giờ
@@ -564,7 +569,9 @@
             // thì Esc ở đây đóng mất file đang mở thay vì xoá chữ đang gõ.
             '<input class="ws-search" id="wsSearch" data-esc' + (S.q ? "" : " hidden") + ' value="' + esc(S.q) + '" placeholder="' + esc(t("ws.search_ph")) + '">' +
           '</div>' +
-          '<div class="ws-list" id="wsList"></div>' +
+          // "Đang tải" while the list is on its way, instead of an empty column people took for
+          // a frozen page. veDanhSach replaces it with the list (or the empty-state text once loaded).
+          '<div class="ws-list" id="wsList">' + dangTaiHtml("ws.loading_list") + '</div>' +
           '<div class="ws-resize ws-resize-left" data-resize="left" role="separator" aria-orientation="vertical" tabindex="0" ' +
             'aria-label="' + esc(t("ws.resize_list")) + '" title="' + esc(t("ws.resize_hint")) + '"></div>' +
           '<div class="ws-left-foot"><button type="button" class="ws-btn" id="wsNew">' + ic("plus") + ' ' + esc(t("ws.new_item")) + '</button>' +
@@ -580,7 +587,7 @@
             // phải chạy gen_icons tải mạng - lật gương panel-left bằng CSS rẻ hơn mà cùng nghĩa.
             '<button type="button" class="ws-ico lat" id="wsRightBtn" title="' + esc(t("ws.toggle_panel")) + '">' + ic("panel-left") + '</button>' +
           '</div>' +
-          '<div class="ws-id" id="wsIdentity"></div>' +
+          '<div class="ws-id" id="wsIdentity">' + dangTaiHtml("ws.loading_chat") + '</div>' +
           // Màn khởi đầu: danh sách rỗng thì không có phiên nào để mở, ô nhập bị khoá, nên
           // chỗ khung chat là hai nút tạo. Nằm TRƯỚC #wsSlot trong DOM cho thuận mắt, còn
           // khung chat thì ẩn đi bằng lớp .onboard-on (xem console.css).
@@ -765,13 +772,17 @@
           .map(function (a) { return { slug: a.slug, name: a.name || a.slug }; });
       },
       openChat: function (sid) { var x = dangChon(); if (x) moPhien(x, false, sid); },
+      // The chat beside the tab is this assistant's: its running turn shows at the top of the tab.
+      liveTurn: function () { return window.VanhanhChatLive ? window.VanhanhChatLive.turn() : null; },
       openTeam: function (teamId, taskId) {
         // teams.js nạp chậm (nap-cham.js): chờ nó rồi mở.
         nhom(["congviec", "teams"], function () {
           if (window.VanhanhTeams && window.VanhanhTeams.open) window.VanhanhTeams.open(teamId, taskId);
         });
       },
-      openWork: function () { if (window.VanhanhNav && window.VanhanhNav.go) window.VanhanhNav.go("kanban"); } });
+      openWork: function () { if (window.VanhanhNav && window.VanhanhNav.go) window.VanhanhNav.go("kanban"); },
+      // A workflow run the assistant took part in: open that workflow on this page, on the run's chat when it has one.
+      openWorkflow: function (wfSlug, sid) { if (wfSlug) openCommand("workflow", wfSlug, sid || ""); } });
   }
 
   // (Hàm dongBoNhomForm đã bỏ ở đây. Nó tồn tại chỉ để vá một xung đột tự gây ra:
@@ -1031,6 +1042,8 @@
     var ds = loc(danhSach(), S.q, S.nhom, laTag, S.rs), chon = S.chon[S.loai];
     var host = el.querySelector("#wsList");
     var trong = (S.q || S.nhom || laTag) ? [] : docNhomTrong();
+    // Not loaded yet (a tab switch or a toggle before the first list arrived): still loading, not "nothing here".
+    if (!daTai && !ds.length) { host.innerHTML = dangTaiHtml("ws.loading_list"); return; }
     if (!ds.length && !trong.length) {
       var nhomTrong = !laTag && !!(S.nhom && !S.q && docNhomTrong().indexOf(S.nhom) >= 0);
       host.innerHTML = '<div class="ws-empty">' + esc(t(nhomTrong ? "ws.group_empty_hint" : "ws.empty")) + '</div>';
@@ -1610,7 +1623,15 @@
     // The chat box stays locked until this open ends,
     // so an open that hangs (a read that never answers) left a locked box with no word on screen. Past OPEN_WAIT_MS the
     // error and its Retry show; the box still unlocks by itself if the open finishes after all.
-    var slow = setTimeout(function () { if (still() && !ready) veLoi(t("ws.err_session_slow")); }, OPEN_WAIT_MS);
+    // while fetch-gop.js is trying reads again its reconnect band is on screen, so the error waits for the
+    // retries to end instead of firing in the middle of them (they alone can take about 10 s).
+    var slow;
+    var slowCheck = function () {
+      if (!still() || ready) return;
+      if (reconnecting()) { slow = setTimeout(slowCheck, OPEN_RECHECK_MS); return; }
+      veLoi(t("ws.err_session_slow"));
+    };
+    slow = setTimeout(slowCheck, OPEN_WAIT_MS);
     try {
       // Performance: the right column (settings form, Auto block, history list) belongs to the PARTNER, not
       // to one chat. New conversation and a history click keep the same partner, so it is not rebuilt: rebuilding it
@@ -1621,7 +1642,8 @@
       var b = encodeURIComponent(brain()), ch = kenh(item), id = sidChiDinh || null;
       if (!id && !moiHan && item.system) {
         // Vanhanh Core: open the brain's default chat, the one reports land in (the server makes it when missing).
-        var c = await api("/vanhanh-core/session", { method: "POST", body: fd({ brain: brain() }) });
+        var c = await api("/vanhanh-core/session", { method: "POST", body: fd({ brain: brain() }),
+                                                   signal: abortAfter(CORE_SESSION_WAIT_MS) });
         if (!still()) return false;
         id = c && c.id;
       }
@@ -1670,7 +1692,23 @@
       clearTimeout(slow);
     }
   }
-  var OPEN_WAIT_MS = 12000;
+  // 16 s: a batched read may wait ANSWER_WAIT_MS (4 s) before going to the server on its own, and the open makes a few
+  // reads in a row. 12 s showed the error on opens that were only slow, never stuck.
+  var OPEN_WAIT_MS = 16000;
+  var OPEN_RECHECK_MS = 2000;
+  // The Vanhanh Core POST is never retried by fetch-gop.js and had no limit: a connection that hung kept the open waiting
+  // for good. Past this it is cut and the error with its Retry shows.
+  var CORE_SESSION_WAIT_MS = 15000;
+  function reconnecting() {
+    try { return !!(window.VanhanhFetchGop && window.VanhanhFetchGop.retrying && window.VanhanhFetchGop.retrying()); }
+    catch (e) { return false; }
+  }
+  function abortAfter(ms) {
+    if (typeof AbortController !== "function") return undefined;
+    var c = new AbortController();
+    setTimeout(function () { try { c.abort(); } catch (e) {} }, ms);
+    return c.signal;
+  }
   function clearOpenError() {
     var el = S.el && S.el.querySelector("#wsIdentity"); if (!el) return;
     el.querySelectorAll(".ws-err, #wsRetry").forEach(function (n) { n.remove(); });

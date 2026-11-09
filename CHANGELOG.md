@@ -6,6 +6,134 @@ Lịch sử phiên bản VANHANH. Bản mới nhất ở trên cùng. Xem ngay t
 
 Định dạng: mỗi phiên bản là một khối `## [x.y.z] - ngày`, bên dưới nhóm thay đổi theo `### Thêm mới / Sửa lỗi / Cải thiện / Bảo mật`.
 
+## [1.25.0] - 2026-11-09
+### Thêm mới
+- **Mỗi hội thoại trong cột lịch sử có một nút ⋯** thay cho bốn icon rời (ghim, chuyển project, đổi tên, xoá). Menu có: Ghim lên đầu, Chuyển vào project, Đổi tên (sửa ngay tại dòng), Chia sẻ link, Xuất ra file .md, Đánh dấu chưa đọc, Lưu trữ và Xoá. Bấm chuột phải, hoặc nhấn giữ trên điện thoại, cũng mở menu này.
+- **Lưu trữ hội thoại:** hội thoại lưu trữ rời khỏi danh sách nhưng giữ nguyên nội dung, Vanhanh vẫn nhớ và ô tìm kiếm vẫn tìm thấy. Mục "Đã lưu trữ" ở đáy cột mở danh sách này. Nhắn tiếp vào hội thoại đã lưu trữ thì nó tự trở lại danh sách.
+- **Chọn bộ não nào làm mặc định.** Trong bảng chọn bộ não, bấm ngôi sao ở một bộ não để đặt nó làm mặc định. Đổi xong thì bộ não mặc định cũ thành bộ não thường và xoá được (vẫn vào thùng rác 30 ngày).
+- **Ô xoá bộ não nói rõ trước** bao nhiêu vòng lặp, nhắc việc sẽ dừng theo, và bot nào đang trả lời từ bộ não đó.
+- **Bấm Kết nối GitHub, Vanhanh kiểm tra máy có git chưa, thiếu thì tự cài** rồi mới mở bước đăng nhập. Cài không được thì hiện đúng lệnh để cài tay, nút Thử lại và nút Bỏ qua.
+### Sửa lỗi
+- **Giờ trong thông báo khớp múi giờ trong Cài đặt.** Trên VPS, cảnh báo bảo mật, thông báo hệ thống, giờ đồng bộ sao lưu và giờ sự kiện webhook từng in giờ máy chủ (UTC), lệch 7 tiếng.
+- **Quy trình chạy bằng agent Claude dùng được mọi kết nối của Vanhanh**, không còn báo "thiếu công cụ" khi cần Gmail, Sheet, Zalo hay MCP khác.
+- **Trang Chatbot, mục Hội thoại chỉ hiện hội thoại của bộ não đang mở**, kể cả số đếm.
+- **Git vừa cài xong được nhận ngay**, không phải khởi động lại Vanhanh.
+- **Nút cài app ở chân menu trái không còn tràn ra ngoài** trên máy tính bảng và laptop cảm ứng.
+### Cải thiện
+- **Đổi mật khẩu có thêm ô "Nhập lại mật khẩu mới"**, hai lần gõ phải khớp mới lưu.
+- **Màn mạng nơ-ron và danh sách công cụ MCP không còn làm app khựng vài phút một lần.**
+- **Xoá hội thoại hỏi lại ngay trong menu**, kèm gợi ý Lưu trữ nếu chỉ muốn cho gọn.
+- **Bỏ nút "Xem thêm":** cuộn tới cuối danh sách là tự tải thêm.
+- **Dòng hội thoại gọn hơn:** tin ghim có dấu ghim nhỏ trước tiêu đề.
+
+## [1.24.0] - 2026-11-09
+### Cải thiện
+- **Trang Tài khoản gọn hơn.** Bỏ thanh tiêu đề trang, hai tab Tài khoản và Bảo mật nằm ngay trên cùng.
+- **Token API cho CLI chuyển sang trang Tích hợp** (nhóm Việc, trước là Webhook), tab Token API. Cả hai đều là cửa để chương trình khác gọi vào Vanhanh nên giờ nằm chung một chỗ. Token đã tạo vẫn dùng như cũ.
+
+## [1.23.0] - 2026-11-09
+### Thêm mới
+- **Trình sửa file tự lưu như Google Docs.** Ngừng gõ khoảng một giây là file được lưu, nút Lưu báo "Đang lưu…" rồi "Đã lưu". Đóng file, chuyển file, tải lại hay lỡ vuốt lùi trang cũng không mất chữ đã gõ.
+- **Mất mạng giữa chừng vẫn giữ chữ.** Phần chưa lưu được giữ trong trình duyệt và tự khôi phục ở lần mở file sau.
+- **Nút mic đọc chữ trong trình sửa file .md và .txt.** Bấm, nói, chữ hiện đúng chỗ con trỏ và được viết lại cho đúng ngữ cảnh, giống mic ở khung chat.
+- **Xuất và tải lên cả bộ não bằng một file .zip:** mỗi dòng trong hộp chọn bộ não có nút Xuất. File mang theo ghi chú, ảnh, agent, skill, workflow và bộ nhớ, không mang theo token, khoá, chat thô hay lịch sử git. Nút "Tải lên bộ não (.zip)" luôn tạo một bộ não mới, không đè bộ não đang có. Plugin, vòng lặp và nhắc việc đi kèm file đều được tắt sẵn, bật lại ở trang tương ứng nếu cần. Không có trần dung lượng cố định: máy chủ còn đủ chỗ trống là nhận, tới một triệu file. Nén và giải nén chạy nền có hiện tiến độ, file tải lên được gửi từng phần 32MB, nên bộ não lớn vẫn đi qua được Cloudflare Tunnel.
+- **Đổi tên và xoá ngay trên từng dòng của hộp chọn bộ não**, cuối hộp có ba nút Tạo bộ não, Tải lên bộ não và Mở thư mục ngoài. Bốn nút rời cạnh hộp chọn trên thanh trên cùng đã gộp vào hộp này.
+### Sửa lỗi
+- **Khối chữ (như khối TEXT của email nháp) tự xuống dòng** thay vì kéo dài sang phải. Lúc đang sửa, vuốt ngang bàn di chuột không còn làm trình duyệt lùi trang.
+### Cải thiện
+- **Màn hình khởi động:** mở Vanhanh là thấy logo cùng dòng "Đang khởi động Vanhanh…" cho tới khi trang đầu tiên đã có đủ dữ liệu. Vanhanh vừa cập nhật hay khởi động lại thì màn này báo thêm lần mở đầu có thể lâu hơn một chút.
+- **Mọi màn đang chờ tải dùng chung một hiệu ứng** như trang Cộng sự: vòng xoay nhỏ kèm chữ "Đang tải", trang lớn thì vòng xoay ở giữa. Trang đang nạp không còn hiện nhầm câu "đang phát triển".
+- **Số node và liên kết trên thanh trên cùng chỉ hiện ở màn mạng nơ-ron**, các trang khác gọn hơn.
+- **Hộp chọn bộ não ghi số node và số liên kết của từng bộ não**, đúng như đồ thị đếm. Số chỉ được đếm khi mở hộp, nên không làm chậm lúc tải trang.
+- **Trang Cộng sự và Team hiện dòng "Đang tải…"** ở chỗ danh sách và cuộc trò chuyện chưa về, thay vì để trống như bị treo.
+- **Mở một team là thấy ngay tab Thông tin** ở khung bên phải trên màn rộng. Đóng khung đó thì lần sau Vanhanh nhớ và để đóng.
+- **Nút tìm kiếm, cài đặt và nút đóng của Team gọn đẹp hơn:** nút vuông, không viền, cùng kiểu với các tab bên cạnh.
+- **Danh sách team tải nhanh hơn khoảng 2,5 lần**, và tốc độ mở team không đổi dù team có hàng chục nghìn tin nhắn.
+
+## [1.22.0] - 2026-11-09
+### Cải thiện
+- **Mở app nhanh hơn rõ rệt.** Khoảng 110 file giao diện lúc khởi động giờ đi chung một gói. Trên đường mạng có độ trễ 150ms, danh sách Cộng sự hiện sau khoảng 2 giây thay vì gần 5 giây.
+- **Khởi động lại hay cập nhật xong không còn bị khựng ở lần mở đầu.** Bản nén gọn được lưu lại trên đĩa, chỉ file nào vừa đổi mới phải nén lại.
+- **Trang Cộng sự không còn đứng chờ cả loạt.** Các lệnh đọc danh sách, trạng thái Cộng hưởng và việc nền chạy ở luồng phụ, không chặn các lệnh khác.
+### Sửa lỗi
+- **ChatGPT (Codex) không còn mất công cụ khi chat nghỉ vài phút rồi nhắn tiếp.** Lịch, Zalo, Drive dùng được ngay ở lượt sau.
+- **Trên Windows, việc nền Codex mức "Được ghi" ghi được file trở lại.**
+- **Ký ức không còn bị hỏng hay mất thông tin sau lượt chat.** Ký ức có dấu hai chấm trong mô tả giữ nguyên loại, mô tả và thẻ. Ký ức đã hỏng từ trước tự lành khi sửa trong app.
+- **Ollama Local chạy được việc nhóm và việc nền.** Hết báo "engine chưa sẵn sàng" khi Ollama ở máy nhà không đặt khoá.
+- **Chạy sau Caddy (VPS Hostinger) thì nút Đăng nhập Facebook không còn bị khoá.**
+- **Thẻ CapCut đăng nhập được.**
+- **GitHub trong chat dùng đúng Lệnh kiểm tra đã lưu** và hiểu repo đặt app trong thư mục con.
+- **Mở hội thoại ở trang Cộng sự hết báo nhầm "mở quá lâu".** Lúc trang đang tự kết nối lại thì không báo lỗi nữa. Mở Vanhanh Core bị treo thì báo lỗi kèm nút Thử lại, và bấm Thử lại là tải lại thật.
+- **Việc nền chạy bằng ChatGPT (Codex) bị chặn ghi file giờ báo đúng là lỗi môi trường**, kèm cách sửa, thay vì nằm ở "chờ bạn trả lời".
+- **Ký ức do việc nền ghi không còn bị gắn nhầm nguồn** là cuộc chat đang mở cùng lúc.
+
+## [1.21.0] - 2026-11-09
+### Thêm mới
+- **Bot Zalo cá nhân hiện "đang soạn tin..." trong nhóm.** Chỉ bật sau khi bot đã quyết định trả lời (được gọi tên, hoặc bộ phán xử chọn lên tiếng) và giữ tới lúc gửi xong, nên nhóm không còn im 20-30 giây rồi mới thấy bot nói. Tin bot đọc rồi im thì không hiện gì.
+- **Ô bật tắt "Hiện đang soạn tin... trong nhóm khi bot sắp trả lời"** trong phần cài đặt từng bot ở trang Chatbot, mặc định bật.
+### Sửa lỗi
+- **Nút Nhập tin cũ của Zalo nhập được thật.** Trước đây cuộc chat nào đã có dù chỉ một tin trong Hộp thư đều bị bỏ qua, nên tài khoản đã bật Ghi hội thoại bấm nhập gần như không được gì. Giờ cuộc chat đã có tin nhận thêm các tin cũ hơn tin đầu tiên của nó, xếp lên trên đúng thứ tự thời gian.
+- Tin cũ vừa nhập không nhảy xuống cuối khung chat đang mở, không làm bot hiểu nhầm là tin mới, và nhóm vẫn chỉ giữ các tin gần nhất như cũ.
+- **"Đang soạn tin" ở chat riêng không còn tắt cả tiếng.** Trước đây chỉ một cuộc chat bị Zalo từ chối, hoặc MCP khởi động lại, là dấu này tắt ở mọi cuộc chat của nick suốt một giờ. Giờ chỉ tắt cho đúng lượt đó, và dấu được giữ tới khi tin đã gửi đi.
+### Cải thiện
+- **Mở màn mạng nơ-ron không còn làm cả app đứng.** Bộ theo dõi file của đồ thị được dựng trên luồng riêng, nên bộ não nhiều thư mục không còn khiến mọi thao tác khác chờ tới 2 giây.
+- **Mọi kết nối ra ngoài dùng chung một bộ chứng chỉ bảo mật**, nạp một lần lúc khởi động. Trước đây mỗi lần gọi ra ngoài (Telegram, Zalo, model...) đều nạp lại cả bộ, có lần làm app đứng gần 2 giây.
+- **Đọc lịch sử Zalo cá nhân chạy nền.** Phần dò lại tin bị sót trong file lịch sử không còn chặn các thao tác khác.
+## [1.20.1] - 2026-11-09
+### Cải thiện
+- Dọn tài liệu bên thứ ba.
+
+## [1.20.0] - 2026-11-09
+### Thêm mới
+- **Khung trò chuyện hiện kế hoạch của bộ não như một danh sách việc.** Khi Claude Code, ChatGPT (Codex) hay Grok Build tự lập kế hoạch cho một việc nhiều bước, thẻ "Kế hoạch 2/5" hiện ngay trên câu trả lời: việc xong có dấu tích và gạch ngang, việc đang làm in đậm, việc còn lại để trống. Dòng trạng thái dưới khung chat ghi đang ở bước nào. Thẻ được giữ lại khi tải lại trang, và không tốn thêm token.
+- **Bảy bộ não chạy bằng API key cũng có thẻ Kế hoạch.** OpenRouter, OpenAI, Anthropic API, Gemini, Groq, DeepSeek và Ollama có công cụ `vanhanh_plan`: gặp việc từ 3 bước trở lên, model lập danh sách và đánh dấu từng mục khi xong. Tốn thêm khoảng 200 token mỗi lượt; muốn tắt thì vào menu **+** ở ô nhập, mục **Kế hoạch việc dài (bộ não API)**. Chỉ khung chat của chủ có công cụ này, bot trả lời khách và việc nền thì không.
+- **Tab Công việc ở trang Cộng sự hiện việc cộng sự đang làm trong chat**: thẻ "Đang làm trong chat" kèm số bước và kế hoạch, xong lượt là thẻ tự tắt.
+- **Tab Công việc hiện các lần chạy Quy trình mà cộng sự có tham gia.** Đang chạy thì ghi bước nào và của ai, chờ duyệt thì nằm ở Cần bạn, hỏng thì đánh dấu hỏng, bấm Mở là tới đúng quy trình. Bộ lọc nguồn có thêm "Quy trình".
+- **Mỗi hội thoại ở cột trái có nhãn thư mục nhỏ ghi tên project.** Đang lọc đúng một project thì nhãn tự ẩn cho đỡ lặp.
+- **Nhãn bộ não ghi tên dễ hiểu:** "Claude", "Codex", "Grok", "OpenRouter"... thay cho mã nội bộ như "cli".
+### Cải thiện
+- **Câu trả lời trải rộng hết khung chat**, không chừa khoảng trống lớn bên phải. Ở trang Cộng sự trên iPad câu trả lời rộng từ khoảng 780px lên hơn 1.000px; màn rất rộng thì dừng ở khoảng 120 chữ mỗi dòng cho đỡ mỏi mắt. Trang Trò chuyện và trang Team đổi theo cùng kiểu.
+### Sửa lỗi
+- **Chấm trạng thái trên thẻ cộng sự khớp với tab Công việc.** Việc đã bấm Xong hay đã xoá không còn làm chấm xanh hay chấm đỏ sáng lên.
+- **Lần chạy Quy trình bị cắt giữa chừng** (máy chủ tắt khi đang chạy) không còn nằm mãi ở Đang làm.
+- **Cài lại trợ lý từ Kho nay hiện lại ở trang Cộng sự.** Trước đây đổi tên hay sửa trợ lý của gói, gỡ rồi cài lại thì bị bỏ qua. Nay bản của bạn giữ nguyên, bản của gói được cài thêm dưới tên mới và màn hình nói rõ tên đó.
+- **Xoá trợ lý, quy trình, kỹ năng của gói trong app thì Kho thôi báo "Đã cài"**, thẻ hiện lại nút Cài. Gỡ gói thì dọn sạch cả kỹ năng đang tắt và bản Claude Code đọc.
+
+## [1.19.0] - 2026-11-09
+### Bảo mật
+- **Cần làm sau khi cập nhật:** mở Agent của từng chatbot, ghim các file bảng giá, chính sách, hướng dẫn mà bot cần đọc, rồi bấm **Thử** để chắc bot vẫn trả lời đúng. Bot chưa ghim file nào chỉ trả lời theo vai trò của Agent.
+- **Chatbot chỉ đọc tài liệu ghim ở mục Tài liệu của Agent nó dùng**, cộng thư mục `rieng-theo-nhom/` và Google Docs gắn từ Agent. Trước đây bot coi mọi ghi chú trong bộ não là tài liệu, nên có thể trích ghi chú riêng của chủ cho khách.
+- **Tab Bảo mật mới trong trang Tài khoản.** Xem 2FA, thiết bị đang đăng nhập (IP, trình duyệt, lần hoạt động cuối) và lịch sử đăng nhập đúng, sai, mọi lần đổi tài khoản. Đăng xuất từng thiết bị hoặc mọi thiết bị khác mà không cần đổi mật khẩu.
+- **Báo ngay khi tài khoản có biến.** Đổi tên, đổi mật khẩu, bật tắt 2FA, đăng nhập từ mạng lạ: chuông và Telegram của chủ báo liền.
+- **File cài đặt bị sửa từ ngoài VANHANH** thì mọi thiết bị bị đăng xuất và có cảnh báo đỏ. Lần đầu chạy bản này chỉ ghi nhận tài khoản hiện tại, không đăng xuất ai.
+- **Trợ lý AI không còn đụng được file bí mật** (cài đặt, khoá mã hoá, phiên đăng nhập), ở mọi mức quyền.
+- **Gỡ 2FA khi bị khoá:** thêm biến `VANHANH_RESET_2FA=1` rồi Redeploy. Mỗi giá trị chỉ dùng được một lần.
+- **Hostinger: cổng 7777 tự đóng ra ngoài khi đã có tên miền HTTPS**, chỉ còn đường vào có mã hoá.
+- **Lỡ lộ link quản trị thì Google không đưa lên kết quả tìm kiếm.** Mọi trang của VANHANH giờ mang lệnh `noindex`, kể cả màn hình đăng nhập và link chia sẻ.
+- **Bot AI không đọc được VANHANH.** GPTBot, ClaudeBot, PerplexityBot, công cụ SEO và máy quét như Shodan, Censys nhận lỗi 403. VANHANH cũng có `/robots.txt` cấm chúng.
+- Trình duyệt thật, khung xem trước link khi dán vào Zalo hay Telegram, webhook Meta, Threads, Zalo OA, link chia sẻ `/s/` và Vanhanh Gate vẫn chạy như cũ. Cần tắt lớp chặn thì đặt `VANHANH_BLOCK_BOTS=0`.
+- **Các file bảo mật tài khoản không còn lọt vào git hay image Docker** khi chạy `git add -A` hay `docker build` trên máy.
+### Sửa lỗi
+- **Chatbot tra tài liệu, lượt học tự động và nhắc việc không còn làm cả app đứng vài giây.** Các việc này giờ chạy ở luồng phụ và không còn quét cả bộ não.
+- **Trang Cộng sự không còn chờ khoá dữ liệu Cộng hưởng**, và danh mục kết nối không còn kiểm tra lại ổ đĩa ở mọi lần gọi.
+
+## [1.18.0] - 2026-11-09
+### Sửa lỗi
+- **Tin việc hỏng cần bạn xử lý nay là tin khẩn.** Trước đây nó ở mức "đáng chú ý", mà bộ lọc thông báo mặc định chỉ cho tin khẩn đi Telegram, nên trên máy mới việc hỏng không bao giờ tới điện thoại. Muốn bớt thì vẫn tắt được nhóm Sự cố trong Thông báo.
+- **Việc hỏng nay luôn báo về Telegram của chủ.** Việc giao từ khung chat trên web mà hỏng cần bạn xử lý, trước chỉ báo vào đúng khung chat đó; nay gửi thêm một tin vào Telegram của bạn để bạn biết khi không mở máy.
+- **Việc nhóm (Team) bị chặn, hỏng hay chờ bạn duyệt** trước chỉ nằm trong chuông; nay cũng gửi về Telegram của bạn.
+### Cải thiện
+- **Văn phòng 3D hết chữ đè nhau.** Tên mỗi bàn nằm gọn trên đúng bàn đó, không rộng quá bàn, tên dài thì xuống hai dòng. Hai nhãn chạm nhau trên màn hình thì giữ nhãn quan trọng hơn (tên phòng, việc đang chạy, việc hỏng), nhãn kia tạm ẩn và hiện lại khi phóng to.
+- Mục **Cần bạn xử lý** trên trang Văn phòng ghi rõ tin việc hỏng có đang tới Telegram không. Chưa nối Telegram thì nói thẳng là tin chỉ nằm trong chuông, kèm nút mở Cài đặt.
+
+## [1.17.0] - 2026-11-09
+### Thêm mới
+- **Phòng họp trong Văn phòng 3D**: khi trưởng nhóm Team đang chia việc hay tổng hợp, cả nhóm đứng dậy đi vào phòng họp ngồi quanh bàn, xong thì tự về bàn mình.
+- **Bong bóng trao đổi** trên đầu trợ lý đang nói trong Team: đang chia việc, đang trả lời nhóm, đang làm việc nhóm, đang giúp.
+- **Dòng tin chạy** dưới cảnh 3D: ai vừa giao gì cho ai, việc nào vừa chạy đạt hay hỏng, mới nhất trước.
+- **Chi phí AI trong ngày** thêm vào hàng số đầu trang, kèm số lượt gọi AI. Tính cho cả máy chủ; engine chạy bằng gói thuê bao tính 0.
+- **Biển mỗi phòng ban** ghi thêm số trợ lý, số lượt chạy và số lượt hỏng trong ngày. Mỗi phòng có **tường kính** ba mặt, mặt trước để mở cho dễ nhìn.
+
 ## [1.16.0] - 2026-11-09
 ### Thêm mới
 - **Văn phòng: thấy trợ lý giao việc cho nhau.** Mục mới **Giao việc trong ngày** ghi ai giao việc gì cho ai, lúc mấy giờ, đang làm, xong hay hỏng. Lấy từ trưởng nhóm Team giao cho thành viên, thành viên nhờ nhau, thẻ trên Bảng việc giao cho trợ lý, và các bước nối nhau của Quy trình.

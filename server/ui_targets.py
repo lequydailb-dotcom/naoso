@@ -45,6 +45,8 @@ ALIASES = {
     "viec dinh ky": "tasks", "nhac hen": "tasks",
     "webhook": "webhooks", "webhooks": "webhooks", "hook": "webhooks",
     "van phong": "office", "office": "office", "phong ban": "office", "nhan su so": "office",
+    "tich hop": "webhooks", "integration": "webhooks", "integrations": "webhooks", "token api": "webhooks",
+    "api token": "webhooks", "api": "webhooks",
     "kho dang nhap": "logins", "dang nhap": "logins", "cookie": "logins", "cookies": "logins",
     "logins": "logins", "login vault": "logins", "tai khoan dang nhap": "logins",
     "code": "terminal", "ma": "terminal", "nhat ky": "logs", "log": "logs",

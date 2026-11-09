@@ -60,6 +60,7 @@ import channel_context   # bóc khối VANHANH_* trước khi gửi Telegram - k
 import once_ledger       # outside actions of one firing run once, across retries
 import work_log          # one line per finished run, for the Tasks page stats
 import turn_context
+import memory_control   # background writers are not stamped with a chat source
 
 
 def _nhan_kw(fn, ten: str) -> bool:
@@ -852,7 +853,9 @@ class RemindersFeature:
                 try:
                     rid_tok = _RUN_RID.set(str(rem.get("id") or ""))
                     try:
-                        body, err = await self._run_task(brain, text, muc_quyen_cua(rem), **extra)
+                        # memories this reminder writes are not stamped with a chat open at the same time.
+                        with memory_control.background_writer(self.deps.brain_root(brain), muc_quyen_cua(rem)):
+                            body, err = await self._run_task(brain, text, muc_quyen_cua(rem), **extra)
                     finally:
                         _RUN_RID.reset(rid_tok)
                 finally:
@@ -1135,7 +1138,8 @@ class RemindersFeature:
             # a reminder made in a partner chat does its job as that assistant (role, file body, memory,
             # owner rules). The assistant deleted since -> plain Vanhanh, so the job still runs.
             try:
-                sysprompt = self.deps.build_agent_prompt(brain, agent)
+                # Worker thread, like build_system_prompt below.
+                sysprompt = await asyncio.to_thread(self.deps.build_agent_prompt, brain, agent)
                 as_agent = True
             except Exception as e:
                 print(f"[reminders] assistant '{agent}' unavailable, running as Vanhanh: {type(e).__name__}: {e}",
@@ -1143,7 +1147,9 @@ class RemindersFeature:
                 sysprompt = None
         if sysprompt is None:
             try:
-                sysprompt = self.deps.build_system_prompt(brain)
+                # built on a worker thread. It reads every skill, agent and plugin of the brain; on the event loop it
+                # froze the whole server for 2 to 5 s on the owner's VPS (GET /health/loop).
+                sysprompt = await asyncio.to_thread(self.deps.build_system_prompt, brain)
             except Exception:
                 sysprompt = ""
         if mq == "full":

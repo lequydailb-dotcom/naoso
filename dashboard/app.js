@@ -13,7 +13,23 @@ function setSessionRunning(sid, on) {
   if (!sid) return;
   if (on) window.VanhanhRunning.add(sid); else window.VanhanhRunning.delete(sid);
   try { if (window.VanhanhChatSide && window.VanhanhChatSide.refresh) window.VanhanhChatSide.refresh(); } catch (e) {}
+  emitTurnProgress(sid);
 }
+// A chat turn started, made a step, or ended. The Jobs tab of the Partners page (agent-jobs.js) listens to show the
+// assistant's running chat turn with its plan: a chat turn is not a queued job, so the tab looked empty while the
+// assistant was clearly working.
+function emitTurnProgress(sid) {
+  try { window.dispatchEvent(new CustomEvent("vanhanh:chat-turn", { detail: { sid: sid } })); } catch (e) {}
+}
+// { sid, running, steps, buoc } of a chat's turn (the open chat when `sid` is empty), or null when none ran here.
+window.VanhanhChatLive = {
+  turn: function (sid) {
+    const id = sid || savedSessionId;
+    const t = id ? turns[id] : null;
+    if (!t) return null;
+    return { sid: id, running: !!t.running, steps: (t.buoc && t.buoc.so) || 0, buoc: t.buoc || null };
+  },
+};
 
 // Lưu & khôi phục phiên gần nhất (hội thoại + số liệu + session Claude)
 const SESSION_KEY = "vanhanh.session.v1";
@@ -1417,16 +1433,20 @@ function handleMessage(data) {
     if (isActive) { runActions(turn.turnStart()); showActivity(escapeHtml(data.content || "")); syncActiveUI(); }
   } else if (data.type === "tool_call") {
     if (t && window.VanhanhSteps) t.buoc = window.VanhanhSteps.nhan(t.buoc, data);
+    emitTurnProgress(sid);
     if (isActive) {
       runActions(turn.toolCall(data.tool || ""));
       veKhoiBuoc(t, true);
       // chip = dong dang chay + dong ho, luon nam duoi khoi. Ghi cung nhan RO VIEC nhu khoi
       // ("Chay lenh: git status") thay cho "Dang goi: Bash".
       const _nhan = window.VanhanhSteps ? window.VanhanhSteps.nhanDong(data) : (data.content || "");
-      showActivity(escapeHtml(_nhan));
+      // The engine just updated its plan: the chip says where it is in it ("Plan 2/5: Write the tests").
+      const _plan = (data.plan && window.VanhanhSteps && window.VanhanhSteps.planLine) ? window.VanhanhSteps.planLine(t && t.buoc) : "";
+      showActivity(escapeHtml(_plan || _nhan));
     }
   } else if (data.type === "tool_result") {
     if (t && window.VanhanhSteps) t.buoc = window.VanhanhSteps.nhan(t.buoc, data);
+    emitTurnProgress(sid);
     if (isActive) { veKhoiBuoc(t, true); showActivity(Icons.msg("check", window.t("app.act_analyzing"), { cls: "ic-ok" })); }
   } else if (data.type === "stream") {
     if (!t) return;
@@ -2513,11 +2533,17 @@ function _vanTayPhien(sess) {
     `${m.id}:${m.content_sha || (m.content || "").length}:${m.reaction ? JSON.stringify(m.reaction) : ""}:${m.pinned ? 1 : 0}`)).join("|");
 }
 function _taiPhien(id) {
-  if (_phienDangTai.has(id)) return _phienDangTai.get(id);
+  // a load still in flight after STALE_MS is not handed out again. Retry on the Partners page used to join the
+  // very read that was hanging, so it hung too; now it asks the server afresh (the old read, if it ever answers, still
+  // fills the cache).
+  const STALE_MS = 10 * 1000;
+  const cur = _phienDangTai.get(id);
+  if (cur && Date.now() - (cur.at || 0) < STALE_MS) return cur;
   const p = fetch(_urlPhien(id)).then(r => r.json()).then(sess => {
     if (sess && !sess.error) _ghiCachePhien(id, sess);
     return sess;
-  }).finally(() => { _phienDangTai.delete(id); });
+  }).finally(() => { if (_phienDangTai.get(id) === p) _phienDangTai.delete(id); });
+  p.at = Date.now();
   _phienDangTai.set(id, p);
   return p;
 }
@@ -5286,6 +5312,9 @@ if (document.getElementById("settingsBtn")) {
   document.getElementById("savePassword").addEventListener("click", async (e) => {
     const user = document.getElementById("setAuthUser").value.trim();
     const pass = document.getElementById("setAuthPass").value;
+    // the new password is typed twice, so one typo cannot lock the owner out.
+    const pass2El = document.getElementById("setAuthPass2");
+    const pass2 = pass2El ? pass2El.value : pass;
     const curEl = document.getElementById("setAuthCur");
     const btn = e.target; const old = btn.textContent;
     const bao = (ok, msg) => {
@@ -5302,11 +5331,12 @@ if (document.getElementById("settingsBtn")) {
     if (!hasPw) {
       // Lần đầu đặt mật khẩu → /auth/setup (cấp cookie luôn)
       if (!pass || pass.length < 8) { bao(false, window.t("app.pw_min8")); return; }
+      if (pass !== pass2) { bao(false, window.t("app.pw_mismatch")); return; }
       const fd = new FormData(); fd.append("username", user || "admin"); fd.append("password", pass);
       try {
         const d = await (await fetch("/auth/setup", { method: "POST", body: fd })).json();
         bao(!!d.ok, d.ok ? window.t("app.pw_set_ok") : (d.error || window.t("app.err_low")));
-        if (d.ok) { document.getElementById("setAuthPass").value = ""; openSettings(); }
+        if (d.ok) { document.getElementById("setAuthPass").value = ""; if (pass2El) pass2El.value = ""; openSettings(); }
       } catch (err) { bao(false, window.t("app.err_net_low")); }
       return;
     }
@@ -5315,6 +5345,7 @@ if (document.getElementById("settingsBtn")) {
     const cur = curEl ? curEl.value : "";
     if (!cur) { bao(false, window.t("app.pw_need_cur")); return; }
     if (pass && pass.length < 8) { bao(false, window.t("app.pw_new_min8")); return; }
+    if (pass !== pass2) { bao(false, window.t("app.pw_mismatch")); return; }
     if (!pass && !user) { bao(false, window.t("app.nothing_changed")); return; }
     const fd = new FormData();
     fd.append("current_password", cur); fd.append("username", user);
@@ -5324,6 +5355,7 @@ if (document.getElementById("settingsBtn")) {
       bao(!!d.ok, d.ok ? (pass ? window.t("app.pw_changed") : window.t("app.user_changed")) : (d.error || window.t("app.err_low")));
       if (d.ok) {
         document.getElementById("setAuthPass").value = "";
+        if (pass2El) pass2El.value = "";
         if (curEl) curEl.value = "";
         refreshAuthRow();
       }

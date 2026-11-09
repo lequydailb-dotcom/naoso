@@ -121,7 +121,7 @@ check("CSS: cột trái rộng hơn mặc định và theo biến kéo được;
   /\.wspage > \.ws-right \{ width: var\(--ws-right-w, 350px\);/.test(css) && /\.ws-resize \{ display: none; \}/.test(css) &&
   /cursor: col-resize; touch-action: none;/.test(css));
 // the owner reversed the 120ch widening (answers ran up to the outline bar); the assistant page keeps the main
-// chat's 72ch measure.
+// chat's measure, which is now 100ch (test_answer_width.js).
 check("CSS: no 120ch widening on the assistant page any more (same measure as the main chat)",
   !/\.wspage\.right-open \.ws-slot \.msg-vanhanh \.bubble \{ max-width: min\(120ch/.test(css));
 // Rà soát trước khi phát hành.

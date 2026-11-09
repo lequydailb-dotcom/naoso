@@ -170,7 +170,7 @@ check("CSS colours come from theme tokens (light and dark)", !/#[0-9a-f]{3,6}\b(
   check("icon '" + n + "' is in the bundle", ICONS.indexOf('"' + n + '"') > 0);
 });
 check("cache-busters bumped", /conversations\.js\?v=(1[5-9]|[2-9]\d)/.test(HTML) && /conversations-filters\.js\?v=[4-9]/.test(HTML) &&
-  /lucide-icons\.js\?v=1[2-9]/.test(HTML));
+  /lucide-icons\.js\?v=(1[2-9]|[2-9]\d)/.test(HTML));
 const keys = new Set();
 [MOD, CV].forEach((t) => [...t.matchAll(/"(ht\.(?:rm_[a-z_]+|f_st_hidden))"/g)].forEach((m) => keys.add(m[1])));
 const missing = [...keys].filter((k) => !VI[k] || !EN[k]);

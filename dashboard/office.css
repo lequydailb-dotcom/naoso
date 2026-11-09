@@ -146,3 +146,22 @@
   .of-h .of-fn { grid-column: 2 / -1; }
   .of-hw { white-space: normal; }
 }.of-root .of-box h3 > .of-count.of-count-n { background: var(--surface-2); color: var(--text2); }
+
+/* 3D: the line of news along the bottom */
+.o3-ticker { position: absolute; left: 0; right: 0; bottom: 0; height: 34px; overflow: hidden; display: flex; align-items: center;
+  background: color-mix(in srgb, var(--panel-solid, var(--bg2)) 88%, transparent); border-top: 1px solid var(--hairline); pointer-events: none; }
+.o3-ticker[hidden] { display: none; }
+.o3-tk { display: inline-block; white-space: nowrap; padding-left: 100%; animation: o3-tk 40s linear infinite; font-size: 14px; }
+.o3-tki { margin-right: 28px; color: var(--text2); }
+.o3-tki::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--of-calm); vertical-align: 1px; }
+.o3-tki.o3-ok::before { background: var(--of-ok); }
+.o3-tki.o3-bad::before { background: var(--of-bad); }
+.o3-tki.o3-run::before { background: #2f8fff; }
+@keyframes o3-tk { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@media (prefers-reduced-motion: reduce) { .o3-tk { animation: none; padding-left: 10px; } }
+.o3-stage .o3-hint { bottom: 44px; }
+.o3-stage .o3-card { bottom: 44px; }
+.of-root .of-alert { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+.of-root .of-alert-ok { background: var(--surface-2); color: var(--text2); }
+.of-root .of-alert-warn { background: color-mix(in srgb, var(--warn, #d97706) 14%, transparent); color: var(--text); }
+.of-root .of-alert .btn { margin-left: auto; }

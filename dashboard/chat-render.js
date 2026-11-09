@@ -148,7 +148,16 @@
   }
   function currentBrainBase() {
     var b = String(brainPath() || "").replace(/\\/g, "/").replace(/\/+$/, "");
-    return b === "brain" ? "Brain Default" : (b.split("/").pop() || "");
+    return b === "brain" ? defaultBrainFolder() : (b.split("/").pop() || "");
+  }
+  // Folder of the default brain: the owner can choose another brain as the default, so "brain" no longer
+  // always means "Brain Default". brains-ui.js puts the folder on the picker's default entry.
+  function defaultBrainFolder() {
+    try {
+      var o = document.querySelector('#graphSource option[value="brain"]');
+      if (o && o.dataset && o.dataset.brainName) return o.dataset.brainName;
+    } catch (e) {}
+    return "Brain Default";
   }
   function currentBrainMatches(name) {
     return String(currentBrainBase() || "").toLowerCase() === String(name || "").toLowerCase();
@@ -672,7 +681,7 @@
     });
     // Chu cua link co the boc dam/nghieng: AI hay viet [**Tai file**](...). Link da cat vao
     // placeholder nen buoc dam/nghieng sau nay khong cham toi, va nguoi doc thay nguyen "**" (video
-    // iPad 05/11/2026). Chi dam va nghieng, sau khi da escape.
+    // iPad). Chi dam va nghieng, sau khi da escape.
     function chuLink(t) {
       return esc(t).replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>").replace(/__([^_]+?)__/g, "<strong>$1</strong>")
         .replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, "$1<em>$2</em>");
@@ -1540,7 +1549,7 @@
       var xem = href.replace(/([?&])dl=1(&|$)/, function (m, dau, sau) { return sau ? dau : ""; });
       var ten = a.getAttribute("data-vault-path") || a.getAttribute("download") || "";
       ten = (ten || decodeURIComponent((/[?&](?:path|name)=([^&]*)/.exec(href) || [0, ""])[1] || "")).split("/").pop();
-      // PDF (video iPad cua chu repo 05/11/2026): link PDF trong chat co target="_blank", truoc day cho
+      // PDF (video iPad cua chu repo): link PDF trong chat co target="_blank", truoc day cho
       // iOS tu mo. Tren iPad cai ra man hinh chinh, iOS KHONG mo lop Safari co nut Xong ma THAY
       // ca app bang trang PDF: khong nut quay lai, khong nut tai, phai tat app. Nen PDF (bam xem
       // hay bam tai deu vay) mo trong khung xem NGAY TRONG APP: nut Dong, nut Back, nut Tai ve

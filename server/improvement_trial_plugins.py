@@ -38,7 +38,9 @@ _RESERVED = {"vanhanh_connections", "vanhanh_read_file", "vanhanh_list_dir", "va
 _GOAL_FILE = Path(__file__).resolve().parent.parent / "system" / "plugins" / "vanhanh-goal" / "plugin.py"
 # Pin the audited data-only branch; a coherent edited source+cache is still not
 # authority to reinterpret an arbitrary predicate as the ordinary-owner result.
-_GOAL_SOURCE_HASH = "84c0effa11365af4d6bfb3372ee1b00d4ec7133bd54ec6eb1110b68292c5c438"
+# Re-pinned after an audit of the diff: the plugin opens the store with `RS.shared()` instead of
+# `RS.GoalStore()` (one opened store per file); `_visible`'s branches and what they return are unchanged.
+_GOAL_SOURCE_HASH = "285e625d2ab77986292d08178c37aa9c72a7dfa1c12616ea48cd6135cee9bda3"
 
 
 def _plain(value):

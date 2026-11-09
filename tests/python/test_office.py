@@ -189,6 +189,25 @@ with tempfile.TemporaryDirectory() as tmp:
     check("live: an assistant on a team step or a card names its desk",
           sorted(x.get("agent_slug") for x in lv["items"]) == ["anh", "anh"])
 
+# teams talking and meeting: the leader planning seats the whole team, a member replying gets a bubble only
+with tempfile.TemporaryDirectory() as tmp:
+    b = Path(tmp)
+    write(b / "agents" / "truong.md", "---\nname: Trưởng nhóm\n---\n")
+    mem = [{"agent_key": "k1", "identity": {"slug": "truong"}, "status": "active"},
+           {"agent_key": "k2", "slug_at_join": "viet", "status": "active"},
+           {"agent_key": "k3", "slug_at_join": "cu", "status": "removed"}]
+    t1 = {"team_id": "tm1", "name": "Nhóm nội dung"}
+    t2 = {"team_id": "tm2", "name": "Nhóm bán hàng"}
+    tv = office.talk_view(b, [{"team": t1, "members": mem, "turn": {"agent_key": "k1", "role": "plan", "engine_at": 5}},
+                              {"team": t2, "members": mem, "turn": {"agent_key": "k2", "role": "member_reply", "engine_at": 6}},
+                              {"team": t2, "members": mem, "turn": {"agent_key": "k2", "role": "unknown_role"}}])
+    check("talk: who talks, in which role, with the assistant's name",
+          [(x["slug"], x["role"]) for x in tv["talk"]] == [("truong", "plan"), ("viet", "member_reply")]
+          and tv["talk"][0]["name"] == "Trưởng nhóm")
+    check("talk: a planning leader seats the active team in the meeting room, a reply does not",
+          tv["meetings"] == [{"team": "Nhóm nội dung", "leader": "truong", "members": ["truong", "viet"]}])
+    check("talk: nothing active is empty", office.talk_view(b, []) == {"talk": [], "meetings": []})
+
 check("scrub masks key=value secrets", "abc123" not in office.scrub("password: abc123 ok"))
 check("scrub masks Windows paths", "Users" not in office.scrub(r"lỗi ở C:\Users\x\secret.txt"))
 check("scrub keeps normal words", office.scrub("Đăng bài lên fanpage") == "Đăng bài lên fanpage")

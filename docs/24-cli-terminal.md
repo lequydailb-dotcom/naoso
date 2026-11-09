@@ -35,7 +35,7 @@ Xong thì có lệnh `vanhanh`. Kiểm tra: `vanhanh --help`.
 
 Máy chủ Vanhanh không nhận lệnh từ bên ngoài nếu chưa có token. **Không có token nào sẵn** - chưa tự tay tạo thì cửa này đóng.
 
-1. Mở dashboard Vanhanh, vào **Tài khoản** (nhóm **Hệ thống** ở cuối thanh bên trái) rồi kéo tới mục **Token API (cho CLI)**. Cùng trang với mật khẩu đăng nhập, vì token cũng là một cách đăng nhập.
+1. Mở dashboard Vanhanh, vào **Tích hợp** (nhóm **Việc** trên thanh bên trái) rồi chọn tab **Token API (cho CLI)**. Cùng trang với webhook, vì cả hai đều là cửa để chương trình khác gọi vào Vanhanh.
 2. Đặt tên dễ nhớ, ví dụ "laptop của anh" - sau này thu hồi thì biết đang thu hồi cái nào.
 3. Chọn phạm vi:
    - **Chỉ chat** - vào được `/chat`, `/version`, `/health`, `/sessions`. Đủ để hỏi đáp và xem lịch sử. Chọn cái này nếu chỉ định hỏi han.
@@ -156,7 +156,7 @@ Không tìm thấy bản cài thì nó nói thẳng: **`vanhanh up` không chứ
 
 ## Quản lý token
 
-Vào **Tài khoản > Token API** trong dashboard. Danh sách hiện tên, 12 ký tự đầu, phạm vi, và **lần dùng cuối** - nếu thấy một token bạn không nhớ đang được dùng đều đặn thì đó là dấu hiệu cần thu hồi ngay.
+Vào **Tích hợp > Token API** trong dashboard (nhóm Việc). Danh sách hiện tên, 12 ký tự đầu, phạm vi, và **lần dùng cuối** - nếu thấy một token bạn không nhớ đang được dùng đều đặn thì đó là dấu hiệu cần thu hồi ngay.
 
 Bấm **Thu hồi** là token chết lập tức, máy nào đang dùng nó mất kết nối ngay và không hoàn tác được.
 
@@ -171,7 +171,7 @@ Vài điều đáng biết về cách Vanhanh giữ token:
 
 **"Chưa nối tới Vanhanh nào"** - chạy `vanhanh login <địa-chỉ>` trước.
 
-**Báo 401 hoặc "token không hợp lệ"** - token sai, hoặc đã bị thu hồi. Tạo cái mới ở Tài khoản > Token API rồi `vanhanh login` lại.
+**Báo 401 hoặc "token không hợp lệ"** - token sai, hoặc đã bị thu hồi. Tạo cái mới ở Tích hợp > Token API rồi `vanhanh login` lại.
 
 **Báo 403 khi gõ `vanhanh task add` hay `vanhanh brain ls`** - token của bạn là loại **chỉ chat**. Tạo một token **toàn quyền** cho những lệnh này.
 

@@ -4,6 +4,134 @@
 
 VANHANH release history. Newest first.
 
+## [1.25.0] - 2026-11-09
+### Added
+- **Every chat in the history column has a ⋯ button** instead of four separate icons. The menu: Pin to top, Move to project, Rename (in place), Share link, Export as .md, Mark as unread, Archive and Delete. Right-click, or a long press on a phone, opens it too.
+- **Archive a chat:** it leaves the list but keeps every message; Vanhanh still remembers it and search still finds it. "Archived" at the bottom of the column lists them, and a new message brings one back.
+- **Choose which brain is the default.** Tap the star on a brain in the picker. The old default then becomes an ordinary brain and can be deleted (to the trash for 30 days).
+- **Deleting a brain says first** how many loops and reminders stop with it and which bots answer from it.
+- **Connecting GitHub checks for git and installs it when missing**, before the sign-in step. If it cannot, it shows the command to run by hand, Try again and Skip.
+### Fixed
+- **Notice times follow the timezone in Settings**, not the server clock (UTC on a VPS).
+- **Workflow steps on a Claude agent get every Vanhanh connection**, no more "missing tool" for Gmail, Sheets, Zalo or other MCPs.
+- **Chatbot page, Conversations shows only the open brain's chats**, counts included.
+- **git installed while Vanhanh runs is found right away**, no restart needed.
+- **The install button in the left menu foot no longer overflows** on touch tablets and laptops.
+### Improved
+- **Changing the password asks for the new one twice**, and saves only when they match.
+- **The graph screen and MCP tool lists no longer freeze the app every few minutes.**
+- **Delete asks inside the menu**, suggesting Archive if you only want it out of the way.
+- **No more "Show more":** scrolling to the end loads the next page.
+- **Tidier chat rows:** a pinned chat has a small pin before its title.
+
+## [1.24.0] - 2026-11-09
+### Improved
+- **A tidier Account page.** The page header is gone, the Account and Security tabs sit right at the top.
+- **CLI API tokens moved to the Integrations page** (Work group, formerly Webhooks), tab API token. Both are doors for another program to call Vanhanh, so they now live together. Existing tokens keep working.
+
+## [1.23.0] - 2026-11-09
+### Added
+- **File editors save by themselves, like Google Docs.** About a second after you stop typing the file is saved, and the Save button shows "Saving…" then "Saved". Closing, switching files, reloading or a stray Back swipe no longer loses typed text.
+- **Text survives a lost connection.** Unsaved text is kept in the browser and restored the next time the file opens.
+- **A dictation mic in the .md and .txt editors.** Press, speak, and the words land at the cursor, rewritten in context, like the mic in the chat box.
+- **Export and upload a whole brain as one .zip file:** each row of the brain picker has an Export button. The file carries notes, images, agents, skills, workflows and memory, and leaves out tokens, keys, raw chats and git history. "Upload a brain (.zip)" always makes a new brain and never overwrites one. Plugins, loops and reminders that come with the file arrive switched off; turn them on where they live if you want them. There is no fixed size limit: the server takes what its free disk can hold, up to a million files. Packing and unpacking run in the background with progress, and the upload goes in 32MB pieces, so a large brain still gets through Cloudflare Tunnel.
+- **Rename and delete right on each row of the brain picker**, with New brain, Upload a brain and Open an outside folder at the bottom. The four separate buttons beside the picker in the top bar moved into it.
+### Fixed
+- **Text blocks (such as an email draft's TEXT block) wrap** instead of running off to the right. While editing, a sideways touchpad swipe no longer sends the browser Back.
+### Improved
+- **Start-up screen:** opening Vanhanh shows the logo and "Starting Vanhanh…" until the first page has its data. Right after an update or a restart it also says the first open can take a little longer.
+- **Every screen that waits for data uses the Partners page's loading look:** a small spinner with "Loading", or a centered one for a whole page. A page still loading no longer says "in development" by mistake.
+- **The node and link counts in the top bar show only on the neural graph screen**, so other pages are tidier.
+- **The brain picker shows each brain's node and link counts**, as its graph counts them. They are counted only when the picker opens, so page load is not slowed.
+- **The Partners and Teams pages show "Loading…"** where a list or a conversation has not arrived yet, instead of an empty space that looked frozen.
+- **A team opens with its Info tab showing** in the side panel on a wide screen. Close the panel and Vanhanh remembers it next time.
+- **Team search, settings and close buttons look cleaner:** square, borderless, in the same style as the tabs beside them.
+- **The team list loads about 2.5 times faster**, and opening a team takes the same time whether it holds a hundred or tens of thousands of messages.
+
+## [1.22.0] - 2026-11-09
+### Improved
+- **The app opens noticeably faster.** The ~110 interface files loaded at startup now travel as one bundle. With 150 ms of network delay the Partners list shows after about 2 seconds instead of nearly 5.
+- **No stall on the first page after a restart or an update.** Minified files are kept on disk; only files that just changed are minified again.
+- **The Partners page no longer waits in a queue.** The reads for the list, the Resonance status and background work run off the main loop and stop holding up other requests.
+### Fixed
+- **ChatGPT (Codex) keeps its tools when a chat resumes after a few idle minutes.** Calendar, Zalo and Drive work on the next turn.
+- **On Windows, Codex background work at the "Can write" level writes files again.**
+- **Memories no longer break or lose their details after a chat turn.** A memory with a colon in its description keeps its type, description and tags. A memory already broken heals when edited in the app.
+- **Ollama Local runs Team jobs and background work.** No more "engine is not ready" when Ollama at home has no key.
+- **Behind Caddy (Hostinger VPS) the Facebook sign-in button is no longer locked.**
+- **The CapCut card signs in.**
+- **GitHub in chat uses the saved check commands** and understands apps in a subfolder.
+- **Opening a chat on the Partners page no longer says "taking too long" by mistake.** No error while the page is reconnecting. A Vanhanh Core open that hangs shows the error with Retry, and Retry really loads again.
+- **Background work on ChatGPT (Codex) that was refused file writes now says it is an environment problem**, with what to change, instead of sitting in "waiting for your answer".
+- **Memories written by background work no longer get the source of a chat** that happened to be open at the same time.
+
+## [1.21.0] - 2026-11-09
+### Added
+- **Personal Zalo bots show "typing..." in groups.** It starts only after the bot has decided to answer (it was called, or the judge chose to speak up) and lasts until the reply is sent, so a group no longer sits in silence for 20-30 seconds. A message the bot leaves alone shows nothing.
+- **An on/off switch in each bot's settings on the Chatbot page**, on by default.
+### Fixed
+- **Zalo's Import old messages button actually imports.** Any chat with even one message in the Inbox used to be skipped, so on an account already recording conversations the import added almost nothing. A chat that has messages now gets the ones older than its first message, placed above it in time order.
+- Imported old messages do not land at the bottom of an open chat, the bot does not take them for new messages, and groups still keep only their latest messages.
+- **Private-chat "typing..." no longer goes quiet for an hour.** One chat that Zalo refused, or an MCP restart, used to switch it off in every chat of the account for an hour. Now only that turn loses it, and it lasts until the message has gone out.
+### Improved
+- **Opening the neural graph no longer freezes the whole app.** The graph's file watcher is built on its own thread, so a brain with many folders no longer makes everything else wait up to 2 seconds.
+- **Every outgoing connection shares one set of security certificates**, loaded once at start-up. Before, each outgoing call (Telegram, Zalo, models...) loaded the whole set again, once freezing the app for almost 2 seconds.
+- **Reading the personal Zalo history runs in the background.** Looking for missed messages in the history file no longer blocks anything else.
+## [1.20.1] - 2026-11-09
+### Improved
+- Third-party docs cleanup.
+
+## [1.20.0] - 2026-11-09
+### Added
+- **The chat shows the engine's task plan as a checklist.** When Claude Code, ChatGPT (Codex) or Grok Build plans a multi-step job, a "Plan 2/5" card appears above the answer: done items ticked and struck through, the running one in bold, the rest open. The activity line under the chat says which step it is on. The card stays after a reload and costs no extra tokens.
+- **The seven API-key brains show the Plan card too.** OpenRouter, OpenAI, Anthropic API, Gemini, Groq, DeepSeek and Ollama get a `vanhanh_plan` tool: for a job of three steps or more the model lists the steps and ticks each one off. It costs about 200 tokens a request; switch it off in the composer **+** menu, **Plan long jobs (API brains)**. Only the owner's chat gets it, not customer bots or background jobs.
+- **The Jobs tab on the Partners page shows what the assistant is doing in the chat**: a "Working in the chat" card with the step count and the plan, gone when the turn ends.
+- **The Jobs tab lists the workflow runs the assistant took part in.** A running one says which step and whose, one waiting for review sits under Needs you, a failed one is marked failed, and Open goes to that workflow. The source filter gains "Workflows".
+- **Each chat in the left column carries a small folder tag with its project name.** The tag hides while the list is filtered to that one project.
+- **The engine tag names the brain:** "Claude", "Codex", "Grok", "OpenRouter" and so on instead of internal ids such as "cli".
+### Improved
+- **Answers stretch across the whole chat** instead of leaving a wide gap on the right. On the Partners page on an iPad an answer grows from about 780px to over 1,000px; on a very wide monitor it stops at about 120 letters per line. The Chat and Teams pages follow the same rule.
+### Fixed
+- **The status dot on an assistant's card agrees with its Jobs tab.** A job you pressed Done on or deleted no longer lights the green or red dot.
+- **A workflow run cut off mid-way** (the server stopped during it) no longer stays In progress for ever.
+- **Reinstalling a Store agent brings it back on the Partners page.** Renaming or editing a pack's agent, uninstalling and installing again used to skip it. Your copy is kept and the pack's copy is added under a new name, shown on screen.
+- **Deleting a pack's agents, workflows or skills in the app makes the Store stop saying "Installed"**, and the card offers Install again. Uninstalling a pack also cleans up a turned-off skill and the copy Claude Code loads.
+
+## [1.19.0] - 2026-11-09
+### Security
+- **To do after updating:** open each chatbot's Agent, add the price lists, policies and guides the bot should read, then press **Try** to make sure it still answers well. A bot with no listed file answers from its Agent's role only.
+- **A bot reads only the documents in its Agent's Documents section**, plus the `rieng-theo-nhom/` folder and the Google files linked from the Agent. Before, every note of the brain counted as a document, so a bot could quote the owner's private notes to customers.
+- **New Security tab on the Account page.** See 2FA, the devices signed in (IP, browser, last activity) and the history of successful and failed sign-ins and every account change. Sign out one device or all others without changing the password.
+- **Instant alerts on account changes.** Username, password or 2FA changes and sign-ins from a new network reach the owner's bell and Telegram right away.
+- **If the settings file is edited outside VANHANH**, every device is signed out and a red warning shows. The first start on this version only records the current account and signs no one out.
+- **The AI assistant can no longer touch secret files** (settings, encryption key, sessions) at any permission level.
+- **Removing 2FA when locked out:** add `VANHANH_RESET_2FA=1` and redeploy. Each value works once.
+- **Hostinger: port 7777 closes to the Internet once an HTTPS domain is set**, leaving only the encrypted way in.
+- **A leaked admin link stays out of Google.** Every VANHANH page now carries `noindex`, the login screen and share links included.
+- **AI bots cannot read VANHANH.** GPTBot, ClaudeBot, PerplexityBot, SEO tools and scanners such as Shodan and Censys get a 403. VANHANH also serves a `/robots.txt` that forbids them.
+- Real browsers, link previews in Zalo or Telegram, the Meta, Threads and Zalo OA webhooks, `/s/` share links and Vanhanh Gate work as before. To turn the blocking off, set `VANHANH_BLOCK_BOTS=0`.
+- **Account security files stay out of git and Docker images** when you run `git add -A` or a local `docker build`.
+### Fixed
+- **Bot document lookups, auto learning and reminders no longer freeze the app for seconds.** They run on worker threads and no longer walk the whole brain.
+- **The Partners page no longer waits on the Resonance data lock**, and the connection catalog is no longer re-checked on disk at every call.
+
+## [1.18.0] - 2026-11-09
+### Fixed
+- **A failure that needs you is now an urgent notice.** It used to be "important", and the default notice filter sends only urgent ones to Telegram, so on a fresh install a failed job never reached your phone. You can still turn the Incidents group down in Notifications.
+- **A failed job now always reaches the owner's Telegram.** A job made in a web chat that fails and needs you used to report only to that chat; it now also sends one message to your Telegram, so you hear about it away from the computer.
+- **A Team job that is blocked, fails or waits for your approval** used to stay in the bell only; it now also goes to your Telegram.
+### Improved
+- **No more overlapping text in the 3D Office.** Each desk's name sits on that desk, never wider than it, and a long name wraps onto two lines. Where two cards meet on screen, the more important one stays (department, running job, failed job) and the other hides until you zoom in.
+- The **Needs you** section of the Office page says whether failure alerts reach Telegram. With Telegram not connected it says the alerts stay in the bell, with a button to Settings.
+
+## [1.17.0] - 2026-11-09
+### Added
+- **Meeting room in the 3D office**: while a team leader splits a job or sums it up, the whole team walks into the meeting room and sits round the table, then walks back to their desks.
+- **Talk bubbles** over an assistant speaking in a team: splitting the work, talking, working for the team, helping.
+- **News ticker** under the 3D office: who just gave what to whom, which run just passed or failed, newest first.
+- **AI cost of the day** joins the numbers at the top, with the number of AI calls. It covers the whole server; engines on a monthly plan count 0.
+- **Each department sign** now adds its assistants, runs and failures of the day, and each department has **glass walls** on three sides, the front left open.
+
 ## [1.16.0] - 2026-11-09
 ### Added
 - **Office: see assistants hand work to each other.** A new **Handoffs this day** list shows who gave what to whom, when, and whether it is in progress, done or failed. It reads team leaders assigning members, members asking each other for help, board cards given to an assistant, and workflow steps passing work along.

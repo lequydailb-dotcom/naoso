@@ -72,6 +72,25 @@ check("handoff status shown", hh.includes("office.hs_running") && hh.includes("o
 check("a day with no handoff says so", O.handoffsHtml(data).includes("office.hand_empty"));
 check("handoffs sit on the page in both views", O.pageHtml(hd, false).includes("of-hand") && O.pageHtml(hd, true).includes("of-hand"));
 
+// AI cost cell, news ticker, department sign
+check("AI cost shows dollars and calls", O.kpiHtml(Object.assign({}, data, { ai: { cost: 0.4567, turns: 12 } })).includes("$0.46")
+  && O.kpiHtml(Object.assign({}, data, { ai: { cost: 0.4567, turns: 12 } })).includes("office.k_ai"));
+check("AI cost unknown says so, no invented number", O.kpiHtml(data).includes("office.k_ai_none") && O.kpiHtml(data).includes("[?]"));
+const tk = O.tickerItems(hd);
+check("ticker: newest first, handoffs and runs together", tk.length === 3 && tk[0].ts === 2 && tk.some(x => x.tone === "bad"));
+check("department sign counts assistants and today's runs and fails",
+  O.zoneSub(data, data.depts[0]).includes("office.zone_sub") && O.zoneSub(data, data.depts[0]).includes("office.zone_fail")
+  && !O.zoneSub(data, data.depts[1]).includes("office.zone_fail"));
+
+// does a failure reach Telegram: a calm line when it does, a warning with a way to fix it when not
+check("alert: Telegram ready is a calm line, no button", O.alertHtml({ alert: { tg: "ok" } }).includes("office.tg_ok")
+  && !O.alertHtml({ alert: { tg: "ok" } }).includes("ofTg"));
+check("alert: Telegram off warns and offers Channels", O.alertHtml({ alert: { tg: "off" } }).includes("office.tg_off")
+  && O.alertHtml({ alert: { tg: "off" } }).includes("ofTg"));
+check("alert: unknown or missing state draws nothing", O.alertHtml({}) === "" && O.alertHtml({ alert: { tg: "x" } }) === "");
+check("alert: shown under Needs you even when nothing is broken",
+  O.issuesHtml({ issues: [], alert: { tg: "off" } }).includes("office.tg_off"));
+
 // every office.* and page.office.* key used in the file exists in both languages
 const src = fs.readFileSync(path.join(__dirname, "../../dashboard/office.js"), "utf8");
 const vi = JSON.parse(fs.readFileSync(path.join(__dirname, "../../dashboard/i18n/vi.json"), "utf8"));

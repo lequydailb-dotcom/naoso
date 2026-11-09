@@ -1209,6 +1209,12 @@ def claude_engine(system_prompt=None, cwd=None, tag="chat", allowed_tools=None, 
         plan_limits.cai_vao_claude_sdk()
     except Exception:  # noqa: BLE001 - a meter must never stop a turn
         pass
+    try:
+        # every Claude turn refuses tool calls on Vanhanh's secret files (secret_guard.py).
+        import claude_secret_hook
+        claude_secret_hook.install()
+    except Exception as e:  # noqa: BLE001 - the guard must never stop a turn
+        print(f"[secret guard] Claude hook not installed: {type(e).__name__}: {e}", file=sys.stderr)
     eng = ClaudeSDK(system_prompt=system_prompt, cwd=cwd, tag=tag,
                     allowed_tools=allowed_tools, model=model)
     # Every run (chat, loops, reminders, bots) skips the repo CLAUDE.md and compacts at ~180k;
@@ -1666,6 +1672,32 @@ def _codex_home() -> Path:
     return Path(home) if home else _home_dir() / ".codex"
 
 
+def _windows() -> bool:
+    return os.name == "nt"
+
+
+def codex_windows_sandbox_config(sandbox: Optional[str], codex_home=None) -> list:
+    """`-c` overrides that make `--sandbox` mean what it says on Windows.
+
+    On Windows, with no `[windows] sandbox` in config.toml, Codex quietly downgrades `workspace-write` to `read-only`:
+    every background job at `auto` could read but not write, and stopped as if waiting for the owner. Vanhanh asks for the
+    unelevated Windows sandbox (no admin prompt) whenever it sets a sandbox. A choice already made in config.toml of
+    that Codex home (for example `elevated`) is kept: an override would beat it. Nothing on other systems, nothing when
+    no sandbox is set (full access)."""
+    if not sandbox or not _windows():
+        return []
+    try:
+        import tomllib
+        cfg = Path(codex_home or _codex_home()) / "config.toml"
+        if cfg.is_file():
+            with open(cfg, "rb") as f:
+                if ((tomllib.load(f) or {}).get("windows") or {}).get("sandbox"):
+                    return []
+    except Exception:  # noqa: BLE001 - an unreadable config: still ask for the sandbox that makes writes work
+        pass
+    return ['windows.sandbox="unelevated"']
+
+
 # Lỗi trên Windows: mọi lượt chat ChatGPT chết với "Codex lỗi (exit 1):
 # WARNING: proceeding, even though we could not create PATH aliases: Could not find home
 # directory". Codex tự tìm home bằng `dirs::home_dir()`: trên Windows hàm đó hỏi thẳng hồ sơ người
@@ -1909,6 +1941,8 @@ class CodexCLI:
             args += ["-p", self.profile]
         for c in (self.extra_config or []):
             args += ["-c", c]
+        for c in codex_windows_sandbox_config(self.sandbox, self.codex_home):
+            args += ["-c", c]
         if self.hub_turn:
             # Built per query, inside the turn: the same CodexCLI serves many turns (and several
             # people in one group chat), so the key can never live in extra_config.
@@ -2119,6 +2153,12 @@ class CodexCLI:
                     self.session_id = thread_id
                     # Phát ngay để caller lưu trước cả khi lượt bị ngắt giữa chừng.
                     yield {"type": "session", "session_id": thread_id}
+            elif t in ("item.started", "item.updated", "item.completed") \
+                    and (ev.get("item") or {}).get("type") == "todo_list":
+                # Codex's plan for this turn (update_plan). Each update carries the whole list; the chat draws it as a
+                # checklist (turn_plan.py). It used to fall through every branch and be dropped.
+                it = ev.get("item") or {}
+                yield {"type": "tool_call", "name": "todo_list", "item": it}
             elif t == "item.started":
                 # Codex báo lúc một bước BẮT ĐẦU (đo với Codex 0.160: lệnh `ping` 5 giây có
                 # item.started ở giây 8,8, item.completed ở giây 14). Trước đây Vanhanh chỉ nghe
