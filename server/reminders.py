@@ -371,6 +371,7 @@ class RemindersFeature:
         # Nhắc mode task/script đang chạy NỀN (id) + các task asyncio đang sống, để tick sau
         # không bắn lại cùng một nhắc và để tắt máy chủ đợi được chúng.
         self._dang_chay: set = set()
+        self._bat_dau: dict = {}   # id -> when its current run started (the Office page shows it live)
         self._viec_nen: set = set()
         # Ids the owner stopped mid-run (POST /reminders/stop): _fire ends that run quietly.
         self._stopped: set = set()
@@ -695,6 +696,11 @@ class RemindersFeature:
         self._stopped.add(rid)
         return {"ok": True, "cancelled": cancel_all(f"reminder:{rid}")}
 
+    def running_now(self, brain: str) -> dict:
+        """Reminders of this brain running right now: {id: started_at}."""
+        ids = {str(r.get("id")) for r in self._load(brain).get("reminders", [])}
+        return {rid: float(self._bat_dau.get(rid) or 0) for rid in list(self._dang_chay) if str(rid) in ids}
+
     def pending_views(self, brain: str) -> list:
         """View các nhắc ĐANG CHỜ của 1 brain, sắp theo giờ tới. Dùng cho trang Việc gộp mọi
         brain (/viec/all) - tránh main.py thò vào _load/_view riêng tư."""
@@ -790,6 +796,7 @@ class RemindersFeature:
     def _chay_nen(self, brain: str, rem: dict) -> None:
         rid = rem.get("id")
         self._dang_chay.add(rid)
+        self._bat_dau[rid] = time.time()
 
         async def _run():
             try:
@@ -798,6 +805,7 @@ class RemindersFeature:
                 print(f"[reminders] nhắc {rid} chạy nền lỗi: {type(e).__name__}: {e}", file=sys.stderr)
             finally:
                 self._dang_chay.discard(rid)
+                self._bat_dau.pop(rid, None)
 
         t = asyncio.get_running_loop().create_task(_run())
         self._viec_nen.add(t)

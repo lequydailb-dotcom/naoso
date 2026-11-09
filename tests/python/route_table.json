@@ -8120,6 +8120,26 @@
  {
   "order": 815,
   "type": "APIRoute",
+  "path": "/office",
+  "name": "office_get",
+  "methods": [
+   "GET"
+  ],
+  "trong": null
+ },
+ {
+  "order": 816,
+  "type": "APIRoute",
+  "path": "/office/live",
+  "name": "office_live",
+  "methods": [
+   "GET"
+  ],
+  "trong": null
+ },
+ {
+  "order": 817,
+  "type": "APIRoute",
   "path": "/batch",
   "name": "batch_reads",
   "methods": [

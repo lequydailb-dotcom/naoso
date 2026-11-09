@@ -207,6 +207,7 @@ class LoopFeature:
         self.lock = asyncio.Lock()           # THỰC THI TUẦN TỰ: 1 vòng/lúc trên toàn hệ
         self._viec_nen: set = set()   # vòng loop đang chạy nền (xem _chay_nen)
         self._running: Optional[Tuple[str, str]] = None   # (brain_root_resolved, slug) đang chạy
+        self._running_since = 0.0   # when that loop iteration started (the Office page shows it live)
         self._migrated = False
         self.router = self._make_router()
 
@@ -931,10 +932,19 @@ class LoopFeature:
             if not loop:
                 return {"ok": False, "error": localefmt.chu(f"Không tìm thấy loop '{slug}'", f"Loop '{slug}' not found")}
             self._running = (str(Path(self.deps.brain_root(brain)).resolve()), slug)
+            self._running_since = time.time()
             try:
                 return await self._run_cycle_inner(brain, slug, loop, reason)
             finally:
                 self._running = None
+                self._running_since = 0.0
+
+    def running_now(self, brain: str) -> dict:
+        """The loop of this brain running right now: {"slug", "since"}, or {} when none is."""
+        r = self._running
+        if not r or r[0] != str(Path(self.deps.brain_root(brain)).resolve()):
+            return {}
+        return {"slug": r[1], "since": self._running_since}
 
     async def _run_cycle_inner(self, brain: str, slug: str, loop: dict, reason: str) -> dict:
         vault_root = self.deps.brain_root(brain)

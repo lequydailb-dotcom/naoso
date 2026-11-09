@@ -15,7 +15,7 @@
 
   // Cùng danh sách với RAIL_ITEMS trong console.js và PAGES trong plugin vanhanh-ui.
   var PAGES = ["home", "chat", "settings", "workspace", "teams", "skills", "chatbots", "conversations", "files",
-               "terminal", "coding", "tasks", "webhooks", "learn", "models", "channels", "mcp", "plugins",
+               "terminal", "coding", "tasks", "webhooks", "learn", "office", "models", "channels", "mcp", "plugins",
                "packs", "logs", "account", "usage", "logins", "pet", "share"];
   // Nhóm trên thanh bên (accordion). Cùng danh sách với RAIL_GROUPS trong console.js và GROUPS
   // trong plugin vanhanh-ui. Mở một NHÓM khác với mở một TRANG: người dùng hay muốn bung phần

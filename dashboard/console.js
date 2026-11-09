@@ -43,6 +43,8 @@
     kanban: "square-kanban",
     // the Tasks page (tasks.js) replaces Kanban and Scheduled under Work.
     tasks: "list-checks",
+    // the Office page (office.js): each department's digital staff and what is broken.
+    office: "gauge",
     terminal: "terminal",
     // </> chứ không phải "một file mã": trang này là chỗ SAI VIỆC cho engine trên một thư
     // mục, không phải chỗ mở một file. Ký hiệu </> ai nhìn cũng hiểu ngay là lập trình.
@@ -109,7 +111,7 @@
   // tiếng Việt khi thiếu key, nên một bản dịch làm dở không bao giờ để lại key trần trên rail.
   const RAIL_ITEMS = [
     "home", "chat", "settings", "workspace", "teams", "skills", "chatbots", "conversations", "files",
-    "terminal", "coding", "tasks", "webhooks", "learn", "models", "channels", "mcp", "plugins",
+    "terminal", "coding", "tasks", "webhooks", "learn", "office", "models", "channels", "mcp", "plugins",
     "packs", "logs", "account", "usage", "logins", "pet", "share",
   ].map(id => ({ id, icon: ICON[id], get label() { return t(`page.${id}.label`); },
     // The sidebar may carry its own shorter name (rail.lbl.<id>); page titles keep page.<id>.label.
@@ -131,7 +133,7 @@
     // can code, so a separate Coding area is redundant. Terminal lives here; Coding stays a real
     // page (old links, voice commands) but is hidden from the rail, see RAIL_AN.
     { id: "nang_luc", get label() { return t("nav.group.nang_luc"); },    icon: GICON.nang_luc,    ids: ["workspace", "teams", "conversations", "skills"] },
-    { id: "viec", get label() { return t("nav.group.viec"); },        icon: GICON.viec,        ids: ["tasks"] },
+    { id: "viec", get label() { return t("nav.group.viec"); },        icon: GICON.viec,        ids: ["tasks", "office"] },
     { id: "ket_noi", get label() { return t("nav.group.ket_noi"); },     icon: GICON.ket_noi,     ids: ["mcp", "packs", "channels"] },
     // The pages a beginner rarely opens: they sit in the account menu (RAIL_MENU_ADV below).
     { id: "nang_cao", get label() { return t("nav.group.nang_cao"); },    icon: GICON.nang_cao,    ids: ["terminal", "plugins", "webhooks", "logins", "share"] },
@@ -165,7 +167,7 @@
   // advanced ones under their own small label there.
   // The brain map leads the column (owner 03/11/2026: the brain is what matters, top left).
   const RAIL_SECTIONS = [
-    { ids: ["home", "chat", "tasks"] },
+    { ids: ["home", "chat", "tasks", "office"] },
     { lbl: "nav.group.nang_luc", ids: ["workspace", "teams", "conversations", "skills"] },
     { lbl: "nav.sec.kien_thuc", ids: ["learn", "files"] },
     { lbl: "nav.group.ket_noi", ids: ["mcp", "channels", "packs"] },
@@ -207,7 +209,7 @@
   //
   // `page.<id>.title` cho phép tiêu đề trang KHÁC nhãn trên rail khi cần (rail chật nên
   // "Việc", trang rộng nên "Việc (Kanban)"); thiếu key đó thì tự rơi về `page.<id>.label`.
-  const VIEW_META = Object.fromEntries(["home", "chat", "settings", "workspace", "teams", "skills", "files", "terminal", "coding", "tasks", "webhooks", "chatbots", "conversations", "learn", "models", "channels", "mcp", "plugins", "packs", "logs", "account", "usage", "pet", "share", "logins"].map(id => [id, {
+  const VIEW_META = Object.fromEntries(["home", "chat", "settings", "workspace", "teams", "skills", "files", "terminal", "coding", "tasks", "webhooks", "chatbots", "conversations", "learn", "office", "models", "channels", "mcp", "plugins", "packs", "logs", "account", "usage", "pet", "share", "logins"].map(id => [id, {
     icon: VIEW_ICON[id],
     get label() {
       const rieng = t(`page.${id}.title`);
@@ -567,7 +569,7 @@
   const NHOM_TRANG = {
     workspace: ["congviec"], teams: ["congviec", "teams"], packs: ["packs"], plugins: ["packs"], mcp: ["packs"],
     conversations: ["hoithoai"], chatbots: ["hoithoai"], usage: ["usage"], webhooks: ["webhooks"],
-    tasks: ["nhiemvu"],
+    tasks: ["nhiemvu"], office: ["vanphong"],
   };
   // Performance: pointing at (or touching) a page in the side rail starts loading that page's code, so by the
   // time the click lands it is usually there. Costs nothing on a group that is already loaded.
@@ -673,6 +675,16 @@
       }
       _pageLeave = () => { try { window.VanhanhTasks.unmount(); } catch (e) {} };
       return window.VanhanhTasks.mount(el);
+    }
+    if (id === "office") {
+      // the Office page lives in office.js (lazy group "vanphong").
+      if (!window.VanhanhOffice) {
+        el.innerHTML = placeholder("office", window.t("cs.mod_not_ready", { ten: "office.js" }));
+        return;
+      }
+      el.innerHTML = `<div class="cview-section"><div id="ofSection"></div></div>`;
+      _pageLeave = () => { try { window.VanhanhOffice.unmount(); } catch (e) {} };
+      return window.VanhanhOffice.mount(el.querySelector("#ofSection"), { current: () => fbrain() });
     }
     if (id === "webhooks") return renderWebhooks(el);
     if (id === "logins") {

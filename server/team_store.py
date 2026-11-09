@@ -755,6 +755,19 @@ class TeamStore:
             return [self._step(r) for r in c.execute("SELECT * FROM team_steps WHERE task_id=? ORDER BY seq",
                                                      (task_id,)).fetchall()]
 
+    def steps_between(self, team_id: str, since: float, until: float, limit: int = 400) -> list:
+        """Steps of one team created in [since, until), oldest first (the Office page draws who handed what to whom)."""
+        with closing(self._conn()) as c:
+            return [self._step(r) for r in c.execute(
+                "SELECT * FROM team_steps WHERE team_id=? AND created_at>=? AND created_at<? ORDER BY created_at, seq LIMIT ?",
+                (team_id, float(since), float(until), max(1, min(int(limit), 2000)))).fetchall()]
+
+    def steps_running(self, team_id: str) -> list:
+        """Steps of one team running at this moment."""
+        with closing(self._conn()) as c:
+            return [self._step(r) for r in c.execute(
+                "SELECT * FROM team_steps WHERE team_id=? AND status='running' ORDER BY created_at", (team_id,)).fetchall()]
+
     def step(self, step_id: str) -> Optional[dict]:
         with closing(self._conn()) as c:
             r = c.execute("SELECT * FROM team_steps WHERE step_id=?", (step_id,)).fetchone()

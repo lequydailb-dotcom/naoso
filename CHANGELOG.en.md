@@ -4,6 +4,34 @@
 
 VANHANH release history. Newest first.
 
+## [1.16.0] - 2026-11-09
+### Added
+- **Office: see assistants hand work to each other.** A new **Handoffs this day** list shows who gave what to whom, when, and whether it is in progress, done or failed. It reads team leaders assigning members, members asking each other for help, board cards given to an assistant, and workflow steps passing work along.
+- **In 3D** each handoff is a sheet flying along a dashed route from the giver's desk to the receiver's, with the job's name; the receiver starts typing. Work you hand out leaves from the **You** figure at the front of the office. **Replay this day** plays the handoffs too, at their real times.
+- An assistant working on a team step or a board card lights its desk and shows in **Running right now**. New work handed out reloads the page at once.
+
+## [1.15.0] - 2026-11-09
+### Added
+- **3D office**: press **3D view** on the Office page. One area per department, one desk per assistant and per automated job, each lamp in the job's real state.
+- **Tap a desk** to see that job: runs passed, last run, why it stopped and what to do.
+- **Running right now**: a strip at the top of the Office page shows what runs at this second (loops, schedules, board tasks, background commands), since when and for how long. It asks the system every 5 seconds and the clock counts each second.
+- In 3D a running desk turns its **lamp blue**, shows a **Running** tag and its worker keeps typing; when the run ends the lamp shows the result and a Pass or Fail mark appears at once.
+- **Replay a day**: pick a day and press **Replay this day**; each run appears in order with a Pass or Fail mark over its desk.
+- Workers move only when the logs show a new run. The 3D part loads only when you ask, and a device without 3D keeps the cards.
+
+## [1.14.0] - 2026-11-09
+### Added
+- **Office page** (sidebar, under Tasks): one card per department. Green runs right, blinking red is broken or paused itself, grey means nobody.
+- **Needs you list**: jobs that paused, failed, ran late, missed a target or wait for review, with the reason and what to do.
+- **Real numbers from the logs**: runs and failures in your time zone, refreshed every 30 seconds; pick a past day to look back.
+- **Daily targets** live in `Vanhanh/office.json`. The page only reads, and hides tokens and server paths.
+
+## [1.13.1] - 2026-11-08
+### Fixed
+- **Zalo messages after a short connection drop** now reach the inbox, not only the chat history.
+- **One Zalo message that fails to process** no longer takes the messages that arrived with it down too.
+- **Zalo connection errors are written to the log** instead of being ignored, so a lost message leaves a trace.
+
 ## [1.13.0] - 2026-11-08
 ### Added
 - **The ChatGPT plan hears your voice**, at no cost beyond the plan. The ear follows the model in use, nothing to set.
