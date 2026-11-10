@@ -2,13 +2,13 @@
 
 <img src="dashboard/logo.svg" width="88" alt="VANHANH logo">
 
-# VANHANH
+# NAOSO
 
 ### Your self-hosted AI agent with a swappable brain, and a Second Brain that gets smarter every day.
 
 Run it on your laptop or a small VPS. Talk to it by voice. Plug in Claude, ChatGPT, Grok, Gemini or any of 14 providers, keep every tool when you switch, and let it work in the background while you sleep.
 
-[![Last commit](https://img.shields.io/github/last-commit/lequydailb-dotcom/vanhanh?color=f97316)](https://github.com/lequydailb-dotcom/vanhanh/commits/main)
+[![Last commit](https://img.shields.io/github/last-commit/lequydailb-dotcom/naoso?color=f97316)](https://github.com/lequydailb-dotcom/naoso/commits/main)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white)](requirements.txt)
 [![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ed?logo=docker&logoColor=white)](https://github.com/lequydailb-dotcom/vanhanh/pkgs/container/vanhanh)
 [![MCP](https://img.shields.io/badge/tools-Model%20Context%20Protocol-8b5cf6)](https://modelcontextprotocol.io)
@@ -46,9 +46,9 @@ Run it on your laptop or a small VPS. Talk to it by voice. Plug in Claude, ChatG
 
 | Machine | One command installs everything |
 |---|---|
-| **Linux / macOS** | `git clone https://github.com/lequydailb-dotcom/vanhanh.git vanhanh && cd vanhanh && chmod +x install.sh && ./install.sh` |
-| **Windows** | `git clone https://github.com/lequydailb-dotcom/vanhanh.git vanhanh; cd vanhanh; powershell -ExecutionPolicy Bypass -File install.ps1` |
-| **Docker** | `curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml && docker compose up -d` |
+| **Linux / macOS** | `git clone https://github.com/lequydailb-dotcom/naoso.git vanhanh && cd vanhanh && chmod +x install.sh && ./install.sh` |
+| **Windows** | `git clone https://github.com/lequydailb-dotcom/naoso.git vanhanh; cd vanhanh; powershell -ExecutionPolicy Bypass -File install.ps1` |
+| **Docker** | `curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.yml && docker compose up -d` |
 
 Then open **http://localhost:7777**. The installer sets up Python, the four subscription CLI brains (`claude`, `codex`, `agy`, `grok`) and a `.env`, then starts the server. You sign in to each brain **on the Models page of the dashboard**, no more typing commands.
 
@@ -141,7 +141,7 @@ Pick the brain on the **Models** page and change it whenever you like. Vanhanh s
 Every brain can call your connected MCP servers, read and write the brain, run skills, queue Kanban work, and create agents, workflows, loops and reminders. The CLI engines additionally run **shell commands**, **fetch and search the web**, and **spawn parallel sub-agents**.
 
 > [!WARNING]
-> **A note before letting a subscription run background work.** Anthropic scopes Claude Pro/Max to **ordinary personal use** of Claude Code. Continuous background execution (loops, reminders, Kanban jobs, chatbots), running on a VPS, or several people sharing one account fall outside that scope, so there is a risk of the account **being locked**, although Vanhanh has no reported case so far. If it happens to you, please tell the developer through [Issues](https://github.com/lequydailb-dotcom/vanhanh/issues/new/choose). Vanhanh never reads your login token: it runs the real `claude` binary, but that does not make round-the-clock background use legitimate. To be safe, set Claude Code to run on an **API key** on the Models page, or point the **background-work model** at another provider. The same caution applies to the xAI plan. See `server/claude_auth.py`.
+> **A note before letting a subscription run background work.** Anthropic scopes Claude Pro/Max to **ordinary personal use** of Claude Code. Continuous background execution (loops, reminders, Kanban jobs, chatbots), running on a VPS, or several people sharing one account fall outside that scope, so there is a risk of the account **being locked**, although Vanhanh has no reported case so far. If it happens to you, please tell the developer through [Issues](https://github.com/lequydailb-dotcom/naoso/issues/new/choose). Vanhanh never reads your login token: it runs the real `claude` binary, but that does not make round-the-clock background use legitimate. To be safe, set Claude Code to run on an **API key** on the Models page, or point the **background-work model** at another provider. The same caution applies to the xAI plan. See `server/claude_auth.py`.
 
 ---
 
@@ -238,7 +238,7 @@ flowchart LR
 Hostinger VPS → **Docker Manager → Compose → URL** → paste the Hostinger file and press **Deploy**:
 
 ```
-https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.hostinger.yml
+https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.hostinger.yml
 ```
 
 The **Environment** box needs only three fields: `DOMAIN_NAME`, `VANHANH_ADMIN_USER`, `VANHANH_ADMIN_PASSWORD`, plus an optional `VANHANH_AUTO_UPDATE` (set it to `true` and Vanhanh updates itself daily).
@@ -266,7 +266,7 @@ Details and troubleshooting: [DEPLOY.en.md](DEPLOY.en.md).
 ```bash
 # Docker required (don't have it?  curl -fsSL https://get.docker.com | sh)
 mkdir vanhanh && cd vanhanh
-curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.yml
 
 docker compose run --rm vanhanh claude auth login --claudeai   # sign in to Claude once (optional)
 docker compose up -d                                          # pull the image and run
@@ -282,7 +282,7 @@ Remote access without a domain: `docker compose --profile tunnel up -d`, then `d
 <summary><b>Option 3: Linux or macOS, no Docker</b></summary>
 
 ```bash
-git clone https://github.com/lequydailb-dotcom/vanhanh.git vanhanh && cd vanhanh
+git clone https://github.com/lequydailb-dotcom/naoso.git vanhanh && cd vanhanh
 chmod +x install.sh && ./install.sh
 ```
 
@@ -296,7 +296,7 @@ The script installs Python, Node and the CLI brains, creates a venv, registers a
 <summary><b>Option 4: Windows (personal machine)</b></summary>
 
 ```powershell
-git clone https://github.com/lequydailb-dotcom/vanhanh.git vanhanh; cd vanhanh
+git clone https://github.com/lequydailb-dotcom/naoso.git vanhanh; cd vanhanh
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
@@ -451,13 +451,13 @@ Bug reports, ideas, translations and pull requests are all welcome, in English o
 |---|---|
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Setting up, running the tests (`python tests/run.py`), the code conventions |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How the pieces fit together, and a map of the server modules |
-| [Issue templates](https://github.com/lequydailb-dotcom/vanhanh/issues/new/choose) | Bug report, feature request, translation offer |
+| [Issue templates](https://github.com/lequydailb-dotcom/naoso/issues/new/choose) | Bug report, feature request, translation offer |
 
 Please follow the [Code of Conduct](CODE_OF_CONDUCT.md), and report security problems privately as described in [SECURITY.md](SECURITY.md).
 
 If Vanhanh is useful to you, a ⭐ on the repo helps other people find it.
 
-[![Star History Chart](https://api.star-history.com/svg?repos=lequydailb-dotcom/vanhanh&type=Date)](https://star-history.com/#lequydailb-dotcom/vanhanh&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=lequydailb-dotcom/naoso&type=Date)](https://star-history.com/#lequydailb-dotcom/naoso&Date)
 
 ---
 

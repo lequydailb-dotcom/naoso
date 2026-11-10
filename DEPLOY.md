@@ -17,7 +17,7 @@ VANHANH là một AI agent cá nhân + Second Brain. "Bộ não" của nó là *
 
 VPS Hostinger → **Docker Manager → Compose → URL** → dán link rồi **Deploy**:
 ```
-https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
+https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.yml
 ```
 Hostinger pull image + chạy. Mở app bằng `http://<ip-vps>:7777` (IP xem ở hPanel → VPS) → ra
 màn **tạo tài khoản admin**.
@@ -50,7 +50,7 @@ màn **tạo tài khoản admin**.
 Cần Docker. Chưa có? `curl -fsSL https://get.docker.com | sh`
 ```bash
 mkdir vanhanh && cd vanhanh
-curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.yml
 
 docker compose run --rm vanhanh claude auth login --claudeai   # ĐĂNG NHẬP CLAUDE 1 LẦN (link + code)
 docker compose up -d                                          # pull image GHCR + chạy
@@ -93,7 +93,7 @@ link riêng chạy HTTPS mà không cần mua tên miền. **Lưu ý (đã kiể
 1. Xem **hostname VPS** ở hPanel → VPS (vd `srv1234567.hstgr.cloud`).
 2. Docker Manager → Compose → URL:
    ```
-   https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.hostinger.yml
+   https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.hostinger.yml
    ```
 3. Ô **Environment** của mẫu mới chỉ còn 3 trường có ý nghĩa:
    - `DOMAIN_NAME`: đặt `vanhanh.<hostname-vps>.hstgr.cloud`
@@ -193,7 +193,7 @@ máy**:
 
 ```bash
 docker network create vanhanh-web
-curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.proxy.yml
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.proxy.yml
 docker compose -f docker-compose.proxy.yml -p vanhanh-proxy up -d
 ```
 
@@ -201,8 +201,8 @@ Rồi mỗi bản một **thư mục riêng**:
 
 ```bash
 mkdir -p ~/vanhanh-shop && cd ~/vanhanh-shop
-curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.multi.yml
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.multi.yml
 cat > .env <<'EOF'
 VANHANH_NAME=vanhanh-shop
 VANHANH_HOST_PORT=7777
@@ -270,7 +270,7 @@ Mở giao diện Vanhanh từ máy khác mà KHÔNG cần mở port / không c�
 ## Cách 2 - Cài trực tiếp lên Linux/macOS (không Docker)
 
 ```bash
-git clone https://github.com/lequydailb-dotcom/vanhanh.git vanhanh && cd vanhanh
+git clone https://github.com/lequydailb-dotcom/naoso.git vanhanh && cd vanhanh
 chmod +x install.sh && ./install.sh
 ```
 
@@ -313,7 +313,7 @@ Dừng bằng `stop-vanhanh.bat`. Mở http://localhost:7777
 >   Máy nào còn thiếu nút là đang chạy bằng file compose cũ (trước đó Watchtower nằm trong
 >   `profiles: ["update"]` nên `docker compose up -d` không bật nó). Lấy bản mới rồi dựng lại:
 >   ```bash
->   curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
+>   curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.yml
 >   docker compose up -d --pull always
 >   ```
 >   Chưa muốn đổi file compose thì bật riêng cũng được: `docker compose --profile update up -d`.
@@ -334,7 +334,7 @@ Dừng bằng `stop-vanhanh.bat`. Mở http://localhost:7777
 >   cp compose.yml compose.yml.bak     # tên file có thể là docker-compose.yml
 >   docker compose config | grep -A1 "target:"   # đường dẫn bên trong phải là /data, /brains,
 >                                                 # /home/vanhanh/.claude, /home/vanhanh/.codex
->   sed -i 's#^\(\s*image:\s*\).*#\1ghcr.io/lequydailb-dotcom/vanhanh:latest#' compose.yml
+>   sed -i 's#^\(\s*image:\s*\).*#\1ghcr.io/lequydailb-dotcom/naoso:latest#' compose.yml
 >   docker compose up -d --pull always
 >   ```
 >   Dòng `sed` đổi MỌI dòng `image:` trong file, nên chỉ dùng khi file có đúng một service; có nhiều

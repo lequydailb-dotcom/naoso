@@ -8,19 +8,19 @@ Get VANHANH running in a few minutes. Full guides: [docs/en/](docs/en/README.md)
 
 Install Vanhanh like any other app: download one file, open it, and you get a VANHANH icon to click every day. The installer checks what the computer is missing (Git, Python, Node, the AI brains) and installs only that.
 
-- **Windows 10/11:** download [Vanhanh-Setup.exe](https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/Vanhanh-Setup.exe), double-click it and press Next to the end. A black window shows the install progress (a few minutes). When it is done there is a VANHANH icon on the Desktop and in the Start menu.
-- **macOS 11 or newer:** download [Vanhanh-macOS.dmg](https://github.com/lequydailb-dotcom/vanhanh/releases/download/desktop/Vanhanh-macOS.dmg), open it, drag **VANHANH** into **Applications**, then open it from Launchpad. The first time, Terminal opens to install (it may ask you to set a Vanhanh admin account and for your Mac password once).
+- **Windows 10/11:** download [Vanhanh-Setup.exe](https://github.com/lequydailb-dotcom/naoso/releases/download/desktop/Vanhanh-Setup.exe), double-click it and press Next to the end. A black window shows the install progress (a few minutes). When it is done there is a VANHANH icon on the Desktop and in the Start menu.
+- **macOS 11 or newer:** download [Vanhanh-macOS.dmg](https://github.com/lequydailb-dotcom/naoso/releases/download/desktop/Vanhanh-macOS.dmg), open it, drag **VANHANH** into **Applications**, then open it from Launchpad. The first time, Terminal opens to install (it may ask you to set a Vanhanh admin account and for your Mac password once).
 
 Clicking the icon opens Vanhanh in its own window (no address bar), Vanhanh starts with the computer, and the in-app **Update** button works as usual. Your data lives in the `Vanhanh` folder in your user folder; uninstalling the app keeps that folder.
 
 **Install without the warning screen (recommended).** Both installers are not code-signed yet, so a browser download gets blocked the first time. Paste one line instead and you get the same installer with the Vanhanh logo, unblocked:
 - **Windows:** press Start, type `PowerShell`, open it, paste this line and press Enter:
   ```
-  irm https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/packaging/windows/get-vanhanh.ps1 | iex
+  irm https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/packaging/windows/get-vanhanh.ps1 | iex
   ```
 - **macOS:** open **Terminal** (Launchpad, type Terminal), paste this line and press Enter:
   ```
-  curl -fsSL https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/packaging/macos/get-vanhanh.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/packaging/macos/get-vanhanh.sh | bash
   ```
 
 If you already downloaded the file with the browser and it was blocked:
@@ -34,7 +34,7 @@ If you already downloaded the file with the browser and it was blocked:
 1. hPanel → VPS → **Docker Manager** → **Compose** → **Compose from URL**.
 2. Paste this URL:
    ```
-   https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.hostinger.yml
+   https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.hostinger.yml
    ```
 3. (Optional, for HTTPS + a domain) set this in the **Environment** box:
    ```

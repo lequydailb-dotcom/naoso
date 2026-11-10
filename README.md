@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="dashboard/logo.svg" width="88" alt="Logo VANHANH">
+<img src="dashboard/logo.svg" width="88" alt="Logo NAOSO">
 
-# VANHANH
+# NAOSO
 
 ### Não Ta: bộ não AI của riêng bạn
 
@@ -37,8 +37,8 @@ Cần có Git (Windows: `winget install -e --id Git.Git`). Mở PowerShell hoặ
 
 | Máy | Lệnh |
 |---|---|
-| **Windows** | `git clone https://github.com/lequydailb-dotcom/vanhanh.git vanhanh; cd vanhanh; powershell -ExecutionPolicy Bypass -File install.ps1` |
-| **Linux / macOS** | `git clone https://github.com/lequydailb-dotcom/vanhanh.git vanhanh && cd vanhanh && chmod +x install.sh && ./install.sh` |
+| **Windows** | `git clone https://github.com/lequydailb-dotcom/naoso.git vanhanh; cd vanhanh; powershell -ExecutionPolicy Bypass -File install.ps1` |
+| **Linux / macOS** | `git clone https://github.com/lequydailb-dotcom/naoso.git vanhanh && cd vanhanh && chmod +x install.sh && ./install.sh` |
 
 Lệnh cài Python, thư viện, các bộ não CLI, rồi mở VANHANH ở `http://localhost:7777`. Có bản mới thì bấm nút **Cập nhật** trong app. Phải tải bằng `git clone` như trên: tải file ZIP vẫn chạy được nhưng **không cập nhật được**. Trên Windows, lần sau chỉ cần bấm đúp **`VANHANH.bat`**. Các bước chi tiết ở [QUICKSTART.md](QUICKSTART.md), lên VPS xem [DEPLOY.md](DEPLOY.md).
 

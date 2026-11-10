@@ -47,7 +47,7 @@ follows its official npm releases. Vanhanh runs this build instead of the third-
 
 The **Guide on GitHub** button in the Zalo card always opens this documentation page:
 
-<https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/en/12-zalo-agent-mcp.md>
+<https://github.com/lequydailb-dotcom/naoso/blob/main/docs/en/12-zalo-agent-mcp.md>
 
 ## Importing old messages into the Inbox
 

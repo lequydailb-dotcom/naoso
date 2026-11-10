@@ -18,7 +18,7 @@ VANHANH is a personal AI agent plus a Second Brain. Its "brain" is the **Claude 
 
 On the Hostinger VPS go to **Docker Manager → Compose → URL**, paste the link and **Deploy**:
 ```
-https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
+https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.yml
 ```
 Hostinger pulls the image and runs it. Open the app at `http://<vps-ip>:7777` (the IP is in
 hPanel → VPS) and you get the **create admin account** screen.
@@ -54,7 +54,7 @@ hPanel → VPS) and you get the **create admin account** screen.
 Docker is required. Do not have it? `curl -fsSL https://get.docker.com | sh`
 ```bash
 mkdir vanhanh && cd vanhanh
-curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.yml
 
 docker compose run --rm vanhanh claude auth login --claudeai   # SIGN CLAUDE IN ONCE (link + code)
 docker compose up -d                                          # pull the GHCR image and run
@@ -100,7 +100,7 @@ you **must set a `DOMAIN_NAME` variable**:
 1. Find the **VPS hostname** in hPanel → VPS (for example `srv1234567.hstgr.cloud`).
 2. Docker Manager → Compose → URL:
    ```
-   https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.hostinger.yml
+   https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.hostinger.yml
    ```
 3. The new template's **Environment** box has only 3 meaningful fields:
    - `DOMAIN_NAME`: set `vanhanh.<vps-hostname>.hstgr.cloud`
@@ -206,7 +206,7 @@ for the whole machine**:
 
 ```bash
 docker network create vanhanh-web
-curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.proxy.yml
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.proxy.yml
 docker compose -f docker-compose.proxy.yml -p vanhanh-proxy up -d
 ```
 
@@ -214,8 +214,8 @@ Then give each instance **its own folder**:
 
 ```bash
 mkdir -p ~/vanhanh-shop && cd ~/vanhanh-shop
-curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.multi.yml
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.multi.yml
 cat > .env <<'EOF'
 VANHANH_NAME=vanhanh-shop
 VANHANH_HOST_PORT=7777
@@ -294,7 +294,7 @@ Trust (free), take the token, put `TUNNEL_TOKEN=...` into `.env`, change the `tu
 ## Way 2 - Installing directly on Linux/macOS (no Docker)
 
 ```bash
-git clone https://github.com/lequydailb-dotcom/vanhanh.git vanhanh && cd vanhanh
+git clone https://github.com/lequydailb-dotcom/naoso.git vanhanh && cd vanhanh
 chmod +x install.sh && ./install.sh
 ```
 
@@ -339,7 +339,7 @@ Stop it with `stop-vanhanh.bat`. Open http://localhost:7777
 >   older compose file (Watchtower used to sit under `profiles: ["update"]`, which
 >   `docker compose up -d` does not start). Fetch the new file and bring it up again:
 >   ```bash
->   curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.yml
+>   curl -fsSLO https://raw.githubusercontent.com/lequydailb-dotcom/naoso/main/docker-compose.yml
 >   docker compose up -d --pull always
 >   ```
 >   Not ready to swap the compose file? Starting it on its own works too:
@@ -363,7 +363,7 @@ Stop it with `stop-vanhanh.bat`. Open http://localhost:7777
 >   cp compose.yml compose.yml.bak     # the file may be called docker-compose.yml
 >   docker compose config | grep -A1 "target:"   # the paths inside must be /data, /brains,
 >                                                 # /home/vanhanh/.claude, /home/vanhanh/.codex
->   sed -i 's#^\(\s*image:\s*\).*#\1ghcr.io/lequydailb-dotcom/vanhanh:latest#' compose.yml
+>   sed -i 's#^\(\s*image:\s*\).*#\1ghcr.io/lequydailb-dotcom/naoso:latest#' compose.yml
 >   docker compose up -d --pull always
 >   ```
 >   The `sed` line changes EVERY `image:` line in the file, so use it only when the file has a single
