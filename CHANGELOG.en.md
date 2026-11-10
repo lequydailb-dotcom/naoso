@@ -4,6 +4,11 @@
 
 VANHANH release history. Newest first.
 
+## [1.25.1] - 2026-11-10
+### Improved
+- **Documentation links point to the new NAOSO repository.** Install, guide, bug report and security links in README, QUICKSTART, DEPLOY and the docs folder now open the `naoso` repo. Old links redirect automatically.
+- **The README title now reads NAOSO.**
+
 ## [1.25.0] - 2026-11-09
 ### Added
 - **Every chat in the history column has a ⋯ button** instead of four separate icons. The menu: Pin to top, Move to project, Rename (in place), Share link, Export as .md, Mark as unread, Archive and Delete. Right-click, or a long press on a phone, opens it too.

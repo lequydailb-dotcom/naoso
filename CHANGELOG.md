@@ -6,6 +6,11 @@ Lịch sử phiên bản VANHANH. Bản mới nhất ở trên cùng. Xem ngay t
 
 Định dạng: mỗi phiên bản là một khối `## [x.y.z] - ngày`, bên dưới nhóm thay đổi theo `### Thêm mới / Sửa lỗi / Cải thiện / Bảo mật`.
 
+## [1.25.1] - 2026-11-10
+### Cải thiện
+- **Đường dẫn trong tài liệu trỏ tới kho mới NAOSO.** Link cài đặt, hướng dẫn, báo lỗi và bảo mật trong README, QUICKSTART, DEPLOY và thư mục docs đều mở đúng kho `naoso`. Đường dẫn cũ vẫn chuyển hướng tự động.
+- **Tên trên đầu README đổi thành NAOSO.**
+
 ## [1.25.0] - 2026-11-09
 ### Thêm mới
 - **Mỗi hội thoại trong cột lịch sử có một nút ⋯** thay cho bốn icon rời (ghim, chuyển project, đổi tên, xoá). Menu có: Ghim lên đầu, Chuyển vào project, Đổi tên (sửa ngay tại dòng), Chia sẻ link, Xuất ra file .md, Đánh dấu chưa đọc, Lưu trữ và Xoá. Bấm chuột phải, hoặc nhấn giữ trên điện thoại, cũng mở menu này.

@@ -81,7 +81,7 @@ async def fake_fail(pick, sentence, terms):
 
 
 transcript_fix._ask_model = fake_fail
-r = fix({"model": {"groq_api_key": "gk"}}, "Nauta ơi")
+r = fix({"model": {"groq_api_key": "gk"}}, "Vân Hạnh ơi")
 check("model fails: rules kept, no error", r == {"text": "Vanhanh ơi", "source": "rules", "ai": False})
 check("is_safe_fix: a one-word fix is fine", transcript_fix.is_safe_fix("mở Grox giúp tôi", "mở Grok giúp tôi"))
 check("is_safe_fix: empty is refused", not transcript_fix.is_safe_fix("a b", ""))
