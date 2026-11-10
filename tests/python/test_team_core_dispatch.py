@@ -240,7 +240,7 @@ JS = (ROOT / "dashboard" / "teams.js").read_text(encoding="utf-8")
 VI = json.loads((ROOT / "dashboard" / "i18n" / "vi.json").read_text(encoding="utf-8"))
 EN = json.loads((ROOT / "dashboard" / "i18n" / "en.json").read_text(encoding="utf-8"))
 check("khung chat nhóm ghi 'qua Vanhanh Core' trên tin Core gửi", "meta.via_core" in JS
-      and VI.get("teams.via_core") == "qua Vanhanh Core" and EN.get("teams.via_core") == "via Vanhanh Core")
+      and VI.get("teams.via_core") == "qua NAOSO Core" and EN.get("teams.via_core") == "via NAOSO Core")
 check("host nối báo về bằng _notify_owner", main._TEAM_API.deps.report is _fake_report
       and "report=_notify_owner" in (SERVER / "main.py").read_text(encoding="utf-8"))
 

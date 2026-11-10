@@ -6,6 +6,10 @@ Lịch sử phiên bản VANHANH. Bản mới nhất ở trên cùng. Xem ngay t
 
 Định dạng: mỗi phiên bản là một khối `## [x.y.z] - ngày`, bên dưới nhóm thay đổi theo `### Thêm mới / Sửa lỗi / Cải thiện / Bảo mật`.
 
+## [1.26.0] - 2026-11-10
+### Cải thiện
+- **Tên hiển thị đổi thành NAOSO.** Tiêu đề tab, tên app khi cài lên máy, thanh bên, trang đăng nhập và các dòng chữ trong giao diện (tiếng Việt, Anh, Đức) đều ghi NAOSO. Dữ liệu, cài đặt và cách app hoạt động giữ nguyên.
+
 ## [1.25.1] - 2026-11-10
 ### Cải thiện
 - **Đường dẫn trong tài liệu trỏ tới kho mới NAOSO.** Link cài đặt, hướng dẫn, báo lỗi và bảo mật trong README, QUICKSTART, DEPLOY và thư mục docs đều mở đúng kho `naoso`. Đường dẫn cũ vẫn chuyển hướng tự động.
