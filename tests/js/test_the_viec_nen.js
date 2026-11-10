@@ -75,8 +75,8 @@ check("có nút mở trang Việc bấm được", /class="viec-mo"/.test(m._bub
 m = msgGia("x");
 V.ve(m, { status: "blocked", title: "a" });
 // A paused job is Vanhanh's to handle, so the card says "paused, Vanhanh is on it", not "blocked".
-check("việc tạm dừng: lớp viec-blocked + nhãn tạm dừng, Vanhanh đang lo",
-  m.classList.contains("viec-blocked") && m._bubble._html.indexOf("tạm dừng, Vanhanh đang lo") !== -1);
+check("việc tạm dừng: lớp viec-blocked + nhãn tạm dừng, NAOSO đang lo",
+  m.classList.contains("viec-blocked") && m._bubble._html.indexOf("tạm dừng, NAOSO đang lo") !== -1);
 
 // ---- 3. ve: dòng đã giao (giọng nói) nằm DƯỚI bong bóng, không biến bong bóng thành thẻ ----
 m = msgGia("Ừ, để xem ngay.");
