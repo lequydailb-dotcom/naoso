@@ -162,7 +162,7 @@ check("the module exposes VanhanhPetMenu", !!(PM && PM.renderSettings && PM.menu
   check("picker lists the catalog features", (ph.match(/data-pm-pick=/g) || []).length === H.CATALOG.length);
   check("a feature already on the menu says Added and cannot be picked",
     /data-pm-pick="teams" disabled[^>]*>[\s\S]*?Đã thêm/.test(ph));
-  check("an unavailable feature shows why and cannot be picked", /data-pm-pick="account" disabled[\s\S]*?Bản Vanhanh này không có trang này/.test(ph));
+  check("an unavailable feature shows why and cannot be picked", /data-pm-pick="account" disabled[\s\S]*?Bản NAOSO này không có trang này/.test(ph));
   check("the picker has a search box", pick.innerHTML.indexOf("data-pm-q") >= 0);
   const pickBtn = (id) => ({ disabled: false, getAttribute: () => id });
   pick.listeners.click[0]({ target: { closest: (s) => (s === "[data-pm-pick]" ? pickBtn("teams") : null) } });

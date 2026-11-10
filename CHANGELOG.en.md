@@ -4,6 +4,10 @@
 
 VANHANH release history. Newest first.
 
+## [1.26.0] - 2026-11-10
+### Improved
+- **The display name is now NAOSO.** The tab title, the installed app name, the sidebar, the sign-in page and the interface text (Vietnamese, English, German) all say NAOSO. Your data, settings and how the app works are unchanged.
+
 ## [1.25.1] - 2026-11-10
 ### Improved
 - **Documentation links point to the new NAOSO repository.** Install, guide, bug report and security links in README, QUICKSTART, DEPLOY and the docs folder now open the `naoso` repo. Old links redirect automatically.
