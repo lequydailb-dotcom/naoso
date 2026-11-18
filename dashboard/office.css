@@ -165,3 +165,18 @@
 .of-root .of-alert-ok { background: var(--surface-2); color: var(--text2); }
 .of-root .of-alert-warn { background: color-mix(in srgb, var(--warn, #d97706) 14%, transparent); color: var(--text); }
 .of-root .of-alert .btn { margin-left: auto; }
+
+/* the numbers bar over the 3D stage (office3d.js stats); the meaning of each figure is its tooltip */
+.o3-stats { position: absolute; top: 10px; left: 10px; right: 190px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; z-index: 1; }
+.o3-stats:empty { display: none; }
+.o3-stats > * { pointer-events: auto; }
+.o3-per { align-self: center; padding: 4px 10px; border-radius: 999px; background: var(--panel-solid, var(--bg2)); font-weight: 600; font-size: 15px; }
+.o3-st { padding: 4px 10px; border-radius: 10px; background: var(--panel-solid, var(--bg2)); border: 1px solid var(--hairline);
+  border-left: 4px solid #9aa0a8; display: flex; align-items: baseline; gap: 6px; }
+.o3-st b { font-size: 18px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.o3-st span { font-size: 15px; color: var(--text2); font-weight: 600; }
+.o3-st-ok { border-left-color: #2fa86a; }
+.o3-st-ask { border-left-color: #f0a020; }
+.o3-st-bad { border-left-color: #e0453a; }
+@media (max-width: 760px) { .o3-stats { top: 58px; right: 10px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .o3-stats > * { flex: none; } .o3-st b { font-size: 16px; } .o3-st span { font-size: 14px; } }

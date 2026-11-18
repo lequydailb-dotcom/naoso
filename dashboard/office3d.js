@@ -26,6 +26,12 @@
     return s;
   }
 
+  function esc(v) {
+    return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
   function supported() {
     try {
       var c = document.createElement("canvas");
@@ -104,6 +110,36 @@
   }
 
   // ---------- the scene ----------
+  // the words of each tile, spelled out so the translation check can see every key
+  var ST_TEXT = {
+    staff: ["office.st_staff", "office.st_staff_n"],
+    runs: ["office.st_runs", "office.st_runs_n"],
+    rate: ["office.st_rate", "office.st_rate_n"],
+    red: ["office.st_red", "office.st_red_n"],
+    turns: ["office.st_turns", "office.st_turns_n"]
+  };
+
+  // The numbers bar over the stage. Every figure is counted from the same data as the desks (GET /office), for the
+  // chosen day: nothing here is a sample. A figure with nothing behind it shows a dash, never a made-up number.
+  function stats(d) {
+    d = d || {};
+    var staff = 0, runs = 0, ok = 0, red = 0;
+    (d.depts || []).forEach(function (dep) { staff += (dep.staff || []).length; });
+    (d.jobs || []).forEach(function (j) {
+      var x = j.day || {};
+      runs += x.runs || 0; ok += x.ok || 0;
+      if (LAMP[j.state] === "bad") red++;
+    });
+    var tiles = [
+      { id: "staff", val: String(staff), tone: "off" },
+      { id: "runs", val: String(runs), tone: "off" },
+      { id: "rate", val: runs ? Math.round(ok * 100 / runs) + "%" : "-", tone: !runs ? "off" : (ok === runs ? "ok" : "ask") },
+      { id: "red", val: String(red), tone: red ? "bad" : "ok" }
+    ];
+    if (d.ai && typeof d.ai.turns === "number") tiles.push({ id: "turns", val: String(d.ai.turns), tone: "off" });
+    return { today: !d.day || d.day === d.today, day: d.day || "", tiles: tiles };
+  }
+
   function create(host, opts) {
     opts = opts || {};
     var st = { alive: true, data: null, T: null, seen: 0, replay: null };
@@ -121,6 +157,7 @@
       st.T = T;
       stage.innerHTML = '<div class="o3-hud"><span class="o3-clock"></span><span class="o3-sp"></span>'
         + '<button type="button" class="o3-btn o3Replay"></button></div>'
+        + '<div class="o3-stats" aria-live="off"></div>'
         + '<div class="o3-hint">' + tw("office.hint_3d") + '</div><div class="o3-card" hidden></div>'
         + '<div class="o3-ticker" aria-live="off"><div class="o3-tk"></div></div>';
       var dark = matchMedia && matchMedia("(prefers-color-scheme: dark)").matches
@@ -294,6 +331,7 @@
     function draw(d, fit) {
       var T = st.T;
       clear();
+      renderStats(d);
       // labels shrink on a narrow stage so a phone is not covered in names
       st.lab = Math.min(1, Math.max(0.62, (stage.clientWidth || 900) / 900));
       var L = layout(d, (st.cam.aspect || 1) < 1 ? 2 : 0);
@@ -653,6 +691,18 @@
       });
     }
 
+    function renderStats(d) {
+      var box = stage.querySelector(".o3-stats");
+      if (!box) return;
+      var S = stats(d);
+      box.innerHTML = '<span class="o3-per">' + esc(S.today ? tw("office.st_today") : S.day) + "</span>"
+        + S.tiles.map(function (x) {
+          var k = ST_TEXT[x.id];
+          return '<div class="o3-st o3-st-' + x.tone + '" title="' + esc(tw(k[1])) + '"><b>' + esc(x.val) + "</b><span>"
+            + esc(tw(k[0])) + "</span></div>";
+        }).join("");
+    }
+
     function clock(text) {
       var c = stage.querySelector(".o3-clock");
       if (c) c.textContent = text;
@@ -721,7 +771,7 @@
     };
   }
 
-  var api_ = { supported: supported, create: create, layout: layout, zoneDesks: zoneDesks, replaySteps: replaySteps };
+  var api_ = { supported: supported, create: create, layout: layout, zoneDesks: zoneDesks, replaySteps: replaySteps, stats: stats };
   if (typeof window !== "undefined") window.VanhanhOffice3D = api_;
   if (typeof module !== "undefined" && module.exports) module.exports = api_;
 })();

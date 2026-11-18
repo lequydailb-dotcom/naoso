@@ -6,6 +6,10 @@ Lịch sử phiên bản VANHANH. Bản mới nhất ở trên cùng. Xem ngay t
 
 Định dạng: mỗi phiên bản là một khối `## [x.y.z] - ngày`, bên dưới nhóm thay đổi theo `### Thêm mới / Sửa lỗi / Cải thiện / Bảo mật`.
 
+## [1.27.0] - 2026-11-18
+### Cải thiện
+- **Văn phòng 3D có thanh số liệu.** Hàng ô trên đầu khung 3D cho biết số nhân viên AI, lượt đã chạy, tỉ lệ đạt, số việc đang lỗi và số lượt hỏi AI của ngày đang xem. Số đếm từ dữ liệu thật của app, chưa có gì thì hiện dấu gạch. Chạm vào từng ô để đọc ý nghĩa. Trên điện thoại vuốt ngang để xem hết.
+
 ## [1.26.0] - 2026-11-10
 ### Cải thiện
 - **Tên hiển thị đổi thành NAOSO.** Tiêu đề tab, tên app khi cài lên máy, thanh bên, trang đăng nhập và các dòng chữ trong giao diện (tiếng Việt, Anh, Đức) đều ghi NAOSO. Dữ liệu, cài đặt và cách app hoạt động giữ nguyên.

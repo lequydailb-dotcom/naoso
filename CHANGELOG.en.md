@@ -4,6 +4,10 @@
 
 VANHANH release history. Newest first.
 
+## [1.27.0] - 2026-11-18
+### Improved
+- **The 3D office has a numbers bar.** A row of tiles over the 3D view shows AI staff, runs, success rate, jobs in trouble and AI calls for the day you are viewing. Figures are counted from the app's real data, and a dash shows when there is nothing yet. Tap a tile to read what it means. On a phone, swipe sideways to see them all.
+
 ## [1.26.0] - 2026-11-10
 ### Improved
 - **The display name is now NAOSO.** The tab title, the installed app name, the sidebar, the sign-in page and the interface text (Vietnamese, English, German) all say NAOSO. Your data, settings and how the app works are unchanged.

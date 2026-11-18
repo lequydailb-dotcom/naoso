@@ -7497,5 +7497,16 @@
   "sec.d_wrong_pw": "sai mật khẩu",
   "sec.d_pw": "bằng mật khẩu",
   "sec.d_pw_2fa": "mật khẩu + 2FA",
-  "sec.d_setup": "lần đầu tạo"
+  "sec.d_setup": "lần đầu tạo",
+  "office.st_today": "Hôm nay",
+  "office.st_staff": "Nhân viên AI",
+  "office.st_staff_n": "Số nhân viên số đang có trong các phòng",
+  "office.st_runs": "Lượt đã chạy",
+  "office.st_runs_n": "Tổng lượt chạy của mọi việc tự động trong ngày",
+  "office.st_rate": "Tỉ lệ đạt",
+  "office.st_rate_n": "Lượt đạt chia tổng lượt chạy",
+  "office.st_red": "Việc đang lỗi",
+  "office.st_red_n": "Việc có đèn đỏ: lỗi hoặc tự dừng",
+  "office.st_turns": "Lượt hỏi AI",
+  "office.st_turns_n": "Số lần trợ lý gọi AI trong ngày"
 }

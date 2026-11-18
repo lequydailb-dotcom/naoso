@@ -73,6 +73,23 @@ const html = fs.readFileSync(path.join(__dirname, "../../dashboard/index.html"),
 check("index.html does not load three.js up front", !/<script[^>]+three-0\.160/.test(html));
 check("nothing moves on a timer of its own: the only interval is the replay", (src.match(/setInterval\(/g) || []).length === 1);
 
+// --- the numbers bar: counted from the same data as the desks, never a sample
+{
+  const S = O3.stats(Object.assign({ ai: { cost: 0, turns: 7 } }, data));
+  const by = {}; S.tiles.forEach(t => { by[t.id] = t; });
+  check("stats: staff counts every assistant in every department", by.staff.val === "1");
+  check("stats: runs add up the day's runs of every job", by.runs.val === "10");
+  check("stats: success rate is ok runs over all runs", by.rate.val === "70%" && by.rate.tone === "ask");
+  check("stats: a job with a red lamp is counted as in trouble", by.red.val === "1" && by.red.tone === "bad");
+  check("stats: AI calls shown when the day has them", by.turns && by.turns.val === "7");
+  check("stats: a past day is labelled with its date, not Today", S.today === false && S.day === "2026-11-07");
+  const E = O3.stats({ day: "2026-11-09", today: "2026-11-09", jobs: [], depts: [] });
+  const eb = {}; E.tiles.forEach(t => { eb[t.id] = t; });
+  check("stats: nothing ran means a dash, not a made-up number", eb.rate.val === "-" && eb.runs.val === "0");
+  check("stats: no AI figure when the server sends none", !eb.turns && E.today === true);
+  check("stats: survives missing data", O3.stats(null).tiles.length === 4);
+}
+
 const vi = JSON.parse(fs.readFileSync(path.join(__dirname, "../../dashboard/i18n/vi.json"), "utf8"));
 const en = JSON.parse(fs.readFileSync(path.join(__dirname, "../../dashboard/i18n/en.json"), "utf8"));
 const keys = new Set([...(src.match(/"office\.[a-z0-9_]+"/g) || []), ...(fs.readFileSync(path.join(__dirname, "../../dashboard/office.js"), "utf8").match(/"office\.[a-z0-9_]+"/g) || [])]
