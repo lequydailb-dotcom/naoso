@@ -34,7 +34,7 @@ def check(ten, dieu_kien, them=""):
         loi.append(ten)
 
 
-# ---- 1. Quy bảng chữ về MỘT: Zalo viết hoa, phần còn lại của Vanhanh viết thường ----
+# ---- 1. Quy bảng chữ về MỘT: Zalo viết hoa, phần còn lại của Naota viết thường ----
 
 check("PRIVATE -> private", zalo_bot._chat_type("PRIVATE") == "private")
 check("GROUP -> group", zalo_bot._chat_type("GROUP") == "group")
@@ -106,16 +106,16 @@ check("chưa biết tên mình thì không nhận bừa", not bot()._co_nhac_ten
 check("nhận hơi rộng là CỐ Ý (tên nối bằng khoảng trắng vẫn tính là được gọi)",
       b5._co_nhac_ten({"text": "Bot Shop VN cho hỏi giá"}))
 
-# getMe only gives the handle; a group tag carries the display name, matched against the bot's Vanhanh names.
+# getMe only gives the handle; a group tag carries the display name, matched against the bot's Naota names.
 cfg = {"name": "Lila ABC Piano", "reply_policy": {"aliases": ["cô Lila"]}}
 b7 = bot(cfg_fn=lambda: cfg)
 b7.bot_username = "bot.aBcDeFgH"
-check("a tag by display name (Zalo's 'Bot ' prefix + Vanhanh name) is a call",
+check("a tag by display name (Zalo's 'Bot ' prefix + Naota name) is a call",
       b7._co_nhac_ten({"text": "@Bot Lila ABC Piano cho hỏi lịch học"}))
 check("double spaces inside the tag still match", b7._co_nhac_ten({"text": "@Bot  Lila   ABC Piano ơi"}))
-check("a tag by the exact Vanhanh name or an owner alias is a call",
+check("a tag by the exact Naota name or an owner alias is a call",
       b7._co_nhac_ten({"text": "@Lila ABC Piano"}) and b7._co_nhac_ten({"text": "hỏi @cô Lila nhé"}))
-check("the Vanhanh name without '@' is not a tag (a person may share it)",
+check("the Naota name without '@' is not a tag (a person may share it)",
       not b7._co_nhac_ten({"text": "Lila ABC Piano học hôm nay vui lắm"}))
 check("a longer name glued on is not this bot", not b7._co_nhac_ten({"text": "@Bot Lila ABC PianoX"}))
 check("the handle still works", b7._co_nhac_ten({"text": "bot.aBcDeFgH ơi"}))
@@ -236,7 +236,7 @@ check("file không tồn tại thì báo đúng lý do", not ok and "không tồ
 # Zalo cá nhân cũng gắn được bot (không token), nên ba kênh chứ không còn hai.
 check("kho biết đúng các kênh gắn được bot",
       set(chatbot_store.KENH) == {"telegram", "zalo", "zalo_personal", "zalo_oa", "messenger", "threads", "slack", "whatsapp",
-                                  "lark", "api"})
+                                  "wechat", "lark", "api"})
 check("kênh lạ rơi về Telegram chứ không lưu nguyên",
       chatbot_store._clean_kenh("viber") == "telegram")
 check("kênh zalo được nhận", chatbot_store._clean_kenh("Zalo") == "zalo")

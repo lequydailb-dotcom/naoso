@@ -9,7 +9,7 @@ import os
 import sys
 import tempfile
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-bot-rules-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-bot-rules-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

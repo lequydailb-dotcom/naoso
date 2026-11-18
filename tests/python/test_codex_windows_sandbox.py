@@ -19,7 +19,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-codex-win-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-codex-win-"))
 
 import claude_cli  # noqa: E402
 import codex_steer  # noqa: E402
@@ -39,14 +39,14 @@ def has_override(argv):
 
 
 def make_cli(sandbox, home):
-    cli = claude_cli.CodexCLI(cwd=tempfile.mkdtemp(prefix="vanhanh-codex-win-cwd-"), tag="bg-test")
+    cli = claude_cli.CodexCLI(cwd=tempfile.mkdtemp(prefix="naota-codex-win-cwd-"), tag="bg-test")
     cli.sandbox = sandbox
     cli.codex_home = str(home)
     cli.transport = "ws"
     return cli
 
 
-empty_home = Path(tempfile.mkdtemp(prefix="vanhanh-codex-win-home-"))
+empty_home = Path(tempfile.mkdtemp(prefix="naota-codex-win-home-"))
 (empty_home / "config.toml").write_text('model = "gpt-5"\n', encoding="utf-8")
 
 # 1. Windows + sandbox
@@ -66,12 +66,12 @@ with patch.object(claude_cli, "_windows", lambda: True):
     check("2. full access: no override", not has_override(full._build_args()) and not has_override(codex_steer._args(full, None)))
 
     # 4. a choice already in config.toml
-    chosen = Path(tempfile.mkdtemp(prefix="vanhanh-codex-win-home2-"))
+    chosen = Path(tempfile.mkdtemp(prefix="naota-codex-win-home2-"))
     (chosen / "config.toml").write_text('[windows]\nsandbox = "elevated"\n', encoding="utf-8")
     kept = make_cli("workspace-write", chosen)
     check("4. config.toml choice kept (exec)", not has_override(kept._build_args()), kept._build_args())
     check("4. config.toml choice kept (app-server)", not has_override(codex_steer._args(kept, None)))
-    no_cfg = make_cli("workspace-write", Path(tempfile.mkdtemp(prefix="vanhanh-codex-win-home3-")))
+    no_cfg = make_cli("workspace-write", Path(tempfile.mkdtemp(prefix="naota-codex-win-home3-")))
     check("4. no config.toml at all: override added", has_override(no_cfg._build_args()))
 
 # 3. not Windows

@@ -1,9 +1,10 @@
 """
-Cấu hình tập trung của VANHANH - đọc/ghi server/settings.json (gitignored, chứa secret).
+Cấu hình tập trung của NAOTA - đọc/ghi server/settings.json (gitignored, chứa secret).
 Gồm: workspace, tài khoản admin (mật khẩu hash), model engine, telegram.
 Auth CHỈ bật khi đã đặt mật khẩu → bản local chưa đặt vẫn chạy như cũ.
 """
 import json
+import kept
 import os
 import threading
 import time
@@ -11,10 +12,10 @@ import hashlib
 import secrets
 from pathlib import Path
 
-# Mọi state Vanhanh tự ghi (settings, auth sessions, loop config) nằm ở VANHANH_STATE_DIR.
+# Mọi state Naota tự ghi (settings, auth sessions, loop config) nằm ở NAOTA_STATE_DIR.
 # Mặc định = server/ (không đổi trên máy cũ). Docker/VPS đặt = /data/state (volume ghi được,
 # vì code tree /app là read-only trong container).
-STATE_DIR = Path(os.getenv("VANHANH_STATE_DIR", str(Path(__file__).parent)))
+STATE_DIR = Path(os.getenv("NAOTA_STATE_DIR", str(Path(__file__).parent)))
 try:
     STATE_DIR.mkdir(parents=True, exist_ok=True)
 except Exception:
@@ -26,7 +27,7 @@ SETTINGS_PATH = STATE_DIR / "settings.json"
 BRANDING_DIR = STATE_DIR / "branding"
 
 _DEFAULT = {
-    "workspace_name": "VANHANH",
+    "workspace_name": "NAOTA",
     "setup_done": False,                       # đã qua bộ cài đặt lần đầu chưa
     # totp = xác thực 2 lớp. secret rỗng / enabled=false → cổng đăng nhập giữ nguyên như cũ.
     # `recovery` giữ BẢN BĂM của mã khôi phục (cùng cách băm mật khẩu), nên không có đường nào
@@ -41,13 +42,15 @@ _DEFAULT = {
     # Ngôn ngữ và locale. TÁCH BA BIẾN có chủ ý (spec đa ngôn ngữ mục 4.1):
     #   ui_lang     chữ trên màn hình      - "" = chưa ai chọn: dashboard đoán theo trình duyệt
     #               rồi ghi lại đây. Bản cài cũ đã lưu "vi" nên không bị đổi.
-    #   reply_lang  Vanhanh trả lời          - "auto" = bám theo ngôn ngữ người dùng đang viết
+    #   reply_lang  Naota trả lời          - always "auto" since 2026-11-15: Naota follows whoever writes and
+    #               Settings only set the interface (owner). Kept because the improvement trials read it; a pin
+    #               saved before moves into the profile at startup (main.migrate_reply_lang_to_profile).
     #   tz/currency locale, KHÁC ngôn ngữ  - người dùng tiếng Anh ở VN vẫn xài UTC+7 và VND
     # Gộp ba cái làm một là chặn đứng ca dùng đáng tiền nhất: chủ Việt, giao diện Việt, brain
     # Việt, nhưng chatbot đối ngoại trả lời tiếng Nhật.
     "locale": {
         "ui_lang": "",
-        "reply_lang": "auto",              # auto | vi | en
+        "reply_lang": "auto",              # always "auto", see above
         "tz": "Asia/Ho_Chi_Minh",
         "currency": "VND",
     },
@@ -75,7 +78,7 @@ _DEFAULT = {
         "live_provider": "gemini",     # gemini | openai (đều cần API key ở trang Models)
         "live_model": "",              # rỗng = gợi ý trong voice_live.PROVIDERS
         "live_voice": "",
-        "live_proactive": True,        # Live qua API: bỏ qua tiếng không nói với Vanhanh (TV, người bên cạnh)
+        "live_proactive": True,        # Live qua API: bỏ qua tiếng không nói với Naota (TV, người bên cạnh)
         "live_turn": "normal",         # fast | normal | slow: nhịp trả lời của Live qua API
     },
     "model": {
@@ -91,7 +94,7 @@ _DEFAULT = {
         # người dùng đổi model liên tục trên web để thử (cả model local chạy 2-8 chữ/giây), mỗi
         # lần thử là điện thoại của cả nhà bị kéo theo.
         "telegram": {"provider": "", "model": ""},
-        # --- Tiền bạc: những gì Vanhanh KHÔNG tự biết được và phải hỏi người dùng ---
+        # --- Tiền bạc: những gì Naota KHÔNG tự biết được và phải hỏi người dùng ---
         # Nhà cung cấp không cho lấy giá gói hay hạn mức gói qua API, nên bốn số này là do
         # người dùng khai. Để 0 = chưa khai, và trang Mức dùng phải nói "chưa khai" chứ đừng
         # đoán bừa rồi hiện một con số trông như thật.
@@ -116,7 +119,7 @@ _DEFAULT = {
         # --- Credentials theo provider ---
         # Gói Claude Code (provider 'anthropic-cli') xác thực bằng CÁI GÌ:
         #   "subscription" (mặc định) - phiên đăng nhập của chính Claude Code, tức gói Pro/Max
-        #       người dùng đang trả. Vanhanh KHÔNG đọc token đó nữa; nó chỉ chạy binary `claude`
+        #       người dùng đang trả. Naota KHÔNG đọc token đó nữa; nó chỉ chạy binary `claude`
         #       và để chính sản phẩm của Anthropic lo đăng nhập.
         #   "api_key" - truyền `anthropic_api_key` xuống cho binary `claude` qua biến môi
         #       trường, tức trả tiền theo lượt dùng qua Claude Console. Đây là đường Anthropic
@@ -124,7 +127,7 @@ _DEFAULT = {
         # Đổi ở trang Models. Cả hai đều giữ NGUYÊN năng lực: Bash, WebFetch, MCP, nối phiên cũ.
         "claude_auth": "subscription",
         # Daily `claude update` (claude_update.py). The switch sits on the Claude Code card of the
-        # Models page; env VANHANH_CLAUDE_AUTO_UPDATE=0 still forces it off over this value.
+        # Models page; env NAOTA_CLAUDE_AUTO_UPDATE=0 still forces it off over this value.
         "claude_auto_update": True,
         "openrouter_key": "",
         "anthropic_api_key": "",               # provider Anthropic API (P2)
@@ -134,28 +137,28 @@ _DEFAULT = {
         "deepseek_api_key": "",                # provider DeepSeek (endpoint OpenAI-compat)
         # Provider 'ollama' = Ollama Cloud (ollama.com). Bản chạy trên máy nhà KHÔNG được đấu,
         # cố ý: nó đòi thêm một ô địa chỉ - ca đặc biệt duy nhất của cả lớp nhà cung cấp -
-        # trong khi phần đông người dùng Vanhanh chạy nó trên VPS, nơi "localhost" là chính cái
+        # trong khi phần đông người dùng Naota chạy nó trên VPS, nơi "localhost" là chính cái
         # container chứ không phải máy họ.
         "ollama_key": "",
         # Provider 'openai-compat': MỘT endpoint bất kỳ nói chuẩn OpenAI Chat Completions
-        # (LiteLLM, vLLM, proxy tự dựng...). Base URL tính tới /v1, Vanhanh tự nối /chat/completions
+        # (LiteLLM, vLLM, proxy tự dựng...). Base URL tính tới /v1, Naota tự nối /chat/completions
         # và /models. Key có thể rỗng nếu endpoint không đòi xác thực.
         "openai_compat_base": "",
         "openai_compat_key": "",
         # Provider 'anthropic-compat': ONE gateway speaking the Anthropic Messages API
         # (resellers of Claude, DeepSeek/Kimi/MiniMax "anthropic" endpoints...). The base URL has
-        # the shape of Claude Code's ANTHROPIC_BASE_URL (no /v1); Vanhanh appends /v1/messages.
+        # the shape of Claude Code's ANTHROPIC_BASE_URL (no /v1); Naota appends /v1/messages.
         "anthropic_compat_base": "",
         "anthropic_compat_key": "",
         # --- Ollama chạy trên MÁY NHÀ (provider 'ollama-local') ---
         # Ca đặc biệt mà khối chú thích ngay trên vừa từ chối, nay mở ra nhưng KHÔNG bằng cách
-        # giả định "localhost là máy người dùng". Cái Vanhanh lưu là một ĐỊA CHỈ người dùng tự
-        # khai: có thể là máy đang chạy Vanhanh (bản native), có thể là một máy khác trong nhà.
+        # giả định "localhost là máy người dùng". Cái Naota lưu là một ĐỊA CHỈ người dùng tự
+        # khai: có thể là máy đang chạy Naota (bản native), có thể là một máy khác trong nhà.
         # Nhờ vậy bản Docker/VPS cũng dùng được - trỏ sang máy để bàn ở nhà là xong.
         "ollama_local_endpoint": "",           # vd http://127.0.0.1:11434 hoặc http://192.168.1.20:11434
         "ollama_local_key": "",                # chỉ cần khi Ollama nấp sau reverse proxy có auth
         # Cấu hình máy CHẠY OLLAMA, để gợi ý model vừa sức. `source`:
-        #   auto    - Vanhanh tự đọc được (chỉ khi endpoint là localhost VÀ Vanhanh chạy native)
+        #   auto    - Naota tự đọc được (chỉ khi endpoint là localhost VÀ Naota chạy native)
         #   manual  - người dùng tự khai (mọi trường hợp còn lại)
         #   unknown - chưa biết, gợi ý ở mức an toàn
         "ollama_local_specs": {"source": "unknown", "ram_gb": 0, "has_gpu": False, "vram_gb": 0},
@@ -175,11 +178,11 @@ _DEFAULT = {
             # Alias đứng trước vì alias luôn trỏ bản mới nhất của dòng; id đầy đủ đứng sau để
             # `_claude_api_model` dịch được alias sang tên thật.
             "claude": ["fable", "opus", "sonnet", "haiku",
-                       "claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-1",
-                       "claude-opus-5", "claude-sonnet-5",
+                       "claude-fable-5-2", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5",
+                       "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5",
                        "claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"],
-            "anthropic-api": ["claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-1",
-                              "claude-opus-5", "claude-sonnet-5",
+            "anthropic-api": ["claude-fable-5-2", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5",
+                              "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5",
                               "claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"],
             "openai": ["gpt-4o", "gpt-4o-mini", "o3-mini"],                        # OpenAI API
             "gemini": ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"],  # Google Gemini API (picker load động)
@@ -195,7 +198,7 @@ _DEFAULT = {
             "openrouter": ["openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet", "google/gemini-2.0-flash-001", "deepseek/deepseek-chat"],
         },
     },
-    # Ảnh sinh bằng vanhanh_generate_image.
+    # Ảnh sinh bằng naota_generate_image.
     # strip_c2pa: gỡ Content Credentials (C2PA) - dấu nguồn gốc do nhà cung cấp ảnh nhúng sẵn
     # để nói "ảnh này do AI tạo". MẶC ĐỊNH TẮT: giữ nguyên dấu là hành vi an toàn, và bản fork
     # nào cũng bắt đầu ở trạng thái này. Bật lên là quyết định CÓ Ý THỨC của chủ workspace,
@@ -203,12 +206,12 @@ _DEFAULT = {
     "image": {"strip_c2pa": False},
     # Vùng cache media của brain: attachments/ + inbox/. Ảnh là NGUYÊN LIỆU đi qua, không
     # phải tri thức - đọc xong rút thành .md là đủ dùng, nên chúng tự hết hạn thay vì nằm
-    # mãi làm phình đĩa VPS. Muốn giữ ảnh lâu dài thì đấu kho ngoài (Drive), đừng để Vanhanh ôm.
+    # mãi làm phình đĩa VPS. Muốn giữ ảnh lâu dài thì đấu kho ngoài (Drive), đừng để Naota ôm.
     # max_age_days / max_mb <= 0 = tắt luật tương ứng. enabled=False = không dọn gì cả.
     # staging_days: hạn RIÊNG cho STATE_DIR/.staging - nơi file dán vào khung chat rơi xuống.
     # Ngắn hơn hẳn vì đó là chỗ trung chuyển một lượt chat, không ai mở lại bao giờ.
     # Kho gói: một tệp JSON công khai. Đổi được sang kho khác; rỗng thì dùng kho
-    # mặc định của Vanhanh. Xem pack-store-index.
+    # mặc định của Naota. Xem pack-store-index.
     "packs": {"store_url": "", "tokens": {}},
     "media": {"enabled": True, "max_age_days": 30, "max_mb": 300, "staging_days": 3},
     "telegram": {"enabled": False, "token": "", "chat_id": ""},
@@ -217,7 +220,7 @@ _DEFAULT = {
     #
     # `chat_id` là whitelist, và trên Zalo nó là chuỗi HEX chứ không phải số. Zalo KHÔNG có
     # công cụ kiểu @userinfobot để tự tra id của mình, nên đừng bắt user đi tìm: người lạ nhắn
-    # cho bot thì Vanhanh đưa họ vào hàng chờ kèm mã ghép nối, chủ bấm một nút là xong.
+    # cho bot thì Naota đưa họ vào hàng chờ kèm mã ghép nối, chủ bấm một nút là xong.
     # Xem `_ZALO_CHO` trong main.py.
     "zalo_bot": {"enabled": False, "token": "", "chat_id": ""},
     # Owner's control channels on Slack (Socket Mode) and WhatsApp (Cloud API). `allow`
@@ -236,6 +239,10 @@ _DEFAULT = {
     # Zalo OA: customer bots only, credentials live in the channel-account store. This
     # holds the domain verification codes Zalo gives (served as /zalo_verifier<code>.html).
     "zalo_oa": {"site_codes": []},
+    # WeChat Official Account (customer bots only, credentials live in the channel-account store). This holds the
+    # `Token` of WeChat's server configuration: generated once, pasted into WeChat by the owner, and the key every
+    # webhook signature is checked with, so it is stored as a secret.
+    "wechat": {"webhook_token": ""},
     "discord": {"enabled": False, "bot_token": "", "allow": ""},
     "lark": {"enabled": False, "app_id": "", "app_secret": "", "domain": "lark", "allow": ""},
     # Backup brain lên GitHub (repo RIÊNG TƯ). token = GitHub PAT (fine-grained, quyền Contents).
@@ -256,18 +263,18 @@ _DEFAULT = {
         # lượt trong khung chat đổi giá trị này.
         "auto_resume": True,
     },
-    # MCP do Vanhanh quản lý (registry connection ở mcp_servers.json). strict=True → CHỈ dùng
-    # kết nối của Vanhanh (--strict-mcp-config), bỏ qua config MCP sẵn có của máy.
-    # hub=True (mặc định): mọi engine đấu qua MCP HUB (1 entry "vanhanh" - đa tài khoản, quyền,
+    # MCP do Naota quản lý (registry connection ở mcp_servers.json). strict=True → CHỈ dùng
+    # kết nối của Naota (--strict-mcp-config), bỏ qua config MCP sẵn có của máy.
+    # hub=True (mặc định): mọi engine đấu qua MCP HUB (1 entry "naota" - đa tài khoản, quyền,
     # audit tại hub). Đặt false để về chế độ cũ (per-server) nếu gặp sự cố.
     # lazy_tools: chống phình context khi đấu nhiều connector. "auto" = tự bật khi số tool
     # MCP vượt lazy_threshold (mặc định); True/False = ép bật/tắt. Khi bật, hub chỉ phơi
-    # 2 meta-tool vanhanh_search_tools/vanhanh_run_tool thay cho hàng trăm schema -> model tự
+    # 2 meta-tool naota_search_tools/naota_run_tool thay cho hàng trăm schema -> model tự
     # tìm tool theo NGỮ CẢNH rồi mới nạp. lazy_top_k = số tool search trả về mỗi lần.
-    # ambient_hint: kèm connector đấu vào TÀI KHOẢN Claude (Drive/Gmail...) vào vanhanh_connections
+    # ambient_hint: kèm connector đấu vào TÀI KHOẢN Claude (Drive/Gmail...) vào naota_connections
     # + lazy search cho engine Claude, để model biết chúng tồn tại (gọi qua tool native mcp__*).
     # lazy_char_budget: trần KÝ TỰ schema tool được phơi thẳng trước khi ép bật lazy. Đếm số
-    # tool không nói lên chi phí (một vanhanh_use_skill nhúng cả danh sách skill có thể nặng hơn
+    # tool không nói lên chi phí (một naota_use_skill nhúng cả danh sách skill có thể nặng hơn
     # mười tool gọn), nên 'auto' xét cả hai: đông tool HOẶC schema nặng.
     "mcp": {"strict": False, "hub": True, "lazy_tools": "auto", "lazy_threshold": 40,
             "lazy_top_k": 8, "lazy_char_budget": 6000, "ambient_hint": True},
@@ -445,12 +452,12 @@ _DEFAULT = {
         # xét trước cái trần này ngay từ lượt sau.
         #
         # 32k là mức thận trọng: nằm dưới cửa sổ của gần như mọi model API đang bán, mà vẫn
-        # rộng gấp nhiều lần một capsule Vanhanh điển hình (khoảng 1.000 token).
+        # rộng gấp nhiều lần một capsule Naota điển hình (khoảng 1.000 token).
         "api_context": {
             "context_window": 32000,
             "reserved_output_tokens": 4000,
         },
-        # NGÂN SÁCH TỪ HẠN MỨC VANHANH TỰ HỌC ĐƯỢC (limit_learner).
+        # NGÂN SÁCH TỪ HẠN MỨC NAOTA TỰ HỌC ĐƯỢC (limit_learner).
         #
         # Vì sao cần: fail-closed bắt phải khai quota_profiles trước, nên tới khi có người
         # ngồi khai thì mọi lượt đã rơi về đường cũ - đúng lúc bị siết lại là đúng lúc phần
@@ -459,7 +466,7 @@ _DEFAULT = {
         # đầu tiên, dùng luôn con số đó làm ngân sách thay vì đợi khai tay.
         #
         # safety_factor: chừa biên vì hạn mức mỗi phút là cửa sổ TRƯỢT (phần vừa gửi hỏng vẫn
-        # còn nằm trong cửa sổ) và bộ đếm token của Vanhanh chỉ là ước lượng.
+        # còn nằm trong cửa sổ) và bộ đếm token của Naota chỉ là ước lượng.
         "learned_quota": {
             "enabled": True,
             "reserved_output_tokens": 1200,
@@ -539,7 +546,7 @@ _SECRET_PATHS = (
     # Code Assist của tài khoản Google, nên nó ngang hàng mọi secret khác trong danh sách.
     "telegram.token", "zalo_bot.token", "backup.token", "voice.elevenlabs_key",
     "slack.bot_token", "slack.app_token", "whatsapp.access_token", "whatsapp.app_secret",
-    "discord.bot_token", "lark.app_secret",
+    "discord.bot_token", "lark.app_secret", "wechat.webhook_token",
     # Secret TOTP là thứ SINH RA mã đăng nhập, nên nó ngang hàng mật khẩu chứ không phải một
     # tuỳ chọn. Ai đọc được nó thì tự sinh mã 2FA mãi mãi, và chủ máy không hề hay biết.
     "auth.totp.secret",
@@ -583,6 +590,20 @@ def _transform_secret_fields(cfg, fn):
 # ghi đè) thì mtime/size đổi -> tự đọc lại. Trả deep copy để caller sửa thoải mái không bẩn cache.
 _SETTINGS_CACHE = {"sig": None, "cfg": None}
 
+
+def _settings_sig_now():
+    try:
+        st = SETTINGS_PATH.stat()
+        return (st.st_mtime_ns, st.st_size)
+    except OSError:
+        return None
+
+
+# 2026-11-13: that one stat ran four times per request on the event loop (both guards, twice each). On a disk that
+# stalls it froze every request, so the loop now reads the signature from memory (kept.py). A save through Naota drops
+# it and shows at once; a hand edit of the file shows on the event loop about a second later.
+_SETTINGS_SIG = kept.Value(lambda: _settings_sig_now(), key=lambda: str(SETTINGS_PATH), name="settings.json")
+
 # Một khoá cho mọi lần đọc-sửa-ghi settings.json (update_settings, write_settings). RLock vì
 # update_settings gọi write_settings bên trong. Chặn hai luồng (endpoint chạy trong threadpool,
 # asyncio.to_thread) cùng đọc bản cũ rồi ghi đè lên thay đổi của nhau.
@@ -601,7 +622,7 @@ class SettingsUnreadable(RuntimeError):
 
 # Đọc lại mấy lần trước khi coi file là hỏng. Lỗi đọc THOÁNG QUA là chuyện thường trên Windows: phần
 # mềm diệt virus hay trình đồng bộ khoá file vừa được ghi trong vài chục mili giây, và
-# `os.replace` của chính Vanhanh cũng khoá đích trong tích tắc. Đọc đúng lúc đó là PermissionError.
+# `os.replace` của chính Naota cũng khoá đích trong tích tắc. Đọc đúng lúc đó là PermissionError.
 _READ_TRIES = 6
 
 
@@ -659,7 +680,7 @@ def _doc_file_settings() -> dict:
             # Không mở được file (khoá, quyền), chứ không phải nội dung hỏng: file thật vẫn còn nguyên
             # đó. Coi là máy mới thì lần ghi kế tiếp xoá nó.
             raise SettingsUnreadable(f"settings.json không đọc được ({type(e).__name__}: {e}) và không có bản "
-                                     f"dự phòng dùng được. Vanhanh KHÔNG coi đây là máy mới để khỏi ghi đè cấu hình thật.")
+                                     f"dự phòng dùng được. Naota KHÔNG coi đây là máy mới để khỏi ghi đè cấu hình thật.")
         # Nội dung hỏng THẬT (JSON vỡ qua mọi lần đọc lại) và không có .bak: bản hỏng đã được giữ ở
         # `.bad-*` bên trên, nên vẫn như trước: chạy bằng mặc định để chủ cài lại được.
     return {}
@@ -712,6 +733,7 @@ def _ghi_nguyen_tu(text: str) -> None:
                 if lan == 4:
                     raise
                 time.sleep(0.05 * (lan + 1))
+        _SETTINGS_SIG.drop()      # the next read looks at the new file, whichever thread makes it
     finally:
         try:
             if tmp.exists():
@@ -898,7 +920,7 @@ def _no_rong_pham_vi_bo_nao(cfg: dict) -> bool:
     thì máy đã cài rồi KHÔNG BAO GIỜ thấy. Mặc định mới chỉ tới được máy cài mới.
 
     Nó cắn đúng chỗ đau nhất: trước đây, `memory_canary` và `lazy_skill_canary` chỉ cho
-    "api". Mọi máy chạy Vanhanh từ trước mốc đó có file settings.json ghim cứng `["api"]`. Chủ
+    "api". Mọi máy chạy Naota từ trước mốc đó có file settings.json ghim cứng `["api"]`. Chủ
     máy nâng cấp lên, bấm mức Tối ưu, thấy trang báo xanh "đã bật, có hiệu lực ngay" - rồi
     mọi lượt chat trên gói ChatGPT hay gói Claude vẫn gửi nguyên CLAUDE.md, vì cả ba nguồn
     đều bị loại với lý do `provider_kind_not_allowed`. Không lỗi, không cảnh báo, chỉ có dòng
@@ -938,7 +960,7 @@ def _ui_lang_ban_cu(cfg: dict, data: dict) -> None:
 
     mặc định `ui_lang` là "" (chưa chọn: dashboard đoán theo trình duyệt). Máy cài
     trước khi có khối locale thì file của nó không có khoá này, và đọc ra "" sẽ làm người dùng
-    Việt có trình duyệt để tiếng Anh bị đổi giao diện trong im lặng. Hồi đó Vanhanh chỉ có tiếng
+    Việt có trình duyệt để tiếng Anh bị đổi giao diện trong im lặng. Hồi đó Naota chỉ có tiếng
     Việt, nên "vi" là đúng sự thật chứ không phải đoán. Chỉ chạm vào bộ nhớ, không ghi file.
     """
     if data and "ui_lang" not in (data.get("locale") or {}):
@@ -946,11 +968,7 @@ def _ui_lang_ban_cu(cfg: dict, data: dict) -> None:
 
 
 def read_settings():
-    try:
-        st = SETTINGS_PATH.stat()
-        sig = (st.st_mtime_ns, st.st_size)
-    except OSError:
-        sig = None
+    sig = _SETTINGS_SIG.get()
     if sig is not None and sig == _SETTINGS_CACHE["sig"] and _SETTINGS_CACHE["cfg"] is not None:
         return json.loads(_SETTINGS_CACHE["cfg"])
     cfg = json.loads(json.dumps(_DEFAULT))   # deep copy
@@ -1087,12 +1105,12 @@ def _write_settings_full(cfg):
     _ghi_nguyen_tu(json.dumps(out, ensure_ascii=False, indent=2))
 
 
-# ---- Account block edited outside Vanhanh ----
-# Someone with a shell on the VPS changed username, password and 2FA by editing settings.json. Every path in Vanhanh that
+# ---- Account block edited outside Naota ----
+# Someone with a shell on the VPS changed username, password and 2FA by editing settings.json. Every path in Naota that
 # changes a password also ends the other sessions, but an edit of the file ends nothing, so the owner stayed signed in
 # and noticed only by chance. Each write through write_settings records a fingerprint of the account block in
 # .auth_stamp.json; a file whose account block no longer matches was changed by something else (a shell, an editor, an
-# agent writing the file). Vanhanh then ends every session, logs the event and tells the owner.
+# agent writing the file). Naota then ends every session, logs the event and tells the owner.
 # It detects, it does not prevent: whoever can write settings.json can also rewrite the stamp, if they know about it.
 _AUTH_CHECK = {"sig": None, "pending": 0.0}
 AUTH_GUARD_GRACE = 2.0
@@ -1146,18 +1164,18 @@ def _stamp_auth(raw_auth) -> None:
 
 
 def auth_guard_check(grace: float = None):
-    """Compare the account block on disk with the last one Vanhanh wrote. Returns None when nothing is wrong, or
+    """Compare the account block on disk with the last one Naota wrote. Returns None when nothing is wrong, or
     {"changed": [parts]} once, the first time an outside change is confirmed (sessions already ended, event logged).
 
     Cheap on the hot path: nothing is read again while the file's (mtime, size) stays the same. A mismatch must last
-    `grace` seconds before it counts, so a write by another Vanhanh process (stamp first, file a moment later) is
+    `grace` seconds before it counts, so a write by another Naota process (stamp first, file a moment later) is
     never taken for an attack. No stamp yet (first run of this version) = adopt the current block silently."""
     grace = AUTH_GUARD_GRACE if grace is None else grace
     with _SETTINGS_LOCK:
-        try:
-            st = SETTINGS_PATH.stat()
-            sig = (st.st_mtime_ns, st.st_size)
-        except OSError:
+        # The same kept signature as read_settings (2026-11-13): `valid_session` calls this for every signed-in
+        # request, and the stat it made here ran on the event loop each time.
+        sig = _SETTINGS_SIG.get()
+        if sig is None:
             return None
         if sig == _AUTH_CHECK["sig"]:
             return None
@@ -1202,7 +1220,7 @@ def auth_guard_check(grace: float = None):
             security_log.forget_networks()
         except Exception:  # noqa: BLE001
             pass
-        print(f"[auth] settings.json: the account block ({', '.join(changed)}) was changed OUTSIDE Vanhanh. "
+        print(f"[auth] settings.json: the account block ({', '.join(changed)}) was changed OUTSIDE Naota. "
               f"All {n} sessions were ended.", file=__import__('sys').stderr)
         return {"changed": changed}
 
@@ -1271,7 +1289,7 @@ def apply_tool_env(cfg=None):
 
 
 def child_utf8_env(env=None, os_name=None) -> dict:
-    """Windows: every child process Vanhanh starts (engine CLIs, and through them the shell commands and Python scripts a
+    """Windows: every child process Naota starts (engine CLIs, and through them the shell commands and Python scripts a
     Team member or a chat turn runs) prints UTF-8. Without it a Python child writing Vietnamese to a pipe uses the ANSI
     code page (cp1252) and dies with UnicodeEncodeError. PYTHONUTF8 turns on UTF-8
     mode (3.7+); PYTHONIOENCODING also covers older or embedded interpreters. A value the user set is kept. Applied when
@@ -1301,26 +1319,26 @@ def auth_enabled(cfg=None):
 
 
 def require_login():
-    """Có BẮT BUỘC đăng nhập để dùng Vanhanh không (kể cả khi CHƯA đặt mật khẩu → ép setup).
-    - VANHANH_REQUIRE_LOGIN=1/0 ép bật/tắt tường minh.
+    """Có BẮT BUỘC đăng nhập để dùng Naota không (kể cả khi CHƯA đặt mật khẩu → ép setup).
+    - NAOTA_REQUIRE_LOGIN=1/0 ép bật/tắt tường minh.
     - Built-in remote access (Cloudflare Tunnel, remote_tunnel.py) is on → True.
-    - Mặc định: BẬT khi server nghe public (VANHANH_HOST=0.0.0.0, vd Docker/Hostinger/VPS) -
+    - Mặc định: BẬT khi server nghe public (NAOTA_HOST=0.0.0.0, vd Docker/Hostinger/VPS) -
       vì Claude chạy full quyền, không được để hở ai cũng vào được."""
-    # The built-in Cloudflare Tunnel (remote_tunnel.py) puts a localhost-only Vanhanh on the Internet, which the bind
-    # address below cannot see. It wins over an explicit VANHANH_REQUIRE_LOGIN=0 for the same reason.
+    # The built-in Cloudflare Tunnel (remote_tunnel.py) puts a localhost-only Naota on the Internet, which the bind
+    # address below cannot see. It wins over an explicit NAOTA_REQUIRE_LOGIN=0 for the same reason.
     try:
         if (read_settings().get("remote_tunnel") or {}).get("enabled"):
             return True
     except Exception:
         pass
-    v = os.getenv("VANHANH_REQUIRE_LOGIN", "").strip().lower()
+    v = os.getenv("NAOTA_REQUIRE_LOGIN", "").strip().lower()
     if v in ("1", "true", "yes", "on"):
         return True
     if v in ("0", "false", "no", "off"):
         return False
     # FAIL-CLOSED: bind KHÔNG phải loopback (0.0.0.0, ::, IP LAN…) → coi là public → bắt buộc login.
-    # Chỉ tắt khi nghe thuần localhost. (Localhost + tunnel: đặt VANHANH_REQUIRE_LOGIN=1.)
-    host = os.getenv("VANHANH_HOST", "127.0.0.1").strip().lower()
+    # Chỉ tắt khi nghe thuần localhost. (Localhost + tunnel: đặt NAOTA_REQUIRE_LOGIN=1.)
+    host = os.getenv("NAOTA_HOST", "127.0.0.1").strip().lower()
     return host not in ("127.0.0.1", "localhost", "::1")
 
 
@@ -1381,7 +1399,7 @@ def kept_totp(cfg=None) -> dict:
     """`{"totp": ...}` to carry into a NEW `auth` object, or `{}` when there is nothing to keep.
 
     Turning off login keeps the 2FA block, so whoever creates the account again (setup
-    page, VANHANH_ADMIN_PASSWORD at boot) must not replace `auth` wholesale and drop it."""
+    page, NAOTA_ADMIN_PASSWORD at boot) must not replace `auth` wholesale and drop it."""
     t = ((cfg or read_settings()).get("auth") or {}).get("totp")
     return {"totp": t} if isinstance(t, dict) and t.get("enabled") else {}
 
@@ -1544,30 +1562,79 @@ def _save_sessions():
         pass
 
 
-def new_session(ip: str = "", ua: str = ""):
+def new_session(ip: str = "", ua: str = "", remember: bool = True):
+    """A new sign-in session. remember=False is "Keep me signed in" left unticked (see _SHORT_SESSION_IDLE)."""
     t = secrets.token_urlsafe(32)
     SESSIONS[t] = _time.time()
     _save_sessions()
     if ip or ua:
         note_session_device(t, ip, ua)
+    if not remember:
+        SESSION_META.setdefault(t, {})["remember"] = False
+        _save_session_meta()
     return t
+
+
+# "Keep me signed in" left unticked (2026-11-14). The owner asked for it to sign in on someone else's device: the
+# cookie then has no max_age, so the browser drops it when it closes. A browser that restores its last session, or a
+# phone browser that never really closes, would keep it anyway, so the server also ends such a session after a few
+# hours with no request from it, and a day after sign-in at the latest. An open dashboard tab polls every few seconds,
+# so the idle limit never hits someone who is using it. The flag lives in SESSION_META (.sessions.json stays
+# {token: ts} for older versions); a session without it is a remembered one, which is every session made before this.
+_SHORT_SESSION_IDLE = 4 * 3600
+_SHORT_SESSION_MAX = 24 * 3600
+
+
+def session_remembered(token) -> bool:
+    return (SESSION_META.get(token) or {}).get("remember") is not False
+
+
+def _short_session_over(token, now: float) -> bool:
+    m = SESSION_META.get(token) or {}
+    if m.get("remember") is not False:
+        return False
+    started = float(m.get("created") or SESSIONS.get(token) or 0)
+    last = float(m.get("last") or started)
+    return now - started > _SHORT_SESSION_MAX or now - last > _SHORT_SESSION_IDLE
 
 
 def valid_session(token):
     if not token:
         return False
     try:
-        auth_guard_check()   # an account block edited outside Vanhanh ends every session (see auth_guard_check)
+        auth_guard_check()   # an account block edited outside Naota ends every session (see auth_guard_check)
     except Exception:  # noqa: BLE001
         pass
     if token not in SESSIONS:
         return False
-    if _time.time() - SESSIONS.get(token, 0) > _SESSION_TTL:
+    if _time.time() - SESSIONS.get(token, 0) > _SESSION_TTL or _short_session_over(token, _time.time()):
         SESSIONS.pop(token, None)
         SESSION_META.pop(token, None)
         _save_sessions()
         _save_session_meta()
         return False
+    return True
+
+
+# Sliding expiry (2026-11-10). A session used to die exactly 30 days after login however often it was used, and the
+# browser dropped the cookie at the same moment (max_age 30 days). An open tab kept chatting over its WebSocket while
+# every HTTP call, chat images included, got 401 with no visible sign. Now a session in use stays alive: at most once
+# a day _auth_guard moves its timestamp forward and re-issues the cookie. One left unused for 30 days still expires.
+# .sessions.json stays {token: ts}, so older versions read it unchanged; the login time moves to SESSION_META.
+_SESSION_RENEW_AFTER = 86400
+
+
+def renew_session(token) -> bool:
+    """Extend a live session whose timestamp is over a day old. True = renewed, the caller re-issues the cookie."""
+    ts = SESSIONS.get(token) if token else None
+    if ts is None or _time.time() - ts < _SESSION_RENEW_AFTER or _time.time() - ts > _SESSION_TTL:
+        return False
+    if not session_remembered(token):
+        return False   # never re-issued: that would hand an unticked sign-in a 30-day cookie
+    SESSION_META.setdefault(token, {}).setdefault("created", ts)
+    SESSIONS[token] = _time.time()
+    _save_sessions()
+    _save_session_meta()
     return True
 
 
@@ -1652,13 +1719,14 @@ def touch_session(token, ip: str = ""):
 
 def list_sessions(current: str = "") -> list:
     out = []
+    now = _time.time()
     for tok, created in SESSIONS.items():
-        if _time.time() - float(created or 0) > _SESSION_TTL:
+        if now - float(created or 0) > _SESSION_TTL or _short_session_over(tok, now):
             continue
         m = SESSION_META.get(tok) or {}
-        out.append({"id": session_id(tok), "created": float(created or 0), "last": float(m.get("last") or created or 0),
+        out.append({"id": session_id(tok), "created": float(m.get("created") or created or 0), "last": float(m.get("last") or created or 0),
                     "ip": m.get("ip", ""), "last_ip": m.get("last_ip") or m.get("ip", ""), "ua": m.get("ua", ""),
-                    "current": bool(current) and tok == current})
+                    "remember": session_remembered(tok), "current": bool(current) and tok == current})
     out.sort(key=lambda x: (not x["current"], -x["last"]))
     return out
 
@@ -1684,7 +1752,7 @@ def drop_session_by_id(sid: str) -> bool:
 _TOKENS_PATH = STATE_DIR / ".api_tokens.json"
 TOKEN_PREFIX = "nts_"
 # Đường mà token scope `chat` được đi. Danh sách TRẮNG, khớp theo tiền tố: thiếu tên nào thì
-# token đó bị từ chối chứ không lọt - fail-closed, đúng nếp của mọi hàng rào khác trong Vanhanh.
+# token đó bị từ chối chứ không lọt - fail-closed, đúng nếp của mọi hàng rào khác trong Naota.
 TOKEN_SCOPE_CHAT = ("/chat", "/version", "/health", "/sessions")
 
 
@@ -1825,7 +1893,7 @@ def clear_setup_token():
 
 
 def provision_admin_from_env():
-    """Apply VANHANH_ADMIN_PASSWORD (+ optional VANHANH_ADMIN_USER) at boot.
+    """Apply NAOTA_ADMIN_PASSWORD (+ optional NAOTA_ADMIN_USER) at boot.
 
     - No admin yet: create it, which also closes /auth/setup (safest for a public deploy).
     - Admin exists and the env value CHANGED since it was last applied: reset to it, keep 2FA,
@@ -1844,11 +1912,11 @@ def provision_admin_from_env():
     an owner who had set their own password in the dashboard was locked out with "Wrong username
     or password" and their username turned into "admin".
     """
-    raw = os.getenv("VANHANH_ADMIN_PASSWORD", "")
+    raw = os.getenv("NAOTA_ADMIN_PASSWORD", "")
     pw = clean_password(raw)
     if not pw:
         return ""
-    user = (os.getenv("VANHANH_ADMIN_USER", "admin").strip() or "admin")
+    user = (os.getenv("NAOTA_ADMIN_USER", "admin").strip() or "admin")
     cfg = read_settings()
     a = dict(cfg.get("auth") or {})
     m_salt = secrets.token_hex(16)
@@ -1897,7 +1965,7 @@ def provision_admin_from_env():
 
 
 def reset_2fa_from_env():
-    """VANHANH_RESET_2FA=<any value> at boot turns 2FA off ONCE.
+    """NAOTA_RESET_2FA=<any value> at boot turns 2FA off ONCE.
 
     The owner was locked out by a 2FA that someone else had set up, and the only way back was a Python one-liner in a
     root terminal. With this variable, the same reset is: add it in the Environment box, redeploy, sign in, remove it.
@@ -1905,7 +1973,7 @@ def reset_2fa_from_env():
     owner sets up next. To use it again, set a new value (today's date, for instance). "0", "false", "no", "off" and
     empty do nothing. Every other session is ended and the event is logged.
     Returns "reset", or "" when nothing was done."""
-    raw = str(os.getenv("VANHANH_RESET_2FA", "") or "").strip()
+    raw = str(os.getenv("NAOTA_RESET_2FA", "") or "").strip()
     if not raw or raw.lower() in ("0", "false", "no", "off"):
         return ""
     cfg = read_settings()

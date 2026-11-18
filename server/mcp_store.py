@@ -1,5 +1,5 @@
 """
-Registry KẾT NỐI MCP của Vanhanh - model v2: connector (mẫu, xem mcp_catalog) ↔ connection (tài khoản).
+Registry KẾT NỐI MCP của Naota - model v2: connector (mẫu, xem mcp_catalog) ↔ connection (tài khoản).
 - File: STATE_DIR/mcp_servers.json (v2). Bản v1 (danh sách server phẳng) tự MIGRATE khi đọc lần đầu,
   bản gốc backup sang mcp_servers.v1.bak.json - không phá dữ liệu cũ.
 - Secret (headers/env/fields) mã hoá at rest qua secrets_store.
@@ -125,9 +125,19 @@ def _hub_on():
         return True
 
 
+# Callables run after every save of the connection list (a connection added, edited, switched on or off). Plain
+# functions with no argument; they may be called from a worker thread and must return fast.
+ON_SAVE: list = []
+
+
 def _save(d):
     with _LOCK:
         STORE.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
+    for fn in list(ON_SAVE):
+        try:
+            fn()
+        except Exception as e:      # noqa: BLE001 - a listener must never fail a save
+            print(f"[mcp_store] on-save listener: {type(e).__name__}: {e}", file=sys.stderr)
     # Hub bật (mặc định): KHÔNG sinh file fallback .mcp_config.json - file đó chứa header/env
     # ĐÃ GIẢI MÃ (plaintext), để nằm lại là vô hiệu hoá mã hoá at-rest. Xoá bản cũ nếu có.
     if _hub_on():
@@ -289,8 +299,8 @@ def update_connection(cid, patch):
             c[k] = merged
     # Đổi ô đăng nhập (email Google, Client ID/Secret) trên connector TỰ giữ token thì token
     # đang cache thuộc về tài khoản/app CŨ - giữ lại là mọi tool vẫn chạy bằng tài khoản cũ.
-    # Vụ thật: user xoá đi đăng nhập lại bằng hi@lequydai.com mà tool vẫn trả về
-    # hi@lequydai.com, vì credential cũ nằm nguyên trên đĩa và không ai dọn.
+    # Vụ thật: user xoá đi đăng nhập lại bằng hi@vuong.ai mà tool vẫn trả về
+    # hi@vuong.ai, vì credential cũ nằm nguyên trên đĩa và không ai dọn.
     if doi_dang_nhap:
         forget_cred_dir(c)
     _save(d)
@@ -309,8 +319,8 @@ def _cred_dir(conn, con=None):
     """{env, path} thư mục token RIÊNG của 1 connection, hoặc None nếu connector không khai.
 
     Vì sao tồn tại: có connector tự chạy luồng OAuth của nó và cache token ra đĩa NGOÀI tầm với
-    của Vanhanh (workspace-mcp). Không tách thư mục thì (1) nhiều tài khoản giẫm lên nhau và
-    (2) Vanhanh không có cách nào bắt nó đăng nhập lại."""
+    của Naota (workspace-mcp). Không tách thư mục thì (1) nhiều tài khoản giẫm lên nhau và
+    (2) Naota không có cách nào bắt nó đăng nhập lại."""
     con = con or mcp_catalog.get(conn.get("connector_id"))
     cd = (con or {}).get("cred_dir") or {}
     if not cd.get("env"):
@@ -354,7 +364,7 @@ def delete_connection(cid):
     d = _load()
     before = len(d["connections"])
     victim = _find(d, cid)
-    forget_cred_dir(victim)   # token OAuth connector tự giữ ngoài Vanhanh - xoá kết nối là xoá theo
+    forget_cred_dir(victim)   # token OAuth connector tự giữ ngoài Naota - xoá kết nối là xoá theo
     d["connections"] = [c for c in d["connections"] if c.get("id") != cid]
     if victim and victim.get("is_default"):   # chuyển default cho tài khoản còn lại cùng connector
         for c in d["connections"]:
@@ -453,14 +463,14 @@ def resolved(enabled_only=True):
         if con:
             for k, v in mcp_catalog.build_env(con, secrets).items():
                 env.setdefault(k, v)
-        # Connector tự giữ token OAuth RIÊNG bên ngoài Vanhanh (vd workspace-mcp cache ở
+        # Connector tự giữ token OAuth RIÊNG bên ngoài Naota (vd workspace-mcp cache ở
         # ~/.google_workspace_mcp/credentials). Để mặc định thì mọi tài khoản dùng chung một
-        # kho, và Vanhanh KHÔNG có đường nào dọn - xoá kết nối rồi thêm lại vẫn xài đúng token cũ,
+        # kho, và Naota KHÔNG có đường nào dọn - xoá kết nối rồi thêm lại vẫn xài đúng token cũ,
         # nên token thiếu quyền là thiếu mãi mãi (đúng vụ Lịch báo thiếu quyền của người dùng
         # thật: cài lại chục lần vô ích vì lần nào cũng đọc lại credential cũ trên đĩa).
         # Trỏ mỗi connection vào một thư mục riêng thì xoá kết nối là token đi theo, lần gọi
         # tool kế tiếp server tự mở lại màn đăng nhập Google với đúng bộ quyền hiện hành.
-        # Playwright MCP phải biết Vanhanh tải trình duyệt về ĐÂU, và trên máy chủ Linux thì phải
+        # Playwright MCP phải biết Naota tải trình duyệt về ĐÂU, và trên máy chủ Linux thì phải
         # lái Chromium chứ không phải Google Chrome (container Debian không có Chrome, và câu
         # lỗi khi nó đi tìm thì không ai đoán ra). Nhận biết theo LỆNH chứ không theo id, để
         # connector đến từ gói hay người dùng tự thêm tay đều được lo như nhau.
@@ -547,6 +557,16 @@ def resolved(enabled_only=True):
                     env[of["env"]] = str(fp)
             except Exception as e:
                 print(f"[mcp_store] oauth file {c['id']}: {e}", file=sys.stderr)
+        if c.get("connector_id") == "zalo" and (c.get("transport") or "http") == "stdio":
+            # Live push (2026-11-10): naota-zalo 1.10.0 wakes Naota when a message arrives, so the read loop stops
+            # asking on a timer. Set HERE, not where the loop builds its spec: the session's identity includes its
+            # env, and every caller of this connection (loop, hub tools, health check) must hand over the same one.
+            try:
+                import zalo_push
+                for k, v in zalo_push.env_for(c["id"]).items():
+                    env.setdefault(k, v)
+            except Exception as e:  # noqa: BLE001 - without the variables the account is read on the timer
+                print(f"[mcp_store] zalo push env {c['id']}: {type(e).__name__}: {e}", file=sys.stderr)
         out.append({
             "id": c["id"], "connector_id": c["connector_id"], "label": c.get("label"),
             "slug": c.get("slug"), "namespace": ns,

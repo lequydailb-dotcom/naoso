@@ -11,8 +11,8 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 SCRATCH = Path(tempfile.mkdtemp(prefix="main-attachments-"))
-for key, child in {"VANHANH_STATE_DIR": "state", "BRAINS_DIR": "brains", "OBSIDIAN_VAULT_PATH": "vault",
-                   "BRAIN_PATH": "brain", "SOURCES_PATH": "sources", "VANHANH_SESSIONS_DB": "sessions.sqlite3"}.items():
+for key, child in {"NAOTA_STATE_DIR": "state", "BRAINS_DIR": "brains", "OBSIDIAN_VAULT_PATH": "vault",
+                   "BRAIN_PATH": "brain", "SOURCES_PATH": "sources", "NAOTA_SESSIONS_DB": "sessions.sqlite3"}.items():
     os.environ[key] = str(SCRATCH / child)
 
 import main
@@ -32,10 +32,10 @@ def _project_block(project_id: str, chi_huong_dan: bool = False) -> str:
     ĐỒNG HÀNH XỬ ("luôn trả lời bằng tiếng Anh", "tránh màu xanh dương"), còn danh sách tài
     liệu là dữ liệu TRA CỨU. Bỏ dữ liệu tra cứu lúc siết ngân sách thì model cùng lắm phải hỏi
     lại; bỏ hợp đồng hành xử thì cùng một project, cùng một câu hỏi, lượt này tuân luật lượt
-    kia không - và người dùng không có cách nào biết vì sao, chỉ thấy Vanhanh bướng.
+    kia không - và người dùng không có cách nào biết vì sao, chỉ thấy Naota bướng.
 
     GHIM FILE = NẠP NỘI DUNG. Spec ban đầu chỉ liệt kê tên và thêm chữ "(ghim)", tức là ghim
-    chỉ đổi thứ tự danh sách. Nhưng người dùng ghim bảng giá vào project thì họ nghĩ Vanhanh đã
+    chỉ đổi thứ tự danh sách. Nhưng người dùng ghim bảng giá vào project thì họ nghĩ Naota đã
     BIẾT bảng giá, chứ không phải biết TÊN nó. Nạp nội dung mới làm cái nút ghim thành công
     tắc thật, và trần ở trên để chính họ cầm cán cân token.
     """
@@ -57,12 +57,12 @@ def _project_block(project_id: str, chi_huong_dan: bool = False) -> str:
 
     dong, da_nap = _liet_ke_tai_lieu(p.get("brain") or "brain", files, links)
     if dong:
-        ra += ("\n\n# === TÀI LIỆU & LINK CỦA PROJECT ===\n"
-               "Đây là DANH SÁCH, không phải nội dung: mở file bằng tool đọc file khi cần, "
-               "đừng đoán nội dung từ cái tên. Link chỉ mở được nếu lượt này có tool duyệt web; "
-               "không có thì nói thẳng chứ đừng đoán nội dung trang.\n" + "\n".join(dong))
+        ra += ("\n\n# === TÀI LIỆU & LINK CỦA PROJECT (project documents and links) ===\n"
+               "This is a LIST, not the content: open a file with a file-reading tool when needed; "
+               "do not guess its content from its name. A link opens only if this turn has a web-browsing tool; "
+               "without one, say so plainly instead of guessing the page.\n" + "\n".join(dong))
     if da_nap:
-        ra += ("\n\n# === NỘI DUNG FILE ĐÃ GHIM (nạp sẵn, không cần mở lại) ===" + "".join(da_nap))
+        ra += ("\n\n# === NỘI DUNG FILE ĐÃ GHIM (pinned file content, preloaded: no need to open it again) ===" + "".join(da_nap))
     return ra
 
 def _liet_ke_tai_lieu(brain: str, files: list, links: list):
@@ -81,8 +81,8 @@ def _liet_ke_tai_lieu(brain: str, files: list, links: list):
         duoi = os.path.splitext(duong)[1].lower()
         if duoi not in PROJECT_GHIM_DUOI:
             # Nói THẲNG là ghim nhưng không nạp được, kèm lý do. Im lặng bỏ qua thì người dùng
-            # ghim xong tưởng Vanhanh đã đọc, rồi ngạc nhiên vì nó trả lời như chưa thấy gì.
-            dong.append(f"- [file, đã ghim nhưng là tệp nhị phân - tự mở khi cần] {ten} - {duong}")
+            # ghim xong tưởng Naota đã đọc, rồi ngạc nhiên vì nó trả lời như chưa thấy gì.
+            dong.append(f"- [file, pinned but binary - open it yourself when needed] {ten} - {duong}")
             continue
         try:
             # `_safe_serve_path` chứ không phải `_safe_path`: đây là đường ĐỌC, và trần duyệt
@@ -94,18 +94,18 @@ def _liet_ke_tai_lieu(brain: str, files: list, links: list):
             noi_dung = _safe_serve_path(brain, duong).read_text(
                 encoding="utf-8", errors="replace")
         except Exception:
-            dong.append(f"- [file, đã ghim nhưng đọc không được] {ten} - {duong}")
+            dong.append(f"- [file, pinned but unreadable] {ten} - {duong}")
             continue
         cat = noi_dung[:min(PROJECT_GHIM_FILE_MAX, max(0, con_lai))]
         if not cat:
-            dong.append(f"- [file, đã ghim nhưng hết chỗ nạp trong lượt này] {ten} - {duong}")
+            dong.append(f"- [file, pinned but no room left to load it this turn] {ten} - {duong}")
             continue
         con_lai -= len(cat)
-        thieu = " (đã cắt bớt)" if len(cat) < len(noi_dung) else ""
+        thieu = " (clipped)" if len(cat) < len(noi_dung) else ""
         da_nap.append(f"\n## {ten} - {duong}{thieu}\n{cat}")
     for l in links[:PROJECT_FILES_LIET_KE]:
         dong.append(f"- [link] {l.get('label') or l.get('url')} - {l.get('url')}"
-                    + (" (ghim)" if l.get("pinned") else ""))
+                    + (" (pinned)" if l.get("pinned") else ""))
     return dong, da_nap
 
 def _session_block(session_id: str) -> str:
@@ -113,11 +113,11 @@ def _session_block(session_id: str) -> str:
 
     Song sinh với `_project_block`, và cố ý cùng trần token: project là "luôn dùng cho mọi
     cuộc trong nhóm", còn cái này là "chỉ cuộc này". Không có nó thì nút thêm file chỉ là một
-    danh sách để ngắm - người dùng gắn bảng giá vào cuộc rồi hỏi ngay, và Vanhanh trả lời như
+    danh sách để ngắm - người dùng gắn bảng giá vào cuộc rồi hỏi ngay, và Naota trả lời như
     chưa hề thấy gì.
 
     Ghim thì NẠP NỘI DUNG, y như project: gắn tên vào cho biết chỗ mà tìm, ghim vào là bảo
-    Vanhanh đọc sẵn.
+    Naota đọc sẵn.
     """
     if not session_id:
         return ""
@@ -135,13 +135,13 @@ def _session_block(session_id: str) -> str:
     dong, da_nap = _liet_ke_tai_lieu(sess.get("brain") or "brain", files, links)
     ra = ""
     if dong:
-        ra += ("\n\n# === TÀI LIỆU & LINK NGƯỜI DÙNG GẮN VÀO CUỘC NÀY ===\n"
-               "Người dùng tự gắn tay ở khung \"Trong cuộc trò chuyện này\", nên đây là thứ họ "
-               "coi là quan trọng cho ĐÚNG cuộc này. Vẫn là DANH SÁCH chứ không phải nội dung: "
-               "mở file bằng tool đọc file khi cần, đừng đoán nội dung từ cái tên.\n"
+        ra += ("\n\n# === TÀI LIỆU & LINK NGƯỜI DÙNG GẮN VÀO CUỘC NÀY (documents and links the user attached to this chat) ===\n"
+               "The user attached these by hand in the \"In this conversation\" panel, so they "
+               "matter to THIS chat. Still a LIST, not the content: "
+               "open a file with a file-reading tool when needed; do not guess its content from its name.\n"
                + "\n".join(dong))
     if da_nap:
-        ra += ("\n\n# === NỘI DUNG FILE ĐÃ GHIM TRONG CUỘC NÀY (nạp sẵn, không cần mở lại) ==="
+        ra += ("\n\n# === NỘI DUNG FILE ĐÃ GHIM TRONG CUỘC NÀY (pinned file content of this chat, preloaded: no need to open it again) ==="
                + "".join(da_nap))
     return ra
 '''
@@ -201,7 +201,7 @@ class AttachmentRenderingTests(unittest.TestCase):
         self.assert_legacy_lists(files, links, loaded)
         lines, sections = R.render_attachment_lists(files, links, loaded, **self.limits)
         self.assertEqual(len(sections), 3)
-        self.assertTrue(all("hết chỗ" in line for line in lines[:12]))
+        self.assertTrue(all("no room left" in line for line in lines[:12]))
         self.assertEqual(len([line for line in lines if line.startswith("- [link]")]), 15)
 
     def test_duplicate_stored_paths_preserve_each_rows_observed_content_and_failure(self):
@@ -222,7 +222,7 @@ class AttachmentRenderingTests(unittest.TestCase):
             self.assertEqual(section, f"\n## {i} - {i}.md\n" + loaded[i])
         self.assertEqual(len(lines), 21)
         self.assertIn("- [file] Unpinned - last.md", lines)
-        self.assertFalse(any("đã cắt bớt" in section for section in sections))
+        self.assertFalse(any("(clipped)" in section for section in sections))
 
     def test_full_protected_empty_source_is_known_empty_without_budget_message(self):
         files = [{"name": "Empty", "path": "empty.md", "pinned": 1}]

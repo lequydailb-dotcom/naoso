@@ -23,8 +23,8 @@ import sys
 import tempfile
 from urllib.parse import parse_qs, urlparse
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-messenger-ig-")
-os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-messenger-ig-")
+os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -213,7 +213,7 @@ check("Instagram off: comments are dropped", not seen and not calls, (seen, call
 
 async def _file_refused():
     bot = make_bot(None)
-    p = os.path.join(os.environ["VANHANH_STATE_DIR"], "a.jpg")
+    p = os.path.join(os.environ["NAOTA_STATE_DIR"], "a.jpg")
     with open(p, "wb") as f:
         f.write(b"\xff\xd8\xff")
     return await bot.send_file(p, "", chat="igc:c1")
@@ -255,6 +255,11 @@ q_ig = parse_qs(urlparse(messenger_oauth.login_url("1", "https://x/cb", "s", ins
 check("no Instagram permission unless asked", "instagram" not in q["scope"][0], q["scope"])
 check("ticked: instagram_basic, instagram_manage_messages, instagram_manage_comments",
       all(s in q_ig["scope"][0].split(",") for s in messenger_oauth.IG_SCOPES), q_ig["scope"])
+# Read_insights is its own optional tick, for the same reason (an app without it refuses the login).
+q_in = parse_qs(urlparse(messenger_oauth.login_url("1", "https://x/cb", "s", insights=True)).query)
+check("no read_insights unless asked, ticked alone it adds read_insights and no Instagram",
+      "read_insights" not in q["scope"][0].split(",") and "read_insights" not in q_ig["scope"][0].split(",")
+      and "read_insights" in q_in["scope"][0].split(",") and "instagram" not in q_in["scope"][0], (q, q_ig, q_in))
 
 print()
 if _fails:

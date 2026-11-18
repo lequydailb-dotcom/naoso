@@ -1,4 +1,4 @@
-"""What Vanhanh does with a conversation's GitHub repos (spec github-trong-chat-spec, sections 8-9).
+"""What Naota does with a conversation's GitHub repos (spec github-trong-chat-spec, sections 8-9).
 
 After every saved turn (`after_turn`), for each attached repo whose worktree changed:
 
@@ -45,7 +45,7 @@ POLL_FAST_S = 30            # first ten minutes after a push
 POLL_SLOW_S = 120
 FAST_WINDOW_S = 600
 LOG_TAIL = 6000
-FIX_MARKER = "[Vanhanh GitHub]"
+FIX_MARKER = "[Naota GitHub]"
 
 Notify = Callable[[str, str, bool], Awaitable[Any]]
 StartTurn = Callable[[str, str], Awaitable[bool]]
@@ -209,12 +209,9 @@ def _slug(text: str) -> str:
 
 
 def _identity_env() -> Dict[str, str]:
-    conn = github_repos.status()
-    login = conn.get("login") or "vanhanh"
-    uid = github_repos.user_id()
-    email = f"{uid}+{login}@users.noreply.github.com" if uid else f"{login}@users.noreply.github.com"
-    return {"GIT_AUTHOR_NAME": login, "GIT_AUTHOR_EMAIL": email, "GIT_COMMITTER_NAME": login,
-            "GIT_COMMITTER_EMAIL": email}
+    who = github_repos.identity()
+    return {"GIT_AUTHOR_NAME": who["name"], "GIT_AUTHOR_EMAIL": who["email"], "GIT_COMMITTER_NAME": who["name"],
+            "GIT_COMMITTER_EMAIL": who["email"]}
 
 
 def commit_all(worktree: str, message: str) -> str:
@@ -223,7 +220,7 @@ def commit_all(worktree: str, message: str) -> str:
     import winproc
     github_repos.git(["add", "-A"], worktree)
     if github_repos.git_out(["diff", "--cached", "--name-only"], worktree):
-        env = dict(github_repos.git_env(""), **_identity_env())
+        env = dict(github_repos.git_env(), **_identity_env())
         p = subprocess.run(["git", "commit", "-q", "-F", "-"], cwd=worktree, input=message, text=True,
                            capture_output=True, env=env, encoding="utf-8", errors="replace",
                            creationflags=winproc.no_window())
@@ -233,17 +230,70 @@ def commit_all(worktree: str, message: str) -> str:
     return github_repos.git_out(["rev-parse", "HEAD"], worktree)
 
 
+def _task_title(task: str) -> str:
+    """The person's own first line of a request, without the bracketed blocks the dashboard puts in front of it.
+
+    A turn arrives as "[NGỮ CẢNH GIAO DIỆN: trang=workspace]", "[File đính kèm để ĐỌC ...: - /path ...]", "[Giờ gửi
+    tin này: ...]" and then the request. Taking the very first line named every job of a chat the same ("ngu-canh-giao-
+    dien-trang-workspace"), so the second job's branch name was already taken (owner/blog, 13/11/2026).
+    """
+    inside = False
+    for raw in str(task or "").splitlines():
+        line = raw.strip()
+        if inside:
+            inside = not line.endswith("]")
+            continue
+        if not line:
+            continue
+        if line.startswith("["):
+            inside = not line.endswith("]")
+            continue
+        if line.startswith("\U0001f4ce"):           # an attached file line ("📎 /path")
+            continue
+        return line
+    return ""
+
+
+def _branch_taken(wt: str, name: str, cur: str) -> bool:
+    """True when pushing HEAD to `name` would clash: another local branch has the name, or origin holds that branch
+    with commits HEAD does not contain (an older job's branch whose PR was squashed, for one)."""
+    if name != cur and github_repos.git(["rev-parse", "--verify", "--quiet", f"refs/heads/{name}"], wt,
+                                        check=False).returncode == 0:
+        return True
+    try:
+        r = github_repos.git(["ls-remote", "origin", f"refs/heads/{name}"], wt, auth=True, check=False, timeout=60)
+    except github_repos.RepoError:
+        return False                                  # cannot ask: the push itself reports the real problem
+    if r.returncode != 0:
+        return False
+    remote = (r.stdout or "").split()
+    if not remote:
+        return False
+    # Ours only when HEAD already contains it (a fast-forward). A sha this machine never fetched fails too: taken.
+    return github_repos.git(["merge-base", "--is-ancestor", remote[0], "HEAD"], wt, check=False).returncode != 0
+
+
 def _final_branch(sid: str, repo: Dict[str, Any], title: str) -> str:
-    """`vanhanh/<slug>-<id6>` decided at the first push (spec 6); after that the branch never changes."""
+    """`naota/<slug>-<id6>` decided at the first push (spec 6); after that the branch never changes.
+
+    The name is always one Naota can push to without overwriting anything: when the chosen name is taken locally or
+    on GitHub by other history, `-2`, `-3`... is added. Naota never force-pushes, so a clash used to stop the job with
+    "has commits this machine lacks" until someone renamed the branch by hand.
+    """
     wt = repo["worktree"]
     cur = github_repos.git_out(["rev-parse", "--abbrev-ref", "HEAD"], wt)
     short = github_repos.session_branch(sid)
     slug = _slug(title)
-    if cur != short or not slug:
+    want = f"naota/{slug}-{short.split('/', 1)[1][:6]}" if (cur == short and slug) else cur
+    name = want
+    for n in range(2, 60):
+        if not _branch_taken(wt, name, cur):
+            break
+        name = f"{want}-{n}"
+    if name == cur:
         return cur
-    new = f"vanhanh/{slug}-{short.split('/', 1)[1][:6]}"
-    r = github_repos.git(["branch", "-m", new], wt, check=False)
-    return new if r.returncode == 0 else cur
+    r = github_repos.git(["branch", "-m", name], wt, check=False)
+    return name if r.returncode == 0 else cur
 
 
 class PushError(github_repos.RepoError):
@@ -261,22 +311,22 @@ _PERM_RE = re.compile(r"(returned error: 403|returned error: 404|Permission to \
 
 
 def auth_message() -> str:
-    return _c("GitHub không nhận đăng nhập của Vanhanh khi đẩy code: chưa kết nối, hoặc token đã hết hạn hay bị thu hồi. "
-              "Vào trang Kết nối, đăng nhập lại GitHub. Kết nối xong Vanhanh tự đẩy lại ngay, không cần nhắn gì, code "
+    return _c("GitHub không nhận đăng nhập của Naota khi đẩy code: chưa kết nối, hoặc token đã hết hạn hay bị thu hồi. "
+              "Vào trang Kết nối, đăng nhập lại GitHub. Kết nối xong Naota tự đẩy lại ngay, không cần nhắn gì, code "
               "đã commit trên máy không mất.",
-              "GitHub did not accept Vanhanh's sign-in when pushing: not connected, or the token expired or was revoked. "
-              "Sign in to GitHub again on the Connections page. Once connected Vanhanh pushes again on its own, no "
+              "GitHub did not accept Naota's sign-in when pushing: not connected, or the token expired or was revoked. "
+              "Sign in to GitHub again on the Connections page. Once connected Naota pushes again on its own, no "
               "message needed; the committed code on this machine is safe.")
 
 
 def _perm_message(full_name: str) -> str:
     login = (github_repos.status().get("login") or "?") if github_repos.token() else "?"
     return _c(f"Tài khoản GitHub {login} không có quyền ghi vào {full_name}. Đăng nhập bằng nút Đăng nhập với GitHub thì "
-              "cài app Vanhanh cho repo này (trang Kết nối, phần chọn repo); dùng token thì token cần quyền ghi Contents "
-              "(token cổ điển: quyền repo). Sửa xong Vanhanh tự đẩy lại.",
-              f"GitHub account {login} cannot write to {full_name}. With Sign in with GitHub, install the Vanhanh app on "
-              "this repo (Connections page, repo picker); with a token, it needs Contents write (classic token: the "
-              "repo scope). Once fixed Vanhanh pushes again on its own.")
+              "cài app Naota cho repository này (trang Kết nối, phần chọn repository); dùng token thì token cần quyền ghi Contents "
+              "(token cổ điển: quyền repository). Sửa xong Naota tự đẩy lại.",
+              f"GitHub account {login} cannot write to {full_name}. With Sign in with GitHub, install the Naota app on "
+              "this repository (Connections page, repository picker); with a token, it needs Contents write (classic token: the "
+              "repository scope). Once fixed Naota pushes again on its own.")
 
 
 def push_error(stderr: str, branch: str, full_name: str) -> PushError:
@@ -284,15 +334,15 @@ def push_error(stderr: str, branch: str, full_name: str) -> PushError:
     raw = str(stderr or "")
     msg = github_repos._redact(raw.strip().splitlines()[-1] if raw.strip() else "?")
     if "non-fast-forward" in raw or "fetch first" in raw:
-        return PushError(_c(f"Nhánh {branch} trên GitHub có commit mà máy này không có, Vanhanh không ghi đè. ({msg})",
-                            f"Branch {branch} on GitHub has commits this machine lacks; Vanhanh does not overwrite "
+        return PushError(_c(f"Nhánh {branch} trên GitHub có commit mà máy này không có, Naota không ghi đè. ({msg})",
+                            f"Branch {branch} on GitHub has commits this machine lacks; Naota does not overwrite "
                             f"them. ({msg})"), "diverged")
     if _AUTH_RE.search(raw):
         return PushError(auth_message(), "auth")
     if _PERM_RE.search(raw):
         return PushError(_perm_message(full_name), "perm")
-    return PushError(_c(f"Đẩy lên không được: {msg}. Vanhanh tự thử lại sau ít phút.",
-                        f"Push failed: {msg}. Vanhanh tries again in a few minutes."), "other")
+    return PushError(_c(f"Đẩy lên không được: {msg}. Naota tự thử lại sau ít phút.",
+                        f"Push failed: {msg}. Naota tries again in a few minutes."), "other")
 
 
 def fail_kind(e: BaseException) -> str:
@@ -323,7 +373,7 @@ def push(repo: Dict[str, Any], branch: str) -> Tuple[str, bool]:
 
 
 def pr_body(info: Dict[str, Any], report: Dict[str, Any], sid: str) -> str:
-    lines = ["Opened by Vanhanh from a chat.", ""]
+    lines = ["Opened by Naota from a chat.", ""]
     if info.get("task"):
         lines += ["**Task**", "", "> " + str(info["task"])[:1500].replace("\n", "\n> "), ""]
     res = report.get("checks") or []
@@ -344,7 +394,7 @@ def pr_body(info: Dict[str, Any], report: Dict[str, Any], sid: str) -> str:
     eng = " ".join(x for x in (info.get("engine"), info.get("model")) if x)
     if eng:
         lines.append(f"Engine: {eng}")
-    lines.append(f"Vanhanh chat: `{sid[:8]}`")
+    lines.append(f"Naota chat: `{sid[:8]}`")
     return "\n".join(lines)
 
 
@@ -369,8 +419,8 @@ def ship(sid: str, brain: str, repo: Dict[str, Any], report: Dict[str, Any]) -> 
     fn = repo["full_name"]
     info = _session(sid)
     # The job's own request names the PR; the chat title only describes the chat's FIRST job.
-    task_line = (str(info.get("task") or "").strip().splitlines() or [""])[0]
-    title = (task_line[:100] or (info.get("title") or "").strip() or _c("Thay đổi từ Vanhanh", "Changes from Vanhanh"))
+    task_line = _task_title(str(info.get("task") or ""))
+    title = (task_line[:100] or (info.get("title") or "").strip() or _c("Thay đổi từ Naota", "Changes from Naota"))
     row = st().ensure(sid, fn, brain=brain, worktree=repo["worktree"], base_branch=_base_name(repo),
                       engine=str(info.get("engine") or ""), model=str(info.get("model") or ""))
     pending = ship_failed(row)
@@ -388,8 +438,12 @@ def ship(sid: str, brain: str, repo: Dict[str, Any], report: Dict[str, Any]) -> 
         # The last PR of this chat is merged: what comes now is a new job on the branch the worktree is on.
         row = st().update(sid, fn, branch="", head_sha="", pr_number=0, pr_url="", pr_node_id="", ci="none",
                           integ="no_pr", post_merge="", merged_sha="", fix_rounds=0, rerun_used=0)
-    sha = commit_all(repo["worktree"], f"{title[:72]}\n\nVanhanh chat {sid[:8]}")
-    branch = row.get("branch") or _final_branch(sid, repo, title)
+    sha = commit_all(repo["worktree"], f"{title[:72]}\n\nNaota chat {sid[:8]}")
+    # The branch is fixed once a push to it went through. A name stored by a push that never did (GitHub held other
+    # history under it, or a row from before the clash check) is not ours yet: decide again, else every retry and
+    # the "Push again" button hit the same taken name forever (14/11/2026).
+    branch = row.get("branch") if (row.get("head_sha") or row.get("pr_number")) else ""
+    branch = branch or _final_branch(sid, repo, title)
     if branch != row.get("branch"):
         st().update(sid, fn, branch=branch)     # decided once: a retry after a failed push uses the same branch
     pushed_sha, pushed_now = push(repo, branch)
@@ -433,7 +487,7 @@ async def request_fix(row: Dict[str, Any], why: str, details: str, key: str) -> 
         "Làm đúng thứ tự: 1) tái hiện ĐÚNG lỗi này ở máy, trong thư mục làm việc của repo (chạy lại đúng lệnh đã đỏ); "
         "2) tìm nguyên nhân gốc rồi sửa; 3) chạy lại đúng lệnh đó cho xanh. KHÔNG bỏ qua, xoá hay nới test, không sửa "
         "workflow CI để cho xanh. Nếu lỗi không do thay đổi của nhánh này thì nói rõ vì sao và dừng. "
-        "Vanhanh tự kiểm tra và đẩy lên sau lượt này.",
+        "Naota tự kiểm tra và đẩy lên sau lượt này.",
     ])
     started = False
     if _start_turn is not None:
@@ -443,9 +497,9 @@ async def request_fix(row: Dict[str, Any], why: str, details: str, key: str) -> 
             started = False
     if not started:
         reason = _c("Cần một lượt chat để sửa nhưng chưa mở được lượt tự động (máy chủ vừa khởi động lại?). "
-                    "Nhắn \"sửa tiếp\" để Vanhanh làm.",
+                    "Nhắn \"sửa tiếp\" để Naota làm.",
                     "A fix turn is needed but could not start on its own (did the server restart?). "
-                    "Send \"keep fixing\" and Vanhanh takes it from there.")
+                    "Send \"keep fixing\" and Naota takes it from there.")
         st().update(sid, fn, exec="stuck", stuck_reason=reason)
         await _say(sid, f"**{fn}**: {why}\n\n{details}\n\n{reason}", False, once=f"nofix:{key}")
     return started
@@ -627,13 +681,13 @@ async def retry_ship(sid: str, full_name: str, by_person: bool = False) -> Dict[
     when it still fails, so the panel can show it."""
     row = st().get(sid, full_name)
     if not row:
-        raise github_repos.RepoError(_c("Cuộc này chưa có việc GitHub nào cho repo đó.",
-                                        "This chat has no GitHub work for that repo."))
+        raise github_repos.RepoError(_c("Cuộc này chưa có việc GitHub nào cho repository đó.",
+                                        "This chat has no GitHub work for that repository."))
     fn = row["full_name"]
     key = _key(sid, fn)
     if key in _SHIPPING:
         if by_person:
-            raise github_repos.RepoError(_c("Vanhanh đang đẩy repo này rồi, chờ chút.", "Vanhanh is pushing this repo already."))
+            raise github_repos.RepoError(_c("Naota đang đẩy repository này rồi, chờ chút.", "Naota is pushing this repository already."))
         return row
     if not await asyncio.to_thread(github_repos.token):
         if by_person:
@@ -643,8 +697,8 @@ async def retry_ship(sid: str, full_name: str, by_person: bool = False) -> Dict[
     repo = next((r for r in repos if r.get("worktree") and r["full_name"].lower() == fn.lower()), None)
     if repo is None:
         if by_person:
-            raise github_repos.RepoError(_c("Repo này không còn gắn với cuộc trò chuyện.",
-                                            "This repo is no longer attached to the chat."))
+            raise github_repos.RepoError(_c("Repository này không còn gắn với cuộc trò chuyện.",
+                                            "This repository is no longer attached to the chat."))
         return row
     _SHIPPING.add(key)
     try:
@@ -806,7 +860,7 @@ async def check_row(row: Dict[str, Any]) -> Dict[str, Any]:
     except (GitHubError, github_repos.RepoError):
         return row      # GitHub unreachable or not connected: try again next tick, change nothing
     pr = snap["pr"] or {}
-    # The PR itself first: merged or closed by a person outside Vanhanh.
+    # The PR itself first: merged or closed by a person outside Naota.
     if pr.get("merged"):
         return await on_merged(row, pr)
     if pr and pr.get("state") == "closed":
@@ -815,7 +869,7 @@ async def check_row(row: Dict[str, Any]) -> Dict[str, Any]:
         await _say(sid, f"**{fn}**: {reason}{_pr_tail(row)}", False, once=f"closed:{sid}:{fn}:{row['pr_number']}")
         return st().get(sid, fn) or row
     if snap["head"] != row["head_sha"]:
-        # A newer commit replaced the one Vanhanh recorded: its CI result belongs to that commit only (spec 9.3).
+        # A newer commit replaced the one Naota recorded: its CI result belongs to that commit only (spec 9.3).
         row = st().update(sid, fn, head_sha=snap["head"], ci="pending", pushed_at=time.time(), rerun_used=0,
                           integ="pr_open")
     st().save_checks(fn, row["head_sha"], snap["items"])
@@ -866,9 +920,9 @@ async def on_red(row: Dict[str, Any], snap: Dict[str, Any]) -> Dict[str, Any]:
     logs = await asyncio.to_thread(_failed_logs, row, failed)
     if await asyncio.to_thread(_base_also_red, row, names):
         reason = _c(f"CI đỏ ({', '.join(names)}) nhưng nhánh {row.get('base_branch')} cũng đỏ đúng các kiểm tra đó: "
-                    "không phải lỗi của thay đổi này. Vanhanh không sửa lan ra ngoài phạm vi.",
+                    "không phải lỗi của thay đổi này. Naota không sửa lan ra ngoài phạm vi.",
                     f"CI is red ({', '.join(names)}) but {row.get('base_branch')} fails the same checks: not this "
-                    "change's fault. Vanhanh does not widen the job to fix it.")
+                    "change's fault. Naota does not widen the job to fix it.")
         st().update(sid, fn, exec="stuck", stuck_reason=reason)
         await _say(sid, f"**{fn}**: {reason}{_pr_tail(row)}", False, once=f"basered:{sid}:{fn}:{row['head_sha']}")
         return st().get(sid, fn) or row
@@ -893,11 +947,11 @@ async def on_red(row: Dict[str, Any], snap: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _merge_blockers(row: Dict[str, Any], pr: Dict[str, Any]) -> List[str]:
-    """Why Vanhanh must not merge this PR on its own right now (spec 11.1). Empty list = it may."""
+    """Why Naota must not merge this PR on its own right now (spec 11.1). Empty list = it may."""
     out = []
     rec = github_repos.find(row.get("brain") or "", row["full_name"]) or {}
     if not github_repos.auto_merge_on(rec):
-        out.append(_c("tự merge đang tắt cho repo này", "auto-merge is off for this repo"))
+        out.append(_c("tự merge đang tắt cho repository này", "auto-merge is off for this repository"))
     if row.get("merge_block"):
         what = ", ".join(f"{x['path']} ({x['kind']})" for x in row["merge_block"][:5])
         out.append(_c(f"thay đổi cần người xem: {what}", f"changes a person must look at: {what}"))
@@ -907,8 +961,8 @@ def _merge_blockers(row: Dict[str, Any], pr: Dict[str, Any]) -> List[str]:
     if review:
         out.append(_c(f"review chéo còn {len(review)} phát hiện mở", f"cross review has {len(review)} open findings"))
     if pr.get("mergeable_state") == "blocked":
-        out.append(_c("repo còn điều kiện chưa đạt (cần người duyệt hoặc kiểm tra bắt buộc)",
-                      "the repo still requires something (a review or a required check)"))
+        out.append(_c("repository còn điều kiện chưa đạt (cần người duyệt hoặc kiểm tra bắt buộc)",
+                      "the repository still requires something (a review or a required check)"))
     return out
 
 
@@ -965,16 +1019,62 @@ async def merge_now(row: Dict[str, Any], pr: Dict[str, Any], by_person: bool = F
         return st().get(sid, fn) or row
 
 
+def _download_base_for_merge(row: Dict[str, Any]) -> str:
+    """Make `git merge origin/<base>` runnable in the worktree WITHOUT a credential. "" when ready, else the reason.
+
+    The engine that resolves the conflict has no token in its shell (github_repos docstring), and the clone is a
+    partial one, so on a private repo it can neither fetch the base nor let git download, in the middle of the merge,
+    the file contents that merge reads. Naota does both here, with its token:
+      1. fetch the base branch;
+      2. download every file content that differs between each merge base and either side. `git diff --shortstat`
+         reads both versions of every changed path, and git batches the download of the missing ones. That covers
+         what the merge reads (base, ours, theirs, rename candidates) and what it writes into the worktree.
+    Nothing in the worktree or the index changes: only objects arrive.
+    """
+    wt = row.get("worktree") or ""
+    if not wt:
+        return ""
+    name = row.get("base_branch") or "main"
+    base = f"origin/{name}"
+    # `git merge` asks who the committer is before it does anything. A worktree made before clones got an identity
+    # of their own would stop the engine right there on a machine that has none.
+    github_repos.ensure_identity(wt)
+    try:
+        github_repos.git(["fetch", "origin", f"+refs/heads/{name}:refs/remotes/{base}"], wt, auth=True, timeout=300)
+        # Usually one merge base; none (unrelated histories) leaves nothing to download.
+        for merge_base in github_repos.git(["merge-base", "--all", "HEAD", base], wt, check=False).stdout.split():
+            for side in ("HEAD", base):
+                github_repos.git(["diff", "--shortstat", "--no-renames", "--no-ext-diff", "--no-textconv",
+                                  merge_base, side], wt, **github_repos.CHECKOUT)
+    except github_repos.RepoError as e:
+        return str(e)
+    return ""
+
+
 async def _conflict(row: Dict[str, Any]) -> Dict[str, Any]:
     sid, fn = row["sid"], row["full_name"]
+    key = f"{sid}:{fn}:conflict:{row['head_sha']}"
     reason = _c("PR bị xung đột với nhánh chính, cần làm lại.", "The PR conflicts with the base branch.")
+    if not st().step_done("fix:" + key):
+        failed = await asyncio.to_thread(_download_base_for_merge, row)
+        if failed:
+            # No fix round: the merge could not work. `integ` is left alone, so the watcher keeps this row and the
+            # next tick downloads again ("conflict" would take the row off its list).
+            reason += " " + _c(f"Naota chưa tải được nhánh chính về để gộp ({failed}), sẽ tự thử lại.",
+                               f"Naota could not download the base branch to merge it ({failed}) and will try again.")
+            st().update(sid, fn, stuck_reason=reason)
+            await _say(sid, f"**{fn}**: {reason}{_pr_tail(row)}", False,
+                       once=f"conflict-wait:{sid}:{fn}:{row['head_sha']}")
+            return st().get(sid, fn) or row
     st().update(sid, fn, integ="conflict", stuck_reason=reason)
     await _say(sid, f"**{fn}**: {reason}{_pr_tail(row)}", False, once=f"conflict:{sid}:{fn}:{row['head_sha']}")
-    # A conflict is work for the chat: one fix round to merge the base branch in and resolve it.
+    # A conflict is work for the chat: one fix round to merge the base branch in and resolve it. The engine only
+    # merges; it is never asked to fetch, its shell has no GitHub credential.
     await request_fix(st().get(sid, fn) or row, _c("PR xung đột với nhánh chính", "The PR conflicts with the base"),
-                      f"Trong thư mục làm việc của {fn}: `git fetch origin` rồi `git merge origin/{row.get('base_branch')}`, "
+                      f"Naota đã tải sẵn bản mới nhất của nhánh {row.get('base_branch')} về máy, không cần tải lại. "
+                      f"Trong thư mục làm việc của {fn}: `git merge origin/{row.get('base_branch')}`, "
                       "giải quyết xung đột giữ đúng ý của cả hai bên, chạy lại test. Không rebase, không force push.",
-                      f"{sid}:{fn}:conflict:{row['head_sha']}")
+                      key)
     return st().get(sid, fn) or row
 
 
@@ -996,7 +1096,7 @@ def _restart_branch(row: Dict[str, Any]) -> None:
         while github_repos.git(["rev-parse", "--verify", "--quiet", f"refs/heads/{stem}-r{n}"], wt,
                                check=False).returncode == 0:
             n += 1
-        github_repos.git(["checkout", "-q", "-b", f"{stem}-r{n}", base], wt)
+        github_repos.git(["checkout", "-q", "-b", f"{stem}-r{n}", base], wt, **github_repos.CHECKOUT)
     except github_repos.RepoError:
         pass
 
@@ -1032,9 +1132,9 @@ async def on_green(row: Dict[str, Any], pr: Dict[str, Any]) -> Dict[str, Any]:
     blockers = await asyncio.to_thread(_merge_blockers, row, pr)
     if not blockers:
         return await merge_now(row, pr)
-    await _say(sid, _c(f"**{fn}**: CI xanh, PR #{row['pr_number']} sẵn sàng merge. Vanhanh chưa tự merge vì "
+    await _say(sid, _c(f"**{fn}**: CI xanh, PR #{row['pr_number']} sẵn sàng merge. Naota chưa tự merge vì "
                        f"{'; '.join(blockers)}.{_pr_tail(row)}",
-                       f"**{fn}**: CI green, PR #{row['pr_number']} is ready to merge. Vanhanh did not merge it because "
+                       f"**{fn}**: CI green, PR #{row['pr_number']} is ready to merge. Naota did not merge it because "
                        f"{'; '.join(blockers)}.{_pr_tail(row)}"), True, once=f"green:{sid}:{fn}:{row['head_sha']}")
     return row
 
@@ -1045,16 +1145,16 @@ async def on_no_ci(row: Dict[str, Any], pr: Dict[str, Any]) -> Dict[str, Any]:
     if pr.get("mergeable") is False:
         return await on_green(row, pr)      # conflict wording and state are the same
     st().update(sid, fn, integ="ready")
-    await _say(sid, _c(f"**{fn}**: repo không có CI cho commit này. Kiểm tra ở máy đã qua; PR #{row['pr_number']} "
-                       f"chờ người bấm merge, Vanhanh không tự merge khi không có CI.{_pr_tail(row)}",
+    await _say(sid, _c(f"**{fn}**: repository không có CI cho commit này. Kiểm tra ở máy đã qua; PR #{row['pr_number']} "
+                       f"chờ người bấm merge, Naota không tự merge khi không có CI.{_pr_tail(row)}",
                        f"**{fn}**: no CI ran on this commit. Local checks passed; PR #{row['pr_number']} waits for a "
-                       f"person to merge, Vanhanh never auto-merges without CI.{_pr_tail(row)}"), True,
+                       f"person to merge, Naota never auto-merges without CI.{_pr_tail(row)}"), True,
                once=f"noci:{sid}:{fn}:{row['head_sha']}")
     return st().get(sid, fn) or row
 
 
 async def on_merged(row: Dict[str, Any], pr: Dict[str, Any]) -> Dict[str, Any]:
-    """The PR was merged on GitHub (by a person, or by Vanhanh on an earlier tick)."""
+    """The PR was merged on GitHub (by a person, or by Naota on an earlier tick)."""
     sid, fn = row["sid"], row["full_name"]
     if row.get("integ") == "merged":
         return row
@@ -1129,9 +1229,9 @@ async def maybe_next(sid: str) -> bool:
             started = False
     if not started:
         await _say(sid, _c(f"Việc kế tiếp đã tới lượt nhưng chưa tự mở được lượt chat: {job['text']}\n"
-                           "Nhắn \"làm tiếp\" để Vanhanh bắt đầu.",
+                           "Nhắn \"làm tiếp\" để Naota bắt đầu.",
                            f"The next job is due but no automatic turn could start: {job['text']}\n"
-                           "Send \"go on\" and Vanhanh starts it."), False, once=f"next:{job['id']}")
+                           "Send \"go on\" and Naota starts it."), False, once=f"next:{job['id']}")
     return started
 
 
@@ -1264,10 +1364,10 @@ def _candidates(row: Dict[str, Any], provider: str) -> Tuple[List[Dict[str, str]
         return out[:REVIEW_TRY_MAX], ""
     return [], _c("chưa có engine nào chạy được ở chế độ chỉ chữ: Claude, hoặc một nhà dùng API key (OpenAI, Gemini, "
                   "DeepSeek, OpenRouter...). Gói ChatGPT, Grok Build và Antigravity chạy qua CLI còn công cụ đọc ghi "
-                  "file nên không được đọc diff của repo.",
+                  "file nên không được đọc diff của repository.",
                   "no engine can run text-only: Claude, or a provider on an API key (OpenAI, Gemini, DeepSeek, "
                   "OpenRouter...). The ChatGPT, Grok Build and Antigravity plans run through a CLI that keeps file "
-                  "tools, so they never read a repo's diff.")
+                  "tools, so they never read a repository's diff.")
 
 
 async def cross_review(row: Dict[str, Any], provider: str = "", manual: bool = False) -> Dict[str, Any]:
@@ -1275,7 +1375,7 @@ async def cross_review(row: Dict[str, Any], provider: str = "", manual: bool = F
 
     Runs only when the repo's switch is on (once per commit, before the merge) or when a person asks (`manual`, any
     time before the merge, on `provider` when named). Findings hold the merge until the person picks "Fix them" or
-    "Skip and merge"; Vanhanh no longer sends them to the author on its own."""
+    "Skip and merge"; Naota no longer sends them to the author on its own."""
     sid, fn, head = row["sid"], row["full_name"], row["head_sha"]
     gate = dict(row.get("gate") or {})
     if not manual and gate.get("reviewed_sha") == head:
@@ -1286,7 +1386,7 @@ async def cross_review(row: Dict[str, Any], provider: str = "", manual: bool = F
         gate["review_skipped"] = True
         gate.pop("review_running", None)
         row = st().update(sid, fn, gate=gate)
-        why = none_why or _c("Vanhanh chưa sẵn sàng review.", "Vanhanh is not ready to review.")
+        why = none_why or _c("Naota chưa sẵn sàng review.", "Naota is not ready to review.")
         await _say(sid, _c(f"**{fn}**: chưa review chéo được, {why}", f"**{fn}**: not cross-reviewed, {why}"), True,
                    once="" if manual else f"noreviewsay:{fn}:{head}")
         return row
@@ -1344,9 +1444,9 @@ async def cross_review(row: Dict[str, Any], provider: str = "", manual: bool = F
     await _say(sid, _c(f"**{fn}**: review chéo ({shown}) có {len(findings)} phát hiện.",
                        f"**{fn}**: cross review ({shown}) found {len(findings)} issue(s).") + "\n" +
                "\n".join(_finding_lines(findings)) + "\n\n" +
-               _c("Vanhanh chưa merge. Bấm biểu tượng GitHub của cuộc trò chuyện, chọn **Sửa các lỗi này** hoặc **Bỏ qua, "
+               _c("Naota chưa merge. Bấm biểu tượng GitHub của cuộc trò chuyện, chọn **Sửa các lỗi này** hoặc **Bỏ qua, "
                   "merge**, hay nhắn ngay tại đây.",
-                  "Vanhanh has not merged. Open the chat's GitHub icon and pick **Fix them** or **Skip and merge**, or "
+                  "Naota has not merged. Open the chat's GitHub icon and pick **Fix them** or **Skip and merge**, or "
                   "reply right here."),
                False, once="" if manual else f"reviewsay:{fn}:{head}")
     return st().get(sid, fn) or row
@@ -1365,7 +1465,7 @@ _PERSON_REVIEWS: Dict[str, "asyncio.Task[Dict[str, Any]]"] = {}
 def _review_row(sid: str, full_name: str) -> Dict[str, Any]:
     row = st().get(sid, full_name)
     if not row or not row.get("pr_number"):
-        raise github_repos.RepoError(_c("Cuộc này chưa có PR cho repo đó.", "This chat has no PR for that repo."))
+        raise github_repos.RepoError(_c("Cuộc này chưa có PR cho repository đó.", "This chat has no PR for that repository."))
     if row.get("integ") == "merged":
         raise github_repos.RepoError(_c("PR đã merge, không còn gì để review.", "The PR is merged, nothing to review."))
     return row
@@ -1461,7 +1561,7 @@ def _is_review_turn(user_message: str) -> bool:
 def lessons_path(brain: str, full_name: str):
     from pathlib import Path
     root = Path(_brain_root(brain) or brain or ".")
-    return root / "Vanhanh" / "learned" / "repos" / (full_name.replace("/", "__") + ".md")
+    return root / "Naota" / "learned" / "repos" / (full_name.replace("/", "__") + ".md")
 
 
 def read_lessons(brain: str, full_name: str) -> List[str]:
@@ -1483,7 +1583,7 @@ def add_lesson(brain: str, full_name: str, lesson: str) -> bool:
     cur = (cur + [lesson])[-LESSONS_MAX:]
     p = lessons_path(brain, full_name)
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(f"# Bài học của repo {full_name}\n\nVanhanh tự ghi khi một lỗi thật vừa được sửa. Mỗi dòng một bài học.\n\n"
+    p.write_text(f"# Bài học của repo {full_name}\n\nNaota tự ghi khi một lỗi thật vừa được sửa. Mỗi dòng một bài học.\n\n"
                  + "\n".join(f"- {x}" for x in cur) + "\n", encoding="utf-8")
     return True
 
@@ -1548,7 +1648,7 @@ def reconcile_on_start() -> None:
     for row in st().running():
         if row["exec"] == "running" and row["ci"] not in ("pending", "running"):
             st().update(row["sid"], row["full_name"], exec="done" if row["head_sha"] else "idle")
-    # A review in flight when Vanhanh stopped never finishes: its flag would hold the merge forever.
+    # A review in flight when Naota stopped never finishes: its flag would hold the merge forever.
     for row in st().active():
         gate = dict(row.get("gate") or {})
         if gate.pop("review_running", None):
@@ -1600,7 +1700,7 @@ def queue_next(sid: str, text: str) -> Dict[str, Any]:
     if not text:
         raise ValueError(_c("Chưa có nội dung việc kế tiếp.", "The next job has no text."))
     if not st().for_session(sid) and not github_repos.session_repos(sid):
-        raise ValueError(_c("Cuộc trò chuyện này chưa gắn repo GitHub nào.", "This chat has no GitHub repo attached."))
+        raise ValueError(_c("Cuộc trò chuyện này chưa gắn repository GitHub nào.", "This chat has no GitHub repository attached."))
     qid = st().queue_add(sid, text[:4000])
     return {"id": qid, "queue": [{"id": q["id"], "text": q["text"]} for q in st().queue_list(sid)]}
 
@@ -1654,7 +1754,7 @@ async def merge_by_person(sid: str, full_name: str) -> Dict[str, Any]:
 async def _merge_by_person(sid: str, full_name: str) -> Dict[str, Any]:
     row = st().get(sid, full_name)
     if not row or not row.get("pr_number"):
-        raise github_repos.RepoError(_c("Cuộc này chưa có PR cho repo đó.", "This chat has no PR for that repo."))
+        raise github_repos.RepoError(_c("Cuộc này chưa có PR cho repository đó.", "This chat has no PR for that repository."))
     if row.get("integ") == "merged":
         return {"row": _row_view(row)}
     if row.get("ci") not in ("green", "no_ci"):

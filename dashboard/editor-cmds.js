@@ -275,7 +275,7 @@
     // "/image" and paste cover it.
     { id: "image", label: "ecmd.image", kw: "chen anh hinh image picture photo", btn: { icon: "image" },
       run: function (c) {
-        var NI = (typeof window !== "undefined") && window.VanhanhNoteImages;
+        var NI = (typeof window !== "undefined") && window.NaotaNoteImages;
         if (NI && NI.pickFiles) NI.pickFiles(c);
       } },
 
@@ -737,7 +737,7 @@
       markEdited(ctx.wys);
     });
 
-    window.VanhanhEditorCmds = api;
+    window.NaotaEditorCmds = api;
   }
 
   if (typeof module !== "undefined" && module.exports) module.exports = api;

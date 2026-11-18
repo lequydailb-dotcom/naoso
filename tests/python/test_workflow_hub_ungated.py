@@ -1,10 +1,10 @@
-"""A Claude workflow step that is not gated gets the Vanhanh hub, at the run's level.
+"""A Claude workflow step that is not gated gets the Naota hub, at the run's level.
 
     python tests/run.py workflow_hub_ungated      (no network, spawns nothing)
 
 The bug: `_workflow_agent_helpers._mk` built the Claude engine of an ungated step (a workflow run from chat, or a Kanban
-`wf:` job at `full`, where tools is None) with only `vanhanh_vault` set. In-process plugins worked; every MCP registered
-in Vanhanh did not, so the agent reported "missing tool" and the Kanban job stopped at its acceptance check. The Codex
+`wf:` job at `full`, where tools is None) with only `naota_vault` set. In-process plugins worked; every MCP registered
+in Naota did not, so the agent reported "missing tool" and the Kanban job stopped at its acceptance check. The Codex
 branch of the same function already attached the hub (_apply_codex_hub), and route `auto` at `full` did too.
 
 Pinned here:
@@ -18,7 +18,7 @@ import tempfile
 
 from _paths import ROOT, SERVER  # noqa: E402,F401
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-wf-hub-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-wf-hub-"))
 
 import main  # noqa: E402
 
@@ -43,15 +43,15 @@ try:
     c = mk("prompt", "sonnet", "anthropic-cli")
     check("1. Kanban wf: at full: the Claude step is on the hub", getattr(c, "mcp_config", None) == "/hub/claude-full.json",
           getattr(c, "mcp_config", None))
-    check("1. the hub level is the job's level", getattr(c, "vanhanh_mode", None) == "full", getattr(c, "vanhanh_mode", None))
-    check("1. the brain is still set for in-process plugins", bool(getattr(c, "vanhanh_vault", None)))
+    check("1. the hub level is the job's level", getattr(c, "naota_mode", None) == "full", getattr(c, "naota_mode", None))
+    check("1. the brain is still set for in-process plugins", bool(getattr(c, "naota_vault", None)))
     check("1. full is not strict (ambient account connectors stay reachable)", not getattr(c, "mcp_strict", False))
 
     # 2. run from chat
     mk = main._workflow_agent_helpers("brain", None)[0]
     c = mk("prompt", "sonnet", "anthropic-cli")
     check("2. a run from chat gets the hub at full", getattr(c, "mcp_config", None) == "/hub/claude-full.json"
-          and getattr(c, "vanhanh_mode", None) == "full", (getattr(c, "mcp_config", None), getattr(c, "vanhanh_mode", None)))
+          and getattr(c, "naota_mode", None) == "full", (getattr(c, "mcp_config", None), getattr(c, "naota_mode", None)))
 
     # 3. gated run unchanged
     mk = main._workflow_agent_helpers("brain", ["Read", "Write"], "auto")[0]

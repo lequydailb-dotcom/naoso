@@ -2,7 +2,7 @@
 
     python tests/run.py model_moi
 
-Lỗi thật: Vanhanh không có bản claude 5.1 fable, trong khi trước đây danh sách model tự cập nhật
+Lỗi thật: Naota không có bản claude 5.1 fable, trong khi trước đây danh sách model tự cập nhật
 theo nhà cung cấp.
 
 Ba lưới cùng thủng, và cả ba đều hỏng KIỂU IM LẶNG - trình chọn model vẫn hiện ra một danh
@@ -18,7 +18,7 @@ sách trông bình thường, chỉ là thiếu mất dòng model mới:
 2. **Danh sách đã nhớ ĐÈ danh sách mặc định.** `_remember_catalog` ghi bản live vào
    `settings.json`, mà `config._deep_merge` thì THAY danh sách chứ không nối. Nên kể từ lần
    ghi đầu tiên, bản mặc định mới trong `config.py` không bao giờ tới được người dùng nữa:
-   nâng cấp Vanhanh bao nhiêu lần cũng vô ích, trừ khi sửa tay `settings.json`. Nay hai danh
+   nâng cấp Naota bao nhiêu lần cũng vô ích, trừ khi sửa tay `settings.json`. Nay hai danh
    sách HỢP với nhau.
 
 3. **Dịch alias sang id thật lấy "cái đầu tiên gặp".** Alias có nghĩa là "bản mới nhất của
@@ -36,7 +36,9 @@ import os
 import sys
 import tempfile
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-model-moi-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-model-moi-")
+# Claude Code's model-catalog cache of the machine running the test must not leak in.
+os.environ["CLAUDE_CONFIG_DIR"] = os.path.join(os.environ["NAOTA_STATE_DIR"], "claude-config")
 
 import claude_cli  # noqa: E402
 import config as cfg  # noqa: E402
@@ -58,7 +60,7 @@ def check(name, cond, them=""):
 # ============================================================
 # Không phụ thuộc máy chạy test có cài Claude Code hay không: dựng một file GIẢ mang đúng hình
 # dạng dữ liệu thật (id nằm trong dấu nháy kép, lẫn giữa rác nhị phân) rồi trỏ hàm vào đó.
-_gia = os.path.join(os.environ["VANHANH_STATE_DIR"], "claude-gia.bin")
+_gia = os.path.join(os.environ["NAOTA_STATE_DIR"], "claude-gia.bin")
 with open(_gia, "wb") as _fh:
     _fh.write(b'\x00rac"claude-opus-4-1-20250805"rac"claude-fable-5"\xff'
               b'"claude-opus-5"..."claude-fable-5-1"..."claude-sonnet-5"'
@@ -105,6 +107,68 @@ try:
 finally:
     claude_cli._file_co_danh_muc = _cu
     claude_cli._MODELS_CACHE.update(sig=None, ids=None)
+
+
+# ============================================================
+# 1b. An old Claude Code binary must not hide a model this Naota release ships
+# ============================================================
+# Owner report 2026-11-10: Fable 5.2 was out, Naota did not list it. The binary's catalog was the only list shown.
+_cu_lm = claude_cli.list_models
+try:
+    claude_cli.list_models = lambda: list(_ids)          # an installed CLI that stops at Fable 5.1
+    main._PROV_MODELS_CACHE.clear()
+    _m = asyncio.run(main._fetch_provider_models("anthropic-cli", {"anthropic_api_key": ""}))
+finally:
+    claude_cli.list_models = _cu_lm
+    main._PROV_MODELS_CACHE.clear()
+check("CANARY: Fable 5.2 shows although the installed CLI only knows 5.1", "claude-fable-5-2" in (_m or []), _m)
+check("the CLI's own models stay in the list", {"claude-fable-5-1", "claude-opus-4-1-20250805"} <= set(_m or []))
+check("newest first after the merge", (_m or []).index("claude-fable-5-2") < (_m or []).index("claude-fable-5-1"))
+check("aliases still lead and nothing repeats", (_m or [])[:1] == ["fable"] and len(_m) == len(set(_m)), _m)
+check("merge_models drops strings that are not model ids",
+      claude_cli.merge_models(["opus", "claude-code-20250219"], ["claude-opus-5-5"]) == ["opus", "claude-opus-5-5"])
+check("Fable 5.2 has its own price row", up._khoa_gia("claude-fable-5-2", up.load_prices()) == "claude-fable-5-2")
+
+
+# ============================================================
+# 1c. Models newer than the installed binary: Claude Code's model-catalog cache
+# ============================================================
+# Real bug (2026-11-10): Fable 5.2 was in Claude Code's model picker but not in Naota, because
+# the 2.1.319 binary does not embed `claude-fable-5-2`; the CLI downloads it into
+# `<config dir>/cache/model-catalog/*.json`.
+import json as _json  # noqa: E402
+_catdir = os.path.join(os.environ["CLAUDE_CONFIG_DIR"], "cache", "model-catalog")
+os.makedirs(_catdir, exist_ok=True)
+with open(os.path.join(_catdir, "abc-cc.json"), "w", encoding="utf-8") as _fh:
+    _json.dump({"catalog": {"surface": "cc", "config": {"id": "cc", "models": [
+        {"id": "claude-opus-5-5"}, {"id": "claude-fable-5-2"}, {"id": "claude-fable-5-1"},
+        {"id": "not-a-model"}, "rac"]}}}, _fh)
+with open(os.path.join(_catdir, "broken.json"), "w", encoding="utf-8") as _fh:
+    _fh.write("{not json")
+try:
+    claude_cli._file_co_danh_muc = lambda: __import__("pathlib").Path(_gia)
+    claude_cli._MODELS_CACHE.update(sig=None, ids=None)
+    _ids2 = claude_cli.list_models() or []
+finally:
+    claude_cli._file_co_danh_muc = _cu
+_i2 = {m: n for n, m in enumerate(_ids2)}
+check("CANARY: Fable 5.2 from the CLI catalog cache reaches the list", "claude-fable-5-2" in _i2, _ids2)
+check("models from the binary are still there", "claude-opus-4-8" in _i2 and "claude-fable-5" in _i2)
+check("5.2 sorts above 5.1", _i2.get("claude-fable-5-2", 99) < _i2.get("claude-fable-5-1", 0))
+check("junk entries and a broken cache file are skipped", "not-a-model" not in _i2 and "rac" not in _i2)
+claude_cli._file_co_danh_muc = lambda: None
+try:
+    claude_cli._MODELS_CACHE.update(sig=None, ids=None)
+    _ids3 = claude_cli.list_models() or []
+finally:
+    claude_cli._file_co_danh_muc = _cu
+check("catalog cache alone still gives a list", "claude-fable-5-2" in _ids3 and set(_ids3[:2]) == {"opus", "fable"}, _ids3)
+check("default Claude Code catalog lists Fable 5.2",
+      "claude-fable-5-2" in cfg._DEFAULT["model"]["catalog"]["claude"]
+      and "claude-fable-5-2" in next(d for d in main.PROVIDER_DEFS
+                                     if d["id"] == "anthropic-cli")["default_models"])
+claude_cli._MODELS_CACHE.update(sig=None, ids=None)
+__import__("shutil").rmtree(_catdir, ignore_errors=True)
 
 
 # ============================================================
@@ -209,7 +273,7 @@ check("model đang chạy luôn có mặt trong ô, dù server không trả nó"
 # ============================================================
 # 7. CÙNG LOẠI LỖI ở nhà cung cấp khác: lọc model bằng danh sách tên được phép
 # ============================================================
-# Fable 5.1 biến mất vì Vanhanh giữ một danh sách model "được phép" rồi để nó cũ đi. OpenAI và
+# Fable 5.1 biến mất vì Naota giữ một danh sách model "được phép" rồi để nó cũ đi. OpenAI và
 # Gemini có đúng khuôn đó trong bộ lọc danh sách live: chỉ giữ tên bắt đầu bằng `gpt/o1/o3/o4/
 # chatgpt`, và chỉ giữ tên bắt đầu bằng `gemini`. Nhà cung cấp mở một dòng tên khác là dòng đó
 # không bao giờ hiện ra, không lỗi, không dấu hiệu nào. Nay lọc NGƯỢC: bỏ theo CÔNG DỤNG

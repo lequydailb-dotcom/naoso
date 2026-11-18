@@ -5,7 +5,7 @@
 Triệu chứng: "thi thoảng chuyển tab nó lại nháy đen
 màn hình terminal xong tắt luôn".
 
-Cơ chế: Vanhanh trên Windows khởi động qua `start-vanhanh.vbs`, tức tiến trình server chạy KHÔNG CÓ
+Cơ chế: Naota trên Windows khởi động qua `start-naota.vbs`, tức tiến trình server chạy KHÔNG CÓ
 console. Trong Windows, một tiến trình không console mà sinh ra chương trình dạng console (git,
 curl, node, python, npx...) thì hệ điều hành TỰ CẤP cho đứa con một cửa sổ console mới. Nó chớp
 lên rồi tắt cùng lúc với lệnh con. Không hỏng gì, nhưng cướp tiêu điểm bàn phím và trông hệt như
@@ -42,11 +42,12 @@ _CO_Y = {
     # là hành động do người dùng bấm, và cửa sổ chính là thứ họ cần nhìn.
     ("claude_cli.py", "mcp_open_auth_terminal"),
     ("claude_cli.py", "codex_mcp_open_login_terminal"),
-    # Khởi động lại Vanhanh sau khi cập nhật: tiến trình mới phải sống lâu hơn tiến trình sinh ra
+    # Khởi động lại Naota sau khi cập nhật: tiến trình mới phải sống lâu hơn tiến trình sinh ra
     # nó, nên đi bằng DETACHED_PROCESS chứ không phải CREATE_NO_WINDOW. Chính là lệnh mở
-    # updater.py trong do_update(); trước đây mục này ghi "_trigger" chỉ vì một hàm lồng tên
+    # updater.py trong _update_core() (thân của POST /update, tách khỏi do_update() 2026-11-15 để tool
+    # naota_improve dùng chung); trước đây mục này ghi "_trigger" chỉ vì một hàm lồng tên
     # đó (gọi Watchtower) nằm ngay phía trên, và _ham_chua lấy nhầm tên hàm lồng.
-    ("main.py", "do_update"),
+    ("main.py", "_update_core"),
     ("updater.py", "start_server"),
     # Bench dev, chạy tay từ terminal có sẵn.
     ("bench_hotpath.py", None),

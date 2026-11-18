@@ -17,9 +17,9 @@ import os
 import sys
 import tempfile
 
-_TMP = tempfile.mkdtemp(prefix="vanhanh-viecdai-")
-os.environ["VANHANH_STATE_DIR"] = _TMP
-for _bien in ("VANHANH_MAX_TOOL_ROUNDS", "VANHANH_MAX_TOOL_ROUNDS_CODING", "VANHANH_TOOL_LOOP_BUDGET_CHARS"):
+_TMP = tempfile.mkdtemp(prefix="naota-viecdai-")
+os.environ["NAOTA_STATE_DIR"] = _TMP
+for _bien in ("NAOTA_MAX_TOOL_ROUNDS", "NAOTA_MAX_TOOL_ROUNDS_CODING", "NAOTA_TOOL_LOOP_BUDGET_CHARS"):
     os.environ.pop(_bien, None)
 
 import engine  # noqa: E402
@@ -48,7 +48,7 @@ async def _trong_viec_chu():
 tran, cau = asyncio.run(_trong_viec_chu())
 check("việc của chủ: 500 vòng", tran == 500, tran)
 check("câu chạm trần của chủ chỉ đúng biến và cách đi tiếp",
-      "VANHANH_MAX_TOOL_ROUNDS_CODING" in cau and "làm tiếp" in cau and "không giới hạn" in cau)
+      "NAOTA_MAX_TOOL_ROUNDS_CODING" in cau and "làm tiếp" in cau and "không giới hạn" in cau)
 check("sau khi bọc xong, cờ không rò sang lượt sau", engine._max_tool_rounds() == 30)
 
 
@@ -99,10 +99,10 @@ check("vòng tool của bot không chạy với trần của chủ", "chay_trong
 # ---- 3. Phanh chống kẹt ----
 g = engine._LapGuard()
 for i in range(25):
-    g.ghi([("vanhanh_process", '{"action":"poll"}')], [f"đang dựng video {i * 4}%"])
+    g.ghi([("naota_process", '{"action":"poll"}')], [f"đang dựng video {i * 4}%"])
 check("thăm dò có tiến triển (kết quả đổi) không bị cắt ở vòng 5", not g.ket() and g.lap == 1)
 for i in range(25, 31):
-    g.ghi([("vanhanh_process", '{"action":"poll"}')], [f"đang dựng video {i * 3}%"])
+    g.ghi([("naota_process", '{"action":"poll"}')], [f"đang dựng video {i * 3}%"])
 check("thăm dò không được chờ vô hạn", g.ket())
 
 g = engine._LapGuard()
@@ -160,10 +160,10 @@ rs = [{"type": "function_call_output", "call_id": str(i), "output": "z" * 30_000
 engine._gon_ket_qua_cu(rs, 100_000)
 check("định dạng Responses (function_call_output) cũng được rút gọn", engine._GON_DAU_HIEU in rs[0]["output"])
 
-os.environ["VANHANH_TOOL_LOOP_BUDGET_CHARS"] = "0"
-check("VANHANH_TOOL_LOOP_BUDGET_CHARS=0 tắt việc rút gọn",
+os.environ["NAOTA_TOOL_LOOP_BUDGET_CHARS"] = "0"
+check("NAOTA_TOOL_LOOP_BUDGET_CHARS=0 tắt việc rút gọn",
       engine._gon_ket_qua_cu([{"role": "tool", "content": "x" * 900_000}] * 10) == 0)
-os.environ.pop("VANHANH_TOOL_LOOP_BUDGET_CHARS", None)
+os.environ.pop("NAOTA_TOOL_LOOP_BUDGET_CHARS", None)
 
 esrc = (ROOT / "server" / "engine.py").read_text(encoding="utf-8")
 check("cả ba vòng tool đều rút gọn trước mỗi vòng", esrc.count("_gon_ket_qua_cu(") == 4,

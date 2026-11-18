@@ -1,4 +1,4 @@
-"""The owner's own mascot menu (dashboard/pet-menu.js): which Vanhanh features the pet opens, in which order.
+"""The owner's own mascot menu (dashboard/pet-menu.js): which Naota features the pet opens, in which order.
 
 "Chỉ cần thêm và sắp xếp vị trí thôi là ok rồi. Và cho phần này vào trong phần cài đặt linh vật."
 So a save may only ADD features and REORDER them. Renaming, changing an icon or an action, removing and
@@ -28,15 +28,15 @@ SETTINGS_KEY = "pet_menu"
 SCHEMA_VERSION = 1
 MAX_ITEMS = 60
 
-# The menu the pet showed before this setting existed, in that order. A Vanhanh that never saved a menu keeps it.
+# The menu the pet showed before this setting existed, in that order. A Naota that never saved a menu keeps it.
 DEFAULT_ITEMS = ("chat", "agent", "workflow", "mic", "pet", "teams")
 # Every action a save may ADD. Must match CATALOG in dashboard/pet-menu.js (tests/js/test_pet_menu.js checks).
-# Pages are the ids VanhanhNav.go() opens; "agent"/"workflow" open a tab of the Partners page, "mic" presses the mic.
+# Pages are the ids NaotaNav.go() opens; "agent"/"workflow" open a tab of the Partners page, "mic" presses the mic.
 KNOWN_ACTIONS = DEFAULT_ITEMS + (
     "home", "files", "learn", "conversations", "skills", "plugins", "terminal", "tasks", "webhooks",
     "mcp", "packs", "channels", "logins", "models", "settings", "share", "account", "usage", "logs",
 )
-# An id saved by an older Vanhanh may no longer be known. It is kept (never lost), so it only has to look like an id.
+# An id saved by an older Naota may no longer be known. It is kept (never lost), so it only has to look like an id.
 _ID_RE = re.compile(r"^[a-z][a-z0-9_.-]{0,47}$")
 
 
@@ -97,7 +97,7 @@ def check_save(settings: dict, items, base_rev, hidden=None) -> tuple[str, dict 
     if any(not isinstance(x, str) for x in items) or len(set(items)) != len(items):
         return "bad", None
     before = set(cur["items"])
-    # Only an id the app knows may be ADDED; one already saved stays even when this Vanhanh no longer knows it.
+    # Only an id the app knows may be ADDED; one already saved stays even when this Naota no longer knows it.
     if any(x not in KNOWN_ACTIONS and x not in before for x in items):
         return "bad", None
     hidden = [] if hidden is None else hidden

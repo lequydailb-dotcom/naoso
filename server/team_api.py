@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import re
 import sys
 import threading
 import time
@@ -36,31 +37,68 @@ LOOP_EVERY_S = 5.0          # nhịp điều phối (spec 8.3: cùng nhịp 5 gi
 REMIND_EVERY_S = 3600.0     # nhịp nhắc việc bị chặn quá 24 giờ
 RECONCILE_EVERY_S = 60.0    # nhịp đối soát sổ lượt chung với team_turns (T2, thiết kế 9.1)
 FINISHED_SHOWN = 30          # việc đã xong hiện ở tab Việc của nhóm
+CREATE_DOCS_MAX = 10         # files, and links, a team may be given in its create box (team_docs.MAX_PER_SEND)
+NEW_TEAM_UNCAPPED = ("task_turns", "task_steps")   # caps a new team starts without (TeamOps.create)
 PINNED_SHOWN = 20            # tin đã ghim hiện ở dải trên khung chat, như Sổ quyết định của lượt
 
 
 # Performance: the usage block of GET /teams/{id} reads the usage index, its events log and two more
 # databases, on every team open and on every refetch an agent message triggers. It feeds a side panel, so a few
 # seconds of staleness is invisible, while computing it each time made switching teams wait on it.
+#
+# 2026-11-13 (customer report: pages lose their connection when a Team is used a lot). The block is added up from
+# every model call the team ever made, so its cost grows with the team's age. Two rules keep one old, busy team from
+# taking the server with it:
+# - one call adds a team up at a time. Calls that arrive meanwhile get the last figures at once (or, the very first
+#   time, wait for that one call) instead of each starting the same work on another thread;
+# - figures that took long to add up are kept longer (_USAGE_COST_FACTOR times as long, at most _USAGE_TTL_MAX_S), so
+#   the work never takes more than a small share of one core however large the team's history is.
 _USAGE_TTL_S = 15.0
-_usage_cache: Dict[str, tuple] = {}
+_USAGE_TTL_MAX_S = 600.0
+_USAGE_COST_FACTOR = 20.0
+_USAGE_FIRST_WAIT_S = 60.0
+_usage_cache: Dict[str, tuple] = {}            # team_id -> (computed at, value, seconds it stays fresh)
+_usage_flights: Dict[str, threading.Event] = {}  # team_id -> set when the call adding it up is done
 _usage_lock = threading.Lock()
+
+
+def _usage_ttl(took_s: float) -> float:
+    return min(_USAGE_TTL_MAX_S, max(_USAGE_TTL_S, float(took_s) * _USAGE_COST_FACTOR))
 
 
 def _team_usage_cached(team_id: str) -> dict:
     import team_usage
-    now = time.monotonic()
-    with _usage_lock:
-        hit = _usage_cache.get(team_id)
-        if hit and now - hit[0] < _USAGE_TTL_S:
-            return hit[1]
-    val = team_usage.team_usage(team_id)
-    with _usage_lock:
-        _usage_cache[team_id] = (now, val)
-        if len(_usage_cache) > 256:
-            for k in sorted(_usage_cache, key=lambda k: _usage_cache[k][0])[:128]:
-                _usage_cache.pop(k, None)
-    return val
+    waited = False
+    while True:
+        with _usage_lock:
+            hit = _usage_cache.get(team_id)
+            if hit and time.monotonic() - hit[0] < hit[2]:
+                return hit[1]
+            flight = _usage_flights.get(team_id)
+            if flight is None or waited:
+                # Nobody is adding this team up (or the call we waited for left nothing): this call does it.
+                mine = _usage_flights[team_id] = threading.Event()
+                break
+            if hit:
+                return hit[1]
+        flight.wait(_USAGE_FIRST_WAIT_S)
+        waited = True
+    started = time.monotonic()
+    try:
+        val = team_usage.team_usage(team_id)
+        with _usage_lock:
+            _usage_cache[team_id] = (time.monotonic(), val, _usage_ttl(time.monotonic() - started))
+            if len(_usage_cache) > 256:
+                for k in sorted(_usage_cache, key=lambda k: _usage_cache[k][0])[:128]:
+                    _usage_cache.pop(k, None)
+        return val
+    finally:
+        with _usage_lock:
+            if _usage_flights.get(team_id) is mine:
+                _usage_flights.pop(team_id, None)
+        mine.set()
+
+
 DESCRIBE_TIMEOUT_S = 120.0   # tả ảnh đính kèm trước lượt thành viên: quá thì lượt vẫn chạy, không có mô tả
 
 
@@ -98,7 +136,7 @@ class TeamApiDeps:
     work_dir: Optional[Callable[[dict], str]] = None     # team -> pinned working folder, "" when none
     job_done: Optional[Callable[[dict, dict], Any]] = None  # (team, task) after a job closed as done
     skill_block: Optional[Callable[[dict, list], str]] = None  # (team, slugs) -> skills named by /skill
-    # report a job Vanhanh Core gave the team back where it was asked (main._notify_owner):
+    # report a job Naota Core gave the team back where it was asked (main._notify_owner):
     # (owner_chat, text, *, kind, label, source, ngan, brain, dedup) -> (ok, error), sync or async. None: no reports.
     report: Optional[Callable[..., Any]] = None
 
@@ -356,7 +394,7 @@ class TeamApi:
         return dict(m, sources_state=team_mandate.sources_view(st, m), observing=self.deps.mandate_deps is not None)
 
     def creator(self, team: dict) -> dict:
-        """Người tạo, quản lý nhóm: người thật, không phải trợ lý. Vanhanh có một tài khoản chủ máy nên mọi nhóm,
+        """Người tạo, quản lý nhóm: người thật, không phải trợ lý. Naota có một tài khoản chủ máy nên mọi nhóm,
         kể cả nhóm tạo trước đây, thuộc chủ đó; tên lấy từ cấu hình đăng nhập của server, không từ client."""
         name = ""
         if self.deps.owner_name is not None:
@@ -431,7 +469,7 @@ class TeamApi:
         await self.core_reports()
 
     async def core_reports(self) -> int:
-        """Jobs Vanhanh Core gave a team report back to the chat that asked, once per state worth
+        """Jobs Naota Core gave a team report back to the chat that asked, once per state worth
         reporting (done, cancelled, stopped for the owner). A failed send is retried next tick; the inbox copy dedupes."""
         if self.deps.report is None:
             return 0
@@ -476,7 +514,7 @@ class TeamApi:
 
 
 class OpError(Exception):
-    """Lỗi của một thao tác nhóm, có mã HTTP và câu hai thứ tiếng (route trả JSON, công cụ `vanhanh_team` trả chữ)."""
+    """Lỗi của một thao tác nhóm, có mã HTTP và câu hai thứ tiếng (route trả JSON, công cụ `naota_team` trả chữ)."""
 
     def __init__(self, code: int, vi: str, en: str, **extra):
         super().__init__(vi)
@@ -484,8 +522,8 @@ class OpError(Exception):
 
 
 class TeamOps:
-    """Thao tác quản lý nhóm dùng chung cho route `/teams/*` và công cụ `vanhanh_team`: một chỗ duy nhất giữ luật
-    (kiểm trợ lý có thật, khoá `accept_lock`, huỷ việc khi lưu trữ, chạy lại khi mở lại), nên trang web và Vanhanh trong chat
+    """Thao tác quản lý nhóm dùng chung cho route `/teams/*` và công cụ `naota_team`: một chỗ duy nhất giữ luật
+    (kiểm trợ lý có thật, khoá `accept_lock`, huỷ việc khi lưu trữ, chạy lại khi mở lại), nên trang web và Naota trong chat
     làm y như nhau. Mọi hàm chạy ở luồng phụ (route qua `api.io`, công cụ qua `asyncio.to_thread`). Lỗi: `OpError` hay
     `TeamError` của kho."""
 
@@ -549,7 +587,7 @@ class TeamOps:
         keys = {slug: self.api.register_agent(root, slug)["agent_key"] for slug in dict.fromkeys(members)}
         tid = team_store.new_team_id()
         sid = self.deps.session_store().create_session(brain=brain, channel=f"team:{tid}", title=name[:120])
-        # Người tạo: luôn là chủ máy đã qua cổng đăng nhập của server (Vanhanh có một tài khoản), không đọc từ client.
+        # Người tạo: luôn là chủ máy đã qua cổng đăng nhập của server (Naota có một tài khoản), không đọc từ client.
         try:
             team = teams.create_team(root, name, str(description or ""), sid, team_id=tid,
                                      members=[(keys[s], s) for s in keys], leader_key=keys[leader] if leader else None,
@@ -562,6 +600,15 @@ class TeamOps:
             # Hai yêu cầu cùng mã chạy song song: yêu cầu kia thắng, phiên vừa mở không gắn nhóm nào thì bỏ.
             self._drop_session(sid)
             return {"team": team, "duplicate": True}
+        # 2026-11-12 (owner, after a customer: "tốn token xíu cũng ok, mục tiêu đã ghép team là phải giải quyết được
+        # việc"): a NEW team has no cap on the replies and steps of one job, so a job runs to its end instead of
+        # stopping at 12 replies or 8 steps to wait for "Cho thêm lượt". The daily cap of the team, the stop at two
+        # identical results and the engine limits still hold. Teams made before keep what they had; the owner sets
+        # a number again under Advanced.
+        try:
+            team = teams.set_caps(tid, {k: None for k in NEW_TEAM_UNCAPPED}, by="host")
+        except Exception as ex:  # noqa: BLE001 - the team exists; it only keeps the default caps
+            print(f"[team] new team {tid}: per-job caps kept at their defaults ({type(ex).__name__}: {ex})", file=sys.stderr)
         return {"team": team, "duplicate": False}
 
     def update(self, root: str, team_id: str, **fields) -> dict:
@@ -643,7 +690,7 @@ _CURRENT: list = [None]
 
 
 def current() -> Optional[TeamOps]:
-    """`TeamOps` của tiến trình (đặt trong `register`), cho plugin `vanhanh_team` gọi mà không import main. None khi chưa
+    """`TeamOps` của tiến trình (đặt trong `register`), cho plugin `naota_team` gọi mà không import main. None khi chưa
     đăng ký (test không dựng host)."""
     return _CURRENT[0]
 
@@ -738,8 +785,50 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
             out = {"ok": True, "team": api.view(got["team"])}
             if got["duplicate"]:
                 out["duplicate"] = True
+            elif body.get("attachments") or body.get("links"):
+                # 2026-11-12 (owner): documents and links picked in the create box. A resend of the same request finds
+                # the team already made (duplicate) and adds nothing twice. A document that cannot be added never
+                # undoes the team: the answer says how many were asked and how many went in.
+                out["documents"] = _add_documents(got["team"], body.get("attachments"), body.get("links"))
             return out
         return await api.io(_do)
+
+    def _left_out_note(team: dict, n: int) -> tuple:
+        """(vi, en) for `n` attached files the team did not keep: the list is full, or the file did not arrive."""
+        import sessions as _sessions
+        cap = _sessions.SESSION_ASSETS_MAX
+        try:
+            full = len(deps.session_store().list_session_files(team.get("session_id") or "")) >= cap
+        except Exception:  # noqa: BLE001 - the note must never fail the send
+            full = False
+        if full:
+            return (f"{n} file chưa vào được team: team đã đủ {cap} tài liệu. Gỡ bớt tài liệu ở tab Thông tin rồi gửi lại.",
+                    f"{n} file(s) did not get into the team: it already holds {cap} documents. Remove some in the Info "
+                    "tab, then send again.")
+        return (f"{n} file chưa vào được team (file không còn ở chỗ tải lên). Chọn lại file rồi gửi lại.",
+                f"{n} file(s) did not get into the team (the upload is no longer there). Pick the file again and resend.")
+
+    def _add_files(team: dict, attachments: Any) -> list:
+        """Files (uploaded, or already in the brain) become documents of the team; pictures get described."""
+        if api.deps.attach is None:
+            return []
+        files = api.deps.attach(team, [a for a in list(attachments or []) if isinstance(a, dict)])
+        pics = [f for f in files if f.get("image")] if api.deps.describe is not None else []
+        if pics:
+            api.runner()._on_loop(lambda: api._spawn(_described_then(api, team, pics, "", None)))
+        return files
+
+    def _add_documents(team: dict, attachments: Any, links: Any) -> dict:
+        asked_files = [a for a in list(attachments or []) if isinstance(a, dict)][:CREATE_DOCS_MAX]
+        asked_links = [str(u or "").strip() for u in list(links or []) if str(u or "").strip()][:CREATE_DOCS_MAX]
+        files = _add_files(team, asked_files) if asked_files else []
+        added_links, sid = 0, team.get("session_id") or ""
+        for u in dict.fromkeys(asked_links):
+            # http and https only, the rule of POST /sessions/{id}/assets/links: nothing else may become a link to click.
+            if sid and re.match(r"^https?://", u, re.I) and deps.session_store().add_session_link(sid, u, ""):
+                added_links += 1
+        return {"files": files, "links": added_links,
+                "failed": (len(asked_files) - len(files)) + (len(dict.fromkeys(asked_links)) - added_links)}
 
     @app.get("/teams/{team_id}")
     async def teams_get(team_id: str, brain: str = "brain"):
@@ -1096,13 +1185,18 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
             # the owner works here now; the Teams page opens this team next time, on any device.
             api.teams().mark_owner(team_id)
             text = str(body.get("text") or "").strip()
-            files = []
+            files, left_out = [], 0
             if body.get("attachments") and api.deps.attach is not None:
                 # the files become the team's documents (text ones are read by every member turn); the
                 # message keeps their names so everyone in the chat sees what was sent.
-                files = api.deps.attach(team, list(body.get("attachments") or []))
+                asked = [a for a in list(body.get("attachments") or []) if isinstance(a, dict)]
+                files = api.deps.attach(team, asked)
+                left_out = max(0, len(asked) - len(files))
                 if files:
                     text = (text + "\n\n" if text else "") + "📎 " + ", ".join(f["name"] for f in files)
+                elif left_out and not text:
+                    # Nothing to send at all: say why instead of "the message is empty".
+                    return _err(400, _left_out_note(team, left_out)[0], _left_out_note(team, left_out)[1])
             try:
                 sub = runner.submit(team_id, text, mentions=list(body.get("mentions") or []),
                                     as_job=bool(body.get("as_job")),
@@ -1123,7 +1217,13 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
                 runner._on_loop(lambda: api._spawn(_described_then(api, team, pics, text, None)))
             if sub.get("task_id") and sub["created"]:
                 api.kick()
-            return dict(sub, ok=True)
+            out = dict(sub, ok=True)
+            if left_out:
+                # 2026-11-12: a file the team could not keep used to vanish without a word (a customer: "up hình tới
+                # một lúc nó không cho up nữa"). The page shows a note that is not a bare code.
+                vi, en = _left_out_note(team, left_out)
+                out["notes"] = list(out.get("notes") or []) + [localefmt.chu(vi, en)]
+            return out
         return await api.io(_do)
 
     @app.post("/teams/{team_id}/files")
@@ -1137,12 +1237,9 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
                 return err
             if api.deps.attach is None:
                 return _err(501, "Máy chủ chưa hỗ trợ tài liệu nhóm", "Team documents are not supported here")
-            files = api.deps.attach(team, list(body.get("attachments") or []))
+            files = _add_files(team, body.get("attachments"))
             if not files:
                 return _err(400, "Không thêm được file nào", "No file could be added")
-            pics = [f for f in files if f.get("image")] if api.deps.describe is not None else []
-            if pics:
-                api.runner()._on_loop(lambda: api._spawn(_described_then(api, team, pics, "", None)))
             return {"ok": True, "files": files, "session_id": team["session_id"]}
         return await api.io(_do)
 
@@ -1231,7 +1328,7 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
     @app.post("/teams/{team_id}/authority")
     async def teams_authority(team_id: str, request: Request, brain: str = "brain"):
         """Chủ bật, sửa hay thu hồi Toàn quyền cho trưởng nhóm `{mode: "full"|"limited", grant}`. Route của dashboard
-        (auth, CSRF); không lệnh VANHANH_TEAM nào gọi tới đây, nên trưởng nhóm không tự nâng mình lên Toàn quyền."""
+        (auth, CSRF); không lệnh NAOTA_TEAM nào gọi tới đây, nên trưởng nhóm không tự nâng mình lên Toàn quyền."""
         body = await _body(request)
 
         def _do():
@@ -1316,7 +1413,7 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
         """The owner's decision on one approval card: `decision` approve | reject | changes | revoke, `note`,
         `decision_key` (one per click: a retry replays the first answer, a second tab gets already_decided) and
         `expected_rev` (the job revision the card showed). Owner-only by construction: the dashboard's login and CSRF
-        stand in front of this route, and no VANHANH_TEAM directive or chat text reaches it."""
+        stand in front of this route, and no NAOTA_TEAM directive or chat text reaches it."""
         body = await _body(request)
         decision = str(body.get("decision") or "").strip().lower()
         note = str(body.get("note") or "")[:2000]
@@ -1473,7 +1570,7 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
 
     @app.put("/teams/{team_id}/tasks/{task_id}/acceptance")
     async def teams_acceptance_put(team_id: str, task_id: str, request: Request, brain: str = "brain"):
-        """Owner sets the job's acceptance criteria (owner only: no VANHANH_TEAM directive reaches this)."""
+        """Owner sets the job's acceptance criteria (owner only: no NAOTA_TEAM directive reaches this)."""
         body = await _body(request)
 
         def _do():
@@ -1549,7 +1646,7 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
 
     @app.put("/teams/{team_id}/mandate")
     async def teams_mandate_put(team_id: str, request: Request, brain: str = "brain"):
-        """Owner writes or edits the team's mandate (a new version). Never reachable from a VANHANH_TEAM directive."""
+        """Owner writes or edits the team's mandate (a new version). Never reachable from a NAOTA_TEAM directive."""
         body = await _body(request)
 
         def _do():

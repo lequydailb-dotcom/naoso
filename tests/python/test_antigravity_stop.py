@@ -33,7 +33,7 @@ def processes(tmp_path):
         proc.wait(timeout=5)
     deadline = time.monotonic() + 3
     while time.monotonic() < deadline and any(
-        t.name.startswith("vanhanh-agy-") and "stop-test" in t.name
+        t.name.startswith("naota-agy-") and "stop-test" in t.name
         for t in threading.enumerate()
     ):
         time.sleep(0.02)
@@ -246,7 +246,7 @@ def test_stop_order_kills_grandchildren(tmp_path):
 
 
 def test_cancel_all_never_signals_a_shared_group(tmp_path):
-    """A child that did not start its own session shares Vanhanh's process group: it gets a plain terminate."""
+    """A child that did not start its own session shares Naota's process group: it gets a plain terminate."""
     child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
     with claude_cli._PROC_LOCK:
         claude_cli._ACTIVE_PROCS[child] = "chat:shared-group-test"
@@ -260,7 +260,7 @@ def test_cancel_all_never_signals_a_shared_group(tmp_path):
 
 
 def test_watchdog_leaves_room_for_agys_own_print_timeout():
-    """With --print-timeout agy stops itself and prints a partial answer; Vanhanh's watchdog must fire later."""
+    """With --print-timeout agy stops itself and prints a partial answer; Naota's watchdog must fire later."""
     src = (SERVER / "antigravity_cli.py").read_text(encoding="utf-8")
     assert 'deadline = (cap + (60 if co_co("--print-timeout") else 0)) if cap > 0 else None' in src
     assert "stop_requested.wait(deadline)" in src
@@ -269,7 +269,7 @@ def test_watchdog_leaves_room_for_agys_own_print_timeout():
 def test_no_turn_cap_by_default_for_full_and_auto(monkeypatch):
     """heavy agy tool work kept stopping at the old 15-minute default. Unset = no cap."""
     import antigravity_cli
-    monkeypatch.delenv("VANHANH_AGY_TIMEOUT", raising=False)
+    monkeypatch.delenv("NAOTA_AGY_TIMEOUT", raising=False)
     monkeypatch.setattr(antigravity_cli, "co_co", lambda *names: "--print-timeout" in names)
     cli = antigravity_cli.AntigravityCLI(cwd=".")
     cli.cli_path = "agy"
@@ -288,11 +288,11 @@ def test_env_cap_still_applies(monkeypatch):
     import antigravity_cli
     monkeypatch.setattr(antigravity_cli, "co_co", lambda *names: "--print-timeout" in names)
     for raw, want in (("1800", 1800.0), ("0", 0.0), ("", 0.0), ("abc", 0.0), ("-5", 0.0)):
-        monkeypatch.setenv("VANHANH_AGY_TIMEOUT", raw)
+        monkeypatch.setenv("NAOTA_AGY_TIMEOUT", raw)
         cli = antigravity_cli.AntigravityCLI(cwd=".")
         cli.mode = "full"
         assert cli.turn_cap() == want, raw
-    monkeypatch.setenv("VANHANH_AGY_TIMEOUT", "1800")
+    monkeypatch.setenv("NAOTA_AGY_TIMEOUT", "1800")
     cli = antigravity_cli.AntigravityCLI(cwd=".")
     cli.cli_path, cli.mode = "agy", "suggest"
     assert "1800s" in cli._build_args("hi")

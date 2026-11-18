@@ -5,7 +5,7 @@
 The owner measured a slow first open of the Partners page: ~110 separate script requests at page load, and after every
 restart the pure Python minifier re-ran over all files while holding the GIL. These pin: which tags are bundled, that
 the bundle keeps order and isolates a broken file (the inline fallback), the line table used by error reports, the
-vanhanh-fresh swap, and the disk cache that makes a restart skip the minifier."""
+naota-fresh swap, and the disk cache that makes a restart skip the minifier."""
 from _paths import ROOT, SERVER  # noqa: E402,F401
 import ast
 import gzip
@@ -43,7 +43,7 @@ def test_runs_break_only_on_scripts_that_execute_in_place():
         _tag("a.js", "1"), _tag("b.js", "2"),
         '<script>window.x = 1;</script>',                    # inline code: breaks
         _tag("c.js", "3"),
-        '<script id="vanhanh-lazy" type="application/json">{"g": []}</script>',   # data block: does not break
+        '<script id="naota-lazy" type="application/json">{"g": []}</script>',   # data block: does not break
         '<!-- <script>commented out</script> -->',          # comment: ignored
         '<script src="/static/m.js?v=4" defer></script>',   # defer: does not run in place
         _tag("d.js", "5"),
@@ -54,7 +54,7 @@ def test_runs_break_only_on_scripts_that_execute_in_place():
 
 
 def test_apply_replaces_a_run_with_one_tag_at_its_last_place(tmp_path, monkeypatch):
-    monkeypatch.setenv("VANHANH_BUNDLE", "1")
+    monkeypatch.setenv("NAOTA_BUNDLE", "1")
     d = _dash(tmp_path, {"a.js": "var A = 1;\n", "b.js": "// note\nvar B = A + 1;\n", "c.js": "var C = 3;"})
     html = _page(_tag("a.js", _crc(d, "a.js")), "<div id=x></div>", _tag("b.js", _crc(d, "b.js")),
                  '<script>inline()</script>', _tag("c.js", _crc(d, "c.js")))
@@ -72,7 +72,7 @@ def test_apply_replaces_a_run_with_one_tag_at_its_last_place(tmp_path, monkeypat
 
 
 def test_a_file_changed_since_its_fingerprint_keeps_its_run_unbundled(tmp_path, monkeypatch):
-    monkeypatch.setenv("VANHANH_BUNDLE", "1")
+    monkeypatch.setenv("NAOTA_BUNDLE", "1")
     d = _dash(tmp_path, {"a.js": "var A = 1;\n", "b.js": "var B = 2;\n"})
     html = _page(_tag("a.js", "00000000"), _tag("b.js", _crc(d, "b.js")))
     out, fresh = static_bundle.apply(html, d)
@@ -80,7 +80,7 @@ def test_a_file_changed_since_its_fingerprint_keeps_its_run_unbundled(tmp_path, 
 
 
 def test_switch_off(tmp_path, monkeypatch):
-    monkeypatch.setenv("VANHANH_BUNDLE", "0")
+    monkeypatch.setenv("NAOTA_BUNDLE", "0")
     d = _dash(tmp_path, {"a.js": "var A=1;", "b.js": "var B=2;"})
     html = _page(_tag("a.js", _crc(d, "a.js")), _tag("b.js", _crc(d, "b.js")))
     assert static_bundle.apply(html, d) == (html, {})
@@ -92,11 +92,11 @@ def test_bundle_counts_files_and_maps_lines_back():
     data, crc, ident, table = static_bundle.build(files)
     lines = data.decode().split("\n")
     # The counter comes first, so no file's "use strict" can become the bundle's directive prologue.
-    assert lines[0].startswith("window.__vanhanhBundle=")
+    assert lines[0].startswith("window.__naotaBundle=")
     for start, rel in table:
         src = dict(files)[rel].decode().splitlines()
         assert lines[start - 1:start - 1 + len(src)] == src, rel
-    assert data.decode().rstrip().endswith(f'window.__vanhanhBundle["{ident}"]=3;')
+    assert data.decode().rstrip().endswith(f'window.__naotaBundle["{ident}"]=3;')
 
 
 def test_bundle_and_fallback_behave_like_separate_files(tmp_path):
@@ -164,7 +164,7 @@ def test_main_wires_the_bundle_the_warm_up_and_the_precompressed_files():
     src = (SERVER / "main.py").read_text(encoding="utf-8")
     root = src.split("async def root()", 1)[1].split("\n@app.", 1)[0]
     assert "to_thread(static_bundle.apply, html, DASHBOARD_PATH)" in root
-    assert root.index("static_bundle.apply") < root.index('id="vanhanh-fresh"')
+    assert root.index("static_bundle.apply") < root.index('id="naota-fresh"')
     assert "tinh_gon.set_cache_dir(" in src and "static_bundle.warm" in src
     assert "static_bundle.get(rel)" in src and "tinh_gon.gzip_of" in src
 

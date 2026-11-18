@@ -9,12 +9,12 @@
 //
 // Gộp một danh sách thì một kết quả công việc thật bị chôn dưới mấy dòng changelog.
 (function () {
-  var READ_KEY = "vanhanh.notifications.read";
-  var INIT_KEY = "vanhanh.notifications.initialized";
-  var TAB_KEY = "vanhanh.notifications.tab";
+  var READ_KEY = "naota.notifications.read";
+  var INIT_KEY = "naota.notifications.initialized";
+  var TAB_KEY = "naota.notifications.tab";
   // News items removed with their X. News comes from the changelog feed, so it cannot be deleted at the
   // source: this device remembers the ids and never shows them again, not even under "Show read".
-  var HIDE_KEY = "vanhanh.notifications.hidden";
+  var HIDE_KEY = "naota.notifications.hidden";
   var MAX_ITEMS = 30;
   var PAGE_SIZE = 5;
   var state = { items: [], read: new Set(), loadedAt: 0, loading: false, visibleCount: PAGE_SIZE,
@@ -22,15 +22,17 @@
                 // Both tabs list unread only;
                 // `xemDaDoc` is the "Show N read" link at the bottom, for this opening of the panel only.
                 xemDaDoc: false, an: new Set(), flash: "" };
-  // Vanhanh Core as the notification commander (vanhanh-core-chi-huy-thong-bao): notices
+  // Naota Core as the notification commander (naota-core-chi-huy-thong-bao): notices
   // its rules kept quiet are `filtered` and live under "Filtered"; every card takes the owner's feedback in the
-  // two buttons, "Needed" / "Not needed" (emoji go on the notice once it is opened in Vanhanh Core's
+  // two buttons, "Needed" / "Not needed" (emoji go on the notice once it is opened in Naota Core's
   // chat, where every answer already takes the six reactions); the "Filter" view sets each group's mode, undoes changes.
-  var GROUPS = ["reminder", "question", "chatbot", "connection", "incident", "job", "agent", "team", "cost", "update", "other"];
+  var GROUPS = ["reminder", "suggest", "question", "chatbot", "connection", "incident", "job", "agent", "team", "cost", "update",
+    "other"];
   var MODES = ["all", "important", "urgent", "off"];
   // Full keys spelled out, so the i18n check finds every one of them.
   var GROUP_KEY = { reminder: "noti.grp_reminder", question: "noti.grp_question", chatbot: "noti.grp_chatbot",
     connection: "noti.grp_connection", incident: "noti.grp_incident", job: "noti.grp_job", agent: "noti.grp_agent",
+    suggest: "noti.grp_suggest",
     team: "noti.grp_team", cost: "noti.grp_cost", update: "noti.grp_update", other: "noti.grp_other" };
   var MODE_KEY = { all: "noti.mode_all", important: "noti.mode_important", urgent: "noti.mode_urgent", off: "noti.mode_off" };
   function icon(n) { return typeof window.ic === "function" ? window.ic(n) : ""; }
@@ -55,7 +57,7 @@
   }
   // Ngày giờ đi theo NGÔN NGỮ đang chọn, không viết cứng "vi-VN": người đọc bản tiếng Anh
   // mà thấy định dạng ngày kiểu Việt là lạc quẻ. Cả dashboard lấy locale từ đúng chỗ này.
-  function LOC() { return (window.VanhanhI18n && VanhanhI18n.locale()) || "vi-VN"; }
+  function LOC() { return (window.NaotaI18n && NaotaI18n.locale()) || "vi-VN"; }
 
   function byId(id) { return document.getElementById(id); }
   function esc(value) {
@@ -220,7 +222,7 @@
   }
   // Bấm một mẩu thư = quay về ĐÚNG hội thoại đã hỏi. Mở hội thoại MỚI ở đây là sai: toàn bộ
   // ngữ cảnh nằm trong hội thoại cũ, hỏi tiếp ở chỗ khác là phải kể lại từ đầu.
-  // (Vanhanh Core spec 9): an item of another brain switches the dashboard to that brain FIRST (only on this
+  // (Naota Core spec 9): an item of another brain switches the dashboard to that brain FIRST (only on this
   // click, never when a report arrives), so the chat opens in the right brain and what you type goes there.
   // Returns true when it switched (the caller then waits for the pages to redraw on the new brain).
   function chuyenBrainNeuCan(item) {
@@ -235,14 +237,14 @@
   function moThu(item) {
     item.read = true;
     docThu({ id: item.id }).then(render);
-    // A notice with no chat of its own opens in Vanhanh Core (copied there with its source
-    // and time, once); a notice that answers a chat opens that chat. No separate "Ask Vanhanh Core" button.
-    // "Store has updates" opens the Vanhanh Store, whose banner lists what can be updated.
-    if (item.channel === "store:updates" && (window.VanhanhPacks || window.VanhanhNapCham)) {
+    // A notice with no chat of its own opens in Naota Core (copied there with its source
+    // and time, once); a notice that answers a chat opens that chat. No separate "Ask Naota Core" button.
+    // "Store has updates" opens the Naota Store, whose banner lists what can be updated.
+    if (item.channel === "store:updates" && (window.NaotaPacks || window.NaotaNapCham)) {
       closePanel();
       // packs.js nạp chậm (nap-cham.js).
-      var moStore = function () { if (window.VanhanhPacks && window.VanhanhPacks.moKho) window.VanhanhPacks.moKho(""); };
-      if (window.VanhanhNapCham) window.VanhanhNapCham.goi("packs", moStore); else moStore();
+      var moStore = function () { if (window.NaotaPacks && window.NaotaPacks.moKho) window.NaotaPacks.moKho(""); };
+      if (window.NaotaNapCham) window.NaotaNapCham.goi("packs", moStore); else moStore();
       return;
     }
     if (!item.session_id) { closePanel(); hoiCore("inbox", item.id); return; }
@@ -253,28 +255,28 @@
   function moThuTiep(item) {
     // Hội thoại của một TRỢ LÝ / QUY TRÌNH phải mở ở trang Cộng sự, không đổ vào khung chat
     // của bộ não chính. Đổ nhầm thì hai chuyện xảy ra cùng lúc: người dùng nhìn một đoạn chat
-    // với trợ lý trên màn Vanhanh mà không hiểu vì sao, và phiên đang mở trở thành phiên của
+    // với trợ lý trên màn Naota mà không hiểu vì sao, và phiên đang mở trở thành phiên của
     // trợ lý - tin gõ tiếp bay thẳng vào đó (đúng lỗi bản cũ đã chữa cho đường rời
     // trang, hòm thư mở lại nó bằng một cửa khác).
     // Thư về một NHÓM chat (kênh "team:<id>", vd. việc nhóm bị chặn) mở đúng nhóm ở trang Nhóm, nơi có nút giải quyết.
     // Đổ vào khung chat chính thì tin gõ tiếp thành tin không tác giả trong phiên nhóm.
     var mNhom = /^team:(.+)$/.exec(String(item.channel || ""));
     // teams.js nạp chậm (nap-cham.js): chưa có thì nạp rồi mở, đừng rơi sang mở nhầm khung chat chính.
-    if (mNhom && !window.VanhanhTeams && window.VanhanhNapCham) {
+    if (mNhom && !window.NaotaTeams && window.NaotaNapCham) {
       var nhomCho = mNhom[1];
-      window.VanhanhNapCham.goi(["congviec", "teams"], function () {
-        if (window.VanhanhTeams && window.VanhanhTeams.open) window.VanhanhTeams.open(nhomCho);
+      window.NaotaNapCham.goi(["congviec", "teams"], function () {
+        if (window.NaotaTeams && window.NaotaTeams.open) window.NaotaTeams.open(nhomCho);
       });
       return;
     }
-    if (mNhom && window.VanhanhTeams && window.VanhanhTeams.open) {
+    if (mNhom && window.NaotaTeams && window.NaotaTeams.open) {
       var nhom = mNhom[1];
-      try { window.VanhanhTeams.open(nhom); return; } catch (e) {}
+      try { window.NaotaTeams.open(nhom); return; } catch (e) {}
     }
     var cs = congSuCuaThu(item);
-    if (cs && window.VanhanhWorkspace && window.VanhanhWorkspace.openCommand) {
+    if (cs && window.NaotaWorkspace && window.NaotaWorkspace.openCommand) {
       try {
-        window.VanhanhWorkspace.openCommand(cs.loai, cs.slug, item.session_id);
+        window.NaotaWorkspace.openCommand(cs.loai, cs.slug, item.session_id);
         return;
       } catch (e) {}
     }
@@ -282,19 +284,19 @@
       if (window.Alpine && Alpine.store("nav") && Alpine.store("nav").active !== "home"
           && Alpine.store("nav").active !== "chat") Alpine.store("nav").go("home");
     } catch (e) {}
-    try { if (window.VanhanhSessions) window.VanhanhSessions.open(item.session_id); } catch (e) {}
+    try { if (window.NaotaSessions) window.NaotaSessions.open(item.session_id); } catch (e) {}
   }
-  // Vanhanh Core (spec 7.3): the notice goes into this person's own Vanhanh Core chat, with its source and time,
+  // Naota Core (spec 7.3): the notice goes into this person's own Naota Core chat, with its source and time,
   // and the chat opens there. The shared notice itself never changes.
   async function hoiCore(src, id) {
     var brain = "brain";
-    try { if (window.VanhanhSessions && window.VanhanhSessions.brain) brain = window.VanhanhSessions.brain() || "brain"; } catch (e) {}
+    try { if (window.NaotaSessions && window.NaotaSessions.brain) brain = window.NaotaSessions.brain() || "brain"; } catch (e) {}
     try {
-      var r = await (await fetch("/vanhanh-core/cite", { method: "POST", headers: { "Content-Type": "application/json" },
+      var r = await (await fetch("/naota-core/cite", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source: src, id: id, brain: brain }) })).json();
       if (!r || !r.id) return;
       closePanel();
-      if (window.VanhanhWorkspace && window.VanhanhWorkspace.openCommand) window.VanhanhWorkspace.openCommand("agent", "vanhanh-core", r.id);
+      if (window.NaotaWorkspace && window.NaotaWorkspace.openCommand) window.NaotaWorkspace.openCommand("agent", "naota-core", r.id);
     } catch (e) {}
   }
   function phanHoiHtml(item) {
@@ -318,7 +320,7 @@
       state.note[item.id] = [window.t("noti.react_saved")].concat(r.messages || []).join(" ");
       state.policy = null;
       // Not needed also reads this notice, so it leaves
-      // the list at once. Its card is gone, so what Vanhanh Core learned shows above the list instead.
+      // the list at once. Its card is gone, so what Naota Core learned shows above the list instead.
       if (body.axis === "not_needed") {
         state.flash = state.note[item.id];
         delete state.note[item.id];
@@ -334,9 +336,9 @@
   function theThu(item) {
     var chua = !item.read ? " unread" : "";
     var why = item.filtered ? (item.why === "repeat" ? "noti.why_repeat" : item.why === "muted" ? "noti.why_muted" : "noti.why_mode") : "";
-    // Where a press takes you: the chat it answers, or Vanhanh Core for a notice with no chat of its own.
+    // Where a press takes you: the chat it answers, or Naota Core for a notice with no chat of its own.
     var phu = window.t(item.channel === "store:updates" ? "noti.open_store"
-      : !item.session_id || item.channel === "agent:vanhanh-core" ? "noti.open_core" : "noti.reopen_chat");
+      : !item.session_id || item.channel === "agent:naota-core" ? "noti.open_core" : "noti.reopen_chat");
     return '<article class="noti-card' + chua + '" tabindex="0" role="button" data-thu-id="' + esc(item.id) + '">' +
       '<div class="noti-card-top"><span class="noti-kind ' + esc(item.kind || "answer") + '">' +
       esc(nhanLoai(item.kind)) + '</span><span class="noti-top-r"><span class="noti-time">' + esc(thoiGian(item.ts)) +
@@ -425,7 +427,7 @@
     saveRead(moi ? [id] : null);
     render();
   }
-  // The "Filter" view: each group's mode, the per-kind rules, Vanhanh Core's recent changes (each can be undone).
+  // The "Filter" view: each group's mode, the per-kind rules, Naota Core's recent changes (each can be undone).
   async function taiBoLoc() {
     try { state.policy = await (await fetch("/notify/policy", { cache: "no-store" })).json(); } catch (e) { state.policy = { ok: false }; }
     render();
@@ -440,7 +442,7 @@
   function veBoLoc(list) {
     var p = state.policy;
     var head = dauMuc("noti.filter_title");
-    var info = window.VanhanhInfo ? window.VanhanhInfo.pair(esc(window.t("noti.filter_info")), window.t("noti.filter_info_l")) : "";
+    var info = window.NaotaInfo ? window.NaotaInfo.pair(esc(window.t("noti.filter_info")), window.t("noti.filter_info_l")) : "";
     if (!p) { list.innerHTML = head + '<div class="noti-loading pg-loading">' + esc(window.t("noti.loading")) + "</div>"; taiBoLoc(); noiDanhSach(list); return; }
     if (!p.ok) { list.innerHTML = head + '<div class="noti-empty">' + esc(window.t("noti.load_fail")) + "</div>"; noiDanhSach(list); return; }
     var byG = {};
@@ -639,23 +641,23 @@
   async function veNutPush(loi) {
     var hop = byId("notificationPush"), nut = byId("notificationPushToggle");
     var ghi = byId("notificationPushNote"), thu = byId("notificationPushTest");
-    if (!hop || !nut || !window.VanhanhPush) return;
+    if (!hop || !nut || !window.NaotaPush) return;
     hop.hidden = false;
-    if (!VanhanhPush.batDuoc()) {
+    if (!NaotaPush.batDuoc()) {
       // Không bấm được thì nói LÝ DO. Một cái nút bấm mãi không lên còn tệ hơn không có nút.
       nut.hidden = true; if (thu) thu.hidden = true;
-      if (ghi) ghi.textContent = loi || VanhanhPush.lyDo();
+      if (ghi) ghi.textContent = loi || NaotaPush.lyDo();
       return;
     }
     nut.hidden = false;
-    var on = await VanhanhPush.dangBat();
+    var on = await NaotaPush.dangBat();
     // privacy of the push preview (the setting is per account, on the server).
     var anRow = byId("notificationPushHideRow"), an = byId("notificationPushHide");
     if (anRow && an) {
       anRow.hidden = !on;
       if (!an.dataset.wired) {
         an.dataset.wired = "1";
-        try { var st = await (await fetch("/settings", { cache: "no-store" })).json(); an.checked = !!(st.push && st.push.preview === "hidden"); } catch (e) {}
+        try { var st = await (await fetch("/settings")).json();   /* shares the start-up read (fetch-gop.js); a save clears it */ an.checked = !!(st.push && st.push.preview === "hidden"); } catch (e) {}
         an.addEventListener("change", function () {
           var f = new FormData(); f.append("section", "push"); f.append("data", JSON.stringify({ preview: an.checked ? "hidden" : "full" }));
           fetch("/settings", { method: "POST", body: f }).catch(function () {});
@@ -672,7 +674,7 @@
     if (loi || !on) return;
     // Bật/tắt là việc của TỪNG máy, nên "đang bật ở đây" chưa trả lời được "máy kia có nhận
     // không". Nói luôn số thiết bị máy chủ đang đẩy tới, và nêu đích danh máy nào đang hỏng.
-    var tb = await VanhanhPush.thietBi();
+    var tb = await NaotaPush.thietBi();
     if (!ghi || !tb.length) return;
     var hong = tb.filter(function (x) { return x.lan_cuoi && !x.ok_lan_cuoi; });
     if (hong.length) {
@@ -688,16 +690,16 @@
     var nut = byId("notificationPushToggle"), ghi = byId("notificationPushNote");
     var thu = byId("notificationPushTest");
     if (nut) nut.addEventListener("click", async function () {
-      if (!window.VanhanhPush) return;
+      if (!window.NaotaPush) return;
       nut.disabled = true;
-      var dangBat = await VanhanhPush.dangBat();
-      var r = dangBat ? await VanhanhPush.tat() : await VanhanhPush.bat();
+      var dangBat = await NaotaPush.dangBat();
+      var r = dangBat ? await NaotaPush.tat() : await NaotaPush.bat();
       nut.disabled = false;
       await veNutPush(r.ok ? "" : (r.error || window.t("noti.push_err")));
     });
     if (thu) thu.addEventListener("click", async function () {
       thu.disabled = true;
-      var r = await VanhanhPush.thu();
+      var r = await NaotaPush.thu();
       thu.disabled = false;
       if (!ghi) return;
       // Nói rõ ĐỦ MẤY MÁY nhận được, chứ không phải "đã gửi" chung chung: gửi thử trên điện
@@ -753,7 +755,7 @@
 
   // API cho phần còn lại của app: app.js gọi refresh() khi WebSocket báo có thư mới, push.js
   // gọi moTu() khi người dùng bấm vào thông báo của hệ điều hành.
-  window.VanhanhInbox = {
+  window.NaotaInbox = {
     refresh: function () { taiThu(); },
     // Hội thoại đang mở thì thư của nó coi như đã đọc - không thì một kết quả bị đếm hai lần.
     docPhien: function (sid) {
@@ -770,10 +772,10 @@
     },
   };
 
-  // Từ điển về BẤT ĐỒNG BỘ (i18n/index.js fetch xong mới bắn "vanhanh:i18n"). Hòm thư có thể
+  // Từ điển về BẤT ĐỒNG BỘ (i18n/index.js fetch xong mới bắn "naota:i18n"). Hòm thư có thể
   // đã vẽ xong trước lúc đó và in ra mã khoá; đổi ngôn ngữ giữa chừng cũng không ăn nếu
   // không nghe. Vẽ lại thẻ, và vẽ lại cả ô thông báo đẩy khi ô đó đang hiện.
-  window.addEventListener("vanhanh:i18n", function () {
+  window.addEventListener("naota:i18n", function () {
     render();
     var hop = byId("notificationPush");
     if (hop && !hop.hidden) veNutPush();

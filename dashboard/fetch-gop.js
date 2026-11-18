@@ -26,7 +26,8 @@
   var GIU_MS = 1500;
   // Đường đọc an toàn để dùng chung: trả JSON nhỏ, không có tác dụng phụ.
   // + `sessions/<id>/meta`, asked twice on every chat switch (model bar and project chip).
-  var DUONG = /^\/(settings|config|brains|agents|skills|workflows|connect\/health|auth\/status|voice\/ear|voice\/call|plan-limits|sessions\/[^/?]+\/meta)(\?|$)/;
+  // 2026-11-10: + `chat/route`, asked twice at start by the model bar (a plain read of where a new chat would run).
+  var DUONG = /^\/(settings|config|brains|agents|skills|workflows|connect\/health|auth\/status|voice\/ear|voice\/call|plan-limits|chat\/route|sessions\/[^/?]+\/meta)(\?|$)/;
 
   function laGet(init) {
     var m = init && init.method ? String(init.method).toUpperCase() : "GET";
@@ -57,7 +58,7 @@
   // answered at once from the copy the last visit left (up to SWR_MAX_AGE_MS old) while the server is asked again;
   // console.js draws the page again when the answer differs. Later reads on the same visit (polling, a refresh button)
   // go to the server as before, so nothing stays one step behind. Any write clears every copy (except the bookkeeping
-  // posts in NO_CHANGE_POSTS), and so does the end of every chat turn (app.js): Vanhanh may have just changed a skill, a
+  // posts in NO_CHANGE_POSTS), and so does the end of every chat turn (app.js): Naota may have just changed a skill, a
   // connection or a setting.
   var SWR_MAX_AGE_MS = 10 * 60 * 1000;
   var SWR = new RegExp("^/(settings|agents|skills|workflows|brains|plugins|tools/optional|packs|logins|share/list|"
@@ -153,7 +154,7 @@
   // Mã trả về cho thấy máy chủ CHƯA tới được (đang khởi động, đường hầm chập chờn), không phải lỗi của chính yêu cầu.
   function maTam(status) { return status === 502 || status === 503 || status === 504 || (status >= 520 && status <= 530); }
 
-  // Lời gọi này có được tự thử lại không: GET tới chính máy chủ Vanhanh, không phải file tĩnh, không tự lo việc chờ.
+  // Lời gọi này có được tự thử lại không: GET tới chính máy chủ Naota, không phải file tĩnh, không tự lo việc chờ.
   function thuLaiDuoc(input, init, goc) {
     if (typeof input !== "string") return false;
     if (laGet(init) !== "GET" || (init && init.body)) return false;
@@ -164,7 +165,19 @@
     return u.pathname.indexOf("/static/") !== 0 && !/stream|events|sse/i.test(u.pathname);
   }
 
+  // A session that expires while the tab is open (2026-11-10): chat keeps running over the WebSocket opened earlier,
+  // but every HTTP call gets 401, so chat images turn into blank boxes and lists stop loading with no visible sign.
+  // A 401 from this server outside /auth/* raises "naota:unauthorized"; app.js asks /auth/status and shows sign-in.
+  function isSessionLost(status, input, origin) {
+    if (status !== 401) return false;
+    var u;
+    try { u = new URL(typeof input === "string" ? input : (input && input.url) || "", origin || "http://x"); } catch (e) { return false; }
+    if (origin && u.origin !== new URL(origin).origin) return false;
+    return u.pathname.indexOf("/auth/") !== 0;
+  }
+
   var api = { khoaGop: khoaGop, gopDuoc: gopDuoc, thuLaiDuoc: thuLaiDuoc, maTam: maTam, CHO_THU_LAI: CHO_THU_LAI, GIU_MS: GIU_MS,
+    isSessionLost: isSessionLost,
     swrKey: swrKey, keepsCopies: keepsCopies, SWR_MAX_AGE_MS: SWR_MAX_AGE_MS,
     batchPath: batchPath, toTemplate: toTemplate, fromTemplate: fromTemplate, BATCH_MAX: BATCH_MAX };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
@@ -183,7 +196,7 @@
       if (hien) {
         if (!dai) {
           dai = document.createElement("div");
-          dai.id = "vanhanhKetNoiLai";
+          dai.id = "naotaKetNoiLai";
           dai.setAttribute("role", "status");
           dai.style.cssText = "position:fixed;left:50%;top:max(10px,env(safe-area-inset-top));transform:translateX(-50%);"
             + "z-index:99998;padding:8px 16px;border-radius:999px;font-size:15px;line-height:1.4;"
@@ -200,6 +213,11 @@
     } catch (e) { /* dải báo không bao giờ được làm hỏng lời gọi */ }
   }
 
+  function reportSessionLost(input, r) {
+    if (!r || !isSessionLost(r.status, input, location.origin)) return;
+    try { window.dispatchEvent(new Event("naota:unauthorized")); } catch (e) { /* never break the call */ }
+  }
+
   function ngu(ms) { return new Promise(function (xong) { setTimeout(xong, ms); }); }
   // Lệch ngẫu nhiên ±30%. Không có nó, mọi lượt đọc của mọi tab thử lại ĐÚNG cùng nhịp và dồn một lúc vào
   // máy chủ vừa chậm lại, làm nó càng chậm.
@@ -210,6 +228,7 @@
     if (!thuLaiDuoc(input, init, location.origin)) {
       return gocThat(input, init).then(function (r) {
         if (dangThu === 0 && dai && r.ok) veDai(false);
+        reportSessionLost(input, r);
         return r;
       });
     }
@@ -225,6 +244,7 @@
           return ngu(lech(CHO_THU_LAI[lan++])).then(thu);
         }
         bao(false);
+        reportSessionLost(input, r);
         return r;
       }, function (loi) {
         if (lan < CHO_THU_LAI.length) {
@@ -244,7 +264,7 @@
   var pending = {};         // path -> { at, p: Promise<{s, t, b} | null>, res }
   var recs = [];            // moments being recorded: { kind, vars, until, paths, timer }
 
-  function manifestKey(kind) { return "vanhanh.batch." + kind; }
+  function manifestKey(kind) { return "naota.batch." + kind; }
   function readManifest(kind) {
     try { var a = JSON.parse(localStorage.getItem(manifestKey(kind)) || "[]"); return Array.isArray(a) ? a : []; }
     catch (e) { return []; }
@@ -375,7 +395,7 @@
       var c0 = copies[key];
       copies[key] = { at: Date.now(), text: text, status: r.status, ct: r.headers.get("Content-Type") || "application/json" };
       if (c0 && c0.text !== text && page && readThisVisit[key]) {
-        try { window.dispatchEvent(new CustomEvent("vanhanh:page-data", { detail: { page: page, key: key } })); } catch (e) {}
+        try { window.dispatchEvent(new CustomEvent("naota:page-data", { detail: { page: page, key: key } })); } catch (e) {}
       }
       return r;
     }, function () { return r; });
@@ -412,7 +432,7 @@
     page = String(id || ""); readThisVisit = {}; visitAt = Date.now();
     api.visit("page:" + page);
   };
-  // Forget every kept copy (a chat turn ended: Vanhanh may have changed what the pages show).
+  // Forget every kept copy (a chat turn ended: Naota may have changed what the pages show).
   api.forget = function () { copies = {}; nho = {}; };
 
   window.fetch = function (input, init) {
@@ -434,7 +454,7 @@
     }
     return e.p.then(function (r) { return r.clone(); });
   };
-  window.VanhanhFetchGop = api;
+  window.NaotaFetchGop = api;
   // The app's start is a moment too: its reads leave in one batch from the second start on.
   api.visit("boot");
 })();

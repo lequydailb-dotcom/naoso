@@ -1,7 +1,7 @@
 """
-MCP client của Vanhanh - để MỌI bộ não (API/OAuth lẫn hub) dùng được MCP.
+MCP client của Naota - để MỌI bộ não (API/OAuth lẫn hub) dùng được MCP.
 v2: SESSION POOL sống lâu giữa các tin nhắn (hết cảnh mỗi tool call mở session mới),
-thêm transport stdio (MCP local như vanhanh-zalo, webcake-landing-mcp) và
+thêm transport stdio (MCP local như naota-zalo, webcake-landing-mcp) và
 "internal" (cầu nối Python nội bộ như botcake_mcp).
 
 3 transport:
@@ -37,7 +37,7 @@ def _owner_tz_env(own_env) -> dict:
 
     A POS or chat MCP that works out "today" by itself reads the process clock, and on a VPS that is UTC, so "orders
     today" asked at 6am in Vietnam returned yesterday's. Handing it the owner's timezone makes the server's own idea
-    of a day match Vanhanh's. A connector that sets its own `TZ` keeps it. Not on Windows: its C runtime reads `TZ` in
+    of a day match Naota's. A connector that sets its own `TZ` keeps it. Not on Windows: its C runtime reads `TZ` in
     the POSIX "EST5EDT" form and would misread an IANA name, which is worse than the machine's local time.
     """
     if os.name == "nt" or "TZ" in (own_env or {}):
@@ -63,9 +63,16 @@ _IDLE_TTL = 900          # đóng session không dùng > 15 phút
 # or when it says so (`notifications/tools/list_changed`). The health check and the Test button still ask for real.
 _TOOLS_TTL = 600
 _DOWN_TTL = 60           # nguồn vừa khởi động hỏng: trả lỗi ngay trong chừng này giây (SessionPool.call_tool)
-_INTERNAL = {"botcake": "botcake_mcp", "substack": "substack_mcp"}   # transport internal → tên module
+_INTERNAL = {"botcake": "botcake_mcp", "substack": "substack_mcp",   # transport internal → tên module
+             "http_api": "http_api_mcp"}
 
 _DIAL_SONG_SONG = 8      # số connection dò tool CÙNG LÚC (đừng để npx nổ ra 30 tiến trình)
+# The start-up warm pass opens fewer sessions at once than a chat turn's dial (2026-11-13). Nobody waits for that
+# pass, and it runs while the server is still starting: eight `npx` / `uvx` processes starting together, each a Node
+# or Python runtime plus a package install when its cache is cold, took a small VPS's disk and memory exactly when
+# the server had its first requests to answer (owner: "right after an update the hub is flooded and the server
+# drops"). NAOTA_MCP_WARM_PARALLEL overrides it.
+_WARM_SONG_SONG = "3"
 _DIAL_TRAN = "20"        # giây - trần dò tool CHO MỖI connection (0 = không giới hạn)
 _WARM_TRAN = "180"       # giây - trần cho vòng LÀM NÓNG lúc khởi động (xem tran_warm)
 # Seconds the MCP handshake of a stdio server may take, measured by the session itself (not by
@@ -171,7 +178,7 @@ class McpHttpSession:
         Đây là chỗ đã gây ra vụ từng gặp (Pancake POS "Quán Cơm Mẫu"): máy chủ MCP có
         quyền XOÁ PHIÊN bất cứ lúc nào - hết hạn, họ deploy lại, hoặc bộ cân tải đưa ta
         sang máy khác - và chuẩn quy định lúc đó máy chủ trả 404 còn CLIENT PHẢI TỰ BẮT TAY
-        LẠI. Vanhanh trước đây không hề đọc mã HTTP, nên 404 kèm thân JSON-RPC được `r.json()`
+        LẠI. Naota trước đây không hề đọc mã HTTP, nên 404 kèm thân JSON-RPC được `r.json()`
         nuốt gọn thành một phản hồi bình thường, `tools/list` trả `[]` mà KHÔNG ném lỗi.
 
         Hậu quả dây chuyền, không có lấy một dòng lỗi ở đâu:
@@ -181,7 +188,7 @@ class McpHttpSession:
           - `discover_resolved` thấy 0 tool thì `continue`, KHÔNG ghi vào `bo_qua` → hub
             tưởng vòng dò đủ, đóng băng danh sách thiếu nguồn suốt 60 giây.
           - `connect_health` thấy không có ngoại lệ → `ok=True, tools=0` → trang Kết nối
-            chấm XANH ghi "Hoạt động bình thường (0 công cụ)", `vanhanh_connections` báo "ổn".
+            chấm XANH ghi "Hoạt động bình thường (0 công cụ)", `naota_connections` báo "ổn".
         Đúng cảnh hay gặp: kết nối xanh, quyền đủ, mà không bộ não nào tìm ra
         một tool POS nào, rồi "để 15-20 phút tự hết" - chính là lúc phiên chết bị dọn.
         """
@@ -214,7 +221,7 @@ class McpHttpSession:
         """
         res = await self._rpc("initialize", {
             "protocolVersion": PROTOCOL, "capabilities": {},
-            "clientInfo": {"name": "vanhanh", "version": "1.0"},
+            "clientInfo": {"name": "naota", "version": "1.0"},
         }, cho_lam_moi=False)
         if isinstance(res, dict) and res.get("error"):
             raise McpHttpError("initialize lỗi: "
@@ -298,7 +305,7 @@ class McpHttpSession:
 def npx_node_argv(resolved) -> list | None:
     """`npx.cmd` -> `[node.exe, npx-cli.js]` of the same Node install, so Windows never routes npx through cmd.exe.
 
-    Why: `cmd.exe /c "C:\\Program Files\\nodejs\\npx.cmd" --user-data-dir "C:\\My Vanhanh\\x"` loses its
+    Why: `cmd.exe /c "C:\\Program Files\\nodejs\\npx.cmd" --user-data-dir "C:\\My Naota\\x"` loses its
     quotes: when the command line after /c starts with a quote, cmd strips the first and the last one, and the
     connector died with "'C:\\Program' is not recognized". The default Node install lives in "Program Files", so
     any argument with a space broke. cmd also expands `% ^ & |` in arguments. zalo_cli.npx_command does the same.
@@ -351,7 +358,7 @@ class McpStdioSession:
         return self._init_task is not None and not self._init_task.done()
 
     def _argv(self):
-        # Tìm cả trong Scripts/bin của venv Vanhanh: uvx/uv cài theo requirements nằm ở đó
+        # Tìm cả trong Scripts/bin của venv Naota: uvx/uv cài theo requirements nằm ở đó
         # (PATH hệ thống thường không có) → connector PyPI (uvx ...) chạy được out-of-the-box.
         venv_bin = str(Path(sys.executable).parent)
         search = venv_bin + os.pathsep + os.environ.get("PATH", "")
@@ -373,6 +380,14 @@ class McpStdioSession:
                 self._stderr.append(line.decode("utf-8", "replace").rstrip())
         except Exception:
             pass
+        finally:
+            # The pipe closed: the process ended (or was closed by us). Whoever keeps state per process is told now
+            # instead of finding out at its next call (2026-11-10: the Zalo read loop restarts naota-zalo at once).
+            for fn in list(STDIO_EXIT_LISTENERS):
+                try:
+                    fn(self.key)
+                except Exception as e:      # noqa: BLE001 - a listener must never break the session
+                    print(f"[mcp stdio exit] listener: {type(e).__name__}: {e}", file=sys.stderr)
 
     def alive(self):
         return self.proc is not None and self.proc.returncode is None
@@ -489,7 +504,7 @@ class McpStdioSession:
                 return obj
             if obj.get("method") == "notifications/tools/list_changed":
                 self.tools_changed = True   # the pool's cached tool list is stale (SessionPool.cached_tools)
-            # notification/request từ server → bỏ qua (Vanhanh không hỗ trợ sampling)
+            # notification/request từ server → bỏ qua (Naota không hỗ trợ sampling)
 
     async def ensure_init(self):
         """Run the MCP handshake once per process, in a task of its own.
@@ -523,11 +538,11 @@ class McpStdioSession:
             folder = self.npx_check.get("dir") if self._cold_start else None
             npx_cache.claim(folder)
             try:
-                timeout = (_env_seconds("VANHANH_MCP_INSTALL_TIMEOUT", _INSTALL_TIMEOUT) if self._cold_start
-                           else _env_seconds("VANHANH_MCP_INIT_TIMEOUT", _INIT_TIMEOUT))
+                timeout = (_env_seconds("NAOTA_MCP_INSTALL_TIMEOUT", _INSTALL_TIMEOUT) if self._cold_start
+                           else _env_seconds("NAOTA_MCP_INIT_TIMEOUT", _INIT_TIMEOUT))
                 await self._rpc("initialize", {
                     "protocolVersion": PROTOCOL, "capabilities": {},
-                    "clientInfo": {"name": "vanhanh", "version": "1.0"},
+                    "clientInfo": {"name": "naota", "version": "1.0"},
                 }, timeout=timeout)
                 await self._rpc("notifications/initialized", notify=True)
                 self._init_done = True
@@ -649,6 +664,10 @@ def _spec_hash(spec):
     return hash(core)
 
 
+# Callables told when a stdio MCP process ends, each called with the session key (the connection id). Plain
+# functions, called on the event loop; they must return fast and not raise.
+STDIO_EXIT_LISTENERS: list = []
+
 # Số hiệu phiên MCP, tăng dần và KHÔNG bao giờ tái dùng (khác `id(obj)`, bị tái dùng sau khi GC).
 _EPOCH = itertools.count(1)
 
@@ -732,7 +751,7 @@ class SessionPool:
         """Số hiệu của phiên MCP đang sống cho spec này, 0 nếu chưa có phiên nào.
 
         Đổi mỗi khi phiên bị dựng lại (tiến trình chết, đổi cấu hình, đóng vì rảnh). Cần cho những
-        MCP giữ trạng thái TRONG tiến trình, ví dụ bộ đệm tin của vanhanh-zalo đánh số thứ tự từ
+        MCP giữ trạng thái TRONG tiến trình, ví dụ bộ đệm tin của naota-zalo đánh số thứ tự từ
         1 sau mỗi lần khởi động: con trỏ đọc giữ qua một lần dựng lại phiên là bỏ qua tin mới.
         """
         ent = self._sessions.get(spec.get("key") or _spec_hash(spec))
@@ -966,7 +985,7 @@ class SessionPool:
         down = self._down.get(key)
         if down and down[1] == h and time.time() - down[0] < _DOWN_TTL:
             return (f"ERROR: nguồn {spec.get('label') or key} vừa không khởi động được "
-                    f"({down[2]}). Vanhanh tạm ngừng gọi nguồn này {_DOWN_TTL} giây, đừng gọi lại "
+                    f"({down[2]}). Naota tạm ngừng gọi nguồn này {_DOWN_TTL} giây, đừng gọi lại "
                     "liên tục: báo người dùng bấm Kiểm tra ở trang Kết nối.")
         started = [False]
 
@@ -1084,7 +1103,7 @@ def tran_dial():
     Bỏ nguồn chậm ở vòng này KHÔNG mất gì lâu dài: cache hub hết hạn sau 60s là dò lại, và
     nguồn khoẻ vẫn lên tool đầy đủ ngay lượt đó.
     """
-    raw = os.getenv("VANHANH_MCP_DISCOVER_TIMEOUT", _DIAL_TRAN)
+    raw = os.getenv("NAOTA_MCP_DISCOVER_TIMEOUT", _DIAL_TRAN)
     try:
         v = float(raw)
     except (TypeError, ValueError):
@@ -1103,12 +1122,21 @@ def tran_warm():
     Docker mất sạch cache npm/uv sau mỗi lần đổi ảnh), và máy chủ HTTP phía dịch vụ cũng
     phải dựng lại phiên từ đầu.
     """
-    raw = os.getenv("VANHANH_MCP_WARM_TIMEOUT", _WARM_TRAN)
+    raw = os.getenv("NAOTA_MCP_WARM_TIMEOUT", _WARM_TRAN)
     try:
         v = float(raw)
     except (TypeError, ValueError):
         v = float(_WARM_TRAN)
     return v if v > 0 else None
+
+
+def warm_parallel() -> int:
+    """How many connections the start-up warm pass opens at the same time (see `_WARM_SONG_SONG`)."""
+    try:
+        v = int(os.getenv("NAOTA_MCP_WARM_PARALLEL", _WARM_SONG_SONG))
+    except (TypeError, ValueError):
+        v = int(_WARM_SONG_SONG)
+    return max(1, min(v, _DIAL_SONG_SONG))
 
 
 async def warm_pool(conns):
@@ -1125,7 +1153,7 @@ async def warm_pool(conns):
     phiên chat, dù kết nối chẳng hỏng gì.
     """
     tran = tran_warm()
-    sem = asyncio.Semaphore(_DIAL_SONG_SONG)
+    sem = asyncio.Semaphore(warm_parallel())
     nong, con_lanh = [], []
 
     async def _mo(conn):
@@ -1214,7 +1242,7 @@ async def discover_resolved(conns, bo_qua=None):
                 #     cây tiến trình, tức là giết luôn cái đơn đang lên dở - đúng lỗi "lên đơn
                 #     thứ 2 là rớt kết nối" (lỗi đã gặp). Giữ phiên, và trả
                 #     lại danh sách tool lần dò trước để nguồn KHÔNG biến mất khỏi hộp công cụ
-                #     chỉ vì nó đang bận (biến mất là Vanhanh nói "chưa đấu POS", cũng sai nốt).
+                #     chỉ vì nó đang bận (biến mất là Naota nói "chưa đấu POS", cũng sai nốt).
                 # (b) Server thật sự treo giữa một request: huỷ từ ngoài để lại nửa câu trả lời
                 #     trong ống, lần sau đọc là lệch pha vĩnh viễn - vứt phiên, đừng tái dùng.
                 if pool.dang_goi_tool(spec):
@@ -1250,7 +1278,7 @@ async def discover_resolved(conns, bo_qua=None):
             # Dial được mà KHÔNG có tool nào là một dạng hỏng, không phải một trạng thái bình
             # thường: nguồn có máy chủ thật thì nó phải có tool, bằng không nó vô dụng. Ghi vào
             # `bo_qua` để hub biết vòng dò này THIẾU và chỉ cache 10 giây (thay vì đóng băng 60
-            # giây một danh sách vắng nguồn), và để `vanhanh_connections` nói thật với model thay
+            # giây một danh sách vắng nguồn), và để `naota_connections` nói thật với model thay
             # vì im lặng. Connector ảo (không có gì để dial) không tính - nó vốn không có tool.
             if bo_qua is not None and co_server_de_dial(spec):
                 bo_qua.add(conn["id"])

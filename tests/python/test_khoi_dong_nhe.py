@@ -22,7 +22,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-khoidong-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-khoidong-"))
 HERE = str(SERVER)
 sys.path.insert(0, HERE)
 
@@ -47,7 +47,7 @@ def check(name, cond):
 # STARTUP_PACKAGES at the end catches a heavy library nobody has named here yet.
 NANG_PHAI_LUOI = {
     "edge_tts": "TTS (giọng đọc) - 944ms, kéo theo cả aiohttp",
-    "aiohttp": "chỉ đi kèm edge_tts, không code nào của Vanhanh dùng trực tiếp",
+    "aiohttp": "chỉ đi kèm edge_tts, không code nào của Naota dùng trực tiếp",
     # jsonschema ~50ms, chỉ hai hàm của capability_executor và một hàm của
     # readonly_orchestrator dùng, và cả ba chỉ chạy khi thật sự cấp/kiểm một capability lease.
     "jsonschema": "kiểm schema capability lease - ~50ms, chỉ dùng khi có lease",
@@ -130,7 +130,7 @@ for lop, ten in _BA_HAM:
 # Same goal, no clock: run `import main` in a fresh interpreter and list the TOP-LEVEL packages it loads from
 # site-packages. That set does not depend on how fast or busy the machine is, so it never fails at random, and when a
 # new library lands on the startup path the failure NAMES it. A heavy library always arrives as a new top-level name
-# (edge_tts, aiohttp, pandas...), so this catches exactly what the ratio was for. Growth in Vanhanh's own code (server/)
+# (edge_tts, aiohttp, pandas...), so this catches exactly what the ratio was for. Growth in Naota's own code (server/)
 # and in the standard library is not counted: that is the legitimate growth the ratio kept tripping over.
 #
 # Adding a package here is a decision: say in the comment why the server needs it at startup. If it only serves an
@@ -160,7 +160,7 @@ for name, mod in list(sys.modules.items()):
     f = os.path.realpath(getattr(mod, "__file__", None) or "") if getattr(mod, "__file__", None) else ""
     if f and (any(f.startswith(r + os.sep) for r in roots) or "site-packages" in f or "dist-packages" in f):
         tops.add(name.split(".")[0])
-print("VANHANH-PROBE " + json.dumps(sorted(tops)))
+print("NAOTA-PROBE " + json.dumps(sorted(tops)))
 """
 
 
@@ -168,11 +168,11 @@ def startup_packages():
     """Top-level site-packages names a fresh `import main` loads, or None when the probe itself failed."""
     import json
     out = subprocess.run([sys.executable, "-c", _PROBE], cwd=HERE, capture_output=True, text=True)
-    line = next((ln for ln in out.stdout.splitlines() if ln.startswith("VANHANH-PROBE ")), "")
+    line = next((ln for ln in out.stdout.splitlines() if ln.startswith("NAOTA-PROBE ")), "")
     if not line:
         print("     (probe failed: " + (out.stderr.strip().splitlines() or ["no output"])[-1] + ")")
         return None
-    return set(json.loads(line[len("VANHANH-PROBE "):]))
+    return set(json.loads(line[len("NAOTA-PROBE "):]))
 
 
 loaded = startup_packages()

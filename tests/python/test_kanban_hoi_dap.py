@@ -210,13 +210,13 @@ def test_a_failed_acceptance_check_is_not_a_question_for_the_owner(tmp_path):
 
 def _plugin():
     spec = importlib.util.spec_from_file_location(
-        "vanhanh_task_plugin_hoi_dap", ROOT / "system" / "plugins" / "vanhanh-task" / "plugin.py")
+        "naota_task_plugin_hoi_dap", ROOT / "system" / "plugins" / "naota-task" / "plugin.py")
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     return m
 
 
-def test_tool_vanhanh_task_op_answer(tmp_path, monkeypatch):
+def test_tool_naota_task_op_answer(tmp_path, monkeypatch):
     import tasks as tasks_mod
     calls, report = _sent()
     feature, brain = _feature(tmp_path, report)

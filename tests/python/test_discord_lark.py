@@ -24,7 +24,7 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-dclark-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-dclark-"))
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -203,7 +203,7 @@ async def _discord_session(close_code=None):
                         await ws.close(code=close_code)
                         return
                     await ws.send(json.dumps({"op": 0, "s": 1, "t": "READY", "d": {
-                        "session_id": "sess", "resume_gateway_url": "", "user": {"id": "999", "username": "vanhanh"}}}))
+                        "session_id": "sess", "resume_gateway_url": "", "user": {"id": "999", "username": "naota"}}}))
                     msgs = [
                         {"id": "1", "channel_id": "dm1", "author": {"id": "42", "username": "quy"}, "content": "hello", "type": 0},
                         {"id": "1", "channel_id": "dm1", "author": {"id": "42", "username": "quy"}, "content": "hello", "type": 0},
@@ -292,7 +292,7 @@ check("by_prefix finds discord: and lark:",
       owner_channels.by_prefix("discord:dm1") == (D, "dm1") and owner_channels.by_prefix("lark:oc_1") == (L, "oc_1"))
 check("Discord and Lark trust the chat id a turn produced (a DM channel is not a user id)",
       D.trust_turn_ids and L.trust_turn_ids and not owner_channels.WHATSAPP.trust_turn_ids)
-for src, must in (("discord", "2000 ký tự"), ("lark", "KHÔNG có bảng")):
+for src, must in (("discord", "2000 characters"), ("lark", "has NO tables")):
     blk = channel_context.build_channel_block(src, {"chat_id": f"{src}:X", "chat_type": "group", "user_name": "An"})
     check(f"context block for {src}: keeps the {src}: prefix and its own rule",
           f"`{src}:`" in blk and must in blk, blk[-600:])

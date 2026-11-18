@@ -3,11 +3,11 @@
        node tests/js/test_password_confirm.js
 
    A password field hides what you type, so one slip of the finger on the only "new password"
-   box sets a password nobody knows, and the owner is locked out of their own Vanhanh. The fix is
+   box sets a password nobody knows, and the owner is locked out of their own Naota. The fix is
    the usual one: a second "confirm" box, and the dashboard refuses to send anything until the
    two match.
 
-   Vanhanh has TWO surfaces that change the password (see test_2fa_loi_vao.js for why):
+   Naota has TWO surfaces that change the password (see test_2fa_loi_vao.js for why):
 
    1. The Account page (console.js renderAccount): #acPass + #acPass2.
    2. The "Login account" block of #quickSet (index.html, handled in app.js): #setAuthPass + #setAuthPass2.

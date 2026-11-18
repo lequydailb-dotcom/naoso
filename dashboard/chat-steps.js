@@ -1,4 +1,4 @@
-/* chat-steps.js - khoi "tien trinh tung buoc" trong khung chat Vanhanh.
+/* chat-steps.js - khoi "tien trinh tung buoc" trong khung chat Naota.
 
    Van de: server DA ban ra su kien tool_call cho moi engine (main.py), nhung dashboard chi co
    MOT dong trang thai (showActivity): buoc moi ghi de buoc cu, het luot thi xoa sach. Luot
@@ -56,8 +56,8 @@
     [/^(webfetch|web_fetch|fetch|read_url_content|fetch_url)$/, "app.step_v_web"],
     [/^(websearch|web_search|web_search_call|google_search|search_web)$/, "app.step_v_search"],
     [/^(task|agent)$/, "app.step_v_agent"],
-    [/^(todowrite|todo_write|update_plan|todo_list|vanhanh_plan|taskcreate|taskupdate)$/, "app.step_v_todo"],
-    [/^(skill|vanhanh_use_skill)$/, "app.step_v_skill"]
+    [/^(todowrite|todo_write|update_plan|todo_list|naota_plan|taskcreate|taskupdate)$/, "app.step_v_todo"],
+    [/^(skill|naota_use_skill)$/, "app.step_v_skill"]
   ];
   function loaiCongCu(ten) {
     var t = String(ten || "").toLowerCase().trim();
@@ -261,7 +261,7 @@
      chay, bao nhieu buoc, buoc moi nhat la gi. Chi bung khi nguoi dung bam (`_moTay`). */
   function ve(el, st, dangChay) {
     if (!el) el = taoKhoi();
-    // Nhớ mạch để vẽ lại khi từ điển về (xem bộ nghe "vanhanh:i18n" cuối file).
+    // Nhớ mạch để vẽ lại khi từ điển về (xem bộ nghe "naota:i18n" cuối file).
     el._st = st; el._dangChay = !!dangChay;
     var cu = chuanHoa(st);
     var txt = el.querySelector(".steps-sum-text");
@@ -291,12 +291,12 @@
   var API = { nhan: nhan, tomTat: tomTat, taoKhoi: taoKhoi, ve: ve, nhanDong: nhanBuoc, TRAN: TRAN,
               applyPlan: applyPlan, planResult: planResult, planSummary: planSummary, planLine: planLine,
               planHtml: planHtml };
-  if (typeof window !== "undefined") window.VanhanhSteps = API;
+  if (typeof window !== "undefined") window.NaotaSteps = API;
   // Mở lại hội thoại (restoreSession) vẽ khối bước TRƯỚC khi từ điển tải xong, lúc đó t() trả
   // về chính cái khoá, nên người dùng thấy chữ thô "app.steps_done". Từ
   // điển về thì vẽ lại mọi khối đang có.
   if (typeof window !== "undefined" && window.addEventListener) {
-    window.addEventListener("vanhanh:i18n", function () {
+    window.addEventListener("naota:i18n", function () {
       var ds = document.querySelectorAll(".msg-steps");
       for (var i = 0; i < ds.length; i++) {
         if (ds[i]._st) { try { ve(ds[i], ds[i]._st, ds[i]._dangChay); } catch (e) {} }
@@ -305,7 +305,7 @@
   }
   if (typeof module !== "undefined" && module.exports) module.exports = API;
 
-  /* The switch for vanhanh_plan, the plan tool of the API brains (server/plan_tool.py), in the composer "+" menu.
+  /* The switch for naota_plan, the plan tool of the API brains (server/plan_tool.py), in the composer "+" menu.
      Claude Code, Codex and Grok plan with their own tools and are not affected. Stored on the server
      (settings.chat.plan_tool), read once. */
   if (typeof document === "undefined" || typeof window === "undefined" || typeof fetch !== "function" ||
@@ -327,9 +327,9 @@
       .catch(function () {});
   }
   function registerPlanMenu() {
-    if (!window.VanhanhComposerMenu || !window.VanhanhComposerMenu.register) return false;
+    if (!window.NaotaComposerMenu || !window.NaotaComposerMenu.register) return false;
     loadPlanTool();
-    window.VanhanhComposerMenu.register({
+    window.NaotaComposerMenu.register({
       id: "plan-tool", order: 91, label: "app.plan_menu",
       icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 5h8M13 12h8M13 19h8M3 17l2 2 4-4M3 7l2 2 4-4"/></svg>',
       hint: function () { return tw(planTool.enabled ? "app.plan_menu_on" : "app.plan_menu_off"); },

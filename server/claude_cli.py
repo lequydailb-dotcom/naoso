@@ -66,7 +66,7 @@ def cancel_all(tag=None):
             else:
                 # Every registrant starts its child with start_new_session, so the child leads its own process group:
                 # signal the whole group so a CLI's own children (agy, codex tools) do not outlive Stop. Checked first,
-                # because a child sharing Vanhanh's group would take Vanhanh down with it.
+                # because a child sharing Naota's group would take Naota down with it.
                 import signal as _signal
                 if os.getpgid(p.pid) == p.pid:
                     os.killpg(p.pid, _signal.SIGTERM)
@@ -151,11 +151,11 @@ _THU_MUC_BIN_THEM = (
 # WINDOWS: y hệt câu chuyện trên nhưng đau hơn một bậc, vì PATH trên Windows nằm trong
 # REGISTRY và bị ghi bởi mọi installer. Ba đường hỏng thật, đã gặp đủ cả ba khi cài
 # mới trên Windows:
-#   1. Server chạy nền (start-vanhanh.vbs / VANHANH.bat) giữ PATH của LÚC NÓ BẬT. Cài CLI sau
+#   1. Server chạy nền (start-naota.vbs / NAOTA.bat) giữ PATH của LÚC NÓ BẬT. Cài CLI sau
 #      đó thì tiến trình đang chạy không thấy, dù gõ trong terminal mới vẫn chạy ngon.
 #   2. `setx PATH ...` CẮT ở 1024 ký tự. Một installer dùng setx trên máy có PATH dài là
 #      PATH người dùng bị cắt cụt vĩnh viễn - đúng lúc cài Antigravity CLI xong thì
-#      `%APPDATA%\npm` bay khỏi PATH và Vanhanh báo cau_thieu_cli("claude", "Claude") cho một CLI vẫn
+#      `%APPDATA%\npm` bay khỏi PATH và Naota báo cau_thieu_cli("claude", "Claude") cho một CLI vẫn
 #      đang nằm nguyên trên ổ đĩa.
 #   3. npm global, nvm-windows, volta, scoop, bun, pnpm mỗi thứ một thư mục khác nhau.
 # Nên: soi thêm các thư mục dưới đây, VÀ ghi nhớ chỗ đã từng thấy (xem _nho_binary).
@@ -169,7 +169,7 @@ _THU_MUC_BIN_WINDOWS = (
     r"%LOCALAPPDATA%\Programs\grok",
     # Where the official Windows installers really put them (seen on a clean windows-latest
     # runner): agy.exe under %LOCALAPPDATA%\agy\bin, grok.exe under ~\.grok\bin. Both
-    # only add themselves to the USER PATH in the registry, which a Vanhanh started right after
+    # only add themselves to the USER PATH in the registry, which a Naota started right after
     # the install (setup wizard, "Open now") does not have yet.
     r"%LOCALAPPDATA%\agy\bin",
     r"%USERPROFILE%\.grok\bin",
@@ -257,8 +257,8 @@ _BIN_NHO = {"data": None}
 
 
 def _state_dir() -> Path:
-    """Thư mục state của Vanhanh. Đọc env trực tiếp để claude_cli không phải import config."""
-    d = os.getenv("VANHANH_STATE_DIR", "").strip()
+    """Thư mục state của Naota. Đọc env trực tiếp để claude_cli không phải import config."""
+    d = os.getenv("NAOTA_STATE_DIR", "").strip()
     return Path(d) if d else Path(__file__).resolve().parent
 
 
@@ -309,13 +309,129 @@ def tim_binary(ten: str) -> Optional[str]:
     return _binary_da_nho(ten)
 
 
-def find_claude_cli() -> Optional[str]:
-    """Tìm claude CLI trên máy. Cửa thoát VANHANH_CLAUDE_BIN cho máy cài chỗ lạ.
+def _sdk_bundled_claude() -> Optional[str]:
+    try:
+        import importlib.util
+        spec = importlib.util.find_spec("claude_agent_sdk")
+        exe = Path(spec.origin).parent / "_bundled" / "claude.exe"
+        return str(exe) if exe.is_file() else None
+    except Exception:
+        return None
 
-    Có env override để ĐỒNG BỘ với `grok` (VANHANH_GROK_BIN), `agy` (VANHANH_AGY_BIN) và `codex`
-    (VANHANH_CODEX_BIN): trước đây đúng cái CLI quan trọng nhất lại là cái duy nhất không có
+
+def _is_windows() -> bool:
+    return os.name == "nt"
+
+
+def is_batch_script(path: str) -> bool:
+    """A .cmd/.bat file, which Windows runs through cmd.exe (PATHEXT may hand it back as `.CMD`)."""
+    return str(path or "").rstrip(". ").lower().endswith((".cmd", ".bat"))
+
+
+# A real Claude Code executable is tens of MB. The npm package also ships a tiny placeholder
+# `bin/claude.exe` that its postinstall replaces, so anything this small is not the CLI.
+_NATIVE_EXE_MIN_BYTES = 1 << 20
+_RX_SHIM_EXE = re.compile(r'%~?dp0%?[\\/]([^"\r\n%]*?claude[^"\\/\r\n%]*\.exe)', re.I)
+
+
+def native_claude_exe(cli: Optional[str]) -> Optional[str]:
+    """The native `claude.exe` to run instead of npm's `claude.cmd` shim on Windows, else `cli` unchanged.
+
+    claude-agent-sdk refuses to spawn a .cmd/.bat as the CLI (cmd.exe re-parses the command line,
+    so arguments can inject commands: the "BatBadBut" class). Naota handed the SDK whatever PATH
+    resolved, and `npm install -g` puts `claude.cmd` there, so once the SDK updated itself every
+    Claude turn on such a machine died with "Refusing to execute batch script" (owner, 2026-11-10).
+    The executable is nearly always on the machine already: recent npm packages ship it next to
+    the shim, and the native installer puts one in ~/.local/bin. Returns the shim itself when no
+    executable is found, so callers that spawn it directly keep working as before."""
+    if not cli or not _is_windows() or not is_batch_script(cli):
+        return cli
+    shim = Path(cli)
+    cands = []
+    try:
+        text = shim.read_text(encoding="utf-8", errors="ignore")[:8192]
+        for m in _RX_SHIM_EXE.finditer(text):
+            cands.append(shim.parent / m.group(1).replace("\\", "/"))
+    except Exception:
+        pass
+    pkg = shim.parent / "node_modules" / "@anthropic-ai"
+    cands += [pkg / "claude-code" / "bin" / "claude.exe",
+              pkg / "claude-code-win32-x64" / "claude.exe",
+              pkg / "claude-code-win32-arm64" / "claude.exe",
+              shim.parent / "claude.exe",
+              _home_dir() / ".local" / "bin" / "claude.exe"]
+    for path in (None, _duong_dan_tim_binary()):
+        try:
+            hit = shutil.which("claude.exe", path=path)
+        except Exception:
+            hit = None
+        if hit and hit.lower().endswith(".exe"):      # PATHEXT can answer "claude.exe.cmd"
+            cands.append(Path(hit))
+    for c in cands:
+        try:
+            if c.is_file() and c.stat().st_size >= _NATIVE_EXE_MIN_BYTES:
+                return str(c)
+        except Exception:
+            pass
+    return cli
+
+
+def claude_cli_for_sdk() -> str:
+    """The `cli_path` to hand claude-agent-sdk, or "" to let the SDK pick its own bundled binary.
+
+    Never a .cmd/.bat on Windows: the SDK refuses those, while its Windows wheel bundles a
+    claude.exe that works. Never the SDK's own `_bundled` binary either (see claude_sdk_engine)."""
+    cli = (os.environ.get("NAOTA_CLAUDE_CLI") or "").strip() or (tim_binary("claude") or "")
+    if not cli or "_bundled" in cli.replace("\\", "/"):
+        return ""
+    cli = native_claude_exe(cli) or ""
+    if _is_windows() and is_batch_script(cli):
+        return ""
+    return cli
+
+
+_SDK_CLI_ENV = {"set": ""}      # the value Naota itself put in NAOTA_CLAUDE_CLI, never the user's
+
+
+def use_native_claude_for_sdk() -> None:
+    """Windows: point NAOTA_CLAUDE_CLI at a native claude.exe when PATH resolves npm's shim.
+
+    Why an environment variable: claude_sdk_engine.py and `tim_binary` are both pinned (the
+    native qualification evidence hashes the first, improvement_trial_selection the second), and
+    the one thing both read before PATH is NAOTA_CLAUDE_CLI. Setting it keeps the chat engine and
+    the trial resolver on the same executable. With only the shim on the machine it is set to the
+    SDK's bundled claude.exe: the engine drops a "_bundled" path and the SDK picks that file.
+    A value the user set is respected, unless it names a batch script the SDK would refuse."""
+    if not _is_windows():
+        return
+    cur = (os.environ.get("NAOTA_CLAUDE_CLI") or "").strip()
+    ours = _SDK_CLI_ENV["set"]
+    base = cur if (cur and cur != ours) else (tim_binary("claude") or "")
+    if not is_batch_script(base):
+        if cur and cur == ours:           # PATH now resolves a real executable: step out of the way
+            os.environ.pop("NAOTA_CLAUDE_CLI", None)
+            _SDK_CLI_ENV["set"] = ""
+        return
+    exe = native_claude_exe(base) or ""
+    want = exe if (exe and not is_batch_script(exe)) else (_sdk_bundled_claude() or "")
+    if want and want != cur:
+        os.environ["NAOTA_CLAUDE_CLI"] = want
+        _SDK_CLI_ENV["set"] = want
+        print(f"[claude] the SDK refuses batch scripts, using {want} instead of {base}", file=sys.stderr)
+
+
+def find_claude_cli() -> Optional[str]:
+    """Find the claude CLI. On Windows a native claude.exe wins over npm's claude.cmd shim."""
+    return native_claude_exe(_find_claude_cli_raw())
+
+
+def _find_claude_cli_raw() -> Optional[str]:
+    """Tìm claude CLI trên máy. Cửa thoát NAOTA_CLAUDE_BIN cho máy cài chỗ lạ.
+
+    Có env override để ĐỒNG BỘ với `grok` (NAOTA_GROK_BIN), `agy` (NAOTA_AGY_BIN) và `codex`
+    (NAOTA_CODEX_BIN): trước đây đúng cái CLI quan trọng nhất lại là cái duy nhất không có
     đường chỉ tay, nên máy cài vào chỗ lạ thì hết cách ngoài sửa PATH."""
-    envp = (os.environ.get("VANHANH_CLAUDE_BIN") or "").strip()
+    envp = (os.environ.get("NAOTA_CLAUDE_BIN") or "").strip()
     if envp:
         try:
             if Path(envp).exists():
@@ -354,15 +470,15 @@ def find_claude_cli() -> Optional[str]:
 
 
 # Câu nói khi KHÔNG tìm thấy một CLI. Phải nói ba thứ, vì thiếu thứ nào người dùng cũng tắc:
-# cài bằng lệnh nào, PHẢI KHỞI ĐỘNG LẠI VANHANH sau khi cài (tiến trình đang chạy giữ PATH cũ,
+# cài bằng lệnh nào, PHẢI KHỞI ĐỘNG LẠI NAOTA sau khi cài (tiến trình đang chạy giữ PATH cũ,
 # đây là chỗ mọi người mắc đúng một lần rồi tưởng cài hỏng), và cửa thoát khi máy cài chỗ lạ.
 _LENH_CAI_CLI = {
-    "claude": ("npm install -g @anthropic-ai/claude-code", "VANHANH_CLAUDE_BIN"),
-    "codex": ("npm install -g @openai/codex", "VANHANH_CODEX_BIN"),
+    "claude": ("npm install -g @anthropic-ai/claude-code", "NAOTA_CLAUDE_BIN"),
+    "codex": ("npm install -g @openai/codex", "NAOTA_CODEX_BIN"),
     "agy": ("irm https://antigravity.google/cli/install.ps1 | iex  (Windows) hoặc "
-            "curl -fsSL https://antigravity.google/cli/install.sh | bash", "VANHANH_AGY_BIN"),
+            "curl -fsSL https://antigravity.google/cli/install.sh | bash", "NAOTA_AGY_BIN"),
     "grok": ("irm https://x.ai/cli/install.ps1 | iex  (Windows) hoặc "
-             "curl -fsSL https://x.ai/cli/install.sh | bash", "VANHANH_GROK_BIN"),
+             "curl -fsSL https://x.ai/cli/install.sh | bash", "NAOTA_GROK_BIN"),
 }
 
 
@@ -375,9 +491,9 @@ def cau_thieu_cli(ten: str, nhan: str = "") -> str:
     if lenh:
         cau += f". Cài: {lenh}"
         en += ". Install: " + lenh.replace("  (Windows) hoặc ", "  (Windows) or ")
-    cau += (". Cài rồi vẫn thấy dòng này thì KHỞI ĐỘNG LẠI VANHANH: tiến trình đang chạy giữ "
+    cau += (". Cài rồi vẫn thấy dòng này thì KHỞI ĐỘNG LẠI NAOTA: tiến trình đang chạy giữ "
             "PATH của lúc nó bật nên không thấy binary vừa cài")
-    en += (". Still seeing this after installing? RESTART VANHANH: the running process keeps the "
+    en += (". Still seeing this after installing? RESTART NAOTA: the running process keeps the "
            "PATH from when it started, so it cannot see the newly installed binary")
     if os.name == "nt":
         cau += (". Windows: một số installer ghi PATH bằng `setx` và cắt PATH ở 1024 ký tự, "
@@ -391,18 +507,18 @@ def cau_thieu_cli(ten: str, nhan: str = "") -> str:
 
 # ---- Danh sách model của gói Claude Code, đọc từ CHÍNH BINARY `claude` ----
 #
-# Vì sao phải có: provider `anthropic-cli` chạy bằng đăng nhập của Claude Code, mà Vanhanh KHÔNG
+# Vì sao phải có: provider `anthropic-cli` chạy bằng đăng nhập của Claude Code, mà Naota KHÔNG
 # được đọc token đó (Anthropic cấm - xem claude_auth.py), nên nó không còn nguồn
 # danh sách model nào ngoài `anthropic_api_key`. Phần đông người dùng chạy gói thuê bao và
 # không có key, nên trình chọn model rơi về mấy alias ghi cứng trong config.py - và một khi
 # `settings.json` đã nhớ một danh sách cũ thì danh sách ĐÓ đè luôn bản mặc định mới, tức là
-# nâng cấp Vanhanh cũng không thấy dòng model mới. Đúng lỗi đã gặp: cài xong bản
+# nâng cấp Naota cũng không thấy dòng model mới. Đúng lỗi đã gặp: cài xong bản
 # mới vẫn không có Fable 5.1.
 #
 # Nguồn mới ở đây KHÔNG đụng vào bất cứ thứ gì của người dùng: binary `claude` nhúng sẵn danh
 # mục model của chính nó (thử `claude --model tên-bậy` là nó tự nói "isn't described by this
 # version's model catalog"), nên đọc file binary ra là biết bản CLI đang cài hiểu những model
-# nào. Cập nhật Claude Code là danh sách tự mới theo, khỏi sửa code Vanhanh - đúng thứ đường
+# nào. Cập nhật Claude Code là danh sách tự mới theo, khỏi sửa code Naota - đúng thứ đường
 # mượn token ngày trước làm được, mà lần này không chạm credential của ai.
 #
 # Đây là HEURISTIC trên dữ liệu nội bộ của CLI, nên nó fail-soft: đọc không ra thì trả None và
@@ -503,6 +619,84 @@ def _file_co_danh_muc() -> Optional[Path]:
     return p if p.is_file() else None
 
 
+def _claude_config_dir() -> Path:
+    return Path(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"))
+
+
+def _catalog_cache_files() -> list:
+    """Claude Code's own model-catalog cache (`<config dir>/cache/model-catalog/*.json`).
+
+    Claude Code downloads the model list from Anthropic and keeps it here, so a model released
+    after the installed binary was built appears here first. The file holds model names only,
+    no credential, so reading it stays within the rule set in the module header.
+    """
+    folder = _claude_config_dir() / "cache" / "model-catalog"
+    try:
+        return sorted(f for f in folder.glob("*.json") if f.is_file())
+    except OSError:
+        return []
+
+
+def _catalog_cache_ids(files) -> list:
+    """Model ids listed in the catalog cache files. A file that fails to parse is skipped."""
+    out = []
+    for f in files or []:
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+            models = (((data.get("catalog") or {}).get("config") or {}).get("models")) or []
+        except Exception:  # noqa: BLE001 - a broken cache file must not hide the binary's list
+            continue
+        for m in models:
+            mid = str((m or {}).get("id") or "") if isinstance(m, dict) else ""
+            if mid and tach_phien_ban(mid) and mid not in out:
+                out.append(mid)
+    return out
+
+
+_FAMILY_TIERS = ("fable", "mythos", "opus", "sonnet", "haiku")
+
+
+def sort_models(ids) -> list:
+    """Full model ids -> family aliases first, then the ids NEWEST first. Anything that is not a model id is dropped.
+
+    Families go strongest tier first; inside a family the newer version comes first, and the
+    undated id sits above the dated one (`claude-haiku-4-5` before `claude-haiku-4-5-20251001`) because that is the
+    name people type. Aliases in the input are ignored and rebuilt from the ids, so the result has no duplicates.
+    """
+    hop, seen = [], set()
+    for mid in ids or []:
+        v = tach_phien_ban(mid)
+        if v and mid not in seen:
+            seen.add(mid)
+            hop.append((v[0], v[1], v[2], mid))
+    if not hop:
+        return []
+    moi_nhat = {}
+    for fam, ver, _, _ in hop:
+        if ver > moi_nhat.get(fam, ()):
+            moi_nhat[fam] = ver
+    # Known families go by tier, strongest first: by version alone Haiku 5.5 would sit above Fable 5.2. A family this
+    # code has never heard of follows them, newest version first, so a new line still shows without a code change.
+    def _tier(fam):
+        return _FAMILY_TIERS.index(fam) if fam in _FAMILY_TIERS else len(_FAMILY_TIERS)
+    hop.sort(key=lambda x: (_tier(x[0]), bac_phien_ban(moi_nhat[x[0]]), x[0], bac_phien_ban(x[1]), x[2], x[3]))
+    alias = []
+    for fam, _, _, _ in hop:
+        if fam not in alias:
+            alias.append(fam)
+    return alias + [mid for _, _, _, mid in hop]
+
+
+def merge_models(live, shipped) -> list:
+    """The catalog read from the installed `claude` binary, plus the models this Naota release ships with.
+
+    Owner report 2026-11-10: Fable 5.2 was out and Naota did not list it. The binary's catalog was the ONLY list
+    shown, so a machine whose Claude Code had not updated yet (Docker waits for a new image, the daily updater can
+    fail) never saw a model that the Naota release already knew. The union means either side can bring a new model.
+    """
+    return sort_models(list(live or []) + list(shipped or []))
+
+
 def list_models() -> Optional[list]:
     """Model của gói Claude Code: alias đứng trước, rồi id đầy đủ MỚI NHẤT trước.
 
@@ -511,43 +705,42 @@ def list_models() -> Optional[list]:
     Claude Code là lần hỏi sau tự quét lại, còn bình thường thì không đụng đĩa.
     """
     p = _file_co_danh_muc()
-    if not p:
+    catalog_files = _catalog_cache_files()
+    if not p and not catalog_files:
         return None
     try:
-        st = p.stat()
-        if st.st_size > _MAX_QUET_MB * (1 << 20):
-            return None
-        sig = (str(p), st.st_size, st.st_mtime_ns)
+        sig = []
+        if p:
+            st = p.stat()
+            if st.st_size > _MAX_QUET_MB * (1 << 20):
+                p = None
+            else:
+                sig.append((str(p), st.st_size, st.st_mtime_ns))
+        for f in catalog_files:
+            st = f.stat()
+            sig.append((str(f), st.st_size, st.st_mtime_ns))
+        sig = tuple(sig)
     except OSError:
+        return None
+    if not sig:
         return None
     if _MODELS_CACHE["sig"] == sig:
         return list(_MODELS_CACHE["ids"]) if _MODELS_CACHE["ids"] else None
-    try:
-        tho = _doc_id_model(p)
-    except Exception:
-        return None
-    hop = []
-    for mid in tho:
-        v = tach_phien_ban(mid)
-        if v:
-            hop.append((v[0], v[1], v[2], mid))
-    if not hop:
+    tho = []
+    if p:
+        try:
+            tho = _doc_id_model(p)
+        except Exception:
+            tho = []
+    # Models Anthropic ships after the installed CLI was built (Fable 5.2, 2026-11) are not in
+    # the binary: Claude Code fetches them into its model-catalog cache. Merge that list in.
+    for mid in _catalog_cache_ids(catalog_files):
+        if mid not in tho:
+            tho.append(mid)
+    ket_qua = sort_models(tho)[:40]
+    if not ket_qua:
         _MODELS_CACHE.update(sig=sig, ids=None)
         return None
-    # Dòng nào có bản mới nhất thì đứng trước; trong một dòng, bản mới trước, và bản KHÔNG
-    # gắn ngày đứng trên bản gắn ngày (`claude-haiku-4-5` trước `claude-haiku-4-5-20251001`)
-    # vì đó mới là tên người dùng gõ.
-    moi_nhat = {}
-    for fam, ver, _, _ in hop:
-        if ver > moi_nhat.get(fam, ()):
-            moi_nhat[fam] = ver
-    hop.sort(key=lambda x: (bac_phien_ban(moi_nhat[x[0]]), x[0], bac_phien_ban(x[1]), x[2], x[3]))
-    ids = [mid for _, _, _, mid in hop]
-    alias = []
-    for fam, _, _, _ in hop:
-        if fam not in alias:
-            alias.append(fam)
-    ket_qua = (alias + ids)[:40]
     _MODELS_CACHE.update(sig=sig, ids=list(ket_qua))
     return ket_qua
 
@@ -603,7 +796,7 @@ import tempfile as _tempfile
 
 def _empty_mcp_file() -> Optional[str]:
     try:
-        p = Path(_tempfile.gettempdir()) / "vanhanh-empty-mcp.json"
+        p = Path(_tempfile.gettempdir()) / "naota-empty-mcp.json"
         if not (p.exists() and p.stat().st_size > 0):
             p.write_text('{"mcpServers":{}}', encoding="utf-8")
         return str(p) if p.stat().st_size > 0 else None
@@ -633,11 +826,11 @@ _AUTH_TTL_LOI = 30.0
 
 
 def _ten_goi_dong(goi: str, email: str = "", folder=None, chi_ten_that: bool = False) -> str:
-    """Name a Claude plan the way Anthropic names it now, never from a table Vanhanh keeps.
+    """Name a Claude plan the way Anthropic names it now, never from a table Naota keeps.
 
     `claude auth status` only gives a CODE ("max" covers both Max and the renamed Ultra since
     2026-10-30). The CLI also stores the profile's `plan_display_name` in `.claude.json`; that wins.
-    Without it, vanhanh-store's plan-name catalog, then the code tidied ("max" -> "Max"). `chi_ten_that`: return "" rather than the
+    Without it, naota-store's plan-name catalog, then the code tidied ("max" -> "Max"). `chi_ten_that`: return "" rather than the
     tidied code, so a caller can tell a vendor name from a guess."""
     if not goi:
         return ""
@@ -744,9 +937,9 @@ def auth_quen_cache():
 
 # ---- Vệ sĩ credentials: chống "tự nhiên bị đăng xuất" ----
 # Claude CLI TỰ quản token trong ~/.claude/.credentials.json và tự ghi lại file đó mỗi lần
-# refresh OAuth. Vanhanh chạy nhiều tiến trình claude song song và có watchdog giết tiến trình
+# refresh OAuth. Naota chạy nhiều tiến trình claude song song và có watchdog giết tiến trình
 # treo - kill rơi đúng lúc CLI đang ghi là file cụt nửa chừng, lượt sau CLI đọc không ra và
-# coi như chưa đăng nhập. Codex không bao giờ bị vì token ChatGPT do CHÍNH VANHANH giữ và ghi
+# coi như chưa đăng nhập. Codex không bao giờ bị vì token ChatGPT do CHÍNH NAOTA giữ và ghi
 # nguyên tử. Vệ sĩ: thấy bản lành thì sao lưu; thấy file HỎNG/MẤT mà có bản sao lưu thì phục
 # hồi + hô to. Đăng xuất CHỦ ĐỘNG (file lành nhưng không còn token, hoặc bấm Ngắt trên UI)
 # thì xoá bản sao lưu - tôn trọng ý người dùng, không "hồi sinh" phiên họ vừa ngắt.
@@ -755,7 +948,7 @@ def _cred_path() -> Path:
 
 
 def _cred_bak_path() -> Path:
-    return _cred_path().with_name(".credentials.json.vanhanh-bak")
+    return _cred_path().with_name(".credentials.json.naota-bak")
 
 
 def _cred_co_token(raw: str) -> bool:
@@ -919,17 +1112,17 @@ def _login_verify() -> dict:
     if sys.platform == "darwin":
         msg = localefmt.chu(
             "Claude báo đăng nhập xong nhưng không lưu được phiên vào Keychain của Mac, nên máy vẫn chưa đăng nhập. "
-            "Mở Terminal trên máy chạy Vanhanh, gõ: claude auth login (nếu Keychain đang khoá thì mở khoá trước: "
+            "Mở Terminal trên máy chạy Naota, gõ: claude auth login (nếu Keychain đang khoá thì mở khoá trước: "
             "security unlock-keychain), xong bấm Kiểm tra lại.",
             "Claude said the sign-in worked but could not save it to the Mac Keychain, so this machine is still "
-            "signed out. Open Terminal on the machine running Vanhanh and run: claude auth login (if the Keychain is "
+            "signed out. Open Terminal on the machine running Naota and run: claude auth login (if the Keychain is "
             "locked, unlock it first: security unlock-keychain), then click Check again.")
     else:
         msg = localefmt.chu(
             "Claude báo đăng nhập xong nhưng không lưu được phiên đăng nhập, nên máy vẫn chưa đăng nhập. Mở terminal "
-            "trên máy chạy Vanhanh, gõ: claude auth login, xong bấm Kiểm tra lại.",
+            "trên máy chạy Naota, gõ: claude auth login, xong bấm Kiểm tra lại.",
             "Claude said the sign-in worked but could not save it, so this machine is still signed out. Open a "
-            "terminal on the machine running Vanhanh and run: claude auth login, then click Check again.")
+            "terminal on the machine running Naota and run: claude auth login, then click Check again.")
     tail = _login_tail()
     return {"ok": False, "error": msg + (f" ({tail})" if tail else "")}
 
@@ -1160,7 +1353,7 @@ def mcp_open_auth_terminal():
         return {"ok": False, "error": cau_thieu_cli("claude", "Claude")}
     try:
         if os.name == "nt":
-            subprocess.Popen('start "Vanhanh - Xac thuc MCP (go /mcp)" cmd /k claude', shell=True)
+            subprocess.Popen('start "Naota - Xac thuc MCP (go /mcp)" cmd /k claude', shell=True)
         else:
             for term in ("x-terminal-emulator", "gnome-terminal", "konsole", "xterm"):
                 if shutil.which(term):
@@ -1181,12 +1374,12 @@ def claude_engine(system_prompt=None, cwd=None, tag="chat", allowed_tools=None, 
     CHỈ chạy qua claude-agent-sdk (claude_sdk_engine.ClaudeSDK); nhánh Popen ClaudeCLI cũ
     đã gỡ sau khi bake ổn (nhật ký ở ke-hoach-agent-sdk mục 8).
     SDK chưa cài thì ClaudeSDK tự báo lỗi rõ trong .query() (hướng dẫn pip install).
-    Env VANHANH_CLAUDE_ENGINE=cli|sdk-loops chỉ còn giá trị lịch sử - bị bỏ qua kèm log 1 lần."""
+    Env NAOTA_CLAUDE_ENGINE=cli|sdk-loops chỉ còn giá trị lịch sử - bị bỏ qua kèm log 1 lần."""
     global _engine_env_warned
-    mode = os.getenv("VANHANH_CLAUDE_ENGINE", "sdk").strip().lower()
+    mode = os.getenv("NAOTA_CLAUDE_ENGINE", "sdk").strip().lower()
     if mode in ("cli", "sdk-loops") and not _engine_env_warned:
         _engine_env_warned = True
-        print(f"[claude engine] VANHANH_CLAUDE_ENGINE={mode} đã gỡ - engine Claude "
+        print(f"[claude engine] NAOTA_CLAUDE_ENGINE={mode} đã gỡ - engine Claude "
               "luôn chạy Agent SDK. Gặp lỗi hãy báo issue kèm log.", file=sys.stderr)
     from claude_sdk_engine import ClaudeSDK
     # Claude Code's rate_limit_event -> the plan usage ring. Hooked here, when the SDK is loaded
@@ -1210,16 +1403,35 @@ def claude_engine(system_prompt=None, cwd=None, tag="chat", allowed_tools=None, 
     except Exception:  # noqa: BLE001 - a meter must never stop a turn
         pass
     try:
-        # every Claude turn refuses tool calls on Vanhanh's secret files (secret_guard.py).
+        # A whitelisted run below Full access writes only ordinary files inside its brain. Installed BEFORE
+        # the secret hook: that one must stay the outermost wrapper of _options, it looks for its mark only there.
+        import claude_write_scope_hook
+        claude_write_scope_hook.install()
+    except Exception as e:  # noqa: BLE001 - reported, never a broken turn
+        print(f"[write scope] Claude hook not installed: {type(e).__name__}: {e}", file=sys.stderr)
+    try:
+        # every Claude turn refuses tool calls on Naota's secret files (secret_guard.py).
         import claude_secret_hook
         claude_secret_hook.install()
     except Exception as e:  # noqa: BLE001 - the guard must never stop a turn
         print(f"[secret guard] Claude hook not installed: {type(e).__name__}: {e}", file=sys.stderr)
+    try:
+        # 2026-11-12 (customer report): a `claude` that exits before answering names the reason it printed, in place
+        # of the SDK's "Check stderr output for details".
+        import claude_exit_reason
+        claude_exit_reason.install()
+    except Exception as e:  # noqa: BLE001 - reported, never a broken turn
+        print(f"[claude] exit reason wrapper not installed: {type(e).__name__}: {e}", file=sys.stderr)
+    try:
+        # 2026-11-10 (owner incident): the SDK refuses npm's claude.cmd on Windows; hand it a native claude.exe.
+        use_native_claude_for_sdk()
+    except Exception as e:  # noqa: BLE001 - reported, never a broken turn
+        print(f"[claude] native CLI lookup failed: {type(e).__name__}: {e}", file=sys.stderr)
     eng = ClaudeSDK(system_prompt=system_prompt, cwd=cwd, tag=tag,
                     allowed_tools=allowed_tools, model=model)
     # Every run (chat, loops, reminders, bots) skips the repo CLAUDE.md and compacts at ~180k;
     # main._cli_fast keeps both.
-    eng.fast_settings = vanhanh_claude_settings()
+    eng.fast_settings = naota_claude_settings()
     return eng
 
 
@@ -1227,7 +1439,7 @@ def _claude_md_repo() -> list:
     """The repo's own CLAUDE.md files, in both spellings Claude Code may compare against.
 
     `.claude/CLAUDE.md` holds the owner's dev rules for Claude Code sessions on this repo, never
-    meant for a Vanhanh turn."""
+    meant for a Naota turn."""
     root = Path(__file__).resolve().parent.parent
     ps = (root / "CLAUDE.md", root / ".claude" / "CLAUDE.md")
     return list(dict.fromkeys(s for p in ps for s in (str(p), p.as_posix())))
@@ -1237,12 +1449,12 @@ def _claude_md_repo() -> list:
 # follows the model's context window, which measured 980,000 on a 1M-context model: a long chat then
 # re-reads close to a million tokens on every turn. 200k is the classic Claude window, so a 200k
 # model behaves exactly as before and a 1M model compacts at ~180k (Claude Code keeps a 20k buffer)
-# with its own summary, keeping the thread. `VANHANH_CLAUDE_COMPACT_WINDOW=auto` restores the default.
+# with its own summary, keeping the thread. `NAOTA_CLAUDE_COMPACT_WINDOW=auto` restores the default.
 CLAUDE_COMPACT_WINDOW = 200_000
 
 
 def _compact_window():
-    v = os.getenv("VANHANH_CLAUDE_COMPACT_WINDOW", "").strip().lower()
+    v = os.getenv("NAOTA_CLAUDE_COMPACT_WINDOW", "").strip().lower()
     if v in ("auto", "0", "off"):
         return None
     try:
@@ -1253,12 +1465,12 @@ def _compact_window():
     return max(100_000, min(n, 1_000_000))
 
 
-def vanhanh_claude_settings(settings: str = None) -> str:
-    """Claude Code settings JSON for every Vanhanh run, merged over `settings`.
+def naota_claude_settings(settings: str = None) -> str:
+    """Claude Code settings JSON for every Naota run, merged over `settings`.
 
     - `claudeMdExcludes`: a native install keeps brains under the repo (BRAINS_DIR defaults to
       <repo>/brains), and Claude Code walks up from its cwd loading every CLAUDE.md it meets. The
-      repo one IS the Vanhanh system prompt, which Vanhanh already appends, so each turn paid for it
+      repo one IS the Naota system prompt, which Naota already appends, so each turn paid for it
       twice (about 12k tokens, measured on a plain "chào em").
     - `autoCompactWindow`: see CLAUDE_COMPACT_WINDOW. Must be a number: "200k" is ignored here.
     - `fastMode` stays explicit false unless the caller set it.
@@ -1321,7 +1533,7 @@ def _home_dir() -> Path:
 
     Không dựa mỗi USERPROFILE: khi server được bật lại bởi tự-cập-nhật, dịch vụ Windows
     hay tác vụ nền, biến này có thể trống - lúc đó home thành Path("") nên mọi đường dẫn
-    ~/.codex/... hoá ra tương đối và không tồn tại, khiến Vanhanh báo nhầm "chưa cài Codex CLI"
+    ~/.codex/... hoá ra tương đối và không tồn tại, khiến Naota báo nhầm "chưa cài Codex CLI"
     dù binary vẫn nằm đó. Thử lần lượt các nguồn rồi mới chịu thua.
     """
     cands = [os.environ.get("USERPROFILE"), os.environ.get("HOME")]
@@ -1365,7 +1577,7 @@ def _codex_version(path: str) -> Optional[tuple]:
 
 
 def find_codex_cli() -> Optional[str]:
-    envp = os.environ.get("VANHANH_CODEX_BIN")     # cửa thoát: chỉ thẳng chỗ cài lạ
+    envp = os.environ.get("NAOTA_CODEX_BIN")     # cửa thoát: chỉ thẳng chỗ cài lạ
     if envp:
         try:
             if Path(envp).exists():
@@ -1418,9 +1630,9 @@ def find_codex_cli() -> Optional[str]:
 
 # ---- MCP NATIVE của Codex (kho gốc ~/.codex/config.toml, quản bằng `codex mcp ...`) ----
 # Đối xứng với bộ mcp_native_* của Claude ở trên: Codex cũng có kho MCP gốc riêng (user tự
-# `codex mcp add`, hoặc app khác ghi vào config.toml). Vanhanh chạy `codex exec -p vanhanh` mà
+# `codex mcp add`, hoặc app khác ghi vào config.toml). Naota chạy `codex exec -p naota` mà
 # profile chỉ PHỦ THÊM lên config gốc nên kho này vẫn được engine ChatGPT nạp - các hàm dưới
-# cho Vanhanh liệt kê/thêm/gỡ/kiểm tra nó, và mở `codex mcp login <tên>` cho server OAuth.
+# cho Naota liệt kê/thêm/gỡ/kiểm tra nó, và mở `codex mcp login <tên>` cho server OAuth.
 def _codex_run(sub_args, timeout=30):
     """Chạy `codex <sub_args...>` trả CompletedProcess; None nếu chưa cài Codex CLI."""
     cli = find_codex_cli()
@@ -1591,7 +1803,7 @@ def codex_mcp_open_login_terminal(name):
         return {"ok": False, "error": localefmt.chu("Tên server không hợp lệ", "Invalid server name")}
     try:
         if os.name == "nt":
-            subprocess.Popen(f'start "Vanhanh - Dang nhap MCP Codex" cmd /k codex mcp login {safe}',
+            subprocess.Popen(f'start "Naota - Dang nhap MCP Codex" cmd /k codex mcp login {safe}',
                              shell=True, env=codex_env())
         else:
             for term in ("x-terminal-emulator", "gnome-terminal", "konsole", "xterm"):
@@ -1609,8 +1821,8 @@ def codex_mcp_open_login_terminal(name):
 #
 # Lỗi đã gặp: loop nền chạy bằng ChatGPT, mọi lệnh đọc/ghi file đều trả
 # `bwrap: Failed to make / slave: Permission denied`, và bản báo cáo gửi về Telegram là một
-# bài dài model tự kể lại nỗi bối rối của nó. Nguyên nhân nằm ngoài Vanhanh: bubblewrap cần tạo
-# được user namespace + đổi propagation của `/`, mà container Vanhanh chạy user thường, không có
+# bài dài model tự kể lại nỗi bối rối của nó. Nguyên nhân nằm ngoài Naota: bubblewrap cần tạo
+# được user namespace + đổi propagation của `/`, mà container Naota chạy user thường, không có
 # CAP_SYS_ADMIN, và Ubuntu 24.04 còn chặn user namespace không đặc quyền bằng AppArmor.
 #
 # Hệ quả: TRONG DOCKER, hai mức sandbox `read-only` (mode suggest) và `workspace-write` (mode
@@ -1619,30 +1831,30 @@ def codex_mcp_open_login_terminal(name):
 _SANDBOX_HONG = re.compile(r"bwrap:|Failed to make / slave", re.I)
 
 _NOTE_SANDBOX_HONG = (
-    "⚠ Vanhanh tự kiểm: rào sandbox riêng của Codex (ChatGPT) KHÔNG khởi động được trong môi "
+    "⚠ Naota tự kiểm: rào sandbox riêng của Codex (ChatGPT) KHÔNG khởi động được trong môi "
     "trường này, nên mọi lệnh đọc/ghi file của nó đều bị chặn ngay từ đầu. Đây là giới hạn của "
     "container chứ không phải lỗi của lượt chạy, và thử lại bao nhiêu lần cũng vậy. Hai lối ra: "
-    "đặt biến môi trường VANHANH_CODEX_SANDBOX=off để Codex chạy không có rào riêng (chính "
+    "đặt biến môi trường NAOTA_CODEX_SANDBOX=off để Codex chạy không có rào riêng (chính "
     "container vẫn là rào), hoặc chuyển việc nền này sang bộ não Claude."
 )
 _NOTE_SANDBOX_HONG_EN = (
-    "⚠ Vanhanh self-check: Codex's own sandbox (ChatGPT) CANNOT start in this "
+    "⚠ Naota self-check: Codex's own sandbox (ChatGPT) CANNOT start in this "
     "environment, so every file read/write command it runs is blocked from the start. This is a limit of "
     "the container, not a failure of this run, and retrying will not change it. Two ways out: "
-    "set the environment variable VANHANH_CODEX_SANDBOX=off so Codex runs without its own sandbox (the "
+    "set the environment variable NAOTA_CODEX_SANDBOX=off so Codex runs without its own sandbox (the "
     "container itself is still the sandbox), or move this background work to the Claude brain."
 )
 
 
 def codex_sandbox_cho_mode(mode: str) -> Optional[str]:
-    """Cờ `--sandbox` của Codex cho một mức quyền của Vanhanh. None = không đặt rào riêng.
+    """Cờ `--sandbox` của Codex cho một mức quyền của Naota. None = không đặt rào riêng.
 
-    `VANHANH_CODEX_SANDBOX=off` bỏ hẳn rào của Codex ở MỌI mức. Cần cho Docker, nơi bubblewrap
+    `NAOTA_CODEX_SANDBOX=off` bỏ hẳn rào của Codex ở MỌI mức. Cần cho Docker, nơi bubblewrap
     không chạy nổi nên rào đó không phải là "chặt hơn" mà là "chết hẳn". Đánh đổi phải nói rõ:
     lúc đó mức `suggest` không còn thứ gì chặn Codex ghi file, vì Codex không có allowlist
     per-call như Claude. Ai đặt cờ này là đang chọn "container là rào duy nhất".
     """
-    if str(os.getenv("VANHANH_CODEX_SANDBOX", "auto")).strip().lower() in ("off", "0", "false", "none"):
+    if str(os.getenv("NAOTA_CODEX_SANDBOX", "auto")).strip().lower() in ("off", "0", "false", "none"):
         return None
     return {"suggest": "read-only", "auto": "workspace-write", "full": None}.get(mode or "full")
 
@@ -1659,9 +1871,9 @@ def codex_sandbox_cho_mode(mode: str) -> Optional[str]:
 # supports_websockets=false. Đã thử thật với 0.147: trả lời được, resume thread tạo từ provider
 # `openai` vẫn giữ đủ ngữ cảnh.
 #
-# VANHANH_CODEX_TRANSPORT: auto (mặc định) = WebSocket như Codex, trừ khi máy này vừa thấy
+# NAOTA_CODEX_TRANSPORT: auto (mặc định) = WebSocket như Codex, trừ khi máy này vừa thấy
 # WebSocket hỏng thì đi HTTPS một thời gian; http = luôn HTTPS; ws = luôn để Codex tự quyết.
-CODEX_HTTP_PROVIDER = "vanhanh-chatgpt-http"
+CODEX_HTTP_PROVIDER = "naota-chatgpt-http"
 _WS_HONG_FILE = "codex_ws_hong.json"
 _WS_HONG_TTL = 3 * 86400        # hết hạn thì thử lại WebSocket: lỗi phía mạng hay phía OpenAI đều có lúc hết
 _RECONNECT_RE = re.compile(r"^\s*(Reconnecting\.\.\.|Falling back from WebSockets)", re.I)
@@ -1680,7 +1892,7 @@ def codex_windows_sandbox_config(sandbox: Optional[str], codex_home=None) -> lis
     """`-c` overrides that make `--sandbox` mean what it says on Windows.
 
     On Windows, with no `[windows] sandbox` in config.toml, Codex quietly downgrades `workspace-write` to `read-only`:
-    every background job at `auto` could read but not write, and stopped as if waiting for the owner. Vanhanh asks for the
+    every background job at `auto` could read but not write, and stopped as if waiting for the owner. Naota asks for the
     unelevated Windows sandbox (no admin prompt) whenever it sets a sandbox. A choice already made in config.toml of
     that Codex home (for example `elevated`) is kept: an override would beat it. Nothing on other systems, nothing when
     no sandbox is set (full access)."""
@@ -1702,7 +1914,7 @@ def codex_windows_sandbox_config(sandbox: Optional[str], codex_home=None) -> lis
 # WARNING: proceeding, even though we could not create PATH aliases: Could not find home
 # directory". Codex tự tìm home bằng `dirs::home_dir()`: trên Windows hàm đó hỏi thẳng hồ sơ người
 # dùng của Windows (SHGetKnownFolderPath), KHÔNG đọc USERPROFILE, nên hồ sơ hỏng, hồ sơ tạm hay
-# tài khoản không có hồ sơ là Codex mù home, không thấy auth.json, trong khi Vanhanh (đọc
+# tài khoản không có hồ sơ là Codex mù home, không thấy auth.json, trong khi Naota (đọc
 # USERPROFILE/HOME qua `_home_dir`) vẫn thấy đăng nhập ChatGPT đầy đủ. Đặt CODEX_HOME thì Codex
 # bỏ qua hẳn bước hỏi Windows, và cả hai bên nhìn cùng một thư mục.
 def _mark_env(env, tag):
@@ -1715,7 +1927,7 @@ def _mark_env(env, tag):
 
 
 def codex_env(codex_home: Optional[str] = None) -> dict:
-    """Biến môi trường cho MỌI tiến trình Codex mà Vanhanh bật.
+    """Biến môi trường cho MỌI tiến trình Codex mà Naota bật.
 
     `codex_home`: the folder of an extra ChatGPT account (plan_accounts). None = account 1, as before."""
     env = dict(os.environ)
@@ -1726,7 +1938,7 @@ def codex_env(codex_home: Optional[str] = None) -> dict:
         return env                      # người dùng tự trỏ chỗ khác: tôn trọng
     home = _home_dir()
     if str(home) in ("", "."):
-        return env                      # Vanhanh cũng không biết home: để Codex tự xoay như cũ
+        return env                      # Naota cũng không biết home: để Codex tự xoay như cũ
     codex_home = home / ".codex"
     try:
         # Codex bắt CODEX_HOME phải tồn tại sẵn (nó canonicalize), máy chưa từng đăng nhập thì chưa có.
@@ -1762,29 +1974,29 @@ def codex_error_text(returncode, stderr_lines) -> str:
     hub = next((str(l).strip() for l in stderr_lines if CODEX_REQUIRED_FAIL in str(l)), "")
     if hub:
         return localefmt.chu(
-            "Cổng công cụ của Vanhanh (hub) không lên kịp nên Codex không mở phiên, việc chưa chạy. "
+            "Cổng công cụ của Naota (hub) không lên kịp nên Codex không mở phiên, việc chưa chạy. "
             "Chi tiết từ Codex (exit {code}): {ly_do}",
-            "The Vanhanh tool hub did not come up in time, so Codex did not open a session and the job "
+            "The Naota tool hub did not come up in time, so Codex did not open a session and the job "
             "did not run. Details from Codex (exit {code}): {ly_do}",
             code=returncode, ly_do=hub[hub.find(CODEX_REQUIRED_FAIL):][:240])
     if any("could not find home directory" in str(l).lower() for l in stderr_lines):
         return localefmt.chu(
             "Codex không tìm thấy thư mục người dùng trên máy này nên không đọc được đăng nhập "
-            "ChatGPT. Hay gặp khi Windows đang dùng hồ sơ tạm hoặc Vanhanh được bật bằng một tài "
+            "ChatGPT. Hay gặp khi Windows đang dùng hồ sơ tạm hoặc Naota được bật bằng một tài "
             "khoản khác. Đăng xuất Windows rồi đăng nhập lại (hoặc khởi động lại máy), sau đó bật "
-            "lại Vanhanh bằng chính tài khoản đó.\n\nChi tiết từ Codex (exit "
+            "lại Naota bằng chính tài khoản đó.\n\nChi tiết từ Codex (exit "
             + str(returncode) + "):\n" + raw,
             "Codex could not find the user folder on this computer, so it cannot read the ChatGPT "
-            "sign-in. This usually happens when Windows is on a temporary profile or Vanhanh was "
+            "sign-in. This usually happens when Windows is on a temporary profile or Naota was "
             "started under another account. Sign out of Windows and back in (or restart), then "
-            "start Vanhanh again from that same account.\n\nDetails from Codex (exit "
+            "start Naota again from that same account.\n\nDetails from Codex (exit "
             + str(returncode) + "):\n" + raw)
     return "Codex lỗi (exit " + str(returncode) + "):\n" + raw
 
 
 def _codex_dung_provider_rieng() -> bool:
     """Người dùng tự trỏ Codex sang provider khác (proxy, Ollama...) trong config.toml thì
-    Vanhanh không được giành lấy: provider HTTPS của Vanhanh chỉ thay cho `openai` mặc định."""
+    Naota không được giành lấy: provider HTTPS của Naota chỉ thay cho `openai` mặc định."""
     try:
         import tomllib
         with open(_codex_home() / "config.toml", "rb") as f:
@@ -1806,7 +2018,7 @@ def ghi_codex_ws_hong(ly_do: str = "") -> None:
 
 def codex_transport() -> str:
     """'http' hoặc 'ws' cho lượt Codex sắp chạy."""
-    chon = str(os.getenv("VANHANH_CODEX_TRANSPORT", "auto")).strip().lower()
+    chon = str(os.getenv("NAOTA_CODEX_TRANSPORT", "auto")).strip().lower()
     if chon in ("http", "https", "sse"):
         return "http" if not _codex_dung_provider_rieng() else "ws"
     if chon in ("ws", "websocket", "websockets", "off"):
@@ -1820,7 +2032,7 @@ def codex_transport() -> str:
 
 
 def codex_http_config() -> list:
-    """Các `-c` khai provider HTTPS của Vanhanh và chọn nó."""
+    """Các `-c` khai provider HTTPS của Naota và chọn nó."""
     p = f"model_providers.{CODEX_HTTP_PROVIDER}"
     return [f'{p}.name="OpenAI"',
             f'{p}.base_url="https://chatgpt.com/backend-api/codex"',
@@ -1897,7 +2109,7 @@ class CodexCLI:
         self.model = model              # gpt-5.5 / gpt-5.4 ...
         self.instructions = instructions
         self.extra_config = []          # list '-c key=value' (override config, vd thêm mcp_servers)
-        self.profile = None             # tên profile codex (-p) - Vanhanh ghi vanhanh.config.toml để thêm MCP
+        self.profile = None             # tên profile codex (-p) - Naota ghi naota.config.toml để thêm MCP
         self.session_id = None          # Codex thread_id; có giá trị → `codex exec resume <id>`
         # Sandbox của Codex: None = toàn quyền (mặc định, giữ nguyên hành vi cũ của chat/workflow).
         # Việc nền đặt 'read-only' / 'workspace-write' để khớp mode suggest/auto của loop -
@@ -1908,9 +2120,9 @@ class CodexCLI:
         self.vault_root = None
         # 'http' / 'ws' ép đường truyền; None = codex_transport() tự chọn mỗi lượt.
         self.transport = None
-        # True only when the profile's `vanhanh` entry is the hub (main._apply_codex_hub): then each
+        # True only when the profile's `naota` entry is the hub (main._apply_codex_hub): then each
         # query carries the current turn's key so hub hooks know who is talking (turn_context).
-        # Off otherwise, because an override under mcp_servers.vanhanh with no hub entry would
+        # Off otherwise, because an override under mcp_servers.naota with no hub entry would
         # create a broken half-entry.
         self.hub_turn = False
         # True only on the main engine of a chat turn (web or chat channel, set by main.py): the turn then runs on
@@ -2007,10 +2219,10 @@ class CodexCLI:
             last = {"t": time.time()}
             from claude_sdk_engine import tran_watchdog
             # Ba trần, None = không giới hạn. Parity với engine Claude SDK, kể cả mặc định: cả ba
-            # đều bỏ trần. Trần chờ TOOL (1 tiếng) cũng bỏ; muốn có lại thì đặt VANHANH_CLAUDE_TOOL_TIMEOUT.
-            IDLE = tran_watchdog("VANHANH_CLAUDE_IDLE_TIMEOUT", "0")
-            TOOL_IDLE = tran_watchdog("VANHANH_CLAUDE_TOOL_TIMEOUT", "0")
-            FIRST_IDLE = tran_watchdog("VANHANH_CLAUDE_FIRST_TIMEOUT", "0")
+            # đều bỏ trần. Trần chờ TOOL (1 tiếng) cũng bỏ; muốn có lại thì đặt NAOTA_CLAUDE_TOOL_TIMEOUT.
+            IDLE = tran_watchdog("NAOTA_CLAUDE_IDLE_TIMEOUT", "0")
+            TOOL_IDLE = tran_watchdog("NAOTA_CLAUDE_TOOL_TIMEOUT", "0")
+            FIRST_IDLE = tran_watchdog("NAOTA_CLAUDE_FIRST_TIMEOUT", "0")
             busy = {"n": 0}   # số item tool/lệnh đã started mà chưa completed
             seen = {"dong_dau": False}   # đã có dòng đầu tiên chưa (quyết định dùng trần nào)
             _TOOL_ITEMS = ("command_execution", "mcp_tool_call", "function_call",
@@ -2026,7 +2238,7 @@ class CodexCLI:
                 with _PROC_LOCK:
                     _ACTIVE_PROCS[proc] = self.tag
                 # Nhớ pid (= mã nhóm tiến trình) theo tag lượt: hết lượt mà nhóm còn sống là Codex
-                # đã bỏ lại lệnh chạy ngầm, Vanhanh nhận theo dõi (tien_trinh_nen).
+                # đã bỏ lại lệnh chạy ngầm, Naota nhận theo dõi (tien_trinh_nen).
                 try:
                     import tien_trinh_nen
                     tien_trinh_nen.ghi_nhom(self.tag, proc.pid)
@@ -2057,27 +2269,27 @@ class CodexCLI:
                             if ly_do == "tool":
                                 err = localefmt.chu(
                                     f"Tool chạy quá {int(TOOL_IDLE)}s chưa xong - đã dừng để tránh treo "
-                                    f"server. (tăng VANHANH_CLAUDE_TOOL_TIMEOUT nếu tác vụ thật sự dài hơn, "
+                                    f"server. (tăng NAOTA_CLAUDE_TOOL_TIMEOUT nếu tác vụ thật sự dài hơn, "
                                     f"đặt 0 để bỏ hẳn trần)",
                                     f"A tool ran over {int(TOOL_IDLE)}s without finishing - stopped to avoid hanging the "
-                                    f"server. (raise VANHANH_CLAUDE_TOOL_TIMEOUT if the job really takes longer, "
+                                    f"server. (raise NAOTA_CLAUDE_TOOL_TIMEOUT if the job really takes longer, "
                                     f"set 0 to remove the limit)")
                             elif ly_do == "dau":
                                 err = localefmt.chu(
                                     f"Codex chưa trả lời gì sau {int(FIRST_IDLE)}s - đã dừng để tránh treo "
                                     f"server. Hay gặp khi hội thoại đã rất dài: lượt đầu phải nạp lại toàn "
                                     f"bộ ngữ cảnh nên lâu. Mở hội thoại mới thường hết ngay. "
-                                    f"(VANHANH_CLAUDE_FIRST_TIMEOUT=0 để bỏ hẳn trần này)",
+                                    f"(NAOTA_CLAUDE_FIRST_TIMEOUT=0 để bỏ hẳn trần này)",
                                     f"Codex had not answered after {int(FIRST_IDLE)}s - stopped to avoid hanging the "
                                     f"server. Common when the conversation is very long: the first turn must reload the whole "
                                     f"context, which is slow. A new conversation usually fixes it. "
-                                    f"(VANHANH_CLAUDE_FIRST_TIMEOUT=0 removes this limit)")
+                                    f"(NAOTA_CLAUDE_FIRST_TIMEOUT=0 removes this limit)")
                             else:
                                 err = localefmt.chu(
                                     f"Codex đang trả lời rồi im {int(IDLE)}s - đã dừng để tránh treo server. "
-                                    f"(VANHANH_CLAUDE_IDLE_TIMEOUT=0 để bỏ hẳn trần này)",
+                                    f"(NAOTA_CLAUDE_IDLE_TIMEOUT=0 để bỏ hẳn trần này)",
                                     f"Codex went silent for {int(IDLE)}s mid-answer - stopped to avoid hanging the server. "
-                                    f"(VANHANH_CLAUDE_IDLE_TIMEOUT=0 removes this limit)")
+                                    f"(NAOTA_CLAUDE_IDLE_TIMEOUT=0 removes this limit)")
                             asyncio.run_coroutine_threadsafe(queue.put({"__error__": err}), loop)
                             return
                         time.sleep(5)
@@ -2161,7 +2373,7 @@ class CodexCLI:
                 yield {"type": "tool_call", "name": "todo_list", "item": it}
             elif t == "item.started":
                 # Codex báo lúc một bước BẮT ĐẦU (đo với Codex 0.160: lệnh `ping` 5 giây có
-                # item.started ở giây 8,8, item.completed ở giây 14). Trước đây Vanhanh chỉ nghe
+                # item.started ở giây 8,8, item.completed ở giây 14). Trước đây Naota chỉ nghe
                 # item.completed, nên suốt lúc một lệnh dài chạy, khung chat im hẳn và người dùng
                 # tưởng treo. Phát `progress` để trang hiện ngay bước đang chạy;
                 # nơi nào không biết loại này thì bỏ qua, `tool_call` lúc xong vẫn y như cũ.

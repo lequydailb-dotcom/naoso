@@ -19,8 +19,8 @@ import os
 import sys
 import tempfile
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-meta-priv-")
-os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-meta-priv-")
+os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

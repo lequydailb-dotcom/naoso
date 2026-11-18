@@ -1,22 +1,23 @@
-"""Regression: a scheduled background job on Codex gets the Vanhanh hub, or fails for real.
+"""Regression: a scheduled background job on Codex gets the Naota hub, or fails for real.
 
 Canary (one VPS, two read-only scheduled reminders): 4 of 12 runs had no
-`mcp__vanhanh__*` tool. Codex 0.161.0 waits only `mcp_optional_startup_grace_ms` (default 1 s,
+`mcp__naota__*` tool. Codex 0.161.0 waits only `mcp_optional_startup_grace_ms` (default 1 s,
 codex-mcp/src/mcp/mod.rs) for an MCP server that is not `required`, then drops that server from
 the turn (codex-mcp/src/connection_manager/tool_catalog.rs). The hub answers `tools/list` in
 about 2 s once its 60 s discovery cache has expired. The model then went through the ChatGPT
 apps (`mcp__codex_apps__*`) or said it could not work, and the reminder still recorded success.
 
 Fix, for the scheduled background lanes only (reminder, loop, Kanban dispatch):
-  - `mcp_servers.vanhanh.required=true`: Codex waits for the hub up to `startup_timeout_sec`, and
+  - `mcp_servers.naota.required=true`: Codex waits for the hub up to `startup_timeout_sec`, and
     `codex exec` exits with "required MCP servers failed to initialize" when it cannot start;
   - `features.apps=false`: no `codex_apps` server, so no route around the hub;
   - the background engine chain stops on that error instead of handing the prompt to the next
     engine, which would reach the same hub and run blind;
   - claude_cli.codex_error_text puts the reason first: Codex's stderr starts with long rmcp log
     lines, and the chat card keeps 300 characters, reminders.json 400.
-Chat never goes through `_build_codex`; workflow Codex agents are built by
-main._workflow_agent_helpers. Both must stay unchanged.
+Chat never goes through `_build_codex`; unrestricted workflow Codex agents are built by
+main._workflow_agent_helpers. Restricted workflow steps use workflow_codex with a required
+scoped hub and native tools disabled; unrestricted workflow behavior stays unchanged.
 Every `_build_codex` lane also pins the job's own permission level
 (`mcp_hub.dat_codex_mode`), so the mode checks expect the job's level.
 
@@ -33,16 +34,16 @@ import time
 import tomllib
 from pathlib import Path
 
-# Hard-set, not setdefault: inside the production container VANHANH_STATE_DIR, BRAINS_DIR and HOME
+# Hard-set, not setdefault: inside the production container NAOTA_STATE_DIR, BRAINS_DIR and HOME
 # point at live data, and this test writes a Codex profile under HOME and a reminders.json.
-_TMP = Path(tempfile.mkdtemp(prefix="vanhanh-codex-bg-hub-"))
-os.environ["VANHANH_STATE_DIR"] = str(_TMP / "state")
-os.environ["VANHANH_SESSIONS_DB"] = str(_TMP / "conversations.db")
+_TMP = Path(tempfile.mkdtemp(prefix="naota-codex-bg-hub-"))
+os.environ["NAOTA_STATE_DIR"] = str(_TMP / "state")
+os.environ["NAOTA_SESSIONS_DB"] = str(_TMP / "conversations.db")
 os.environ["BRAINS_DIR"] = str(_TMP / "brains")
 os.environ["HOME"] = str(_TMP / "home")
-os.environ.pop("VANHANH_CODEX_SANDBOX", None)
+os.environ.pop("NAOTA_CODEX_SANDBOX", None)
 os.environ.pop("CODEX_HOME", None)
-for _d in ("state", "brains/Brain Default/Vanhanh", "home"):
+for _d in ("state", "brains/Brain Default/Naota", "home"):
     (_TMP / _d).mkdir(parents=True, exist_ok=True)
 
 try:
@@ -68,7 +69,7 @@ def check(name, cond, detail=""):
 
 
 # Names read with getattr so this file still runs (and turns RED) on a tree without the fix.
-REQ_KEY = getattr(mcp_hub, "CODEX_REQUIRED_KEY", "mcp_servers.vanhanh.required")
+REQ_KEY = getattr(mcp_hub, "CODEX_REQUIRED_KEY", "mcp_servers.naota.required")
 APPS_KEY = getattr(mcp_hub, "CODEX_APPS_KEY", "features.apps")
 REQ_FAIL = getattr(claude_cli, "CODEX_REQUIRED_FAIL", "required MCP servers failed to initialize")
 HUB_REQ = getattr(mcp_hub, "dat_codex_hub_bat_buoc", None)
@@ -103,7 +104,7 @@ def effective_config(argv):
 
 
 def hub_entry(cfg):
-    return (cfg.get("mcp_servers") or {}).get("vanhanh") or {}
+    return (cfg.get("mcp_servers") or {}).get("naota") or {}
 
 
 def count(argv, key):
@@ -122,8 +123,8 @@ class _Engine:
         self.cwd = str(BRAIN)
         self.tag = tag
         self.system_prompt = None
-        self.vanhanh_vault = str(BRAIN)
-        self.vanhanh_mode = mode
+        self.naota_vault = str(BRAIN)
+        self.naota_mode = mode
         self.model = None
 
     def is_available(self):
@@ -158,10 +159,11 @@ for tag in BG_TAGS:
         j = hub_entry(cfg)
         h = j.get("http_headers") or {}
         check(f"{tag} {m}: hub entry is required", j.get("required") is True, sorted(j))
-        check(f"{tag} {m}: startup_timeout_sec still 20 from the profile", j.get("startup_timeout_sec") == 20)
+        check(f"{tag} {m}: a required hub waits 45 s, longer than the profile's 20 (#1306)",
+              j.get("startup_timeout_sec") == 45)
         check(f"{tag} {m}: ChatGPT apps switched off", (cfg.get("features") or {}).get("apps") is False)
-        check(f"{tag} {m}: hub receives X-Vanhanh-Mode={want_mode(m)} (the job's level)",
-              h.get("X-Vanhanh-Mode") == want_mode(m))
+        check(f"{tag} {m}: hub receives X-Naota-Mode={want_mode(m)} (the job's level)",
+              h.get("X-Naota-Mode") == want_mode(m))
         check(f"{tag} {m}: auth still comes from the profile", str(h.get("Authorization", "")).startswith("Bearer "))
         check(f"{tag} {m}: exactly one required and one apps override",
               count(argv, REQ_KEY) == 1 and count(argv, APPS_KEY) == 1)
@@ -173,14 +175,14 @@ for tag in ("workflow", "workflow-main", "ingest", "reply-policy", "reply-policy
     check(f"{tag}: hub not marked required", "required" not in hub_entry(cfg))
     check(f"{tag}: apps feature untouched", "apps" not in (cfg.get("features") or {}))
     check(f"{tag}: mode header is the job's level ({want_mode('suggest')})",
-          (hub_entry(cfg).get("http_headers") or {}).get("X-Vanhanh-Mode") == want_mode("suggest"))
+          (hub_entry(cfg).get("http_headers") or {}).get("X-Naota-Mode") == want_mode("suggest"))
 
 # ---- 4. Shared profile (read by chat lanes) never carries the background overrides -------------
 prof = Path.home() / ".codex" / f"{mcp_hub.codex_profile_name()}.config.toml"
 before = prof.read_bytes()
 aux_engine._build_codex(CODEX_SPEC, _Engine(), "suggest", "reminder", shared_profile)
 after = tomllib.loads(prof.read_text(encoding="utf-8"))
-check("shared profile: hub not required", "required" not in after["mcp_servers"]["vanhanh"])
+check("shared profile: hub not required", "required" not in after["mcp_servers"]["naota"])
 check("shared profile: no features table", "features" not in after)
 check("shared profile bytes unchanged by a background job", prof.read_bytes() == before)
 
@@ -190,7 +192,7 @@ for label, writer in (("no profile writer", None), ("writer returned nothing", l
     check(f"{label}: no required override", count(argv, REQ_KEY) == 0, argv)
     check(f"{label}: no apps override", count(argv, APPS_KEY) == 0, argv)
 set_hub(False)
-argv = aux_engine._build_codex(CODEX_SPEC, _Engine(), "suggest", "reminder", lambda: "vanhanh")._build_args()
+argv = aux_engine._build_codex(CODEX_SPEC, _Engine(), "suggest", "reminder", lambda: "naota")._build_args()
 check("hub off in settings: no required and no apps override", count(argv, REQ_KEY) == 0 and count(argv, APPS_KEY) == 0, argv)
 set_hub(True)
 
@@ -210,7 +212,7 @@ for m in ("suggest", "auto", "full"):
     check(f"swap({m}): Codex link has the hub required and apps off",
           hub_entry(cfg).get("required") is True and (cfg.get("features") or {}).get("apps") is False)
     check(f"swap({m}): Codex link reaches the hub at {want_mode(m)}",
-          (hub_entry(cfg).get("http_headers") or {}).get("X-Vanhanh-Mode") == want_mode(m))
+          (hub_entry(cfg).get("http_headers") or {}).get("X-Naota-Mode") == want_mode(m))
     # every level gets the fallback chain (a link that already used a tool stops it), Codex first.
     shape_ok = len(links) >= 2 and links[0] is codex[0]
     check(f"swap({m}): chain shape (Codex first, fallback after)", shape_ok,
@@ -245,25 +247,26 @@ async def collect(engine, fresh=True):
 
 
 FB = aux_engine._FallbackChain
+aux_engine.HUB_RETRY_WAIT_S = 0   # the retry of #1306 is exercised below; no real 30 s pause in a test
 FINAL = lambda s: {"type": "final", "content": s}
 # The exact stderr codex-cli 0.161.0 printed in the isolated probe of the preflight (hub
-# never answered initialize, startup_timeout_sec = 20), through Vanhanh's own error formatter, as
+# never answered initialize, startup_timeout_sec = 20), through Naota's own error formatter, as
 # CodexCLI.query does when Codex exits non-zero. The rmcp log line comes first.
 REQ_STDERR = [
     "2026-10-09T00:20:19.720107Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, "
     "when Client(HttpRequest(HttpRequest(\"http/request failed: error sending request for url "
     "(http://127.0.0.1:19310/hub/mcp)\")))",
     "2026-10-09T00:20:19.722743Z ERROR codex_core::session: Failed to create session: required MCP servers failed "
-    "to initialize: vanhanh: timed out handshaking with MCP server after 20s",
+    "to initialize: naota: timed out handshaking with MCP server after 20s",
     "Error: thread/start: thread/start failed: error creating thread: Fatal error: Failed to initialize session: "
-    "required MCP servers failed to initialize: vanhanh: timed out handshaking with MCP server after 20s (code -32603)",
+    "required MCP servers failed to initialize: naota: timed out handshaking with MCP server after 20s (code -32603)",
 ]
 REQ_ERR = claude_cli.codex_error_text(1, REQ_STDERR)
 # Hub port closed: same probe, the reason line is ~800 characters of transport detail.
 DOWN_STDERR = [
     REQ_STDERR[0],
     "2026-10-09T00:19:58.391560Z ERROR codex_core::session: Failed to create session: required MCP servers failed to "
-    "initialize: vanhanh: handshaking with MCP server failed: Send message error Transport "
+    "initialize: naota: handshaking with MCP server failed: Send message error Transport "
     "[codex_rmcp_client::event_notification_transport::EventNotificationTransport<rmcp::transport::worker::"
     "WorkerTransport<rmcp::transport::streamable_http_client::StreamableHttpClientWorker<codex_rmcp_client::"
     "http_client_adapter::StreamableHttpClientAdapter>>>] error: Client error: HTTP request failed: http/request "
@@ -272,7 +275,7 @@ DOWN_STDERR = [
 for label, lines in (("hub hung (timed out after 20s)", REQ_STDERR), ("hub port closed", DOWN_STDERR)):
     txt = claude_cli.codex_error_text(1, lines)
     check(f"codex_error_text, {label}: reason within the first 300 characters", REQ_FAIL in txt[:300], txt[:300])
-    check(f"codex_error_text, {label}: names the hub server and keeps the exit code", "vanhanh:" in txt and "1" in txt)
+    check(f"codex_error_text, {label}: names the hub server and keeps the exit code", "naota:" in txt and "1" in txt)
     check(f"codex_error_text, {label}: bounded length", len(txt) < 600, len(txt))
 other = claude_cli.codex_error_text(2, ["Error: unexpected status 401 Unauthorized"])
 check("codex_error_text, unrelated error: old format kept", other.startswith("Codex lỗi (exit 2):") and "401" in other, other)
@@ -287,8 +290,36 @@ check("required hub failed: next engine NOT run (it would reach the same hub bli
 check("required hub failed: no final leaks out", all(e.get("type") != "final" for e in evs))
 check("required hub failed: the reason is in the first 300 characters (what the chat card keeps)",
       bool(evs) and REQ_FAIL in str(evs[-1].get("content", ""))[:300], str(evs[-1].get("content", ""))[:300] if evs else "")
-check("required hub failed: Codex's own line is kept (vanhanh + timed out after 20s)",
-      bool(evs) and "vanhanh: timed out handshaking with MCP server after 20s" in str(evs[-1].get("content", "")))
+check("required hub failed: Codex's own line is kept (naota + timed out after 20s)",
+      bool(evs) and "naota: timed out handshaking with MCP server after 20s" in str(evs[-1].get("content", "")))
+
+# ---- #1306: a late required hub gets ONE more try before the run is given up ----------------------
+check("a required hub that fails twice ran that link exactly twice (one retry, not a loop)", codex.ran == 2, codex.ran)
+
+
+class LateHubEngine(FakeEngine):
+    """Fails with the required-hub error on the first run, then answers `events`."""
+
+    async def query(self, prompt):
+        self.ran += 1
+        for ev in ([{"type": "error", "content": REQ_ERR}] if self.ran == 1 else self.events):
+            yield ev
+
+
+late = LateHubEngine([{"type": "text", "content": "xong"}, FINAL("xong")], provider="openai-oauth")
+claude = FakeEngine([FINAL(BLIND)])
+evs = asyncio.run(collect(FB([late, claude])))
+check("hub late once: the same link runs again and its answer comes out", late.ran == 2
+      and bool(evs) and evs[-1].get("type") == "final" and evs[-1].get("content") == "xong", evs)
+check("hub late once: no error reaches the caller and the next engine never runs",
+      all(e.get("type") != "error" for e in evs) and claude.ran == 0, evs)
+acted = FakeEngine([{"type": "tool_call", "name": "zalo_send_message"}, {"type": "error", "content": REQ_ERR}],
+                   provider="openai-oauth")
+evs = asyncio.run(collect(FB([acted])))
+check("the hub error AFTER a tool call is never retried (the action could run twice)", acted.ran == 1, acted.ran)
+check("required timeout override replaces an earlier one instead of stacking",
+      HUB_REQ(["mcp_servers.naota.startup_timeout_sec=20", "x=1"]).count("mcp_servers.naota.startup_timeout_sec=45") == 1
+      and "mcp_servers.naota.startup_timeout_sec=20" not in HUB_REQ(["mcp_servers.naota.startup_timeout_sec=20"]))
 
 LIMIT = "You've hit your session limit · resets 4:40am (UTC)"
 claude_het = FakeEngine([{"type": "error", "content": LIMIT}], provider="claude")
@@ -308,13 +339,13 @@ evs = asyncio.run(collect(FB([codex2, claude2]), fresh=False))
 check("right after that quota error, the next job tries Claude first (Codex is resting)",
       evs[-1] == FINAL("claude chạy trước") and codex2.ran == 0)
 
-codex = FakeEngine([{"type": "tool_call", "name": "mcp__vanhanh__vanhanh_run_tool"}, FINAL("xong")], provider="openai-oauth")
+codex = FakeEngine([{"type": "tool_call", "name": "mcp__naota__naota_run_tool"}, FINAL("xong")], provider="openai-oauth")
 claude = FakeEngine([FINAL("không được chạy")])
 evs = asyncio.run(collect(FB([codex, claude])))
 check("healthy Codex run: unchanged, Claude never runs", evs[-1] == FINAL("xong") and claude.ran == 0)
 
 # ---- 9. End to end at the reminder layer: a missing hub is a FAILED job, not a done one ---------
-REM_FILE = BRAIN / "Vanhanh" / "reminders.json"
+REM_FILE = BRAIN / "Naota" / "reminders.json"
 sent = []
 
 
@@ -382,7 +413,7 @@ check("reminder at full (no chain): error recorded with the reason", REQ_FAIL in
 check("reminder at full (no chain): card failed and warning names the reason",
       bool(sent) and (sent[-1]["viec"] or {}).get("status") == "failed" and REQ_FAIL in sent[-1]["text"], sent[-1:])
 
-codex = FakeEngine([{"type": "tool_call", "name": "mcp__vanhanh__vanhanh_run_tool"}, FINAL("OK: 3 rows")], provider="openai-oauth")
+codex = FakeEngine([{"type": "tool_call", "name": "mcp__naota__naota_run_tool"}, FINAL("OK: 3 rows")], provider="openai-oauth")
 claude = FakeEngine([FINAL("không được chạy")])
 stored = run_fire([codex, claude])
 check("reminder healthy run: result kept, no error, card done",
@@ -392,8 +423,8 @@ check("reminder healthy run: result kept, no error, card done",
 # ---- 10. Scope: only the background router sets these overrides --------------------------------
 SRC = {p.name: p.read_text(encoding="utf-8") for p in SERVER.glob("*.py")}
 users = sorted(n for n, s in SRC.items() if "dat_codex_hub_bat_buoc(" in s or "dat_codex_tat_app(" in s)
-check("only mcp_hub (definition) and aux_engine (_build_codex) use the overrides",
-      users == ["aux_engine.py", "mcp_hub.py"], users)
+check("only hub helpers, background router and restricted workflow builder use the overrides",
+      users == ["aux_engine.py", "mcp_hub.py", "workflow_codex.py"], users)
 callers = sorted(n for n, s in SRC.items() if re.search(r"\b_build_codex\(", s))
 # team Work/Help turns build Codex through the same builder (team_engine.build_tools). Their tag
 # ("team-<id>-<turn>") is not a scheduled background lane, so the hub-required and no-app overrides stay off for them.
@@ -408,7 +439,7 @@ check('reminders still route with tag="reminder"', 'aux_engine.apply(self.deps, 
 check("Kanban runs still route with tag dispatch:<id>:<suffix>",
       "tag=f\"dispatch:{task['id']}:" in TASK_SRC and "aux_engine.apply(self.deps, cli, mode=mode, tag=cli.tag)" in TASK_SRC)
 check('loops still route with tag="loop"', 'tag="loop")' in LOOP_SRC and "aux_engine.apply(self.deps, cli" in LOOP_SRC)
-check("workflow Codex agents still built directly, without the background overrides",
+check("unrestricted workflow Codex agents still built directly, without the background overrides",
       "CodexCLI(cwd=vault_root, tag=\"workflow\"" in SRC.get("main.py", "")
       and "CODEX_REQUIRED_KEY" not in SRC.get("main.py", "") and "dat_codex_tat_app" not in SRC.get("main.py", ""))
 

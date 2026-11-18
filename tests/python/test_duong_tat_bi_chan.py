@@ -23,7 +23,7 @@ import os
 import sys
 import tempfile
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-duongtat-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-duongtat-")
 
 import config as cfg  # noqa: E402
 import fast_path_runtime as fp  # noqa: E402

@@ -7,22 +7,22 @@ let cancelledTurn = false;     // (giữ để tương thích - không còn dùn
 // ĐA HỘI THOẠI SONG SONG: mỗi phiên giữ trạng thái stream RIÊNG, định tuyến theo session_id. Mở
 // "hội thoại mới" KHÔNG giết phiên đang chạy - nó chạy nền + tự lưu, vào Lịch sử bấm lại xem tiếp.
 const turns = {};              // sid -> { text, bubble, spoke, running }
-if (!window.VanhanhRunning) window.VanhanhRunning = new Set();   // sid đang generate → sidebar hiện icon đang chạy
+if (!window.NaotaRunning) window.NaotaRunning = new Set();   // sid đang generate → sidebar hiện icon đang chạy
 function newSid() { try { return crypto.randomUUID().replace(/-/g, ""); } catch (e) { return Date.now().toString(36) + Math.random().toString(36).slice(2, 10); } }
 function setSessionRunning(sid, on) {
   if (!sid) return;
-  if (on) window.VanhanhRunning.add(sid); else window.VanhanhRunning.delete(sid);
-  try { if (window.VanhanhChatSide && window.VanhanhChatSide.refresh) window.VanhanhChatSide.refresh(); } catch (e) {}
+  if (on) window.NaotaRunning.add(sid); else window.NaotaRunning.delete(sid);
+  try { if (window.NaotaChatSide && window.NaotaChatSide.refresh) window.NaotaChatSide.refresh(); } catch (e) {}
   emitTurnProgress(sid);
 }
 // A chat turn started, made a step, or ended. The Jobs tab of the Partners page (agent-jobs.js) listens to show the
 // assistant's running chat turn with its plan: a chat turn is not a queued job, so the tab looked empty while the
 // assistant was clearly working.
 function emitTurnProgress(sid) {
-  try { window.dispatchEvent(new CustomEvent("vanhanh:chat-turn", { detail: { sid: sid } })); } catch (e) {}
+  try { window.dispatchEvent(new CustomEvent("naota:chat-turn", { detail: { sid: sid } })); } catch (e) {}
 }
 // { sid, running, steps, buoc } of a chat's turn (the open chat when `sid` is empty), or null when none ran here.
-window.VanhanhChatLive = {
+window.NaotaChatLive = {
   turn: function (sid) {
     const id = sid || savedSessionId;
     const t = id ? turns[id] : null;
@@ -32,12 +32,12 @@ window.VanhanhChatLive = {
 };
 
 // Lưu & khôi phục phiên gần nhất (hội thoại + số liệu + session Claude)
-const SESSION_KEY = "vanhanh.session.v1";
-let convo = [];            // [{role:"user"|"vanhanh", text, atts}]
+const SESSION_KEY = "naota.session.v1";
+let convo = [];            // [{role:"user"|"naota", text, atts}]
 let savedSessionId = null; // session_id của Claude để resume sau khi F5
 // Typed messages the server has not confirmed yet (chat_ack), kept in localStorage so a page the phone killed in the
 // background still sends them after it reloads. See _trackUnacked.
-const UNACKED_KEY = "vanhanh.unacked.v1";
+const UNACKED_KEY = "naota.unacked.v1";
 let _unacked = [];
 try { const a = JSON.parse(localStorage.getItem(UNACKED_KEY) || "[]"); if (Array.isArray(a)) _unacked = a; } catch (e) {}
 const stopBtn = document.getElementById("stopBtn");
@@ -46,7 +46,7 @@ let stopTag = null;        // tag phiên chat server phát qua message hello →
 function updateStopBtn() {
   const active = isProcessing || voice.isSpeaking();
   stopBtn.style.display = active ? "flex" : "none";
-  // while Vanhanh works, typed text can still go out (as an add-on to the running turn), so the send button
+  // while Naota works, typed text can still go out (as an add-on to the running turn), so the send button
   // comes back next to Stop as soon as there is something to send.
   const boSung = coTheGuiBoSung();
   // two buttons . An empty box shows the voice chat button; text or an attachment turns
@@ -83,7 +83,7 @@ function stopCurrent() {
   try { ketThucTheoLoi(false); } catch (e) {}
   voice.stopSpeaking();
   const sid = savedSessionId;
-  try { if (window.VanhanhLenh) window.VanhanhLenh.tamDungVi(sid); } catch (e) {}   // Dừng cũng tạm dừng /goal (không xoá)
+  try { if (window.NaotaLenh) window.NaotaLenh.tamDungVi(sid); } catch (e) {}   // Dừng cũng tạm dừng /goal (không xoá)
   if (sid && adaptiveCurrent.has(sid)) adaptiveCancelled.add(adaptiveCurrent.get(sid));
   // Dừng ĐÚNG phiên đang xem (phiên nền khác vẫn chạy). Server huỷ lượt + gửi turn_done về.
   if (sid && ws && ws.readyState === WebSocket.OPEN) {
@@ -110,8 +110,8 @@ function stopCurrent() {
   syncActiveUI();
 }
 function handsFreeActive() { return typeof handsFree !== "undefined" && handsFree; }
-// (Vanhanh Core spec 9): one line in the chat saying the open chat belongs to another brain, with a button to
-// switch the dashboard to it. Vanhanh already answers on that chat's brain (server side); this makes it visible.
+// (Naota Core spec 9): one line in the chat saying the open chat belongs to another brain, with a button to
+// switch the dashboard to it. Naota already answers on that chat's brain (server side); this makes it visible.
 function veNhanBrain(ten, uiVal) {
   try {
     const area = document.getElementById("chatArea");
@@ -176,7 +176,7 @@ const orbState = document.getElementById("orbState");
 // nên mọi truy cập phải guard để trang không chết trắng nếu thiếu.
 fetch("/config").then(r => r.json()).then(cfg => {
   const wn = document.getElementById("workspaceName");
-  if (wn) wn.textContent = cfg.workspace_name || "VANHANH";
+  if (wn) wn.textContent = cfg.workspace_name || "NAOTA";
 }).catch(() => {});
 
 // ============================================
@@ -187,21 +187,21 @@ function setOrbState(state, label, petState) {
   orbState.textContent = label;
   const thinking = state === "thinking";
   _thinkingActive = thinking;
-  if (vanhanhGraph) vanhanhGraph.setThinking(thinking);
+  if (naotaGraph) naotaGraph.setThinking(thinking);
   // Linh vật ở mép màn hình diễn theo ĐÚNG trạng thái này, không có nguồn riêng: nếu chữ
   // trên orb nói "đang nghĩ" mà pet vẫn ngồi chớp mắt thì một trong hai đang nói dối.
   // Lớp rỗng "" của orb là trạng thái nghỉ.
   // `petState` chỉ khác `state` ở chỗ orb không vẽ riêng: "hearing" (mic đã bắt được giọng,
   // orb vẫn hiện lớp listening như lúc chờ nghe).
-  try { if (window.VanhanhPet) window.VanhanhPet.setState(petState || state || "idle"); } catch (e) {}
-  try { if (window.VanhanhWorkspace) window.VanhanhWorkspace.onChatState(state || "idle"); } catch (e) {}
+  try { if (window.NaotaPet) window.NaotaPet.setState(petState || state || "idle"); } catch (e) {}
+  try { if (window.NaotaWorkspace) window.NaotaWorkspace.onChatState(state || "idle"); } catch (e) {}
 }
 
 // ============================================
 // Voice
 // ============================================
-const attention = new window.VanhanhVoiceAttention.Attention();
-const voice = new VanhanhVoice({
+const attention = new window.NaotaVoiceAttention.Attention();
+const voice = new NaotaVoice({
   lang: "vi-VN",
   // KHÔNG bật preserveTranscript. Bản trước bật nó: chữ Groq Whisper chỉ còn là "gợi
   // ý", tin gửi đi luôn là chữ Chrome, nên người đã CHỌN Groq cũng chỉ nhận được bản Chrome
@@ -225,7 +225,7 @@ const voice = new VanhanhVoice({
     nhapGiong(text);
     if (text) petReact("nghe");   // mỗi lần bắt thêm chữ, linh vật gật nhẹ một cái
     // Đang tạm dừng vì nghi chen ngang mà có chữ -> chen ngang THẬT: đạo diễn trả stop_tts.
-    // Đọc phần Vanhanh đã đọc ra tiếng TRƯỚC khi dừng, để tin kế tiếp mang ngắt_lời=.
+    // Đọc phần Naota đã đọc ra tiếng TRƯỚC khi dừng, để tin kế tiếp mang ngắt_lời=.
     if (turn.interrupted && text) turn.setInterruptedAt(voice.lastSpokenPrefix());
     runActions(turn.interim(text));
   },
@@ -271,13 +271,13 @@ const voice = new VanhanhVoice({
 // ============================================
 // voice-turn.js giữ toàn bộ luật (chờ bao lâu rồi gửi, "khoan" nghĩa là gì, chen ngang thật
 // hay giả); app.js chỉ THỰC HIỆN mảng hành động nó trả về và vẽ orb theo trạng thái thật.
-const turn = new window.VanhanhVoiceTurn.VoiceTurn({
-  minDelay: parseInt(localStorage.getItem("vanhanh.endpoint") || "1200", 10) || 1200,
+const turn = new window.NaotaVoiceTurn.VoiceTurn({
+  minDelay: parseInt(localStorage.getItem("naota.endpoint") || "1200", 10) || 1200,
 });
 let adaptiveCapable = false;
 const adaptiveOutbox = new Map(), adaptiveCurrent = new Map(), adaptiveCancelled = new Set();
 let adaptiveContinuation = '';
-const adaptive = window.VanhanhAdaptiveUI({
+const adaptive = window.NaotaAdaptiveUI({
   browserMode:()=>voiceMode!=="live", capable:()=>adaptiveCapable,
   handsFree:()=>handsFree, connected:()=>!!ws&&ws.readyState===WebSocket.OPEN,
   speaking:()=>voice.isSpeaking(), managed:on=>{voice.managedEndpoint=on && !attention.waiting() && !adaptive.blocked();},
@@ -321,7 +321,7 @@ function adaptiveReceipt(data) {
   if(pending) { adaptiveOutbox.delete(data.utterance_id); if(pending.retryButton) pending.retryButton.remove(); }
   if(data.session_id!==savedSessionId) return;
   if(adaptiveCancelled.has(data.utterance_id) || (adaptiveCurrent.has(data.session_id) && adaptiveCurrent.get(data.session_id)!==data.utterance_id)) return;
-  if(data.type==='voice_commit_error') {appendVanhanhError(data.content);runActions(turn.turnDone());return;}
+  if(data.type==='voice_commit_error') {appendNaotaError(data.content);runActions(turn.turnDone());return;}
   if(data.response_policy==='ack_only' && !data.answer_requested) {
     const el=pending&&pending.element;
     renderVoiceReceipt(el,data);
@@ -334,12 +334,12 @@ function adaptiveReceipt(data) {
 }
 let _bargeTimer = null;   // 2 giây sau khi tạm dừng mà không có chữ -> chen ngang giả
 let _waitTimer = null;    // "khoan" rồi im lâu -> thôi chờ
-let _ngatLoiTai = "";     // câu Vanhanh bị ngắt lúc đọc, đi vào tin kế tiếp rồi xoá
+let _ngatLoiTai = "";     // câu Naota bị ngắt lúc đọc, đi vào tin kế tiếp rồi xoá
 
 // ---- Voice V3: cắt cụm cho loa + câu tiến độ (voice-call-spec phụ lục A2) ----
 // Chữ stream của MỌI làn đi qua voice-chunker.js rồi mới ra loa: đọc theo cụm tự nhiên (hết
 // câu, hoặc phẩy/liên từ khi cụm đầu, hoặc im lâu mà loa đang im) thay vì đọc từng mẩu vài từ.
-const cum = new window.VanhanhVoiceChunker.Chunker();
+const cum = new window.NaotaVoiceChunker.Chunker();
 let _cumTimer = null;
 function docCum(chunks, t) {
   if (t && t.imLoa) return;   // người dùng đã cắt lời lượt này, chữ còn lại chỉ hiện, không đọc
@@ -371,7 +371,7 @@ function noiTienDo() {
 // ---- Voice V3: chữ hiện THEO LỜI ĐỌC (karaoke), như ChatGPT Voice ----
 // Đang nói chuyện bằng giọng thì hiện trọn cụm đang đọc để chữ không chạy sau loa
 // (voice.visibleWords); ở Live thì theo tỉ lệ ms đã phát trên ms
-// đã xếp lịch (VanhanhVoiceLive.progress). Bị ngắt lời thì bong bóng dừng đúng chỗ đã nói kèm "…".
+// đã xếp lịch (NaotaVoiceLive.progress). Bị ngắt lời thì bong bóng dừng đúng chỗ đã nói kèm "…".
 // Đọc xong hết mới vẽ markdown đầy đủ (ảnh, link, bảng, chip hỏi lại). Chữ đã về từ model mà
 // chưa tới lượt phát thì chưa hiện.
 let _theoLoi = null;   // { el, text, ask, live, shown, chuaXong }
@@ -387,11 +387,11 @@ function batTheoLoi(el, text, ask, live) {
 function _chuTheoLoi(s) { return s.live ? s.text : voice._cleanForTTS(s.text); }
 function veTheoLoi() {
   const s = _theoLoi; if (!s) return;
-  const C = window.VanhanhVoiceChunker;
+  const C = window.NaotaVoiceChunker;
   const full = _chuTheoLoi(s), tong = C.countWords(full);
   let n;
   if (s.live) {
-    const p = window.VanhanhVoiceLive ? window.VanhanhVoiceLive.progress() : null;
+    const p = window.NaotaVoiceLive ? window.NaotaVoiceLive.progress() : null;
     n = (p && p.total > 0) ? Math.round(tong * Math.min(1, p.played / p.total)) : Math.max(0, s.shown);
   } else n = voice.visibleWords();
   n = Math.max(s.shown, Math.min(n, tong));
@@ -405,14 +405,14 @@ function ketThucTheoLoi(biNgat) {
   const s = _theoLoi; if (!s) return;
   _theoLoi = null;
   const host = s.el.querySelector(".bubble");
-  const full = _chuTheoLoi(s), tong = window.VanhanhVoiceChunker.countWords(full);
+  const full = _chuTheoLoi(s), tong = window.NaotaVoiceChunker.countWords(full);
   if (biNgat && s.shown > 0 && s.shown < tong) {
-    host.innerHTML = escapeHtml(window.VanhanhVoiceChunker.takeWords(full, s.shown)) + " …";
+    host.innerHTML = escapeHtml(window.NaotaVoiceChunker.takeWords(full, s.shown)) + " …";
   } else {
     host.innerHTML = markdownToHtml(s.text, undefined, s.el.dataset.anhV);
   }
-  if (s.ask) window.VanhanhAsk.render(s.el, s.ask, true);
-  if (s.live && window.VanhanhVoiceLive) window.VanhanhVoiceLive.resetProgress();
+  if (s.ask) window.NaotaAsk.render(s.el, s.ask, true);
+  if (s.live && window.NaotaVoiceLive) window.NaotaVoiceLive.resetProgress();
 }
 // Gọi ~20 lần/giây từ vòng vẽ orb: cập nhật chữ, và khi lượt xong + loa im thì vẽ đầy đủ.
 function nhipTheoLoi() {
@@ -421,7 +421,7 @@ function nhipTheoLoi() {
   let dangChay, loaIm;
   if (s.live) {
     dangChay = s.chuaXong;
-    loaIm = !(window.VanhanhVoiceLive && window.VanhanhVoiceLive.isSpeaking());
+    loaIm = !(window.NaotaVoiceLive && window.NaotaVoiceLive.isSpeaking());
   } else {
     const t = savedSessionId ? turns[savedSessionId] : null;
     dangChay = !!(t && t.running);
@@ -464,8 +464,8 @@ function capNhatOrb() {
   setOrbState(cls, label, cls === "listening" && turn.state === "user_speaking" ? "hearing" : cls);
   if (typeof capNhatThanhGoi === "function") capNhatThanhGoi();
 }
-// Báo linh vật những việc không phải trạng thái orb (xem VanhanhPet.react trong pet.js).
-function petReact(ten) { try { if (window.VanhanhPet && window.VanhanhPet.react) window.VanhanhPet.react(ten); } catch (e) {} }
+// Báo linh vật những việc không phải trạng thái orb (xem NaotaPet.react trong pet.js).
+function petReact(ten) { try { if (window.NaotaPet && window.NaotaPet.react) window.NaotaPet.react(ten); } catch (e) {} }
 
 function runActions(acts) {
   (acts || []).forEach((a) => {
@@ -481,7 +481,7 @@ function runActions(acts) {
         if (a.interrupted) { clearTimeout(_bargeTimer); _bargeTimer = null; ketThucTheoLoi(true); }   // V3: đóng băng chỗ đã nói
         voice.stopSpeaking();
         // lượt vẫn chạy tiếp tới hết (không dừng), nhưng phần còn lại không đọc nữa, chỉ
-        // hiện chữ. Không thì Vanhanh nói đè lên câu người dùng vừa chen vào.
+        // hiện chữ. Không thì Naota nói đè lên câu người dùng vừa chen vào.
         const _tLuot = savedSessionId ? turns[savedSessionId] : null;
         if (_tLuot && _tLuot.running) { _tLuot.imLoa = true; cum.reset(); }
         break;
@@ -526,7 +526,7 @@ function datCheDoGiong(mode) {
 }
 
 // ============================================
-// Gọi điện (voice-call-spec mục 4): bấm mic là GỌI Vanhanh. Thanh gọi
+// Gọi điện (voice-call-spec mục 4): bấm mic là GỌI Naota. Thanh gọi
 // (call-bar.js) trên khung chat cho biết cuộc gọi đang ở đâu, có nút tắt mic và cúp máy. Trạng
 // thái lấy từ đúng nguồn thật của orb (đạo diễn lượt nói, rào chú ý, phiên Live).
 // ============================================
@@ -548,7 +548,7 @@ function boViecPhienCu() {
   clearTimeout(_tinDutMangTimer); _tinDutMangTimer = null; _tinDutMang = [];
   if (voiceMode !== "live") voice.cancelListening();   // the hands-free loop opens the mic again
 }
-var callBar = window.VanhanhCallBar ? window.VanhanhCallBar.create({
+var callBar = window.NaotaCallBar ? window.NaotaCallBar.create({
   el: document.getElementById("callBar"),
   t: (k, p) => window.t(k, p),
   onMute: (want) => datTatMic(want),
@@ -562,7 +562,7 @@ function tenDuongGoi() {
 }
 function capNhatThanhGoi() {
   if (!callBar || !handsFree) return;
-  const live = window.VanhanhVoiceLive;
+  const live = window.NaotaVoiceLive;
   let st = "listening", info = "";
   if (_liveSom) st = "reconnecting";   // đang nghe nốt câu đánh thức, đường gọi đang nối sẵn
   else if (_liveWaitingWake || attention.waiting()) st = "waiting_wake";
@@ -571,24 +571,24 @@ function capNhatThanhGoi() {
   else if (turn.state === "speaking" || (voiceMode === "live" && live && live.isSpeaking())) st = "speaking";
   else if (turn.state === "processing" || _liveToolCount > 0) {
     st = "working";
-    // ask_vanhanh là "giao bộ não chính", không phải tên công cụ người dùng hiểu: để "Đang làm việc".
-    if (turn.tool && turn.tool !== "ask_vanhanh") info = compactToolLabel(turn.tool).label;
+    // ask_naota là "giao bộ não chính", không phải tên công cụ người dùng hiểu: để "Đang làm việc".
+    if (turn.tool && turn.tool !== "ask_naota") info = compactToolLabel(turn.tool).label;
   }
   callBar.setState(st, info);
 }
-// Tắt mic giữa cuộc gọi: Vanhanh vẫn nói được, chỉ không nghe. Live tắt track; đường Cơ bản dừng
+// Tắt mic giữa cuộc gọi: Naota vẫn nói được, chỉ không nghe. Live tắt track; đường Cơ bản dừng
 // nghe và vòng giữ mic (bên dưới) không mở lại cho tới khi bật lại.
 function datTatMic(muted) {
   _callMuted = !!muted;
   // Cờ nằm trên voice (voice.muted): startListening tự từ chối, nên vòng giữ mic không cần biết.
   voice.muted = _callMuted && voiceMode !== "live";
-  if (voiceMode === "live") { try { window.VanhanhVoiceLive.setMuted(_callMuted); } catch (e) {} }
+  if (voiceMode === "live") { try { window.NaotaVoiceLive.setMuted(_callMuted); } catch (e) {} }
   else if (_callMuted) voice.cancelListening();
   if (callBar) callBar.setMuted(_callMuted);
 }
 function cupMay() {
   tatRanhTay();
-  try { if (window.VanhanhTts) window.VanhanhTts.set(false); } catch (e) {}
+  try { if (window.NaotaTts) window.NaotaTts.set(false); } catch (e) {}
 }
 // Live (ChatGPT Live hay Live API) mở không được trước khi sẵn sàng: cuộc gọi chuyển sang đường
 // Cơ bản thay vì cúp, báo một dòng (spec mục 4). Lần gọi sau vẫn thử đường chính trước.
@@ -658,15 +658,15 @@ async function napCaiDatGiong() {
 // a call or dictation in a partner's chat is heard by the ear of that partner's own model.
 voice.sttSession = () => savedSessionId || "";
 napCaiDatGiong();
-window.VanhanhVoiceMode = { refresh: napCaiDatGiong, get: () => voiceMode };
+window.NaotaVoiceMode = { refresh: napCaiDatGiong, get: () => voiceMode };
 
 // Bậc Live: mic bấm là mở phiên nghe nói thẳng thay cho Web Speech. Bản ghi chữ hai chiều
 // vào khung chat như tin thường; orb theo cùng đạo diễn (nói / nghe / gọi tool).
-let _liveUserBubble = null, _liveVanhanhText = "", _liveVanhanhBubble = null, _liveCtxTimer = null;
+let _liveUserBubble = null, _liveNaotaText = "", _liveNaotaBubble = null, _liveCtxTimer = null;
 let _liveStartSeq = 0;
 let _liveWaitingWake = false, _liveBusyUntil = 0;
 // Nối lại NHANH. Đo trên server thử: từ lúc người dùng ngừng nói tới
-// lúc nghe Vanhanh mất ~5 giây, trong đó ~2,6 giây là mở mic, nối máy chủ, OpenAI dựng phiên và nối
+// lúc nghe Naota mất ~5 giây, trong đó ~2,6 giây là mở mic, nối máy chủ, OpenAI dựng phiên và nối
 // đường âm thanh. Nên nghe được mấy chữ đầu là bắt tay NGAY (noiSom), song song với lúc người dùng
 // còn đang nói; câu chốt xong chỉ còn gắn mic và gửi câu (noiTiepPhienSom). Bắt tay lúc đó CHƯA giữ
 // mic (deferMic) vì bộ nghe của trình duyệt còn đang nghe nốt câu và điện thoại chỉ cho một bên giữ mic.
@@ -674,14 +674,14 @@ let _liveSom = null;
 const NOI_SOM_HUY_MS = 12000;   // nối sớm mà mãi không có câu chốt (tiếng động) thì đóng, đỡ tốn hạn mức
 // Cuộc gọi này đã nối Live ít nhất một lần. Từ đó trở đi, nối lại hỏng KHÔNG chuyển sang đường
 // Cơ bản: ChatGPT Live lo trọn cuộc gọi, còn đường Cơ bản đọc bằng giọng Edge khác hẳn
-// nên nghe như Vanhanh "tự đổi giọng nữ sang giọng nam" giữa chừng.
+// nên nghe như Naota "tự đổi giọng nữ sang giọng nam" giữa chừng.
 let _cuocGoiDaNoi = false;
 let _liveToolCount = 0;
 // Only one capture is alive: Live is closed before this free browser listener starts.
 // Lúc Live đã ngắt vì im lâu, CÂU NÓI THẬT đầu tiên là nối lại (attention.wakes): không
-// bắt buộc gọi "Vanhanh" nữa, vì trình duyệt hay chép tên thành "Nau ta" và cuộc gọi không nối lại được.
+// bắt buộc gọi "Naota" nữa, vì trình duyệt hay chép tên thành "Nau ta" và cuộc gọi không nối lại được.
 // Câu đó đi làm lời đầu của phiên mới (batLive) nên không mất chữ.
-const liveWake = new VanhanhVoice({
+const liveWake = new NaotaVoice({
   lang: "vi-VN",
   inputOnly: true,
   endpointDelay: text => doTreChotCauCho(text),
@@ -692,7 +692,7 @@ const liveWake = new VanhanhVoice({
   },
   onTranscript: text => {
     const ok = _liveWaitingWake && handsFree && voiceMode === "live" && attention.wakes(text);
-    try { console.debug("[vanhanh] heard while waiting:", JSON.stringify(text), ok ? "-> resume" : "-> ignore"); } catch (e) {}
+    try { console.debug("[naota] heard while waiting:", JSON.stringify(text), ok ? "-> resume" : "-> ignore"); } catch (e) {}
     nhapGiong("");
     if (ok) resumeVoiceFocus(text);
     else huyNoiSom();
@@ -725,7 +725,7 @@ function noiLaiHong(text, lanThu) {
   return false;
 }
 function noiSom() {
-  if (_liveSom || !_liveWaitingWake || !handsFree || voiceMode !== "live" || !window.VanhanhVoiceLive) return;
+  if (_liveSom || !_liveWaitingWake || !handsFree || voiceMode !== "live" || !window.NaotaVoiceLive) return;
   batLive("", { som: true });
 }
 function huyNoiSom() {
@@ -742,7 +742,7 @@ async function noiTiepPhienSom(phien, wakeText) {
   clearTimeout(phien.henHuy);
   const released = await liveWake.waitForCaptureEnd();
   if (phien.ticket !== _liveStartSeq || !handsFree) return false;
-  if (!released) { tatRanhTay(); appendVanhanhError(window.t("app.voice_focus_mic_busy")); return false; }
+  if (!released) { tatRanhTay(); appendNaotaError(window.t("app.voice_focus_mic_busy")); return false; }
   phien.pendingWake = wakeText;
   const ok = await phien.promise;   // bắt tay còn dở thì chờ nốt
   if (phien.ticket !== _liveStartSeq) return false;
@@ -750,7 +750,7 @@ async function noiTiepPhienSom(phien, wakeText) {
     if (handsFree) return _cuocGoiDaNoi ? noiLaiHong(wakeText, 0) : chuyenSangCoBan();
     return false;
   }
-  if (!(await window.VanhanhVoiceLive.attachMic())) return false;   // lỗi mic: attachMic tự báo và đóng
+  if (!(await window.NaotaVoiceLive.attachMic())) return false;   // lỗi mic: attachMic tự báo và đóng
   phien.guiCauDanhThuc();
   return true;
 }
@@ -768,14 +768,14 @@ async function batNgheAmLuong() {
     const an = ctx.createAnalyser();
     an.fftSize = 1024;
     ctx.createMediaStreamSource(stream).connect(an);
-    const buf = new Float32Array(an.fftSize), det = new window.VanhanhVoiceAttention.SpeechLevel();
+    const buf = new Float32Array(an.fftSize), det = new window.NaotaVoiceAttention.SpeechLevel();
     const thoiNghe = () => { clearInterval(timer); stream.getTracks().forEach(t => t.stop()); try { ctx.close(); } catch (e) {} };
     const timer = setInterval(() => {
       an.getFloatTimeDomainData(buf);
       let sum = 0;
       for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
       if (det.feed(Math.sqrt(sum / buf.length))) {
-        try { console.debug("[vanhanh] heard while waiting: speech detected (volume meter) -> resume"); } catch (e) {}
+        try { console.debug("[naota] heard while waiting: speech detected (volume meter) -> resume"); } catch (e) {}
         tatNgheAmLuong();
         resumeVoiceFocus("");
       }
@@ -824,7 +824,7 @@ function tickVoiceFocus() {
   // Only foreground replies prolong an already-open conversation. A background notification
   // cannot reopen it; stale processing is bounded for Live providers without turn_done.
   const busy = voiceMode === "live"
-    ? !_liveWaitingWake && (Date.now() < _liveBusyUntil || _liveToolCount > 0 || (window.VanhanhVoiceLive && window.VanhanhVoiceLive.isSpeaking()))
+    ? !_liveWaitingWake && (Date.now() < _liveBusyUntil || _liveToolCount > 0 || (window.NaotaVoiceLive && window.NaotaVoiceLive.isSpeaking()))
     : isProcessing || voice.isSpeaking() || voice.isTranscribing;
   if (busy) attention.keepActive();
   if (attention.waiting() && voiceMode === "live" && !_liveWaitingWake) {
@@ -843,13 +843,13 @@ function tickVoiceFocus() {
 // bộ não chính, đẩy khi ĐỔI (sendContext tự lọc trùng), dò 1,5 s một lần trong lúc mic mở.
 function guiNguCanhLive() {
   try {
-    if (!window.VanhanhVoiceLive || !window.VanhanhVoiceLive.isOn()) return;
-    const ctx = window.VanhanhUiContext ? window.VanhanhUiContext.build({ page: nguCanhTrang(), selection: nguCanhChon() }) : "";
-    window.VanhanhVoiceLive.sendContext(ctx);
+    if (!window.NaotaVoiceLive || !window.NaotaVoiceLive.isOn()) return;
+    const ctx = window.NaotaUiContext ? window.NaotaUiContext.build({ page: nguCanhTrang(), selection: nguCanhChon() }) : "";
+    window.NaotaVoiceLive.sendContext(ctx);
   } catch (e) {}
 }
 async function batLive(wakeText = "", { som = false, lanThu = 0 } = {}) {
-  if (!window.VanhanhVoiceLive) { alert(window.t("app.live_missing")); return false; }
+  if (!window.NaotaVoiceLive) { alert(window.t("app.live_missing")); return false; }
   if (!som && _liveSom) return noiTiepPhienSom(_liveSom, wakeText);
   const ticket = ++_liveStartSeq;
   // Web Speech abort is asynchronous. On phones, wait until it actually releases capture.
@@ -857,7 +857,7 @@ async function batLive(wakeText = "", { som = false, lanThu = 0 } = {}) {
   if (!som) {
     const released = await liveWake.waitForCaptureEnd();
     if (ticket !== _liveStartSeq || !handsFree) return false;
-    if (!released) { tatRanhTay(); appendVanhanhError(window.t("app.voice_focus_mic_busy")); return false; }
+    if (!released) { tatRanhTay(); appendNaotaError(window.t("app.voice_focus_mic_busy")); return false; }
   }
   const phien = { ticket, pendingWake: wakeText, readySeen: false, promise: null, henHuy: 0, doiDuong: false };
   let readySeen = false;
@@ -865,7 +865,7 @@ async function batLive(wakeText = "", { som = false, lanThu = 0 } = {}) {
   phien.guiCauDanhThuc = () => {
     if (!phien.pendingWake || !phien.readySeen || ticket !== _liveStartSeq) return;
     const text = phien.pendingWake; phien.pendingWake = ""; // some providers emit ready twice
-    window.VanhanhVoiceLive.sendText(text);
+    window.NaotaVoiceLive.sendText(text);
     if (cuocGoiTrenManHinh()) { appendUserMessage(text, []); recordTurn("user", text, []); }
     _liveBusyUntil = Date.now() + 120000;
   };
@@ -876,8 +876,8 @@ async function batLive(wakeText = "", { som = false, lanThu = 0 } = {}) {
   }
   _liveToolCount = 0;
   _liveBusyUntil = Date.now() + 120000; // bounded setup, cleared by the first ready
-  _liveVanhanhText = ""; _liveVanhanhBubble = null;
-  const startP = window.VanhanhVoiceLive.start({
+  _liveNaotaText = ""; _liveNaotaBubble = null;
+  const startP = window.NaotaVoiceLive.start({
     deferMic: som,
     sessionId: () => _callSid || savedSessionId,
     brain: () => currentBrainPath(),
@@ -888,9 +888,9 @@ async function batLive(wakeText = "", { som = false, lanThu = 0 } = {}) {
     },
     onStopped: () => {
       clearInterval(_liveCtxTimer); _liveCtxTimer = null; nhapGiong("");
-      if (_liveVanhanhText.trim() && cuocGoiTrenManHinh()) recordTurn("vanhanh", _liveVanhanhText.trim(), null, null);
+      if (_liveNaotaText.trim() && cuocGoiTrenManHinh()) recordTurn("naota", _liveNaotaText.trim(), null, null);
       if (_theoLoi && _theoLoi.live) ketThucTheoLoi(true);
-      _liveVanhanhText = ""; _liveVanhanhBubble = null;
+      _liveNaotaText = ""; _liveNaotaBubble = null;
       voiceBtn.classList.remove("recording"); runActions(turn.micOff());
     },
     onReady: (d) => {
@@ -903,13 +903,13 @@ async function batLive(wakeText = "", { som = false, lanThu = 0 } = {}) {
     },
     onSpeakStart: () => runActions(turn.ttsStart()),
     onSpeakEnd: () => { _liveBusyUntil = 0; attention.keepActive(); runActions(turn.ttsEnd()); },
-    onInterrupted: () => { ketThucTheoLoi(true); attention.keepActive(); _liveBusyUntil = Date.now() + 120000; _liveVanhanhText = ""; _liveVanhanhBubble = null; },
+    onInterrupted: () => { ketThucTheoLoi(true); attention.keepActive(); _liveBusyUntil = Date.now() + 120000; _liveNaotaText = ""; _liveNaotaBubble = null; },
     // Kết quả ĐẦY ĐỦ của bộ não chính (bảng, link, file) thành bong bóng riêng: model nói chuyện
     // chỉ đọc phần tóm tắt, không có bong bóng này thì số liệu chi tiết mất hút.
     onToolResult: (name, text) => {
       if (!String(text || "").trim() || !cuocGoiTrenManHinh()) return;
-      appendVanhanhMessage(text, Date.now(), currentBrainPath());
-      recordTurn("vanhanh", text, null, null);
+      appendNaotaMessage(text, Date.now(), currentBrainPath());
+      recordTurn("naota", text, null, null);
     },
     onTool: (name, status) => {
       // A running tool is real work, not idle: only done/connection close/user stop may
@@ -927,18 +927,18 @@ async function batLive(wakeText = "", { som = false, lanThu = 0 } = {}) {
         else nhapGiong(text);
         return;
       }
-      _liveVanhanhText += text;
+      _liveNaotaText += text;
       if (!trenManHinh) return;
-      if (!_liveVanhanhBubble) _liveVanhanhBubble = createStreamingBubble();
-      _liveVanhanhBubble.dataset.md = _liveVanhanhText;   // copy ra markdown gốc, kể cả hội thoại bằng giọng
-      if (dangTheoLoi()) batTheoLoi(_liveVanhanhBubble, _liveVanhanhText, null, true);   // V3: chữ theo tiếng
-      else { _liveVanhanhBubble.querySelector(".bubble").innerHTML = markdownToHtml(_liveVanhanhText, undefined, _liveVanhanhBubble.dataset.anhV); scrollBottom(); }
+      if (!_liveNaotaBubble) _liveNaotaBubble = createStreamingBubble();
+      _liveNaotaBubble.dataset.md = _liveNaotaText;   // copy ra markdown gốc, kể cả hội thoại bằng giọng
+      if (dangTheoLoi()) batTheoLoi(_liveNaotaBubble, _liveNaotaText, null, true);   // V3: chữ theo tiếng
+      else { _liveNaotaBubble.querySelector(".bubble").innerHTML = markdownToHtml(_liveNaotaText, undefined, _liveNaotaBubble.dataset.anhV); scrollBottom(); }
     },
     onTurnDone: () => {
       _liveBusyUntil = 0; attention.keepActive();
-      if (_liveVanhanhText.trim() && cuocGoiTrenManHinh()) recordTurn("vanhanh", _liveVanhanhText.trim(), null, null);
-      if (_theoLoi && _theoLoi.live && _theoLoi.el === _liveVanhanhBubble) _theoLoi.chuaXong = false;   // vẽ đủ khi loa im
-      _liveVanhanhText = ""; _liveVanhanhBubble = null;
+      if (_liveNaotaText.trim() && cuocGoiTrenManHinh()) recordTurn("naota", _liveNaotaText.trim(), null, null);
+      if (_theoLoi && _theoLoi.live && _theoLoi.el === _liveNaotaBubble) _theoLoi.chuaXong = false;   // vẽ đủ khi loa im
+      _liveNaotaText = ""; _liveNaotaBubble = null;
       runActions(turn.turnDone());
     },
     onError: (msg, code) => {
@@ -954,7 +954,7 @@ async function batLive(wakeText = "", { som = false, lanThu = 0 } = {}) {
         return;
       }
       if (_liveSom === phien) return;   // nối sớm hỏng: im lặng, câu chốt sẽ mở lại từ đầu
-      appendVanhanhError(String(msg || "").startsWith("mic:") ? window.t("app.mic_denied") : (window.t("app.live_error") + " " + msg));
+      appendNaotaError(String(msg || "").startsWith("mic:") ? window.t("app.mic_denied") : (window.t("app.live_error") + " " + msg));
       runActions(turn.turnDone());
     },
     // Đóng TRƯỚC khi sẵn sàng là mở không được: để nhánh dưới chuyển sang đường Cơ bản.
@@ -988,15 +988,15 @@ async function batLive(wakeText = "", { som = false, lanThu = 0 } = {}) {
   }
   return ok;
 }
-function tatLive() { _liveStartSeq++; try { if (window.VanhanhVoiceLive) window.VanhanhVoiceLive.stop(); } catch (e) {} }
+function tatLive() { _liveStartSeq++; try { if (window.NaotaVoiceLive) window.NaotaVoiceLive.stop(); } catch (e) {} }
 
 // Dải việc nền (background-strip.js) báo số việc đang chạy để orb ghi hậu tố thật.
-window.VanhanhOrb = {
+window.NaotaOrb = {
   setBackground: (n) => runActions(turn.setBackground(n)),
   setVoiceJobs: (n) => datSoViecGiong(n),
 };
 
-// ---- Voice V3: Vanhanh TỰ HỎI THĂM khi việc nền chạy lâu ----
+// ---- Voice V3: Naota TỰ HỎI THĂM khi việc nền chạy lâu ----
 // Giao việc xong mà im lặng hàng phút thì người dùng "không rõ nó có chạy nền thật hay
 // không": nên cho nó nói kiểu "để em xem nhé", "chờ em tý", "em vẫn chưa xong". Người thật
 // nhận việc lâu thì thỉnh thoảng ngẩng lên nói một câu, chứ không ngồi câm.
@@ -1072,7 +1072,7 @@ function connect() {
 // ---- Socket chết mà không đóng ----
 // Máy ngủ, đổi Wi-Fi, router rớt kết nối: trình duyệt vẫn giữ socket ở trạng thái OPEN và không
 // bao giờ gọi onclose. Lượt chat vẫn chạy xong trên server, nhưng câu trả lời không tới được, nên
-// chữ "Vanhanh đang suy nghĩ..." đếm mãi, người dùng phải gửi lại câu lệnh.
+// chữ "Naota đang suy nghĩ..." đếm mãi, người dùng phải gửi lại câu lệnh.
 // Im quá WS_IM_MS thì hỏi server một tiếng; không ai đáp trong WS_PONG_MS là socket chết thật:
 // bỏ nó, nối socket mới. Lời chào "hello" của socket mới đồng bộ lại lượt đang chạy và câu trả lời
 // đã xong trong lúc đứt.
@@ -1100,6 +1100,9 @@ function _ghiDut(code, clean, moLuc) {
 // tới máy chủ" and retried every 3 seconds forever, every list read 0, and restarting the server changed nothing.
 // Ask /auth/status (public, cheap) at most every 15 s; signed out means the sign-in screen, not "reconnecting".
 let _loginCheckAt = 0;
+// True once this page has seen a valid session. A browser that was never signed in (first visit, someone else's device)
+// also gets its socket refused, and must see a plain sign-in screen, not "your sign-in has expired" (2026-11-14).
+let _authedThisPage = false;
 async function _checkLoginAfterRefusal() {
   if (Date.now() - _loginCheckAt < 15000) return;
   _loginCheckAt = Date.now();
@@ -1108,8 +1111,11 @@ async function _checkLoginAfterRefusal() {
   baoDutMang(false);
   await initAuthGate();
   const err = document.getElementById("authErr");
-  if (err && authOverlay && authOverlay.classList.contains("open")) err.textContent = window.t("app.ws_login_lost");
+  if (_authedThisPage && err && authOverlay && authOverlay.classList.contains("open")) err.textContent = window.t("app.ws_login_lost");
 }
+// The same check when an HTTP call gets 401 while the socket is still open (fetch-gop.js raises the event): the
+// session expired mid-use, so chat still answered but images and lists failed silently (2026-11-10).
+window.addEventListener("naota:unauthorized", () => { _checkLoginAfterRefusal(); });
 function _baoDutVeMayChu() {
   if (!_wsDut.length) return;
   const body = { ua: navigator.userAgent, down_s: _wsDutTu ? (Date.now() - _wsDutTu) / 1000 : 0, drops: _wsDut };
@@ -1204,7 +1210,7 @@ async function _dongBoNeuLech() {
     const m = (s.messages || []).slice(-1)[0];
     if (!m) return;
     const c = convo.length ? convo[convo.length - 1] : null;
-    const cungVai = !!c && ((m.role === "assistant") === (c.role === "vanhanh"));
+    const cungVai = !!c && ((m.role === "assistant") === (c.role === "naota"));
     const chuSv = m.role === "user" ? chuNguoiGo(m.content || "") : (m.content || "");
     if (!cungVai || _chuanTinSo(chuSv) !== _chuanTinSo(c.text)) openStoredSession(sid);
   } catch (e) {}
@@ -1220,13 +1226,13 @@ function handleMessage(data) {
     _baoDutVeMayChu();
     // Nhóm chat: gói team_message/team_replies lỡ trong lúc mất kết nối không được gửi lại, nên trang Nhóm
     // tự tải lại tin và kết cục lượt trả lời của nhóm đang mở khi socket nối lại.
-    if (_daChao) { try { window.dispatchEvent(new CustomEvent("vanhanh:team-event", { detail: { type: "team_resync" } })); } catch (e) {} }
+    if (_daChao) { try { window.dispatchEvent(new CustomEvent("naota:team-event", { detail: { type: "team_resync" } })); } catch (e) {} }
     // T2: gói chat_reaction (trạng thái host đổi) lỡ trong lúc mất kết nối: hỏi lại reaction của phiên đang mở.
-    if (_daChao) { try { if (window.VanhanhChatReactions && savedSessionId) window.VanhanhChatReactions.refresh(savedSessionId); } catch (e) {} }
+    if (_daChao) { try { if (window.NaotaChatReactions && savedSessionId) window.NaotaChatReactions.refresh(savedSessionId); } catch (e) {} }
     _daChao = true;
     adaptiveCapable = (data.capabilities || []).includes("adaptive_voice_v1");
     stopTag = data.stop_tag || null;
-    if (window.VanhanhRunning) window.VanhanhRunning.clear();
+    if (window.NaotaRunning) window.NaotaRunning.clear();
     Object.keys(turns).forEach(sid => { if (turns[sid]) turns[sid].running = false; });
     _luotDaDung = {};   // socket mới: turn_done của lượt đã dừng trên socket cũ không còn tới
 
@@ -1250,7 +1256,7 @@ function handleMessage(data) {
     syncActiveUI();
     notifySessions();
     // Lượt đang chờ gói thuê bao mở lại hạn mức: dựng lại thẻ "tự chạy lại" cho phiên đang xem.
-    try { if (window.VanhanhResume) window.VanhanhResume.fromHello(data.resumes || [], savedSessionId); } catch (e) {}
+    try { if (window.NaotaResume) window.NaotaResume.fromHello(data.resumes || [], savedSessionId); } catch (e) {}
     runActions(turn.wsUp());   // socket đã nối: orb thôi "ĐANG KẾT NỐI LẠI"
     baoDutMang(false);
     redrawRunningTurn();       // after baoDutMang: it removes the shared chip, the running turn's included
@@ -1279,9 +1285,9 @@ function handleMessage(data) {
   }
   if (data.type === "chat_ack") { _onChatAck(data); return; }
   if (data.type === "ui_action") {
-    // Tool vanhanh_ui (server) bảo dashboard mở trang / file / việc. ui-actions.js kiểm rồi làm
+    // Tool naota_ui (server) bảo dashboard mở trang / file / việc. ui-actions.js kiểm rồi làm
     // và tự trả ui_result về server để tool trả lời model ngay trong lượt.
-    try { if (window.VanhanhUiActions) window.VanhanhUiActions.handle(data); } catch (e) {}
+    try { if (window.NaotaUiActions) window.NaotaUiActions.handle(data); } catch (e) {}
     return;
   }
 
@@ -1310,7 +1316,7 @@ function handleMessage(data) {
     // T2: turn_saved mang mã tin của câu trả lời vừa lưu (bong bóng vừa chốt nhận data-mid, hiện nút thả cảm xúc);
     // chat_reaction vẽ lại reaction của tin đó ở mọi bong bóng đang mở, kể cả khi đổi ở tab khác. Không đụng lượt đang chạy
     // (cả hai gói nằm ngoài KHUNG_LUOT nên không dựng lại turns[sid]).
-    try { if (window.VanhanhChatReactions) window.VanhanhChatReactions.onFrame(data, { bubble: t && t.bubble }); } catch (e) {}
+    try { if (window.NaotaChatReactions) window.NaotaChatReactions.onFrame(data, { bubble: t && t.bubble }); } catch (e) {}
     // a chat answered while another one is on screen (the owner switched away mid-turn): refresh its kept
     // copy now, so going back draws the answer at once.
     try {
@@ -1323,12 +1329,12 @@ function handleMessage(data) {
     // card) and the chat gets one quiet line when the turn moves to a fallback card or back. Outside KHUNG_LUOT: it
     // comes before "status" and must not start a turn of its own.
     let _dong = "";
-    try { if (window.VanhanhModelBar && window.VanhanhModelBar.noteRoute) _dong = window.VanhanhModelBar.noteRoute(sid, data); } catch (e) {}
+    try { if (window.NaotaModelBar && window.NaotaModelBar.noteRoute) _dong = window.NaotaModelBar.noteRoute(sid, data); } catch (e) {}
     if (isActive && _dong) ghiDoiDuong(_dong);
     return;
   }
   if (data.type === "external_message") {
-    // an outside AI posted into this chat through Vanhanh Gate (server/chat_bridge.py). The server stored the
+    // an outside AI posted into this chat through Naota Gate (server/chat_bridge.py). The server stored the
     // message already; the tab looking at the chat draws the bubble now, then the answer streams in like any turn.
     if (isActive) {
       appendUserMessage(data.content || "", [], Date.now());
@@ -1342,30 +1348,30 @@ function handleMessage(data) {
     // Tin do việc chạy NỀN đẩy vào (việc Kanban / loop / nhắc hẹn xong), không thuộc lượt
     // hỏi-đáp nào. KHÔNG đụng turns[sid]: lượt đang chạy (nếu có) vẫn stream bình thường,
     // tin này chỉ chèn thêm một bong bóng. Server đã lưu vào kho phiên nên F5 vẫn còn.
-    // a "call me" reminder rings whichever chat is open. Its message usually lands in the brain's Vanhanh Core
+    // a "call me" reminder rings whichever chat is open. Its message usually lands in the brain's Naota Core
     // chat (a reminder made without a chat id), so ringing only when that chat was the open one meant no call at all.
     const daGoi = goiDenTheoLich(data.content || "");
     if (isActive) {
-      const el = appendVanhanhMessage(data.content || "");
-      recordTurn("vanhanh", data.content || "", null, null);
+      const el = appendNaotaMessage(data.content || "");
+      recordTurn("naota", data.content || "", null, null);
       // a reminder made with "call me" rings as an incoming call; otherwise a reminder that reads
       // aloud plays its voice note at once.
       if (!daGoi) ringReminder(el, data.content || "");
       // The memory receipt line is not a message: no reactions, never read aloud.
       if (el && el.classList.contains("msg-nho")) { scrollBottom(); notifySessions(); return; }
       // Tin đẩy về có mã tin: gắn hàng sáu cảm xúc ngay, kể cả tin báo goal (không còn hàng A3 riêng).
-      if (el && data.message_id != null && window.VanhanhChatReactions && window.VanhanhChatReactions.attach) {
-        window.VanhanhChatReactions.attach(el, { sid: data.session_id, mid: data.message_id, sha: data.content_sha || "",
+      if (el && data.message_id != null && window.NaotaChatReactions && window.NaotaChatReactions.attach) {
+        window.NaotaChatReactions.attach(el, { sid: data.session_id, mid: data.message_id, sha: data.content_sha || "",
           reaction: null, entry: null });
       }
       scrollBottom();
-      // Đọc tin nền chỉ khi người dùng KHÔNG đang nói hay đang nghe Vanhanh nói dở (Voice V1):
+      // Đọc tin nền chỉ khi người dùng KHÔNG đang nói hay đang nghe Naota nói dở (Voice V1):
       // chen một bản tin vào giữa câu người dùng là cắt ngang họ. Hoãn tới lúc rảnh.
       // Khối thẻ mục tiêu (Resonance M4, chat-resonance.js) đã vẽ ở bong bóng trên: bóc khỏi bản dùng để ĐỌC.
-      if (window.VanhanhResonance) data.content = window.VanhanhResonance.tach(data.content || "").clean;
+      if (window.NaotaResonance) data.content = window.NaotaResonance.tach(data.content || "").clean;
       if (voice.ttsEnabled) {
-        // Đọc phần chữ, không đọc khối ẩn VANHANH_VIEC.
-        const _doc = window.VanhanhViec ? window.VanhanhViec.tach(data.content || "").clean : (data.content || "");
+        // Đọc phần chữ, không đọc khối ẩn NAOTA_VIEC.
+        const _doc = window.NaotaViec ? window.NaotaViec.tach(data.content || "").clean : (data.content || "");
         if (turn.canSpeakNow()) voice.enqueueSpeak(_doc, { uncounted: true });
         else turn.defer(_doc);
       }
@@ -1377,11 +1383,11 @@ function handleMessage(data) {
     notifySessions();
     // Một việc nền vừa báo xong = hàng đợi vừa đổi. Hỏi lại ngay thay vì đợi hết nhịp 6 giây,
     // để dải trạng thái không còn khoe một việc vừa kết thúc.
-    try { if (window.VanhanhBackground) window.VanhanhBackground.refresh(); } catch (e) {}
+    try { if (window.NaotaBackground) window.NaotaBackground.refresh(); } catch (e) {}
     return;
   }
   if (data.type === "steer_ack" || data.type === "steer_read" || data.type === "steer_turn") {
-    // a message sent while Vanhanh works was received, read by the running turn, or is now its own turn.
+    // a message sent while Naota works was received, read by the running turn, or is now its own turn.
     try { trangThaiBoSung(data); } catch (e) {}
     // The running turn took the message in, so its answer now covers it: move that answer below it.
     if (data.type === "steer_read" && isActive && t) { try { moveTurnBelow(t); } catch (e) {} }
@@ -1389,24 +1395,24 @@ function handleMessage(data) {
   }
   if (data.type === "session_read") {
     // a chat was read (this tab or another): its red unread dot goes away in every history list.
-    try { window.dispatchEvent(new CustomEvent("vanhanh:session-read", { detail: data })); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("naota:session-read", { detail: data })); } catch (e) {}
     return;
   }
   if (data.type === "agent_read") {
     // a partner chat was read or muted (this tab or another): the Partners list reads its counts again.
-    try { window.dispatchEvent(new CustomEvent("vanhanh:agent-read", { detail: data })); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("naota:agent-read", { detail: data })); } catch (e) {}
     return;
   }
   if (data.type === "team_message" || data.type === "team_state" || data.type === "team_replies" || data.type === "team_typing" ||
       data.type === "team_read") {
     // Nhóm chat team (T1): tin mới của thành viên, hàng đợi đổi. Trang Nhóm (teams.js) nghe sự kiện này để vẽ lại;
     // trang khác bỏ qua. Không đụng khung chat chính.
-    try { window.dispatchEvent(new CustomEvent("vanhanh:team-event", { detail: data })); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("naota:team-event", { detail: data })); } catch (e) {}
     return;
   }
   if (data.type === "resonance_agents") {
     // T0 nhóm chat team: trợ lý vừa được bật, tắt Cộng hưởng (tab này hay tab khác). Trang Cộng sự, bảng bên phải và trang Cài đặt tự tải lại trạng thái thật.
-    try { window.dispatchEvent(new CustomEvent("vanhanh:resonance-agents-changed")); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("naota:resonance-agents-changed")); } catch (e) {}
     return;
   }
   if (data.type === "brain_follow") {
@@ -1419,12 +1425,12 @@ function handleMessage(data) {
     // trang. Nếu thư thuộc đúng hội thoại đang mở thì coi như đã đọc luôn: người dùng đang
     // nhìn thẳng vào nội dung, bắt họ bấm thêm một lần nữa trong hòm là đếm hai lần.
     try {
-      if (window.VanhanhInbox) {
-        if (sid && sid === savedSessionId) window.VanhanhInbox.docPhien(sid);
-        else window.VanhanhInbox.refresh();
+      if (window.NaotaInbox) {
+        if (sid && sid === savedSessionId) window.NaotaInbox.docPhien(sid);
+        else window.NaotaInbox.refresh();
       }
     } catch (e) {}
-    try { if (window.VanhanhStar) window.VanhanhStar.moment("work"); } catch (e) {}   // việc nền vừa trả kết quả
+    try { if (window.NaotaStar) window.NaotaStar.moment("work"); } catch (e) {}   // việc nền vừa trả kết quả
     return;
   }
   if (data.type === "status") {
@@ -1432,20 +1438,20 @@ function handleMessage(data) {
     setSessionRunning(sid, true);
     if (isActive) { runActions(turn.turnStart()); showActivity(escapeHtml(data.content || "")); syncActiveUI(); }
   } else if (data.type === "tool_call") {
-    if (t && window.VanhanhSteps) t.buoc = window.VanhanhSteps.nhan(t.buoc, data);
+    if (t && window.NaotaSteps) t.buoc = window.NaotaSteps.nhan(t.buoc, data);
     emitTurnProgress(sid);
     if (isActive) {
       runActions(turn.toolCall(data.tool || ""));
       veKhoiBuoc(t, true);
       // chip = dong dang chay + dong ho, luon nam duoi khoi. Ghi cung nhan RO VIEC nhu khoi
       // ("Chay lenh: git status") thay cho "Dang goi: Bash".
-      const _nhan = window.VanhanhSteps ? window.VanhanhSteps.nhanDong(data) : (data.content || "");
+      const _nhan = window.NaotaSteps ? window.NaotaSteps.nhanDong(data) : (data.content || "");
       // The engine just updated its plan: the chip says where it is in it ("Plan 2/5: Write the tests").
-      const _plan = (data.plan && window.VanhanhSteps && window.VanhanhSteps.planLine) ? window.VanhanhSteps.planLine(t && t.buoc) : "";
+      const _plan = (data.plan && window.NaotaSteps && window.NaotaSteps.planLine) ? window.NaotaSteps.planLine(t && t.buoc) : "";
       showActivity(escapeHtml(_plan || _nhan));
     }
   } else if (data.type === "tool_result") {
-    if (t && window.VanhanhSteps) t.buoc = window.VanhanhSteps.nhan(t.buoc, data);
+    if (t && window.NaotaSteps) t.buoc = window.NaotaSteps.nhan(t.buoc, data);
     emitTurnProgress(sid);
     if (isActive) { veKhoiBuoc(t, true); showActivity(Icons.msg("check", window.t("app.act_analyzing"), { cls: "ic-ok" })); }
   } else if (data.type === "stream") {
@@ -1478,14 +1484,14 @@ function handleMessage(data) {
       refreshUsage();
       return;
     }
-    // /goal: dòng ẩn VANHANH_GOAL bóc ra TRƯỚC khối hỏi ngược, và đọc cả trong chữ đã stream khi khung
+    // /goal: dòng ẩn NAOTA_GOAL bóc ra TRƯỚC khối hỏi ngược, và đọc cả trong chữ đã stream khi khung
     // response không mang lại nội dung. Chỉ ghi nhận ở đây; việc QUYẾT ĐỊNH chạy tiếp để turn_done làm.
-    const _gl = window.VanhanhLenh ? window.VanhanhLenh.tachMucTieu(data.content || "") : { clean: data.content || "", goal: null };
-    const { clean: askClean, ask } = window.VanhanhAsk.extract(_gl.clean);
+    const _gl = window.NaotaLenh ? window.NaotaLenh.tachMucTieu(data.content || "") : { clean: data.content || "", goal: null };
+    const { clean: askClean, ask } = window.NaotaAsk.extract(_gl.clean);
     try {
-      if (window.VanhanhLenh) {
-        const _mk = _gl.goal || window.VanhanhLenh.tachMucTieu((t && t.text) || "").goal;
-        window.VanhanhLenh.ghiNhan(sid, _mk, !!ask);
+      if (window.NaotaLenh) {
+        const _mk = _gl.goal || window.NaotaLenh.tachMucTieu((t && t.text) || "").goal;
+        window.NaotaLenh.ghiNhan(sid, _mk, !!ask);
       }
     } catch (e) {}
     huyVeStream(t);   // lượt chốt vẽ bản cuối ngay dưới, nhịp vẽ đang hẹn không được đè lên nó
@@ -1496,40 +1502,40 @@ function handleMessage(data) {
       hideActivity();
       veKhoiBuoc(t, false);   // het luot: khoi tien trinh gap thanh mot dong "Da chay N buoc"
       let msgEl = t && t.bubble;
-      if (!msgEl) msgEl = appendVanhanhMessage(shownText);
+      if (!msgEl) msgEl = appendNaotaMessage(shownText);
       if (t && t.bubble) msgEl.dataset.md = shownText;   // copy ra markdown gốc dù đọc theo giọng hay không
       if (dangTheoLoi() && t && finalText && !t.imLoa) {
         batTheoLoi(msgEl, shownText, ask, false);        // V3: chữ theo lời tới khi đọc xong, rồi vẽ đủ + chip
       } else {
         if (t && t.bubble) msgEl.querySelector(".bubble").innerHTML = markdownToHtml(shownText, undefined, msgEl.dataset.anhV);
-        if (ask) window.VanhanhAsk.render(msgEl, ask, true);   // chip chỉ mọc khi lượt xong
+        if (ask) window.NaotaAsk.render(msgEl, ask, true);   // chip chỉ mọc khi lượt xong
       }
       _renderCtxLine(msgEl, data);   // lượt này đi đường nào, tốn bao nhiêu
       // V3: bộ não giọng vừa giao một việc chạy NỀN (tách nói khỏi làm). Ghi rõ dưới câu xác
       // nhận để người dùng biết việc đã nhận; kết quả về sau bằng khung push (tự đọc khi loa rảnh).
-      // vẽ bằng chat-viec.js (dòng gọn có icon) và GHI kèm khối VANHANH_VIEC vào bản lưu
+      // vẽ bằng chat-viec.js (dòng gọn có icon) và GHI kèm khối NAOTA_VIEC vào bản lưu
       // cục bộ, để F5 vẫn còn dòng này. Server cũng lưu khối đó trong kho phiên.
       let _ghi = finalText;
       if (data.background) {
         const _v = { kind: "voice", status: "giao", title: String(data.background).slice(0, 160) };
-        if (window.VanhanhViec) window.VanhanhViec.ve(msgEl, _v);
-        _ghi = finalText + "\n\n<!-- VANHANH_VIEC: " + JSON.stringify(_v) + " -->";
+        if (window.NaotaViec) window.NaotaViec.ve(msgEl, _v);
+        _ghi = finalText + "\n\n<!-- NAOTA_VIEC: " + JSON.stringify(_v) + " -->";
       }
-      if (finalText.trim()) recordTurn("vanhanh", _ghi, null, ask, t && t.buoc);
+      if (finalText.trim()) recordTurn("naota", _ghi, null, ask, t && t.buoc);
       // T2: bong bóng vừa chốt chờ gói turn_saved mang mã tin; có mã mới hiện nút thả cảm xúc.
       try {
-        if (window.VanhanhChatReactions) window.VanhanhChatReactions.expect(sid, msgEl, finalText.trim() ? convo[convo.length - 1] : null);
+        if (window.NaotaChatReactions) window.NaotaChatReactions.expect(sid, msgEl, finalText.trim() ? convo[convo.length - 1] : null);
       } catch (e) {}
       // Có câu trả lời thật thì linh vật vui một nhịp. Đang đọc thành tiếng thì nó tự đợi đọc
       // xong mới nhảy (pet.js giữ cờ choXong), nên gọi ngay ở đây là đủ.
       if (finalText.trim()) petReact("xong");
-      // Vanhanh vừa làm một việc nhiều bước cho người dùng: một khoảnh khắc vui để mời tặng sao GitHub
+      // Naota vừa làm một việc nhiều bước cho người dùng: một khoảnh khắc vui để mời tặng sao GitHub
       // (star-nudge.js tự đợi người dùng rảnh tay, server quyết định có mời không).
-      try { if (finalText.trim() && t && ((t.buoc && t.buoc.so) || 0) >= 3 && window.VanhanhStar) window.VanhanhStar.moment("work"); } catch (e) {}
+      try { if (finalText.trim() && t && ((t.buoc && t.buoc.so) || 0) >= 3 && window.NaotaStar) window.NaotaStar.moment("work"); } catch (e) {}
       // Mỗi lượt xong, Claude Code / Codex vừa báo hạn mức gói mới: vòng tròn cạnh chip Effort đọc lại (plan-limit.js).
-      try { if (window.VanhanhPlanLimit) window.VanhanhPlanLimit.refresh(); } catch (e) {}
+      try { if (window.NaotaPlanLimit) window.NaotaPlanLimit.refresh(); } catch (e) {}
       // data.tts === false: khung "response" này KHÔNG được đọc (vd bản sửa lại sau khi bóc
-      // VANHANH_LESSON của phiên trợ lý) - giống hệt cách nhánh "stream" đã tôn trọng data.tts.
+      // NAOTA_LESSON của phiên trợ lý) - giống hệt cách nhánh "stream" đã tôn trọng data.tts.
       if (voice.ttsEnabled && t && data.tts !== false) {
         docCum(cum.flush(), t);                              // đẩy nốt phần đuôi chưa khép câu
         // Đánh dấu ĐÃ ĐỌC ngay sau khi gọi, không chỉ đọc điều kiện: thiếu dòng này thì một
@@ -1543,30 +1549,30 @@ function handleMessage(data) {
   } else if (data.type === "error") {
     if (t && data.limit) t.limit = data.limit;
     if (t) t.errored = true;   // khung response rỗng theo sau không vẽ thêm "(không có nội dung)"
-    try { if (window.VanhanhLenh) window.VanhanhLenh.baoLoi(sid); } catch (e) {}   // /goal không chạy tiếp qua một vòng lỗi
+    try { if (window.NaotaLenh) window.NaotaLenh.baoLoi(sid); } catch (e) {}   // /goal không chạy tiếp qua một vòng lỗi
     if (isActive) {
       hideActivity();
       veKhoiBuoc(t, false);
-      const errEl = appendVanhanhError(data.content);
+      const errEl = appendNaotaError(data.content);
       runActions(turn.turnDone());   // lỗi cũng là hết lượt; turn_done theo sau chỉ lặp lại
       if (data.limit) {
         // Hết lượt gói thuê bao: câu báo là tin cuối của lượt (server không trả gì thêm), ghi
         // vào convo để F5 còn thấy, rồi gắn thẻ "tự chạy lại" dưới nó (limit-resume.js).
-        recordTurn("vanhanh", data.content || "", null, null);
-        try { if (window.VanhanhResume) window.VanhanhResume.attach(errEl, sid, data.limit); } catch (e) {}
+        recordTurn("naota", data.content || "", null, null);
+        try { if (window.NaotaResume) window.NaotaResume.attach(errEl, sid, data.limit); } catch (e) {}
       }
     }
   } else if (data.type === "resume") {
     // Trạng thái lịch tự chạy lại (hẹn / tắt / đang chạy / huỷ) - thẻ tự vẽ lại.
     // "partial" = hết lượt giữa câu trả lời; thẻ "Chạy lại ngay" gắn dưới chính câu trả lời dở đó.
     try {
-      if (window.VanhanhResume && data.reason === "partial" && isActive) {
-        const _dos = chatArea.querySelectorAll(".msg-vanhanh");
+      if (window.NaotaResume && data.reason === "partial" && isActive) {
+        const _dos = chatArea.querySelectorAll(".msg-naota");
         const _cuoi = (t && t.bubble) || _dos[_dos.length - 1];
-        if (_cuoi) window.VanhanhResume.attach(_cuoi, sid, { engine: data.engine || "" });
+        if (_cuoi) window.NaotaResume.attach(_cuoi, sid, { engine: data.engine || "" });
       }
     } catch (e) {}
-    try { if (window.VanhanhResume) window.VanhanhResume.onFrame(data); } catch (e) {}
+    try { if (window.NaotaResume) window.NaotaResume.onFrame(data); } catch (e) {}
   } else if (data.type === "reroute") {
     // đường đang chạy hết lượt TRƯỚC khi viết chữ hay gọi công cụ nào, server chạy lại đúng lượt
     // này bằng đường kế tiếp. Bỏ những gì lần chạy đầu đã vẽ (câu "hết lượt" lỡ stream ra), để lại một dòng
@@ -1582,15 +1588,15 @@ function handleMessage(data) {
   } else if (data.type === "wf_event") {
     // Tiến độ từng bước của một lần chạy quy trình (trang Cộng sự vẽ ở cột phải). Khung chat
     // không vẽ gì: chip trạng thái đã đi bằng khung status riêng.
-    try { if (window.VanhanhWorkspace) window.VanhanhWorkspace.onWfEvent(data); } catch (e) {}
+    try { if (window.NaotaWorkspace) window.NaotaWorkspace.onWfEvent(data); } catch (e) {}
   } else if (data.type === "user_text") {
     if (data.voice_turn_id && (!t || String(t.id) !== String(data.voice_turn_id))) return;
     // Lượt nói: server đã DIỄN GIẢI câu máy nghe (lớp sửa theo ngữ cảnh, hoặc bộ não giọng
-    // viết lại dòng VANHANH_NGHE). Bong bóng người dùng đang hiện chữ thô của máy nghe, nên thay
+    // viết lại dòng NAOTA_NGHE). Bong bóng người dùng đang hiện chữ thô của máy nghe, nên thay
     // bằng câu đã diễn giải và ghi chữ thô nhỏ bên dưới để đối chiếu. Ví dụ: nói
-    // "Vanhanh" mà bong bóng vẫn "Nauta" thì không biết Vanhanh đã hiểu đúng chưa.
+    // "Naota" mà bong bóng vẫn "Nauta" thì không biết Naota đã hiểu đúng chưa.
     // CỬA TẠP ÂM: bộ não giọng xét ra cả lượt chỉ là tiếng TV hay người khác trong phòng,
-    // không có câu nào nói với Vanhanh. Gỡ HẲN bong bóng (ẩn luôn để mắt
+    // không có câu nào nói với Naota. Gỡ HẲN bong bóng (ẩn luôn để mắt
     // chỉ còn nội dung đang bàn), server đã xoá tin khỏi kho phiên nên F5 cũng không thấy lại.
     // Chỉ để lại một dòng ghi chú tự tắt: im hoàn toàn thì lúc cửa xét NHẦM, người dùng nói mà
     // không có gì xảy ra, trông y hệt mic hỏng và không có đầu mối nào để đi tắt bớt lọc.
@@ -1598,7 +1604,7 @@ function handleMessage(data) {
       if (isActive && goTinNguoiDungCuoi(data.raw || "")) ghiChuThoang(window.t("app.tap_am_bo_qua"));
     } else if (isActive) capNhatTinNguoiDung(data.text || "", data.raw || "");
   } else if (data.type === "system") {
-    if (isActive) appendVanhanhMessage(data.content);
+    if (isActive) appendNaotaMessage(data.content);
   } else if (data.type === "turn_done") {
     // Lượt của phiên này kết thúc (xong / lỗi / bị dừng): bỏ cờ chạy, dọn buffer, refresh Lịch sử.
     // turn_done của lượt ĐÃ DỪNG mà về sau khi lượt mới đã gửi (câu nói chen ngang, lưới thời
@@ -1608,10 +1614,10 @@ function handleMessage(data) {
       delete _luotDaDung[sid];
       if (t && t.id && t.id !== _idDung) return;
     }
-    try { if (window.VanhanhResume) window.VanhanhResume.turnDone(sid); } catch (e) {}
+    try { if (window.NaotaResume) window.NaotaResume.turnDone(sid); } catch (e) {}
     // Trang Cộng sự phải biết lượt đã đóng: tiến độ quy trình còn kẹt ở "đang chạy" thì icon
     // quay mãi ở cột trái, kể cả khi lượt chết theo đường không kịp phát sự kiện nào.
-    try { if (window.VanhanhWorkspace) window.VanhanhWorkspace.onTurnDone(sid); } catch (e) {}
+    try { if (window.NaotaWorkspace) window.NaotaWorkspace.onTurnDone(sid); } catch (e) {}
     if (t) t.running = false;
     setSessionRunning(sid, false);
     // Chip "Đang soạn câu trả lời..." phải TẮT ở đây chứ không chỉ ở nhánh `response`: lượt
@@ -1620,23 +1626,23 @@ function handleMessage(data) {
     // một lần ở đây vô hại với lượt thường - hideActivity() là thao tác không cộng dồn.
     if (isActive) { hideActivity(); veKhoiBuoc(t, false); syncActiveUI(); runActions(turn.turnDone()); cum.reset(); }
     // T2: bong bóng hay mã tin còn chờ ghép của lượt này chỉ sống thêm một quãng ngắn (xem chat-reactions.js).
-    try { if (window.VanhanhChatReactions) window.VanhanhChatReactions.turnDone(sid); } catch (e) {}
+    try { if (window.NaotaChatReactions) window.NaotaChatReactions.turnDone(sid); } catch (e) {}
     if (sid) delete turns[sid];
     if (isActive && _tinChoLuot) guiTinCho();   // câu người dùng chen ngang: lượt cũ dừng hẳn rồi thì gửi
     if (isActive) guiCauChoLuot();               // câu nói lúc đang trả lời (cuộc gọi): gửi nếu loa đã im
     // a finished turn may have changed what the console pages show (a skill, a connection, a setting):
     // forget the copies they would otherwise draw first (fetch-gop.js).
-    try { if (window.VanhanhFetchGop && window.VanhanhFetchGop.forget) window.VanhanhFetchGop.forget(); } catch (e) {}
+    try { if (window.NaotaFetchGop && window.NaotaFetchGop.forget) window.NaotaFetchGop.forget(); } catch (e) {}
     notifySessions();
     // Lượt vừa xong có thể đã giao việc nền. Đây là ĐÚNG khoảnh khắc người dùng đọc câu trả
     // lời "em đã giao 3 việc" và tự hỏi nó có chạy thật không - dải phải trả lời được ngay.
-    try { if (window.VanhanhBackground) window.VanhanhBackground.refresh(); } catch (e) {}
+    try { if (window.NaotaBackground) window.NaotaBackground.refresh(); } catch (e) {}
     // /goal: lượt vừa đóng, đây là lúc duy nhất quyết định có tự gửi vòng tiếp không. Gọi cho cả chat
     // chạy nền: mục tiêu của chat đó ghi nhận vòng đã xong, mở lại chat là nó đi tiếp.
-    try { if (window.VanhanhLenh) window.VanhanhLenh.hetLuot(sid); } catch (e) {}
+    try { if (window.NaotaLenh) window.NaotaLenh.hetLuot(sid); } catch (e) {}
     // The likely next message in the empty box (chat-suggest.js). Not during a voice call: nobody types there.
     try {
-      if (isActive && chatSuggest && !handsFreeActive() && convo.length && convo[convo.length - 1].role === "vanhanh") {
+      if (isActive && chatSuggest && !handsFreeActive() && convo.length && convo[convo.length - 1].role === "naota") {
         const _want = sid;
         chatSuggest.request(convo.slice(-6).map(m => ({ role: m.role === "user" ? "user" : "assistant", text: m.text })))
           .then(() => { if (savedSessionId !== _want) dropSuggest(); });
@@ -1687,7 +1693,7 @@ function guiTinCho() {
   const opts=_tinChoOpts; _tinChoOpts=null;
   if (t) sendMessage(t,opts);       // stopCurrent() đã hạ cờ running nên lần này không quay lại đây
 }
-// ---- Câu nói lúc Vanhanh đang trả lời, trong cuộc gọi ----
+// ---- Câu nói lúc Naota đang trả lời, trong cuộc gọi ----
 // Không dừng lượt đang chạy: câu xếp hàng (nói nhiều câu thì ghép lại), hiện thành bong bóng nháp,
 // và chỉ gửi khi lượt cũ đã xong VÀ loa đã đọc xong, vì hàm gửi tin cắt tiếng đang đọc.
 // Gọi từ turn_done và từ lúc loa đọc xong; điều kiện nào chưa đủ thì lần gọi sau gửi.
@@ -1886,7 +1892,7 @@ const _gocCongSu = {};
 // đoán lại ý người dùng (xem workflow_chat.quyet_dinh_luot): bấm đúng nút Chạy thì chạy,
 // dù câu trong ô nhập có nghe như đang nói về chính quy trình.
 function sendMessage(text, opts) {
-  if (window.VanhanhWorkspace && !window.VanhanhWorkspace.canSend()) return;
+  if (window.NaotaWorkspace && !window.NaotaWorkspace.canSend()) return;
   try { dropSuggest(); } catch (e) {}   // a suggestion belongs to the reply it followed
   let msg = (text || chatInput.value).trim();
   // Lệnh / : session-command chạy tại chỗ; skill-command bung thành lời gọi skill.
@@ -1894,22 +1900,22 @@ function sendMessage(text, opts) {
   // dựng sẵn, và nội dung `msg` là câu người dùng nên KHÔNG được route lại (câu có thể tình cờ
   // bắt đầu bằng "/").
   const _slash = (opts && opts.prefix) ? { type: "prefix", prefix: opts.prefix, message: msg }
-    : (window.VanhanhSlash && msg) ? window.VanhanhSlash.route(msg) : { type: "passthrough" };
+    : (window.NaotaSlash && msg) ? window.NaotaSlash.route(msg) : { type: "passthrough" };
   if (_slash.type === "system") {
     // Lệnh hệ thống (chat-lenh.js): tự xử lý tại chỗ, không gửi gì cho model. /plan và /goal thì
     // tự gọi lại sendMessage với `opts.prefix` sau khi xin khối chỉ dẫn từ máy chủ.
     chatInput.value = ""; chatInput.style.height = "auto";
-    if (window.VanhanhLenh) window.VanhanhLenh.chay(_slash.cmd, _slash.arg);
+    if (window.NaotaLenh) window.NaotaLenh.chay(_slash.cmd, _slash.arg);
     return;
   }
   if (_slash.type === "agent" || _slash.type === "workflow") {
-    if (!window.VanhanhWorkspace) return;
+    if (!window.NaotaWorkspace) return;
     // Khung chat NGƯỜI DÙNG đang đứng lúc gõ lệnh. Gõ "/quy-trinh" là trang nhảy hẳn sang
     // Cộng sự, việc chạy ở đó, và khung Trò chuyện vừa rời đi không bao giờ biết kết quả ra
     // sao - đúng chỗ người dùng thấy vô lý. Nhớ lại nguồn rồi gửi kèm mỗi tin, để server đẩy
     // kết quả NGƯỢC về đây kèm link mở lại cuộc hội thoại đã làm việc đó.
     const goc = savedSessionId;
-    window.VanhanhWorkspace.openCommand(_slash.type, _slash.slug).then(function (opened) {
+    window.NaotaWorkspace.openCommand(_slash.type, _slash.slug).then(function (opened) {
       if (!opened) return;
       if (goc && savedSessionId && savedSessionId !== goc) _gocCongSu[savedSessionId] = goc;
       chatInput.value = _slash.message || "";
@@ -1927,7 +1933,7 @@ function sendMessage(text, opts) {
   if (!ws || ws.readyState !== WebSocket.OPEN) { if(opts && opts.adaptive){chatInput.value=msg;ghiChuThoang(window.t("app.ws_mat_ket_noi"));return;} giuTinKhiDutMang(msg); return; }
   // File còn ĐANG TẢI LÊN thì đợi nó xong rồi gửi, KHÔNG gửi thiếu. Trước đây dòng lọc
   // `a.path` bên dưới lặng lẽ bỏ file chưa tải xong: dán ảnh hay một đoạn văn dài rồi gõ câu
-  // hỏi và Enter ngay là tin bay đi tay không, bong bóng không có ảnh, Vanhanh cũng không nhận
+  // hỏi và Enter ngay là tin bay đi tay không, bong bóng không có ảnh, Naota cũng không nhận
   // được file - đúng lỗi đã gặp. Chip trên thanh đính kèm vẫn hiện "đang
   // tải..." nên người dùng thấy vì sao tin chưa đi.
   const dangTai = pendingAttachments.filter(a => a.uploading);
@@ -1956,8 +1962,8 @@ function sendMessage(text, opts) {
   if (!msg && atts.length === 0) return;
   // Trích dẫn: đoạn trích đứng ở đầu tin dạng "> ...", là một phần chữ của tin. Chỉ gắn vào
   // tin thường, không gắn vào lệnh "/" và lượt tự động, rồi xoá chip để tin sau không mang theo nữa.
-  if (_quote && window.VanhanhQuote && _slash.type === "passthrough" && !(opts && opts.adaptive)) {
-    msg = window.VanhanhQuote.ghep(_quote.text, msg);
+  if (_quote && window.NaotaQuote && _slash.type === "passthrough" && !(opts && opts.adaptive)) {
+    msg = window.NaotaQuote.ghep(_quote.text, msg);
     _quote = null;
     renderChips();
   }
@@ -1965,23 +1971,30 @@ function sendMessage(text, opts) {
     savedSessionId = newSid();                           // hội thoại mới → mint id để định tuyến
     // Đang mở một project ở cột Lịch sử thì hội thoại mới rơi thẳng vào project đó, khỏi phải
     // gắn tay. Gắn NGAY tại đây vì đây là chỗ duy nhất biết "id này vừa được sinh ra".
-    try { if (window.VanhanhProjects) window.VanhanhProjects.claim(savedSessionId); } catch (e) {}
+    let _projClaim = null;
+    try { if (window.NaotaProjects) _projClaim = window.NaotaProjects.claim(savedSessionId) || null; } catch (e) {}
+    // 2026-11-15: the first turn waits for that claim (below, with the pin and the repos), so the project's
+    // instructions and its GitHub repos reach this very first message instead of the next one.
     // Model đã chọn khi khung chat còn trống -> ghim luôn cho phiên vừa sinh (model-picker.js).
-    try { if (window.VanhanhModelBar) window.VanhanhModelBar.claimPending(savedSessionId); } catch (e) {}
+    try { if (window.NaotaModelBar) window.NaotaModelBar.claimPending(savedSessionId); } catch (e) {}
     // A working folder pinned on the empty chat follows the session that was just minted.
-    try { if (window.VanhanhPinnedFolder) _pinWait = window.VanhanhPinnedFolder.claimPending(savedSessionId); } catch (e) {}
+    try { if (window.NaotaPinnedFolder) _pinWait = window.NaotaPinnedFolder.claimPending(savedSessionId); } catch (e) {}
     // GitHub repos picked on the empty chat: attached AFTER the pin, never at the same time (both rewrite
     // the session's folder list), and before the turn runs so it starts inside the repos.
     try {
-      if (window.VanhanhGithubRepos) {
+      if (window.NaotaGithubRepos) {
         const _sidNew = savedSessionId;
-        _pinWait = (_pinWait || Promise.resolve()).then(() => window.VanhanhGithubRepos.claimPending(_sidNew), () => window.VanhanhGithubRepos.claimPending(_sidNew));
+        _pinWait = (_pinWait || Promise.resolve()).then(() => window.NaotaGithubRepos.claimPending(_sidNew), () => window.NaotaGithubRepos.claimPending(_sidNew));
       }
     } catch (e) {}
+    if (_projClaim && _projClaim.then) {
+      const _before = _pinWait || Promise.resolve();
+      _pinWait = Promise.all([_before.catch(() => {}), _projClaim.catch(() => {})]);
+    }
   }
   const sid = savedSessionId;
   // Phiên đang trả lời thì không gửi chồng lượt. NHƯNG tin từ MIC (hay gõ trong lúc rảnh tay)
-  // là người dùng CHEN NGANG: họ vừa cắt lời Vanhanh rồi nói câu mới, nên câu mới phải thắng -
+  // là người dùng CHEN NGANG: họ vừa cắt lời Naota rồi nói câu mới, nên câu mới phải thắng -
   // dừng lượt cũ rồi gửi. Nuốt lặng như trước là kẹt cứng: đạo diễn đã bật `processing` trong
   // endpoint() TRƯỚC khi gọi vào đây, mà lượt bị nuốt thì không bao giờ có turn_done để hạ nó,
   // nên orb đứng mãi ở "đang suy nghĩ" và người dùng không thấy tin mình vừa nói ở đâu cả.
@@ -1989,7 +2002,7 @@ function sendMessage(text, opts) {
     // Ngoại lệ: đang chạy /goal thì người dùng gõ chữ CŨNG là chen ngang. Vòng tự động không phải lượt
     // họ tự bấm gửi, nên "đợi nó xong rồi mới gõ được" là kẹt họ trong một vòng lặp họ không điều khiển.
     // Dừng vòng hiện tại (stopCurrent cũng dừng /goal), tin của họ đi ngay sau khi lượt cũ dừng hẳn.
-    if (window.VanhanhLenh && window.VanhanhLenh.dangCoMucTieu() && !(_tuGiong || handsFree)) {
+    if (window.NaotaLenh && window.NaotaLenh.dangCoMucTieu() && !(_tuGiong || handsFree)) {
       chatInput.value = ""; chatInput.style.height = "auto";
       stopCurrent();
       datTinCho(msg, opts);
@@ -2018,22 +2031,22 @@ function sendMessage(text, opts) {
   voice.resetSpokenWords();    // lượt mới đếm từ đã đọc lại từ 0
   nhapGiong("");               // bong bóng nháp (chữ đang nghe) nhường chỗ cho tin thật
   // Voice V3: đang ở phiên Live mà GÕ chữ thì đẩy thẳng vào phiên Live (cùng một cuộc nói
-  // chuyện, Vanhanh đáp bằng giọng), không mở lượt chat riêng. Có file đính kèm thì đi đường thường.
-  if (voiceMode === "live" && !atts.length && window.VanhanhVoiceLive && window.VanhanhVoiceLive.isOn()) {
+  // chuyện, Naota đáp bằng giọng), không mở lượt chat riêng. Có file đính kèm thì đi đường thường.
+  if (voiceMode === "live" && !atts.length && window.NaotaVoiceLive && window.NaotaVoiceLive.isOn()) {
     chatInput.value = ""; chatInput.style.height = "auto";
     appendUserMessage(msg, []);
     recordTurn("user", msg, []);
-    window.VanhanhVoiceLive.sendText(msg);
+    window.NaotaVoiceLive.sendText(msg);
     return;
   }
   // có file thì cũng KHÔNG mở lượt chat thường. Trước đây lượt chat đọc ảnh và đọc ra
   // loa bằng giọng Edge, trong khi model Live nghe "xem ảnh này" lại giao chính ảnh đó cho
-  // ask_vanhanh: hai lượt bộ não, hai giọng chồng nhau. Nay gửi khung "ask" để server chạy MỘT lượt
+  // ask_naota: hai lượt bộ não, hai giọng chồng nhau. Nay gửi khung "ask" để server chạy MỘT lượt
   // và model Live đọc kết quả; socket chưa mở thì mới rơi về đường thường.
   if (voiceMode === "live" && atts.length && _slash.type === "passthrough"
-      && window.VanhanhVoiceLive && window.VanhanhVoiceLive.isOn() && window.VanhanhVoiceLive.ask) {
+      && window.NaotaVoiceLive && window.NaotaVoiceLive.isOn() && window.NaotaVoiceLive.ask) {
     const liveMsg = boiNguCanh(tinDocFile(atts, msg), true);
-    if (window.VanhanhVoiceLive.ask(liveMsg, msg, atts.map(a => a.name))) {
+    if (window.NaotaVoiceLive.ask(liveMsg, msg, atts.map(a => a.name))) {
       chatInput.value = ""; chatInput.style.height = "auto";
       appendUserMessage(msg, atts);
       recordTurn("user", msg, atts.map(a => ({ name: a.name, kind: a.kind, url: a.url || "" })));
@@ -2041,17 +2054,17 @@ function sendMessage(text, opts) {
       return;
     }
   }
-  window.VanhanhAsk.freezeAll();   // trả lời rồi thì chip của lượt trước hết bấm được
-  // an automatic /goal round (block carries VANHANH_GOAL_ROUND) is drawn as the collapsible round line.
-  const _goalRound = (_slash.type === "prefix" && window.VanhanhLenh && window.VanhanhLenh.docVong)
-    ? window.VanhanhLenh.docVong(_slash.prefix) : null;
+  window.NaotaAsk.freezeAll();   // trả lời rồi thì chip của lượt trước hết bấm được
+  // an automatic /goal round (block carries NAOTA_GOAL_ROUND) is drawn as the collapsible round line.
+  const _goalRound = (_slash.type === "prefix" && window.NaotaLenh && window.NaotaLenh.docVong)
+    ? window.NaotaLenh.docVong(_slash.prefix) : null;
   const userElement = _goalRound ? appendGoalRound(_goalRound, true) : appendUserMessage(msg, atts);
   // /goal đang chạy: tin do vòng tự động gửi thì gắn nó vào phiên này; tin người dùng tự gõ thì
   // dừng mục tiêu (lời của họ lên trước, không chạy tiếp vòng tự động dưới một câu họ vừa nói).
   try {
-    if (window.VanhanhLenh) {
-      if (_slash.type === "prefix") window.VanhanhLenh.daGui(sid, opts);
-      else window.VanhanhLenh.chenNgang(sid);
+    if (window.NaotaLenh) {
+      if (_slash.type === "prefix") window.NaotaLenh.daGui(sid, opts);
+      else window.NaotaLenh.chenNgang(sid);
     }
   } catch (e) {}
   // Lưu cả `url` (đường /upload/raw của file stage): thiếu nó thì F5 xong ảnh trong tin cũ
@@ -2059,7 +2072,7 @@ function sendMessage(text, opts) {
   recordTurn("user", msg, atts.map(a => ({ name: a.name, kind: a.kind, url: a.url || "" })));
   if (_goalRound) { convo[convo.length - 1].goalRound = _goalRound; persistSession(); }
 
-  // Soạn message gửi Vanhanh (kèm đường dẫn file trong Sources)
+  // Soạn message gửi Naota (kèm đường dẫn file trong Sources)
   const _isSkill = _slash.type === "skill";
   // Tin của /plan, /goal: khối chỉ dẫn đứng ngay TRƯỚC câu người dùng, và ở SAU mọi khối ngữ cảnh
   // khác (file đính kèm, file ghim, ngữ cảnh giao diện). chuNguoiGo gỡ được từng khối theo thứ
@@ -2080,7 +2093,7 @@ function sendMessage(text, opts) {
   // File đang ghim đi TRƯỚC mọi thứ: nó là ngữ cảnh nền của cả lượt, không phải dữ liệu
   // đính kèm một lần. Gửi lại mỗi lượt vì engine API dựng lại payload từ SQLite mỗi lần,
   // không giữ trạng thái "đang mở file nào" giữa các lượt.
-  // Ngữ cảnh giao diện (Voice V1, spec mục 5): trang đang mở, đoạn đang bôi đen, câu Vanhanh bị
+  // Ngữ cảnh giao diện (Voice V1, spec mục 5): trang đang mở, đoạn đang bôi đen, câu Naota bị
   // ngắt lời. Đứng SAU khối file ghim và TRƯỚC câu hỏi; rỗng thì không chèn gì.
   // `voice`: đang nói chuyện bằng giọng (tin từ mic, HAY gõ chữ khi mic rảnh tay đang bật):
   // câu trả lời sẽ đọc ra loa nên model phải trả lời ngắn như người đang nói (V3).
@@ -2094,7 +2107,7 @@ function sendMessage(text, opts) {
   showActivity(window.t("app.act_thinking"));   // hiện NGAY trong khung chat, không đợi server báo
   syncActiveUI();
   // Server đóng dấu model đang chạy cho phiên ngay từ tin đầu -> bar hiện "ghim" tại chỗ.
-  try { if (window.VanhanhModelBar) window.VanhanhModelBar.noteStamped(sid); } catch (e) {}
+  try { if (window.NaotaModelBar) window.NaotaModelBar.noteStamped(sid); } catch (e) {}
   // Voice V2: tin đến từ MIC mang cờ `voice` để server đưa qua làn nhanh (bộ não giọng nói)
   // khi cài đặt bật. V3: đang rảnh tay mà GÕ chữ thì cũng đi làn nhanh, vì đó vẫn là cuộc nói
   // chuyện bằng giọng (vừa nói vừa gõ bổ sung, một luồng). Mic tắt thì đi bộ não chính như cũ.
@@ -2153,14 +2166,14 @@ function tinDocFile(atts, than) {
 // Thứ tự này chuNguoiGo gỡ ngược lại được, nên bong bóng vẫn chỉ hiện đúng câu người dùng gõ.
 function boiNguCanh(outMsg, voice) {
   try {
-    const ctxUi = window.VanhanhUiContext ? window.VanhanhUiContext.build({
+    const ctxUi = window.NaotaUiContext ? window.NaotaUiContext.build({
       page: nguCanhTrang(), selection: nguCanhChon(), interruptedAt: _ngatLoiTai, voice: voice,
     }) : "";
     if (ctxUi) outMsg = `${ctxUi}\n\n${outMsg}`;
   } catch (e) {}
   _ngatLoiTai = "";
   if (pinnedNote) {
-    outMsg = `[FILE ĐANG MỞ trong trình sửa của Vanhanh: ${pinnedNote.abs}\n`
+    outMsg = `[FILE ĐANG MỞ trong trình sửa của Naota: ${pinnedNote.abs}\n`
       + `Đây là file người dùng ĐANG LÀM VIỆC TRÊN ĐÓ - coi như đầu vào của cuộc trò chuyện này. `
       + `Đọc nó trước khi trả lời. Khi được yêu cầu sửa/viết thêm/dọn lại mà không nói rõ file nào `
       + `thì ghi thẳng vào chính file này.]\n\n${outMsg}`;
@@ -2182,11 +2195,11 @@ function nguCanhChon() {
   } catch (e) { return ""; }
 }
 // Chip lựa chọn (chat-ask.js) gửi đáp án qua đây: bấm chip = y như người dùng gõ tay nhãn đó.
-window.VanhanhSend = sendMessage;
+window.NaotaSend = sendMessage;
 // Cầu nối cho chat-lenh.js (lệnh "/" hệ thống). Chỉ lộ đúng những gì lệnh cần, không lộ trạng
 // thái nội bộ: ghi chú lên khung chat, đọc phiên/brain đang mở, gửi một tin, đọc câu người dùng
 // gõ gần nhất, và làm sạch khối ngữ cảnh khỏi tin người dùng khi xuất hội thoại.
-window.VanhanhChatApi = {
+window.NaotaChatApi = {
   note: appendLenhReply,
   sid: () => savedSessionId,
   brain: () => currentBrainPath(),
@@ -2196,7 +2209,7 @@ window.VanhanhChatApi = {
   sach: chuNguoiGo,
 };
 // Module ngoài (limit-resume.js) gửi một khung điều khiển thô lên server. true = đã gửi.
-window.VanhanhWsSend = function (obj) {
+window.NaotaWsSend = function (obj) {
   if (!ws || ws.readyState !== WebSocket.OPEN) return false;
   try { ws.send(JSON.stringify(obj)); return true; } catch (e) { return false; }
 };
@@ -2256,7 +2269,7 @@ function goTinNguoiDungCuoi(raw) {
   return true;
 }
 // Dòng ghi chú THOÁNG QUA giữa khung chat: hiện rồi tự tắt, không vào convo, không lưu
-// localStorage, không đọc ra loa, không đi vào ngữ cảnh lượt sau. Dùng cho chuyện Vanhanh vừa
+// localStorage, không đọc ra loa, không đi vào ngữ cảnh lượt sau. Dùng cho chuyện Naota vừa
 // quyết mà không đáng để lại một lượt trong hội thoại.
 const GHI_CHU_MS = 6000;
 function ghiChuThoang(text) {
@@ -2282,7 +2295,7 @@ function recordTurn(role, text, atts, ask, buoc) {
   convo.push({ role, text: text || "", atts: atts || [], ask: ask || null, ts: Date.now(),
                // Mach buoc chi ghi khi luot that su co goi cong cu - luot tra loi thang
                // khong co truong nay, nen tin cu luu truoc ban nay cung khong sao.
-               buoc: (buoc && window.VanhanhSteps && window.VanhanhSteps.tomTat(buoc).hien)
+               buoc: (buoc && window.NaotaSteps && window.NaotaSteps.tomTat(buoc).hien)
                  ? buoc : undefined });
   if (convo.length > 200) convo = convo.slice(-200);
   persistSession();
@@ -2304,33 +2317,33 @@ function restoreSession() {
   try { convo.forEach((t, i) => {
     // t.ts vắng mặt ở tin lưu từ trước bản này -> truyền 0 để ẩn giờ thay vì hiện giờ F5.
     if (t.role === "user") {
-      if (t.goalRound && window.VanhanhLenh && window.VanhanhLenh.vongHtml) { appendGoalRound(t.goalRound, false); return; }
+      if (t.goalRound && window.NaotaLenh && window.NaotaLenh.vongHtml) { appendGoalRound(t.goalRound, false); return; }
       appendUserMessage(t.text, t.atts || [], t.ts || 0); return;
     }
     // t.brain vắng ở tin lưu từ trước bản này -> rơi về brain của cả phiên, rồi mới tới
     // brain đang chọn. Không có thì hành vi y như cũ, không hỏng thêm gì.
-    if (t.buoc && window.VanhanhSteps && window.VanhanhSteps.tomTat(t.buoc).hien)
-      chatAppend(window.VanhanhSteps.ve(null, t.buoc, false));
-    const el = appendVanhanhMessage(t.text, t.ts || 0, t.brain || s.brain);
+    if (t.buoc && window.NaotaSteps && window.NaotaSteps.tomTat(t.buoc).hien)
+      chatAppend(window.NaotaSteps.ve(null, t.buoc, false));
+    const el = appendNaotaMessage(t.text, t.ts || 0, t.brain || s.brain);
     _traLoi.push({ el, entry: t });
     // T2: tin đã có mã (lịch sử hay gói turn_saved) mang lại hàng reaction; tin lưu trước bản này không có mã thì không có nút.
     try {
-      if (t.mid != null && window.VanhanhChatReactions && !el.classList.contains("msg-nho")) window.VanhanhChatReactions.attach(el, { sid: savedSessionId, mid: t.mid,
+      if (t.mid != null && window.NaotaChatReactions && !el.classList.contains("msg-nho")) window.NaotaChatReactions.attach(el, { sid: savedSessionId, mid: t.mid,
         sha: t.sha || "", brain: t.brain || s.brain, reaction: t.reaction || null, entry: t });
     } catch (e) {}
     if (t.pinned && t.mid != null) datGhim(el, true);
     // Chip chỉ sống lại ở tin CUỐI: có tin sau nó nghĩa là câu hỏi đã được trả lời rồi.
-    if (t.ask) window.VanhanhAsk.render(el, t.ask, i === convo.length - 1);
+    if (t.ask) window.NaotaAsk.render(el, t.ask, i === convo.length - 1);
   }); } finally { _dangDungLoat = false; }
   // Bản lưu cục bộ có thể giữ reaction cũ (đổi ở máy khác) hay thiếu mã tin: hỏi lại đủ số tin vừa dựng (tối đa 200).
-  try { if (window.VanhanhChatReactions && savedSessionId) window.VanhanhChatReactions.refresh(savedSessionId, _traLoi); } catch (e) {}
+  try { if (window.NaotaChatReactions && savedSessionId) window.NaotaChatReactions.refresh(savedSessionId, _traLoi); } catch (e) {}
   if (convo.length) { scrollBottom(true); ghimDay(sessionOpenSeq); }
   // Con trỏ tin cũ sống sót qua F5 → vẫn cuộn lên đọc tiếp được, không phải bấm lại vào
   // hội thoại trong danh sách mới có.
   _tinCu = (s.tinCu && savedSessionId) ? { ...s.tinCu, sid: savedSessionId, dangTai: false } : null;
   datMoiTinCu();
   // hello thường tới SAU bước này; nếu tới trước (kết nối nhanh) thì thẻ "tự chạy lại" gắn ở đây.
-  try { if (window.VanhanhResume && savedSessionId) window.VanhanhResume.renderFor(savedSessionId); } catch (e) {}
+  try { if (window.NaotaResume && savedSessionId) window.NaotaResume.renderFor(savedSessionId); } catch (e) {}
   notifySessions();   // panel Lịch sử tô đúng phiên đang xem thay vì không tô cái nào
   syncActiveUI();
 }
@@ -2356,10 +2369,10 @@ function veTinDaLuu(m, brainCua, sidCua) {
     // Đọc lại từ chính khối đó, không thì mở lại hội thoại là ảnh và file biến mất khỏi
     // bong bóng, người dùng không xem lại được mình đã gửi gì (lỗi đã gặp).
     const _sach = chuNguoiGo(m.content || "");
-    const _vongCu = window.VanhanhLenh && window.VanhanhLenh.docVong ? window.VanhanhLenh.docVong(m.content || "") : null;
+    const _vongCu = window.NaotaLenh && window.NaotaLenh.docVong ? window.NaotaLenh.docVong(m.content || "") : null;
     if (_vongCu) { appendGoalRound(_vongCu, false); return { role: "user", text: _sach, atts: [], ts, goalRound: _vongCu }; }
     const _atts = docDinhKem(m.content || "");
-    // the Vanhanh Gate sender ("from ChatGPT") is read from the stored text, which still has its block.
+    // the Naota Gate sender ("from ChatGPT") is read from the stored text, which still has its block.
     const el = appendUserMessage(_sach, _atts, ts, nguonGate(m.content || ""));
     if(m.voice_metadata && m.voice_metadata.response_policy==='ack_only' && !m.voice_metadata.answer_requested) renderVoiceReceipt(el,{...m.voice_metadata,session_id:savedSessionId});
     return { role: "user", text: _sach, atts: _atts, ts, voice_metadata:m.voice_metadata };
@@ -2368,13 +2381,13 @@ function veTinDaLuu(m, brainCua, sidCua) {
   // vứt đi nên ảnh trong hội thoại cũ luôn ghép với brain đang chọn - mở hội thoại của
   // brain khác là ảnh hỏng hết. Giữ luôn vào convo để lần khôi phục sau còn dùng.
   if (m.role === "assistant") {
-    const el = appendVanhanhMessage(m.content || "", ts, brainCua);
+    const el = appendNaotaMessage(m.content || "", ts, brainCua);
     // T2: mã tin, content_sha và reaction đi theo bong bóng lẫn convo, để thả cảm xúc được và F5 vẫn còn.
-    const entry = { role: "vanhanh", text: m.content || "", atts: [], ts, brain: brainCua,
+    const entry = { role: "naota", text: m.content || "", atts: [], ts, brain: brainCua,
                     mid: m.id, sha: m.content_sha || "", reaction: m.reaction || null };
     entry.pinned = !!m.pinned;   // pinned into the chat's contents (marks rail)
     try {
-      if (window.VanhanhChatReactions && !el.classList.contains("msg-nho")) window.VanhanhChatReactions.attach(el, { sid: sidCua, mid: m.id, sha: m.content_sha || "",
+      if (window.NaotaChatReactions && !el.classList.contains("msg-nho")) window.NaotaChatReactions.attach(el, { sid: sidCua, mid: m.id, sha: m.content_sha || "",
         brain: brainCua, reaction: m.reaction || null, entry });
     } catch (e) {}
     if (m.pinned) datGhim(el, true);
@@ -2479,7 +2492,7 @@ async function taiTinCu() {
 }
 
 // ============================================
-// Phiên hội thoại lưu DB (panel Lịch sử - sessions-ui.js gọi qua window.VanhanhSessions)
+// Phiên hội thoại lưu DB (panel Lịch sử - sessions-ui.js gọi qua window.NaotaSessions)
 // ============================================
 let sessionOpenSeq = 0;
 
@@ -2503,7 +2516,7 @@ let _phienMoLuc = null;                      // { id, len } - độ dài convo l
 // openStoredSession waits for this read only while it races the server's answer.
 let _keptChatsLoading = null;
 try {
-  if (window.VanhanhChatCache) _keptChatsLoading = window.VanhanhChatCache.all().then((ds) => {
+  if (window.NaotaChatCache) _keptChatsLoading = window.NaotaChatCache.all().then((ds) => {
     for (let i = Math.min(ds.length, _PHIEN_CACHE_MAX) - 1; i >= 0; i--) {
       if (!_phienCache.has(ds[i].id)) _phienCache.set(ds[i].id, { sess: ds[i].sess, at: ds[i].at });
     }
@@ -2518,7 +2531,7 @@ function _ghiCachePhien(id, sess) {
   _phienCache.delete(id);
   _phienCache.set(id, { sess, at });
   while (_phienCache.size > _PHIEN_CACHE_MAX) _phienCache.delete(_phienCache.keys().next().value);
-  try { if (window.VanhanhChatCache) window.VanhanhChatCache.put(id, sess, at); } catch (e) {}
+  try { if (window.NaotaChatCache) window.NaotaChatCache.put(id, sess, at); } catch (e) {}
 }
 function _docCachePhien(id) {
   const e = _phienCache.get(id);
@@ -2575,7 +2588,7 @@ function prefetchMany(ids) {
   };
   next();
 }
-// Rời một cuộc mà nó đã có thêm tin (mình gửi, Vanhanh trả lời): bản trong bộ nhớ đã cũ.
+// Rời một cuộc mà nó đã có thêm tin (mình gửi, Naota trả lời): bản trong bộ nhớ đã cũ.
 // ask for the new copy right away instead of dropping the old one. Dropping it is why going back to the
 // chat being taught always waited for the server; now the copy is usually fresh again before the owner returns.
 function _quenPhienNeuDoi() {
@@ -2601,7 +2614,7 @@ async function openStoredSession(id, stillCurrent, opts) {
   }
   // Stage 2: the reads a chat switch makes (messages, model bar, jobs strip, coding and GitHub chips)
   // leave together in one batch from the second switch on (fetch-gop.js visit).
-  try { if (window.VanhanhFetchGop && window.VanhanhFetchGop.visit) window.VanhanhFetchGop.visit("chat", { sid: id }); } catch (e) {}
+  try { if (window.NaotaFetchGop && window.NaotaFetchGop.visit) window.NaotaFetchGop.visit("chat", { sid: id }); } catch (e) {}
   // Có bản trong bộ nhớ: vẽ ngay, rồi so với bản mới.
   let daCo = _docCachePhien(id);
   const fresh = _taiPhien(id);   // the server is asked at once, whatever is kept
@@ -2648,7 +2661,7 @@ function _veLaiPhien(id, sess, ticket, capNhat) {
     // a chat of another brain (opened from the bell, history, a link) says whose it is.
     if (sess.brain_ui && sess.brain_ui !== graphSource.value) veNhanBrain(sess.brain_name || "", sess.brain_ui);
     savedSessionId = id;          // lượt gửi tiếp theo → server resume đúng phiên này
-    try { if (window.VanhanhInbox) window.VanhanhInbox.docPhien(id); } catch (e) {}
+    try { if (window.NaotaInbox) window.NaotaInbox.docPhien(id); } catch (e) {}
     // Phiên này đang generate NỀN → gắn bong bóng SỐNG (kèm phần đã stream) để xem tiếp trực tiếp.
     const t = turns[id];
     if (t && t.running) {
@@ -2668,7 +2681,7 @@ function _veLaiPhien(id, sess, ticket, capNhat) {
       runActions(turn.turnDone());   // đổi sang phiên không chạy gì: đừng kẹt ở "ĐANG SUY NGHĨ"
     }
     // Phiên này đang chờ gói thuê bao mở lại hạn mức → gắn thẻ "tự chạy lại" dưới tin cuối.
-    try { if (window.VanhanhResume) window.VanhanhResume.renderFor(id); } catch (e) {}
+    try { if (window.NaotaResume) window.NaotaResume.renderFor(id); } catch (e) {}
     persistSession();
     _phienMoLuc = { id, len: convo.length };
     scrollBottom(true);
@@ -2678,7 +2691,7 @@ function _veLaiPhien(id, sess, ticket, capNhat) {
     notifySessions("open");
     // Dải việc nền đánh dấu "việc CỦA hội thoại này" theo chat_id, nên đổi phiên là nó sai
     // ngay. Xoá rồi hỏi lại thay vì để chip của phiên trước nằm lại vài giây.
-    try { if (window.VanhanhBackground) window.VanhanhBackground.reset(); } catch (e) {}
+    try { if (window.NaotaBackground) window.NaotaBackground.reset(); } catch (e) {}
   } catch (e) {}
 }
 // Xoá trắng khung chat về trạng thái "hội thoại mới" - dùng chung cho nút + Hội thoại mới
@@ -2697,7 +2710,7 @@ function resetChatView() {
   persistSession();
   notifySessions();
   syncActiveUI();
-  try { if (window.VanhanhBackground) window.VanhanhBackground.reset(); } catch (e) {}
+  try { if (window.NaotaBackground) window.NaotaBackground.reset(); } catch (e) {}
 }
 // Performance: clear the chat view the instant New conversation is clicked on the Partners page, while
 // the server makes the chat. Before, the old chat stayed on screen until the new one came back, which read as lag.
@@ -2721,7 +2734,7 @@ function newChat() {
   resetChatView();
   try { chatInput.focus(); } catch (e) {}
 }
-window.VanhanhSessions = { open: openStoredSession, new: newChat, blank: blankChat, brain: () => currentBrainPath(),
+window.NaotaSessions = { open: openStoredSession, new: newChat, blank: blankChat, brain: () => currentBrainPath(),
                          current: () => savedSessionId, prefetch: prefetchSession, prefetchMany: prefetchMany };
 // Báo các UI khác (sidebar Lịch sử trong chat workspace) biết phiên/danh sách vừa đổi
 // Performance: `reason` "open" = only WHICH chat is on screen changed (a switch), no message was added.
@@ -2729,8 +2742,8 @@ window.VanhanhSessions = { open: openStoredSession, new: newChat, blank: blankCh
 function notifySessions(reason) {
   try {
     const ev = typeof CustomEvent === "function"
-      ? new CustomEvent("vanhanh:sessions-changed", { detail: { reason: reason || "" } })
-      : new Event("vanhanh:sessions-changed");
+      ? new CustomEvent("naota:sessions-changed", { detail: { reason: reason || "" } })
+      : new Event("naota:sessions-changed");
     window.dispatchEvent(ev);
   } catch (e) {}
 }
@@ -2738,9 +2751,9 @@ function notifySessions(reason) {
 // Hàng nút dưới bong bóng (giờ + tua lại / trích dẫn / copy). Tách sang chat-acts.js để
 // test được bằng node; ở đây chỉ là lối thoát khi file đó chưa kịp nạp.
 function actsHtml(role, ts, canResend) {
-  return window.VanhanhActs ? window.VanhanhActs.actsHtml(role, ts, canResend) : "";
+  return window.NaotaActs ? window.NaotaActs.actsHtml(role, ts, canResend) : "";
 }
-// Tin chỉ có ảnh (không kèm lời nhắn) thì chẳng có chữ nào để gửi lại. Ở tin của Vanhanh
+// Tin chỉ có ảnh (không kèm lời nhắn) thì chẳng có chữ nào để gửi lại. Ở tin của Naota
 // thì cái quyết định là CÂU HỎI ngay trên nó, nên soi tin người dùng cuối cùng đã nằm
 // trong khung (chatAppend chèn theo đúng thứ tự nên lúc này nó đã có mặt).
 function lastUserText() {
@@ -2755,11 +2768,11 @@ function lastUserText() {
 // "[SKILL: " là khối do chat-slash.js dựng khi người dùng gõ lệnh "/". Gỡ nó ra thì bong bóng
 // hiện ĐÚNG câu họ đã gõ, thay vì câu máy dựng quanh câu đó - đã gặp đúng chuyện này.
 // Giữ MỘT DÒNG: test_dinh_kem_khong_roi.js bóc đúng dòng này ra để chạy docDinhKem bằng node.
-const _KHOI_NGU_CANH = ["[FILE ĐANG MỞ trong trình sửa của Vanhanh:", "[File đính kèm", "[NGỮ CẢNH GIAO DIỆN:", "[SKILL: ", "[CHẾ ĐỘ KẾ HOẠCH:", "[MỤC TIÊU:", "[GỬI QUA VANHANH GATE:"];
-// a message an outside AI (ChatGPT, Claude...) posted through Vanhanh Gate starts with
-// "[GỬI QUA VANHANH GATE: <name>. ...]" (server/chat_bridge.py). The block is stripped like the others;
+const _KHOI_NGU_CANH = ["[FILE ĐANG MỞ trong trình sửa của Naota:", "[File đính kèm", "[NGỮ CẢNH GIAO DIỆN:", "[SKILL: ", "[CHẾ ĐỘ KẾ HOẠCH:", "[MỤC TIÊU:", "[GỬI QUA NAOTA GATE:"];
+// a message an outside AI (ChatGPT, Claude...) posted through Naota Gate starts with
+// "[GỬI QUA NAOTA GATE: <name>. ...]" (server/chat_bridge.py). The block is stripped like the others;
 // this reads the name back so the bubble can say who sent it.
-const _KHOI_GATE = _KHOI_NGU_CANH[_KHOI_NGU_CANH.length - 1];   // the Vanhanh Gate block, last in the list
+const _KHOI_GATE = _KHOI_NGU_CANH[_KHOI_NGU_CANH.length - 1];   // the Naota Gate block, last in the list
 function nguonGate(text) {
   const t = String(text == null ? "" : text).replace(/^\s+/, "");
   if (!t.startsWith(_KHOI_GATE + " ")) return "";
@@ -2823,7 +2836,7 @@ function docDinhKem(text) {
   }
   return out;
 }
-window.VanhanhChuNguoiGo = chuNguoiGo;   // console.js dùng lại khi dựng bản xem trước hội thoại
+window.NaotaChuNguoiGo = chuNguoiGo;   // console.js dùng lại khi dựng bản xem trước hội thoại
 
 // Ảnh/file đính kèm hiện NGAY TRONG bong bóng tin của người dùng.
 //
@@ -2885,10 +2898,10 @@ function appendUserMessage(text, attachments, ts, via) {
   div.dataset.text = text || "";   // giữ nguyên văn để tua lại đúng chữ gốc
   const attHtml = attachHtml(attachments);
   // Tin dài (>10 dòng hoặc >900 ký tự) thu gọn lại, bấm "Xem thêm" để mở (chat-acts.js, dùng chung với trang Nhóm)
-  const isLong = window.VanhanhActs.isLongText(text);
+  const isLong = window.NaotaActs.isLongText(text);
   const textHtml = text
-    ? `<div class="utext${isLong ? " clamped" : ""}">${window.VanhanhQuote ? window.VanhanhQuote.utextHtml(text, escapeHtml) : escapeHtml(text)}</div>` +
-      (isLong ? window.VanhanhActs.clampButtonHtml(false) : "")
+    ? `<div class="utext${isLong ? " clamped" : ""}">${window.NaotaQuote ? window.NaotaQuote.utextHtml(text, escapeHtml) : escapeHtml(text)}</div>` +
+      (isLong ? window.NaotaActs.clampButtonHtml(false) : "")
     : "";
   const nhanNguon = nguon ? `<div class="msg-via">${escapeHtml(window.t("chat.via_gate", { src: nguon }))}</div>` : "";
   div.innerHTML = `${nhanNguon}<div class="bubble">${textHtml}${attHtml}</div>` +
@@ -2897,7 +2910,7 @@ function appendUserMessage(text, attachments, ts, via) {
   vaAnhHong(div);
   chatAppend(div); scrollBottom(true);
 }
-// send more while Vanhanh is working. The message is stored and shown at once; its small status line follows
+// send more while Naota is working. The message is stored and shown at once; its small status line follows
 // what the server reports: read by the running turn, or waiting to run right after it.
 let _boSungSeq = 0;
 const _boSungEl = {};   // client_id or "s<steer_id>" -> the status line of that message
@@ -2935,7 +2948,7 @@ function trangThaiBoSung(data) {
     (data.ids || []).forEach(id => ghi(_boSungEl["s" + id], data.type === "steer_read" ? "app.steer_read" : "app.steer_turn"));
   }
 }
-// A message sent while Vanhanh works was read by the running turn (steer_read). The step block and answer
+// A message sent while Naota works was read by the running turn (steer_read). The step block and answer
 // bubble of that turn were drawn before the message, so the answer to it showed ABOVE it and the owner thought it had
 // not been done. The server stores that answer after the message, so move both below it, the same order
 // a reload shows. The activity chip stays last. chatAppend on a node already in the chat moves it, nothing is redrawn.
@@ -2949,10 +2962,10 @@ function moveTurnBelow(t) {
 function appendGoalRound(round, live) {
   const div = document.createElement("div");
   div.className = "msg msg-goal-round";
-  const active = !!(live && window.VanhanhLenh && window.VanhanhLenh.dangCoMucTieu());
-  div.innerHTML = window.VanhanhLenh.vongHtml(round, active);
+  const active = !!(live && window.NaotaLenh && window.NaotaLenh.dangCoMucTieu());
+  div.innerHTML = window.NaotaLenh.vongHtml(round, active);
   const btn = div.querySelector(".goal-round-stop");
-  if (btn) btn.addEventListener("click", () => { if (window.VanhanhLenh) window.VanhanhLenh.dungMucTieu(); });
+  if (btn) btn.addEventListener("click", () => { if (window.NaotaLenh) window.NaotaLenh.dungMucTieu(); });
   chatAppend(div); scrollBottom(true);
   return div;
 }
@@ -2962,17 +2975,17 @@ function appendGoalRound(round, live) {
 // plays the voice note of a reminder pushed into the open chat. A browser that blocks autoplay
 // leaves the player in place to press.
 function ringReminder(el, raw) {
-  if (!el || !/VANHANH_VIEC:[^>]*"kind":\s*"reminder"/.test(raw)) return;
+  if (!el || !/NAOTA_VIEC:[^>]*"kind":\s*"reminder"/.test(raw)) return;
   const a = el.querySelector("audio.nt-audio");
   if (!a) return;
   try { const p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) { /* autoplay blocked */ }
 }
-// (incoming-call.js): "Vanhanh calls you at a set time". Answer = press the mic, and the call's first line asks
-// Vanhanh to read the reminder aloud. Already in a call: nothing rings, the message is in the chat.
+// (incoming-call.js): "Naota calls you at a set time". Answer = press the mic, and the call's first line asks
+// Naota to read the reminder aloud. Already in a call: nothing rings, the message is in the chat.
 let _goiDenMoDau = "";
 function layMoDauGoiDen() { const s = _goiDenMoDau; _goiDenMoDau = ""; return s; }
 function goiDenTheoLich(raw) {
-  const IC = window.VanhanhIncomingCall;
+  const IC = window.NaotaIncomingCall;
   const c = IC ? IC.parse(raw) : null;
   if (!c || handsFree) return false;
   IC.show({ title: c.title, t: window.t, onAnswer: () => {
@@ -2983,41 +2996,41 @@ function goiDenTheoLich(raw) {
   } });
   return true;
 }
-function appendVanhanhMessage(text, ts, brain) {
-  // Tin do việc nền đẩy về mang khối ẩn VANHANH_VIEC (chat-viec.js): bóc ra để vẽ thành THẺ việc
+function appendNaotaMessage(text, ts, brain) {
+  // Tin do việc nền đẩy về mang khối ẩn NAOTA_VIEC (chat-viec.js): bóc ra để vẽ thành THẺ việc
   // (icon trạng thái, tên việc, nút mở trang Việc) thay cho bong bóng chữ trơn.
-  const tv = window.VanhanhViec ? window.VanhanhViec.tach(text) : { clean: text, viec: null };
-  // Thẻ mục tiêu (Resonance M4, chat-resonance.js): bóc khối VANHANH_RESONANCE rồi vẽ thẻ sống dưới bong bóng.
-  const tr = window.VanhanhResonance ? window.VanhanhResonance.tach(tv.clean) : { clean: tv.clean, cards: [] };
+  const tv = window.NaotaViec ? window.NaotaViec.tach(text) : { clean: text, viec: null };
+  // Thẻ mục tiêu (Resonance M4, chat-resonance.js): bóc khối NAOTA_RESONANCE rồi vẽ thẻ sống dưới bong bóng.
+  const tr = window.NaotaResonance ? window.NaotaResonance.tach(tv.clean) : { clean: tv.clean, cards: [] };
   tv.clean = tr.clean;
-  // the "Đã nhớ · Hoàn tác" line (chat-nho.js): a pushed message with a VANHANH_NHO block is drawn as that line.
-  const tn = window.VanhanhNho ? window.VanhanhNho.tach(tv.clean) : { clean: tv.clean, nho: null };
+  // the "Đã nhớ · Hoàn tác" line (chat-nho.js): a pushed message with a NAOTA_NHO block is drawn as that line.
+  const tn = window.NaotaNho ? window.NaotaNho.tach(tv.clean) : { clean: tv.clean, nho: null };
   tv.clean = tn.clean;
   // the "Đã tạo · Hoàn tác" line for schedules, loops, partners, workflows and skills (chat-doi.js).
-  const td = window.VanhanhDoi ? window.VanhanhDoi.tach(tv.clean) : { clean: tv.clean, doi: null };
+  const td = window.NaotaDoi ? window.NaotaDoi.tach(tv.clean) : { clean: tv.clean, doi: null };
   tv.clean = td.clean;
   const div = document.createElement("div");
-  div.className = "msg msg-vanhanh";
+  div.className = "msg msg-naota";
   // Phiên bản ẢNH của tin này (xem markdownToHtml): tin cũ dựng lại dùng đúng mốc giờ của
   // nó nên tải lại trang vẫn trúng cache; tin mới mang mốc giờ mới nên ảnh vừa sửa luôn tải lại.
   div.dataset.anhV = String(ts === undefined ? Date.now() : (ts || ""));
   div.innerHTML = `<div class="bubble">${markdownToHtml(tv.clean, brain, div.dataset.anhV)}</div>` +
-    actsHtml("vanhanh", ts === undefined ? Date.now() : ts, !!lastUserText().trim());
-  if (tv.viec) window.VanhanhViec.ve(div, tv.viec);
-  for (const c of tr.cards) window.VanhanhResonance.ve(div, c);
-  if (tn.nho) window.VanhanhNho.ve(div, tn.nho);
-  if (td.doi) window.VanhanhDoi.ve(div, td.doi);
+    actsHtml("naota", ts === undefined ? Date.now() : ts, !!lastUserText().trim());
+  if (tv.viec) window.NaotaViec.ve(div, tv.viec);
+  for (const c of tr.cards) window.NaotaResonance.ve(div, c);
+  if (tn.nho) window.NaotaNho.ve(div, tn.nho);
+  if (td.doi) window.NaotaDoi.ve(div, td.doi);
   div.dataset.md = tv.clean || "";   // copy nội dung markdown, không chép marker việc nền
   chatAppend(div); scrollBottom();
   return div;
 }
-// Bong bóng LỖI. KHÔNG nhét icon vào appendVanhanhMessage: hàm đó chạy nội dung qua
+// Bong bóng LỖI. KHÔNG nhét icon vào appendNaotaMessage: hàm đó chạy nội dung qua
 // markdownToHtml, mà bộ render escape HTML - thẻ <svg> sẽ hiện thành chữ, và chữ nào
 // escape sẵn trước khi truyền vào thì bị escape lần hai (user đọc ra "&quot;" giữa
 // câu log). Nên phần chữ đi đúng đường markdown như mọi tin khác, icon gắn riêng vào
 // bong bóng bằng HTML thật.
-function appendVanhanhError(text) {
-  const div = appendVanhanhMessage(text);
+function appendNaotaError(text) {
+  const div = appendNaotaMessage(text);
   const bubble = div.querySelector(".bubble");
   if (bubble) bubble.insertAdjacentHTML("afterbegin", ic("triangle-alert", { cls: "ic-warn" }) + " ");
   return div;
@@ -3027,7 +3040,7 @@ function appendVanhanhError(text) {
 // nút dưới bong bóng (gửi lại / sửa / copy) vì đó không phải một lượt trò chuyện.
 function appendLenhReply(md) {
   const div = document.createElement("div");
-  div.className = "msg msg-vanhanh msg-lenh";
+  div.className = "msg msg-naota msg-lenh";
   div.innerHTML = `<div class="bubble">${markdownToHtml(String(md || ""))}</div>`;
   div.dataset.md = String(md || "");
   chatAppend(div); scrollBottom(true);
@@ -3035,10 +3048,10 @@ function appendLenhReply(md) {
 }
 function createStreamingBubble() {
   const div = document.createElement("div");
-  div.className = "msg msg-vanhanh";
+  div.className = "msg msg-naota";
   div.dataset.anhV = String(Date.now());   // giữ nguyên suốt lượt stream: ảnh không nạp lại mỗi khung
   div.innerHTML = `<div class="bubble"></div>` +
-    actsHtml("vanhanh", Date.now(), !!lastUserText().trim());
+    actsHtml("naota", Date.now(), !!lastUserText().trim());
   chatAppend(div); scrollBottom();
   return div;
 }
@@ -3134,9 +3147,9 @@ function showActivity(html) {
 // Khac chip o tren: chip chi co mot dong (buoc moi ghi de buoc cu, het luot la xoa), con khoi
 // nay GIU lai du buoc va song qua F5. Luot khong goi cong cu nao thi khong dung khoi nao.
 function veKhoiBuoc(t, dangChay) {
-  if (!t || !window.VanhanhSteps || !window.VanhanhSteps.tomTat(t.buoc).hien) return null;
+  if (!t || !window.NaotaSteps || !window.NaotaSteps.tomTat(t.buoc).hien) return null;
   const moi = !t.buocEl;
-  t.buocEl = window.VanhanhSteps.ve(t.buocEl, t.buoc, dangChay);
+  t.buocEl = window.NaotaSteps.ve(t.buocEl, t.buoc, dangChay);
   if (moi) { chatAppend(t.buocEl); scrollBottom(); }
   return t.buocEl;
 }
@@ -3163,9 +3176,9 @@ function redrawRunningTurn() {
 }
 function setProcessing(s) { isProcessing = s; sendBtn.disabled = s || sendBtn.dataset.wsLock === "1"; }
 // workspace.js calls this after changing its lock, so send ends up disabled for the right reason.
-window.VanhanhSyncActiveUI = syncActiveUI;
+window.NaotaSyncActiveUI = syncActiveUI;
 // composer-dictate.js reports a mic problem with the same passing note.
-window.VanhanhNoteFlash = ghiChuThoang;
+window.NaotaNoteFlash = ghiChuThoang;
 // the box is emptied or filled from many places (send, restore after a dropped connection, slash menu,
 // "ask again"...). Watching the value itself keeps the voice chat / send button right without touching each one.
 (function () {
@@ -3192,7 +3205,7 @@ newMsgBtn.id = "newMsgBtn"; newMsgBtn.type = "button";
 
 // _neoChenCu: lúc CHÈN NGƯỢC tin cũ (cuộn lên tải tiếp), mọi bong bóng dựng ra phải nằm
 // TRƯỚC tin cũ nhất đang hiện chứ không phải cuối khung. Đặt cái neo ở đây thay vì thêm
-// tham số cho appendUserMessage/appendVanhanhMessage: hai hàm đó được gọi từ cả chục chỗ, thêm
+// tham số cho appendUserMessage/appendNaotaMessage: hai hàm đó được gọi từ cả chục chỗ, thêm
 // tham số là mười chỗ phải nhớ truyền đúng.
 let _neoChenCu = null, _dangChenCu = false, _dangDungLoat = false;
 function chatAppend(el) {
@@ -3205,7 +3218,7 @@ function chatAppend(el) {
   chatArea.insertBefore(el, _neoChenCu || newMsgBtn);
 }
 // Ngưỡng 90px: coi như "đang ở đáy" nên vẫn tự cuộn theo tin mới, và không hiện nút. Đang chèn ngược tin cũ
-// (_dangChenCu): appendUserMessage/appendVanhanhMessage vẫn gọi scrollBottom theo thói quen, mà cuộn xuống đáy lúc này
+// (_dangChenCu): appendUserMessage/appendNaotaMessage vẫn gọi scrollBottom theo thói quen, mà cuộn xuống đáy lúc này
 // là quăng người đọc khỏi chỗ họ đang đứng, nên chat-scroll.js không cuộn khi suspended() đúng.
 // _dangDungLoat: a whole chat is being built at once (opening it, F5). Each bubble used to scroll to the
 // bottom as it went in, and each of those scrolls made the browser lay out the whole chat again: 30 messages, 30
@@ -3222,7 +3235,7 @@ function ngoaiAlpine(fn) {
   const A = window.Alpine;
   return A && typeof A.mutateDom === "function" ? A.mutateDom(fn) : fn();
 }
-const chatScroll = window.VanhanhChatScroll.attach(chatArea, {
+const chatScroll = window.NaotaChatScroll.attach(chatArea, {
   button: newMsgBtn, msg: ".msg", hold: ".msg-acts:hover, .jr-chat:hover", near: 90,
   suspended: () => _dangChenCu || _dangDungLoat,
 });
@@ -3233,12 +3246,45 @@ function scrollBottom(force) { chatScroll.toBottom(force); }
 // phần dựng chuỗi đã 1,6 giây CPU, cộng trình duyệt vẽ lại thì máy yếu đứng hình.
 // Giờ vẽ ngay mẩu đầu, sau đó gom: tối đa một lần mỗi 60-300 ms tuỳ độ dài bài. Chữ vẫn chảy đều, máy nhẹ hơn hàng trăm lần.
 const _VE_STREAM_MS = (n) => (n < 2000 ? 60 : n < 8000 ? 150 : 300);
+// 2026-11-10: and only the part still being written. Blocks that are finished (NaotaStreamCut in chat-render.js) are
+// rendered ONCE and stay in the bubble; each flush replaces just the nodes after a marker comment. Before, every flush
+// parsed the whole answer and rebuilt the whole bubble, so the browser laid out 20,000 characters again each time
+// (throttled phone: 43 long tasks for one long answer, none with this). The final `response` render still replaces
+// the bubble with one full render, so what stays on screen is exactly what it was before.
+function _streamFragment(html) {
+  const r = document.createRange();
+  r.selectNodeContents(document.body);
+  return r.createContextualFragment(html);
+}
 function _veStreamNgay(t) {
   t._veLuc = Date.now();
   if (!t.bubble) return;
   const b = t.bubble.querySelector(".bubble");
   if (!b) return;
-  b.innerHTML = markdownToHtml(t.text, undefined, t.bubble.dataset.anhV);
+  const text = t.text || "", anhV = t.bubble.dataset.anhV;
+  const cutOf = typeof window !== "undefined" ? window.NaotaStreamCut : null;
+  if (typeof cutOf !== "function") {     // chat-render.js not loaded: the old whole-bubble render
+    b.innerHTML = markdownToHtml(text, undefined, anhV);
+    if (t.bubble.isConnected) scrollBottom();
+    return;
+  }
+  let st = b._ntStream;
+  // Start over when the bubble was redrawn by someone else (the marker is gone) or the text is not the settled text
+  // plus more (a new turn reusing the bubble, a rewrite).
+  if (!st || st.mark.parentNode !== b || text.length < st.len || text.slice(0, st.len) !== st.src) {
+    b.textContent = "";
+    st = b._ntStream = { len: 0, src: "", mark: document.createComment("nt-stream-tail") };
+    b.appendChild(st.mark);
+  }
+  const cut = cutOf(text, st.len);
+  if (cut > st.len) {
+    b.insertBefore(_streamFragment(markdownToHtml(text.slice(st.len, cut), undefined, anhV)), st.mark);
+    st.len = cut;
+    st.src = text.slice(0, cut);
+  }
+  while (st.mark.nextSibling) b.removeChild(st.mark.nextSibling);
+  const tail = text.slice(st.len);
+  if (tail.trim()) b.appendChild(_streamFragment(markdownToHtml(tail, undefined, anhV)));
   if (t.bubble.isConnected) scrollBottom();
 }
 function henVeStream(t) {
@@ -3254,26 +3300,26 @@ function huyVeStream(t) { if (t && t._veHen) { clearTimeout(t._veHen); t._veHen 
 // (bubble re-render liên tục khi stream nên KHÔNG gắn handler từng nút)
 // ============================================
 // Shared with the Team chat and the code block Copy button (chat-acts.js): clipboard API, textarea fallback on plain HTTP.
-function copyText(s) { return window.VanhanhActs.copy(s); }
+function copyText(s) { return window.NaotaActs.copy(s); }
 function flashCopied(btn, label) {
   const old = btn.textContent;
   btn.innerHTML = ic("check", { cls: "ic-ok" }) + " " + window.t("app.copied");
   setTimeout(() => { btn.textContent = label || old; }, 1200);
 }
 // Bấm một nút trong hàng .msg-acts. Tua lại lấy chữ GỐC của tin người dùng (dataset.text)
-// chứ không đọc lại DOM, vì tin dài đang thu gọn và tin Vanhanh đã thành HTML.
+// chứ không đọc lại DOM, vì tin dài đang thu gọn và tin Naota đã thành HTML.
 function runMsgAct(btn) {
   const msgEl = btn.closest(".msg");
   if (!msgEl) return;
   const act = btn.dataset.act;
   if (act === "quote") {
-    // Bôi đen một đoạn TRONG tin này thì trích đúng đoạn đó; không thì trích cả tin. Tin Vanhanh lấy
+    // Bôi đen một đoạn TRONG tin này thì trích đúng đoạn đó; không thì trích cả tin. Tin Naota lấy
     // markdown gốc (dataset.md), không lấy chữ đã vẽ, để đoạn trích còn nguyên đậm, danh sách, link.
-    const chon = window.VanhanhActs.selectedIn(msgEl);
+    const chon = window.NaotaActs.selectedIn(msgEl);
     const b = msgEl.querySelector(".bubble");
-    const ca = msgEl.classList.contains("msg-vanhanh")
-      ? window.VanhanhVisibleMarkdown(msgEl.dataset.md || (b ? b.innerText : ""))
-      : (window.VanhanhQuote ? window.VanhanhQuote.tach(msgEl.dataset.text || (b ? b.innerText : "")).rest
+    const ca = msgEl.classList.contains("msg-naota")
+      ? window.NaotaVisibleMarkdown(msgEl.dataset.md || (b ? b.innerText : ""))
+      : (window.NaotaQuote ? window.NaotaQuote.tach(msgEl.dataset.text || (b ? b.innerText : "")).rest
                            : (msgEl.dataset.text || ""));
     const text = (chon || ca || "").trim();
     if (!text) return;
@@ -3284,12 +3330,12 @@ function runMsgAct(btn) {
   }
   if (act === "copy") {
     const b = msgEl.querySelector(".bubble");
-    // Tin Vanhanh giữ markdown gốc trong dataset.md: copy bản đó để bài viết dán sang
-    // CMS/website còn nguyên heading, đậm, link, bảng. Metadata ẩn chỉ có ở tin Vanhanh;
+    // Tin Naota giữ markdown gốc trong dataset.md: copy bản đó để bài viết dán sang
+    // CMS/website còn nguyên heading, đậm, link, bảng. Metadata ẩn chỉ có ở tin Naota;
     // chữ người dùng phải giữ nguyên, kể cả khi họ thật sự gõ cú pháp HTML comment.
     if (b) {
-      const value = msgEl.classList.contains("msg-vanhanh")
-        ? window.VanhanhVisibleMarkdown(msgEl.dataset.md || b.innerText)
+      const value = msgEl.classList.contains("msg-naota")
+        ? window.NaotaVisibleMarkdown(msgEl.dataset.md || b.innerText)
         : (msgEl.dataset.text || b.innerText);
       copyText(value).then(() => flashCopied(btn, "⧉"));
     }
@@ -3299,7 +3345,7 @@ function runMsgAct(btn) {
   if (act === "speak") { docThanhTieng(msgEl, btn); return; }
   // Chi tin NGUOI DUNG mang nut tua lai, nen chu goc luon nam ngay tren chinh no.
   // Truoc day con mot nhanh nguoc len tim tin nguoi dung gan nhat - do la duong cua nut "tra
-  // loi lai cau hoi phia tren" o tin Vanhanh, da bo.
+  // loi lai cau hoi phia tren" o tin Naota, da bo.
   const text = msgEl.dataset.text || "";
   if (!text) return;
   if (act === "rewind") tuaLai(msgEl, text);
@@ -3332,7 +3378,7 @@ async function doiGhim(msgEl, btn) {
   } catch (e) { loi = String(e); }
   btn.disabled = false;
   if (!ok) { datGhim(msgEl, !on); alert(loi || window.t("cact.pin_failed")); return; }
-  const entry = (msgEl._jr && msgEl._jr.entry) || convo.find(x => x && x.role === "vanhanh" && String(x.mid) === String(mid));
+  const entry = (msgEl._jr && msgEl._jr.entry) || convo.find(x => x && x.role === "naota" && String(x.mid) === String(mid));
   if (entry) { entry.pinned = on; persistSession(); }
 }
 // read one answer aloud, whatever the "read answers aloud" setting says (force). Pressing again while it is
@@ -3345,7 +3391,7 @@ function docThanhTieng(msgEl, btn) {
   if (_docTin) { clearInterval(_docTin.hen); veNutDoc(_docTin.btn, false); _docTin = null; }
   if (dangDocTinNay) return;
   const b = msgEl.querySelector(".bubble");
-  const text = window.VanhanhVisibleMarkdown(msgEl.dataset.md || (b ? b.innerText : "")).trim();
+  const text = window.NaotaVisibleMarkdown(msgEl.dataset.md || (b ? b.innerText : "")).trim();
   if (!text) return;
   voice.speak(text, { force: true });
   veNutDoc(btn, true);
@@ -3376,7 +3422,7 @@ function datVaoONhap(text) {
 // Rewind. Delete this question and everything after it on the server (the engines'
 // threads too), redraw the chat from what is left, and put the question back in the composer: the conversation goes
 // on from there. It replaces "Send again" and "Edit": sending the restored question unchanged is the old resend.
-// Deleting cannot be undone, so it asks first, and it waits while Vanhanh is answering (Stop first).
+// Deleting cannot be undone, so it asks first, and it waits while Naota is answering (Stop first).
 async function tuaLai(msgEl, text) {
   if (isProcessing) { alert(window.t("cact.rewind_busy")); return; }
   const sid = savedSessionId;
@@ -3405,14 +3451,50 @@ chatArea.addEventListener("click", (e) => {
   const t = e.target;
   const actBtn = t.closest && t.closest(".msg-act");
   if (actBtn) { runMsgAct(actBtn); return; }
+  const quoted = t.closest && t.closest(".msg-user .uquote");
+  if (quoted) { jumpToQuoted(quoted); return; }
   // The code block Copy button (chat-render.js) and "Show more" on a long message (chat-acts.js) are handled on the
   // document, so they work in every chat container.
+});
+// Owner, 2026-11-14: a tap on the quote at the top of a sent message scrolls back to the exact words it quotes in the
+// answer above and marks them for a moment (quote-jump.js). Not on screen any more: older pages load until it is.
+function jumpToQuoted(qEl) {
+  const J = window.NaotaQuoteJump;
+  const msgEl = qEl.closest(".msg");
+  if (!J || !msgEl || J.selecting(qEl)) return;
+  const quote = window.NaotaQuote ? window.NaotaQuote.tach(msgEl.dataset.text || "").quote : "";
+  J.go({
+    quote: quote || qEl.textContent,
+    candidates: () => J.before(chatArea.querySelectorAll(".msg"), msgEl),
+    skip: ".uquote",
+    scroller: chatArea,
+    beforeScroll: () => chatScroll.setStuck(false),
+    loadOlder: async () => {
+      const st = _tinCu;
+      if (!st || !st.con || st.sid !== savedSessionId) return false;
+      // A page already on its way (the list reached the top by itself): give it a moment, then look again.
+      if (st.dangTai) { await new Promise(r => setTimeout(r, 500)); return true; }
+      const n = chatArea.querySelectorAll(".msg").length;
+      await taiTinCu();
+      return chatArea.querySelectorAll(".msg").length > n;
+    },
+    flashClass: "quote-flash",
+  });
+}
+// The quote is a span with role="button": Enter and Space work on it like on a real button.
+chatArea.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const quoted = e.target.closest && e.target.closest(".msg-user .uquote");
+  if (!quoted) return;
+  e.preventDefault();
+  jumpToQuoted(quoted);
 });
 // Điện thoại không có hover: chạm vào tin để bật/tắt hàng nút của đúng tin đó.
 chatArea.addEventListener("click", (e) => {
   try { if (!window.matchMedia("(hover: none)").matches) return; } catch (err) { return; }
   if (!e.target.closest) return;
   if (e.target.closest(".msg-acts")) return;   // bấm chính nút thì đừng đóng hàng nút
+  if (e.target.closest(".uquote")) return;     // a tap on the quote scrolls back to its source, it is not this toggle
   if (e.target.closest(".jr-chat")) return;    // hàng reaction (T2) tự lo nút của nó
   const msgEl = e.target.closest(".msg");
   chatArea.querySelectorAll(".msg.acts-on").forEach(m => { if (m !== msgEl) m.classList.remove("acts-on"); });
@@ -3421,7 +3503,7 @@ chatArea.addEventListener("click", (e) => {
 // Sáu reaction trên câu trả lời (T2, chat-reactions.js): bấm, đổi, bỏ, nhấn giữ trên điện thoại. Đổi reaction thì
 // lưu lại convo để F5 còn đúng.
 try {
-  if (window.VanhanhChatReactions) window.VanhanhChatReactions.init({ root: chatArea, brain: currentBrainPath, onChange: persistSession });
+  if (window.NaotaChatReactions) window.NaotaChatReactions.init({ root: chatArea, brain: currentBrainPath, onChange: persistSession });
 } catch (e) {}
 function compactToolLabel(toolName) {
   const raw = String(toolName || "").trim();
@@ -3452,19 +3534,20 @@ function compactToolLabel(toolName) {
 // Knowledge graph (2D canvas)
 // ============================================
 const graphStats = document.getElementById("graphStats");
-// Số note/liên kết hiện ở thanh trên. Nhớ số cuối cùng để vẽ lại khi từ điển i18n về sau: số liệu
-// đồ thị thường về TRƯỚC từ điển trên máy vừa cập nhật, và t() khi đó trả về chính cái khoá
-// (`app.graph_stats`) rồi kẹt mãi ở đó. Lỗi (models.err) là chuỗi đã ghép nên không nhớ.
+// Node / link counts, shown in the graph's top-left corner. The last numbers
+// are kept so the text can be redrawn when the i18n dictionary arrives: on a freshly updated machine the graph often
+// loads BEFORE the dictionary, t() then returns the bare key (`app.graph_stats`) and it would stay stuck there.
+// An error (models.err) is an already joined string, so it is not kept.
 let _graphStatsCuoi = null;
 function veGraphStats(n, l) {
   _graphStatsCuoi = { n: n, l: l };
   graphStats.textContent = window.t("app.graph_stats", { n: n, l: l });
 }
-window.addEventListener("vanhanh:i18n", () => {
+window.addEventListener("naota:i18n", () => {
   if (_graphStatsCuoi) graphStats.textContent = window.t("app.graph_stats", _graphStatsCuoi);
 });
 const graphSource = document.getElementById("graphSource");
-let vanhanhGraph = null;
+let naotaGraph = null;
 
 let _lib2dPromise = null;
 function _ensure2DLib() {               // force-graph + d3-force, self-hosted và không dùng WebGL
@@ -3472,7 +3555,9 @@ function _ensure2DLib() {               // force-graph + d3-force, self-hosted v
   if (_lib2dPromise) return _lib2dPromise;
   _lib2dPromise = new Promise((resolve) => {
     const s = document.createElement("script");
-    s.src = "/static/vendor/force-graph-1.51.4.min.js";   // self-host: unpkg đo được ~0.7s trên đường boot
+    // self-host: unpkg đo được ~0.7s trên đường boot. `?v=` (2026-11-10): the release is in the file name, so the
+    // browser may keep it for good; without the key every start asked the server again before drawing the graph.
+    s.src = "/static/vendor/force-graph-1.51.4.min.js?v=1.51.4";
     s.onload = resolve; s.onerror = resolve;
     document.head.appendChild(s);
   });
@@ -3484,18 +3569,31 @@ async function initGraph() {
   if (c2d) c2d.style.display = "block";   // "" sẽ rơi về CSS #graph2d{display:none} → bị ẩn
   await _ensure2DLib();
   if (!window.ForceGraph) { graphStats.innerHTML = ic("triangle-alert", { cls: "ic-warn" }) + " " + window.t("app.graph_lib_err"); return; }
-  vanhanhGraph = new VanhanhGraph(c2d);   // resize() gọi bên trong load()
+  naotaGraph = new NaotaGraph(c2d);   // resize() gọi bên trong load()
   await reloadGraph();
   // mở app thẳng vào một trang quản lý (trang nhớ từ lần trước) thì console.js đã hỏi "có nên chạy đồ thị không"
   // TRƯỚC khi đồ thị kịp dựng, nên đồ thị cứ vẽ 60 khung/giây sau lưng trang đó. Hỏi lại khi nó đã có.
-  try { if (window.VanhanhRecomputeGraph) window.VanhanhRecomputeGraph(); } catch (e) {}
+  try { if (window.NaotaRecomputeGraph) window.NaotaRecomputeGraph(); } catch (e) {}
 }
 
-// Click node trong graph → Vanhanh mở & thao tác note đó trong vault
+// The brain graph is built when the home screen is FIRST IN VIEW, not at every start (2026-11-12). Opening the app on
+// Chat or Partners (the page remembered from the last visit) used to download the whole graph, load the graph library
+// and run its warm-up physics on the main thread for a screen nobody was looking at. Measured with 2,600 notes: a
+// 770 KB answer and one 255 ms block on a desktop, about a second on a phone, on every start. console.js tells which
+// page the app opened on (NaotaCockpit.firstPage) and calls veManChinh() on every later visit to the home screen.
+let _graphBuilding = null;
+function ensureGraph() {
+  if (!_graphBuilding) _graphBuilding = initGraph().then(connectGraphWatch).catch(connectGraphWatch);
+  return _graphBuilding;
+}
+// Safety net: console.js never reported the first page (a script error there) and the home screen is in view.
+function ensureGraphIfHome() { if (!_graphBuilding && _oManChinh()) ensureGraph(); }
+
+// Click node trong graph → Naota mở & thao tác note đó trong vault
 window.onGraphNodeClick = (node) => {
   if (!node || !node.path) return;
   const brainRel = (node.path || "").split("/").slice(1).join("/") || node.path;   // bỏ đoạn gốc → path tương đối brain
-  if (typeof window.VanhanhOpenNote === "function") window.VanhanhOpenNote(brainRel);   // mở editor cây (WYSIWYG + công cụ)
+  if (typeof window.NaotaOpenNote === "function") window.NaotaOpenNote(brainRel);   // mở editor cây (WYSIWYG + công cụ)
   else openNodePopup(node);   // dự phòng nếu editor cây chưa sẵn
 };
 
@@ -3579,14 +3677,14 @@ async function openNodePopup(node) {
   setTimeout(() => { try { body.querySelector("#nodeText").focus(); } catch (e) {} }, 30);
 }
 async function reloadGraph() {
-  if (!vanhanhGraph) return;
+  if (!naotaGraph) return;
   graphStats.textContent = window.t("common.loading");
   const val = graphSource.value;
   const query = val.startsWith("path:")
     ? `path=${encodeURIComponent(val.slice(5))}`
     : `source=${val}`;
   try {
-    const data = await vanhanhGraph.load(query);
+    const data = await naotaGraph.load(query);
     const stats = data.stats || {};
     veGraphStats(stats.total_notes, stats.total_links);
     renderConceptLabels(data.categories || [], stats.total_notes || 0);
@@ -3604,15 +3702,14 @@ let _cockpitCho = false;
 function _oManChinh() {
   // Không biết đang ở trang nào (console.js chưa dựng xong) thì cứ chạy như cũ: thà làm thừa
   // một lượt còn hơn treo vĩnh viễn số liệu của màn chính.
-  try { return !(window.VanhanhNav && window.VanhanhNav.active) || window.VanhanhNav.active() === "home"; }
+  try { return !(window.NaotaNav && window.NaotaNav.active) || window.NaotaNav.active() === "home"; }
   catch (e) { return true; }
 }
 function capNhatManChinh() {
   if (!_oManChinh()) {
     _cockpitCho = true;
-    // Ô đếm note nằm ngay cạnh ô chọn brain nên NHÌN THẤY ĐƯỢC cả ở trang quản lý: để nguyên
-    // con số của brain cũ là nói dối. Về gạch ngang cho tới lúc đếm thật (số note của từng
-    // brain vẫn có sẵn trong chính tên từng dòng của ô chọn).
+    // The counter now sits inside the graph, hidden on this page, but the old brain's numbers must never show for
+    // the new one when the user comes back: reset to a dash until the real count arrives.
     graphStats.textContent = "-";
     return;
   }
@@ -3624,13 +3721,15 @@ function capNhatManChinh() {
   checkVault();     // kiểm tra cấu trúc vault mới chọn
 }
 // console.js gọi mỗi lần đổi trang: về tới màn chính thì trả nợ lần đổi brain đang hoãn.
-window.VanhanhCockpit = { veManChinh() { if (_cockpitCho) capNhatManChinh(); },
-                        dangCho: () => _cockpitCho };
+window.NaotaCockpit = { veManChinh() { ensureGraph(); if (_cockpitCho) capNhatManChinh(); },
+                        dangCho: () => _cockpitCho,
+                        // The page the app opened on (console.js boot). Only the home screen shows the graph.
+                        firstPage(id) { if (id === "home") ensureGraph(); } };
 
 // Trang đang mở có MƯỢN khung chat và tự mở phiên của nó không (Cộng sự: phiên agent:<slug>
 // hay workflow:<slug>; Coding: phiên của repo). Phiên đó KHÔNG phải cuộc chính của brain.
 function _trangGiuKhungChat() {
-  try { return !!(window.VanhanhNav && window.VanhanhNav.giuKhungChat && window.VanhanhNav.giuKhungChat()); }
+  try { return !!(window.NaotaNav && window.NaotaNav.giuKhungChat && window.NaotaNav.giuKhungChat()); }
   catch (e) { return false; }
 }
 // Đổi brain → khung chat phải đổi theo brain (transcript giữ nguyên phiên
@@ -3640,7 +3739,7 @@ function _trangGiuKhungChat() {
 let _lastBrain = currentBrainPath();
 const _viewByBrain = {};   // brain -> session id đang xem gần nhất trong phiên trang này
 graphSource.addEventListener("change", () => {
-  localStorage.setItem("vanhanh.graphSource", graphSource.value);
+  localStorage.setItem("naota.graphSource", graphSource.value);
   const nb = currentBrainPath();
   if (nb !== _lastBrain) {
     // Trang Cộng sự (và Coding) tự dựng lại theo brain mới rồi tự mở phiên của nó. Nhớ phiên
@@ -3673,10 +3772,10 @@ function connectGraphWatch() {
   graphWs = new WebSocket(`${WS_ORIGIN}/ws/graph?${q}`);
   graphWs.onmessage = (e) => {
     let m; try { m = JSON.parse(e.data); } catch (_) { return; }
-    if (m.type !== "graph_add" || !vanhanhGraph) return;
-    const r = vanhanhGraph.addOrUpdate(m.node, m.linkTargets, m.isNew);
+    if (m.type !== "graph_add" || !naotaGraph) return;
+    const r = naotaGraph.addOrUpdate(m.node, m.linkTargets, m.isNew);
     if (r && r.created) {
-      const s = vanhanhGraph.nodeStats();
+      const s = naotaGraph.nodeStats();
       veGraphStats(s.nodes, s.links);
       // Nháy nhẹ nhãn để báo có note mới sinh ra
       graphStats.classList.add("pulse");
@@ -3733,9 +3832,9 @@ document.getElementById("vbClose").addEventListener("click", () => vaultBanner.c
 
 // Đổi tông: bảng màu danh mục đổi theo, mà chữ "% Vault" đã gắn màu inline lúc dựng
 // nên phải tô lại, không thì nhãn giữ màu rực của tông tối và nhợt hẳn trên giấy.
-// graph.js bắn "vanhanh-catcolors-change" SAU khi đã hoán bảng.
-window.addEventListener("vanhanh-catcolors-change", function repaintConceptLabels() {
-  const map = window.__vanhanhCatMap || {};
+// graph.js bắn "naota-catcolors-change" SAU khi đã hoán bảng.
+window.addEventListener("naota-catcolors-change", function repaintConceptLabels() {
+  const map = window.__naotaCatMap || {};
   document.querySelectorAll("#conceptLabels .concept-label").forEach(div => {
     const fire = div.querySelector(".cl-fire");
     const col = map[div.dataset.cat || ""];
@@ -3787,7 +3886,7 @@ function renderConceptLabels(categories, total) {
     // Tô chữ "% Vault" đúng màu node của thư mục đó (lấy từ bảng màu danh mục của đồ thị) → dễ nhận màu nào của folder nào.
     // Nhớ luôn catKey trên node để đổi tông còn tô lại được (xem repaintConceptLabels).
     const catKey = c.name.replace(/^\d+\s*[-_.]\s*/, "").trim().toLowerCase();
-    const catCol = (window.__vanhanhCatMap || {})[catKey];
+    const catCol = (window.__naotaCatMap || {})[catKey];
     div.dataset.cat = catKey;
     div.innerHTML = `<div class="cl-name">${escapeHtml(c.name.toUpperCase())}</div>` +
       `<div class="cl-meta">${escapeHtml(window.t("app.cl_notes", { n: c.count }))} · <span class="cl-fire"${catCol ? ` style="color:${catCol}"` : ""}>${escapeHtml(window.t("app.cl_share", { p: share }))}</span></div>`;
@@ -3795,7 +3894,7 @@ function renderConceptLabels(categories, total) {
     div.style.cursor = "pointer";
     div.title = window.t("app.spotlight_cluster", { ten: c.name });
     div.onclick = () => {
-      const g = window.__vanhanhGraph;
+      const g = window.__naotaGraph;
       if (!g || typeof g.spotlightCategory !== "function") return;
       const key = c.name.replace(/^\d+\s*[-_.]\s*/, "").trim().toLowerCase();
       const on = g._catFilter === key;
@@ -3825,7 +3924,7 @@ window.addEventListener("resize", () => {
 // <optgroup> - cách gốc của HTML, hiển thị đúng trên mọi máy và vẫn giữ trọn
 // thông tin mà trước đây icon thư mục đang mang.
 function loadCustomBrains() {
-  const brains = JSON.parse(localStorage.getItem("vanhanh.brains") || "[]");
+  const brains = JSON.parse(localStorage.getItem("naota.brains") || "[]");
   // Xóa nhóm + option cũ
   const oldGrp = graphSource.querySelector('optgroup[data-custom-group]');
   if (oldGrp) oldGrp.remove();
@@ -3844,17 +3943,17 @@ function loadCustomBrains() {
   graphSource.appendChild(grp);
 }
 function addCustomBrain(path) {
-  const brains = JSON.parse(localStorage.getItem("vanhanh.brains") || "[]");
+  const brains = JSON.parse(localStorage.getItem("naota.brains") || "[]");
   if (brains.some(b => b.path === path)) return;
   const name = path.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || path;
   brains.push({ name, path });
-  localStorage.setItem("vanhanh.brains", JSON.stringify(brains));
+  localStorage.setItem("naota.brains", JSON.stringify(brains));
   loadCustomBrains();
 }
 loadCustomBrains();
 // Khôi phục folder đã chọn lần trước (mặc định: brain)
 (function restoreGraphSource() {
-  const saved = localStorage.getItem("vanhanh.graphSource");
+  const saved = localStorage.getItem("naota.graphSource");
   if (saved && [...graphSource.options].some(o => o.value === saved)) {
     graphSource.value = saved;
   } else if (saved && saved.startsWith("path:") && saved.length > 5) {
@@ -3933,7 +4032,7 @@ document.getElementById("fmUse").addEventListener("click", () => {
   if (!fmCurrent) return;
   addCustomBrain(fmCurrent);
   graphSource.value = "path:" + fmCurrent;
-  localStorage.setItem("vanhanh.graphSource", graphSource.value);
+  localStorage.setItem("naota.graphSource", graphSource.value);
   folderModal.classList.remove("open");
   // BÁO ĐỔI BRAIN như mọi đường khác, thay vì chỉ vẽ lại đồ thị. Gán thẳng `.value` không sinh
   // sự kiện `change`, nên bản cũ đổi não mà khung chat vẫn giữ hội thoại của não trước, trang
@@ -3941,14 +4040,25 @@ document.getElementById("fmUse").addEventListener("click", () => {
   // brain đều nghe ô này.
   graphSource.dispatchEvent(new Event("change"));
 });
-window.addEventListener("resize", () => { if (vanhanhGraph) vanhanhGraph.resize(); });
+window.addEventListener("resize", () => { if (naotaGraph) naotaGraph.resize(); });
 
 let _stopBtnTick = 0;
+// How often the pump runs while nothing moves (2026-11-12). It used to ask for a frame on every frame, for good: 60
+// callbacks a second with nothing to do, and each of those frames also made the browser tick every CSS animation on
+// the page. With silence on both sides and no caption following a voice, six runs a second do the same job (the
+// stop button below was already updated six times a second); a level or a caption brings the per-frame rhythm back.
+const PUMP_IDLE_MS = 160;
 function pumpAudioLevel() {
-  if (vanhanhGraph) vanhanhGraph.setLevel(voice.getLevel());
-  // Cập nhật hiển thị nút stop ~6 lần/giây (theo dõi cả lúc Vanhanh đang đọc)
+  let live = false;
+  // Only while there is a level to show or the last one is still fading out: with silence on both sides the graph
+  // has nothing to redraw.
+  const _lvl = voice.getLevel();
+  if (_lvl > 0) live = true;
+  if (naotaGraph && (_lvl > 0 || (naotaGraph.level || 0) > 0.001)) { naotaGraph.setLevel(_lvl); live = true; }
+  if (_theoLoi) live = true;
   if (_theoLoi && (_stopBtnTick % 3) === 0) nhipTheoLoi();   // V3: chữ theo lời ~20 lần/giây
-  if ((_stopBtnTick++ % 10) === 0) {
+  // Cập nhật hiển thị nút stop ~6 lần/giây (theo dõi cả lúc Naota đang đọc)
+  if (!live || (_stopBtnTick % 10) === 0) {
     updateStopBtn();
     // (Voice V1) orb do đạo diễn vẽ từ sự kiện thật: voice.js báo onSpeakEnd khi hết hàng đợi.
     // Chốt an toàn: nếu giọng đã im mà đạo diễn còn tưởng đang nói (vd trình duyệt nuốt sự
@@ -3956,7 +4066,9 @@ function pumpAudioLevel() {
     if (turn.speaking && !voice.isSpeaking() && !voice.isPaused()) runActions(turn.ttsEnd());
     if (_cauChoLuot.length) guiCauChoLuot();   // lưới cho câu chờ lượt khi sự kiện loa bị nuốt
   }
-  requestAnimationFrame(pumpAudioLevel);
+  _stopBtnTick++;
+  if (live) requestAnimationFrame(pumpAudioLevel);
+  else setTimeout(pumpAudioLevel, PUMP_IDLE_MS);
 }
 stopBtn.addEventListener("click", stopCurrent);
 
@@ -4000,6 +4112,10 @@ function initStarfield() {
   let stars = [];
   let sky = SKY_DARK;
   let cssW = 0, cssH = 0, dpr = 1, lastDraw = 0;
+  const STAR_IDLE_MS = 250;
+  const STAR_PARKED_MS = 400;   // how often the loop looks again while nobody can see the canvas
+  let watchingSize = false;  // a ResizeObserver tells us when the panel changes size
+  let sizeDirty = true;      // the panel's size may have changed: measure once at the next draw
   const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 
   function paintStars() {
@@ -4034,29 +4150,54 @@ function initStarfield() {
   }
   resize();
   window.addEventListener("resize", resize);
-  // Nghe thẳng sự kiện thay vì vanhanhTheme.on(): hàm này có thể chạy trước khi theme.js
-  // kịp dựng window.vanhanhTheme, khi đó đăng ký sẽ hụt im lặng và nền kẹt ở bảng tối.
+  if (typeof ResizeObserver === "function") {
+    try { new ResizeObserver(() => { sizeDirty = true; }).observe(cv.parentElement); watchingSize = true; } catch (e) { /* measured each draw */ }
+  }
+  // Nghe thẳng sự kiện thay vì naotaTheme.on(): hàm này có thể chạy trước khi theme.js
+  // kịp dựng window.naotaTheme, khi đó đăng ký sẽ hụt im lặng và nền kẹt ở bảng tối.
   function syncSky(light) { sky = light ? SKY_LIGHT : SKY_DARK; paintStars(); }
-  window.addEventListener("vanhanh-theme-change", e => syncSky(!!(e && e.detail && e.detail.light)));
+  window.addEventListener("naota-theme-change", e => syncSky(!!(e && e.detail && e.detail.light)));
   syncSky(document.documentElement.getAttribute("data-theme") === "light");
 
+  // Nobody can see the canvas: a hidden tab, or a management page in front of the home screen.
+  const isParked = () => document.hidden || document.body.classList.contains("in-console");
+  // While parked the timer only looks again; it asks for a frame once there is something to draw.
+  const wake = () => { if (isParked()) setTimeout(wake, STAR_PARKED_MS); else requestAnimationFrame(draw); };
   function draw(now) {
-    requestAnimationFrame(draw);
-    if (document.hidden) return;
     // một trang quản lý (Cộng sự, Cài đặt...) đang che màn chính thì nền sao không ai nhìn thấy; vẽ tiếp chỉ đốt
     // CPU, và đo kích thước ở dưới còn ép trình duyệt tính lại bố cục mỗi lần. Khung cuối vẫn nằm trên canvas khi quay về.
-    if (document.body.classList.contains("in-console")) return;
+    const parked = isParked();
     // Nền 2D từng tự dựng gradient + grid ở 60 FPS dù não đứng yên. 15 FPS lúc nghỉ vẫn
     // đủ cho sao nhấp nháy chậm; khi có giọng/đang nghĩ nâng lên 30 FPS.
-    const lvl = voice.getLevel();
-    const interval = (lvl > 0.01 || _thinkingActive) ? 33 : 66;
-    if (now && now - lastDraw < interval) return;
+    const lvl = parked ? 0 : voice.getLevel();
+    const active = !parked && (lvl > 0.01 || _thinkingActive);
+    // 2026-11-10: at rest the only thing that moves is the twinkle, and one twinkle takes 9 to 69 seconds. Drawing it 15
+    // times a second cost about half of the home screen's idle main-thread time on a throttled phone (measured: 228 ms
+    // busy per second, 77 with this canvas off). Four frames a second look the same; the twinkle below advances by
+    // elapsed time, so its tempo does not change with the frame rate. Voice or thinking still gets 30 frames.
+    const interval = active ? 33 : STAR_IDLE_MS;
+    const wait = now ? interval - (now - lastDraw) : 0;
+    // 2026-11-12: the next wake-up is a timer unless a voice or thinking needs every frame. This loop used to ask for
+    // a frame on every frame only to return at once (hidden tab, a management page in front, a draw not due yet): 60
+    // callbacks a second for at most four draws, and every one of those frames made the browser tick all the CSS
+    // animations on the page too. A timer may fire a little late; the twinkle advances by elapsed time, so it shows no
+    // difference. Coming back to the home screen draws within STAR_PARKED_MS; the last frame stays on the canvas.
+    if (active) requestAnimationFrame(draw);
+    else setTimeout(wake, parked ? STAR_PARKED_MS : Math.max(16, wait > 0 ? wait : interval));
+    if (parked || wait > 0) return;
+    const dt = (now && lastDraw) ? Math.min(now - lastDraw, 1000) : (active ? 33 : 66);
     lastDraw = now || 0;
-    // Tự đo lại kích thước (sửa lỗi nền dồn 1 góc khi layout chưa xong lúc boot)
-    const rect = cv.parentElement.getBoundingClientRect();
-    const pw = Math.round(rect.width), ph = Math.round(rect.height);
-    if (pw > 0 && (cssW !== pw || cssH !== ph)) resize();
+    // Tự đo lại kích thước (sửa lỗi nền dồn 1 góc khi layout chưa xong lúc boot). The size comes from a
+    // ResizeObserver where there is one; measuring here forced a layout on every draw.
+    if (sizeDirty) {
+      sizeDirty = !watchingSize;
+      const rect = cv.parentElement.getBoundingClientRect();
+      const pw = Math.round(rect.width), ph = Math.round(rect.height);
+      if (pw > 0 && (cssW !== pw || cssH !== ph)) resize();
+    }
     if (!cssW) return;
+    // The twinkle used to advance one step per draw: one step per 66 ms at rest, per 33 ms with voice or thinking.
+    const twStep = dt / (active ? 33 : 66);
     ctx.clearRect(0, 0, cssW, cssH);
 
     // Quầng ở TRUNG TÂM - phồng nhẹ theo giọng
@@ -4109,7 +4250,7 @@ function initStarfield() {
     // Sao mờ rải đều (tông sáng: hạt bụi giấy)
     ctx.globalCompositeOperation = sky.starOp;
     stars.forEach(s => {
-      s.tw += s.sp;
+      s.tw += s.sp * twStep;
       const tw = (Math.sin(s.tw) * 0.35 + 0.45) * (1 + lvl * 0.6);
       ctx.globalAlpha = Math.min(sky.starMax, tw);
       ctx.fillStyle = s.c;
@@ -4136,12 +4277,12 @@ let turnsSinceReflect = 0;
 const AUTO_LEARN_EVERY = 6;   // tự học sau mỗi 6 lượt hội thoại
 
 // Khôi phục cài đặt tự học
-let autoLearn = localStorage.getItem("vanhanh.autoLearn") !== "off";
+let autoLearn = localStorage.getItem("naota.autoLearn") !== "off";
 if (autoLearnToggle) {
   autoLearnToggle.checked = autoLearn;
   autoLearnToggle.addEventListener("change", () => {
     autoLearn = autoLearnToggle.checked;
-    localStorage.setItem("vanhanh.autoLearn", autoLearn ? "on" : "off");
+    localStorage.setItem("naota.autoLearn", autoLearn ? "on" : "off");
   });
 }
 
@@ -4238,7 +4379,7 @@ const dropOverlay = document.getElementById("dropOverlay");
 // trò chuyện, mở file nào thì làm việc trên file đó; (2) không upload gì cả, chỉ trỏ tới
 // file có sẵn trong brain. Mở file khác thì thay chỗ, bấm nút đóng trên chip thì bỏ ghim.
 let pinnedNote = null;      // {name, rel, abs, brain}
-const PIN_KEY = "vanhanh.pinnedNote";
+const PIN_KEY = "naota.pinnedNote";
 
 function _pinSave() {
   try {
@@ -4262,12 +4403,12 @@ function renderChips() {
   try { updateStopBtn(); } catch (e) {}   // an attachment turns voice chat into send
   attachBar.classList.toggle("has-items", pendingAttachments.length > 0 || !!pinnedNote || !!attachNote || !!_quote);
   attachBar.innerHTML = "";
-  if (_quote && window.VanhanhQuote) {
+  if (_quote && window.NaotaQuote) {
     const chip = document.createElement("div");
     chip.className = "attach-chip quote-chip";
     chip.title = _quote.text.slice(0, 600);
     chip.innerHTML = `<div class="chip-ico">${ic("quote")}</div>`
-      + `<div class="chip-info"><span class="chip-name">${escapeHtml(window.VanhanhQuote.xemTruoc(_quote.text))}</span>`
+      + `<div class="chip-info"><span class="chip-name">${escapeHtml(window.NaotaQuote.xemTruoc(_quote.text))}</span>`
       + `<span class="chip-meta">${escapeHtml(window.t("app.quote_meta"))}</span></div>`
       + `<button class="chip-x" data-unquote="1" title="${escapeHtml(window.t("app.quote_remove"))}"`
       + ` aria-label="${escapeHtml(window.t("app.quote_remove"))}">${ic("x")}</button>`;
@@ -4331,13 +4472,13 @@ function renderChips() {
   attachBar.querySelectorAll(".chip-x").forEach(b =>
     b.addEventListener("click", () => {
       if (b.dataset.unquote) { _quote = null; renderChips(); }
-      else if (b.dataset.unpin) VanhanhPin.clear();
+      else if (b.dataset.unpin) NaotaPin.clear();
       else removeAttachment(+b.dataset.i);
     }));
 }
 
 // Bấm chip ghim = quay lại chỉnh sửa chính file đó. Ba đường, thử theo thứ tự:
-//   1. Trình sửa ĐÍNH của console.js (VanhanhOpenNoteAt) - cùng cái mở ra lúc đầu, có cây vault
+//   1. Trình sửa ĐÍNH của console.js (NaotaOpenNoteAt) - cùng cái mở ra lúc đầu, có cây vault
 //      bên cạnh; nó tự biết file đang mở sẵn thì chỉ đưa mắt về chứ không nạp lại (giữ chữ
 //      đang gõ dở). Trả false khi màn hẹp hoặc chưa nạp xong console.js.
 //   2. Khung sửa bung giữa màn (file-editor.js) - đường lui cho điện thoại.
@@ -4348,14 +4489,14 @@ function reopenPinnedNote() {
   if (!pinnedNote || !pinnedNote.rel) return;
   const rel = pinnedNote.rel;
   try {
-    if (typeof window.VanhanhOpenNoteAt === "function" && window.VanhanhOpenNoteAt(rel, pinnedNote.name)) return;
+    if (typeof window.NaotaOpenNoteAt === "function" && window.NaotaOpenNoteAt(rel, pinnedNote.name)) return;
   } catch (e) {}
-  if (typeof window.VanhanhEditFile === "function") { window.VanhanhEditFile(rel); return; }
-  if (typeof window.VanhanhOpenFiles === "function") window.VanhanhOpenFiles(rel);
+  if (typeof window.NaotaEditFile === "function") { window.NaotaEditFile(rel); return; }
+  if (typeof window.NaotaOpenFiles === "function") window.NaotaOpenFiles(rel);
 }
 
 // API cho console.js (trình sửa note) gọi khi mở/đóng file.
-const VanhanhPin = {
+const NaotaPin = {
   get() { return pinnedNote; },
   set(note) {
     if (!note || !note.abs) return;
@@ -4365,7 +4506,7 @@ const VanhanhPin = {
   },
   clear() { pinnedNote = null; _pinSave(); renderChips(); },
 };
-window.VanhanhPin = VanhanhPin;
+window.NaotaPin = NaotaPin;
 function fmtSize(b) {
   if (b < 1024) return b + " B";
   if (b < 1048576) return (b / 1024).toFixed(0) + " KB";
@@ -4393,12 +4534,12 @@ function clearAttachments() {
 //   1. Chip hiện PHẦN TRĂM đã gửi, và tách hẳn hai khúc: "đang gửi 45%" (việc của mạng) với
 //      "máy chủ đang lưu" (việc của máy chủ). Nhìn là biết kẹt ở đâu.
 //   2. Canh KẸT thay cho trần cứng 3 phút: file to trên mạng chậm vẫn đi hết miễn còn nhích;
-//      còn đứng im VanhanhUpload.STALL_MS không nhích byte nào thì cắt và TỰ THỬ LẠI (tối đa TAI_THU_LAI lần).
+//      còn đứng im NaotaUpload.STALL_MS không nhích byte nào thì cắt và TỰ THỬ LẠI (tối đa TAI_THU_LAI lần).
 //   3. Hỏng hẳn thì chip có nút tải lại, bấm là gửi lại đúng file đó, không phải chọn lại.
-// The XHR with progress and the stall watch live in chat-upload.js (VanhanhUpload.send, shared with the Team chat); errors
+// The XHR with progress and the stall watch live in chat-upload.js (NaotaUpload.send, shared with the Team chat); errors
 // carry `kind`: "stall" (network stopped mid way), "server" (sent but no answer), "net" (dropped), "client" (browser).
-const TAI_THU_LAI = window.VanhanhUpload.RETRIES;   // automatic retries after a stall or a dropped connection
-function guiUpload(fd, onTien, opt) { return window.VanhanhUpload.send(fd, onTien, opt); }
+const TAI_THU_LAI = window.NaotaUpload.RETRIES;   // automatic retries after a stall or a dropped connection
+function guiUpload(fd, onTien, opt) { return window.NaotaUpload.send(fd, onTien, opt); }
 
 async function uploadFile(file, att) {
   const isImg = file.type.startsWith("image/");
@@ -4439,7 +4580,7 @@ async function uploadFile(file, att) {
 }
 function _mb(b) { return (b / 1048576).toFixed(1).replace(/\.0$/, ""); }
 async function _taiLen(file, att) {
-  // Chỉ STAGE để Vanhanh đọc - KHÔNG tự convert/lưu. Lưu Sources chỉ khi user yêu cầu.
+  // Chỉ STAGE để Naota đọc - KHÔNG tự convert/lưu. Lưu Sources chỉ khi user yêu cầu.
   let ve = 0;
   const onTien = (daGui, tong) => {
     if (daGui < 0) att.statusText = window.t("app.att_saving");
@@ -4514,7 +4655,7 @@ fileInput.addEventListener("change", () => {
 });
 
 // The composer "+" menu (composer-plus.js) shares the upload path and the attachment list.
-window.VanhanhAttach = {
+window.NaotaAttach = {
   pick: () => fileInput.click(),
   upload: (f) => uploadFile(f),
   addBrainFile: (it) => {
@@ -4531,7 +4672,7 @@ window.VanhanhAttach = {
 // đính kèm .txt hay huỷ. Trước đây quá 1.500 ký tự là tự thành file, chủ không còn thấy
 // mình đã dán gì.
 function pasteAsTxt(text) {
-  uploadFile(window.VanhanhPaste.textFile(text));
+  uploadFile(window.NaotaPaste.textFile(text));
 }
 document.addEventListener("paste", (e) => {
   const items = e.clipboardData?.items;
@@ -4544,7 +4685,7 @@ document.addEventListener("paste", (e) => {
   }
   // Chỉ ô chat. Các ô khác (form Kết nối, đặt tên brain...) giữ Ctrl+V bình thường.
   if (e.defaultPrevented || e.target !== chatInput) return;
-  const paste = window.VanhanhPaste;
+  const paste = window.NaotaPaste;
   const txt = e.clipboardData.getData("text/plain") || "";
   if (!paste || !paste.isLong(txt)) return;   // chữ vừa phải: để trình duyệt tự dán, Ctrl+Z vẫn chạy
   e.preventDefault();
@@ -4593,6 +4734,10 @@ function chupFile(f) {
 // ============================================
 // Events
 // ============================================
+// How tall the chat box may grow, measured when asked so a resized window still gets the right limit.
+function chatInputCap() {
+  return document.body.classList.contains("on-chat") ? Math.round(window.innerHeight * 0.4) : 200;
+}
 chatInput.addEventListener("input", () => {
   // the send button shows up next to Stop once there is text; and in place of voice chat.
   if (isProcessing) syncActiveUI(); else updateStopBtn();
@@ -4601,9 +4746,7 @@ chatInput.addEventListener("input", () => {
   // bản, không phải cuộn trong một ô 3 dòng. Trần ở trang Trò chuyện là 40% màn hình
   // (đo lúc gõ nên đổi cỡ cửa sổ vẫn đúng); màn chính ô nhập nằm trong cột phải hẹp hơn
   // nên trần 200px, quá nữa mới cuộn trong ô. CSS chỉ giữ lưới đỡ 45vh, không chặn nữa.
-  const _cap = document.body.classList.contains("on-chat")
-    ? Math.round(window.innerHeight * 0.4) : 200;
-  chatInput.style.height = Math.min(chatInput.scrollHeight, _cap) + "px";
+  chatInput.style.height = Math.min(chatInput.scrollHeight, chatInputCap()) + "px";
   sendTypingHint();
   try { if (chatSuggest) chatSuggest.onInput(); } catch (e) {}
 });
@@ -4621,19 +4764,22 @@ function sendTypingHint() {
   }
 }
 // Enter sends on a computer; an IME composition and a touch screen (Enter = new line) never send. The rules live in
-// chat-acts.js (VanhanhActs.enterSends) so the Team chat follows the same ones.
-const chatInputComposing = window.VanhanhActs.trackComposition(chatInput);
-// the likely next message shows grey in the empty box once Vanhanh answers; Tab (or the Tab chip on a
-// phone) fills it in. Shared with the Team chat (chat-suggest.js).
-const chatSuggest = window.VanhanhSuggest ? window.VanhanhSuggest.attach({
+// chat-acts.js (NaotaActs.enterSends) so the Team chat follows the same ones.
+const chatInputComposing = window.NaotaActs.trackComposition(chatInput);
+// the likely next message shows grey in the empty box once Naota answers; Tab (or the ">" after it)
+// fills it in. It stays while the owner types along it, Right Arrow takes one word, and a draft
+// that goes another way is finished after a short pause. Shared with the Team chat (chat-suggest.js).
+const chatSuggest = window.NaotaSuggest ? window.NaotaSuggest.attach({
   input: () => chatInput,
-  chipHost: () => { const row = document.getElementById("cpRow"); return row ? [row, row.querySelector(".cp-gap")] : null; },
   composing: () => chatInputComposing(),
+  maxHeight: () => chatInputCap(),
+  // Dictation and a voice call write into the box themselves: no guessing over them.
+  quiet: () => handsFreeActive() || !!document.querySelector("#hudVoice.dictating"),
 }) : null;
 function dropSuggest() { try { if (chatSuggest) chatSuggest.clear(); } catch (e) {} }
 chatInput.addEventListener("keydown", (e) => {
   if (chatSuggest && chatSuggest.onKeydown(e)) return;
-  if (window.VanhanhActs.enterSends(e, chatInputComposing())) { e.preventDefault(); sendMessage(); }
+  if (window.NaotaActs.enterSends(e, chatInputComposing())) { e.preventDefault(); sendMessage(); }
 });
 sendBtn.addEventListener("click", () => sendMessage());
 
@@ -4670,7 +4816,7 @@ function tatRanhTay() {
     if (_callInfo && _callInfo.voice_mode) datCheDoGiong(_callInfo.voice_mode);
     // Cúp máy: thôi đo âm lượng lúc chờ và trả màn hình về tự tắt như thường.
     tatNgheAmLuong();
-    if (window.VanhanhScreenAwake) window.VanhanhScreenAwake.release();
+    if (window.NaotaScreenAwake) window.NaotaScreenAwake.release();
     if (_liveSom) { clearTimeout(_liveSom.henHuy); _liveSom = null; }   // phiên nối sớm (tatLive đóng nó)
     _cuocGoiDaNoi = false;   // cuộc gọi sau lại được chuyển đường Cơ bản nếu Live không mở
   } catch (e) {}
@@ -4678,10 +4824,10 @@ function tatRanhTay() {
   voice.stopSpeaking();
   tatLive();
   // Hang-up: tatLive only suspends the Live audio so the call can reopen after the wait; let it go now.
-  try { if (window.VanhanhVoiceLive && window.VanhanhVoiceLive.release) window.VanhanhVoiceLive.release(); } catch (e) {}
+  try { if (window.NaotaVoiceLive && window.NaotaVoiceLive.release) window.NaotaVoiceLive.release(); } catch (e) {}
   runActions(turn.micOff());
   updateVoiceFocus();
-  try { if (window.VanhanhTts) window.VanhanhTts.set(false); } catch (e) {}
+  try { if (window.NaotaTts) window.NaotaTts.set(false); } catch (e) {}
   try { updateStopBtn(); } catch (e) {}   // tests lift this function out alone
 }
 
@@ -4691,7 +4837,7 @@ function alertMic(err) {
   if (err === "not-allowed") {
     // Trang không chạy ở ngữ cảnh bảo mật thì trình duyệt chặn thẳng, và KHÔNG hề hỏi quyền.
     // Bảo họ "cấp quyền" lúc này là chỉ họ đi tìm một cái nút không tồn tại. Hay gặp khi mở
-    // Vanhanh qua địa chỉ LAN hoặc tên miền chưa có HTTPS.
+    // Naota qua địa chỉ LAN hoặc tên miền chưa có HTTPS.
     if (!window.isSecureContext) {
       alert(window.t("app.mic_insecure") + "\n" + "\n"
         + window.t("app.mic_insecure_fix"));
@@ -4727,18 +4873,18 @@ voiceBtn.addEventListener("click", () => {
     voiceBtn.setAttribute("aria-label", window.t("call.hangup"));
     if (callBar) { callBar.show(tenDuongGoi()); capNhatThanhGoi(); }
     // Giữ màn hình sáng suốt cuộc gọi: điện thoại khoá màn hình là trình duyệt cắt mic.
-    try { if (window.VanhanhScreenAwake) window.VanhanhScreenAwake.hold(); } catch (e) {}
+    try { if (window.NaotaScreenAwake) window.NaotaScreenAwake.hold(); } catch (e) {}
   }
   voice.handsFree = handsFree && voiceMode !== "live";   // bật ngay, không đợi vòng 500 ms
   // Loa đi theo mic : bật nghe là muốn NÓI CHUYỆN bằng giọng, nên
-  // Vanhanh phải đáp bằng giọng; tắt nghe là quay về gõ chữ, Vanhanh im. Điện thoại từng không
+  // Naota phải đáp bằng giọng; tắt nghe là quay về gõ chữ, Naota im. Điện thoại từng không
   // có chỗ nào bật loa cả, nên gộp vào mic là một nút lo cả hai chiều.
-  try { if (window.VanhanhTts) window.VanhanhTts.set(handsFree); } catch (e) {}
+  try { if (window.NaotaTts) window.NaotaTts.set(handsFree); } catch (e) {}
   // Voice V2 bậc Live: nút mic mở phiên nghe nói thẳng thay cho Web Speech + TTS.
   if (voiceMode === "live") {
     // unlock the call's audio inside this press, so a session reopened later without one (after the wait)
     // still hears and sounds on an iPhone (voice-live.js unlock).
-    if (handsFree) { try { if (window.VanhanhVoiceLive && window.VanhanhVoiceLive.unlock) window.VanhanhVoiceLive.unlock(); } catch (e) {} }
+    if (handsFree) { try { if (window.NaotaVoiceLive && window.NaotaVoiceLive.unlock) window.NaotaVoiceLive.unlock(); } catch (e) {} }
     // a call answered from the incoming-call card opens with its reminder line (goiDenTheoLich).
     if (handsFree) batLive(layMoDauGoiDen());
     else tatRanhTay();
@@ -4754,11 +4900,11 @@ voiceBtn.addEventListener("click", () => {
 
 // ---- Micro: máy tự lo, không còn ô cài đặt (voice-call-spec mục 5) ----
 // Im lặng bao lâu thì gửi: mặc định 1,2 giây; máy nào đã chọn mức khác ở bản cũ thì giữ mức đó
-// (giá trị cũ vẫn dùng tiếp). Ngắt lời Vanhanh bằng giọng: LUÔN bật, vì gọi điện mà không chen
-// ngang được là cuộc gọi một chiều; khoá cũ vanhanh.bargeIn = "0" không còn ô nào để bật lại nên
+// (giá trị cũ vẫn dùng tiếp). Ngắt lời Naota bằng giọng: LUÔN bật, vì gọi điện mà không chen
+// ngang được là cuộc gọi một chiều; khoá cũ naota.bargeIn = "0" không còn ô nào để bật lại nên
 // không đọc nữa.
 (function () {
-  const ep = parseInt(localStorage.getItem("vanhanh.endpoint") || "1200", 10);
+  const ep = parseInt(localStorage.getItem("naota.endpoint") || "1200", 10);
   turn.opts.minDelay = [500, 800, 1200].includes(ep) ? ep : 1200;
   voice.bargeEnabled = true;
 })();
@@ -4774,7 +4920,7 @@ setInterval(() => {
   // `micHong()` là chốt thứ hai (chốt thứ nhất là tatRanhTay() trong onError). Giữ cả hai vì
   // vòng này chạy hai lần mỗi giây: sót một nhịp là một hộp thoại nữa đập vào mặt người dùng.
   //
-  // KHÔNG còn đòi `!isProcessing`: trong lúc Vanhanh đang nghĩ, người ta vẫn phải nói chen vào
+  // KHÔNG còn đòi `!isProcessing`: trong lúc Naota đang nghĩ, người ta vẫn phải nói chen vào
   // hay nói thêm ngữ cảnh được, y như nói chuyện với người thật. Chốt cũ đóng mic suốt thời
   // gian xử lý (có khi vài chục giây) nên nói vào chỗ trống, không ai nghe (đã gặp
   // thực tế). Tin nói lúc ấy đi qua sendMessage: nó dừng lượt cũ rồi gửi lại câu mới, và tin
@@ -4788,7 +4934,7 @@ setInterval(() => {
 
 document.getElementById("voiceFocusResume").addEventListener("click", () => {
   // A press: unlock the Live audio again before the session reopens (voice-live.js unlock).
-  try { if (voiceMode === "live" && window.VanhanhVoiceLive && window.VanhanhVoiceLive.unlock) window.VanhanhVoiceLive.unlock(); } catch (e) {}
+  try { if (voiceMode === "live" && window.NaotaVoiceLive && window.NaotaVoiceLive.unlock) window.NaotaVoiceLive.unlock(); } catch (e) {}
   resumeVoiceFocus();
 });
 
@@ -4797,9 +4943,9 @@ document.getElementById("voiceFocusResume").addEventListener("click", () => {
 document.addEventListener("keydown", (e) => {
   if (e.code === "Escape") {
     // Esc chỉ thoát chế độ rảnh tay + tắt mic + đóng popup node nếu đang mở. KHÔNG còn dừng câu
-    // trả lời hay ngắt Vanhanh đang nói (đã bỏ theo yêu cầu - đã có nút bật/tắt tiếng và nút Dừng).
+    // trả lời hay ngắt Naota đang nói (đã bỏ theo yêu cầu - đã có nút bật/tắt tiếng và nút Dừng).
     tatRanhTay();
-    try { if (window.VanhanhTts) window.VanhanhTts.set(false); } catch (e2) {}   // Esc = thoát nói chuyện bằng giọng
+    try { if (window.NaotaTts) window.NaotaTts.set(false); } catch (e2) {}   // Esc = thoát nói chuyện bằng giọng
     if (typeof closeNodePopup === "function") closeNodePopup();
   }
 });
@@ -4819,12 +4965,12 @@ document.getElementById("resetBtn").addEventListener("click", () => {
 // nằm thẳng trong trang Cài đặt. KHOÁ localStorage giữ nguyên nên không ai bị reset.
 const voiceSel = document.getElementById("voiceSel");
 const rateSel = document.getElementById("rateSel");
-const savedVoice = localStorage.getItem("vanhanh.voice") || "en-US-EmmaMultilingualNeural";
-const savedRate = parseFloat(localStorage.getItem("vanhanh.rate") || "1.10");
+const savedVoice = localStorage.getItem("naota.voice") || "en-US-EmmaMultilingualNeural";
+const savedRate = parseFloat(localStorage.getItem("naota.rate") || "1.10");
 // Ngôn ngữ NGHE theo ngôn ngữ giao diện (bỏ ô "Ngôn ngữ nghe"): en thì en-US, còn lại
 // vi-VN. Câu Việt xen tiếng Anh đã có tai nghe lại (voice_ear) lo, không cần chọn tay nữa.
 function recLangTheoGiaoDien() {
-  try { return (window.VanhanhI18n && window.VanhanhI18n.lang() === "en") ? "en-US" : "vi-VN"; } catch (e) { return "vi-VN"; }
+  try { return (window.NaotaI18n && window.NaotaI18n.lang() === "en") ? "en-US" : "vi-VN"; } catch (e) { return "vi-VN"; }
 }
 function rateToPct(r) { const p = ((r - 1) * 100).toFixed(0); return (p >= 0 ? "+" : "") + p + "%"; }
 // Gán value cho <select> mà giá trị đó không có trong danh sách thì select về RỖNG (ô trắng,
@@ -4850,13 +4996,13 @@ if (rateSel) {
 }
 voice.setVoice(voiceNow); voice.setRate(rateToPct(rateNow)); voice.setRecognitionLang(recNow);
 if (voiceSel) voiceSel.addEventListener("change", () => {
-  voice.setVoice(voiceSel.value); localStorage.setItem("vanhanh.voice", voiceSel.value);
+  voice.setVoice(voiceSel.value); localStorage.setItem("naota.voice", voiceSel.value);
 });
 if (rateSel) rateSel.addEventListener("change", () => {
   const r = parseFloat(rateSel.value);
-  voice.setRate(rateToPct(r)); localStorage.setItem("vanhanh.rate", r.toString());
+  voice.setRate(rateToPct(r)); localStorage.setItem("naota.rate", r.toString());
 });
-window.addEventListener("vanhanh:i18n", () => {
+window.addEventListener("naota:i18n", () => {
   const lang = recLangTheoGiaoDien();
   if (lang === voice.lang && !voice.langAuto) return;
   tatRanhTay();
@@ -4864,7 +5010,7 @@ window.addEventListener("vanhanh:i18n", () => {
 });
 // Nút "Nghe thử" của thẻ Giọng nói (console.js renderVoiceCard) khi đường gọi là Cơ bản: đọc một
 // câu bằng giọng đang chọn. force: nghe thử là hành động chủ động, phải kêu kể cả khi loa đang tắt.
-window.VanhanhVoiceSample = () => voice.speak(window.t("app.voice_sample"), { force: true });
+window.NaotaVoiceSample = () => voice.speak(window.t("app.voice_sample"), { force: true });
 // Loa đi theo cuộc gọi: bấm mic là gọi (bật loa), cúp máy là tắt (quick-settings.js giữ trạng thái).
 // Công tắc "Đọc trả lời bằng giọng" ở Cài đặt đã bỏ vì trùng với nút mic.
 
@@ -4886,7 +5032,7 @@ const ENGINE_LABEL = {
   // Hai engine CLI gói thuê bao. Nhãn phải TÁCH khỏi nhà cung cấp API cùng tên: khác đường
   // và khác hoá đơn (gói đã trả, so với API key trả theo lượt gọi).
   "grok-cli": "Grok Build", "antigravity-cli": "Antigravity",
-  // A gateway the owner points Vanhanh at: the label says which wire format, not who serves it.
+  // A gateway the owner points Naota at: the label says which wire format, not who serves it.
   "openai-compat": "OpenAI Compatible", "anthropic-compat": "Anthropic Compatible",
 };
 // Một dòng nhỏ dưới câu trả lời: lượt này chạy BẰNG GÌ, ở chế độ nào, và tốn bao nhiêu
@@ -4961,7 +5107,7 @@ async function refreshTgStatus() {
 
 
 // ============================================
-// Mức dùng (token Vanhanh tự đo, đa nhà cung cấp) - panel sidebar
+// Mức dùng (token Naota tự đo, đa nhà cung cấp) - panel sidebar
 // ============================================
 const _PROV_LABEL = { cli: "Claude Code", codex: "ChatGPT", openrouter: "OpenRouter", openai: "OpenAI", "anthropic-api": "Anthropic", gemini: "Gemini", groq: "Groq", deepseek: "DeepSeek" };
 function _fmtTok(n) {
@@ -5043,11 +5189,11 @@ document.addEventListener("click", (e) => {
   const box = document.getElementById("usageFloat"), btn = document.getElementById("usageToggle");
   if (!box || !btn) return;
   const apply = (col) => { box.classList.toggle("collapsed", col); btn.textContent = col ? "▸" : "▾"; };
-  apply(localStorage.getItem("vanhanh.usageCollapsed") === "1");
+  apply(localStorage.getItem("naota.usageCollapsed") === "1");
   btn.onclick = () => {
     const col = !box.classList.contains("collapsed");
     apply(col);
-    try { localStorage.setItem("vanhanh.usageCollapsed", col ? "1" : "0"); } catch (e) {}
+    try { localStorage.setItem("naota.usageCollapsed", col ? "1" : "0"); } catch (e) {}
   };
 })();
 
@@ -5093,7 +5239,7 @@ async function initAuthGate() {
   // cookie phiên rất có thể vẫn còn hợp lệ, chỉ là chưa hỏi được. Cứ để nguyên UI, mọi lệnh
   // gọi API thật sự (chat, file...) tự lộ ra nếu phiên đã hết hạn thật.
   if (!s) return;
-  if (s.authed) { initSetup(); return; }
+  if (s.authed) { _authedThisPage = true; initSetup(); return; }
   if (s.needs_setup) {
     _wizardMandatory = !!s.require_login;
     const wz = document.getElementById("setupWizard");
@@ -5112,6 +5258,8 @@ async function initAuthGate() {
       swap(wz.querySelector('[data-i18n="wz.pass_note"]'), "data-i18n", "app.wz_mandatory");
       const pass = document.getElementById("wzPass");
       if (pass) { pass.required = true; swap(pass, "data-i18n-ph", "wz.pass_ph_req"); }
+      const pass2 = document.getElementById("wzPass2");
+      if (pass2) pass2.required = true;
     }
     wz.classList.add("open");
   } else {
@@ -5125,6 +5273,8 @@ document.getElementById("authSubmit").addEventListener("click", async () => {
   fd.append("username", document.getElementById("authUser").value.trim());
   fd.append("password", document.getElementById("authPass").value);
   if (codeInp && codeInp.value.trim()) fd.append("code", codeInp.value.trim());
+  const keep = document.getElementById("authRemember");
+  fd.append("remember", keep && !keep.checked ? "0" : "1");
   const err = document.getElementById("authErr"); err.textContent = "";
   try {
     const r = await fetch("/auth/login", { method: "POST", body: fd });
@@ -5146,6 +5296,16 @@ document.getElementById("authSubmit").addEventListener("click", async () => {
     err.textContent = d.error || window.t("app.login_failed");
   } catch (e) { err.textContent = window.t("app.err_net"); }
 });
+// "Keep me signed in" box: this device remembers the last choice, so a borrowed device someone unticked once stays
+// unticked next time. Only the tick is stored, never a name or password.
+(() => {
+  const box = document.getElementById("authRemember");
+  if (!box) return;
+  try { if (localStorage.getItem("naota.rememberLogin") === "0") box.checked = false; } catch (e) {}
+  box.addEventListener("change", () => {
+    try { localStorage.setItem("naota.rememberLogin", box.checked ? "1" : "0"); } catch (e) {}
+  });
+})();
 // Eye button: lets the user check what they typed (a Hostinger customer could not tell a typo
 // from a wrong env password). Focus stays in the field so Enter still signs in.
 (() => {
@@ -5157,6 +5317,25 @@ document.getElementById("authSubmit").addEventListener("click", async () => {
     inp.type = show ? "text" : "password";
     eye.setAttribute("aria-pressed", show ? "true" : "false");
   });
+})();
+// Welcome wizard: one eye state for the two password boxes, so both can be read side by side to compare.
+(() => {
+  const boxes = ["wzPass", "wzPass2"].map((id) => document.getElementById(id)).filter(Boolean);
+  const eyes = Array.from(document.querySelectorAll("#setupWizard .wz-pw-eye"));
+  if (!boxes.length || !eyes.length) return;
+  eyes.forEach((eye) => {
+    eye.addEventListener("mousedown", (e) => e.preventDefault());
+    eye.addEventListener("click", () => {
+      const show = boxes[0].type === "password";
+      boxes.forEach((b) => { b.type = show ? "text" : "password"; });
+      eyes.forEach((b) => b.setAttribute("aria-pressed", show ? "true" : "false"));
+    });
+  });
+  // Typing again clears the "do not match" line, so it never sits there after the fix.
+  boxes.forEach((b) => b.addEventListener("input", () => {
+    const err = document.getElementById("wzErr");
+    if (err && err.textContent === window.t("app.pw_mismatch")) err.textContent = "";
+  }));
 })();
 ["authPass", "authCode"].forEach((id) => {
   const el = document.getElementById(id);
@@ -5226,7 +5405,7 @@ async function refreshAuthRow() {
   if (off) off.hidden = !co || !!a.require_login;
   return co;
 }
-window.__vanhanhRefreshAuthRow = refreshAuthRow;
+window.__naotaRefreshAuthRow = refreshAuthRow;
 
 // Turn off login (security report C2): the server wants the current password and, with
 // 2FA on, a code. Shared by both account surfaces (this settings block and console.js renderAccount).
@@ -5250,7 +5429,7 @@ async function disableLogin(password) {
     return r.ok ? { ok: true } : { ok: false, error: r.error || window.t("app.err_low") };
   } catch (e) { return { ok: false, error: window.t("app.err_net_low") }; }
 }
-window.__vanhanhDisableLogin = disableLogin;
+window.__naotaDisableLogin = disableLogin;
 function _saveSetting(section, dataObj, btn) {
   const fd = new FormData();
   fd.append("section", section);
@@ -5269,7 +5448,7 @@ if (document.getElementById("settingsBtn")) {
 
   document.getElementById("saveGeneral").addEventListener("click", (e) => {
     _saveSetting("general", { workspace_name: document.getElementById("setWsName").value.trim() }, e.target)
-      .then(() => { const wn = document.getElementById("workspaceName"); if (wn) wn.textContent = document.getElementById("setWsName").value.trim() || "VANHANH"; });
+      .then(() => { const wn = document.getElementById("workspaceName"); if (wn) wn.textContent = document.getElementById("setWsName").value.trim() || "NAOTA"; });
   });
   document.getElementById("saveModel").addEventListener("click", (e) => {
     const sel = document.getElementById("setOrModelSel");
@@ -5445,6 +5624,12 @@ if (document.getElementById("wzFinish")) {
       return _soiOTrong(document.getElementById("wzPass"),
                         window.t("app.wz_pw_required"));
     }
+    // 2026-11-11 (owner): the password is typed twice. Checked before anything is sent, so a typo never becomes the
+    // password of a fresh install. A password left empty on purpose (personal machine) needs both boxes empty.
+    const pass2El = document.getElementById("wzPass2");
+    if (pass2El && pass !== pass2El.value) {
+      return _soiOTrong(pass ? pass2El : document.getElementById("wzPass"), window.t("app.pw_mismatch"));
+    }
     try {
       if (pass) {
         const d = await (await fetch("/auth/setup", { method: "POST", body: _fd({ username: user || "admin", password: pass }) })).json();
@@ -5474,20 +5659,30 @@ if (document.getElementById("wzFinish")) {
 // their own computer; on a VPS the server clock is usually UTC, which is exactly why this asks the browser and not the server.
 (function () {
   const sel = document.getElementById("wzTz");
-  if (!sel || !window.VanhanhTz) return;
+  if (!sel || !window.NaotaTz) return;
   const now = document.getElementById("wzTzNow");
   function showNow() {
-    if (now) now.textContent = sel.value ? window.t("tz.now_there").replace("{time}", VanhanhTz.nowIn(sel.value)) : "";
+    if (now) now.textContent = sel.value ? window.t("tz.now_there").replace("{time}", NaotaTz.nowIn(sel.value)) : "";
   }
   function fill() {
-    const keep = sel.value || VanhanhTz.detect() || "Asia/Ho_Chi_Minh";
-    sel.innerHTML = VanhanhTz.options(keep);
+    const keep = sel.value || NaotaTz.detect() || "Asia/Ho_Chi_Minh";
+    sel.innerHTML = NaotaTz.options(keep);
     sel.value = keep;
     showNow();
   }
   sel.addEventListener("change", showNow);
-  fill();
-  window.addEventListener("vanhanh:i18n", fill);
+  // 2026-11-12: the list is built when the wizard opens, not on every start of the app. Building it asks the browser
+  // for the clock of some 420 timezones (measured: about 100 ms on a desktop, several times that on a phone), and it
+  // ran at each start and again when the dictionary arrived, for a wizard an installed Naota never shows again.
+  const wz = document.getElementById("setupWizard");
+  const shown = () => !!(wz && wz.classList.contains("open"));
+  let filled = false;
+  function fillIfShown() { if (shown()) { filled = true; fill(); } }
+  fillIfShown();
+  if (wz && typeof MutationObserver === "function") {
+    new MutationObserver(() => { if (!filled) fillIfShown(); }).observe(wz, { attributes: true, attributeFilter: ["class"] });
+  }
+  window.addEventListener("naota:i18n", () => { if (filled) fill(); });
 })();
 
 // Wizard - chọn nhà cung cấp (card radio) + hiện ô key OpenRouter + gợi ý cách kết nối
@@ -5509,7 +5704,7 @@ if (document.getElementById("wzFinish")) {
   }
   cards.forEach(c => c.addEventListener("click", () => pick(c.dataset.prov)));
   pick("anthropic-cli");
-  window.addEventListener("vanhanh:i18n", () => {
+  window.addEventListener("naota:i18n", () => {
     const da = document.querySelector('input[name="wzprov"]:checked');
     pick((da && da.value) || "anthropic-cli");
   });
@@ -5522,7 +5717,7 @@ initAuthGate();
 refreshUsage();
 connect();
 initStarfield();
-initGraph().then(connectGraphWatch).catch(connectGraphWatch);
+setTimeout(ensureGraphIfHome, 4000);   // the graph itself starts from NaotaCockpit.firstPage / veManChinh
 pumpAudioLevel();
 loadMemStats();
 loadBrainStats();
@@ -5572,7 +5767,7 @@ renderChips();
   // Mở cho install-nudge.js dùng chung ĐÚNG một event beforeinstallprompt này. Trình duyệt
   // chỉ bắn nó MỘT lần mỗi phiên và chỉ dùng lại được một lần, nên hai nơi cùng bắt là một
   // nơi mất - phải đi qua cùng một chỗ giữ.
-  window.VanhanhInstall = {
+  window.NaotaInstall = {
     daLaApp: daLaApp,
     coHopCai: () => !!deferredPrompt,
     moHopCai: async () => {

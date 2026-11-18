@@ -85,8 +85,8 @@ const msg = (id) => ({ id, role: "assistant", content: "x" + id, content_sha: "s
 
 async function keptChats() {
   check("50 chats, no 5-minute limit", /^const _PHIEN_CACHE_MAX = 50;$/m.test(APP) && /^const _PHIEN_CACHE_TTL = 7 \* 24 \* 3600 \* 1000;$/m.test(APP));
-  check("every fresh copy is written to the kept store", /window\.VanhanhChatCache\.put\(id, sess, at\)/.test(APP));
-  check("the kept chats are read once at start", /window\.VanhanhChatCache\.all\(\)\.then/.test(APP));
+  check("every fresh copy is written to the kept store", /window\.NaotaChatCache\.put\(id, sess, at\)/.test(APP));
+  check("the kept chats are read once at start", /window\.NaotaChatCache\.all\(\)\.then/.test(APP));
 
   // Right after a reload: the kept copy arrives from IndexedDB before the server, and is drawn at once.
   const { ctx, st } = appCtx();
@@ -131,7 +131,7 @@ async function warming() {
   await tick();
   check("nothing is warmed on a data-saving connection", saver.st.fetches.length === 0);
   const ui = read("dashboard/sessions-ui.js");
-  check("the history list warms its first 8 chats", /window\.VanhanhSessions\.prefetchMany\(items\.slice\(0, 8\)/.test(ui)
+  check("the history list warms its first 8 chats", /window\.NaotaSessions\.prefetchMany\(items\.slice\(0, 8\)/.test(ui)
     && /prefetchMany: prefetchMany/.test(APP));
 }
 
@@ -157,10 +157,10 @@ async function pageCopies() {
     fetch: (url, init) => { net.push((init && init.method || "GET") + " " + url);
       return new Promise((r) => setTimeout(() => r(new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } })), 5)); },
   });
-  win.addEventListener("vanhanh:page-data", (e) => events.push(e.detail));
+  win.addEventListener("naota:page-data", (e) => events.push(e.detail));
   const ctx = vm.createContext({ window: win, location: win.location, Response, CustomEvent, URL, Promise, Date, setTimeout, document: {} });
   vm.runInContext(read("dashboard/fetch-gop.js"), ctx);
-  const F = win.VanhanhFetchGop;
+  const F = win.NaotaFetchGop;
   const get = async (u) => (await win.fetch(u)).json();
 
   F.pageStart("skills");
@@ -201,13 +201,13 @@ async function pageCopies() {
   check("any other write drops the copies (the next read waits for the server)", net.length === before + 1);
   F.forget();
   check("forget() is there for the end of a chat turn", typeof F.forget === "function"
-    && /data\.type === "turn_done"\) \{[\s\S]{0,3000}window\.VanhanhFetchGop\.forget\(\);[\s\S]{0,40}notifySessions\(\);/.test(APP));
+    && /data\.type === "turn_done"\) \{[\s\S]{0,3000}window\.NaotaFetchGop\.forget\(\);[\s\S]{0,40}notifySessions\(\);/.test(APP));
 }
 
 // ───────── console.js / index.html wiring ─────────
 function wiring() {
   const con = read("dashboard/console.js");
-  check("every page draw tells fetch-gop which page it is", /window\.VanhanhFetchGop\.pageStart\(id\);/.test(con));
+  check("every page draw tells fetch-gop which page it is", /window\.NaotaFetchGop\.pageStart\(id\);/.test(con));
   const pages = /const REDRAW_PAGES = new Set\(\[([^\]]+)\]\)/.exec(con);
   const list = pages ? pages[1] : "";
   check("list and card pages are drawn again when their data changed",
@@ -217,7 +217,7 @@ function wiring() {
   check("a page the owner already clicked or typed on is left as it is",
     /if \(Alpine\.store\("nav"\)\.active !== id \|\| _pageTouched\) return;/.test(con)
     && /\["click", "keydown", "input", "change"\]/.test(con));
-  check("signing out clears the kept chats", /await fetch\("\/auth\/logout"[\s\S]{0,200}window\.VanhanhChatCache\.clear\(\)/.test(con));
+  check("signing out clears the kept chats", /await fetch\("\/auth\/logout"[\s\S]{0,200}window\.NaotaChatCache\.clear\(\)/.test(con));
   const html = read("dashboard/index.html");
   const at = html.indexOf("/static/chat-cache.js?v=");
   check("chat-cache.js loads before app.js", at > 0 && at < html.indexOf("/static/app.js?v="));

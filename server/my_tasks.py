@@ -1,6 +1,6 @@
 """The owner's own tasks for the Tasks page, tab "Mine". Spec: nhiem-vu-spec 8.2.
 
-One JSON store per brain at <brain>/Vanhanh/my-tasks.json:
+One JSON store per brain at <brain>/Naota/my-tasks.json:
 
     {"tasks": [...], "projects": [...], "rev": n}
 
@@ -11,7 +11,7 @@ repeating task starts each occurrence with its subtasks open again (the ticked o
 `done_dates` entry so unticking the occurrence puts them back).
 
 A repeating task is ONE record; each finished occurrence is a key of `done_dates` ("YYYY-MM-DD" ->
-{"at": epoch, "by": "me" | "vanhanh"}). The missed occurrence shown under Overdue, streaks and the like are
+{"at": epoch, "by": "me" | "naota"}). The missed occurrence shown under Overdue, streaks and the like are
 computed from the schedule and `done_dates` (the page does it, see dashboard/tasks.js), never stored.
 
 Routes (all JSON bodies, `brain` like the other stores):
@@ -33,8 +33,8 @@ Daily pulse: a task may carry `star` (a priority of its day, at most 3 a day, th
 and a repeat `skip_dates` ({date: epoch}: times skipped on purpose, they count as handled but never as done). The store
 keeps `clean` = {days: {date: "c"|"i"|"x"|"e"}, over_clears: n}, see `judge_clean_days`.
 
-Habit coach: once a day the background model ("Vanhanh Core") writes the habit lines the page and the
-reminders use, into <brain>/Vanhanh/habit-coach.json, and learns which style of nudge was followed by the habit
+Habit coach: once a day the background model ("Naota Core") writes the habit lines the page and the
+reminders use, into <brain>/Naota/habit-coach.json, and learns which style of nudge was followed by the habit
 being done that day (see `coach_prompt`). No model, or a bad answer: the fixed lines stay.
 """
 from __future__ import annotations
@@ -42,6 +42,7 @@ from __future__ import annotations
 import asyncio
 import calendar
 import json
+import kept
 import re
 import time
 import uuid
@@ -189,8 +190,8 @@ def _apply(task: dict, p: dict) -> None:
                         for x in p["subs"][:MAX_SUBS] if isinstance(x, dict) and str(x.get("t") or "").strip()]
     if "habit" in p:
         task["habit"] = clean_habit(p.get("habit"))
-    if "from_vanhanh" in p:
-        task["from_vanhanh"] = bool(p.get("from_vanhanh"))
+    if "from_naota" in p:
+        task["from_naota"] = bool(p.get("from_naota"))
     if "prep" in p:
         task["prep"] = str(p.get("prep") or "")[:500]
     if "star" in p:
@@ -381,7 +382,7 @@ def usual_time(task: dict, tz=None) -> str:
 
 
 def nudge_time(task: dict, state: dict, tz=None) -> str:
-    """When today's reminder goes out: the set time, or for "Vanhanh reminds" half an hour after the usual time
+    """When today's reminder goes out: the set time, or for "Naota reminds" half an hour after the usual time
     (earlier while frozen, so there is room to thaw it)."""
     hb = task.get("habit") or {}
     if hb.get("remind") == "time":
@@ -540,7 +541,7 @@ def coach_prompt(habits: list, stats: dict, vi: bool) -> str:
         f"last14={h['last14']}" for h in habits)
     rates = "\n".join(f"- {s}: sent {v['sent']}, done after {v['done']}" for s, v in stats.items())
     lang = "Vietnamese, addressing the user as \"bạn\" and yourself as \"mình\"" if vi else "English"
-    return f"""You are Vanhanh, a small star mascot coaching the user's daily habits. Write today's short lines in {lang}.
+    return f"""You are Naota, a small star mascot coaching the user's daily habits. Write today's short lines in {lang}.
 
 Habits today:
 {rows}
@@ -612,7 +613,7 @@ class MyTasks:
 
     # ---- habit coach ----
     def _coach_path(self, brain: str) -> Path:
-        return Path(self.deps.brain_root(brain)) / "Vanhanh" / COACH
+        return Path(self.deps.brain_root(brain)) / "Naota" / COACH
 
     def load_coach(self, brain: str) -> dict:
         try:
@@ -681,7 +682,7 @@ class MyTasks:
 
     # ---- store ----
     def _path(self, brain: str) -> Path:
-        return Path(self.deps.brain_root(brain)) / "Vanhanh" / STORE
+        return Path(self.deps.brain_root(brain)) / "Naota" / STORE
 
     def load(self, brain: str) -> dict:
         p = self._path(brain)
@@ -755,7 +756,7 @@ class MyTasks:
         task = self._find(data, tid)
         if task is None:
             return _err("không thấy việc này", "task not found")
-        by = "vanhanh" if by == "vanhanh" else "me"
+        by = "naota" if by == "naota" else "me"
         if task.get("repeat"):
             d = _clean_date(date) or time.strftime("%Y-%m-%d")
             dd = task.setdefault("done_dates", {})
@@ -795,7 +796,7 @@ class MyTasks:
             return _err("không thấy việc này", "task not found")
         data["tasks"] = [t for t in data["tasks"] if t.get("id") != tid]
         if handoff:
-            # "Give to Vanhanh": the stats count how many tasks the owner handed over.
+            # "Give to Naota": the stats count how many tasks the owner handed over.
             log = data.setdefault("log", {})
             log["handoffs"] = (list(log.get("handoffs") or []) + [_now()])[-2000:]
         self.save(brain, data)
@@ -897,7 +898,7 @@ class MyTasks:
         sent, seen = 0, set()
         for brain in brains + ["brain"]:
             try:
-                root = str(Path(self.deps.brain_root(brain)).resolve())
+                root = kept.resolved(self.deps.brain_root(brain))   # from memory on the event loop (kept.py)
             except Exception:
                 continue
             if root in seen or not self._path(brain).exists():
@@ -913,7 +914,11 @@ class MyTasks:
                 data = self.load(brain)
                 # everything in "Mine" reaches the bell (and Telegram, push), not only habits and the
                 # appointments that had a reminder set. Once a day, the morning list of today.
-                if AGENDA_AT <= hm < AGENDA_UNTIL and data.get("agenda_sent") != today:
+                # Opt out of the standalone 07:30 agenda per brain when a
+                # separate morning brief already covers the owner's tasks.
+                # This never disables timed task, appointment or habit nudges.
+                if (data.get("agenda_enabled") is not False
+                        and AGENDA_AT <= hm < AGENDA_UNTIL and data.get("agenda_sent") != today):
                     data["agenda_sent"] = today
                     agenda_msg = agenda_text(*agenda(data.get("tasks", []), today))
                     due_save = True
@@ -1092,7 +1097,7 @@ class MyTasks:
         return router
 
 
-# The running store, for the bundled plugin vanhanh-mine (in-process, like tasks.current()).
+# The running store, for the bundled plugin naota-mine (in-process, like tasks.current()).
 _FEATURE: Optional["MyTasks"] = None
 
 

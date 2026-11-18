@@ -21,9 +21,10 @@ gì được nạp) rồi trả về đúng cái sắp xảy ra kèm `sha256`. `
 người gọi đưa lại đúng sha256 đó - ràng buộc này làm cái đã hiện ra trên màn hình phải chính là
 cái được cài.
 """
+import inspect
 import sys
 from dataclasses import dataclass
-from typing import Callable
+from typing import Any, Callable
 
 from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
@@ -48,6 +49,9 @@ class PacksDeps:
     co_phien: Callable[[Request], bool]
     lam_moi_hub: Callable[[], None]
     brain_root: Callable[[str], str]
+    # 2026-11-11: a pack just placed or removed assistant files in this brain root. main brings the Auto registry in
+    # step (agent_presence.sync) and tells the open tabs. May be async. Default: nothing (tests, tools).
+    agents_changed: Callable[[str], Any] = lambda root: None
 
 
 _DEPS: PacksDeps = None
@@ -99,14 +103,14 @@ def _connector_cua_app() -> list:
         ra = []
         for cid, c in (mcp_catalog.tat_ca() or {}).items():
             # Chạy LỆNH thì là bậc code, dù không một dòng Python nào: `transport: stdio` khiến
-            # Vanhanh chạy `npx` với toàn bộ biến môi trường của máy chủ.
+            # Naota chạy `npx` với toàn bộ biến môi trường của máy chủ.
             code = str(c.get("transport") or "http").lower() == "stdio" or bool(c.get("command"))
             nhom = str(c.get("category") or "Khác")
             ra.append({
                 "id": cid, "kind": "connector",
                 "name": {"vi": c.get("name", cid)},
                 "description": {"vi": c.get("description", "")},
-                "version": "", "author": {"name": "Vanhanh"},
+                "version": "", "author": {"name": "Naota"},
                 "category": nhom, "category_label": {"vi": nhom}, "nhom": nhom,
                 "tier": "code" if code else "data",
                 "verified": True, "icon": c.get("icon", ""),
@@ -140,9 +144,40 @@ def _gone_from_brain(pid: str, hang: dict, g: dict) -> bool:
         return False
 
 
+def _items_brain(pid: str, brain: str) -> dict:
+    """pack_vault.brain_of for the brain the dashboard has open (`brain` as the dashboard sends it). Never raises:
+    a Store page must not fail over a label."""
+    try:
+        import pack_vault
+        return pack_vault.brain_of(pid, _DEPS.brain_root(str(brain or "brain")) if brain else "")
+    except Exception:       # noqa: BLE001
+        return {"brain": "", "name": "", "present": 0, "other": False}
+
+
+async def _agents_changed(root: str) -> None:
+    """Tell main that the assistant files of brain `root` changed. Never fails the install or uninstall it follows."""
+    if not root:
+        return
+    try:
+        res = _DEPS.agents_changed(root)
+        if inspect.isawaitable(res):
+            await res
+    except Exception as e:  # noqa: BLE001
+        print(f"[packs] agents_changed: {type(e).__name__}: {e}", file=sys.stderr)
+
+
+def _pack_brain(pid: str) -> str:
+    """The brain root that holds the items pack `pid` placed, "" when it placed none."""
+    try:
+        import pack_vault
+        return str(pack_vault.doc_so(pid).get("brain") or "")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 def _tu_choi():
-    return JSONResponse({"ok": False, "error": localefmt.chu("Cần đăng nhập vào Vanhanh để quản lý gói.",
-                                                         "Sign in to Vanhanh to manage packs.")},
+    return JSONResponse({"ok": False, "error": localefmt.chu("Cần đăng nhập vào Naota để quản lý gói.",
+                                                         "Sign in to Naota to manage packs.")},
                         status_code=401)
 
 
@@ -191,12 +226,16 @@ def _make_router() -> APIRouter:
         # Brain ĐANG MỞ lúc bấm Cài. Agent/workflow/skill thuộc về một brain cụ thể (khác
         # connector và plugin vốn dùng chung mọi brain), nên "cài vào tất cả" là áp đặt: người
         # dùng có brain việc và brain cá nhân, và họ không muốn mọi thứ ở cả hai nơi.
+        root = _DEPS.brain_root(str(d.get("brain") or "brain"))
         r = pack_install.cai(str(d.get("staging_id") or ""),
                              str(d.get("consent_sha256") or ""),
                              enable=bool(d.get("enable")), nguon=ng,
-                             brain_root=_DEPS.brain_root(str(d.get("brain") or "brain")))
+                             brain_root=root)
         if r.get("ok"):
             _DEPS.lam_moi_hub()
+            # The pack's assistants are back in the brain: the Auto registry takes its own back at once, so nobody
+            # has to open the Partners page (or confirm 17 cards) before a team or a goal can use them again.
+            await _agents_changed(root)
         return r if r.get("ok") else JSONResponse(r, status_code=400)
 
     @router.post("/packs/toggle")
@@ -210,25 +249,37 @@ def _make_router() -> APIRouter:
         return r if r.get("ok") else JSONResponse(r, status_code=400)
 
     @router.get("/packs/uninstall-plan")
-    async def packs_uninstall_plan(request: Request, id: str = ""):
+    async def packs_uninstall_plan(request: Request, id: str = "", brain: str = ""):
         if not _DEPS.co_phien(request):
             return _tu_choi()
-        return pack_install.ke_hoach_go(id.strip())
+        plan = pack_install.ke_hoach_go(id.strip())
+        # The items sit in the brain that was open at install time. Name it, and say when that is not the
+        # brain open now, so nobody removes assistants from a brain they are not looking at without being told.
+        if isinstance(plan, dict) and plan.get("ok") and isinstance(plan.get("vault"), dict):
+            w = _items_brain(id.strip(), brain)
+            plan["vault"]["brain_name"] = w["name"]
+            plan["vault"]["other_brain"] = w["other"]
+        return plan
 
     @router.post("/packs/uninstall")
     async def packs_uninstall(request: Request):
         if not _DEPS.co_phien(request):
             return _tu_choi()
         d = await request.json()
+        # BEFORE the files go: the registry records that these assistants are this pack's own (their origin), which
+        # is what lets it take them back without asking when the pack is installed again. AFTER: it sees them gone.
+        root = _pack_brain(str(d.get("id") or "").strip())
+        await _agents_changed(root)
         r = await pack_install.go(str(d.get("id") or ""),
                                   purge_data=bool(d.get("purge_data")),
                                   purge_audit=bool(d.get("purge_audit")))
         if r.get("ok"):
             _DEPS.lam_moi_hub()
+            await _agents_changed(root)
         return r if r.get("ok") else JSONResponse(r, status_code=409)
 
     @router.get("/packs/store")
-    async def packs_store_list(request: Request, refresh: int = 0):
+    async def packs_store_list(request: Request, refresh: int = 0, brain: str = ""):
         """Danh mục gói trong kho. Fetch ở PHÍA SERVER, không ở trình duyệt.
 
         Ba lý do: chốt SSRF nằm ở server nên đường tải phải đi qua đó mới được gác; trình
@@ -270,6 +321,12 @@ def _make_router() -> APIRouter:
             if hang and _gone_from_brain(g.get("replaces_installed") or g["id"], hang, g):
                 g["installed"] = False
                 g["removed_from_brain"] = True
+            elif hang:
+                # Installed for the machine, but its assistants and skills are in another brain than the
+                # one open now. The card says which, instead of a bare "Installed".
+                w = _items_brain(g.get("replaces_installed") or g["id"], brain)
+                if w["other"]:
+                    g["items_brain"] = w["name"]
             # Thẻ cần biết gói đang bật hay tắt để vẽ đúng nút. Gói thả tay vào thư mục (không
             # có hàng trong sổ) mặc định là BẬT - người vận hành đã tự đặt nó vào rồi.
             g["enabled"] = bool(hang.get("enabled", True)) if hang else True
@@ -277,7 +334,7 @@ def _make_router() -> APIRouter:
             g["nhom"] = _nhom(g)
         # Connector đi kèm app cũng hiện TRONG kho, đánh dấu sẵn là đã cài. Người dùng không
         # phân biệt "thứ ship theo app" với "thứ tải từ kho" - họ chỉ muốn một chỗ để nhìn xem
-        # Vanhanh nối được với cái gì. Trộn vào đây thì lưới Kết nối của kho có đủ mặt hàng ngay
+        # Naota nối được với cái gì. Trộn vào đây thì lưới Kết nối của kho có đủ mặt hàng ngay
         # từ ngày đầu, thay vì trống trơn cho tới khi ai đó phát hành gói connector.
         #
         # Chúng KHÔNG tải về từ đâu cả (`download.url` rỗng), và gỡ chúng đi qua `core_off`

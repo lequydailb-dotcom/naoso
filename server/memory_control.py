@@ -1,4 +1,4 @@
-"""What Vanhanh remembers, and the person's control over it (Vanhanh Core spec sections 10, 12 and 13).
+"""What Naota remembers, and the person's control over it (Naota Core spec sections 10, 12 and 13).
 
 The brain's memory stays where it always was: `memory/MEMORY.md` (the index loaded before every turn) and one file
 per memory in `memory/facts/`. This module adds the controls the spec asks for, nothing parallel:
@@ -197,10 +197,11 @@ def set_learning(mem_dir: Path, on: bool) -> bool:
     return bool(on)
 
 
-LEARNING_OFF_NOTE = ("\n\n# === GHI NHỚ MỚI ĐANG TẮT ===\n"
-                     "Người dùng đã tắt việc lưu ghi nhớ mới cho brain này. Vẫn dùng bộ nhớ đã có, nhưng KHÔNG tạo hay "
-                     "sửa file trong memory/ và không thêm dòng vào MEMORY.md. Nếu người dùng nhờ nhớ điều gì, nói rõ "
-                     "việc ghi nhớ đang tắt và chỉ chỗ bật lại (Vanhanh Core > Trí nhớ).")
+LEARNING_OFF_NOTE = ("\n\n# === GHI NHỚ MỚI ĐANG TẮT (saving new memories is OFF) ===\n"
+                     "The user has turned off saving new memories for this brain. Keep using the memory that exists, "
+                     "but do NOT create or edit files in memory/ and do not add lines to MEMORY.md. If the user asks "
+                     "you to remember something, say clearly that saving memories is off and where to turn it back on "
+                     "(Naota Core, its memory section).")
 
 
 # ── list / edit / forget ──────────────────────────────────────────────────────
@@ -272,6 +273,11 @@ def edit_memory(mem_dir: Path, slug: str, body: str, type_: Optional[str] = None
     return {"slug": slug, "updated": meta["updated"]}
 
 
+# Set by main.py: called with (memory dir, {slug, title, learned}) after a memory was forgotten. A memory Naota
+# had learned on its own and the owner then removed is the clearest sign there is that the learner got it wrong.
+on_forget = None
+
+
 def forget_memory(mem_dir: Path, slug: str) -> dict:
     """Delete one memory and keep only its fingerprint, so it is not learnt again. Returns what was removed."""
     if not valid_slug(slug):
@@ -295,7 +301,14 @@ def forget_memory(mem_dir: Path, slug: str) -> dict:
                 idx.write_text("".join(keep), encoding="utf-8")
         except OSError:
             pass
-    return {"slug": slug, "title": title, "index_line_removed": removed_line}
+    out = {"slug": slug, "title": title, "index_line_removed": removed_line}
+    if on_forget is not None:
+        try:
+            # `learned`: the self-learning loop wrote this memory (origin: naota-learned), not the owner or a chat.
+            on_forget(mem_dir, {**out, "learned": str(meta.get("origin") or "") == "naota-learned"})
+        except Exception as e:   # noqa: BLE001 - a listener must not undo the forgetting
+            print(f"[memory forget] listener: {type(e).__name__}: {e}", file=sys.stderr)
+    return out
 
 
 # ── person profile shared by every brain ──────────────────────────────────────

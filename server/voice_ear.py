@@ -14,7 +14,7 @@ Ba lớp rào cho chữ của tai, giống nhau với mọi tai:
   - `stt.loc_ao_giac`: Whisper bịa câu outro YouTube khi gặp im lặng hay tiếng ồn.
   - `stt.khop_ban_nhap`: chữ tai lệch hẳn bản nháp của trình duyệt thì giữ bản nháp. Rào này
     bắt kiểu lỗi model nghe âm thanh trả về nguyên một câu không liên quan.
-  - `nghe_sua.sua`: sửa tên trợ lý nghe nhầm ("Vân Hạnh" thành "Vanhanh").
+  - `nghe_sua.sua`: sửa tên trợ lý nghe nhầm ("Nauta" thành "Naota").
 """
 from __future__ import annotations
 
@@ -28,11 +28,11 @@ import stt
 CHOICES = ("auto", "chatgpt", "groq", "openai", "off")
 DEFAULT = "auto"
 
-# Các tai Vanhanh biết chạy. `kind`:
+# Các tai Naota biết chạy. `kind`:
 #   upload - trình duyệt ghi âm cả câu, hết câu mới gửi lên /stt.
 # `key_field`: the API key on the Models page this ear needs. `plan`: the signed-in plan it runs on instead.
 EARS = {
-    # the ChatGPT plan's own dictation ear (stt.chatgpt_nghe), on the login Vanhanh already holds. No key.
+    # the ChatGPT plan's own dictation ear (stt.chatgpt_nghe), on the login Naota already holds. No key.
     "chatgpt": {"label": "ChatGPT plan", "kind": "upload", "plan": "openai-oauth"},
     "groq": {"label": "Groq Whisper", "kind": "upload", "key_field": "groq_api_key"},
     # a machine with an OpenAI key but no Groq key used to have no ear at all, so a Vietnamese sentence with
@@ -49,7 +49,7 @@ RANKING = ("groq", "chatgpt", "openai")
 
 # Provider của bộ não chính (main._effective_main) -> tai cùng hãng. No setting: the ear follows
 # the main model in use, on ChatGPT the ChatGPT plan's ear, and the same for the others. Claude, Antigravity and
-# Grok have no ear Vanhanh can reach on their plans (Claude's voice needs the login token Vanhanh never reads, `agy` keeps
+# Grok have no ear Naota can reach on their plans (Claude's voice needs the login token Naota never reads, `agy` keeps
 # its session in the OS keyring, xAI bills speech-to-text as an API apart from SuperGrok), so those brains get the
 # best ear the machine has and stay the brain.
 BRAIN_EAR = {
@@ -174,7 +174,7 @@ def vocab(cfg: dict) -> list:
     MCP. Chỉ dùng làm MỒI cho model nghe, KHÔNG đưa vào lớp sửa mờ `nghe_sua.sua` (sửa mờ với
     nhiều tên dễ đổi nhầm một từ tiếng Việt)."""
     # The assistant's name and the owner's words go LAST: Whisper keeps only the end of its prompt, and a machine with
-    # thirty connections used to push "Vanhanh" out of it.
+    # thirty connections used to push "Naota" out of it.
     own = list(nghe_sua.vocabulary(cfg))
     seen = {t.lower() for t in own}
     labels = []

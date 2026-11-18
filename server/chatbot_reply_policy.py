@@ -45,7 +45,7 @@ GROUNDING = ("docs", "role")
 MODE_DEFAULT, EAGERNESS_DEFAULT, GROUNDING_DEFAULT = "on", "medium", "docs"
 # Công tắc của NGƯỜI VẬN HÀNH (không phải của chủ bot): đặt biến này thì mọi bot chạy thử, luật cũ vẫn quyết còn
 # bộ phán xử chỉ ghi. Chủ bot không còn chọn chế độ, chọn "Tự đánh giá" là bộ phán xử quyết.
-SHADOW_ENV = "VANHANH_REPLY_POLICY_SHADOW"
+SHADOW_ENV = "NAOTA_REPLY_POLICY_SHADOW"
 
 BASE_THRESHOLD = {"low": 0.75, "medium": 0.60, "high": 0.45}
 THRESHOLD_MIN, THRESHOLD_MAX = 0.30, 0.90
@@ -120,7 +120,7 @@ def mechanics() -> List[dict]:
 # ============================================================
 _PUNCT = re.compile(r"[^\w@\s]", re.U)
 # Thẻ bọc dữ liệu chat: bắt cả biến thể có khoảng trắng, hoa thường, thiếu ngoặc đóng ("</chat_data >", "< /chat_data").
-_MARKERS = re.compile(r"\[IM_LANG\]|\[BAO_CHU\]|\[TACH_TIN\]|\[\s*CAM_XUC[^\]\n]{0,20}\]|VANHANH_[A-Z_]+|<\s*/?\s*chat[_\s-]*data\b[^>\n]{0,40}>?", re.I)
+_MARKERS = re.compile(r"\[IM_LANG\]|\[BAO_CHU\]|\[TACH_TIN\]|\[\s*CAM_XUC[^\]\n]{0,20}\]|NAOTA_[A-Z_]+|<\s*/?\s*chat[_\s-]*data\b[^>\n]{0,40}>?", re.I)
 _CTRL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
 # Ký tự hiện ra là KHÔNG CÓ GÌ: model đọc được, chủ xem hộp thư thì không thấy, nên người lạ giấu lệnh vào đó
 # (ý lấy từ the-security-guide của repo ECC). Gồm: zero-width, đánh dấu và ghi đè hướng chữ (đảo thứ tự chủ
@@ -174,6 +174,28 @@ def clean_block(text: Any, limit: int = 3000) -> str:
 def _has_phrase(text_n: str, phrases: List[str]) -> bool:
     padded = " " + text_n + " "
     return any((" " + p + " ") in padded for p in phrases if p)
+
+
+# A re-ask phrase must look like a re-ask, not like an ordinary word (#1286). "up" inside "up ảnh giúp em" (post the
+# photos) and "hỏi lại" inside a long instruction were read as "nobody answered me", so the bot's earlier silence
+# was labeled missed. A one-word phrase counts only when it is the whole message ("up", "up up"); a two-word phrase
+# only in a short message; longer phrases ("sao khong tra loi") are specific enough anywhere.
+RE_ASK_SHORT_WORDS = 4
+
+
+def _re_ask(text_n: str, phrases: List[str]) -> bool:
+    words = text_n.split()
+    for p in phrases:
+        n = len((p or "").split())
+        if n == 1:
+            if words and all(w == p for w in words):
+                return True
+        elif n == 2:
+            if len(words) <= RE_ASK_SHORT_WORDS and _has_phrase(text_n, [p]):
+                return True
+        elif n and _has_phrase(text_n, [p]):
+            return True
+    return False
 
 
 def jaccard(a: set, b: set) -> float:
@@ -913,7 +935,13 @@ def assign_label(decision: dict, msg: Event, msg_level: str, profile: BotProfile
     sim = jaccard(set(tokens_of_text(msg.text)), set(tokens_of_text(decision.get("text"))))
     thanks = _has_phrase(t, kw["thanks"])
     if decision.get("verdict") == "silent":
-        if same_person and (_has_phrase(t, kw["re_ask"]) or sim >= 0.6):
+        # A reaction says nothing about an earlier silence (#1286). Its line quotes the message it was put on, so an
+        # owner's heart on a customer's question looked like "the owner answered the same topic", and two hearts in a
+        # row from one person looked like a re-ask (the two lines are the same template). 21 of 23 `missed` labels of
+        # one group bot came from this; each one also pushed that chat's threshold down.
+        if msg.is_reaction:
+            return None
+        if same_person and (_re_ask(t, kw["re_ask"]) or sim >= 0.6):
             return "missed", 1.0
         # Gọi tên ngay sau đó PHẢI cùng chủ đề (đặc tả 5.8). Chỉ cần "cùng người" là bắt nhầm: người đó hỏi chuyện
         # khác sau chuyện phiếm thì bot bị dạy đi chen vào chuyện phiếm.
@@ -1015,7 +1043,11 @@ def observe(ev: Event, profile: BotProfile, store, now: Optional[float] = None) 
         if res is None:
             continue
         label, weight = res
-        src = "owner" if ev.sender_role == "owner" else "auto"
+        # `owner` is for what the owner SAID to the bot (an explicit "stop" in the chat, a 👍/👎 in the log). A case
+        # from the owner weighs 100 times an automatic one and is never purged (store), so a `missed` or `correct`
+        # label merely inferred from an owner's message stays `auto` (#1286): it used to enter self-review as
+        # "the owner marked this missed" although nobody pressed anything.
+        src = "owner" if ev.sender_role == "owner" and label == "intruded" else "auto"
         if apply_label(store, profile, w, label, weight, sender=ev.sender_id, source=src, now=now):
             out.append((int(w["id"]), label, weight))
     return out

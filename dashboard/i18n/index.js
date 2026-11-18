@@ -1,6 +1,6 @@
 /* i18n cho dashboard - KHÔNG có bước build, KHÔNG có thư viện ngoài.
  *
- * Dashboard của Vanhanh là JS thuần phục vụ qua StaticFiles: không webpack, không vite, không
+ * Dashboard của Naota là JS thuần phục vụ qua StaticFiles: không webpack, không vite, không
  * bundler. Nên mọi giải pháp i18n "chuẩn công nghiệp" đều không lắp vào được, và đó là chuyện
  * tốt: cái vừa vặn ở đây nhỏ hơn nhiều so với một khung nặng.
  *
@@ -32,7 +32,7 @@
   // duyệt cũng không khớp từ điển nào. Hai vai khác nhau nên hai hằng, đừng gộp.
   var GOC = "vi";
   var DU_PHONG = "en";
-  var KHOA_LUU = "vanhanh.ui_lang";
+  var KHOA_LUU = "naota.ui_lang";
   var _lang = DU_PHONG;
   var _tu = {};        // ngôn ngữ đang chọn
   var _en = {};        // tiếng Anh, nấc suy biến đầu (rỗng khi đang chọn vi: không cần)
@@ -43,7 +43,7 @@
   var _cache = {};        // mã -> Promise<từ điển | null>, để dò trình duyệt không tải hai lần
   var _batDau = Date.now();
   var _hoiHen = 0;        // hẹn giờ thử lại khi từ điển gốc không về (xem _choMayChu)
-  var KHOA_HOI_SUC = "vanhanh.i18n_reload_at";
+  var KHOA_HOI_SUC = "naota.i18n_reload_at";
 
   function _doc_luu() {
     try { return localStorage.getItem(KHOA_LUU) || ""; } catch (e) { return ""; }
@@ -196,15 +196,60 @@
       // tự mang cookie theo, và localefmt.chu() phía server trả chữ đúng thứ tiếng. Cookie chứ
       // không header: không phải sửa hàng trăm lời gọi fetch rải khắp dashboard.
       try {
-        document.cookie = "vanhanh_lang=" + encodeURIComponent(_lang) + "; path=/; max-age=31536000; SameSite=Lax";
+        document.cookie = "naota_lang=" + encodeURIComponent(_lang) + "; path=/; max-age=31536000; SameSite=Lax";
       } catch (e) { /* trình duyệt chặn cookie: server rơi về ui_lang của cả máy */ }
       applyDom();
       // Báo cho phần còn lại của dashboard biết từ điển đã về. Alpine không theo dõi được
       // một object thuần, nên nơi nào vẽ nhãn từ `t()` phải nghe sự kiện này rồi vẽ lại.
       try {
-        window.dispatchEvent(new CustomEvent("vanhanh:i18n", { detail: { lang: _lang } }));
+        window.dispatchEvent(new CustomEvent("naota:i18n", { detail: { lang: _lang } }));
       } catch (e) { /* trình duyệt quá cũ - giao diện vẫn dùng được, chỉ là không tự vẽ lại */ }
+      _quetHenGio();
       return _lang;
+    });
+  }
+
+  /* Lưới an toàn cho chữ vẽ TRƯỚC khi từ điển về. Nhiều phần (chú thích menu trái, nút trong cây file, dòng dưới
+   * file đang ghim) gọi t() lúc từ điển chưa tới, nhận về nguyên mã khoá (`page.chat.label`, `app.pin_meta`) và
+   * không vẽ lại khi nghe "naota:i18n". Từ điển về thì rà cả trang một lượt: chữ hay thuộc tính nào ĐÚNG BẰNG một
+   * khoá có trong từ điển thì thay bằng bản dịch. Khoá cần tham số (bản dịch có "{") thì bỏ qua, vì không biết
+   * giá trị để điền. Rà thêm hai lần sau đó cho phần vẽ ngay sau sự kiện. */
+  var MA_KHOA = /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/;
+  var THUOC_TINH = ["title", "aria-label", "placeholder"];
+  function _dichKhoa(s) {
+    var k = String(s || "").trim();
+    if (!MA_KHOA.test(k)) return null;
+    if (!Object.prototype.hasOwnProperty.call(_tu, k) && !Object.prototype.hasOwnProperty.call(_goc, k)) return null;
+    var v = t(k);
+    if (!v || v === k || v.indexOf("{") >= 0) return null;
+    return v;
+  }
+  function quetMaSot(root) {
+    root = root || (typeof document !== "undefined" ? document.body : null);
+    if (!root || !root.querySelectorAll) return 0;
+    var n = 0;
+    var ds = root.querySelectorAll("[title],[aria-label],[placeholder]");
+    for (var i = 0; i < ds.length; i++) {
+      for (var j = 0; j < THUOC_TINH.length; j++) {
+        var cu = ds[i].getAttribute(THUOC_TINH[j]);
+        var moi = cu && _dichKhoa(cu);
+        if (moi) { ds[i].setAttribute(THUOC_TINH[j], moi); n++; }
+      }
+    }
+    if (typeof document !== "undefined" && document.createTreeWalker) {
+      var w = document.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */, null);
+      var nut;
+      while ((nut = w.nextNode())) {
+        var chu = _dichKhoa(nut.nodeValue);
+        if (chu) { nut.nodeValue = chu; n++; }
+      }
+    }
+    return n;
+  }
+  function _quetHenGio() {
+    if (typeof document === "undefined") return;
+    [0, 1000, 4000].forEach(function (ms) {
+      setTimeout(function () { try { quetMaSot(); } catch (e) { /* không để lưới an toàn làm hỏng trang */ } }, ms);
     });
   }
 
@@ -248,7 +293,7 @@
     return init(ma);
   }
 
-  // Nhãn hiển thị cho tên NHÓM / DANH MỤC do DỮ LIỆU mang tới (kho Kết nối, Vanhanh Store).
+  // Nhãn hiển thị cho tên NHÓM / DANH MỤC do DỮ LIỆU mang tới (kho Kết nối, Naota Store).
   // Giá trị gốc là tiếng Việt và đang làm KHOÁ lọc (`data-cat`, `data-kho-nhom`), nên không
   // đổi ở nguồn - chỉ đổi lúc VẼ. Cách tra: tìm khoá `cat.*` nào có bản tiếng Việt đúng bằng
   // tên gốc rồi lấy bản dịch của khoá đó, nên mã này không phải viết chuỗi Việt nào. Tên lạ
@@ -268,12 +313,13 @@
     return v === khoa ? goc : v;
   }
 
-  window.VanhanhI18n = {
+  window.NaotaI18n = {
     t: t,
     catLabel: catLabel,
     init: init,
     setLang: setLang,
     applyDom: applyDom,
+    quetMaSot: quetMaSot,
     lang: function () { return _lang; },
     ready: function () { return _san_sang; },
     /* true = máy này đã CHỌN ngôn ngữ (lưu trong localStorage), false = đang đoán theo trình
@@ -283,11 +329,11 @@
      * nữa - đó đúng là kiểu rải rác đã làm việc thêm ngôn ngữ trở nên đắt. */
     locale: function () { return t("_meta.number_locale") || "vi-VN"; },
   };
-  // Bí danh ngắn: `t("nav.viec")` đọc dễ hơn `VanhanhI18n.t("nav.viec")` ở chỗ dựng HTML.
+  // Bí danh ngắn: `t("nav.viec")` đọc dễ hơn `NaotaI18n.t("nav.viec")` ở chỗ dựng HTML.
   window.t = t;
 
   // Nạp NGAY, không chờ ai gọi. Script này đứng đầu danh sách trong index.html nên nó khởi
   // động sớm nhất có thể; các script sau vẫn chạy ngay (fetch là bất đồng bộ) và tự vẽ lại
-  // khi nghe "vanhanh:i18n".
+  // khi nghe "naota:i18n".
   init();
 })();

@@ -1,4 +1,4 @@
-# Contributing to VANHANH
+# Contributing to NAOTA
 
 The contributing guide has moved to [CONTRIBUTING.md](CONTRIBUTING.md). Bản tiếng Việt: [docs/i18n/vi/CONTRIBUTING.md](docs/i18n/vi/CONTRIBUTING.md).
 

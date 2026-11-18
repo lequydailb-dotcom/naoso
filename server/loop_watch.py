@@ -19,7 +19,7 @@ Slow spots. An incident starts at BLOCK_S (2 s): long enough to drop sockets, fa
 owner felt "a few seconds" on page loads and chat switches while the loop froze 0.3 to 1.5 s at a time (the Kanban
 dispatcher writing SQLite on the loop), and none of it reached this report. So every freeze of SLOW_S or more is
 sampled too: the watch thread takes the loop thread's stack each tick while it is frozen, and the freeze is counted
-against the Vanhanh code it was stuck in most often. GET /health/loop then lists the slow spots by total time lost
+against the Naota code it was stuck in most often. GET /health/loop then lists the slow spots by total time lost
 (`slow_top`) and the latest ones (`slow_recent`), on the owner's real machine instead of a guess.
 """
 from __future__ import annotations
@@ -38,11 +38,11 @@ from typing import Optional
 # 0.05 (was 0.25) so a freeze of a few hundred ms is measured to within 50 ms. One timer callback per tick.
 TICK_S = 0.05
 try:
-    BLOCK_S = max(0.2, float(os.environ.get("VANHANH_LOOP_BLOCK_S", "2")))
+    BLOCK_S = max(0.2, float(os.environ.get("NAOTA_LOOP_BLOCK_S", "2")))
 except ValueError:
     BLOCK_S = 2.0
 try:
-    SLOW_S = max(0.1, float(os.environ.get("VANHANH_LOOP_SLOW_S", "0.3")))
+    SLOW_S = max(0.1, float(os.environ.get("NAOTA_LOOP_SLOW_S", "0.3")))
 except ValueError:
     SLOW_S = 0.3
 SLOW_LOG_S = 1.0          # a slow spot this long also gets one line in the server log
@@ -82,7 +82,7 @@ def _stack_of(thread_id: Optional[int]) -> list:
 
 
 def _where(thread_id: Optional[int]) -> tuple:
-    """(place, stack) of the loop thread now: place = the three innermost Vanhanh frames, innermost first."""
+    """(place, stack) of the loop thread now: place = the three innermost Naota frames, innermost first."""
     frame = sys._current_frames().get(thread_id) if thread_id else None
     if frame is None:
         return "", []
@@ -222,7 +222,7 @@ def start(loop: Optional[asyncio.AbstractEventLoop] = None, state_dir: Optional[
     _state["since"] = time.time()
     _state["tick"] = time.monotonic()
     loop.create_task(_ticker())
-    threading.Thread(target=_watch, name="vanhanh-loop-watch", daemon=True).start()
+    threading.Thread(target=_watch, name="naota-loop-watch", daemon=True).start()
     _state["started"] = True
     return True
 

@@ -16,8 +16,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-_TMP = Path(tempfile.mkdtemp(prefix="vanhanh-acname-"))
-os.environ["VANHANH_STATE_DIR"] = str(_TMP / "state")
+_TMP = Path(tempfile.mkdtemp(prefix="naota-acname-"))
+os.environ["NAOTA_STATE_DIR"] = str(_TMP / "state")
 os.environ["HOME"] = str(_TMP / "home")
 os.environ["USERPROFILE"] = str(_TMP / "home")
 for v in ("CODEX_HOME", "GROK_HOME", "CLAUDE_CONFIG_DIR"):

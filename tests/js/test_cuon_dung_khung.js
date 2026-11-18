@@ -45,12 +45,12 @@ global.window = {
   t: (k) => k,
   getComputedStyle: (e) => ({ overflowY: e._oy || "auto" }),
   scrollTo: (x) => { global.window.daCuonTaiLieu = x.top; },
-  VanhanhWsSend: (o) => GUI.push(o),
-  VanhanhSessions: { current: () => "" },
+  NaotaWsSend: (o) => GUI.push(o),
+  NaotaSessions: { current: () => "" },
 };
 
 const A = require(path.join(ROOT, "dashboard", "ui-actions.js"));
-const UI = global.window.VanhanhUiActions;
+const UI = global.window.NaotaUiActions;
 
 async function cuon(target) {
   GUI = [];

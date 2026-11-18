@@ -18,7 +18,7 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-mem-bg-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-mem-bg-"))
 
 import memory_control as mc  # noqa: E402
 
@@ -31,7 +31,7 @@ def check(name, cond, extra=""):
         fails.append(name)
 
 
-base = Path(tempfile.mkdtemp(prefix="vanhanh-mem-bg-brains-"))
+base = Path(tempfile.mkdtemp(prefix="naota-mem-bg-brains-"))
 brain = base / "Shop"
 other = base / "Home"
 mem = brain / "memory"

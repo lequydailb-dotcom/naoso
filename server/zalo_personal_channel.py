@@ -1,9 +1,9 @@
-"""Adapter kênh Zalo CÁ NHÂN cho Hộp thư hội thoại: đọc tin mới từ MCP `vanhanh-zalo` rồi
+"""Adapter kênh Zalo CÁ NHÂN cho Hộp thư hội thoại: đọc tin mới từ MCP `naota-zalo` rồi
 đổ vào kho `conversations`.
 
 Ở Việt Nam khách nhắn qua Zalo cá nhân nhiều hơn mọi kênh khác, và không phải ai bán hàng cũng
 có Zalo OA. Nên tài khoản Zalo đã quét QR ở trang Kết nối phải là một KÊNH của Hộp thư, không
-phải một tool mà chỉ khi chủ hỏi Vanhanh mới đọc.
+phải một tool mà chỉ khi chủ hỏi Naota mới đọc.
 
 Cách làm: vòng lặp nền, mỗi `NHIP` giây gọi `zalo_get_messages` với cursor lần trước, chuẩn hoá
 từng tin về sự kiện chung rồi `conversations.ghi_su_kien`. Cursor lưu ở `sync_state` của kho,
@@ -13,9 +13,9 @@ Ba quyết định đáng ghi lại:
 
   1. **Chỉ ghi khi chủ BẬT cho từng tài khoản** (trang Hộp thư, mục Kênh). Vòng lặp này giữ
      tiến trình MCP sống liên tục (mỗi lần gọi là một lần chạm phiên), tức tài khoản Zalo đăng
-     nhập 24/7 qua API không chính thức. Đó là lựa chọn của chủ tài khoản, không phải của Vanhanh.
+     nhập 24/7 qua API không chính thức. Đó là lựa chọn của chủ tài khoản, không phải của Naota.
   2. **Không gọi `zalo_mark_read`.** Cursor của kho là cursor của kho; bộ đệm của MCP để nguyên
-     cho chủ hỏi Vanhanh "có tin Zalo mới không" như trước. Tool này là tool ĐỌC, không đụng quyền.
+     cho chủ hỏi Naota "có tin Zalo mới không" như trước. Tool này là tool ĐỌC, không đụng quyền.
   3. **Không đồng bộ lịch sử cũ.** Lần đầu bật chỉ lấy tin từ lúc bật trở đi (bộ đệm MCP vốn
      chỉ giữ tin từ khi tiến trình chạy), đúng luật của kho: lưu từ lúc kênh được nối.
 
@@ -40,14 +40,17 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import sys
+import tempfile
 import time
 from typing import Any, Dict, List, Optional
 
 import config as cfgmod
 import localefmt
 import conversations
+import zalo_push
 
 CONNECTOR_ID = "zalo"
 KENH = "zalo_personal"
@@ -104,6 +107,7 @@ def bat(conn_id: str, on: bool) -> dict:
         # Bật là bắt đầu từ BÂY GIỜ: bỏ cursor cũ để không kéo lại bộ đệm cũ của một lần bật trước.
         _TT.pop(cid, None)
         start()
+    wake()
     return {"ok": True, "id": cid, "theo_doi": bool(on)}
 
 
@@ -140,6 +144,8 @@ def tai_khoan() -> List[dict]:
             "theo_doi": bool(cfg.get(c["id"])),
             "lan_cuoi": tt.get("lan_cuoi") or 0, "loi": tt.get("loi") or "",
             "so_tin": int(tt.get("so_tin") or 0),
+            # True: naota-zalo tells Naota when a message arrives, so "last read" is not a heartbeat any more.
+            "push": push_active(c["id"]),
         })
     return out
 
@@ -159,9 +165,9 @@ async def _goi(conn: dict, tool: str, args: dict) -> Any:
 # ============================================================
 # Chat labels (tags the owner set in the Zalo app)
 # ============================================================
-# Read with vanhanh-zalo 1.6.0's `zalo_get_labels`. One call returns every label with its chats, so the whole map is
+# Read with naota-zalo 1.6.0's `zalo_get_labels`. One call returns every label with its chats, so the whole map is
 # kept per connection for `LABEL_TTL_S` and each incoming message only looks it up. A connection whose MCP has no such
-# tool (older vanhanh-zalo) or that fails is asked again only after `LABEL_RETRY_S`: a bot must never wait on Zalo for
+# tool (older naota-zalo) or that fails is asked again only after `LABEL_RETRY_S`: a bot must never wait on Zalo for
 # every message just to learn there are no labels.
 LABEL_TTL_S = 60
 LABEL_RETRY_S = 600
@@ -371,7 +377,7 @@ def _chu_danh_thiep(card: dict) -> str:
 def _link_anh(msg: dict) -> str:
     """Link of the photo in an image message, or "".
 
-    The MCP normalizes a photo as `attachment: {type, url: content.href, description: content.title}` (vanhanh-zalo,
+    The MCP normalizes a photo as `attachment: {type, url: content.href, description: content.title}` (naota-zalo,
     `normalizeMessage` in src/mcp/message-normalize.js; same shape as zalo-agent-cli 1.6.2). Earlier this was dropped here, so the inbox and the customer bot only ever got
     the caption and the bot answered "I can only see the caption". A bare photo also carries the link as its `text`."""
     att = msg.get("attachment") if isinstance(msg.get("attachment"), dict) else {}
@@ -383,9 +389,9 @@ def _link_anh(msg: dict) -> str:
 
 
 def _su_kien_vao_nhom(msg: dict) -> Optional[dict]:
-    """Someone joined the group (vanhanh-zalo >= 1.1.0): `{time, added_by, added_by_me}` in seconds, else None.
+    """Someone joined the group (naota-zalo >= 1.1.0): `{time, added_by, added_by_me}` in seconds, else None.
 
-    vanhanh-zalo puts each join in the live feed as a message of type `group.join` sent BY the newcomer, with
+    naota-zalo puts each join in the live feed as a message of type `group.join` sent BY the newcomer, with
     `event: {kind: "join", time (ms), addedBy, addedByMe}`. The type alone is enough; `event` adds detail."""
     ev = msg.get("event") if isinstance(msg.get("event"), dict) else {}
     if str(msg.get("type") or "").lower() != "group.join" and ev.get("kind") != "join":
@@ -395,9 +401,9 @@ def _su_kien_vao_nhom(msg: dict) -> Optional[dict]:
 
 
 def _su_kien_xin_vao(msg: dict) -> Optional[dict]:
-    """Someone asked to join a group that requires approval (vanhanh-zalo >= 1.2.0): `{time, total_pending}`, else None.
+    """Someone asked to join a group that requires approval (naota-zalo >= 1.2.0): `{time, total_pending}`, else None.
 
-    vanhanh-zalo puts each request in the live feed as a message of type `group.join_request` sent BY the applicant."""
+    naota-zalo puts each request in the live feed as a message of type `group.join_request` sent BY the applicant."""
     ev = msg.get("event") if isinstance(msg.get("event"), dict) else {}
     if str(msg.get("type") or "").lower() != "group.join_request" and ev.get("kind") != "join_request":
         return None
@@ -419,9 +425,9 @@ def cau_bao_xin_vao(conn: dict, chat_title: str, names: List[str]) -> str:
     nhom = chat_title or localefmt.chu("một nhóm", "a group")
     tk = conn.get("label") or "Zalo"
     return localefmt.chu(
-        f"Zalo ({tk}): {ai} đang xin vào nhóm \"{nhom}\". Nhắn Vanhanh \"duyệt\" hoặc \"từ chối\" để xử lý "
+        f"Zalo ({tk}): {ai} đang xin vào nhóm \"{nhom}\". Nhắn Naota \"duyệt\" hoặc \"từ chối\" để xử lý "
         f"(tài khoản này phải là trưởng hoặc phó nhóm).",
-        f"Zalo ({tk}): {ai} asked to join the group \"{nhom}\". Tell Vanhanh \"approve\" or \"reject\" to handle it "
+        f"Zalo ({tk}): {ai} asked to join the group \"{nhom}\". Tell Naota \"approve\" or \"reject\" to handle it "
         f"(this account must be the group's owner or a deputy).")
 
 
@@ -441,7 +447,7 @@ def _bao_xin_vao(conn: dict, theo_nhom: Dict[str, dict]) -> None:
 
 
 def _reaction_meta(conn: dict, msg: dict, thread: str, sender_id: str) -> dict:
-    """A reaction entry of the feed (vanhanh-zalo >= 1.7.0, `type: "reaction"`) -> `metadata.reaction`.
+    """A reaction entry of the feed (naota-zalo >= 1.7.0, `type: "reaction"`) -> `metadata.reaction`.
 
     Looks up the message it was put on in the inbox, so the line the judge and the Agent read says WHAT was reacted
     to and whose it was: `target_side` "ours" (this account: the bot or the owner), "self" (the reactor's own), or
@@ -539,7 +545,7 @@ def chuan_hoa_tin(conn: dict, msg: dict, ten: Dict[str, dict]) -> Optional[dict]
                          **({"join_request": xin_vao} if xin_vao is not None else {}),
                          **({"attachment": normalize_attachment(msg)} if loai == "file" else {}),
                          **({"image_url": _link_anh(msg)} if loai == "image" and _link_anh(msg) else {}),
-                         # the clip's link (vanhanh-zalo `attachment.url`), so the bot can look at its frames.
+                         # the clip's link (naota-zalo `attachment.url`), so the bot can look at its frames.
                          **({"video_url": _link_anh(msg)} if loai == "video" and _link_anh(msg) else {}),
                          # a voice message's link, so the bot can hear it (`chatbot_runtime.nghe_cho_bot`).
                          **({"audio_url": _link_anh(msg)} if loai == "audio" and _link_anh(msg) else {})),
@@ -549,7 +555,7 @@ def chuan_hoa_tin(conn: dict, msg: dict, ten: Dict[str, dict]) -> Optional[dict]
 # ============================================================
 # Nhập tin cũ
 # ============================================================
-# Đăng nhập Zalo vào Vanhanh lần đầu thì Hộp thư trống trơn, dù điện thoại có cả trăm cuộc chat. vanhanh-zalo
+# Đăng nhập Zalo vào Naota lần đầu thì Hộp thư trống trơn, dù điện thoại có cả trăm cuộc chat. naota-zalo
 # (từ 1.1.0) tự kéo tin cũ về mỗi lần kết nối, khoảng 2 tuần gần nhất theo cửa sổ phát lại của Zalo, rồi giữ trong kho lịch sử của
 # nó (`zalo_search_history`). Vòng đọc ở dưới không dùng kho đó: nó chỉ đọc bộ đệm tin MỚI (`zalo_get_messages`), đúng như quyết
 # định 3 ở đầu file. Nút "Nhập tin cũ" là lựa chọn riêng của chủ, không chạy tự động.
@@ -569,7 +575,7 @@ _DANG_NHAP: set = set()     # conn_id đang nhập: bấm hai lần liền khôn
 
 
 async def nhap_lich_su(conn_id: str, ngay: int = NHAP_NGAY) -> dict:
-    """Nhập tin cũ vanhanh-zalo đã giữ (tối đa `ngay` ngày, `NHAP_TOI_DA` tin) vào Hộp thư. Cuộc chat đã có tin chỉ nhận các tin cũ
+    """Nhập tin cũ naota-zalo đã giữ (tối đa `ngay` ngày, `NHAP_TOI_DA` tin) vào Hộp thư. Cuộc chat đã có tin chỉ nhận các tin cũ
     hơn tin đầu tiên của nó, xếp lên trên.
 
     Trả {"ok", "so_tin", "so_cuoc_chat", "het_tran"} hoặc {"ok": False, "loi"}."""
@@ -596,8 +602,8 @@ async def nhap_lich_su(conn_id: str, ngay: int = NHAP_NGAY) -> dict:
             except Exception as e:
                 if not tin:
                     return {"ok": False, "loi": localefmt.chu(
-                        f"vanhanh-zalo không trả được tin cũ: {str(e)[:200]}. Bản vanhanh-zalo cần từ 1.1.0 trở lên.",
-                        f"vanhanh-zalo could not return old messages: {str(e)[:200]}. vanhanh-zalo 1.1.0 or newer is needed.")}
+                        f"naota-zalo không trả được tin cũ: {str(e)[:200]}. Bản naota-zalo cần từ 1.1.0 trở lên.",
+                        f"naota-zalo could not return old messages: {str(e)[:200]}. naota-zalo 1.1.0 or newer is needed.")}
                 break
             trang = (d.get("messages") if isinstance(d, dict) else None) or []
             tin.extend(m for m in trang if isinstance(m, dict))
@@ -643,13 +649,13 @@ async def nhap_lich_su(conn_id: str, ngay: int = NHAP_NGAY) -> dict:
 # Catching up from the history (private chats)
 # ============================================================
 # Field report a private chat stopped in the inbox at 09:28 while the phone went on until 09:53,
-# messages both ways. `zalo_get_history` had every one of them, so they reached vanhanh-zalo but never its live buffer
-# (or never left it): the read loop above only sees that buffer. vanhanh-zalo files each message in its history first,
+# messages both ways. `zalo_get_history` had every one of them, so they reached naota-zalo but never its live buffer
+# (or never left it): the read loop above only sees that buffer. naota-zalo files each message in its history first,
 # and also fills the history from Zalo's replay after each reconnect, while the live feed only gets the replayed
 # messages of an outage it noticed.
 #
 # Driven by a signal, not a schedule ("only work where there is a signal, never on dead chats").
-# vanhanh-zalo (>= 1.5.0) appends every message it files to `<HOME>/.zalo-agent-cli/history.jsonl`, one JSON line each,
+# naota-zalo (>= 1.5.0) appends every message it files to `<HOME>/.zalo-agent-cli/history.jsonl`, one JSON line each,
 # and nothing else touches that file. So after each read the loop only asks the OS for the file's size: unchanged (an
 # idle day) costs one stat call and nothing more, no MCP call, no query. When it grew, the new lines are read and their
 # private-chat messages wait in `history_pending`; once old enough, only their ids are looked up in the inbox and the
@@ -663,7 +669,7 @@ async def nhap_lich_su(conn_id: str, ngay: int = NHAP_NGAY) -> dict:
 #      own recovered message still counts as typing by hand, so the bot keeps yielding in that chat.
 #   4. The account's own message is skipped when the inbox already holds the same sentence from the bot or the owner
 #      around that time (written before Zalo gave it an id); that row gets the id instead.
-#   5. Stickers and short emoji stay out, as in the live feed (vanhanh-zalo `ThreadFilter.shouldKeep`).
+#   5. Stickers and short emoji stay out, as in the live feed (naota-zalo `ThreadFilter.shouldKeep`).
 #   6. A message from before this server started reading the account is only written when the inbox already holds an
 #      older message of that chat (a hole in a chat it follows), so turning an account on never pulls hours of old
 #      chats in through this door ("Import old messages" does that). Nothing older than RECONCILE_WINDOW is written.
@@ -678,7 +684,7 @@ _EMOJI_ONLY = re.compile(r"^[\s\U0001F000-\U0001FAFF☀-➿️‍]*$")
 
 
 def history_path(conn: dict) -> str:
-    """vanhanh-zalo's history file for this connection (its session HOME, else this user's home)."""
+    """naota-zalo's history file for this connection (its session HOME, else this user's home)."""
     import os
     home = str(((conn or {}).get("env") or {}).get("HOME") or "") or os.path.expanduser("~")
     return os.path.join(home, *HISTORY_FILE)
@@ -733,7 +739,7 @@ def _parse_lines(raw: bytes, names: dict, oldest_ms: int) -> List[dict]:
 
 
 def watch_history(conn: dict, now: Optional[float] = None) -> int:
-    """The signal: read what vanhanh-zalo appended to its history file since the last look and queue its private-chat
+    """The signal: read what naota-zalo appended to its history file since the last look and queue its private-chat
     messages. Returns how many were queued. One stat call when nothing changed. Never raises."""
     import os
     now = time.time() if now is None else float(now)
@@ -742,7 +748,7 @@ def watch_history(conn: dict, now: Optional[float] = None) -> int:
     try:
         st = os.stat(path)
     except OSError:
-        return 0        # no file yet (nothing filed, or vanhanh-zalo older than 1.5.0)
+        return 0        # no file yet (nothing filed, or naota-zalo older than 1.5.0)
     size, ident = st.st_size, (st.st_dev, st.st_ino)
     off = tt.get("history_off")
     if off is not None and ident == tt.get("history_id") and size == off:
@@ -751,7 +757,7 @@ def watch_history(conn: dict, now: Optional[float] = None) -> int:
     try:
         with open(path, "rb") as f:
             if off is None or ident != tt.get("history_id") or size < off:
-                # First look in this lifetime, or vanhanh-zalo rewrote the file (compaction): only its tail matters, and
+                # First look in this lifetime, or naota-zalo rewrote the file (compaction): only its tail matters, and
                 # everything already in the inbox is filtered out later by id.
                 start = max(0, size - HISTORY_TAIL)
                 f.seek(start)
@@ -1061,18 +1067,18 @@ async def doc_mot_lan(conn: dict) -> dict:
     return {"moi": moi, "trung": trung}
 
 
-# vanhanh-zalo prints "Not logged in" when its stored sign-in no longer works: autoLogin swallows the real reason.
+# naota-zalo prints "Not logged in" when its stored sign-in no longer works: autoLogin swallows the real reason.
 _SIGNED_OUT_RE = re.compile(r"not logged in|auto-login failed|re-login retry failed|re-login failed", re.I)
 SIGNED_OUT_BELL_GAP_S = 6 * 3600
-# Lỗi chết của tiến trình vanhanh-zalo (src/commands/mcp.js) mà người dùng tự xử được, dịch ra lời thường.
+# Lỗi chết của tiến trình naota-zalo (src/commands/mcp.js) mà người dùng tự xử được, dịch ra lời thường.
 _LOI_ZALO = (
     (re.compile(r"duplicate zalo web session", re.I),
-     "Zalo đã ngắt phiên của Vanhanh vì tài khoản này vừa được mở ở nơi khác: Zalo Web trên trình duyệt "
-     "(chat.zalo.me) hoặc một máy Vanhanh khác cũng đăng nhập tài khoản này. Mỗi tài khoản chỉ giữ được một "
-     "phiên như vậy. Đóng nơi kia đi; Vanhanh tự nối lại sau khoảng 2 phút.",
-     "Zalo closed Vanhanh's session because this account was just opened somewhere else: Zalo Web in a "
-     "browser (chat.zalo.me) or another Vanhanh machine signed in to the same account. An account keeps only "
-     "one such session. Close the other one; Vanhanh reconnects by itself in about 2 minutes."),
+     "Zalo đã ngắt phiên của Naota vì tài khoản này vừa được mở ở nơi khác: Zalo Web trên trình duyệt "
+     "(chat.zalo.me) hoặc một máy Naota khác cũng đăng nhập tài khoản này. Mỗi tài khoản chỉ giữ được một "
+     "phiên như vậy. Đóng nơi kia đi; Naota tự nối lại sau khoảng 2 phút.",
+     "Zalo closed Naota's session because this account was just opened somewhere else: Zalo Web in a "
+     "browser (chat.zalo.me) or another Naota machine signed in to the same account. An account keeps only "
+     "one such session. Close the other one; Naota reconnects by itself in about 2 minutes."),
     (_SIGNED_OUT_RE,
      "Phiên đăng nhập Zalo của tài khoản này đã hết hạn hoặc bị đăng xuất. Vào trang Kết nối, đăng nhập "
      "lại Zalo bằng mã QR.",
@@ -1143,12 +1149,16 @@ def _clear_signed_out(conn: dict) -> None:
 async def _vong() -> None:
     print("[zalo-personal] vòng đọc bắt đầu", file=sys.stderr)
     while not _stop:
+        if _WAKE is not None:
+            _WAKE.clear()       # before the pass: whatever calls wake() from here on is seen by the next sleep
         try:
             cfg = _cau_hinh()
             # Có bot trực thì đọc dù công tắc Ghi hội thoại tắt: bot không đọc thì không trả lời được.
             bat_ids = {k for k, v in cfg.items() if v} | set(_BOTS)
+            conns = _ket_noi() if bat_ids else []
+            wait = _loop_wait([], set())        # the answer if this pass dies half way: nothing to read, sleep till woken
             if bat_ids:
-                for conn in _ket_noi():
+                for conn in conns:
                     if _stop or conn["id"] not in bat_ids:
                         continue
                     tt = _TT.setdefault(conn["id"], {})
@@ -1158,6 +1168,14 @@ async def _vong() -> None:
                     # Vòng có thể thức dày hơn NHIP (một tài khoản khác đang nóng): tài khoản chưa tới
                     # hạn thì để yên, khỏi tăng số lần gọi MCP của mọi tài khoản theo một cuộc chat.
                     if luc < float(tt.get("doc_toi") or 0):
+                        continue
+                    # Live push (2026-11-10): an account whose naota-zalo pushes is read when a wake-up is waiting
+                    # and NOT otherwise. `take` comes before the read, so a wake-up that lands while the read runs
+                    # is still pending afterwards.
+                    woken = zalo_push.take(conn["id"])
+                    if not woken and push_active(conn["id"]):
+                        await _idle_turn(conn, tt, luc)
+                        tt["doc_toi"] = luc + min(NHIP, _nhip_cua(conn["id"])) * 0.9
                         continue
                     try:
                         await doc_mot_lan(conn)
@@ -1177,25 +1195,155 @@ async def _vong() -> None:
                         await asyncio.to_thread(_history_turn, conn, tt)
                     _soi_tranh_phien(conn)
                     # Hạn sớm hơn một nhịp chút ít: vòng ngủ đúng một nhịp thì lần thức sau chắc chắn đã tới hạn.
-                    tt["doc_toi"] = luc + _nhip_cua(conn["id"]) * 0.9
+                    # A wake-up that arrived during this read: read again on the next pass, no wait. The interval
+                    # never goes past NHIP, so an account that pushed and then lost its process is looked at again
+                    # within one tick (`push_active` is false then, and the read restarts naota-zalo).
+                    tt["doc_toi"] = 0 if zalo_push.pending(conn["id"]) else luc + min(NHIP, _nhip_cua(conn["id"])) * 0.9
+            wait = _loop_wait(conns, bat_ids)
         except asyncio.CancelledError:
             raise
         except Exception as e:
             print(f"[zalo-personal vòng] {type(e).__name__}: {e}", file=sys.stderr)
+            wait = NHIP         # a pass that broke is tried again on the old tick, never left asleep
         try:
-            await asyncio.sleep(_nhip_vong())
+            await _sleep_or_wake(wait)
         except asyncio.CancelledError:
             raise
     print("[zalo-personal] vòng đọc dừng", file=sys.stderr)
 
 
 # ============================================================
+# Live push: read when naota-zalo says a message arrived (2026-11-10, see zalo_push.py)
+# ============================================================
+_WAKE: Optional[asyncio.Event] = None       # set by a wake-up, waited on by the loop between two passes
+_LOOP: Optional[asyncio.AbstractEventLoop] = None       # the event loop the read loop runs on (set in `start`)
+
+
+def wake() -> None:
+    """Make the read loop run a pass now. Safe from any thread and before the loop exists.
+
+    With live push the loop does not tick while there is nothing to do, so everything that gives it something to do
+    calls this: a wake-up from naota-zalo, a naota-zalo process that exited, a turn put on hold, a bot that took or
+    left its post, an account switched on, a connection saved on the Connections page."""
+    ev, loop = _WAKE, _LOOP
+    if ev is None or loop is None:
+        return
+    try:
+        if asyncio.get_running_loop() is loop:
+            ev.set()
+            return
+    except RuntimeError:
+        pass
+    try:
+        loop.call_soon_threadsafe(ev.set)
+    except RuntimeError:        # that loop is closed: nothing is waiting
+        pass
+
+
+def _on_mcp_exit(key: Any) -> None:
+    """A stdio MCP process ended (mcp_client.STDIO_EXIT_LISTENERS). When it is one of our accounts, read it now: the
+    read starts naota-zalo again and picks up what Zalo replays, instead of waiting for anything."""
+    cid = str(key or "")
+    if cid and (cid in _TT or cid in _BOTS):
+        _TT.setdefault(cid, {})["doc_toi"] = 0
+        wake()
+
+
+def _loop_wait(conns: List[dict], on_ids: set, now: Optional[float] = None) -> Optional[float]:
+    """How long the loop may sleep after a pass; None = until `wake()`.
+
+    An account whose naota-zalo pushes needs no tick at all: a message, a dead process and a config change each wake
+    the loop. It gets a short tick only WHILE a turn of its own is on hold (released by time, not by an event) or a
+    history check is queued. An account that does not push (older naota-zalo, process not started yet) keeps the
+    timer it always had, and a failed account is retried when its rest ends."""
+    now = time.time() if now is None else float(now)
+    waits: List[float] = []
+    for conn in conns:
+        cid = conn["id"]
+        if cid not in on_ids:
+            continue
+        tt = _TT.get(cid) or {}
+        rest = float(tt.get("nghi_toi") or 0)
+        if rest > now:
+            waits.append(rest - now)
+        elif zalo_push.pending(cid):
+            return 0.0
+        elif not push_active(cid):
+            waits.append(float(_nhip_cua(cid)))
+        elif any(k[0] == cid for k in _GOM):
+            waits.append(float(NHIP_NHANH))
+        elif any(k[0] == cid for k in _CHO_CHU) or tt.get("history_pending"):
+            waits.append(float(NHIP))
+    return min(waits) if waits else None
+
+
+def push_active(conn_id: str) -> bool:
+    """This account's naota-zalo pushes: a wake-up came from the MCP session that is alive right now. False for an
+    older naota-zalo, a process that died (the next pass reads, which restarts it), or with live push switched off."""
+    try:
+        import mcp_client
+        cid = str(conn_id or "")
+        if not mcp_client.pool.session_pid(cid):
+            return False
+        return zalo_push.active(cid, int(mcp_client.pool.epoch({"key": cid}) or 0))
+    except Exception:       # noqa: BLE001 - unsure means "read on the timer", the behavior before live push
+        return False
+
+
+def on_push(conn_id: str, body: dict) -> dict:
+    """A wake-up from naota-zalo for one connection (POST /zalo/push, checked there). Marks the account as due and
+    wakes the loop. Returns {"ok", "known"}; an unknown or disabled connection is answered ok so naota-zalo stops
+    retrying, and nothing is recorded for it."""
+    cid = str(conn_id or "").strip()
+    conn = ket_noi_theo_id(cid) if cid else None
+    if conn is None:
+        return {"ok": True, "known": False}
+    zalo_push.note(cid, body, _epoch(conn))
+    _TT.setdefault(cid, {})["doc_toi"] = 0
+    wake()
+    return {"ok": True, "known": True}
+
+
+async def _sleep_or_wake(seconds: Optional[float]) -> None:
+    """Sleep `seconds`, or until `wake()`; None = until `wake()` only. The pass that just ended cleared the event at
+    its START, so a `wake()` that came while it ran is still set here and the wait returns at once: nothing that
+    happens during a pass is lost."""
+    global _WAKE
+    if _WAKE is None:
+        _WAKE = asyncio.Event()
+    if seconds is None:
+        await _WAKE.wait()
+        return
+    try:
+        await asyncio.wait_for(_WAKE.wait(), timeout=max(0.05, float(seconds)))
+    except asyncio.TimeoutError:
+        pass
+
+
+async def _idle_turn(conn: dict, tt: dict, now: float) -> None:
+    """One pass over a pushing account with no wake-up waiting: everything a read used to do on the side, without
+    calling naota-zalo. No wake-up since the last read means no message since then, which is what releasing a held
+    turn needs to know (a customer who stopped typing, an owner who did not answer by hand)."""
+    cid = conn["id"]
+    try:
+        xa_hang_cho(cid, now)
+        xa_cho_chu(cid, now)
+        if tt.get("history_pending"):
+            await asyncio.to_thread(_history_turn, conn, tt)
+        _soi_tranh_phien(conn)
+    except asyncio.CancelledError:
+        raise
+    except Exception as e:      # noqa: BLE001
+        print(f"[zalo-personal {conn.get('label')}] idle pass: {type(e).__name__}: {e}", file=sys.stderr)
+
+
+# ============================================================
 # Another session evicting ours
 # ============================================================
 # Zalo keeps ONE live socket per account. When a second session of the same account is up (an `mcp start` an earlier
-# server lifetime left behind, Zalo Web of this nick in a browser, another Vanhanh or Claude client), ours is evicted
-# right after every re-login and vanhanh-zalo backs off up to five minutes. Reading still "works" (the buffer answers),
-# so the bot card stayed green while the bot heard only the few seconds after each reconnect (three hours of tags in two groups unanswered). vanhanh-zalo prints each close as
+# server lifetime left behind, Zalo Web of this nick in a browser, another Naota or Claude client), ours is evicted
+# right after every re-login and naota-zalo backs off up to five minutes. Reading still "works" (the buffer answers),
+# so the bot card stayed green while the bot heard only the few seconds after each reconnect (three hours of tags in two groups unanswered). naota-zalo prints each close as
 # "Connection closed (code: N). Re-login in Ss... (reconnect #R, rapid #K)"; K counts closes that came before the
 # connection was stable, so K >= THRASH_RAPID means a rival.
 THRASH_RAPID = 3
@@ -1206,7 +1354,7 @@ _THRASH_SEEN: Dict[str, tuple] = {}      # conn_id -> (session pid, last reconne
 
 
 def thrash_of(lines: List[str]) -> Optional[tuple]:
-    """(reconnect number, rapid count) of the latest close line in a vanhanh-zalo stderr tail, None when there is none."""
+    """(reconnect number, rapid count) of the latest close line in a naota-zalo stderr tail, None when there is none."""
     for line in reversed(lines or []):
         m = _THRASH_RE.search(str(line))
         if m:
@@ -1248,17 +1396,17 @@ def _soi_tranh_phien(conn: dict) -> None:
         tt["tranh_phien_bao"] = time.time()
         conversations.ghi_trang_thai(f"zalo_thrash_bell:{cid}", str(tt["tranh_phien_bao"]))
         tk = conn.get("label") or "Zalo"
-        don = (localefmt.chu(f" Vanhanh đã tắt {len(killed)} bản Zalo cũ còn chạy trên máy này.",
-                             f" Vanhanh stopped {len(killed)} old Zalo copy(ies) still running on this machine.")
+        don = (localefmt.chu(f" Naota đã tắt {len(killed)} bản Zalo cũ còn chạy trên máy này.",
+                             f" Naota stopped {len(killed)} old Zalo copy(ies) still running on this machine.")
                if killed else "")
         cau = localefmt.chu(
             f"Zalo ({tk}) đang bị một phiên khác của cùng nick giành kết nối: bot chỉ nghe được tin vài giây sau mỗi lần "
             f"nối lại, tin tag và tin nhắn riêng ở giữa bị lỡ.{don} Nếu vẫn tiếp diễn: đóng Zalo Web (chat.zalo.me) của "
-            "nick này trên mọi trình duyệt, tắt Vanhanh hoặc Claude khác đang dùng cùng nick, rồi bấm Kiểm tra ở trang "
+            "nick này trên mọi trình duyệt, tắt Naota hoặc Claude khác đang dùng cùng nick, rồi bấm Kiểm tra ở trang "
             "Kết nối.",
             f"Zalo ({tk}) is being evicted by another session of the same account: the bot only hears messages for a few "
             f"seconds after each reconnect, and tags and private messages in between are missed.{don} If it goes on: "
-            "close Zalo Web (chat.zalo.me) for this account in every browser, stop any other Vanhanh or Claude client "
+            "close Zalo Web (chat.zalo.me) for this account in every browser, stop any other Naota or Claude client "
             "using it, then click Check on the Connections page.")
         loop = asyncio.get_running_loop()
         t = loop.create_task(NOTIFY_OWNER("", cau, kind="system", label="Zalo", source="zalo"))
@@ -1294,8 +1442,89 @@ def start() -> bool:
     except RuntimeError:
         return False
     _stop = False
+    global _WAKE, _LOOP
+    _WAKE = asyncio.Event()     # a fresh one per loop lifetime: an Event belongs to the event loop that first waits on it
+    _LOOP = loop
+    _listen_for_wake_sources()
     _task = loop.create_task(_vong())
     return True
+
+
+def _listen_for_wake_sources() -> None:
+    """Ask the two modules that change things behind the loop's back to call it: a stdio MCP process that ends, and a
+    connection saved on the Connections page. Registered once; each is a plain list of callables there."""
+    try:
+        import mcp_client
+        if _on_mcp_exit not in mcp_client.STDIO_EXIT_LISTENERS:
+            mcp_client.STDIO_EXIT_LISTENERS.append(_on_mcp_exit)
+    except Exception as e:      # noqa: BLE001
+        print(f"[zalo-personal] exit listener not set: {type(e).__name__}: {e}", file=sys.stderr)
+    try:
+        import mcp_store
+        if wake not in mcp_store.ON_SAVE:
+            mcp_store.ON_SAVE.append(wake)
+    except Exception as e:      # noqa: BLE001
+        print(f"[zalo-personal] connection listener not set: {type(e).__name__}: {e}", file=sys.stderr)
+
+# The Zalo connection can restart without replaying an own message. Retain only
+# a previously verified self UID, not the bot name or any guessed mention target.
+_SELF_ID_PATH = cfgmod.STATE_DIR / "zalo-personal-self-ids.json"
+_SELF_ID_TTL = 30 * 86400
+
+
+def _self_ids() -> dict:
+    try:
+        if _SELF_ID_PATH.stat().st_size > 65536:
+            return {}
+        data = json.loads(_SELF_ID_PATH.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
+def _cached_self_uid(conn_id: str) -> str:
+    entry = _self_ids().get(str(conn_id))
+    if not isinstance(entry, dict):
+        return ""
+    uid = str(entry.get("uid") or "")
+    stamp = entry.get("ts")
+    if (not re.fullmatch(r"[0-9]{4,30}", uid) or not isinstance(stamp, (int, float))
+            or not 0 <= time.time() - stamp <= _SELF_ID_TTL):
+        return ""
+    return uid
+
+
+def _save_self_uid(conn_id: str, uid: str) -> None:
+    """Persist a Zalo ID only after a real outgoing group echo confirms it."""
+    if uid and not re.fullmatch(r"[0-9]{4,30}", uid):
+        return
+    data = _self_ids()
+    if uid:
+        old = data.get(str(conn_id))
+        stamp = old.get("ts") if isinstance(old, dict) else None
+        if (isinstance(stamp, (int, float)) and old.get("uid") == uid
+                and 0 <= time.time() - stamp < 86400):
+            return
+        data[str(conn_id)] = {"uid": uid, "ts": time.time()}
+    else:
+        data.pop(str(conn_id), None)
+    tmp = ""
+    try:
+        _SELF_ID_PATH.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(prefix=".zalo-self-", dir=str(_SELF_ID_PATH.parent))
+        with os.fdopen(fd, "w", encoding="utf-8") as out:
+            json.dump(data, out)
+        os.replace(tmp, _SELF_ID_PATH)
+    except OSError:
+        pass  # A read-only state directory must not stop the Zalo message loop.
+    finally:
+        if tmp:
+            try:
+                os.unlink(tmp)
+            except FileNotFoundError:
+                pass
+            except OSError:
+                pass
 
 
 def stop() -> None:
@@ -1404,7 +1633,7 @@ def _nap_danh_tinh() -> None:
     Trước đây `_ID_MINH` chỉ sống trong bộ nhớ: khởi động lại server là quên, và nick chưa tự gửi
     tin nào sau đó thì bot không biết tên Zalo của chính mình. Tag "@<tên Zalo>" trong nhóm khi ấy
     không khớp gì (nhãn kết nối thường đặt khác tên Zalo), bot coi là "không ai gọi" và im - lỗi
-    chủ đã gặp ngày 03/11/2026 với nhãn "Vanhanh Cường", tên Zalo "Tly Đại Lê"."""
+    chủ đã gặp ngày 03/11/2026 với nhãn "Naota Cường", tên Zalo "Tly Hoàng Ngọc Vương"."""
     global _ID_MINH_NAP
     if _ID_MINH_NAP:
         return
@@ -1465,6 +1694,10 @@ def _hoc_danh_tinh(conn_id: str, msg: dict) -> None:
         thay = cu.setdefault("_da_thay", set())
         thay.add(uid)
         cu["uid"] = uid if len(thay) == 1 else ""
+        # Private-chat echoes can report the other person's ID as self. Cache
+        # only a numeric self ID observed in a group, with Zalo's isSelf flag.
+        if msg.get("isSelf") is True and str(msg.get("threadType") or "") in ("1", "group"):
+            _save_self_uid(conn_id, cu["uid"])
     if ten:
         cu["ten"] = ten
     if (cu.get("uid"), cu.get("ten")) != truoc:
@@ -1492,6 +1725,14 @@ def nhan_dien_goi(conn_id: str, ev: dict, ten_khac=()) -> tuple:
     Không nhận ra thì cùng lắm chế độ Tự đánh giá vẫn bắt được câu hỏi thuộc tài liệu.
     """
     minh = danh_tinh(conn_id)
+    # A restart clears _ID_MINH. Recover a recently verified self identity
+    # without trusting arbitrary @Name text or treating other people's tags as ours.
+    if not minh.get("uid") and not minh.get("_da_thay"):
+        cached = _cached_self_uid(conn_id)
+        if cached:
+            minh = _ID_MINH.setdefault(str(conn_id), {})
+            minh["uid"] = cached
+            minh["_da_thay"] = {cached}
     uid = str(minh.get("uid") or "").strip()
     ten = {_chuan_ten(x) for x in (list(ten_khac or ()) + [minh.get("ten")]) if x}
     ten.discard("")
@@ -1517,7 +1758,7 @@ def nhan_dien_goi(conn_id: str, ev: dict, ten_khac=()) -> tuple:
 
 
 def _link_trong_quote(rt: dict) -> str:
-    """A photo link the quote itself carries, or "". vanhanh-zalo 1.4 gives `replyTo` only {senderId, senderName, text,
+    """A photo link the quote itself carries, or "". naota-zalo 1.4 gives `replyTo` only {senderId, senderName, text,
     msgId}; for a quoted photo Zalo may put the photo's serialized payload in `text` ({"href": ..., "thumb": ...}).
     Plain text is NOT read as a link: a quoted chat line that happens to hold a URL is not a photo."""
     for k in ("imageUrl", "image_url", "mediaUrl"):
@@ -1545,8 +1786,8 @@ def anh_duoc_quote(conn_id: str, thread: str, md: dict) -> str:
     Case: in a group someone quoted a product photo and tagged the bot to look at it; the bot only
     got the text and said it could not see the photo, so the owner's workaround was "send the photo, then tag the bot
     within 3 minutes". The quote carries the photo's message id (`replyTo.msgId`, Zalo's global id, the same id the
-    photo was stored under when Vanhanh read it), so the stored photo message gives the link. A link inside the quote
-    payload is the fallback, for a photo sent before Vanhanh started reading this account."""
+    photo was stored under when Naota read it), so the stored photo message gives the link. A link inside the quote
+    payload is the fallback, for a photo sent before Naota started reading this account."""
     rt = (md or {}).get("replyTo")
     if not isinstance(rt, dict):
         return ""
@@ -1603,6 +1844,7 @@ def quoted_file(conn_id: str, thread: str, md: dict) -> list:
 
 def dang_ky_bot(conn_id: str, tb: Any) -> None:
     _BOTS[str(conn_id)] = tb
+    wake()
     start()
 
 
@@ -1615,6 +1857,7 @@ def huy_dang_ky_bot(conn_id: str, tb: Any = None) -> None:
         # thì `xa_hang_cho` tự bỏ hàng chờ khi không còn bot trực, và tin quá `TUOI_TOI_DA` cũng bị
         # bỏ, nên bật lại sau đó không giao tin cũ.
         _NONG.pop(cid, None)
+        wake()
 
 
 def co_bot(conn_id: str) -> bool:
@@ -1630,7 +1873,7 @@ def _chuan(text: str) -> str:
 # Zalo's own markup for a tag, e.g. `<a_mention href="zm://Profile/100000001_mention">@Hoàng</a_mention> Ngọc Vương`.
 # Case: a group reply reached Zalo with this markup as plain text, so the group saw code instead
 # of a tag. The model copies it from messages that carry it, so it is stripped both ways: incoming (`chuan_hoa_tin`)
-# and outgoing (`channels.zalo_personal.gui`), leaving "@Đại Lê" for the real tag (`--mention`) to find.
+# and outgoing (`channels.zalo_personal.gui`), leaving "@Hoàng Ngọc Vương" for the real tag (`--mention`) to find.
 # The stripping lives in `zalo_markup` (also used by the MCP pool for direct tool calls) and also
 # removes broken fragments such as a leftover `href="zm://...">`.
 from zalo_markup import plain_text, strip_mention_markup  # noqa: E402,F401
@@ -1651,7 +1894,7 @@ def ghi_da_gui(conn_id: str, thread: str, text: str) -> None:
 def ghi_da_gui_anh(conn_id: str, thread: str, so: int = 1) -> None:
     """Bot is about to send `so` images: remember them so their echoes are not taken for the owner's hand.
 
-    Since vanhanh-zalo keeps the account's own messages in the live feed (flag `isSelf`), an image the bot sends comes
+    Since naota-zalo keeps the account's own messages in the live feed (flag `isSelf`), an image the bot sends comes
     back as an image "from the owner". It has no text to match, so without this the inbox shows it twice and the bot
     believes the owner just stepped in and goes quiet in that chat for TAY_IM seconds."""
     khoa = (str(conn_id), str(thread))
@@ -1876,6 +2119,7 @@ def _xep_cho(conn_id: str, ev: dict, now: Optional[float] = None) -> None:
     if now - ts > TUOI_TOI_DA:
         return      # tin cũ của bộ đệm: `xu_ly` cũng bỏ, đừng để nó giữ tài khoản ở nhịp đọc dày
     o = _GOM.setdefault((str(conn_id), str(ev.get("external_chat_id") or "")), {"evs": [], "cuoi": 0.0})
+    wake()      # a turn is on hold from now: the loop ticks until it is released (see _loop_wait)
     if len(o["evs"]) >= MAX_GOM_TIN:
         o["evs"][-1] = ev       # giữ mấy tin đầu (câu hỏi thật) và tin CUỐI (mã tin, giờ tin của lượt)
     else:
@@ -2062,7 +2306,7 @@ def lay_bo_do(conn_id: str, thread: str, now: Optional[float] = None) -> dict:
 # this only when the bot's yield minutes were saved explicitly (`yield_explicit`): a direct tag is answered at once,
 # other messages are held until the window ends and then answered one turn per person, through the bot's group
 # rules (judge, "reply when"). Without the setting groups stay silent for the whole window.
-# Hàng chờ chỉ nằm trong RAM: Vanhanh khởi động lại thì mất, tệ nhất là một tin không được trả lời thay, không bao giờ
+# Hàng chờ chỉ nằm trong RAM: Naota khởi động lại thì mất, tệ nhất là một tin không được trả lời thay, không bao giờ
 # là trả lời hai lần.
 CHO_CHU_TRA_LOI = 600   # giây chờ chủ trả lời tin khách tới lúc chủ đang nhắn tay; 0 = tắt (bỏ tin như trước đây)
 _CHO_CHU: Dict[tuple, dict] = {}    # (conn_id, thread) -> {"evs": [...], "dau": giờ tin khách đầu tiên chưa ai trả lời}
@@ -2075,6 +2319,7 @@ def _giu_cho_chu(conn_id: str, ev: dict, now: Optional[float] = None) -> None:
     if now - ts > TUOI_TOI_DA:
         return      # tin cũ của bộ đệm lúc mới bật, như `_xep_cho`
     o = _CHO_CHU.setdefault((str(conn_id), str(ev.get("external_chat_id") or "")), {"evs": [], "dau": ts})
+    wake()      # held for the owner from now: the loop ticks until the yield time is over (see _loop_wait)
     if len(o["evs"]) >= MAX_GOM_TIN:
         o["evs"][-1] = ev
     else:
@@ -2123,7 +2368,7 @@ def gop_cho_chu(evs: List[dict], cho: int = 0, tay: float = 0) -> dict:
         cho_chu = f"chủ nick nhắn tay lần cuối lúc {gio_tay} rồi {phut} phút không nhắn thêm gì nên tới lượt bạn"
     else:
         cho_chu = f"chủ nick chưa trả lời sau {phut} phút nên tới lượt bạn"
-    ghi = (f"[Ghi chú của Vanhanh, không phải lời khách: khách nhắn lúc {gio}, " + cho_chu
+    ghi = (f"[Ghi chú của Naota, không phải lời khách: khách nhắn lúc {gio}, " + cho_chu
            + (f"; khách gửi kèm {', '.join(kem)}" if kem else "") + ".]")
     md = dict(ev.get("metadata") or {})
     md["sau_chu_im"] = True
@@ -2187,7 +2432,8 @@ def _nhip_cua(conn_id: str, now: Optional[float] = None) -> int:
     if any(k[0] == cid for k in _GOM):
         return NHIP_NHANH
     now = time.time() if now is None else now
-    if CHO_KHACH_IM > 0 and now - float(_NONG.get(cid) or 0) < NONG_GIAY:
+    # The hot window exists to hear the customer's NEXT message quickly. A pushing account hears it at once.
+    if CHO_KHACH_IM > 0 and now - float(_NONG.get(cid) or 0) < NONG_GIAY and not push_active(cid):
         return NHIP_NHANH
     return NHIP
 

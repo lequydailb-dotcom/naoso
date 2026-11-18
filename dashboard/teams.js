@@ -6,7 +6,7 @@
 
    Gửi tin bằng POST /teams/{id}/messages kèm `client_msg_id`: rớt mạng thì gửi lại ĐÚNG mã cũ, server trả tin cũ, không
    thêm lượt hay việc. Câu trả lời và trạng thái về qua WebSocket chung (app.js đổi gói `team_message` / `team_state`
-   thành sự kiện `vanhanh:team-event`).
+   thành sự kiện `naota:team-event`).
 
    @: chọn từ gợi ý chèn "@Tên " vào chữ; lúc gửi, người được gọi là các "@Tên" CÒN trong chữ (xoá chữ là bỏ gọi).
 
@@ -30,10 +30,10 @@
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
-  // the (i) button and its hidden block (info-tip.js); in Node tests (no VanhanhInfo) the text is drawn open.
-  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(tw("info.more")) : ""; }
+  // the (i) button and its hidden block (info-tip.js); in Node tests (no NaotaInfo) the text is drawn open.
+  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(tw("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.VanhanhInfo;
+    var J = typeof window !== "undefined" && window.NaotaInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
   // Icon lấy từ bộ Lucide của dashboard; chạy trong Node (test) thì không có, trả chuỗi rỗng.
@@ -111,7 +111,7 @@
     { n: 3, key: "teams.level_3", desc: "teams.level_3_desc" }];
   // Sáu reaction, lý do, trục nói/im, chip, bộ chọn và trạng thái nằm ở reactions.js (bảng sáu emoji duy nhất của repo,
   // dùng chung với chat riêng; hợp đồng T2 mục 6). File này chỉ giữ tên hàm cũ làm lớp mỏng với họ class "tm".
-  var JR = (typeof window !== "undefined" && window.VanhanhReactions) || require("./reactions.js");
+  var JR = (typeof window !== "undefined" && window.NaotaReactions) || require("./reactions.js");
   var REACTIONS = JR.EMOJI;
   var COMMENT_MAX = JR.COMMENT_MAX;
   var INPUT_MAX_PX = 132;   // khung soạn tự cao theo chữ, tối đa khoảng năm dòng
@@ -134,7 +134,7 @@
   // Time, reply (quote), copy and pin in one row UNDER the bubble, like the main chat (beside the
   // bubble it looked cluttered). Shown on hover (mouse); touch screens use swipe left (reply) and long press.
   function actsApi() {
-    if (typeof window !== "undefined" && window.VanhanhActs) return window.VanhanhActs;
+    if (typeof window !== "undefined" && window.NaotaActs) return window.NaotaActs;
     try { return require("./chat-acts.js"); } catch (e) { return null; }
   }
 
@@ -175,15 +175,24 @@
   // accent colour, lists, code, tables), so the two chats read the same. Owner text stays plain like the main chat's
   // user bubble, with a reply quote block on top when the message quotes an earlier one.
   function quoteApi() {
-    if (typeof window !== "undefined" && window.VanhanhQuote) return window.VanhanhQuote;
+    if (typeof window !== "undefined" && window.NaotaQuote) return window.NaotaQuote;
     try { return require("./chat-quote.js"); } catch (e) { return null; }
   }
 
+  // A reply quote is "Name: words" (replyTarget). Returns {who, words}; who is "" when there is no name in front.
+  var QUOTE_WHO = /^([^:\n]{1,60}):\s+([\s\S]*)$/;
+  function quoteParts(q) {
+    var mm = QUOTE_WHO.exec(String(q == null ? "" : q));
+    return mm ? { who: mm[1], words: mm[2] } : { who: "", words: String(q == null ? "" : q) };
+  }
+
   function quoteHtml(q) {
-    var mm = /^([^:\n]{1,60}):\s+([\s\S]*)$/.exec(q);
+    var p = quoteParts(q);
     // the quote carries the same quote mark as the main chat's quote chip.
-    return '<div class="tm-quote"><span class="tm-quote-ico" aria-hidden="true">' + ic("quote") + "</span><span class=\"tm-quote-body\">" +
-      (mm ? "<b>" + esc(mm[1]) + "</b>" + esc(mm[2]) : esc(q)).replace(/\n/g, "<br>") + "</span></div>";
+    // 2026-11-14: it is a button. A tap scrolls back to the words it quotes, like the main chat (jumpToQuoted).
+    return '<button type="button" class="tm-quote tm-quote-src" data-quote-src="1" title="' + esc(tw("cact.quote_jump")) + '">' +
+      '<span class="tm-quote-ico" aria-hidden="true">' + ic("quote") + "</span><span class=\"tm-quote-body\">" +
+      (p.who ? "<b>" + esc(p.who) + "</b>" + esc(p.words) : esc(p.words)).replace(/\n/g, "<br>") + "</span></button>";
   }
 
   // An assistant's message that answers
@@ -253,7 +262,7 @@
       // anhV: the message's own time is the version of the pictures it shows, like the main chat, so a picture the AI
       // overwrote under the same name shows the new one in a newer message instead of the browser's cached copy.
       try {
-        return '<div class="tm-text msg-vanhanh tm-mdwrap"><div class="bubble">' + md(text, brain(), m.ts ? { anhV: String(m.ts) } : undefined) +
+        return '<div class="tm-text msg-naota tm-mdwrap"><div class="bubble">' + md(text, brain(), m.ts ? { anhV: String(m.ts) } : undefined) +
           "</div></div>";
       }
       catch (e) { /* fall through to plain text */ }
@@ -312,7 +321,7 @@
     var Q = quoteApi();
     var s = skillSplit(text).rest;
     if (Q) s = Q.tach(s).rest;
-    // Hidden blocks (VANHANH_CARD, VANHANH_ASK... are HTML comments) never show in a preview or a quote.
+    // Hidden blocks (NAOTA_CARD, NAOTA_ASK... are HTML comments) never show in a preview or a quote.
     s = s.replace(/<!--[\s\S]*?-->/g, " ").replace(/<!--[\s\S]*$/, " ");
     // a preview reads as text: pictures dropped, [label](path) and [[note|label]] become their label.
     s = s.replace(/!\[[^\]]*\]\([^)]*\)/g, " ").replace(/!\[\[[^\]]*\]\]/g, " ")
@@ -337,12 +346,12 @@
     return '<span class="' + avaClass(name) + '" aria-hidden="true">' + esc(initial(name)) + "</span>";
   }
 
-  // Ảnh trợ lý: ĐÚNG ảnh trợ lý đang dùng (bộ vẽ VanhanhAvatar của trang Cộng sự, theo slug và `avatar` trong file trợ
+  // Ảnh trợ lý: ĐÚNG ảnh trợ lý đang dùng (bộ vẽ NaotaAvatar của trang Cộng sự, theo slug và `avatar` trong file trợ
   // lý; trợ lý chưa chọn ảnh thì bộ vẽ tự suy từ slug, giống mọi trang khác). Chưa có bộ vẽ (test dưới node) thì về chữ
   // đầu trên nền màu.
   function agentAva(m, size) {
     m = m || {};
-    var A = typeof window !== "undefined" && window.VanhanhAvatar;
+    var A = typeof window !== "undefined" && window.NaotaAvatar;
     // `avatar_seed`: tác giả cũ không còn xác nhận được nhân dạng thì ảnh suy từ chính mã của họ, không suy từ slug (slug
     // có thể đã thuộc trợ lý mới; review 4f6268bd #1).
     if (A && A.html && m.slug) {
@@ -490,12 +499,12 @@
   }
   // The owner's own tag order (reorder-dialog.js, saved per page), else by name.
   function tagOrder(list) {
-    var R = typeof window !== "undefined" && window.VanhanhReorder;
+    var R = typeof window !== "undefined" && window.NaotaReorder;
     return R ? R.sortTags(list, "tags_teams", function (g) { return g.key; }, function (g) { return g.ten; })
       : list.sort(function (a, b) { return a.ten.localeCompare(b.ten, "vi"); });
   }
   function reorderTags(tags) {
-    var R = window.VanhanhReorder;
+    var R = window.NaotaReorder;
     R.open({ title: tw("reorder.title_tags"), items: tags.map(function (g) { return { id: g.key, label: g.ten, icon: "tag" }; }),
       save: function (keys) { return R.saveTags("tags_teams", keys); } });
   }
@@ -517,7 +526,7 @@
     return g ? g.ten : key;
   }
 
-  // The filter bar on top of the list: the Partners page's bar (VanhanhTagPicker.barHtml).
+  // The filter bar on top of the list: the Partners page's bar (NaotaTagPicker.barHtml).
   function tagBarHtml(teams, key) {
     var TP = tagPicker();
     if (!TP) return "";
@@ -525,7 +534,7 @@
                         canClear: !!key, pickTitle: tw("teams.tag_pick_title"), clearTitle: tw("ws.tag_clear_title") });
   }
 
-  // Rows of the filter dropdown (VanhanhChatSide.menu, the same dropdown the Partners page opens).
+  // Rows of the filter dropdown (NaotaChatSide.menu, the same dropdown the Partners page opens).
   function tagMenuRows(teams, key, pick) {
     var tags = allTags(teams);
     var none = (teams || []).filter(function (t) { return !(t.tags || []).length; }).length;
@@ -537,7 +546,7 @@
     tags.forEach(function (g) {
       rows.push({ label: g.ten, icon: "tag", right: String(g.n), on: key === g.key, run: function () { pick(g.key); } });
     });
-    if (tags.length > 1 && typeof window !== "undefined" && window.VanhanhReorder) {
+    if (tags.length > 1 && typeof window !== "undefined" && window.NaotaReorder) {
       rows.push({ sep: true });
       rows.push({ label: tw("reorder.menu_tags"), icon: "arrow-up-down", run: function () { reorderTags(tags); } });
     }
@@ -555,7 +564,7 @@
   }
 
   function tagPicker() {
-    if (typeof window !== "undefined" && window.VanhanhTagPicker) return window.VanhanhTagPicker;
+    if (typeof window !== "undefined" && window.NaotaTagPicker) return window.NaotaTagPicker;
     try { return require("./tag-picker.js"); } catch (e) { return null; }
   }
 
@@ -728,7 +737,7 @@
     } else if (mine && meta.as_job) {
       head.push('<span class="tm-tag tm-tag-new">' + ic("list-todo") + esc(tw("teams.as_job")) + "</span>");
     }
-    // a job Vanhanh Core gave the team on the owner's behalf (vanhanh_team op=dispatch).
+    // a job Naota Core gave the team on the owner's behalf (naota_team op=dispatch).
     if (mine && meta.via_core) head.push('<span class="tm-role">' + esc(tw("teams.via_core")) + "</span>");
     if (meta.job_result) head.push('<span class="tm-result">' + esc(tw("teams.job_result")) + "</span>");
     var late = !mine && LATE.indexOf(meta.status) >= 0;
@@ -1003,7 +1012,8 @@
   function jobStripHtml(q) {
     q = q || {};
     var running = q.running || [], blocked = q.blocked || [];
-    var h = running.length ? runningRowHtml(running[0], false) : "";
+    // 2026-11-12: a team runs up to three jobs at once (different assistants), so every running job has its line.
+    var h = running.slice(0, 3).map(function (t) { return runningRowHtml(t, false); }).join("");
     h += blocked.slice(0, 2).map(blockedCardHtml).join("");
     if (blocked.length > 2) {
       h += '<button type="button" class="ws-btn tm-jmore" data-open-jobs="1">' +
@@ -1093,7 +1103,7 @@
     });
     var md = typeof window !== "undefined" && window.mdToHtml;
     var res = String(j.result || "").trim();
-    var resHtml = res ? (md ? (function () { try { return '<div class="msg-vanhanh tm-mdwrap"><div class="bubble">' + md(res, brain()) + "</div></div>"; }
+    var resHtml = res ? (md ? (function () { try { return '<div class="msg-naota tm-mdwrap"><div class="bubble">' + md(res, brain()) + "</div></div>"; }
       catch (e) { return esc(res); } })() : esc(res).replace(/\n/g, "<br>")) : '<p class="tm-sub">' + esc(tw("teams.fin_no_result")) + "</p>";
     var when = j.updated_at ? new Date(Number(j.updated_at) * 1000).toLocaleString() : "";
     return '<div class="tm-report">' +
@@ -1416,7 +1426,7 @@
         "><span>" + esc(tw(TEAM_STATUS_KEY[s])) + "</span></label>";
     }).join("");
     // Ảnh nhóm: mặc định ghép từ gương mặt thành viên; "Tải ảnh lên" thay bằng ảnh riêng, lưu ngay không chờ nút Lưu.
-    var A = typeof window !== "undefined" && window.VanhanhAvatar;
+    var A = typeof window !== "undefined" && window.NaotaAvatar;
     var ava = A && A.uploadRowHtml ? '<div class="tm-field tm-ava-set"><span>' + esc(tw("teams.avatar")) + '</span><div class="tm-ava-row">' +
       teamAvatarHtml(team, 56) + '<div class="tm-ava-acts">' + A.uploadRowHtml(!!team.avatar_image, tw("teams.avatar_use_faces")) +
       "</div></div></div>" : "";
@@ -1821,22 +1831,30 @@
   }
 
   // Tab Nhóm: thành viên, mức tự quyết, số lần đã dùng hôm nay, tên và trạng thái; mọi con số trong Nâng cao (đóng sẵn).
+  //
+  // 2026-11-12 (a customer: "cài đặt của team khá phức tạp, nhiều thông số quá, cần đơn giản hơn, tập trung vào mục tiêu
+  // thôi"). What an owner decides for a team stays in view, in this order: who is in
+  // it, what it is for (the goal), how far the coordinator decides alone, whether outside actions need approval, its
+  // name and status. Acceptance, the usage figures, every limit, the detailed rights and the reply log sit in Advanced,
+  // closed by default. Nothing was removed and no handler changed: the blocks only moved.
   function teamTabHtml(team, agents, ui) {
     ui = ui || {};
     var nAct = (team.members || []).filter(function (m) { return !m.status || m.status === "active"; }).length;
     return '<section class="tm-sec"><div class="tm-qhead">' + esc(tw("teams.tab_members")) + " · " +
       esc(tw("teams.head_people", { n: nAct })) + "</div>" +
       membersHtml(team, agents, ui.openMember) + "</section>" +
-      '<section class="tm-sec">' + levelsHtml(team) + usageHtml(team) + "</section>" +
-      workModeHtml(team) + qualityPolicyHtml(team) + qualityUsageHtml(team.quality_usage, (team.quality_policy || {}).reference_usd) +
       mandateHtml(team, ui.mandateEdit) +
+      '<section class="tm-sec">' + levelsHtml(team) + usageHtml(team) + "</section>" +
+      workModeHtml(team) +
       '<section class="tm-sec"><div class="tm-qhead">' + esc(tw("teams.tab_team")) + "</div>" +
       '<label class="tm-rs tm-pin-row"><input type="checkbox" class="tm-pin-toggle"' + (team.pinned_at ? " checked" : "") +
       "><span>" + esc(tw("teams.pin_top")) + "</span></label>" + settingsFormHtml(team) + "</section>" +
       '<details class="tm-adv"' + (ui.advOpen ? " open" : "") + '><summary class="tm-adv-sum">' + esc(tw("teams.advanced")) +
       // The (i) may sit inside <summary>: info-tip.js cancels the click's default action, so it opens the note without
       // folding or unfolding the section.
-      infoBtn() + "</summary>" + infoBody(esc(tw("teams.advanced_note"))) + capsFormHtml(team) + authorityHtml(team) +
+      infoBtn() + "</summary>" + infoBody(esc(tw("teams.advanced_note"))) +
+      qualityPolicyHtml(team) + qualityUsageHtml(team.quality_usage, (team.quality_policy || {}).reference_usd) +
+      capsFormHtml(team) + authorityHtml(team) +
       limitsHtml(team) + turnsHtml(ui.turns || [], team) + "</details>";
   }
 
@@ -1883,9 +1901,17 @@
 
   // ───────────── phần chạy trong trình duyệt ─────────────
 
+  // A file opened from the chat covers the whole chat column (.tm-edit). Opening another team closes it first, so the
+  // team just picked shows instead of the last team's file. closeNote writes what is still unsaved, nothing typed is lost.
+  function closeDockedFile() {
+    var ed = typeof document !== "undefined" ? document.getElementById("noteEditor") : null;
+    if (!ed || !S || !S.el || !S.el.contains(ed)) return;
+    if (typeof window.NaotaCloseNote === "function") { try { window.NaotaCloseNote(); } catch (e) {} }
+  }
+
   function brain() {
     try {
-      if (window.VanhanhSessions && window.VanhanhSessions.brain) return window.VanhanhSessions.brain();
+      if (window.NaotaSessions && window.NaotaSessions.brain) return window.NaotaSessions.brain();
       return (window.currentBrainPath && window.currentBrainPath()) || "brain";
     } catch (e) { return "brain"; }
   }
@@ -1964,7 +1990,12 @@
       '<div class="tm-teams"></div><button type="button" class="ws-btn tm-more-teams" hidden>' + esc(tw("teams.next_page")) + "</button></aside>" +
       '<section class="tm-chat"><div class="tm-bar tm-chat-head"></div><div class="tm-search" hidden></div>' +
       '<div class="tm-banners"></div><div class="tm-jobs" hidden></div>' +
-      '<div class="tm-filterbar" hidden></div><div class="tm-pinbar" hidden></div><div class="tm-msgs" aria-live="polite"></div><div class="tm-composer"></div></section>' +
+      '<div class="tm-filterbar" hidden></div><div class="tm-pinbar" hidden></div><div class="tm-msgs" aria-live="polite"></div><div class="tm-composer"></div>' +
+      // 2026-11-15 (owner: files the team writes could not be clicked open): the frame the file editor docks into when a
+      // file link in the chat is clicked, like the Partners page's #wsEdit. It takes the whole chat column while open
+      // (console.css .tm-chat.edit-on); closing the file brings the chat back as it was. `data-ne-host` is how
+      // console.js finds it; without it the editor opened behind this page and nothing showed.
+      '<div class="tm-edit" data-ne-host></div></section>' +
       // Vùng thông báo chung NGOÀI khung chat: trên điện thoại khung chat bị ẩn khi đang ở danh sách, thông báo (vd. ghim
       // lỗi) vẫn phải nhìn thấy (review 4f6268bd #2).
       '<aside class="tm-side" hidden></aside><div class="tm-scrim" hidden></div><div class="tm-note" role="status" aria-live="polite" hidden></div></div>';
@@ -2330,6 +2361,7 @@
     grow(box.querySelector(".tm-input"));
     drawHint();
     drawTyping();
+    if (S.plusOpen) placePlusMenu(box);
     if (teamSuggest) teamSuggest.refresh();
     if (S.focusComposer && !off) {
       S.focusComposer = false;
@@ -2361,8 +2393,23 @@
   // The GitHub mark of the main chat (github-connect.js), so a team chat's repo looks the same.
   // The branch icon only when that file is missing.
   function ghLogo() {
-    var G = typeof window !== "undefined" && window.VanhanhGithubRepos;
+    var G = typeof window !== "undefined" && window.NaotaGithubRepos;
     return G && G.logo ? G.logo : ic("git-branch");
+  }
+
+  // The + menu and the panels it opens (folder, GitHub) sit just above the + button, not above the whole composer: with a
+  // reply bar, files attached or a few lines typed, the composer's top is far from the button (owner, 14/11/2026, the
+  // same fix as the main chat's popovers in model-picker.js).
+  function placePlusMenu(box) {
+    var menu = box.querySelector(".tm-plus-menu"), pb = box.querySelector(".tm-plus");
+    if (!menu || !pb || pb.offsetParent !== box) return;
+    menu.style.bottom = Math.max(0, box.clientHeight - pb.offsetTop + 6) + "px";
+  }
+  function placeAbovePlus(pop, comp) {
+    var r = comp.getBoundingClientRect(), pb = comp.querySelector(".tm-plus");
+    var top = pb && pb.offsetParent ? pb.getBoundingClientRect().top : r.top;
+    pop.style.left = Math.max(8, r.left + 8) + "px";
+    pop.style.bottom = Math.max(8, window.innerHeight - top + 6) + "px";
   }
 
   function plusMenuHtml(off) {
@@ -2396,13 +2443,13 @@
 
   // The last messages of the open team, for the rewrite at the end of a dictation (dictate.js polish).
   function dictContext() {
-    var D = typeof window !== "undefined" && window.VanhanhDictate;
+    var D = typeof window !== "undefined" && window.NaotaDictate;
     var box = S.el && S.el.querySelector(".tm-msgs");
     return D && D.recentMessages ? D.recentMessages(box, ".tm-msg .tm-text", 4) : [];
   }
 
   function toggleMic() {
-    var D = typeof window !== "undefined" && window.VanhanhDictate;
+    var D = typeof window !== "undefined" && window.NaotaDictate;
     if (!D) { setNote(tw("teams.mic_unsupported")); return; }
     if (S.dict && S.dict.active()) { S.dict.stop(); return; }
     if (S.dictState === "transcribing") return;
@@ -2480,7 +2527,7 @@
       key: !mine && active && (!active.status || active.status === "active") ? m.author_ref : "" };
   }
 
-  // A button of a VANHANH_CARD in an assistant's message (chat-card.js): its words are sent as the owner's reply to that
+  // A button of a NAOTA_CARD in an assistant's message (chat-card.js): its words are sent as the owner's reply to that
   // message, in this team (they used to go to the hidden main chat).
   function sendCardReply(btn, text) {
     var host = btn && btn.closest && btn.closest(".tm-msg");
@@ -2519,6 +2566,40 @@
     if (inp) { try { inp.focus(); } catch (e) {} }
   }
 
+  // Owner, 2026-11-14: a tap on the quote on top of the owner's message scrolls back to the exact words it quotes and
+  // marks them for a moment, like the main chat (quote-jump.js). Only the words after "Name: " are looked for. Not on
+  // screen any more: older pages load until it is. The message is found again by id after each load redraws the list.
+  function jumpToQuoted(btn) {
+    var J = typeof window !== "undefined" && window.NaotaQuoteJump;
+    var host = btn && btn.closest && btn.closest(".tm-msg");
+    if (!J || !host || !S) return;
+    var mid = host.getAttribute("data-mid"), cid = host.getAttribute("data-cid");
+    var m = mid ? msgById(Number(mid)) : null;
+    var p = !m && cid ? S.outbox.filter(function (x) { return x.cid === cid; })[0] : null;
+    var Q = quoteApi();
+    var text = m ? String(m.content == null ? "" : m.content) : p ? String(p.text || "") : "";
+    var quote = Q ? Q.tach(skillSplit(text).rest).quote : "";
+    var self = function () {
+      return S.el.querySelector(mid ? '.tm-msgs [data-mid="' + Number(mid) + '"]' : '.tm-msgs [data-cid="' + String(cid).replace(/"/g, "") + '"]');
+    };
+    J.go({
+      quote: quoteParts(quote).words,
+      candidates: function () {
+        var box = S.el.querySelector(".tm-msgs");
+        return box ? J.before(box.querySelectorAll(".tm-msg[data-mid]"), self()) : [];
+      },
+      roots: function (el) { return Array.prototype.slice.call(el.querySelectorAll(".tm-text")); },
+      scroller: function () { return S.el.querySelector(".tm-msgs"); },
+      beforeScroll: function () { if (S.scroll) S.scroll.setStuck(false); },
+      loadOlder: function () {
+        if (!S.hasMore || S.filterTask) return false;
+        var n = S.msgs.length;
+        return loadMsgs(true).then(function () { return S.msgs.length > n; });
+      },
+      flashClass: "tm-msg-flash"
+    });
+  }
+
   // What Copy puts on the clipboard, the same as the main chat: an assistant's answer as its visible markdown (headings,
   // bold, links kept; hidden metadata blocks dropped), the owner's own words without the quote of an earlier message.
   function copyTextOf(m) {
@@ -2529,7 +2610,7 @@
       var sk = skillSplit(text);
       return Q ? Q.tach(sk.rest).rest : sk.rest;
     }
-    var vm = typeof window !== "undefined" && window.VanhanhVisibleMarkdown;
+    var vm = typeof window !== "undefined" && window.NaotaVisibleMarkdown;
     return vm ? vm(text) : text;
   }
 
@@ -2600,12 +2681,12 @@
   function openAgentSettings(slug) {
     if (!slug) return;
     S.picker = null;
-    var St = typeof window !== "undefined" && window.VanhanhStudio;
+    var St = typeof window !== "undefined" && window.NaotaStudio;
     if (St && St.editAgent) {
       St.editAgent({ slug: slug }, { chatButton: true, onSaved: function () { loadTeam(); loadMsgs(false); } });
       return;
     }
-    if (window.VanhanhWorkspace && window.VanhanhWorkspace.openCommand) window.VanhanhWorkspace.openCommand("agent", slug);
+    if (window.NaotaWorkspace && window.NaotaWorkspace.openCommand) window.NaotaWorkspace.openCommand("agent", slug);
   }
 
   // Khung soạn một dòng, tự cao theo chữ tới khoảng năm dòng rồi cuộn trong.
@@ -2828,15 +2909,15 @@
     var nb = side.querySelector(".tm-side-body");
     if (nb && keep) nb.scrollTop = top;
     attachSideResize(side);
-    if (window.VanhanhPulse) {
+    if (window.NaotaPulse) {
       Array.prototype.forEach.call(side.querySelectorAll(".tm-pulse[data-pulse-slug]"), function (el) {
         var names = {};
         names[S.team.team_id] = S.team.name || "";
-        window.VanhanhPulse.mount(el, { slug: el.getAttribute("data-pulse-slug"), brain: brain(),
+        window.NaotaPulse.mount(el, { slug: el.getAttribute("data-pulse-slug"), brain: brain(),
           only: el.getAttribute("data-pulse-ctx"), teamNames: names });
       });
     }
-    if (window.VanhanhAgentJudge && window.VanhanhAgentJudge.hydrate) window.VanhanhAgentJudge.hydrate(side);
+    if (window.NaotaAgentJudge && window.NaotaAgentJudge.hydrate) window.NaotaAgentJudge.hydrate(side);
   }
 
   function drawAll(stick) {
@@ -2861,12 +2942,12 @@
   // Nút xử lý trên dòng lỗi của lượt trả lời.
   function replyAct(kind, slug, btn) {
     if (kind === "models") {
-      if (typeof window !== "undefined" && window.VanhanhNav && window.VanhanhNav.go) window.VanhanhNav.go("models");
+      if (typeof window !== "undefined" && window.NaotaNav && window.NaotaNav.go) window.NaotaNav.go("models");
       return;
     }
     if (kind === "agent") {
-      if (typeof window !== "undefined" && window.VanhanhWorkspace && window.VanhanhWorkspace.openCommand) {
-        window.VanhanhWorkspace.openCommand("agent", slug);
+      if (typeof window !== "undefined" && window.NaotaWorkspace && window.NaotaWorkspace.openCommand) {
+        window.NaotaWorkspace.openCommand("agent", slug);
       }
       return;
     }
@@ -2936,7 +3017,7 @@
       openTeam(teamId, taskId);
       return;
     }
-    if (typeof window !== "undefined" && window.VanhanhNav && window.VanhanhNav.go) window.VanhanhNav.go("teams");
+    if (typeof window !== "undefined" && window.NaotaNav && window.NaotaNav.go) window.NaotaNav.go("teams");
   }
 
   function loadAgents() {
@@ -2956,7 +3037,7 @@
     });
   }
 
-  // Nhóm đang mở vừa bị xoá (Vanhanh xoá bằng công cụ vanhanh_team, hay tab khác bấm xoá): đóng khung chat về trạng
+  // Nhóm đang mở vừa bị xoá (Naota xoá bằng công cụ naota_team, hay tab khác bấm xoá): đóng khung chat về trạng
   // thái trống thay vì giữ một nhóm không còn, ô soạn vẫn mở mà gửi tin nào cũng lỗi.
   function closeGone(id) {
     if (!S || S.activeId !== id) return;
@@ -3053,6 +3134,7 @@
   function openTeam(id, taskId) {
     keepTeam();
     dropNextSug();
+    closeDockedFile();
     S.jumped = null; S.searchResults = null; S.searchQuery = ""; S.searchOpen = false;
     S.activeId = id; S.view = "chat"; S.asJob = false; S.pending = null; S.filterTask = String(taskId || "");
     S.team = null; S.queue = null; S.msgs = []; S.msgsFor = ""; S.taskTitles = {}; S.openMember = null; S.turns = [];
@@ -3061,7 +3143,7 @@
     S.side = sideByDefault();
     if (S.side) S.tab = "info";
     S.picker = null; S.draft = null; S.picked = []; S.retrying = {};
-    S.replyTo = null; S.plusOpen = false; S.renamingHead = false; forgetAtts(S.atts); S.atts = []; S.folder = null; S.repos = []; S.ghIcon = null; S.info = null;
+    S.replyTo = null; S.plusOpen = false; S.renamingHead = false; forgetAtts(S.atts); S.atts = []; S.folder = null; S.repos = []; S.ghIcon = null; S.info = null; S.infoFind = null;
     S.typing = []; S.pinned = []; S.pinsOpen = false; S.unclamped = {}; S.listCache = null; S.outbox = []; stopReveal();
     closeFolderPanel();
     closeGithubPanel();
@@ -3086,7 +3168,7 @@
   }
 
   // The side panel's open/closed choice on a wide screen, per device (localStorage). Never stored: open.
-  var SIDE_CLOSED_KEY = "vanhanh.teams.sideClosed";
+  var SIDE_CLOSED_KEY = "naota.teams.sideClosed";
   function sideByDefault() {
     var wide = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(min-width: 1061px)").matches;
     if (!wide) return false;
@@ -3130,7 +3212,7 @@
   }
 
   // The chosen tag filter is a per-device convenience (localStorage); a blocked storage only forgets it.
-  var TAG_FILTER_KEY = "vanhanh.teams.tagFilter";
+  var TAG_FILTER_KEY = "naota.teams.tagFilter";
   function readTagFilter() {
     try { return (typeof localStorage !== "undefined" && localStorage.getItem(TAG_FILTER_KEY)) || ""; } catch (e) { return ""; }
   }
@@ -3178,7 +3260,7 @@
   // Send is never blocked for good (it waits for busy chips). Resolves { code, j } like call(); rejects an Error with
   // `kind` once the retries are spent.
   function upload(file, a) {
-    var U = typeof window !== "undefined" && window.VanhanhUpload;
+    var U = typeof window !== "undefined" && window.NaotaUpload;
     if (!U) {
       var fd0 = new FormData();
       fd0.append("file", file);
@@ -3241,11 +3323,33 @@
     }).catch(function (e) { a.busy = false; a.err = uploadError(e); drawComposer(); });
   }
 
-  function pickFiles(onDone) {
+  // The file picker input lives IN the page until the pick is done (2026-11-15). Owner, on an iPhone: "chọn được nhưng
+  // gửi không được, không đính kèm được" when several photos were picked. The input used to be created and clicked
+  // without ever joining the page, so nothing held it while iOS Safari prepared the photos (several take seconds); it
+  // was dropped and its change event never came, so no chip appeared. One photo was quick enough to slip through. The
+  // main chat never had this: its #fileInput is in index.html. One picker at a time; the next pick replaces it.
+  var pickerEl = null;
+  function dropPicker() {
+    if (pickerEl && pickerEl.parentNode) pickerEl.parentNode.removeChild(pickerEl);
+    pickerEl = null;
+  }
+  function pickFiles(onDone, accept) {
+    dropPicker();
     var inp = document.createElement("input");
-    inp.type = "file"; inp.multiple = true;
-    inp.addEventListener("change", function () { onDone(Array.prototype.slice.call(inp.files || [])); });
+    inp.type = "file";
+    if (accept) inp.accept = accept; else inp.multiple = true;
+    inp.className = "tm-picker";
+    inp.style.display = "none";
+    inp.addEventListener("change", function () {
+      var files = Array.prototype.slice.call(inp.files || []);
+      if (files.length) onDone(files);
+    });
+    // Closed without a pick: nothing to keep (browsers without this event drop it at the next pick).
+    inp.addEventListener("cancel", function () { if (pickerEl === inp) dropPicker(); });
+    document.body.appendChild(inp);
+    pickerEl = inp;
     inp.click();
+    return inp;
   }
 
   function attachFiles(files) {
@@ -3296,7 +3400,7 @@
     // paste inline / attach .txt / cancel, like the main chat (chat-paste.js).
     var input = e.target;
     if (!(input && input.classList && input.classList.contains("tm-input"))) return;
-    var paste = typeof window !== "undefined" ? window.VanhanhPaste : null;
+    var paste = typeof window !== "undefined" ? window.NaotaPaste : null;
     var txt = (cd && cd.getData("text/plain")) || "";
     if (!paste || !paste.isLong(txt)) return;
     e.preventDefault(); e.stopPropagation();
@@ -3339,7 +3443,7 @@
     }
     if (S.repos.length) {
       // The GitHub repos of the team chat. The name opens the picker; the status (once pushed) opens the detail.
-      var G = window.VanhanhTeamGithub, names = S.repos.map(function (r) { return r.full_name; });
+      var G = window.NaotaTeamGithub, names = S.repos.map(function (r) { return r.full_name; });
       var stKey = S.ghIcon && S.ghIcon.state ? "gh.st_" + S.ghIcon.state : "";
       h += '<span class="tm-chip tm-chip-gh" title="' + esc(tw("gh.chip_label", { names: names.join(", ") })) + '">' + ghLogo() +
         '<button type="button" class="tm-chip-name" data-gh-open="1">' + esc(G ? G.chipText(names, 18) : names[0]) + "</button>" +
@@ -3373,10 +3477,10 @@
       }).catch(function () {}).then(loadRepos);
   }
 
-  // GitHub repos attached to the team chat (team-github.js). Work/Help steps edit them and Vanhanh pushes once a
+  // GitHub repos attached to the team chat (team-github.js). Work/Help steps edit them and Naota pushes once a
   // job is done, like a private chat.
   function loadRepos() {
-    var sid = sessionId(), G = window.VanhanhTeamGithub;
+    var sid = sessionId(), G = window.NaotaTeamGithub;
     if (!sid || !G) return Promise.resolve();
     return G.load(sid, brain()).then(function (d) {
       if (!d || sessionId() !== sid) return;
@@ -3399,16 +3503,14 @@
   function githubOutside(e) { if (!(e.target.closest && e.target.closest(".tm-gh-pop, .info-pop, .info-pop-bg"))) closeGithubPanel(); }
   function githubEsc(e) { if (e.key === "Escape") closeGithubPanel(); }
   function openGithubPanel() {
-    var G = window.VanhanhTeamGithub;
+    var G = window.NaotaTeamGithub;
     var comp = S.el.querySelector(".tm-composer");
     if (!G || !comp || !S.team || !sessionId()) return;
     closeGithubPanel();
     closeFolderPanel();
-    var r = comp.getBoundingClientRect();
     var pop = document.createElement("div");
     pop.className = "cp-menu tm-folder-pop tm-gh-pop";
-    pop.style.left = Math.max(8, r.left + 8) + "px";
-    pop.style.bottom = Math.max(8, window.innerHeight - r.top + 6) + "px";
+    placeAbovePlus(pop, comp);
     pop.innerHTML = '<div class="cp-mi cp-back">' + esc(tw("gh.menu")) + infoBtn() + "</div>" +
       infoBody(esc(tw("teams.gh_how"))) + '<div class="cp-sep"></div><div class="tm-gh-body"></div>';
     document.body.appendChild(pop);
@@ -3418,7 +3520,7 @@
       current: function () { return S.repos.map(function (x) { return x.full_name; }); },
       changed: function (d) { if (sessionId() === sid) setRepos(d); },
       close: closeGithubPanel,
-      connections: function () { try { window.Alpine.store("nav").go("mcp"); } catch (e) { location.hash = "#mcp"; } } });
+      connections: function () { try { window.Alpine.store("nav").go("mcp"); } catch (e) { location.hash = "#p=mcp"; } } });
     setTimeout(function () {
       document.addEventListener("mousedown", githubOutside, true);
       document.addEventListener("keydown", githubEsc, true);
@@ -3448,15 +3550,13 @@
   function folderOutside(e) { if (!(e.target.closest && e.target.closest(".tm-folder-pop"))) closeFolderPanel(); }
   function folderEsc(e) { if (e.key === "Escape") closeFolderPanel(); }
   function openFolderPanel() {
-    var P = window.VanhanhPinnedFolder && window.VanhanhPinnedFolder.panelFor;
+    var P = window.NaotaPinnedFolder && window.NaotaPinnedFolder.panelFor;
     var comp = S.el.querySelector(".tm-composer");
     if (!P || !comp || !S.team) return;
     closeFolderPanel();
-    var r = comp.getBoundingClientRect();
     var pop = document.createElement("div");
     pop.className = "cp-menu tm-folder-pop";
-    pop.style.left = Math.max(8, r.left + 8) + "px";
-    pop.style.bottom = Math.max(8, window.innerHeight - r.top + 6) + "px";
+    placeAbovePlus(pop, comp);
     pop.innerHTML = '<div class="cp-mi cp-back">' + esc(tw("cp.pin_folder")) + '</div><div class="cp-sep"></div><div class="tm-folder-body"></div>';
     document.body.appendChild(pop);
     P({ brain: brain, current: function () { return S.folder; }, pin: pinTeamFolder,
@@ -3477,6 +3577,64 @@
         S.info = { files: (d && d.files) || [], links: (d && d.links) || [], err: d && d.ok === false ? (d.error || "") : "" };
         if (S.side && S.tab === "info") drawSide(true);
       }).catch(function () { S.info = { files: [], links: [], err: tw("teams.err_network") }; if (S.side && S.tab === "info") drawSide(true); });
+  }
+
+  // 2026-11-12: a file already in the brain joins the team without being uploaded again. S.infoFind keeps what was
+  // typed and found, so a redraw of the panel (a new message, the list reloading) puts both back.
+  var infoFindTimer = null;
+  // /files/search rows with a folder's path ending in "/" (team-picker.js owns the rule; the fallback keeps files).
+  function searchRows(items) {
+    var P = TP();
+    return P && P.searchRows ? P.searchRows(items) : (items || []).filter(function (it) { return it.type !== "dir"; })
+      .map(function (it) { return { path: it.path, name: it.name }; });
+  }
+  function infoFindRows() {
+    var F = S.infoFind;
+    if (!F || !String(F.q || "").trim()) return "";
+    if (F.state === "searching") return '<p class="tm-sub" role="status">' + esc(tw("teams.pick.doc_searching")) + "</p>";
+    if (!(F.items || []).length) return '<p class="tm-sub">' + esc(tw("teams.pick.doc_none")) + "</p>";
+    var have = {};
+    ((S.info && S.info.files) || []).forEach(function (f) { have[f.path] = true; });
+    return '<ul class="tm-info-list tm-info-found">' + F.items.map(function (it, i) {
+      var on = !!have[it.path] || !!(F.added || {})[it.path];
+      return "<li><span>" + ic(it.dir ? "folder" : "file-text") + '<span title="' + esc(it.path) + '">' + esc(it.name) + "</span></span>" +
+        '<button type="button" class="ws-btn" data-info-pick="' + i + '"' + (on ? " disabled" : "") + ">" +
+        esc(tw(on ? "teams.pick.doc_added" : "teams.pick.doc_add")) + "</button></li>";
+    }).join("") + "</ul>";
+  }
+  function drawInfoFind() {
+    var box = S.el && S.el.querySelector(".tm-info-fresults");
+    if (box) box.innerHTML = infoFindRows();
+  }
+  function infoFind(text) {
+    var F = S.infoFind = S.infoFind || { q: "", items: [], state: "idle", seq: 0, added: {} };
+    F.q = text;
+    clearTimeout(infoFindTimer);
+    var words = String(text || "").trim(), seq = ++F.seq;
+    if (!words) { F.items = []; F.state = "idle"; drawInfoFind(); return; }
+    F.state = "searching";
+    drawInfoFind();
+    infoFindTimer = setTimeout(function () {
+      // include_dirs (2026-11-12): a whole folder of the brain can join the team as one document.
+      call("GET", "/files/search?mode=name&include_dirs=true&limit=20&q=" + q(words)).then(function (r) {
+        return r.code === 200 ? (r.j.items || []) : [];
+      }, function () { return []; }).then(function (items) {
+        if (S.infoFind !== F || F.seq !== seq) return;
+        F.items = searchRows(items);
+        F.state = "done";
+        drawInfoFind();
+      });
+    }, 280);
+  }
+  function infoPick(i) {
+    var F = S.infoFind, it = F && (F.items || [])[i];
+    if (!it || !S.team) return;
+    F.added[it.path] = true;
+    drawInfoFind();
+    call("POST", teamUrl("/files"), { attachments: [{ brain_path: it.path, name: it.name }] }).then(function (r) {
+      if (r.code !== 200) { delete F.added[it.path]; setNote((r.j && r.j.error) || tw("teams.attach_err")); drawInfoFind(); }
+      loadInfo();
+    }, function () { delete F.added[it.path]; setNote(tw("teams.err_network")); drawInfoFind(); });
   }
 
   function assetPost(path, form) {
@@ -3512,6 +3670,26 @@
         loadInfo();
       });
     });
+  }
+
+  // 2026-11-13: one line saying what a team document holds, read by every member turn. Naota writes it (tool
+  // naota_project team=...), the owner writes or fixes it with the pencil. Only a document attached to the team (with an
+  // id) has a row to describe.
+  function descLine(x) {
+    return x.description ? '<span class="tm-info-desc">' + esc(x.description) + "</span>" : "";
+  }
+  function descBtn(x, kind) {
+    if (!(x.manual && x.id)) return "";
+    return '<button type="button" class="tm-chip-x' + (x.description ? " on" : "") + '" data-info-desc="' + kind + '" data-ref="' +
+      esc(kind === "link" ? x.url : x.path) + '" data-desc="' + esc(x.description || "") + '" aria-label="' +
+      esc(tw("teams.info_desc")) + '" title="' + esc(tw("teams.info_desc")) + '">' + ic("pencil") + "</button>";
+  }
+  function describeDoc(kind, ref, old) {
+    var text = window.prompt(tw("teams.info_desc_q"), old || "");
+    if (text == null || text.trim() === (old || "")) return;
+    var f = new FormData();
+    f.append("kind", kind); f.append("ref", ref); f.append("description", text.trim());
+    return assetPost("/describe", f);
   }
 
   // The info panel: who is in the team, the working folder, pictures, files and links shared in it.
@@ -3556,9 +3734,17 @@
     h += '<section class="tm-info-sec"><div class="tm-info-sechead"><h4>' + esc(tw("teams.info_files", { n: docs.length })) + infoBtn() + "</h4>" +
       '<button type="button" class="ws-btn" data-info-add-file="1">' + ic("plus") + " " + esc(tw("teams.info_add_file")) + "</button></div>" +
       infoBody(esc(tw("teams.info_files_help"))) +
+      '<div class="tm-info-addlink"><input type="search" class="tm-info-fsearch" value="' + esc((S.infoFind && S.infoFind.q) || "") +
+      '" placeholder="' + esc(tw("teams.pick.doc_search_ph")) + '" aria-label="' + esc(tw("teams.pick.doc_search_ph")) + '"></div>' +
+      '<div class="tm-info-fresults">' + infoFindRows() + "</div>" +
       (docs.length ? '<ul class="tm-info-list">' + docs.map(function (f) {
-        return '<li><a href="' + esc(rawUrl(f.brain_path || f.path)) + '" target="_blank" rel="noopener">' + ic("file-text") + "<span>" +
-          esc(f.label || f.name) + "</span></a>" + (f.manual && f.id ? '<button type="button" class="tm-chip-x" data-info-del-file="' + esc(f.id) +
+        // 2026-11-12: a folder document opens on the Files page; there is no raw file to serve for it.
+        // It is a <button>: the page's one click handler only looks at buttons.
+        return "<li>" + (f.dir ? '<button type="button" class="tm-info-dir" data-info-open-dir="' + esc(f.brain_path || f.path) + '" title="' +
+          esc(f.brain_path || f.path) + '">' + ic("folder") + "<span>" + esc(f.label || f.name) + "</span></button>"
+          : '<a href="' + esc(rawUrl(f.brain_path || f.path)) + '" target="_blank" rel="noopener">' + ic("file-text") + "<span>" +
+          esc(f.label || f.name) + "</span></a>") + descLine(f) + descBtn(f, "file") +
+          (f.manual && f.id ? '<button type="button" class="tm-chip-x" data-info-del-file="' + esc(f.id) +
           '" aria-label="' + esc(tw("teams.info_remove")) + '" title="' + esc(tw("teams.info_remove")) + '">' + ic("x") + "</button>" : "") + "</li>";
       }).join("") + "</ul>" : '<p class="tm-sub">' + esc(tw("teams.info_no_files")) + "</p>") + "</section>";
     h += '<section class="tm-info-sec"><h4>' + esc(tw("teams.info_links", { n: I.links.length })) + infoBtn() + "</h4>" +
@@ -3567,6 +3753,7 @@
       '<button type="button" class="ws-btn" data-info-add-link="1">' + esc(tw("teams.info_add")) + "</button></div>" +
       (I.links.length ? '<ul class="tm-info-list">' + I.links.map(function (l) {
         return '<li><a href="' + esc(l.url) + '" target="_blank" rel="noopener">' + ic("link") + "<span>" + esc(l.label || l.url) + "</span></a>" +
+          descLine(l) + descBtn(l, "link") +
           (l.manual && l.id ? '<button type="button" class="tm-chip-x" data-info-del-link="' + esc(l.id) + '" aria-label="' +
             esc(tw("teams.info_remove")) + '" title="' + esc(tw("teams.info_remove")) + '">' + ic("x") + "</button>" : "") + "</li>";
       }).join("") + "</ul>" : '<p class="tm-sub">' + esc(tw("teams.info_no_links")) + "</p>") + "</section>";
@@ -3598,7 +3785,7 @@
     // engine reads it and history shows it), and calls the assistant being replied to when nobody is @-mentioned.
     var Q = quoteApi();
     // A /skill call goes first as the main chat's skill block; the quote and the owner's words follow it.
-    var X = window.VanhanhSlash;
+    var X = window.NaotaSlash;
     var call = X && X.buildSkillInvocation ? skillCall(typed, (S.skills || []).map(function (k) { return k.slug; })) : null;
     var words = call ? call.rest : typed;
     var text = S.replyTo && Q ? Q.ghep(S.replyTo.quote, words) : words;
@@ -3739,7 +3926,7 @@
       loadSkills().then(function () { if (S && S.el && S.el.isConnected && S.skills) suggest(); });
       return;
     }
-    var X = window.VanhanhSlash;
+    var X = window.NaotaSlash;
     var items = S.skills.filter(function (k) { return k && k.slug; }).map(function (k) {
       return { kind: "skill", cmd: k.slug, name: k.name || k.slug, group: k.group || "", desc: k.description || "" };
     });
@@ -3777,7 +3964,7 @@
     var input = S.el.querySelector(".tm-input");
     var box = S.el.querySelector(".tm-sug");
     if (!input || !box || !S.team) return;
-    var X = window.VanhanhSlash;
+    var X = window.NaotaSlash;
     var tok = X && X.tokenAtCaret ? X.tokenAtCaret(input.value, input.selectionStart || 0) : null;
     if (tok) return skillSuggest(input, box, tok);
     var query = suggestQuery(input);
@@ -3983,11 +4170,9 @@
 
   // add a team file. A preview first (who comes in, how many skills), then one confirm.
   function importTeam() {
-    var inp = document.createElement("input");
-    inp.type = "file";
-    inp.accept = ".zip,application/zip";
-    inp.onchange = function () {
-      var f = inp.files && inp.files[0];
+    // The same in-page picker as attaching (pickFiles), so iOS keeps it while the file is chosen.
+    pickFiles(function (files) {
+      var f = files[0];
       if (!f) return;
       var send = function (preview) {
         var fd = new FormData();
@@ -4007,8 +4192,7 @@
           loadTeams(false);
         });
       });
-    };
-    inp.click();
+    }, ".zip,application/zip");
   }
 
   function muteTeam(id, on, btn) {
@@ -4020,7 +4204,7 @@
 
   // ───────────── hộp chọn thành viên kiểu Zalo (team-picker.js) ─────────────
 
-  function TP() { return (typeof window !== "undefined" && window.VanhanhTeamPicker) || null; }
+  function TP() { return (typeof window !== "undefined" && window.NaotaTeamPicker) || null; }
 
   // Trợ lý của trang Cộng sự (tên, vai, tag, ảnh): cùng nguồn với cột trái trang Cộng sự để chip tag khớp.
   function loadRoster() {
@@ -4038,6 +4222,10 @@
     // `reqId`: một mã cho mỗi lần mở hộp Tạo nhóm. Bấm Tạo hai lần hay mạng chậm gửi lại thì server trả lại nhóm đã tạo.
     S.pickSt = { mode: mode, query: "", tag: "", selected: [], leader: "", leaderTouched: false, leaderDropped: false, name: "",
       desc: "", descOpen: false, exclude: exclude, saving: false, error: "", rosterState: (S.roster || []).length ? "ok" : "loading",
+      // 2026-11-12: documents picked in the create box (team-picker.js: docs, links and the brain file search).
+      docs: [], links: [], docQuery: "", docResults: [], docState: "idle", docsOpen: false, linkDraft: "", linkBad: false,
+      // 2026-11-15: GitHub repos picked in the create box, attached to the team's chat once it exists.
+      repos: [], repoOpen: false,
       reqId: newClientId() };
     S.pickOpener = opener || null;
     document.removeEventListener("keydown", pickEsc, true);
@@ -4082,6 +4270,7 @@
       host.innerHTML = P.html(st, roster);
       var first = host.querySelector(st.mode === "create" ? ".tmp-name-input" : ".tmp-search-input");
       if (first && !(typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches)) first.focus();
+      pickMountRepos();       // the repo picker is live DOM: a whole redraw drops it, so it is put back
       return;
     }
     var put = function (sel, h) { var box = host.querySelector(sel); if (box) box.innerHTML = h; };
@@ -4117,21 +4306,154 @@
     drawPicker("all");
   }
 
+  // ───────────── documents in the create box (2026-11-12, owner: "thêm file và thêm link tài liệu khi tạo team") ─────────────
+  // Nothing is attached while the box is open: picks live in S.pickSt and go out with POST /teams. Only the parts that
+  // changed are redrawn, so the search box and the link box keep their cursor.
+  function drawPickDocs(whole) {
+    var P = TP(), st = S.pickSt, host = S.pickHost;
+    if (!P || !st || !host) return;
+    var put = function (sel, h) { var box = host.querySelector(sel); if (box) box.innerHTML = h; };
+    if (whole) { put(".tmp-docs-box", P.docsHtml(st)); pickMountRepos(); }
+    else {
+      put(".tmp-docs-chips", P.docChipsHtml(st));
+      put(".tmp-doc-results", P.docResultsHtml(st));
+      put(".tmp-docs-sum", P.docsSummaryHtml(st));
+    }
+    put(".tmp-foot-box", P.footerHtml(st));
+  }
+
+  // 2026-11-15: GitHub repos in the create box. The same picker as the team's Info tab (team-github.js), but nothing
+  // is attached while the box is open: ticks only change S.pickSt.repos, and submitPicker attaches them to the new
+  // team's chat. Put back after every whole redraw of the documents block (drawPickDocs(true), drawPicker("all")).
+  function pickToggleRepos() {
+    var st = S.pickSt;
+    if (!st) return;
+    st.repoOpen = !st.repoOpen;
+    var host = S.pickHost, box = host && host.querySelector(".tmp-repo-box"), btn = host && host.querySelector(".tmp-repo-open");
+    if (btn) btn.setAttribute("aria-expanded", st.repoOpen ? "true" : "false");
+    if (box) { box.hidden = !st.repoOpen; if (!st.repoOpen) box.innerHTML = ""; }
+    pickMountRepos();
+  }
+  function pickMountRepos() {
+    var st = S.pickSt, host = S.pickHost, G = window.NaotaTeamGithub;
+    var box = host && host.querySelector(".tmp-repo-box");
+    if (!st || !st.repoOpen || !box || !G || st.mode !== "create") return;
+    box.hidden = false;
+    G.panel(box, {
+      brain: brain,
+      current: function () { return (S.pickSt && S.pickSt.repos) || []; },
+      save: function (names) {
+        if (!S.pickSt) return { ok: false };
+        S.pickSt = TP().setRepos(S.pickSt, names);
+        return { ok: true, repos: S.pickSt.repos.map(function (n) { return { full_name: n }; }) };
+      },
+      changed: function () { drawPickDocs(); },
+      close: function () { if (S.pickSt) { S.pickSt.repoOpen = false; drawPickDocs(true); } },
+      connections: function () { closePicker(); try { window.Alpine.store("nav").go("mcp"); } catch (e) { location.hash = "#p=mcp"; } } });
+  }
+  // After POST /teams: attach the picked repos to the new team's chat (cloning can take a while, so the team opens
+  // first and the chip appears when the repos are in). A failure is said on the team, where the Info tab can retry.
+  function attachNewTeamRepos(team, names, quiet) {
+    var sid = team && team.session_id;
+    if (!sid || !(names || []).length) return;
+    var b = new FormData();
+    b.append("brain", brain()); b.append("repos", names.join(","));
+    if (!quiet) setNote(tw("gh.cloning"));      // `quiet`: a note about documents is already on screen
+    fetch("/github/session/" + q(sid) + "/repos", { method: "POST", body: b, credentials: "same-origin" })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (d) {
+        if (!d || d.ok === false) { setNote((d && d.error) || tw("gh.err_net")); return; }
+        if (S.note === tw("gh.cloning")) setNote("");
+        if (sessionId() === sid) setRepos(d);
+      }, function () { setNote(tw("gh.err_net")); });
+  }
+
+  var pickDocTimer = null;
+  function pickDocSearch(text) {
+    var st = S.pickSt;
+    if (!st) return;
+    st.docQuery = text;
+    clearTimeout(pickDocTimer);
+    var words = String(text || "").trim();
+    var seq = st.docSeq = (st.docSeq || 0) + 1;
+    if (!words) { st.docResults = []; st.docState = "idle"; drawPickDocs(); return; }
+    st.docState = "searching";
+    drawPickDocs();
+    pickDocTimer = setTimeout(function () {
+      call("GET", "/files/search?mode=name&include_dirs=true&limit=20&q=" + q(words)).then(function (r) {
+        return r.code === 200 ? (r.j.items || []) : [];
+      }, function () { return []; }).then(function (items) {
+        if (!S.pickSt || S.pickSt.docSeq !== seq) return;      // an older search, or the box is gone
+        S.pickSt.docResults = searchRows(items);
+        S.pickSt.docState = "done";
+        drawPickDocs();
+      });
+    }, 280);
+  }
+
+  function pickAddDoc(i) {
+    var P = TP(), st = S.pickSt;
+    var r = st && (st.docResults || [])[i];
+    if (!P || !r) return;
+    S.pickSt = P.addDoc(st, { name: r.name, brain_path: r.path, dir: !!r.dir });
+    drawPickDocs();
+  }
+
+  function pickUploadDocs(files) {
+    var P = TP();
+    if (!P || !S.pickSt || !files.length) return;
+    files.slice(0, P.DOCS_MAX).forEach(function (f) {
+      if (!S.pickSt || (S.pickSt.docs || []).length >= P.DOCS_MAX) return;
+      var doc = { name: f.name, path: "", uid: newClientId(), busy: true, err: "" };
+      S.pickSt = P.addDoc(S.pickSt, doc);
+      upload(f).then(function (r) { return r.code === 200 && r.j.staged ? r.j.staged : ""; }, function () { return ""; })
+        .then(function (staged) {
+          // The box may be closed, or this file taken off, while it uploaded.
+          if (!S.pickSt || (S.pickSt.docs || []).indexOf(doc) < 0) return;
+          doc.busy = false; doc.path = staged; doc.err = staged ? "" : "1";
+          drawPickDocs();
+        });
+    });
+    S.pickSt.docsOpen = true;
+    drawPickDocs();
+  }
+
+  function pickAddLink() {
+    var P = TP(), host = S.pickHost;
+    if (!P || !S.pickSt) return;
+    var inp = host && host.querySelector(".tmp-link-input");
+    var got = P.addLink(S.pickSt, inp ? inp.value : S.pickSt.linkDraft);
+    S.pickSt = got.st;
+    if (!got.ok) S.pickSt.linkDraft = inp ? inp.value : S.pickSt.linkDraft;
+    drawPickDocs(true);
+    var back = host && host.querySelector(".tmp-link-input");
+    if (back) { try { back.focus({ preventScroll: true }); } catch (e) {} }
+  }
+
   function submitPicker() {
     var P = TP(), st = S.pickSt;
     if (!P || !st || !P.canSubmit(st)) return;
+    if (st.mode === "create" && (st.docs || []).some(function (d) { return d.err; })) return pickFail(tw("teams.pick.doc_fix"));
     st.saving = true; st.error = "";
     drawPicker("pick");
     if (st.mode === "create") {
       var name = String(st.name || "").trim() || P.autoName(st, S.roster || []);
+      var docs = P.docPayload(st);
       call("POST", "/teams", { name: name, description: st.desc || "", members: st.selected.slice(), leader_slug: st.leader || "",
-        client_req_id: st.reqId })
+        client_req_id: st.reqId, attachments: docs.attachments, links: docs.links })
         .then(function (r) {
           if (r.code !== 200) return pickFail((r.j && r.j.error) || tw("teams.err", { e: r.code }));
           // Tạo xong: vào thẳng khung chat của nhóm mới, con trỏ đặt sẵn ở khung soạn.
           closePicker();
+          // The team exists either way; a document the server could not take is said once, with where to add it.
+          var missed = (r.j.documents && r.j.documents.failed) || 0;
+          var repos = (st.repos || []).slice();
           S.focusComposer = true;
-          loadTeams(false).then(function () { openTeam(r.j.team.team_id); });
+          loadTeams(false).then(function () {
+            openTeam(r.j.team.team_id);
+            if (missed) setNote(tw("teams.pick.docs_partial", { n: missed }));
+            attachNewTeamRepos(r.j.team, repos, missed > 0);
+          });
         }, function () { pickFail(tw("teams.pick.err_network")); });
       return;
     }
@@ -4170,7 +4492,7 @@
       drawMsgs(false);
     }
     if (!t || !(S.el.contains(t) || (S.pickHost && S.pickHost.contains(t)))) return;
-    // A VANHANH_CARD button carries data-reply too (its words, not a message id): chat-card.js sends it (sendCardReply).
+    // A NAOTA_CARD button carries data-reply too (its words, not a message id): chat-card.js sends it (sendCardReply).
     if (t.classList && t.classList.contains("nt-card-btn")) return;
     // "Show more" on a long owner message: chat-acts.js toggles it (document listener, after this one). Remember the
     // state so a redraw of the list keeps the message open.
@@ -4188,7 +4510,7 @@
     if (d.renameTeam) { S.rowMenu = null; S.renaming = d.renameTeam; drawList(); return; }
     if (d.tagTeam) { S.tagMenu = d.tagTeam; S.tagFocus = null; drawList(); return; }
     if (t.classList && t.classList.contains("cs-proj-cur") && t.closest(".tm-tagbar")) {
-      var cs = typeof window !== "undefined" && window.VanhanhChatSide;
+      var cs = typeof window !== "undefined" && window.NaotaChatSide;
       if (cs && cs.menu) cs.menu(t, tagMenuRows(S.teams, S.tagFilter, function (k) { setTagFilter(k); drawList(); }));
       return;
     }
@@ -4207,7 +4529,7 @@
     }
     if (d.agentEdit) return openAgentSettings(d.agentEdit);
     // message a member privately, straight from the team (the Partners page chat with that assistant).
-    if (d.agentChat) { if (window.VanhanhWorkspace && window.VanhanhWorkspace.openCommand) window.VanhanhWorkspace.openCommand("agent", d.agentChat); return; }
+    if (d.agentChat) { if (window.NaotaWorkspace && window.NaotaWorkspace.openCommand) window.NaotaWorkspace.openCommand("agent", d.agentChat); return; }
     if (d.rxToggle) {
       var rm = msgById(Number(d.rxToggle));
       return sendReaction(Number(d.rxToggle), JR.cornerToggle(rm && rm.reaction));
@@ -4230,7 +4552,7 @@
     if (d.plusFolder || d.folderOpen) { setPlus(false); return openFolderPanel(); }
     if (d.folderUnpin) return pinTeamFolder("");
     if (d.plusGithub || d.ghOpen) { setPlus(false); return openGithubPanel(); }
-    if (d.ghStatus) { var gs = sessionId(); if (gs && window.VanhanhTeamGithub) window.VanhanhTeamGithub.openStatus(gs); return; }
+    if (d.ghStatus) { var gs = sessionId(); if (gs && window.NaotaTeamGithub) window.NaotaTeamGithub.openStatus(gs); return; }
     if (d.attX !== undefined) { forgetAtts(S.atts.splice(+d.attX, 1)); drawComposer(); return; }
     if (d.outRetry) {
       var oe = S.outbox.filter(function (p) { return p.cid === d.outRetry; })[0];
@@ -4256,8 +4578,11 @@
       return;
     }
     if (d.infoAddFile) return pickFiles(addTeamFiles);
+    if (d.infoPick !== undefined) return infoPick(Number(d.infoPick));
+    if (d.infoOpenDir) { if (typeof window.NaotaOpenFiles === "function") window.NaotaOpenFiles(d.infoOpenDir); return; }
     if (d.infoDelFile) return assetPost("/files/" + q(d.infoDelFile) + "/delete");
     if (d.infoDelLink) return assetPost("/links/" + q(d.infoDelLink) + "/delete");
+    if (d.infoDesc) return describeDoc(d.infoDesc, d.ref || "", d.desc || "");
     if (d.infoAddLink) return addTeamLink();
     if (t.classList.contains("tm-mic")) return toggleMic();
     if (d.insertAt) {
@@ -4320,6 +4645,14 @@
     if (d.pickLeader) { S.pickSt = TP().setLeader(S.pickSt, d.pickLeader); drawPicker("pick"); return; }
     if (t.classList.contains("tmp-reload")) { loadRoster().then(function () { if (S.pickSt) drawPicker("all"); }); drawPicker("filter"); return; }
     if (t.classList.contains("tmp-desc-sum")) { var dd = t.parentNode; if (S.pickSt) S.pickSt.descOpen = !(dd && dd.open); return; }
+    if (t.classList.contains("tmp-docs-sum")) { var dz = t.parentNode; if (S.pickSt) S.pickSt.docsOpen = !(dz && dz.open); return; }
+    if (t.classList.contains("tmp-doc-upload")) return pickFiles(pickUploadDocs);
+    if (t.classList.contains("tmp-link-add")) return pickAddLink();
+    if (d.docAdd !== undefined) return pickAddDoc(Number(d.docAdd));
+    if (d.docDel !== undefined) { if (S.pickSt) { S.pickSt = TP().removeDoc(S.pickSt, d.docDel); drawPickDocs(); } return; }
+    if (d.linkDel !== undefined) { if (S.pickSt) { S.pickSt = TP().removeLink(S.pickSt, d.linkDel); drawPickDocs(); } return; }
+    if (t.classList.contains("tmp-repo-open")) return pickToggleRepos();
+    if (d.repoDel !== undefined) { if (S.pickSt) { S.pickSt = TP().removeRepo(S.pickSt, d.repoDel); drawPickDocs(); pickMountRepos(); } return; }
     if (t.classList.contains("tmp-cancel")) return closePicker();
     if (t.classList.contains("tmp-submit")) return submitPicker();
     if (t.classList.contains("tm-more-teams")) return loadTeams(true);
@@ -4370,6 +4703,7 @@
       return;
     }
     if (t.classList.contains("tm-search-go")) return runSearch();
+    if (d.quoteSrc) return jumpToQuoted(t);
     if (d.jump) {
       var here = S.el.querySelector('.tm-msgs [data-mid="' + Number(d.jump) + '"]');
       if (here && here.scrollIntoView) {
@@ -4682,10 +5016,10 @@
     var msg = box && box.querySelector(".aa-upload-msg");
     var btn = box && box.querySelector("[data-aa-upload]");
     inp.value = "";
-    if (!f || !window.VanhanhAvatar) return;
+    if (!f || !window.NaotaAvatar) return;
     if (btn) btn.disabled = true;
     if (msg) { msg.textContent = tw("ws.avatar_uploading"); msg.classList.remove("loi"); }
-    window.VanhanhAvatar.uploadImage(f).then(function (name) {
+    window.NaotaAvatar.uploadImage(f).then(function (name) {
       return call("PATCH", teamUrl(), { avatar_image: name }).then(function (r) { act(r, drawAll); });
     }).catch(function (err) {
       if (btn) btn.disabled = false;
@@ -4744,7 +5078,7 @@
       var on = box.checked;
       box.checked = !on;
       box.disabled = true;
-      var RA = window.VanhanhResonanceAgent;
+      var RA = window.NaotaResonanceAgent;
       var p = RA && RA.toggleAgent ? RA.toggleAgent(box.getAttribute("data-slug"), on)
         : call("POST", "/resonance/agents/toggle", { slug: box.getAttribute("data-slug"), enabled: on }).then(function (r) {
           return { ok: r.code === 200, error: r.j && r.j.error };
@@ -4756,18 +5090,18 @@
     }
   }
 
-  // the likely next message, grey in the empty box once an assistant answers; Tab or the Tab chip fills
-  // it in. The same module as the main chat (chat-suggest.js), one controller for the page.
+  // 2026-11-07: the likely next message, grey in the empty box once an assistant answers; Tab or the ">" after it fills
+  // it in. 2026-11-13: it stays while the owner types along it, Right Arrow takes one word, and a draft that goes
+  // another way is finished after a short pause. The same module as the main chat (chat-suggest.js), one controller
+  // for the page.
   var teamSuggest = null, sugTimer = null, sugFor = 0;
   function nextSug() {
-    if (!teamSuggest && typeof window !== "undefined" && window.VanhanhSuggest) {
-      teamSuggest = window.VanhanhSuggest.attach({
+    if (!teamSuggest && typeof window !== "undefined" && window.NaotaSuggest) {
+      teamSuggest = window.NaotaSuggest.attach({
         input: function () { return S && S.el ? S.el.querySelector(".tm-input") : null; },
-        chipHost: function () {
-          var row = S && S.el && S.el.querySelector(".tm-row");
-          return row ? [row, row.querySelector(".tm-mic")] : null;
-        },
         composing: function () { return !!(S && S.composing && S.composing()); },
+        maxHeight: function () { return INPUT_MAX_PX; },
+        quiet: function () { return !!(S && S.dictState && S.dictState !== "idle"); },
       });
     }
     return teamSuggest;
@@ -4802,6 +5136,9 @@
     if (e.key === "Escape" && S.pickSt) { closePicker(); return; }
     if (e.target.classList && e.target.classList.contains("tm-input") && sugKey(e)) return;
     if (e.target.classList && e.target.classList.contains("tm-input") && teamSuggest && teamSuggest.onKeydown(e)) return;
+    // Enter in the link box adds the link; in the file search it does nothing (it must never press Create).
+    if (e.target.classList && e.target.classList.contains("tmp-link-input") && e.key === "Enter") { e.preventDefault(); pickAddLink(); return; }
+    if (e.target.classList && e.target.classList.contains("tmp-doc-search") && e.key === "Enter") { e.preventDefault(); return; }
     if (e.target.classList && e.target.classList.contains("tmp-name-input") && e.key === "Enter") {
       e.preventDefault();
       var srch = S.pickHost && S.pickHost.querySelector(".tmp-search-input");
@@ -4847,6 +5184,9 @@
     }
     if (S.pickSt && e.target.classList.contains("tmp-name-input")) { S.pickSt.name = e.target.value; return; }
     if (S.pickSt && e.target.classList.contains("tmp-desc-input")) { S.pickSt.desc = e.target.value; return; }
+    if (S.pickSt && e.target.classList.contains("tmp-doc-search")) { pickDocSearch(e.target.value); return; }
+    if (S.pickSt && e.target.classList.contains("tmp-link-input")) { S.pickSt.linkDraft = e.target.value; return; }
+    if (e.target.classList.contains("tm-info-fsearch")) { infoFind(e.target.value); return; }
     if (e.target.classList.contains("tm-input")) {
       S.pending = S.pending && (S.pending.typed || S.pending.text) === e.target.value.trim() ? S.pending : null;
       grow(e.target);
@@ -4931,15 +5271,15 @@
   // ───────────── column widths ─────────────
   // Drag a column edge like the Partners page; past a point the list folds into a strip of team
   // pictures (hover shows the team card) and the side panel folds away. Same helper and card as every other page
-  // (col-resize.js: VanhanhColResize.attach with snap/collapse, VanhanhColResize.miniTip).
+  // (col-resize.js: NaotaColResize.attach with snap/collapse, NaotaColResize.miniTip).
   var LIST_MINI_W = 72;   // the Partners page's avatar strip width (workspace.js MINI_W)
 
-  function colResize() { return typeof window !== "undefined" ? window.VanhanhColResize : null; }
+  function colResize() { return typeof window !== "undefined" ? window.NaotaColResize : null; }
 
   function listResizeOpts(page) {
     var CR = colResize();
     var side = function () { var x = page.querySelector(".tm-side"); return x && !x.hidden ? x.getBoundingClientRect().width : 0; };
-    return { host: page, varName: "--tm-list-w", key: "vanhanh_tm_list_w", min: 220, max: 480, edge: "right",
+    return { host: page, varName: "--tm-list-w", key: "naota_tm_list_w", min: 220, max: 480, edge: "right",
       label: "teams.resize_list", keep: 420, total: function () { return page.clientWidth; }, other: side,
       snap: { below: CR.FOLD_AT(220), to: LIST_MINI_W, onSnap: function (on) {
         page.classList.toggle("tm-mini", !!on);
@@ -4950,7 +5290,7 @@
   function sideResizeOpts(page) {
     var CR = colResize();
     var list = function () { var x = page.querySelector(".tm-list"); return x ? x.getBoundingClientRect().width : 0; };
-    return { host: page, varName: "--tm-side-w", key: "vanhanh_tm_side_w", min: 300, max: 640, edge: "left",
+    return { host: page, varName: "--tm-side-w", key: "naota_tm_side_w", min: 300, max: 640, edge: "left",
       label: "teams.resize_side", keep: 420, total: function () { return page.clientWidth; }, other: list,
       collapse: { below: CR.FOLD_AT(300), run: function () { closeSide(); } } };
   }
@@ -4993,7 +5333,7 @@
     if (S && S.scroll) S.scroll.detach();
     S = fresh(el);
     shell();
-    var CS = typeof window !== "undefined" && window.VanhanhChatScroll;
+    var CS = typeof window !== "undefined" && window.NaotaChatScroll;
     var msgsBox = el.querySelector(".tm-msgs");
     S.scroll = CS && msgsBox ? CS.attach(msgsBox, { buttonClass: "nt-new-msg tm-new-msg", msg: ".tm-msg",
       hold: ".tm-hacts:hover, .tm-rx:hover", key: "data-mid", followLoads: true }) : null;
@@ -5064,10 +5404,10 @@
     // Phone: swipe a message to the left to reply to it, like Zalo, with the same gesture as the main chat (msg-swipe.js:
     // the bubble follows the finger, a quote mark shows once far enough, vertical moves keep scrolling, a wide code block
     // or table scrolls sideways instead). Own and assistant messages both reply, as before.
-    // VANHANH_CARD buttons inside this page answer in this team, not in the hidden main chat (chat-card.js).
-    var JC = typeof window !== "undefined" && window.VanhanhCard;
+    // NAOTA_CARD buttons inside this page answer in this team, not in the hidden main chat (chat-card.js).
+    var JC = typeof window !== "undefined" && window.NaotaCard;
     if (JC && JC.onSend) S.uncard = JC.onSend(el, function (text, btn) { sendCardReply(btn, text); });
-    var SW = typeof window !== "undefined" && window.VanhanhMsgSwipe;
+    var SW = typeof window !== "undefined" && window.NaotaMsgSwipe;
     if (SW) {
       S.unswipe = SW.bind(el, {
         selector: ".tm-msg",
@@ -5078,7 +5418,7 @@
     }
     // Phone: hold a message for the msg-press.js menu, emoji above the finger (slide to pick, assistant
     // messages) and Reply / Copy / Pin at the bottom.
-    var MP = typeof window !== "undefined" && window.VanhanhMsgPress;
+    var MP = typeof window !== "undefined" && window.NaotaMsgPress;
     if (MP) {
       S.unpress = MP.bind(el, {
         selector: ".tm-msg",
@@ -5118,15 +5458,15 @@
   }
 
   if (typeof window !== "undefined" && window.addEventListener) {
-    window.addEventListener("vanhanh:team-event", onTeamEvent);
+    window.addEventListener("naota:team-event", onTeamEvent);
     // back to this tab with a team open: what arrived while away is read now.
     if (typeof document !== "undefined" && document.addEventListener) document.addEventListener("visibilitychange", onVisible);
     // Auto bật/tắt ở trang Cộng sự hay tab khác: danh sách thành viên của nhóm đang mở đọc lại trạng thái.
     // The tag order changed (here or on another tab of this page): the list and its tag bar follow.
-    window.addEventListener("vanhanh:order-changed", function () {
+    window.addEventListener("naota:order-changed", function () {
       if (S && S.el && S.el.isConnected) drawList();
     });
-    window.addEventListener("vanhanh:resonance-agents-changed", function () {
+    window.addEventListener("naota:resonance-agents-changed", function () {
       if (!S || !S.el || !S.el.isConnected || !S.activeId) return;
       loadTeam();
       if (S.side && S.tab === "team") loadAgents().then(function () { if (S.side && S.tab === "team") drawSide(); });
@@ -5146,12 +5486,12 @@
     membersHtml: membersHtml, settingsFormHtml: settingsFormHtml, capsFormHtml: capsFormHtml, capsPayload: capsPayload, saveCapsFlow: saveCapsFlow, teamTabHtml: teamTabHtml, limitsHtml: limitsHtml,
     levelOf: levelOf, grantFor: grantFor, teamAvatarHtml: teamAvatarHtml, savePin: savePin, pinTeamWith: pinTeamWith, noteHtml: noteHtml, levelsHtml: levelsHtml, turnsHtml: turnsHtml,
     bannersHtml: bannersHtml, reactCornerHtml: reactCornerHtml, reactBarHtml: reactBarHtml, sheetHtml: sheetHtml,
-    hoverActsHtml: hoverActsHtml, bodyHtml: bodyHtml, skillSplit: skillSplit, skillCall: skillCall, listSync: listSync, pendingHtml: pendingHtml, copyTextOf: copyTextOf, fileChipHtml: fileChipHtml, uploadError: uploadError, plainPreview: plainPreview, previewText: previewText,
+    hoverActsHtml: hoverActsHtml, bodyHtml: bodyHtml, skillSplit: skillSplit, skillCall: skillCall, listSync: listSync, pendingHtml: pendingHtml, copyTextOf: copyTextOf, fileChipHtml: fileChipHtml, uploadError: uploadError, pickFiles: pickFiles, plainPreview: plainPreview, previewText: previewText,
     nextReaction: nextReaction, REACTIONS: REACTIONS, authorityHtml: authorityHtml, readGrant: readGrant,
     searchResultsHtml: searchResultsHtml, replyStatusHtml: replyStatusHtml, headLine: headLine,
     typingHtml: typingHtml, pinsHtml: pinsHtml, markMentions: markMentions, replyRefHtml: replyRefHtml,
     allTags: allTags, filterTeams: filterTeams, tagBarHtml: tagBarHtml, tagMenuRows: tagMenuRows, tagPickRows: tagPickRows,
     lastWorkedTeam: lastWorkedTeam, TAG_NONE: TAG_NONE, unreadHtml: unreadHtml };
-  if (typeof window !== "undefined") window.VanhanhTeams = api;
+  if (typeof window !== "undefined") window.NaotaTeams = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })();

@@ -1,7 +1,7 @@
 /* github-connect.js - GitHub inside chat, phase G1 (github-trong-chat-spec).
  *
  * Three pieces, one module:
- *   1. The GitHub card on the Connections page. It is built into Vanhanh : always shown, connected
+ *   1. The GitHub card on the Connections page. It is built into Naota : always shown, connected
  *      or not, no Store pack. Connect with a token, or reuse the brain-backup token after the server checks it.
  *      The card also lists the repos cloned in this brain, each with "Remove from brain" (the clone only; GitHub
  *      is never touched, and the server refuses while work would be lost).
@@ -44,7 +44,7 @@
   // The git step before connecting: one answer of /github/git -> what the dialog shows.
   //   ready      git is here, go on to the sign-in form
   //   installing / wait_user (macOS: Apple's dialog waits for a press on Install)
-  //   failed     Vanhanh tried and could not; manual  Vanhanh cannot install here (Linux without root or sudo)
+  //   failed     Naota tried and could not; manual  Naota cannot install here (Linux without root or sudo)
   function gitPhase(g) {
     if (!g || g.ok === false) return "error";
     if (g.has_git) return "ready";
@@ -75,11 +75,11 @@
   }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function ic(n) { return typeof window.ic === "function" ? window.ic(n) : ""; }
-  function infoBtn() { return window.VanhanhInfo ? window.VanhanhInfo.btn(tw("info.more")) : ""; }
-  function infoBody(html) { return window.VanhanhInfo ? window.VanhanhInfo.body(html) : '<div class="info-body">' + html + "</div>"; }
-  function chatBrain() { try { return (window.VanhanhSessions && window.VanhanhSessions.brain()) || "brain"; } catch (e) { return "brain"; } }
+  function infoBtn() { return window.NaotaInfo ? window.NaotaInfo.btn(tw("info.more")) : ""; }
+  function infoBody(html) { return window.NaotaInfo ? window.NaotaInfo.body(html) : '<div class="info-body">' + html + "</div>"; }
+  function chatBrain() { try { return (window.NaotaSessions && window.NaotaSessions.brain()) || "brain"; } catch (e) { return "brain"; } }
   function pageBrain() { try { return (window.currentBrainPath && window.currentBrainPath()) || chatBrain(); } catch (e) { return chatBrain(); } }
-  function sid() { try { return (window.VanhanhSessions && window.VanhanhSessions.current()) || ""; } catch (e) { return ""; } }
+  function sid() { try { return (window.NaotaSessions && window.NaotaSessions.current()) || ""; } catch (e) { return ""; } }
   function narrow() { return !!(window.matchMedia && window.matchMedia("(max-width: 860px)").matches); }
   function api(url, body) {
     var opt = { credentials: "same-origin" };
@@ -125,7 +125,7 @@
         : "";
     }
     // Like every other connection card: the account as a chip with a green dot. Repos are picked
-    // in the chat box, so "Pick repos for Vanhanh" only shows while the app is on no account at all, when the chat list
+    // in the chat box, so "Pick repos for Naota" only shows while the app is on no account at all, when the chat list
     // would be empty.
     var acts = '<div class="conn-accounts">' + (st.connected
       ? '<span class="conn-chip gh-acc"><span class="cdot hok">●</span> ' + esc(st.login ? "@" + st.login : "GitHub") + "</span>" +
@@ -163,7 +163,7 @@
     var more = cardHost.querySelector("[data-gh-repos]");
     if (more) more.onclick = function () { openRepos(local); };
     var gitBtn = cardHost.querySelector("[data-gh-git]");
-    if (gitBtn) gitBtn.onclick = function () { setupGit(function () { window.VanhanhConnModal && window.VanhanhConnModal.close(); }); };
+    if (gitBtn) gitBtn.onclick = function () { setupGit(function () { window.NaotaConnModal && window.NaotaConnModal.close(); }); };
   }
   // One row per repo in the look of the Tasks page: a card row with the repo, a meta line, the
   // auto-merge switch and a "..." menu for Checks, Numbers and Remove (the same sheet the Tasks page opens).
@@ -203,7 +203,7 @@
   }
   // The repos of this brain, one row each with its switches. Checks and Numbers open in the same dialog and come back here.
   function openRepos(local) {
-    var M = window.VanhanhConnModal;
+    var M = window.NaotaConnModal;
     if (!M) return;
     var back = function () { openRepos(local); };
     var m = M.open(M.head(esc(tw("gh.local_head", { n: local.length })) + infoBtn()) + '<div class="conn-form gh-local">' +
@@ -265,9 +265,9 @@
       }).join("");
     });
   }
-  // Cross review of one repo: off by default; on = Vanhanh reviews each green commit before merging.
+  // Cross review of one repo: off by default; on = Naota reviews each green commit before merging.
   async function openReview(name, rec, back) {
-    var M = window.VanhanhConnModal;
+    var M = window.NaotaConnModal;
     if (!M) return;
     var cur = rec.review || { on: false, provider: "" };
     var html = M.head(esc(tw("gh.review_head", { name: name }))) + '<div class="conn-form gh-form">' +
@@ -293,7 +293,7 @@
   }
   // Local check commands of one repo (spec 7.2): suggested from its CI, editable, one command per line.
   async function openChecks(name, back) {
-    var M = window.VanhanhConnModal;
+    var M = window.NaotaConnModal;
     if (!M) return;
     var d = await api("/github/local/checks?brain=" + encodeURIComponent(pageBrain()) + "&full_name=" + encodeURIComponent(name));
     if (!d || d.ok === false) { window.alert((d && d.error) || tw("gh.err_net")); return; }
@@ -321,7 +321,7 @@
   }
   // Numbers per engine and model for one repo (spec 13.2): pick a model with data, not with a hunch.
   async function openMetrics(name, back) {
-    var M = window.VanhanhConnModal;
+    var M = window.NaotaConnModal;
     if (!M) return;
     var d = await api("/github/local/metrics?full_name=" + encodeURIComponent(name));
     var rows = (d && d.rows) || [];
@@ -348,7 +348,7 @@
   // polls while the install runs, then calls `then(answer)`. Closing the dialog does not stop the install: pressing
   // Connect again picks up the same install. A failure shows the command to run by hand, Try again, and a way on.
   async function setupGit(then) {
-    var M = window.VanhanhConnModal;
+    var M = window.NaotaConnModal;
     if (!M) return;
     var m = M.open(M.head(esc(tw("gh.git_head"))) + '<div class="conn-form gh-form gh-git"><div class="pg-loading" role="status">' +
       esc(tw("gh.git_checking")) + "</div></div>", 560);
@@ -379,11 +379,11 @@
     form.querySelector('[data-f="skip"]').onclick = function () { then(null); };
   }
 
-  // The connect dialog: "Sign in with GitHub" first (the device flow of the VANHANH GitHub App, no token to
+  // The connect dialog: "Sign in with GitHub" first (the device flow of the NAOTA GitHub App, no token to
   // make or copy), a pasted token below it for whoever prefers that, and the brain-backup token when there is one.
   // `git`: the answer of the git step when it ran; "git x.y is installed" heads the form when this visit installed it.
   function connectForm(st, git) {
-    var M = window.VanhanhConnModal;
+    var M = window.NaotaConnModal;
     if (!M) return;
     var app = !st || st.app_signin !== false;   // no registered app yet: only the token path
     var gitOk = git && git.install === "ok" && git.has_git
@@ -420,9 +420,9 @@
   }
 
   // Device flow, step by step in the same dialog: get a code, show it with "Open GitHub" and "Copy", poll until the
-  // person presses Authorize, then offer "Pick repos for Vanhanh" when the app is not installed anywhere yet.
+  // person presses Authorize, then offer "Pick repos for Naota" when the app is not installed anywhere yet.
   async function signIn() {
-    var M = window.VanhanhConnModal;
+    var M = window.NaotaConnModal;
     if (!M) return;
     var m = M.open(M.head(esc(tw("gh.dialog_head"))) + '<div class="conn-form gh-form"><div class="lv-meta">' +
       esc(tw("gh.loading")) + "</div></div>", 560);
@@ -477,7 +477,7 @@
   }
   // Signed in but the app is on no account yet: the last step, picking repos on GitHub.
   function pickRepos(st) {
-    var M = window.VanhanhConnModal;
+    var M = window.NaotaConnModal;
     if (!M) return;
     var m = M.open(M.head(esc(tw("gh.signed_in", { login: st.login || "?" }))) + '<div class="conn-form gh-form">' +
       '<div class="lv-meta">' + esc(tw("gh.pick_repos_how")) + "</div>" +
@@ -493,7 +493,7 @@
   var attached = [], held = null, heldBrain = "", heldBase = {}, seq = 0;
   function names() { return attached.map(function (r) { return r.full_name; }); }
   function announce() {
-    try { window.dispatchEvent(new CustomEvent("vanhanh:github-repos-changed", { detail: { sid: sid(), repos: attached } })); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("naota:github-repos-changed", { detail: { sid: sid(), repos: attached } })); } catch (e) {}
   }
   function renderChip() {
     var host = document.getElementById("cpChips");
@@ -504,7 +504,7 @@
     if (!chip) {
       chip = document.createElement("button");
       chip.type = "button"; chip.id = "ghChip"; chip.className = "cp-pin gh-chip";
-      chip.addEventListener("click", function (e) { e.stopPropagation(); if (window.VanhanhComposerMenu) window.VanhanhComposerMenu.openItem("github"); });
+      chip.addEventListener("click", function (e) { e.stopPropagation(); if (window.NaotaComposerMenu) window.NaotaComposerMenu.openItem("github"); });
     }
     var after = document.getElementById("pinChip") || document.getElementById("limitBtn");
     if (chip.parentElement !== host || chip.previousElementSibling !== after) host.insertBefore(chip, after ? after.nextSibling : null);
@@ -573,7 +573,7 @@
         }, Promise.resolve(d)).then(apply);
       }
       apply(null);
-      if (window.VanhanhAttach) window.VanhanhAttach.note((d && d.error) || tw("gh.err_net"));
+      if (window.NaotaAttach) window.NaotaAttach.note((d && d.error) || tw("gh.err_net"));
     });
   }
 
@@ -604,13 +604,13 @@
   }
   // Status read when the panel opened: tells the repo list whether "add repos on GitHub" applies.
   var ghStatus = null;
-  // Signed in with the VANHANH app, a repo shows in the chat list only once the app may see it. The shortcut opens the
+  // Signed in with the NAOTA app, a repo shows in the chat list only once the app may see it. The shortcut opens the
   // app's page on GitHub to tick more repos; a pasted token already sees every repo, so it does not
   // get one.
   function addReposUrl() {
     return ghStatus && ghStatus.source === "app" && ghStatus.install_url ? String(ghStatus.install_url) : "";
   }
-  function goConnections() { try { window.Alpine.store("nav").go("mcp"); } catch (e) { location.hash = "#mcp"; } }
+  function goConnections() { try { window.Alpine.store("nav").go("mcp"); } catch (e) { location.hash = "#p=mcp"; } }
   // Inside a sub view our own back row leads back to the GitHub menu; the + menu's back row above it would only
   // repeat "Repo GitHub", so it hides there and comes back on the menu view.
   function outerBack(box, show) {
@@ -860,7 +860,7 @@
           " · " + esc(c.conclusion || "") + "</li>";
       }).join("");
       var canMerge = !r.merging && (r.integ === "ready") && (r.ci === "green" || r.ci === "no_ci");
-      // A push or PR that failed after green local checks: Vanhanh retries on its own, this is the shortcut.
+      // A push or PR that failed after green local checks: Naota retries on its own, this is the shortcut.
       var canPush = !!(r.gate && r.gate.ship_failed);
       // Cross review is the person's call: Review now on an open PR, and Fix / Skip on its findings.
       var found = r.review_open || [];
@@ -967,14 +967,14 @@
   }
 
   function init() {
-    if (window.VanhanhComposerMenu) {
-      window.VanhanhComposerMenu.register({ id: "github", order: 25, icon: LOGO, label: "gh.menu",
+    if (window.NaotaComposerMenu) {
+      window.NaotaComposerMenu.register({ id: "github", order: 25, icon: LOGO, label: "gh.menu",
         hint: function () { return chipText(held || names(), 18); }, panel: panel });
     }
-    window.addEventListener("vanhanh:sessions-changed", refresh);
+    window.addEventListener("naota:sessions-changed", refresh);
     window.addEventListener("resize", renderChip);
-    window.addEventListener("vanhanh:i18n", renderChip);
-    window.addEventListener("vanhanh:pinned-folder-changed", renderChip);
+    window.addEventListener("naota:i18n", renderChip);
+    window.addEventListener("naota:pinned-folder-changed", renderChip);
     refresh();
     // CI and merges move on their own: refresh the icons and the chip every 30 seconds while the page is visible.
     setInterval(function () {
@@ -986,6 +986,6 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 
   // `logo`: the GitHub mark, so other chat screens (Teams) show the same logo as the main chat.
-  window.VanhanhGithubRepos = { mount: mount, claimPending: claimPending, refresh: refresh, decorate: decorate, openDetail: openDetail,
+  window.NaotaGithubRepos = { mount: mount, claimPending: claimPending, refresh: refresh, decorate: decorate, openDetail: openDetail,
     current: function () { return attached.slice(); }, logo: LOGO };
 })();

@@ -1,6 +1,6 @@
 /* Timezone picker, shared by the first-run setup and the Settings page.
  *
- * Before this, the timezone only showed up through the `datetime-vn` plugin, with no place to set it. Vanhanh reads
+ * Before this, the timezone only showed up through the `datetime-vn` plugin, with no place to set it. Naota reads
  * `locale.tz` for "today", "yesterday", "tomorrow", reminders and report periods, so the owner picks it once, at setup, and can
  * change it in Settings.
  *
@@ -8,13 +8,13 @@
  * the admin account exists, so it cannot rely on an authenticated call. The server still checks every name it is handed
  * against its own tz database before saving, so a name the browser knows and the server does not is refused, not stored.
  *
- *   VanhanhTz.detect()               the browser's own timezone, current IANA spelling, e.g. "Asia/Ho_Chi_Minh" ("" when unknown)
- *   VanhanhTz.offsetLabel(name)      "UTC+07:00"
- *   VanhanhTz.options(selected)      <option> HTML: a short "suggested" group (selected, browser, a few common ones) then all
- *   VanhanhTz.nowIn(name)            "21:34" in that timezone, for a "time there now" confirmation line
+ *   NaotaTz.detect()               the browser's own timezone, current IANA spelling, e.g. "Asia/Ho_Chi_Minh" ("" when unknown)
+ *   NaotaTz.offsetLabel(name)      "UTC+07:00"
+ *   NaotaTz.options(selected)      <option> HTML: a short "suggested" group (selected, browser, a few common ones) then all
+ *   NaotaTz.nowIn(name)            "21:34" in that timezone, for a "time there now" confirmation line
  */
 (function () {
-  // Used only when the browser cannot list timezones (old Safari). Enough to cover the people Vanhanh serves today.
+  // Used only when the browser cannot list timezones (old Safari). Enough to cover the people Naota serves today.
   var FALLBACK = ["Asia/Ho_Chi_Minh", "Asia/Bangkok", "Asia/Jakarta", "Asia/Singapore", "Asia/Kuala_Lumpur", "Asia/Manila",
     "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Taipei", "Asia/Seoul", "Asia/Tokyo", "Asia/Kolkata", "Asia/Dubai",
     "Australia/Sydney", "Europe/London", "Europe/Paris", "Europe/Berlin", "Europe/Moscow", "America/New_York",
@@ -23,7 +23,7 @@
     "America/New_York", "America/Los_Angeles", "UTC"];
 
   // Browsers list CLDR's canonical names, which are often the OLD IANA spellings ("Asia/Saigon", "Asia/Calcutta",
-  // "Europe/Kiev"), and report the device's own zone that way too. Vanhanh stores the current IANA name (its default is
+  // "Europe/Kiev"), and report the device's own zone that way too. Naota stores the current IANA name (its default is
   // "Asia/Ho_Chi_Minh"), so a Vietnamese owner would otherwise see "Saigon" next to a saved "Ho Chi Minh" as two choices.
   var CURRENT = { "Asia/Saigon": "Asia/Ho_Chi_Minh", "Asia/Calcutta": "Asia/Kolkata", "Asia/Katmandu": "Asia/Kathmandu",
     "Asia/Rangoon": "Asia/Yangon", "Europe/Kiev": "Europe/Kyiv", "America/Godthab": "America/Nuuk",
@@ -62,8 +62,9 @@
     } catch (e) { return NaN; }
   }
 
-  function offsetLabel(name) {
-    var m = offsetMinutes(name);
+  // `known`: an offset the caller already has (the list keeps one per zone), so it is not asked from the browser again.
+  function offsetLabel(name, known) {
+    var m = typeof known === "number" ? known : offsetMinutes(name);
     if (isNaN(m)) return "";
     var sign = m < 0 ? "-" : "+", a = Math.abs(m);
     var hh = String(Math.floor(a / 60)).padStart(2, "0"), mm = String(a % 60).padStart(2, "0");
@@ -85,7 +86,9 @@
     return _all;
   }
 
-  function label(z) { return "(" + offsetLabel(z.name) + ") " + z.name.replace(/_/g, " "); }
+  // 2026-11-12: the label uses the offset the list already holds. It used to ask the browser a second time for every
+  // zone on every draw of the list (about 420 Intl.DateTimeFormat objects, roughly 50 ms on a desktop).
+  function label(z) { return "(" + offsetLabel(z.name, z.off) + ") " + z.name.replace(/_/g, " "); }
 
   function options(selected) {
     var list = all(), seen = {}, byName = {};
@@ -117,5 +120,5 @@
     } catch (e) { return ""; }
   }
 
-  window.VanhanhTz = { detect: detect, offsetLabel: offsetLabel, offsetMinutes: offsetMinutes, options: options, nowIn: nowIn };
+  window.NaotaTz = { detect: detect, offsetLabel: offsetLabel, offsetMinutes: offsetMinutes, options: options, nowIn: nowIn };
 })();

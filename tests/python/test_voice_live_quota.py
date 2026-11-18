@@ -22,8 +22,8 @@ import tempfile
 import time
 from pathlib import Path
 
-_TMP = Path(tempfile.mkdtemp(prefix="vanhanh-live-quota-"))
-os.environ.setdefault("VANHANH_STATE_DIR", str(_TMP / "state"))
+_TMP = Path(tempfile.mkdtemp(prefix="naota-live-quota-"))
+os.environ.setdefault("NAOTA_STATE_DIR", str(_TMP / "state"))
 _FAKE_HOME = _TMP / "home"
 (_FAKE_HOME / ".codex").mkdir(parents=True, exist_ok=True)
 os.environ["HOME"] = str(_FAKE_HOME)

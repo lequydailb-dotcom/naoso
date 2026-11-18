@@ -55,10 +55,10 @@ LOAI = {
 }
 
 # The folder the app READS each kind from . The app falls back to the old
-# `Vanhanh/agents` / `Vanhanh/workflows` while the flat folder does not exist (`main._brain_sub`). Writing into
+# `Naota/agents` / `Naota/workflows` while the flat folder does not exist (`main._brain_sub`). Writing into
 # `<brain>/agents` on such a brain would create that folder, the app would switch to it, and every agent in
-# `Vanhanh/agents` would vanish from the Partners page.
-_LEGACY = {"agents": "Vanhanh/agents", "workflows": "Vanhanh/workflows"}
+# `Naota/agents` would vanish from the Partners page.
+_LEGACY = {"agents": "Naota/agents", "workflows": "Naota/workflows"}
 
 # How many `-2`, `-3`... names to try before giving up on a clash.
 _MAX_ALT = 50
@@ -276,7 +276,7 @@ def cai(pack_id: str, thu_muc_goi: Path, brain_root: str) -> dict:
     pack's agent, uninstalled (their edited copy is kept, by design), then installed again. Before, the
     install skipped the item without a word, so the agent never came back and the Store still said
     "installed". Now: an identical copy is adopted as the pack's again, and a different one stays the
-    user's while the pack's copy goes in under a free name (`vanhanh-vu-2`), reported in `doi_ten`."""
+    user's while the pack's copy goes in under a free name (`naota-vu-2`), reported in `doi_ten`."""
     root = Path(brain_root)
     muc_cu = doc_so_brain(pack_id, root)
     moi = {}
@@ -347,6 +347,54 @@ def con_lai(pack_id: str) -> dict:
     app, is not "installed" any more, and must offer Install again instead of Uninstall."""
     items = doc_so(pack_id).get("items") or {}
     return {"placed": len(items), "present": sum(1 for m in items.values() if _where(m) is not None)}
+
+
+def brain_of(pack_id: str, open_root: str = "") -> dict:
+    """Which brain holds the items this pack placed.
+
+    A pack's ledger keeps ONE brain, the one that was open at install time, while the pack itself (connector, plugin,
+    the "Installed" mark) is for the whole machine. Seen from another brain the Store said "Installed" although none
+    of the pack's assistants or skills were there, and Uninstall removed them from a brain the user was not looking
+    at. `{"brain", "name", "present", "other"}`: `other` is True when items are still there AND `open_root` is a
+    different brain."""
+    so = doc_so(pack_id)
+    brain = str(so.get("brain") or "")
+    present = con_lai(pack_id)["present"]
+    other = False
+    if brain and present and open_root:
+        try:
+            other = Path(brain).resolve() != Path(open_root).resolve()
+        except OSError:
+            other = brain != str(open_root)
+    return {"brain": brain, "name": Path(brain).name if brain else "", "present": present, "other": other}
+
+
+def agent_packs(brain_root: str) -> dict:
+    """{agent slug: pack id} for the agent files of this brain that a pack placed and nobody changed since.
+
+    The Auto registry asks this to tell "the pack put its own agent back" from "some file showed up under an old
+    name" (owner report 2026-11-11). Only an untouched file counts: one the user edited, or wrote by hand over the
+    pack's, is the user's and says nothing about where the agent came from. Never raises."""
+    out = {}
+    try:
+        root = Path(brain_root).resolve()
+        ledgers = sorted(HIEU_UNG_DIR.glob("*.json")) if HIEU_UNG_DIR.is_dir() else []
+    except OSError:
+        return out
+    for f in ledgers:
+        try:
+            so = json.loads(f.read_text(encoding="utf-8"))
+            if not isinstance(so, dict) or not so.get("brain") or Path(so["brain"]).resolve() != root:
+                continue
+            for m in (so.get("items") or {}).values():
+                if not isinstance(m, dict) or m.get("loai") != "agents":
+                    continue
+                p = _where(m)
+                if p is not None and p.is_file() and m.get("hash") and _hash(p) == m.get("hash"):
+                    out.setdefault(p.stem, f.stem)
+        except (OSError, ValueError):
+            continue
+    return out
 
 
 def ke_hoach_go(pack_id: str) -> dict:

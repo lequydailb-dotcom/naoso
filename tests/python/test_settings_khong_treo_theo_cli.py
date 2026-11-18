@@ -30,7 +30,7 @@ import tempfile
 import threading
 import time
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-treo-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-treo-"))
 
 import antigravity_cli  # noqa: E402
 import grok_cli         # noqa: E402

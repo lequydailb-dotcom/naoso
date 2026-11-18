@@ -1,4 +1,4 @@
-"""Kho mục tiêu của Vanhanh Resonance: SQLite riêng `VANHANH_STATE_DIR/resonance.sqlite3`.
+"""Kho mục tiêu của Naota Resonance: SQLite riêng `NAOTA_STATE_DIR/resonance.sqlite3`.
 
 Nguồn chuẩn cho bản ghi ý định, mục tiêu, revision, sự kiện và outbox (spec mục 12). Mọi thao tác
 đi qua một `Principal` và kiểm đúng brain: đường dẫn hay id do model đưa ra không đủ làm quyền đọc.
@@ -33,7 +33,7 @@ import resonance_learning as L
 
 def call_ceiling() -> Optional[int]:
     """Trần TỔNG lượt engine cấp host của Resonance trên cả kho, đặt bằng biến môi trường
-    VANHANH_RESONANCE_CALL_CEILING. Không đặt (mặc định) thì không có trần chung, chỉ có hạn mức từng mục tiêu.
+    NAOTA_RESONANCE_CALL_CEILING. Không đặt (mặc định) thì không có trần chung, chỉ có hạn mức từng mục tiêu.
 
     Tính MỌI đường Resonance gọi engine: lượt việc nền và phép thử (goals.calls_used) cùng bộ lập mục tiêu chưa có
     mục tiêu nào (call_ledger, review e2e P1-1). Đơn vị là lượt engine ở cấp host: một lượt có thể gồm nhiều request
@@ -43,7 +43,7 @@ def call_ceiling() -> Optional[int]:
     vượt trần không bao giờ được gọi; số đã dùng nằm trong SQLite nên trần giữ qua mọi lần khởi động lại, MIỄN là
     mỗi tiến trình được truyền biến này (tiến trình không có biến thì không có trần chung). Giá trị hỏng thì coi là 0
     (chặn hết), không phải bỏ trần."""
-    raw = os.environ.get("VANHANH_RESONANCE_CALL_CEILING", "").strip()
+    raw = os.environ.get("NAOTA_RESONANCE_CALL_CEILING", "").strip()
     if not raw:
         return None
     try:
@@ -423,7 +423,7 @@ _WAKE_TEXT = {
     "handoff_wait": "chờ bàn giao lượt chat", "handoff_done": "bàn giao lượt chat", "resumed": "người dùng cho tiếp tục",
     "agent_enabled": "trợ lý được bật", "agent_recheck": "kiểm lại công tắc trợ lý",
     "agent_changed": "xét lại đầu ra theo quyền hiện tại", "guard_recheck": "kiểm lại guard chưa xác định",
-    "review": "xem lại định kỳ", "deadline": "kiểm hạn chót", "drift_recheck": "kiểm lại file bị sửa ngoài Vanhanh",
+    "review": "xem lại định kỳ", "deadline": "kiểm hạn chót", "drift_recheck": "kiểm lại file bị sửa ngoài Naota",
     "guard_observe": "quan sát guard", "action_recovery": "đối soát hành động dở",
     "method_trial": "thử một cách làm khác khi bế tắc", "method_followup": "làm sản phẩm bằng cách làm vừa học",
     "trial_recovery": "đối soát phép thử dở",
@@ -478,7 +478,7 @@ def shared(path: Optional[Path] = None) -> "GoalStore":
     """One opened store per file, for code that would otherwise build a new `GoalStore()` on every call.
 
     Opening a store is heavy on purpose (backups, schema, migrations and reconcile passes, several write transactions)
-    and is meant to happen once. The vanhanh-goal plugin opened one on every visibility check, i.e. every time a system
+    and is meant to happen once. The naota-goal plugin opened one on every visibility check, i.e. every time a system
     prompt was built (auto learning, reminders, webhooks), and those write transactions held up the Partners page.
     A store whose file was removed (a reset, a test) is opened again."""
     p = Path(path) if path else Path(STATE_DIR) / "resonance.sqlite3"
@@ -884,6 +884,78 @@ class GoalStore:
             self._bump_agent(c, r, "retired", p.by, now, {"reason": "replaced"}, status="retired", enabled=0)
             new = self._insert_agent(c, p.brain_id, r["slug"], False, p.by, now, {"replaces": r["agent_key"]})
             return self._agent(new)
+
+    # ───────────── origin of an agent file, and restoring without asking (2026-11-11) ─────────────
+    # Owner report: 17 agents of one Store pack all asked "same assistant?" after the pack was uninstalled and installed
+    # again, one card at a time, every time. The host asks because a file that comes back under an old name may be a
+    # different agent that would inherit a running Auto. Two cases have nothing to decide, so the host settles them:
+    # the same Store pack put its own file back (`origin`), or Auto is off and no goal is open (nothing can start).
+
+    @staticmethod
+    def _origin_of(c, agent_key: str) -> str:
+        r = c.execute("SELECT payload_json FROM resonance_agent_events WHERE agent_key=? AND kind='origin' "
+                      "ORDER BY id DESC LIMIT 1", (str(agent_key or ""),)).fetchone()
+        try:
+            return str((json.loads(r["payload_json"] or "{}") if r else {}).get("origin") or "")
+        except (TypeError, ValueError):
+            return ""
+
+    def agent_origins(self, brain_id: str) -> dict:
+        """{agent_key: origin} for the brain's agents that have one, in one connection. An origin is what the host saw
+        the agent's file to be while the key was `active`, for example `pack:naota.ecc-engineering-team`."""
+        out = {}
+        with closing(self._conn()) as c:
+            for r in c.execute("SELECT agent_key, payload_json FROM resonance_agent_events WHERE brain_id=? AND "
+                               "kind='origin' ORDER BY id", (brain_id,)).fetchall():
+                try:
+                    v = str((json.loads(r["payload_json"] or "{}")).get("origin") or "")
+                except (TypeError, ValueError):
+                    v = ""
+                if v:
+                    out[r["agent_key"]] = v
+                else:
+                    out.pop(r["agent_key"], None)
+        return out
+
+    def agent_set_origin(self, brain_id: str, agent_key: str, origin: str, by: str = "host") -> bool:
+        """Host records where the file of an `active` agent comes from ("" = the user's own file). Kept as an event,
+        written only when it changes; `config_version` is untouched, so no gate of this key moves. A key that is not
+        `active` is left alone: its origin is what it was when the host last saw its file."""
+        origin = str(origin or "")
+        with self._Tx(self) as c:
+            r = c.execute("SELECT * FROM resonance_agents WHERE agent_key=? AND brain_id=?",
+                          (str(agent_key or ""), brain_id)).fetchone()
+            if r is None or r["status"] != "active" or self._origin_of(c, r["agent_key"]) == origin:
+                return False
+            self._agent_event(c, r, "origin", by, int(r["config_version"]), {"origin": origin})
+            return True
+
+    def agent_restore(self, brain_id: str, agent_key: str, origin: str = "", by: str = "host") -> Optional[dict]:
+        """Host puts a `missing` agent back to `active` under the SAME key without asking the owner, in the only two
+        cases with nothing to decide. Returns the row when restored, None when the owner still has to answer.
+
+        - `origin` is given and equals the origin recorded while the key was active: the same Store pack put its own
+          file back under the same name. Switch, goals and conversations carry on as after "same assistant".
+        - Auto is off and the agent has no open goal: nothing starts on its own whichever answer is given, and turning
+          Auto on later is the owner's own decision about the file that is there.
+        The caller checks the file is really back, as for `agent_confirm`."""
+        now = time.time()
+        with self._Tx(self) as c:
+            r = c.execute("SELECT * FROM resonance_agents WHERE agent_key=? AND brain_id=?",
+                          (str(agent_key or ""), brain_id)).fetchone()
+            if r is None or r["status"] != "missing":
+                return None
+            if origin and self._origin_of(c, r["agent_key"]) == str(origin):
+                why = {"reason": "same_origin", "origin": str(origin)}
+            elif not r["enabled"] and not c.execute(
+                    "SELECT 1 FROM goals g JOIN goal_agents a ON a.goal_id=g.id WHERE a.agent_key=? AND g.brain_id=? "
+                    "AND g.status='active' LIMIT 1", (r["agent_key"], brain_id)).fetchone():
+                why = {"reason": "nothing_open"}
+            else:
+                return None
+            if r["enabled"]:
+                self._mark_resumed(c, r["agent_key"], now)
+            return self._bump_agent(c, r, "restored", by, now, why, status="active")
 
     def session_agent(self, brain_id: str, session_id: str, slug: str, session_created_at: float,
                       pin: bool = True) -> Optional[dict]:
@@ -1776,7 +1848,7 @@ class GoalStore:
 
     def observe_source(self, p: Principal, goal_id: str, path: str, sha256: str, verdict: str,
                        now: Optional[float] = None) -> bool:
-        """Mốc QUAN SÁT file sản phẩm bị sửa ngoài Vanhanh (thiết kế mục 5), tách khỏi mốc được phép thay file
+        """Mốc QUAN SÁT file sản phẩm bị sửa ngoài Naota (thiết kế mục 5), tách khỏi mốc được phép thay file
         (`published`, không đụng tới ở đây). Trả True khi đây là hash chưa từng thấy."""
         now = time.time() if now is None else float(now)
         with self._Tx(self) as c:

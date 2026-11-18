@@ -1,6 +1,6 @@
 """The event loop serves people, not disk work (performance stage 3).
 
-pages and chat switches "delay mấy giây". Vanhanh runs every page, chat turn, hub call and background
+pages and chat switches "delay mấy giây". Naota runs every page, chat turn, hub call and background
 job on ONE asyncio loop, so a SQLite or file call made inside an `async def` freezes every click until it returns
 (measured: the Kanban dispatcher, 0.3-1.2 s at a time). Stage 0 and 3 moved the known ones to worker threads (347 call
 sites down to 218); this keeps it that way.

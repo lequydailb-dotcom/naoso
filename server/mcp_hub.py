@@ -1,15 +1,17 @@
 """
-VANHANH MCP HUB - điểm đấu DUY NHẤT cho mọi engine.
-- Claude Code / Codex thấy hub như MỘT MCP server http tên "vanhanh" (config 1 entry).
+NAOTA MCP HUB - điểm đấu DUY NHẤT cho mọi engine.
+- Claude Code / Codex thấy hub như MỘT MCP server http tên "naota" (config 1 entry).
 - Engine API (OpenRouter/OpenAI/Anthropic) gọi in-process qua discover_all().
 Hub lo trọn: gộp tool mọi connection (namespaced), ENFORCE quyền 3 mức + mode loop
 (lớp CỨNG, không phụ thuộc prompt), audit log, cache, rate limit, meta-tool.
 
 Quyền: mcp_catalog.allowed(connector, perm_connection, mode_lượt_chạy, tool, args).
-Mode đến từ header X-Vanhanh-Mode (Claude/Codex) hoặc tham số (engine API).
+Mode đến từ header X-Naota-Mode (Claude/Codex) hoặc tham số (engine API).
 """
 import asyncio
+import contextvars
 import hashlib
+import fnmatch
 import json
 import os
 import re
@@ -18,7 +20,8 @@ import sys
 import threading
 import time
 from collections import deque
-from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote, unquote
 
@@ -30,14 +33,21 @@ import default_brain
 import config
 import doc_text
 import hub_trace
+import job_recipes
+import kept
 import localefmt
 import mcp_catalog
 import mcp_client
 import mcp_store
 import once_ledger
+import scout
+import secret_guard
 import skill_router
 import skill_usage
 import team_gate
+import tool_pins
+import tool_result_shaper
+import tool_result_tools
 import turn_context
 from config import STATE_DIR
 
@@ -55,6 +65,17 @@ _CACHE_TTL_THIEU = 10
 # keeps the short synchronous rule above; any change to the connection store (mtime) or invalidate_cache() still
 # drops the entry at once.
 _CACHE_STALE_MAX = 900
+# 2026-11-10: a source that stays down. The short rule above makes every turn dial again after 10 s, and a source that
+# accepts the connection but never answers holds that dial for the full timeout: measured 20 s added to EVERY chat turn
+# for as long as it stays down. Once two dials in a row came back missing the SAME sources, the partial list is served
+# as it is (up to this age) while the next dial runs in the background. The first miss still gets its synchronous
+# second chance, so a source that was only slow once is not written off; a source that recovers shows up one refresh
+# later instead of making everybody wait for it in the meantime.
+_CACHE_STALE_THIEU_MAX = 300
+# Entries of the module cache. One entry is a whole tool table (100 KB to 1 MB), and keys that end in a session id
+# (coding sessions, API-engine background work) never repeat, so without a cap the table of every session that ever
+# ran stayed in memory. Past the cap the oldest entries go; nothing is lost but one dial.
+_CACHE_MAX = 48
 _refreshing: set = set()
 _cache = {}          # (mode, vault_root) -> {"tools", "route", "ts", "mtime"}
 _cache_epoch = 0
@@ -68,15 +89,24 @@ _IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".heic"}
 _mem_token = None   # fallback khi STATE_DIR không ghi được - PHẢI ngẫu nhiên, không được hằng số
 
 
+def _token_on_disk() -> str:
+    return _TOKEN_PATH.read_text(encoding="utf-8").strip() if _TOKEN_PATH.exists() else ""
+
+
+# 2026-11-13: every request to /hub/mcp compares its Bearer with this token, and each compare read the file on the
+# event loop: one more read that froze the hub when the disk stalled. The loop reads it from memory (kept.py).
+_TOKEN = kept.Value(lambda: _token_on_disk(), key=lambda: str(_TOKEN_PATH), name="hub token")
+
+
 def hub_token():
     global _mem_token
     try:
-        if _TOKEN_PATH.exists():
-            t = _TOKEN_PATH.read_text(encoding="utf-8").strip()
-            if t:
-                return t
+        t = _TOKEN.get()
+        if t:
+            return t
         t = _secrets.token_urlsafe(32)
         _TOKEN_PATH.write_text(t, encoding="utf-8")
+        _TOKEN.drop()
         try:
             os.chmod(_TOKEN_PATH, 0o600)
         except Exception:
@@ -91,7 +121,7 @@ def hub_token():
 
 def hub_port():
     try:
-        return int(os.getenv("VANHANH_PORT", "7777"))
+        return int(os.getenv("NAOTA_PORT", "7777"))
     except ValueError:
         return 7777
 
@@ -100,33 +130,86 @@ def hub_url():
     return f"http://127.0.0.1:{hub_port()}/hub/mcp"
 
 
+def hide_hub_token(text):
+    """`text` without the hub bearer (security fix, 2026-11-10).
+
+    Engine configs that Naota writes carry the bearer, and some of them live inside a brain (`.grok/config.toml`,
+    `.agents/mcp_config.json`). A file tool that returned one of them handed the model, and whoever steers it, the key
+    of the whole hub. The tools still read those files; the key itself never leaves in a tool result."""
+    if not isinstance(text, str) or not text:
+        return text
+    try:
+        tok = hub_token()
+    except Exception:  # noqa: BLE001
+        return text
+    return text.replace(tok, "[hub token hidden]") if tok and tok in text else text
+
+
+def vault_header_refused(p) -> bool:
+    """True when a client-sent vault path points at Naota's own state instead of a brain (security fix, 2026-11-10).
+
+    The X-Naota-Vault header used to accept any directory that exists. With the state directory (or a folder above it)
+    as the "brain", the file tools of the hub read `.sessions.json` and wrote `plugins/<x>/plugin.yaml`, which the
+    server loads as Python. A brain is never the state directory, never a plugin or pack folder inside it, and never a
+    folder that contains it. Brains kept under BRAINS_DIR stay valid even when BRAINS_DIR sits inside the state
+    directory."""
+    try:
+        p = Path(p).resolve()
+        st = Path(STATE_DIR).resolve()
+    except (OSError, ValueError):
+        return True
+    if p == st or p in st.parents:
+        return True
+    if st not in p.parents:
+        return False
+    try:
+        br = _brains_dir().resolve()
+        if br != st and (p == br or br in p.parents) and (br == st or st in br.parents):
+            return p == br          # a brain under BRAINS_DIR is fine; BRAINS_DIR itself is not a brain
+    except (OSError, ValueError):
+        pass
+    try:
+        top = p.relative_to(st).parts[0].lower()
+    except (ValueError, IndexError):
+        return True
+    # Folders of the state directory that hold code the server runs, or its secrets and stores.
+    return top in ("plugins", "packs", ".staging", "__pycache__") or top.startswith(".")
+
+
 def allow_patterns():
-    """Pattern cho --allowedTools của loop: mọi tool qua hub đều mang tên mcp__vanhanh__*."""
-    return ["mcp__vanhanh"]
+    """Pattern cho --allowedTools của loop: mọi tool qua hub đều mang tên mcp__naota__*."""
+    return ["mcp__naota"]
 
 
 # Tools that only the OWNER's own sessions may see. A dedicated bot at the "can write" / "full" level gets
 # hub tools, and there the person steering the model is a stranger. These two read every customer chat the reply
 # judge logged and retune the bot itself, so a customer must never reach them, not even through the lazy
-# `vanhanh_run_tool`. `discover_all(for_bot=True)` drops them before the lazy tier; bot paths pass that flag (API
-# engines directly, Claude Code through the X-Vanhanh-Bot header written by `claude_config_path(bot=True)`).
-# `vanhanh_team` creates, edits and deletes team chats and writes assistant files: owner-only for the same reason.
-# `vanhanh_watch` makes the server fetch an address on a schedule and message the owner: not a customer's call.
-# `vanhanh_login` opens pages signed in as the owner (login vault): a customer must never browse as them.
-OWNER_ONLY_TOOLS = frozenset({"vanhanh_reply_policy", "vanhanh_reply_policy_tune", "vanhanh_team", "vanhanh_memory",
-                              "vanhanh_watch", "vanhanh_login",
+# `naota_run_tool`. `discover_all(for_bot=True)` drops them before the lazy tier; bot paths pass that flag (API
+# engines directly, Claude Code through the X-Naota-Bot header written by `claude_config_path(bot=True)`).
+# `naota_team` creates, edits and deletes team chats and writes assistant files: owner-only for the same reason.
+# `naota_watch` makes the server fetch an address on a schedule and message the owner: not a customer's call.
+# `naota_login` opens pages signed in as the owner (login vault): a customer must never browse as them.
+OWNER_ONLY_TOOLS = frozenset({"naota_reply_policy", "naota_reply_policy_tune", "naota_team", "naota_memory",
+                              "naota_watch", "naota_login",
                               # changes which notices reach the owner. A customer must never mute the owner.
-                              "vanhanh_notify",
-                              # renames Vanhanh Core in the owner's brain. Not a customer's call.
-                              "vanhanh_core_name",
-                              # writes code that runs in the server (installed OFF, still owner's call).
-                              "vanhanh_plugin",
+                              "naota_notify",
+                              # renames Naota Core in the owner's brain. Not a customer's call.
+                              "naota_core_name",
+                              # 2026-11-10: steers which model background jobs run on. Not a customer's call.
+                              "naota_tune",
+                              # 2026-11-15: rewrites assistants, skills and memory, attaches Naota's own code, updates
+                              # and restarts the install. Only the owner asks for that.
+                              "naota_improve",
+                              # 2026-11-13: rewrites a project's instructions, notes, files and links.
+                              "naota_project",
+                              # 2026-10-25: writes code that runs in the server (installed OFF, still owner's call).
+                              "naota_plugin",
                               # tìm và đọc web. Bot nói chuyện với khách lạ không được biến
                               # máy chủ của chủ thành máy đi đọc web hộ bất kỳ ai nhắn tới.
-                              "vanhanh_web_search", "vanhanh_web_fetch",
+                              "naota_web_search", "naota_web_fetch",
                               # 2026-11-05 audit: adds an MCP server to the store EVERY brain shares and dials it
                               # at once. A customer must never plant a server in the owner's tool list.
-                              "vanhanh_add_mcp"})
+                              "naota_add_mcp"})
 
 
 # ============================================================
@@ -216,6 +299,72 @@ def audit_tail(limit=50, conn_id=None):
         return []
 
 
+def note_query_answer(tool: str, sent_chars: int) -> None:
+    """One naota_query answer: the characters a model read in place of the pages it queried."""
+    _sizes_append({"ts": datetime.now().isoformat(timespec="seconds"), "conn_id": "naota-query",
+                   "label": "naota_query", "tool": tool or "naota_query",
+                   "raw_chars": 0, "sent_chars": int(sent_chars or 0), "shape": "query"})
+
+
+def result_size_stats(days: int = 7, top: int = 10) -> dict:
+    """How large connection results were and how much of them a model was handed, from the sizes log.
+
+    Only calls a model read are counted (shape in tool_result_shaper.MODEL_KINDS), plus pages naota_query read
+    for itself and the answers it gave. The log is two files of 5 MB at most, so on a busy install this covers
+    less than `days`; `since` says how far it goes."""
+    days = max(1, min(90, int(days or 7)))
+    cutoff = (datetime.now() - timedelta(days=days)).isoformat(timespec="seconds")   # same clock as the log's `ts`
+    counted = tool_result_shaper.MODEL_KINDS | {"raw", "query"}
+    total = {"calls": 0, "raw_chars": 0, "sent_chars": 0, "stored": 0, "over_cap": 0}
+    by_tool, since = {}, ""
+    for path in (_SIZES_PATH.with_suffix(".jsonl.1"), _SIZES_PATH):
+        try:
+            if not path.exists():
+                continue
+            with path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    try:
+                        rec = json.loads(line)
+                    except ValueError:
+                        continue
+                    ts = str(rec.get("ts") or "")
+                    if ts < cutoff or rec.get("shape") not in counted:
+                        continue
+                    since = ts if not since or ts < since else since
+                    raw, sent = int(rec.get("raw_chars") or 0), int(rec.get("sent_chars") or 0)
+                    key = (str(rec.get("label") or rec.get("conn_id") or ""), str(rec.get("tool") or ""))
+                    row = by_tool.setdefault(key, {"calls": 0, "raw_chars": 0, "sent_chars": 0})
+                    for acc in (total, row):
+                        acc["calls"] += 1
+                        acc["raw_chars"] += raw
+                        acc["sent_chars"] += sent
+                    # small results tallied since the previous line: handed over whole
+                    total["calls"] += int(rec.get("small_calls") or 0)
+                    total["raw_chars"] += int(rec.get("small_chars") or 0)
+                    total["sent_chars"] += int(rec.get("small_chars") or 0)
+                    if rec.get("shape") in ("table", "preview", "text_preview"):
+                        total["stored"] += 1
+                    if raw > tool_result_shaper.INLINE_MAX_DEFAULT:
+                        total["over_cap"] += 1
+        except OSError:
+            continue
+    with _small_lock:                               # not yet written anywhere
+        total["calls"] += _small_tally["calls"]
+        total["raw_chars"] += _small_tally["chars"]
+        total["sent_chars"] += _small_tally["chars"]
+    saved = max(0, total["raw_chars"] - total["sent_chars"])
+    rows = sorted(by_tool.items(), key=lambda kv: kv[1]["raw_chars"] - kv[1]["sent_chars"], reverse=True)[:top]
+    try:
+        per_token = float((config.read_settings().get("context_runtime") or {}).get("estimate_chars_per_token") or 3.0)
+    except Exception:  # noqa: BLE001
+        per_token = 3.0
+    return {"days": days, "since": since, **total, "saved_chars": saved,
+            "saved_pct": round(saved * 100 / total["raw_chars"], 1) if total["raw_chars"] else 0.0,
+            "saved_tokens_est": int(saved / max(1.0, per_token)),
+            "shaping_on": bool(tool_result_shaper.settings().get("on")),
+            "by_tool": [{"source": k[0], "tool": k[1], **v} for k, v in rows]}
+
+
 # ============================================================
 # Rate limit (catalog rate_limit.calls_per_min - vd Zalo chống spam/ban)
 # ============================================================
@@ -236,6 +385,101 @@ def _rate_ok(conn_id, connector):
 # ============================================================
 # Guarded call - lớp quyền CỨNG + audit quanh mọi tool call
 # ============================================================
+_SIZES_PATH = STATE_DIR / "tool_result_sizes.jsonl"
+
+
+def _sizes_append(rec):
+    """One line per connection result: how large it was and how much of it a model was handed. A file of its own,
+    so the audit log keeps its meaning (who called what, allowed or not) and its size."""
+    try:
+        if _SIZES_PATH.exists() and _SIZES_PATH.stat().st_size > 5_000_000:
+            _SIZES_PATH.replace(_SIZES_PATH.with_suffix(".jsonl.1"))
+        with _SIZES_PATH.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception as e:  # noqa: BLE001 - a meter never fails a tool call
+        print(f"[hub sizes] {e}", file=sys.stderr)
+
+
+# Small results are not written to the sizes log one by one (a file write per call on the event loop is exactly
+# what tools/loop_audit.py exists to stop). They are tallied here and ride along on the next line that is written.
+_small_tally = {"calls": 0, "chars": 0}
+_small_lock = threading.Lock()
+_SHAPE_POOL = ThreadPoolExecutor(max_workers=3, thread_name_prefix="naota-shape")
+
+
+def _shape_and_log(text, fn, conn, tool, scope):
+    """Worker-thread half of `_shaped_call`: parse, maybe store, and write the sizes line."""
+    shaped = tool_result_shaper.shape(text, tool=fn, conn_id=conn["id"], scope=scope)
+    with _small_lock:
+        small_calls, small_chars = _small_tally["calls"], _small_tally["chars"]
+        _small_tally["calls"] = _small_tally["chars"] = 0
+    rec = {"ts": datetime.now().isoformat(timespec="seconds"), "conn_id": conn["id"],
+           "label": conn.get("label"), "tool": tool, "raw_chars": shaped.raw_chars,
+           # "raw" = pages naota_query read for itself: none of it reached a model
+           "sent_chars": 0 if shaped.kind == "raw" else shaped.sent_chars, "shape": shaped.kind}
+    if small_calls:
+        rec["small_calls"], rec["small_chars"] = small_calls, small_chars
+    _sizes_append(rec)
+    return shaped
+
+
+# One line in the tool search's description when a scout is available: the model must know it exists to decide to
+# use it, and a line costs far less per turn than listing the whole tool.
+SCOUT_HINT = (" naota_scout(task): giao model nền ĐỌC dữ liệu nặng (nhiều nguồn, nhiều trang, kỳ dài) rồi chỉ trả "
+              "về kết luận; gọi qua {run}.")
+
+
+def _shape_view(result, name, scope):
+    """An explicit `result_view` of naota_run_tool, shaped like any result and counted as what the model read (the
+    inner call was logged as read-for-itself, with nothing sent)."""
+    shaped = tool_result_shaper.shape(result, tool=name, scope=scope)
+    _sizes_append({"ts": datetime.now().isoformat(timespec="seconds"), "conn_id": "naota-view", "label": "result_view",
+                   "tool": name, "raw_chars": 0, "sent_chars": shaped.sent_chars, "shape": "query"})
+    return shaped.text
+
+
+def _shaped_call(call, ent, fn, scope):
+    """The OUTERMOST layer of a connection tool's route: shape the result for whoever reads it.
+
+    Outside the permission guard and outside plugin hooks on purpose: a `post_tool_call` hook must keep seeing what
+    the tool really returned, not the view made for a model. What happens to a result (tool_result_shaper): an
+    internal caller gets it untouched; a model's tool loop gets errors and small results word for word, JSON
+    without indentation or empty fields, and a large result stored whole and replaced by a view with a
+    reference. Large results are parsed and stored off the event loop.
+
+    scope: the brain this tool list was built for. A stored result can be read back only by a turn of that brain."""
+    conn = ent["conn"]
+    tool = ent["tool"]
+
+    async def _call(args):
+        result = await call(args)
+        if tool_result_shaper.audience() == "":
+            return result                       # an internal caller: exactly as before, and not measured
+        text = result if isinstance(result, str) else str(result)
+        if len(text) < tool_result_shaper.MIN_SHAPE_CHARS:
+            # nothing to parse or store: decided inline, counted in memory
+            shaped = tool_result_shaper.shape(text, tool=fn, conn_id=conn["id"], scope=scope)
+            with _small_lock:
+                _small_tally["calls"] += 1
+                _small_tally["chars"] += len(text)
+        else:
+            # Its own small pool, not the general one: parsing holds the interpreter lock, and two dozen results
+            # parsed at once on thirty threads starved the event loop for 200 ms (measured, test_tool_result_scale).
+            ctx = contextvars.copy_context()
+            shaped = await asyncio.get_running_loop().run_in_executor(
+                _SHAPE_POOL, ctx.run, _shape_and_log, text, fn, conn, tool, scope)
+        if shaped.kind in tool_result_shaper.MODEL_KINDS:
+            # A recurring job's read calls are what its recipe replays (job_recipes.py). No job, no recording.
+            job = str((turn_context.current() or {}).get("job") or "")
+            if job:
+                # only a call that is plainly a read may ever be repeated by Naota (tool_result_tools.is_plain_read)
+                if tool_result_tools.is_plain_read(ent, args):
+                    job_recipes.note_call(job, fn, args, ok=not text.lstrip().startswith("ERROR:"), ref=shaped.ref)
+        return shaped.text if shaped.kind in tool_result_shaper.CHANGED_KINDS else result
+
+    return _call
+
+
 def _guard(ent, fn, mode):
     """Bọc 1 route entry MCP thành async call có kiểm quyền + audit."""
     conn = ent["conn"]
@@ -284,12 +528,12 @@ def _guard(ent, fn, mode):
                        "args_keys": sorted((args or {}).keys()), **team_gate.audit_fields()})
         # Lỗi từ dịch vụ trả về NGUYÊN VĂN tiếng Anh thì model phải tự đoán, và nó đoán sai:
         # vụ từng gặp: Google trả "The caller does not have permission", model kết luận là hub
-        # của Vanhanh chặn quyền rồi đi sửa nhầm tầng. GẮN THÊM chẩn đoán (không thay thế - giữ
+        # của Naota chặn quyền rồi đi sửa nhầm tầng. GẮN THÊM chẩn đoán (không thay thế - giữ
         # nguyên văn để còn lần ra manh mối) khi nhận ra họ lỗi quen mặt.
         if str(result).startswith("ERROR:"):
             chan_doan = chan_doan_loi(str(result).split("ERROR:", 1)[1].strip(), conn["id"])
             if chan_doan:
-                return f"{result}\n\n[Vanhanh chẩn đoán] {chan_doan}"
+                return f"{result}\n\n[Naota chẩn đoán] {chan_doan}"
         return result
 
     return _call
@@ -298,7 +542,7 @@ def _guard(ent, fn, mode):
 # ============================================================
 # AMBIENT / ACCOUNT MCP - connector đấu vào TÀI KHOẢN Claude (claude.ai: Drive/Gmail/lịch...).
 # Chúng KHÔNG đi qua hub: engine Claude nạp thẳng qua setting_sources thành tool NATIVE
-# mcp__<server>__*. Trước đây lazy layer + vanhanh_connections MÙ với nhóm này → model tưởng chỉ
+# mcp__<server>__*. Trước đây lazy layer + naota_connections MÙ với nhóm này → model tưởng chỉ
 # có connector của hub, báo "không có Drive" dù tài khoản đã đấu. Ở đây hub ĐỌC danh sách
 # (claude mcp list, cache nền vì chậm) để KỂ cho model biết + chỉ cách gọi (native, KHÔNG qua run).
 # ============================================================
@@ -354,7 +598,7 @@ def _ambient_servers():
 
 def _match_ambient(ambient, query):
     """Connector tài khoản khớp query (tên xuất hiện trong query, hoặc chung từ khoá). query
-    rỗng → []. Dùng cho vanhanh_search_tools chỉ model sang tool native khi hỏi đúng nguồn đó."""
+    rỗng → []. Dùng cho naota_search_tools chỉ model sang tool native khi hỏi đúng nguồn đó."""
     q = (query or "").strip().lower()
     if not q or not ambient:
         return []
@@ -427,7 +671,7 @@ def _safe_path(vault_root, p, workspace_root=None):
                                         GHI file mới, đã đổi)
       3. Không đâu có                -> vault, để câu báo lỗi nói về brain như cũ
 
-    Bước 2 là thứ làm `vanhanh_write_file` ghi đúng chỗ: ghi `server/moi.py` trong một phiên
+    Bước 2 là thứ làm `naota_write_file` ghi đúng chỗ: ghi `server/moi.py` trong một phiên
     coding thì brain không có thư mục `server/` còn repo có, nên file rơi vào repo.
     """
     tv = _trong_goc(vault_root, p)
@@ -476,7 +720,7 @@ def _safe_read_path(vault_root, p, cho_phep_staging=False, workspace_root=None):
 
     Vì sao phải có: dashboard chèn vào câu hỏi khối "[File đính kèm để ĐỌC (đường dẫn): …]"
     với ĐƯỜNG DẪN TUYỆT ĐỐI trong `.staging` rồi dặn model "đọc thẳng file rồi trả lời".
-    Sáu engine API không có tool đọc file nào ngoài `vanhanh_read_file`, mà tool đó khoá trong
+    Sáu engine API không có tool đọc file nào ngoài `naota_read_file`, mà tool đó khoá trong
     vault - nên lượt nào đính kèm file cũng nổ `ValueError: nằm ngoài vault`, và model đọc
     lỗi đó xong quay ra bảo người dùng "chuyển file vào thư mục Brain đi rồi tôi đọc". Người
     dùng báo đúng cảnh này với một đoạn văn dán dài.
@@ -527,7 +771,7 @@ def _connections_json(include_ambient=False, hidden=None, bo_qua=None, owner_cha
     # này" rồi còn ghi điều đó vào bộ nhớ dài hạn. KHÔNG có khái niệm ấy: hub dựng tool từ
     # mcp_store.resolved() cho MỌI vault như nhau. Không thấy tool chỉ có hai lý do thật -
     # nguồn đang tắt, hoặc nguồn đang hỏng lúc dò - và cả hai đều phải nói ra ở đây.
-    out = [{"ghi_chu": ("Kết nối là của CẢ Vanhanh, dùng chung cho MỌI brain. Không có chuyện "
+    out = [{"ghi_chu": ("Kết nối là của CẢ Naota, dùng chung cho MỌI brain. Không có chuyện "
                         "'gắn nguồn vào brain' - đừng bao giờ nói vậy. Nguồn có mặt ở danh sách "
                         "này mà không thấy tool của nó thì xem trang_thai: đang TẮT (bật lại ở "
                         "trang Kết nối) hoặc đang HỎNG lúc dò (bảo người dùng bấm Kiểm tra ở "
@@ -537,7 +781,7 @@ def _connections_json(include_ambient=False, hidden=None, bo_qua=None, owner_cha
         rec = {"connector": con.get("name") or c.get("connector_id"), "label": c.get("label"),
                "namespace": c.get("slug"), "perm": c.get("perm"), "enabled": c.get("enabled"),
                "is_default": c.get("is_default"), "transport": c.get("transport"),
-               "source": "vanhanh_hub"}
+               "source": "naota_hub"}
         sk = suc_khoe.get(c.get("id")) or {}
         if not c.get("enabled"):
             rec["trang_thai"] = "ĐANG TẮT - bật lại ở trang Kết nối là mọi brain dùng được ngay."
@@ -555,15 +799,15 @@ def _connections_json(include_ambient=False, hidden=None, bo_qua=None, owner_cha
             rec["tool_bi_an_do_quyen"] = sorted(h["tools"])[:15]
             rec["cach_mo"] = (f"Các tool này CÓ THẬT nhưng bị ẩn vì kết nối đang ở mức "
                               f"'{h.get('perm')}'. Muốn dùng thì bảo user tự nâng mức ở trang "
-                              "Kết nối - Vanhanh KHÔNG tự nâng quyền.")
+                              "Kết nối - Naota KHÔNG tự nâng quyền.")
         out.append(rec)
     # Connector đấu vào TÀI KHOẢN Claude (Drive/Gmail/lịch...): engine Claude đã có sẵn dưới dạng
-    # tool native mcp__<server>__* → chỉ model gọi THẲNG, KHÔNG bọc qua vanhanh_run_tool/hub.
+    # tool native mcp__<server>__* → chỉ model gọi THẲNG, KHÔNG bọc qua naota_run_tool/hub.
     if include_ambient:
         for s in _ambient_servers():
             out.append({"connector": s["name"], "label": s["name"], "source": "claude_account",
                         "goi_the_nao": f"Đã có sẵn trong danh sách tool: mcp__{_ambient_prefix(s['name'])}__* "
-                                       "- GỌI THẲNG, không qua vanhanh_run_tool."})
+                                       "- GỌI THẲNG, không qua naota_run_tool."})
     elif owner_chat:
         # an engine with no Claude account (Anthropic API, OpenAI API...) never gets these connectors. Not
         # listing them let the model answer "there is no such tool" with no way forward (seen in practice:
@@ -574,7 +818,7 @@ def _connections_json(include_ambient=False, hidden=None, bo_qua=None, owner_cha
                         "dung_duoc_o_luot_nay": False,
                         "ly_do": ("Kết nối này gắn với TÀI KHOẢN Claude của chủ, chỉ có khi model chat là Claude "
                                   "Code. Model đang chạy bằng API key nên không gọi được. Nói đúng lý do đó, rồi "
-                                  "chỉ hai cách: nối nguồn này ở trang Kết nối của Vanhanh (mọi model đều dùng "
+                                  "chỉ hai cách: nối nguồn này ở trang Kết nối của Naota (mọi model đều dùng "
                                   "được), hoặc đổi model chat sang Claude Code.")})
     return json.dumps(out, ensure_ascii=False, indent=1)
 
@@ -606,8 +850,8 @@ def _rel_trong_goc(p, vault_root, workspace_root):
 def _ghi_vung_bao_ve(p, vault_root, workspace_root, mode, for_bot=False) -> str:
     """Refusal text when a run below Full access, or any customer bot, writes a file that runs or configures code.
 
-    Security fix (2026-11-05 audit): plugins/ with `enabled: true` is loaded as Python in the server, Vanhanh/loops,
-    Vanhanh/scripts and reminders run later at Full access, .git/config and .claude/settings.json run commands. Before this
+    Security fix (2026-11-05 audit): plugins/ with `enabled: true` is loaded as Python in the server, Naota/loops,
+    Naota/scripts and reminders run later at Full access, .git/config and .claude/settings.json run commands. Before this
     only a gated Team step was stopped there, so an "auto" bot steered by a stranger, or an auto loop reading untrusted
     text, could plant one of these and climb to Full access. Full-access owner runs keep writing them as before (the
     owner's own chat already has a shell). A gated Team step keeps its approval path below, so it is not refused here.
@@ -621,8 +865,8 @@ def _ghi_vung_bao_ve(p, vault_root, workspace_root, mode, for_bot=False) -> str:
     if rel is not None and not team_gate.protected_rel(rel):
         return ""
     ai = "chatbot trả lời khách" if for_bot else f"việc chạy ở mức '{mode}' (dưới Toàn quyền)"
-    return (f"ERROR: {ai} không được ghi vào '{rel if rel is not None else p}'. Thư mục plugins/, Vanhanh/ (loop, script, "
-            ".vanhanh), .git, .claude và cấu hình engine là nơi CHỨA MÃ CHẠY hoặc việc chạy toàn quyền, nên chỉ chủ ở mức "
+    return (f"ERROR: {ai} không được ghi vào '{rel if rel is not None else p}'. Thư mục plugins/, Naota/ (loop, script, "
+            ".naota), .git, .claude và cấu hình engine là nơi CHỨA MÃ CHẠY hoặc việc chạy toàn quyền, nên chỉ chủ ở mức "
             "Toàn quyền mới ghi được. Đây là rào bảo mật, không phải lỗi ổ đĩa. Ghi nội dung vào chỗ khác (ví dụ "
             "drafts/) hoặc đưa nội dung vào câu trả lời để chủ tự xem.")
 
@@ -630,18 +874,18 @@ def _ghi_vung_bao_ve(p, vault_root, workspace_root, mode, for_bot=False) -> str:
 def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang="", staging=False,
                    bo_qua=None, workspace_root=None, coding_ctx_cua_phien=None, for_bot=False):
     """(tools_spec, route) các tool nội bộ cho engine API. Claude/Codex có tool file native
-    nên hub HTTP không trả nhóm này (chỉ meta vanhanh_connections).
-    include_ambient=True (đường engine Claude): vanhanh_connections kèm cả connector tài khoản
+    nên hub HTTP không trả nhóm này (chỉ meta naota_connections).
+    include_ambient=True (đường engine Claude): naota_connections kèm cả connector tài khoản
     Claude (Drive/Gmail...) để model biết chúng tồn tại (gọi qua tool native mcp__*, không qua hub).
     hidden: {conn_id: {perm, tools}} tool bị mức quyền lọc khỏi danh sách - kể ra trong
-    vanhanh_connections để model biết mà nói đúng lý do thay vì tưởng nguồn thiếu năng lực.
-    staging=True: `vanhanh_read_file` đọc được thêm file trong vùng nhận file của khung chat
+    naota_connections để model biết mà nói đúng lý do thay vì tưởng nguồn thiếu năng lực.
+    staging=True: `naota_read_file` đọc được thêm file trong vùng nhận file của khung chat
     (xem `_safe_read_path`). CHỈ đường chat của CHỦ bật; bot chuyên trách để nguyên False.
     workspace_root: thư mục làm việc của phiên Coding. Có giá trị thì tool FILE nhận
     thêm gốc đó, để engine không có tool file native chạm được vào cây mã nguồn. MCP, cron và
     nhắc hẹn KHÔNG đổi gốc - chúng thuộc về brain, xem `coding_ctx`.
     coding_ctx_cua_phien: `CodingToolContext` của phiên. Có nó VÀ có workspace_root thì hub
-    cấp thêm `vanhanh_run_command`. Thiếu một trong hai thì tool đó không tồn tại - phiên chat
+    cấp thêm `naota_run_command`. Thiếu một trong hai thì tool đó không tồn tại - phiên chat
     thường không được thấy tool chạy lệnh."""
     tools, route = [], {}
     # Phiên Coding nào đang dùng nhóm tool này. Rỗng ở chat thường. Dùng cho sổ "đã
@@ -693,12 +937,12 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
             pass
 
     def add(name, description, props, required, call, effect="read"):
-        tools.append({"fn": name, "server": "vanhanh", "name": name, "description": description,
+        tools.append({"fn": name, "server": "naota", "name": name, "description": description,
                       "schema": {"type": "object", "properties": props, "required": required}})
         route[name] = {
             "call": call,
             "source_type": "builtin",
-            "source_id": "vanhanh-core",
+            "source_id": "naota-core",
             "effect": effect,
             "required_mode": "readonly" if effect in ("none", "read") else (
                 "safe" if effect == "write" else "full"
@@ -706,11 +950,11 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
             "health": "healthy",
         }
 
-    add("vanhanh_connections", "Liệt kê các nguồn dữ liệu (connector/tài khoản MCP) đang đấu vào Vanhanh, "
+    add("naota_connections", "Liệt kê các nguồn dữ liệu (connector/tài khoản MCP) đang đấu vào Naota, "
         "kèm mức quyền, trạng thái sống/hỏng, và các tool đang bị mức quyền ẩn (tool_bi_an_do_quyen). "
         "Kết nối DÙNG CHUNG cho mọi brain - không có khái niệm gắn nguồn vào brain. Gồm cả connector đấu "
         "vào TÀI KHOẢN Claude (Drive/Gmail/lịch...) - loại source='claude_account' gọi THẲNG qua "
-        "tool native mcp__<tên>__*, KHÔNG qua vanhanh_run_tool. Dùng khi cần biết đang có nguồn nào / "
+        "tool native mcp__<tên>__*, KHÔNG qua naota_run_tool. Dùng khi cần biết đang có nguồn nào / "
         "tài khoản nào là mặc định, hoặc khi không tìm thấy tool tưởng phải có.",
         {}, [], lambda args: _async_const(_connections_json(include_ambient, hidden, bo_qua, owner_chat=staging)))
 
@@ -734,22 +978,28 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
                         f"tương đối so với một trong số đó, hoặc file vừa đính kèm vào khung "
                         f"chat.")
             return (f"ERROR: '{rel}' nằm ngoài bộ não đang làm việc nên tool này không đọc "
-                    f"được. Vanhanh khoá tool file trong brain để một lượt chat không đọc lung "
+                    f"được. Naota khoá tool file trong brain để một lượt chat không đọc lung "
                     f"tung trên máy. Đọc được: đường dẫn tương đối trong brain, và file người "
                     f"dùng vừa đính kèm vào khung chat.")
         if not p.is_file():
             return f"ERROR: không có file '{rel}'"
+        # Security (2026-11-10): the secret tripwire of the shell and of Claude Code's own tools also covers this tool.
+        bi_mat = secret_guard.check_text(str(p))
+        if bi_mat:
+            secret_guard.note_blocked("naota_read_file", bi_mat, str(rel or ""))
+            return secret_guard.refusal(bi_mat)
         if p.suffix.lower() in _IMAGE_SUFFIXES:
             # Reading a photo as text hands the model a page of mojibake it then "describes" with confidence. Say what the
             # file is and how to actually see it.
             return (f"'{rel}' là file ẢNH ({p.stat().st_size // 1024} KB), tool này chỉ đọc chữ nên không cho bạn thấy ảnh. "
-                    f"Muốn biết trong ảnh có gì, gọi tool vanhanh_describe_image với images=['{rel}'] (ChatGPT nhìn ảnh thật "
+                    f"Muốn biết trong ảnh có gì, gọi tool naota_describe_image với images=['{rel}'] (ChatGPT nhìn ảnh thật "
                     f"rồi tả lại). Muốn người dùng xem ảnh thì nhúng ![]({rel}) vào câu trả lời.")
         if p.suffix.lower() in doc_text.SUFFIXES:
             # PDF/Word đọc thô ra toàn mã nhị phân: bóc chữ trước để engine API và Ollama máy nhà đọc được file đính kèm.
             text = await asyncio.to_thread(doc_text.extract, p)
         else:
             text = p.read_text(encoding="utf-8", errors="replace")
+        text = hide_hub_token(text)
         # đọc theo đoạn có số dòng "N|..." khi xin offset/limit, hoặc khi file nằm trong
         # thư mục làm việc của phiên Coding (ở đó số dòng là thứ model cần để sửa từng đoạn).
         # Chat thường không xin thì GIỮ NGUYÊN output cũ: chatbot và luồng brain dựa vào nó.
@@ -771,10 +1021,10 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
             rows.append(("[d] " if e.is_dir() else "    ") + e.name)
         return "\n".join(rows) or "(trống)"
 
-    async def _kiem_ghi(args, ten_tool="vanhanh_write_file"):  # noqa: C901
+    async def _kiem_ghi(args, ten_tool="naota_write_file"):  # noqa: C901
         """(đường dẫn đã duyệt, lỗi). Mọi rào trước khi GHI, dùng chung cho ghi và sửa file."""
         if mcp_catalog.effective_perm("full", mode) == "readonly":
-            # Câu này phải NÓI RÕ ĐÂY LÀ QUYỀN CỦA VANHANH, không phải lỗi máy. Bản cũ chỉ ghi
+            # Câu này phải NÓI RÕ ĐÂY LÀ QUYỀN CỦA NAOTA, không phải lỗi máy. Bản cũ chỉ ghi
             # "chế độ hiện tại (suggest/chỉ đọc) không được ghi file", và model đọc xong tự
             # dựng ra một nguyên nhân nghe hợp lý mà sai hoàn toàn - người dùng thật nhận
             # được câu "môi trường filesystem đang lỗi quyền sandbox" rồi đi tìm lỗi ổ đĩa,
@@ -799,7 +1049,7 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
                         f"trong số đó.")
             return None, (f"ERROR: '{(args or {}).get('path')}' nằm ngoài bộ não đang làm việc nên "
                     f"tool này không ghi được. Dùng đường dẫn tương đối trong brain.")
-        # (Vanhanh Core spec 13, 14): the learning switch and the forgotten list are the person's, never the
+        # (Naota Core spec 13, 14): the learning switch and the forgotten list are the person's, never the
         # model's; and with learning off nothing new is written under memory/.
         try:
             import memory_control
@@ -809,7 +1059,7 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
                 return None, "ERROR: công tắc ghi nhớ và danh sách đã quên do người dùng quản lý, tool không ghi được."
             if (rp == mem or mem in rp.parents) and not memory_control.learning_enabled(mem):
                 return None, ("ERROR: người dùng đã TẮT việc lưu ghi nhớ mới cho brain này nên không ghi vào memory/. "
-                        "Nói với người dùng rằng ghi nhớ đang tắt (bật lại ở Vanhanh Core > Trí nhớ).")
+                        "Nói với người dùng rằng ghi nhớ đang tắt (bật lại ở Naota Core > Trí nhớ).")
         except Exception:
             pass
         loi_bao_ve = _ghi_vung_bao_ve(p, vault_root, workspace_root, mode, for_bot)
@@ -817,7 +1067,7 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
             return None, loi_bao_ve
         if mode == team_gate.HUB_MODE:
             # review: a gated Team step writes its deliverables, never files that run or configure code
-            # (plugins/, .claude/, Vanhanh/ loops and reminders...). Those go through the owner's approval like any action.
+            # (plugins/, .claude/, Naota/ loops and reminders...). Those go through the owner's approval like any action.
             rel = None
             for base in [vault_root] + list(workspace_root if isinstance(workspace_root, (list, tuple)) else
                                             ([workspace_root] if workspace_root else [])):
@@ -842,9 +1092,9 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
         if _sid_coding and _trong_lam_viec(p):
             # trong thư mục làm việc, chặn ghi đè mù và chặn dán nguyên output có số dòng.
             if coding_files.giong_output_doc(noi_dung):
-                return ("ERROR: nội dung trông như output của vanhanh_read_file (mỗi dòng mở đầu bằng "
+                return ("ERROR: nội dung trông như output của naota_read_file (mỗi dòng mở đầu bằng "
                         "'số|'). Ghi vậy là ghi cả số dòng vào file. Bỏ tiền tố số dòng, hoặc dùng "
-                        "vanhanh_edit_file để sửa đúng đoạn cần.")
+                        "naota_edit_file để sửa đúng đoạn cần.")
             chan = coding_files.chan_ghi_de(_sid_coding, p)
             if chan:
                 return chan
@@ -858,11 +1108,11 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
 
     async def _edit(args):
         args = args or {}
-        p, loi = await _kiem_ghi(args, "vanhanh_edit_file")
+        p, loi = await _kiem_ghi(args, "naota_edit_file")
         if loi:
             return loi
         if not p.is_file():
-            return (f"ERROR: không có file '{args.get('path')}'. Tạo file mới thì dùng vanhanh_write_file.")
+            return (f"ERROR: không có file '{args.get('path')}'. Tạo file mới thì dùng naota_write_file.")
         canh_bao = _moc_truoc(p, f"sửa {args.get('path')}") if (_sid_coding and _trong_lam_viec(p)) else ""
         ra = await asyncio.to_thread(
             coding_files.sua_file, p, str(args.get("old_string") or ""), str(args.get("new_string") or ""),
@@ -945,25 +1195,25 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
             return 'ERROR: task_skill_scope_unavailable'
         return text
 
-    add("vanhanh_read_file", "Đọc 1 file trong vault (Second Brain). path tương đối so với gốc vault; "
+    add("naota_read_file", "Đọc 1 file trong vault (Second Brain). path tương đối so với gốc vault; "
         "nhận CẢ đường dẫn tuyệt đối của file người dùng vừa đính kèm/dán vào khung chat. PDF, Word, Excel "
         "(.xlsx: mọi sheet, giá trị công thức, ô lỗi) được bóc thành chữ. File dài: "
         "đọc từng đoạn bằng offset/limit (có số dòng).",
         {"path": {"type": "string"}, "offset": {"type": "integer"}, "limit": {"type": "integer"}},
         ["path"], _read)
-    add("vanhanh_list_dir", "Liệt kê file/thư mục trong vault. path tương đối, bỏ trống = gốc vault.",
+    add("naota_list_dir", "Liệt kê file/thư mục trong vault. path tương đối, bỏ trống = gốc vault.",
         {"path": {"type": "string"}}, [], _ls)
-    add("vanhanh_write_file", "Ghi/tạo file trong vault (ghi đè nếu có). Dùng khi cần lưu ghi chú, "
+    add("naota_write_file", "Ghi/tạo file trong vault (ghi đè nếu có). Dùng khi cần lưu ghi chú, "
         "báo cáo, nháp. KHÔNG dùng cho hành động ra ngoài.",
         {"path": {"type": "string"}, "content": {"type": "string"}}, ["path", "content"], _write,
         effect="write")
-    add("vanhanh_edit_file", "Sửa MỘT đoạn trong file có sẵn: thay old_string (chép nguyên văn từ file, đủ "
+    add("naota_edit_file", "Sửa MỘT đoạn trong file có sẵn: thay old_string (chép nguyên văn từ file, đủ "
         "dài để chỉ khớp một chỗ) bằng new_string. Sửa vài dòng thì LUÔN dùng tool này, đừng ghi đè cả "
-        "file bằng vanhanh_write_file. replace_all=true để thay mọi chỗ khớp. Trả về diff.",
+        "file bằng naota_write_file. replace_all=true để thay mọi chỗ khớp. Trả về diff.",
         {"path": {"type": "string"}, "old_string": {"type": "string"},
          "new_string": {"type": "string"}, "replace_all": {"type": "boolean"}},
         ["path", "old_string", "new_string"], _edit, effect="write")
-    add("vanhanh_search_files", "Tìm trong file: target='content' tìm theo nội dung (regex), target='files' "
+    add("naota_search_files", "Tìm trong file: target='content' tìm theo nội dung (regex), target='files' "
         "tìm theo tên file (glob như '*.py' hoặc một đoạn tên). path: thư mục để tìm (bỏ trống = thư mục "
         "làm việc, hoặc gốc brain). file_glob lọc loại file, context = số dòng kèm quanh chỗ khớp.",
         {"pattern": {"type": "string"}, "target": {"type": "string", "enum": ["content", "files"]},
@@ -975,7 +1225,7 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
             route[_fn]["hat_nhan"] = True
 
     # tìm và đọc web cho engine API (Claude Code, Codex, Grok có WebSearch/WebFetch riêng).
-    # Không vào nhóm hạt nhân: lượt nào cần web thì model tìm thấy qua vanhanh_search_tools khi tầng
+    # Không vào nhóm hạt nhân: lượt nào cần web thì model tìm thấy qua naota_search_tools khi tầng
     # lazy đang bật, còn lại chúng hiện thẳng như mọi tool khác. Xem web_tools.
     async def _web_search(args):
         import web_tools
@@ -988,12 +1238,12 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
         return await web_tools.doc(str(args.get("url") or ""), args.get("offset") or 0,
                                    args.get("limit") or web_tools.DOC_MAC_DINH)
 
-    add("vanhanh_web_search", "Tìm trên web (tin mới, giá cả, tài liệu, bất cứ thứ gì cần thông tin hiện tại). "
-        "Trả danh sách tiêu đề, địa chỉ, đoạn trích; đọc kỹ trang nào thì gọi vanhanh_web_fetch.",
+    add("naota_web_search", "Tìm trên web (tin mới, giá cả, tài liệu, bất cứ thứ gì cần thông tin hiện tại). "
+        "Trả danh sách tiêu đề, địa chỉ, đoạn trích; đọc kỹ trang nào thì gọi naota_web_fetch.",
         {"query": {"type": "string"}, "limit": {"type": "integer", "description": "số kết quả, mặc định 5"}},
         ["query"], _web_search)
-    add("vanhanh_web_fetch", "Đọc một trang web hoặc file PDF theo url, trả nội dung dạng chữ (markdown). Trang "
-        "dài thì gọi lại với offset để đọc tiếp. Trang cần đăng nhập thì dùng vanhanh_login.",
+    add("naota_web_fetch", "Đọc một trang web hoặc file PDF theo url, trả nội dung dạng chữ (markdown). Trang "
+        "dài thì gọi lại với offset để đọc tiếp. Trang cần đăng nhập thì dùng naota_login.",
         {"url": {"type": "string"}, "offset": {"type": "integer"},
          "limit": {"type": "integer", "description": "số ký tự, mặc định 15000, tối đa 50000"}},
         ["url"], _web_fetch)
@@ -1011,13 +1261,13 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
                         for s in _hien)
     if _con_lai > 0:
         listing += (f"; …(+{_con_lai} skill nữa không liệt kê ở đây, vẫn nạp được bằng "
-                    f"name=<slug> nếu biết tên - xem Vanhanh/index.md)")
-    add("vanhanh_use_skill",
+                    f"name=<slug> nếu biết tên - xem Naota/index.md)")
+    add("naota_use_skill",
         "Nạp nội dung 1 skill (hướng dẫn chuyên sâu) rồi LÀM THEO. Truyền name=<slug>. "
         "Skill khả dụng (slug: mô tả): " + (listing or "(chưa có)"),
         {"name": {"type": "string"}}, ["name"], _skill)
 
-    # `vanhanh_run_command` chỉ hiện khi phiên CÓ thư mục làm việc. Phiên chat thường không thấy
+    # `naota_run_command` chỉ hiện khi phiên CÓ thư mục làm việc. Phiên chat thường không thấy
     # nó, nên không có chuyện một câu hỏi bình thường lại gọi được lệnh máy. Mức quyền vẫn do
     # chính `run_command` cưỡng chế lần nữa theo chip của phiên (hai lớp, không thay nhau).
     # mức Plan (chip suggest, hoặc lượt /plan hạ trần xuống chỉ đọc) không thấy tool này
@@ -1038,7 +1288,7 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
             )
             return run_command.ket_qua_cho_model(kq)
 
-        add("vanhanh_run_command",
+        add("naota_run_command",
             "Chạy MỘT lệnh trong thư mục làm việc của phiên (chạy test, lint, git chỉ đọc). "
             "KHÔNG qua shell: '&&', ';', '|', '$(...)' đều không có tác dụng, tách thành "
             "nhiều lời gọi. Trả về mã thoát rồi tới output đã cắt bớt.",
@@ -1059,8 +1309,8 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
 
         def _nhat_ky(lenh, ket, nguy):
             try:
-                _audit_append({"ts": datetime.now().isoformat(timespec="seconds"), "conn_id": "vanhanh-terminal",
-                               "tool": "vanhanh_terminal", "session": _sid_coding, "cmd": str(lenh)[:500],
+                _audit_append({"ts": datetime.now().isoformat(timespec="seconds"), "conn_id": "naota-terminal",
+                               "tool": "naota_terminal", "session": _sid_coding, "cmd": str(lenh)[:500],
                                "nguy_hiem": bool(nguy), "ok": not str(ket).startswith("ERROR"),
                                "head": str(ket)[:80]})
             except Exception:
@@ -1092,16 +1342,16 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
                                            args.get("offset") or 0, args.get("limit") or 0,
                                            args.get("timeout") or 0)
 
-        add("vanhanh_terminal",
+        add("naota_terminal",
             "Terminal thật (bash) trong thư mục làm việc của phiên: pipe, &&, cd đều được, nhớ thư mục "
             "và biến export giữa các lệnh. Dev server hay lệnh chạy mãi thì background=true rồi xem bằng "
-            "vanhanh_process. timeout mặc định 180 giây, tối đa 600 (xin lâu hơn thì tự chạy nền). workdir: "
-            "thư mục con chỉ cho lệnh này. Trước lệnh thay đổi file Vanhanh tự tạo mốc khôi phục.",
+            "naota_process. timeout mặc định 180 giây, tối đa 600 (xin lâu hơn thì tự chạy nền). workdir: "
+            "thư mục con chỉ cho lệnh này. Trước lệnh thay đổi file Naota tự tạo mốc khôi phục.",
             {"command": {"type": "string"}, "background": {"type": "boolean"},
              "timeout": {"type": "number"}, "workdir": {"type": "string"}},
             ["command"], _terminal, effect="full")
-        add("vanhanh_process",
-            "Quản lý tiến trình nền do vanhanh_terminal bật: action=list | poll (trạng thái + vài dòng cuối) | "
+        add("naota_process",
+            "Quản lý tiến trình nền do naota_terminal bật: action=list | poll (trạng thái + vài dòng cuối) | "
             "log (offset/limit dòng, mặc định 200 dòng cuối) | wait (chờ tới timeout giây, tối đa 600) | kill.",
             {"action": {"type": "string", "enum": ["list", "poll", "log", "wait", "kill"]},
              "process_id": {"type": "string"}, "offset": {"type": "integer"},
@@ -1118,15 +1368,15 @@ async def _async_const(v):
 # ============================================================
 # LAZY TOOLS - chống phình context khi đấu nhiều connector.
 # Thay vì phơi hết hàng trăm schema tool MCP MỖI lượt (câu nào cũng gánh), hub chỉ phơi
-# builtins + plugin + 2 meta-tool: vanhanh_search_tools (tìm tool theo nhu cầu) và
-# vanhanh_run_tool (gọi tool tìm được). Model tự tìm theo NGỮ CẢNH rồi mới nạp schema →
+# builtins + plugin + 2 meta-tool: naota_search_tools (tìm tool theo nhu cầu) và
+# naota_run_tool (gọi tool tìm được). Model tự tìm theo NGỮ CẢNH rồi mới nạp schema →
 # câu không cần MCP tốn gần 0 token tool. Kế thừa NGUYÊN lớp quyền/audit/rate-limit vì
 # run đi qua đúng call_route của route ĐẦY ĐỦ (đã _guard). Model chỉ THẤY meta-tool nên
 # không thể gọi thẳng tool pool → buộc qua run (protocol tự ép).
 # Kế hoạch gốc: ke-hoach-ket-noi-hub mục 3.3 ("lazy tools", để sau).
 # ============================================================
-_LAZY_SEARCH = "vanhanh_search_tools"
-_LAZY_RUN = "vanhanh_run_tool"
+_LAZY_SEARCH = "naota_search_tools"
+_LAZY_RUN = "naota_run_tool"
 _WORD_RE = re.compile(r"[^\W_]{2,}", re.UNICODE)   # từ khoá ≥2 ký tự (giữ Unicode/tiếng Việt)
 
 # Nhóm tool HẠT NHÂN: luôn hiện thẳng, không bao giờ vào tầng lazy.
@@ -1140,22 +1390,22 @@ _WORD_RE = re.compile(r"[^\W_]{2,}", re.UNICODE)   # từ khoá ≥2 ký tự (g
 #   1. Schema NHỎ và CỐ ĐỊNH, không lớn lên theo số thứ user cắm thêm.
 #   2. Cần cho hầu hết mọi lượt, nên bắt model tìm trước khi dùng là lỗ vốn.
 #
-# Vì sao vanhanh_use_skill KHÔNG ở đây dù skill là thứ trung tâm của Vanhanh: mô tả của nó nhúng
+# Vì sao naota_use_skill KHÔNG ở đây dù skill là thứ trung tâm của Naota: mô tả của nó nhúng
 # nguyên danh sách skill (tới SKILL_LIST_MAX mục × SKILL_DESC_MAX ký tự), tức là chính cái
 # số hạng lớn theo N. Cho nó vào pool thì danh sách chỉ vào ngữ cảnh khi model tìm thứ khớp
 # một skill, mà _rank_tools đọc description nên tìm "viết email" vẫn trúng nó như thường.
-# vanhanh_connections cũng vậy: đó là tool dùng khi bí, không phải mọi lượt.
+# naota_connections cũng vậy: đó là tool dùng khi bí, không phải mọi lượt.
 CORE_TOOL_FNS = frozenset({
-    "vanhanh_read_file",
-    "vanhanh_list_dir",
-    "vanhanh_write_file",
+    "naota_read_file",
+    "naota_list_dir",
+    "naota_write_file",
     # Chỉ tồn tại trong phiên có thư mục làm việc, và ở đó thì gần như lượt nào cũng cần.
     # Schema nhỏ và cố định, nên đủ tiêu chí hạt nhân. Bắt model đi tìm nó trước khi dùng là
     # đốt thêm một vòng web, đúng cái hệ số 2 của tầng lazy mà engine Web phải tránh.
-    "vanhanh_run_command",
+    "naota_run_command",
     # Chỉ tồn tại ở mức Toàn quyền của phiên Coding, và ở đó lượt nào cũng dùng.
-    "vanhanh_terminal",
-    "vanhanh_process",
+    "naota_terminal",
+    "naota_process",
 })
 
 # hạt nhân CHỈ TRONG PHIÊN CODING. Ở đó gần như lượt nào cũng sửa và tìm code, bắt model
@@ -1163,12 +1413,12 @@ CORE_TOOL_FNS = frozenset({
 # mọi tool khác: hai schema này cộng lại gần 1.000 ký tự, và trần CORE_TOOLS_MAX_CHARS của
 # test_prompt_budget (gói Groq miễn phí) không chừa chỗ cho chúng ở MỌI lượt chat.
 # Route của chúng mang cờ `hat_nhan` khi dựng cho một phiên Coding; `_apply_lazy` đọc cờ đó.
-CORE_CODING_FNS = frozenset({"vanhanh_edit_file", "vanhanh_search_files"})
+CORE_CODING_FNS = frozenset({"naota_edit_file", "naota_search_files"})
 
 # Mô tả nhóm tool nội bộ cho thực đơn lazy. Builtin/plugin không có connector trong
-# mcp_catalog nên không tự có mô tả; thiếu dòng này thì model chỉ thấy "vanhanh (vanhanh, N tool)".
+# mcp_catalog nên không tự có mô tả; thiếu dòng này thì model chỉ thấy "naota (naota, N tool)".
 _LOCAL_GROUP_DESC = {
-    "vanhanh": "skill của brain, danh sách nguồn đang đấu, tiện ích nội bộ",
+    "naota": "skill của brain, danh sách nguồn đang đấu, tiện ích nội bộ",
     "plugin": "tool do plugin cài thêm",
 }
 
@@ -1194,7 +1444,7 @@ def _lazy_char_budget():
     """Trần ký tự schema tool được phép hiện thẳng, trước khi bắt buộc bật lazy.
 
     Vì sao cần thêm ngưỡng THEO KÍCH THƯỚC bên cạnh ngưỡng theo SỐ LƯỢNG: đếm tool không
-    nói lên chi phí. Một tool duy nhất có thể rất đắt (vanhanh_use_skill nhúng cả danh sách
+    nói lên chi phí. Một tool duy nhất có thể rất đắt (naota_use_skill nhúng cả danh sách
     skill, phình theo số skill người dùng cài), trong khi mười tool schema gọn lại rẻ. Đếm
     số lượng để quyết định là đo nhầm đại lượng, và đó là lý do máy có 26 tool nặng 17k ký
     tự vẫn nằm dưới ngưỡng 40 nên lazy chưa từng kích hoạt lần nào.
@@ -1251,7 +1501,7 @@ def _connector_menu(pool, ambient=None):
                 desc = str(t.get("group_desc") or "").strip()
             if not desc and ns in _LOCAL_GROUP_DESC:
                 # Nhóm nội bộ (builtin/plugin) không có connector trong catalog nên trước đây
-                # hiện trơ là "vanhanh (vanhanh, N tool)" - model không đoán được skill nằm trong
+                # hiện trơ là "naota (naota, N tool)" - model không đoán được skill nằm trong
                 # đó mà tìm. Nêu rõ có gì thì nó mới biết đường gọi search.
                 desc = _LOCAL_GROUP_DESC[ns]
             seen[ns] = {"label": t.get("label") or con.get("name") or ns,
@@ -1269,24 +1519,40 @@ def _connector_menu(pool, ambient=None):
 
 def _rank_tools(pool, query, top_k):
     """Xếp hạng pool theo độ khớp query: khớp cả cụm (+5), đếm từ khoá (+1/từ), boost khi
-    query nhắc thẳng namespace (+3). Trả top_k tool điểm > 0; query rỗng → [] (handler trả menu)."""
+    query nhắc thẳng namespace (+3). Trả top_k tool điểm > 0; query rỗng → [] (handler trả menu).
+
+    2026-11-10, two changes so a search stops costing 10,000 to 25,000 characters:
+      - A word found in the tool's own NAME (fn, name, namespace, label) counts twice. Counting every word
+        once favoured whichever description was longest: a search for shop orders came back with the skill
+        loader on top, because its description lists dozens of skills and so contains nearly any word.
+      - A hit that scores under half of the best one is dropped. It was only there because top_k had room."""
     q = (query or "").strip().lower()
     if not q:
         return []
     terms = set(_WORD_RE.findall(q))
     scored = []
     for t in pool:
-        hay = " ".join([str(t.get("fn") or ""), str(t.get("name") or ""), str(t.get("description") or ""),
+        own = " ".join([str(t.get("fn") or ""), str(t.get("name") or ""),
                         str(t.get("namespace") or ""), str(t.get("label") or "")]).lower()
+        hay = own + " " + str(t.get("description") or "").lower()
         score = 5 if q in hay else 0
         score += sum(1 for w in terms if w in hay)
+        in_name = sum(1 for w in terms if w in own)
+        score += in_name
+        if q == str(t.get("fn") or "").lower() or q == str(t.get("name") or "").lower():
+            score += 100                                   # asked for by exact name: always first
         ns = str(t.get("namespace") or "").lower()
         if ns and ns in q:
             score += 3
         if score > 0:
-            scored.append((score, t))
+            scored.append((score, t, in_name))
     scored.sort(key=lambda x: x[0], reverse=True)
-    return [t for _s, t in scored[:top_k]]
+    if scored:
+        floor = scored[0][0] / 2
+        # ...unless the tool's own name carries two of the words asked for: that is a real match even when
+        # another tool's description happens to contain the whole phrase and takes the top score.
+        scored = [x for x in scored if x[0] >= floor or x[2] >= 2]
+    return [t for _s, t, _n in scored[:top_k]]
 
 
 def _hidden_hint(hidden, only_ns=None):
@@ -1314,10 +1580,32 @@ def _hidden_hint(hidden, only_ns=None):
 _SO_KQ_DAY_DU = 3
 _MO_TA_DAY_DU = 4000
 _MO_TA_GON = 400
+# Whole answer of one tool search, in characters. Hits are listed in full (description + schema) while they fit;
+# the rest are named with one line each, and a search by exact name returns the schema of any of them. The best
+# hit is always given in full, whatever its size.
+_SEARCH_BUDGET_CHARS = 9000
+_MO_TA_TEN = 160
+
+
+def _tool_chars(t) -> int:
+    """Characters one tool costs when it is shown directly: its name, description and schema."""
+    try:
+        return (len(str(t.get("fn") or "")) + len(str(t.get("description") or ""))
+                + len(json.dumps(t.get("schema") or {}, ensure_ascii=False)))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _counted(call, pins_key, fn, size):
+    """A pinned tool's call, counted: it keeps its place only while it is really called (tool_pins)."""
+    async def _call(args):
+        tool_pins.note_run(pins_key, fn, size, direct=True)
+        return await call(args)
+    return _call
 
 
 def _lazy_tools_and_route(visible_tools, visible_route, pool, full_route, top_k, ambient=None,
-                          hidden=None):
+                          hidden=None, pins_key="", scope=""):
     """Dựng (tools_spec, route) chế độ lazy: builtins/plugin hiện trực tiếp + 2 meta-tool.
     _search đóng gói `pool` (full tools_spec để xếp hạng); _run đóng gói `full_route` (dispatch
     qua call_route → giữ nguyên _guard quyền/audit/rate-limit).
@@ -1325,9 +1613,12 @@ def _lazy_tools_and_route(visible_tools, visible_route, pool, full_route, top_k,
     (chúng KHÔNG nằm trong pool nên _run không gọi được; phải gọi thẳng)."""
     ambient = ambient or []
     menu = _connector_menu(pool, ambient)
+    by_fn = {t.get("fn"): t for t in pool} if pins_key else {}
 
     async def _search(args):
         q = (args or {}).get("query") or ""
+        if pins_key:
+            tool_pins.note_search(pins_key)
         hits = _rank_tools(pool, q, top_k)
         amb = _match_ambient(ambient, q)
         if not hits and not amb:
@@ -1344,12 +1635,25 @@ def _lazy_tools_and_route(visible_tools, visible_route, pool, full_route, top_k,
             # từng nuốt mất thông tin sống còn: mô tả COMPOSIO_SEARCH_TOOLS ghi "User has
             # manually connected the apps: gmail, googlecalendar..." ở quãng ký tự 1000, nên
             # model không bao giờ biết người dùng đã nối những app nào.
-            payload["tools"] = [{"name": t.get("fn"),
-                                 "description": (t.get("description") or "")[
-                                     :(_MO_TA_DAY_DU if i < _SO_KQ_DAY_DU else _MO_TA_GON)],
-                                 "schema": t.get("schema") or {"type": "object", "properties": {}}}
-                                for i, t in enumerate(hits)]
-            payload["goi_the_nao"] = f"Gọi tool bằng {_LAZY_RUN}(name=<name>, args={{...}})."
+            full, brief, used = [], [], 0
+            for i, t in enumerate(hits):
+                item = {"name": t.get("fn"),
+                        "description": (t.get("description") or "")[
+                            :(_MO_TA_DAY_DU if i < _SO_KQ_DAY_DU else _MO_TA_GON)],
+                        "schema": t.get("schema") or {"type": "object", "properties": {}}}
+                size = len(json.dumps(item, ensure_ascii=False))
+                if full and (brief or used + size > _SEARCH_BUDGET_CHARS):
+                    brief.append({"name": t.get("fn"), "description": (t.get("description") or "")[:_MO_TA_TEN]})
+                    continue
+                full.append(item)
+                used += size
+            payload["tools"] = full
+            if brief:
+                payload["more_tools"] = brief
+                payload["more_tools_note"] = (f"Also match, listed without their arguments. Call {_LAZY_SEARCH} "
+                                              "with the exact name to get the schema of one.")
+            payload["goi_the_nao"] = (f"Gọi tool bằng {_LAZY_RUN}(name=<name>, args={{...}}). "
+                                     "Nếu cổng làm mất khoá trong args, dùng args_json là chuỗi JSON object thay args.")
         if amb:
             # Connector tài khoản Claude: tool native đã có sẵn trong danh sách tool của engine.
             payload["tai_khoan_claude"] = [
@@ -1363,12 +1667,21 @@ def _lazy_tools_and_route(visible_tools, visible_route, pool, full_route, top_k,
     async def _run(args):
         name = str((args or {}).get("name") or "").strip()
         targs = (args or {}).get("args")
+        encoded_args = (args or {}).get("args_json")
+        if encoded_args is not None:
+            if not isinstance(encoded_args, str):
+                return "ERROR: args_json must be a JSON object encoded as a string."
+            if targs not in (None, {}):
+                return "ERROR: use either args or args_json, not both."
+            targs = encoded_args
         if isinstance(targs, str):          # vài model gói args thành chuỗi JSON
             try:
                 targs = json.loads(targs)
             except (ValueError, TypeError):
-                targs = {}
+                return "ERROR: invalid JSON arguments; pass an object or args_json containing a JSON object."
         if not isinstance(targs, dict):
+            if targs is not None:
+                return "ERROR: tool arguments must be a JSON object."
             targs = {}
         if not name:
             return f"ERROR: thiếu 'name'. Dùng {_LAZY_SEARCH} để tìm tên tool trước."
@@ -1377,30 +1690,57 @@ def _lazy_tools_and_route(visible_tools, visible_route, pool, full_route, top_k,
         if name not in full_route:
             return (f"ERROR: không có tool '{name}'. Dùng {_LAZY_SEARCH} để lấy đúng tên "
                     "(phải khớp y hệt kết quả tìm).")
-        result = await mcp_client.call_route(full_route, name, targs)
-        # Projection follows the same permission/audit/plugin route and executes only once.
+        if name in by_fn:
+            # One call that needed a search round first: the count that earns a tool its pin (tool_pins).
+            tool_pins.note_run(pins_key, name, _tool_chars(by_fn[name]))
+        view = (args or {}).get("result_view")
+        if not view:
+            return await mcp_client.call_route(full_route, name, targs)
+        # An explicit view is cut from the WHOLE result, so the inner call runs unshaped; what the view leaves is
+        # then shaped like any other result. Same permission/audit/plugin route, executed only once.
         from tool_result_view import project_result
-        return project_result(result, (args or {}).get("result_view"), tool_name=name)
+        audience = tool_result_shaper.audience()
+        with tool_result_shaper.raw_results():
+            result = await mcp_client.call_route(full_route, name, targs)
+        projected = project_result(result, view, tool_name=name)
+        if projected is result and isinstance(result, str):
+            # Some servers print a status line before the JSON ("HTTP 200 OK\n---\n{...}"): the view then found
+            # no JSON to cut. Take the view from the JSON part.
+            parsed = tool_result_shaper.parse_document(result)
+            if parsed is not None and parsed.prefix.strip() and not parsed.multi:
+                body = json.dumps(parsed.data, ensure_ascii=False)
+                cut = project_result(body, view, tool_name=name)
+                if cut is not body:
+                    projected = cut
+        result = projected
+        if audience != "model":
+            return result
+        with tool_result_shaper.for_model():
+            return await asyncio.to_thread(_shape_view, result, name, scope)
 
     tools = list(visible_tools)
     route = dict(visible_route)
-    tools.append({"fn": _LAZY_SEARCH, "server": "vanhanh", "name": _LAZY_SEARCH,
+    tools.append({"fn": _LAZY_SEARCH, "server": "naota", "name": _LAZY_SEARCH,
                   "description": ("TÌM tool MCP theo NHU CẦU rồi mới nạp (tiết kiệm token: tool chỉ vào "
                                   "ngữ cảnh khi cần). query = mô tả việc cần làm hoặc tên nguồn. Nguồn "
                                   "đang đấu: " + (menu or "(chưa có nguồn nào)") + f". Kết quả trả tên + "
                                   f"tham số tool để gọi tiếp qua {_LAZY_RUN}; nếu khớp nguồn tài khoản "
-                                  "Claude thì trả hướng dẫn gọi thẳng tool native mcp__<tên>__*."),
+                                  "Claude thì trả hướng dẫn gọi thẳng tool native mcp__<tên>__*."
+                                  + (SCOUT_HINT.format(run=_LAZY_RUN)
+                                     if any(t.get("fn") == scout.TOOL for t in pool) else "")),
                   "schema": {"type": "object", "properties": {
                       "query": {"type": "string",
                                 "description": "Việc cần làm / nguồn / từ khoá, vd 'doanh thu POS hôm nay'"}},
                       "required": ["query"]}})
-    tools.append({"fn": _LAZY_RUN, "server": "vanhanh", "name": _LAZY_RUN,
+    tools.append({"fn": _LAZY_RUN, "server": "naota", "name": _LAZY_RUN,
                   "description": (f"GỌI một tool MCP đã tìm được qua {_LAZY_SEARCH}. name = tên tool (đúng "
                                   "y hệt kết quả tìm), args = tham số (object). Quyền/audit/giới hạn tần "
-                                  "suất áp y như gọi trực tiếp."),
+                                  "suất áp y như gọi trực tiếp. Nếu backend làm mất khoá trong args, "
+                                  "dùng args_json là chuỗi JSON đầy đủ, ví dụ {\"op\":\"pending\"}."),
                   "schema": {"type": "object", "properties": {
                       "name": {"type": "string", "description": f"Tên tool lấy từ {_LAZY_SEARCH}"},
                       "args": {"type": "object", "description": "Tham số tool (object)"},
+                      "args_json": {"type": "string", "description": "Tham số tool dưới dạng chuỗi JSON object; dùng thay args để giữ nguyên các khoá động, ví dụ {\"op\":\"pending\"}."},
                       "result_view": {"type": "object", "description": "Optional explicit JSON view after execution. Keeps errors and source IDs. Does not cache or replay tools.",
                           "properties": {"pointer": {"type": "string", "description": "JSON pointer, e.g. /data/tasks"},
                               "fields": {"type": "array", "items": {"type": "string"}},
@@ -1413,12 +1753,16 @@ def _lazy_tools_and_route(visible_tools, visible_route, pool, full_route, top_k,
     return tools, route
 
 
-def _apply_lazy(tools_spec, route, include_ambient=False, hidden=None, force=False):
+def _apply_lazy(tools_spec, route, include_ambient=False, hidden=None, force=False, pins_key="", pins=(),
+                scope=""):
     """Nếu bật lazy: giấu tool sau meta-tool search/run; không bật → trả nguyên.
     Pool = MỌI tool trừ nhóm hạt nhân CORE_TOOL_FNS - gồm cả builtin và plugin, không riêng
     tool MCP. Xem chú thích ở CORE_TOOL_FNS về lý do không suy pool ra từ 'conn'.
     include_ambient (đường engine Claude): kèm connector tài khoản Claude vào menu/search để
-    model biết còn nhóm tool native mcp__* ngoài pool của hub."""
+    model biết còn nhóm tool native mcp__* ngoài pool của hub.
+    pins_key, pins (tool_pins): the brain's counter and the tools it calls most. A pinned tool is shown directly,
+    after the core tools, so the model calls it without a search round; it stays in the pool too, so a search
+    still finds it. A pin that this permission level or this pool does not hold is simply not shown."""
     pool = [t for t in tools_spec if t["fn"] not in CORE_TOOL_FNS
             and not (route.get(t["fn"]) or {}).get("hat_nhan")]
     if not force and not _lazy_on(len(pool), _pool_chars(pool)):
@@ -1426,9 +1770,25 @@ def _apply_lazy(tools_spec, route, include_ambient=False, hidden=None, force=Fal
     pool_fns = {t["fn"] for t in pool}
     visible_tools = [t for t in tools_spec if t["fn"] not in pool_fns]
     visible_route = {fn: ent for fn, ent in route.items() if fn not in pool_fns}
+    if pins:
+        by_fn = {t["fn"]: t for t in pool}
+        used = 0
+        for fn in pins:
+            ent = route.get(fn) or {}
+            if fn not in by_fn or not ent.get("call"):
+                continue
+            # The size bounds hold on EVERY request, not only when the list was chosen: a description can grow
+            # afterwards (a tool that lists what the user installed), and the tightest models must still fit.
+            size = _tool_chars(by_fn[fn])
+            if size > tool_pins.MAX_TOOL_CHARS or used + size > tool_pins.BUDGET_CHARS:
+                continue
+            used += size
+            visible_tools.append(by_fn[fn])
+            visible_route[fn] = {**ent, "call": _counted(ent["call"], pins_key, fn, size)}
     _, _, top_k = _lazy_config()
     ambient = _ambient_servers() if include_ambient else []
-    return _lazy_tools_and_route(visible_tools, visible_route, pool, route, top_k, ambient, hidden)
+    return _lazy_tools_and_route(visible_tools, visible_route, pool, route, top_k, ambient, hidden,
+                                 pins_key=pins_key, scope=scope)
 
 
 # ============================================================
@@ -1443,6 +1803,10 @@ def _store_mtime():
 
     Đây là đường CHẬM (trong TTL 60 giây sẵn có), dành cho ca thả thư mục vào bằng tay. Đổi qua
     endpoint thì đã gọi thẳng `invalidate_cache()` nên có hiệu lực ngay."""
+    return _STORE_MTIME.get()
+
+
+def _store_mtime_now():
     tong = 0.0
     for f in (mcp_store.STORE, STATE_DIR / "core-off.json", STATE_DIR / "packs"):
         try:
@@ -1452,17 +1816,33 @@ def _store_mtime():
     return tong
 
 
+# 2026-11-13: those three stats ran on the event loop for every tool list a hub request asked for. The loop reads
+# the sum from memory (kept.py); `invalidate_cache()` drops it together with the tool lists.
+_STORE_MTIME = kept.Value(lambda: _store_mtime_now(), key=lambda: (str(mcp_store.STORE), str(STATE_DIR)),
+                          name="hub store mtime")
+
+
+def _scope_tools(tools, route, allowlist):
+    if allowlist is None:
+        return tools, route
+    selected = {name for name in route
+                if name not in ("naota_run_tool", "naota_search_tools")
+                and any(fnmatch.fnmatchcase(name, pattern) for pattern in allowlist)}
+    return ([tool for tool in tools if tool["fn"] in selected],
+            {name: entry for name, entry in route.items() if name in selected})
+
+
 async def discover_all(mode="full", vault_root=None, include_plugins=True, include_ambient=False,
                        force_refresh=False, force_lazy=False, staging=False, workspace_root=None,
-                       coding_ctx_cua_phien=None, for_bot=False):
+                       coding_ctx_cua_phien=None, for_bot=False, tool_allowlist=None):
     """(tools_spec, route) đầy đủ cho 1 mode. route entries ĐÃ bọc quyền + audit.
     include_plugins=False: bỏ nhóm tool plugin - dùng khi engine SDK đã đấu plugin
-    IN-PROCESS (header X-Vanhanh-No-Plugins) để model không thấy tool trùng chức năng.
-    include_ambient=True (đường engine Claude, header X-Vanhanh-Engine=claude): vanhanh_connections +
+    IN-PROCESS (header X-Naota-No-Plugins) để model không thấy tool trùng chức năng.
+    include_ambient=True (đường engine Claude, header X-Naota-Engine=claude): naota_connections +
     lazy search kèm connector tài khoản Claude (Drive/Gmail...) - chúng là tool native mcp__* của
     engine, KHÔNG qua hub, hub chỉ mách chỗ cho model. Engine API (in-process) để False (không có
     tool native để mà chỉ tới).
-    staging=True: cho `vanhanh_read_file` đọc thêm vùng nhận file của khung chat - CHỈ đường chat
+    staging=True: cho `naota_read_file` đọc thêm vùng nhận file của khung chat - CHỈ đường chat
     của chủ truyền vào (xem `_safe_read_path`).
     workspace_root: thư mục làm việc của phiên Coding - tool FILE nhận thêm gốc đó.
         Nhận cả DANH SÁCH: một phiên gắn được nhiều thư mục.
@@ -1472,7 +1852,7 @@ async def discover_all(mode="full", vault_root=None, include_plugins=True, inclu
     # connection, no builtin, no plugin, no lazy tier. Returned before any of those are discovered so
     # a later change to them cannot leak into this level. See chatbot_doc_tools.
     if mode == chatbot_doc_tools.MODE:
-        return chatbot_doc_tools.build(vault_root)
+        return _scope_tools(*chatbot_doc_tools.build(vault_root), tool_allowlist)
     # Ngôn ngữ đọc từ CẤU HÌNH, không truyền từ lượt chat: danh sách tool được cache dùng chung
     # cho mọi lượt, nên nó không thể mang ngôn ngữ dò được của riêng một câu. Đổi lại, ngôn ngữ
     # phải nằm TRONG khoá cache - thiếu nó thì đổi ngôn ngữ ở trang Cài đặt xong vẫn nhận danh
@@ -1482,7 +1862,7 @@ async def discover_all(mode="full", vault_root=None, include_plugins=True, inclu
         lang = localefmt.ngon_ngu_tra_loi()
     except Exception:
         lang = ""
-    # Mức quyền của phiên nằm TRONG khoá: route của `vanhanh_run_command` ôm sẵn ctx của phiên
+    # Mức quyền của phiên nằm TRONG khoá: route của `naota_run_command` ôm sẵn ctx của phiên
     # dựng ra nó, nên hai phiên cùng repo mà khác chip quyền dùng chung cache là phiên
     # `suggest` chạy được lệnh bằng quyền của phiên `full`.
     _quyen_ctx = getattr(coding_ctx_cua_phien, "permission_mode", "") or ""
@@ -1490,9 +1870,17 @@ async def discover_all(mode="full", vault_root=None, include_plugins=True, inclu
     # phiên (cwd, biến môi trường, tiến trình nền). Hai phiên cùng repo cùng chip mà dùng chung
     # cache là phiên này chạy lệnh trong terminal của phiên kia.
     _sid_ctx = getattr(coding_ctx_cua_phien, "session_id", "") if workspace_root else ""
+    # The brain's pinned tools (tool_pins) are part of the list, so they are part of the key: when the pins change
+    # (at most once a day) the next turn builds a new list and the old entry ages out. The session id stays LAST,
+    # `bo_cache_phien` reads it there.
+    pins_key = tool_pins.key(vault_root, bot=for_bot)
+    pins = tool_pins.pinned(pins_key)
     key = (mode, str(vault_root or ""), bool(include_plugins), bool(include_ambient),
            bool(force_lazy), lang, bool(staging), _ten_goc(workspace_root), _quyen_ctx, bool(for_bot),
-           str(_sid_ctx or ""))
+           pins, str(_sid_ctx or ""))
+    if tool_allowlist is not None:
+        tool_allowlist = tuple(sorted(set(tool_allowlist)))
+        key = key[:-1] + (tool_allowlist,) + key[-1:]
     from improvement_task_skill_scope import current, ScopeUnavailable
     task_scope = current(vault_root or '')
     cache = task_scope._hub_cache if task_scope is not None else _cache
@@ -1505,7 +1893,7 @@ async def discover_all(mode="full", vault_root=None, include_plugins=True, inclu
             task_scope.manifests(lang)  # fresh enabled/source checks on a private cache hit
         return ent["tools"], ent["route"]
     if (not force_refresh and ent and task_scope is None and ent["mtime"] == mt and ent.get("epoch") == epoch
-            and ent.get("ttl", _CACHE_TTL) == _CACHE_TTL and time.time() - ent["ts"] < _CACHE_STALE_MAX):
+            and _stale_servable(ent)):
         if key not in _refreshing:
             _refreshing.add(key)
 
@@ -1513,7 +1901,8 @@ async def discover_all(mode="full", vault_root=None, include_plugins=True, inclu
                 try:
                     await discover_all(mode, vault_root, include_plugins, include_ambient, force_refresh=True,
                                        force_lazy=force_lazy, staging=staging, workspace_root=workspace_root,
-                                       coding_ctx_cua_phien=coding_ctx_cua_phien, for_bot=for_bot)
+                                       coding_ctx_cua_phien=coding_ctx_cua_phien, for_bot=for_bot,
+                                       tool_allowlist=tool_allowlist)
                 except Exception as e:  # noqa: BLE001 - the next caller simply dials again
                     print(f"[hub] background refresh failed: {type(e).__name__}: {e}", file=sys.stderr)
                 finally:
@@ -1575,6 +1964,23 @@ async def discover_all(mode="full", vault_root=None, include_plugins=True, inclu
         bo_qua, workspace_root=workspace_root, coding_ctx_cua_phien=coding_ctx_cua_phien, for_bot=for_bot)
     tools_spec += b_tools
     route.update(b_route)
+    # naota_query: reads a stored large result back, or computes over a read-only tool's pages, so the data
+    # never has to pass through the model. Its two dicts are filled further down, once every route is final.
+    # Only a brain with a connected source gets it: without one nothing is ever stored, and a core tool costs
+    # its description on every turn.
+    query_route, query_specs = {}, {}
+    if any(ent.get("conn") for ent in route.values()):
+        q_spec, q_entry = tool_result_tools.build(query_route, query_specs, str(vault_root or ""))
+        q_entry["full_route"] = query_route      # every route behind the tool search too (job_recipes.replay)
+        tools_spec.append(q_spec)
+        route[q_spec["fn"]] = q_entry
+    # naota_scout: a read-only run on the background model that returns only its findings (scout.py). Never for a
+    # customer bot (it starts a run on the owner's background model), and absent when no runner is configured.
+    # Not in OWNER_ONLY_TOOLS on purpose: that set lists tools every owner session HAS, and this one is optional.
+    if scout.available() and not for_bot:
+        s_spec, s_entry = scout.build(vault_root, mode)
+        tools_spec.append(s_spec)
+        route[s_spec["fn"]] = s_entry
 
     # PLUGIN: tool do plugin đăng ký (bundled + vault) → mọi engine, tôn trọng min_mode.
     # Trùng tên tool đã có (MCP/builtin) → BỎ QUA (không cho plugin shadow tool lõi).
@@ -1598,7 +2004,7 @@ async def discover_all(mode="full", vault_root=None, include_plugins=True, inclu
     except Exception as e:
         print(f"[hub] plugin host lỗi: {type(e).__name__}: {e}", file=sys.stderr)
 
-    # Owner-only tools leave a bot's list BEFORE the lazy tier, or `vanhanh_run_tool` would still dispatch them.
+    # Owner-only tools leave a bot's list BEFORE the lazy tier, or `naota_run_tool` would still dispatch them.
     if for_bot:
         tools_spec = [t for t in tools_spec if t.get("fn") not in OWNER_ONLY_TOOLS]
         for fn in OWNER_ONLY_TOOLS:
@@ -1606,13 +2012,25 @@ async def discover_all(mode="full", vault_root=None, include_plugins=True, inclu
 
     # Snapshot ĐẦY ĐỦ trước lazy cho Capability Registry Phase 2. Registry chỉ dùng metadata;
     # model vẫn nhận đúng danh sách sau lazy như trước.
+    # Shaping is the outermost layer of every connection tool (see _shaped_call), added after the hooks above.
+    for fn, ent in route.items():
+        if ent.get("conn") and ent.get("tool") and ent.get("call"):
+            ent["call"] = _shaped_call(ent["call"], ent, fn, str(vault_root or ""))
     inventory_tools = list(tools_spec)
     inventory_route = dict(route)
+    query_route.update(route)
+    query_specs.update({t["fn"]: t for t in tools_spec})
 
     # LAZY: đông tool MCP thì giấu pool sau meta-tool search/run (giữ full route để dispatch).
     # Đặt SAU builtin+plugin để chúng luôn hiện; cache lưu bản ĐÃ biến đổi (route lazy vẫn dispatch
     # được vì _run đóng gói route đầy đủ). Đổi setting → làm mới theo TTL cache (60s) hoặc invalidate.
-    tools_spec, route = _apply_lazy(tools_spec, route, include_ambient, hidden, force=force_lazy)
+    if tool_allowlist is None:
+        tools_spec, route = _apply_lazy(tools_spec, route, include_ambient, hidden, force=force_lazy,
+                                        scope=str(vault_root or ""), pins_key=pins_key, pins=pins)
+    else:
+        # Filter BEFORE a lazy dispatcher can capture the full route table. A missing name
+        # fails at call_route too, so a forged tools/call cannot bypass the advertised list.
+        tools_spec, route = _scope_tools(tools_spec, route, tool_allowlist)
     if task_scope is not None:
         if current(vault_root) is not task_scope or _cache_epoch != epoch:
             raise ScopeUnavailable('task_skill_discovery_changed')
@@ -1621,10 +2039,47 @@ async def discover_all(mode="full", vault_root=None, include_plugins=True, inclu
         # invalidate_cache() ran while this dial was out (a background refresh makes that likelier): the
         # list may predate the change, so hand it to this caller only and do not store it.
         return tools_spec, route
+    missing = frozenset(str(x) for x in bo_qua)
+    prev = cache.get(key)
+    streak = 0
+    if missing:
+        same = bool(prev and prev.get("missing") == missing and prev.get("mtime") == mt and prev.get("epoch") == epoch)
+        streak = (int(prev.get("missing_streak") or 0) + 1) if same else 1
     cache[key] = {"tools": tools_spec, "route": route, "ts": time.time(), "mtime": mt, 'epoch': epoch,
                    "ttl": _CACHE_TTL_THIEU if bo_qua else _CACHE_TTL,
+                   "missing": missing, "missing_streak": streak,
                    "inventory_tools": inventory_tools, "inventory_route": inventory_route}
+    if cache is _cache:
+        _prune_cache()
     return tools_spec, route
+
+
+def _stale_servable(ent) -> bool:
+    """May this expired entry be answered now while a refresh runs in the background?
+
+    A complete list: yes, up to _CACHE_STALE_MAX (0.382.0). A partial list: only when the same sources have been
+    missing for two dials in a row, and up to _CACHE_STALE_THIEU_MAX (see the constants)."""
+    age = time.time() - ent["ts"]
+    ttl = ent.get("ttl", _CACHE_TTL)
+    if ttl == _CACHE_TTL:
+        return age < _CACHE_STALE_MAX
+    return int(ent.get("missing_streak") or 0) >= 2 and age < _CACHE_STALE_THIEU_MAX
+
+
+def _prune_cache() -> int:
+    """Keep the module cache at _CACHE_MAX entries: drop what is too old to ever be served, then the oldest."""
+    if len(_cache) <= _CACHE_MAX:
+        return 0
+    now, n = time.time(), 0
+    for k in [k for k, e in list(_cache.items()) if now - float(e.get("ts") or 0) >= _CACHE_STALE_MAX]:
+        if _cache.pop(k, None) is not None:
+            n += 1
+    over = len(_cache) - _CACHE_MAX
+    if over > 0:
+        for k, _e in sorted(list(_cache.items()), key=lambda kv: float(kv[1].get("ts") or 0))[:over]:
+            if k not in _refreshing and _cache.pop(k, None) is not None:
+                n += 1
+    return n
 
 
 def registry_inventory(mode="full", vault_root=None, include_plugins=True, include_ambient=False,
@@ -1644,6 +2099,7 @@ def registry_inventory(mode="full", vault_root=None, include_plugins=True, inclu
         key = ((mode or 'full').strip().lower(), str(vault_root or ''), bool(include_plugins),
             bool(include_ambient), bool(force_lazy), lang, bool(staging), _ten_goc(workspace_root),
             getattr(coding_ctx_cua_phien, 'permission_mode', '') or '', False,
+            tool_pins.pinned(tool_pins.key(vault_root)),
             str((getattr(coding_ctx_cua_phien, 'session_id', '') if workspace_root else '') or ''))
         ent = task_scope._hub_cache.get(key) or {}
         if ent.get('epoch') != _cache_epoch:
@@ -1673,6 +2129,7 @@ def invalidate_cache():
     global _cache_epoch
     _cache_epoch += 1
     _cache.clear()
+    _STORE_MTIME.drop()
     _ambient_cache["ts"] = 0.0   # ép nạp lại danh sách connector tài khoản ở lần discover kế
     try:
         for c in mcp_store.list_connections():
@@ -1694,12 +2151,12 @@ def _rpc_error(mid, code, message):
 # ============================================================
 # Brain (vault) của một lượt gọi hub
 # ============================================================
-# Sự cố từng gặp: hub chỉ biết brain qua header `X-Vanhanh-Vault`, mà chỗ DUY NHẤT ghi header
-# đó là khi CHÍNH Vanhanh khởi động tiến trình engine (`codex_vault_override` nhét vào argv `-c`,
+# Sự cố từng gặp: hub chỉ biết brain qua header `X-Naota-Vault`, mà chỗ DUY NHẤT ghi header
+# đó là khi CHÍNH Naota khởi động tiến trình engine (`codex_vault_override` nhét vào argv `-c`,
 # Claude/Antigravity/Grok ghi file cấu hình riêng từng lượt). Profile dùng chung
 # `~/.codex/<tên>.config.toml` thì CỐ Ý không mang header, vì nhét vào file dùng chung sẽ race
 # khi hai brain chạy đồng thời. Hệ quả không ai lường: mọi phiên Codex NGƯỜI DÙNG tự mở đều tới
-# hub với vault rỗng, và `vanhanh_task`/`vanhanh_schedule`/`vanhanh_workflow` fail-closed với câu
+# hub với vault rỗng, và `naota_task`/`naota_schedule`/`naota_workflow` fail-closed với câu
 # "chưa biết đang làm việc trên brain nào" - đúng, nhưng vô phương chẩn đoán từ phía client.
 #
 # Luật fail-closed sinh ra để chặn một chuyện CỤ THỂ: chạy nhầm sang brain của người khác. Nó
@@ -1812,7 +2269,7 @@ def resolve_vault(raw_vault):
         for thu in dict.fromkeys(ung):
             try:
                 p = Path(thu).expanduser().resolve()
-                if p.is_dir():
+                if p.is_dir() and not vault_header_refused(p):
                     return str(p), "header", ""
             except Exception:
                 pass
@@ -1838,12 +2295,12 @@ def _ghi_chu_brain(nguon, vault_root, header_hong):
     """Dòng gắn vào kết quả tool để người dùng luôn biết lượt đó chạy trên brain nào."""
     if nguon not in _NGUON_CHU:
         return ""
-    ra = (f"(Vanhanh đang làm việc trên brain \"{_ten_hien_brain(vault_root)}\" - {vault_root}. "
-          f"Lượt gọi này tới hub không kèm header X-Vanhanh-Vault nên hub lấy "
+    ra = (f"(Naota đang làm việc trên brain \"{_ten_hien_brain(vault_root)}\" - {vault_root}. "
+          f"Lượt gọi này tới hub không kèm header X-Naota-Vault nên hub lấy "
           f"{_NGUON_CHU[nguon]}. Muốn brain khác thì đổi brain trên dashboard, hoặc thêm "
-          f"header X-Vanhanh-Vault vào cấu hình MCP của client.)")
+          f"header X-Naota-Vault vào cấu hình MCP của client.)")
     if header_hong:
-        ra = (f"(Header X-Vanhanh-Vault có gửi nhưng trỏ vào \"{header_hong}\" - đường dẫn này "
+        ra = (f"(Header X-Naota-Vault có gửi nhưng trỏ vào \"{header_hong}\" - đường dẫn này "
               f"không có thật trên máy chủ nên hub không dùng được.) ") + ra
     return ra
 
@@ -1853,20 +2310,20 @@ def _chan_doan_thieu_brain(header_hong):
     thiếu và ai gây ra nó, vì đứng từ phía client thì lỗi gốc nói y như một lỗi cấu hình máy."""
     dau = ""
     if header_hong:
-        dau = (f"Header X-Vanhanh-Vault có gửi nhưng trỏ vào \"{header_hong}\", đường dẫn này "
+        dau = (f"Header X-Naota-Vault có gửi nhưng trỏ vào \"{header_hong}\", đường dẫn này "
                f"không có thật trên máy chủ. ")
-    return ("\n\n(CHẨN ĐOÁN: " + dau + "lượt gọi này tới hub không mang brain nào, và Vanhanh "
+    return ("\n\n(CHẨN ĐOÁN: " + dau + "lượt gọi này tới hub không mang brain nào, và Naota "
             "cũng chưa suy ra được brain đang mở (chưa có cuộc trò chuyện nào, mà thư mục "
             f"{_brains_dir()} đang có nhiều hơn một brain nên hub không đoán bừa). Thiếu header "
-            "là chuyện của cấu hình MCP phía client: Vanhanh chỉ tự gắn X-Vanhanh-Vault khi CHÍNH "
+            "là chuyện của cấu hình MCP phía client: Naota chỉ tự gắn X-Naota-Vault khi CHÍNH "
             "nó khởi động engine, còn phiên Codex do người dùng tự mở thì dùng profile chung "
-            "vốn không mang header. Cách chữa: chat một lượt ở dashboard để Vanhanh biết brain "
-            "đang mở, hoặc thêm \"X-Vanhanh-Vault\" = \"<đường dẫn brain>\" vào http_headers của "
-            "server vanhanh trong cấu hình MCP.)")
+            "vốn không mang header. Cách chữa: chat một lượt ở dashboard để Naota biết brain "
+            "đang mở, hoặc thêm \"X-Naota-Vault\" = \"<đường dẫn brain>\" vào http_headers của "
+            "server naota trong cấu hình MCP.)")
 
 
 async def _handle_one(msg, mode, include_plugins=True, include_ambient=False, vault_root=None,
-                      vault_nguon="", vault_header_hong="", for_bot=False, gate=None):
+                      vault_nguon="", vault_header_hong="", for_bot=False, gate=None, tool_allowlist=None):
     mid = msg.get("id")
     method = msg.get("method") or ""
     params = msg.get("params") or {}
@@ -1874,7 +2331,7 @@ async def _handle_one(msg, mode, include_plugins=True, include_ambient=False, va
         return {"jsonrpc": "2.0", "id": mid, "result": {
             "protocolVersion": params.get("protocolVersion") or mcp_client.PROTOCOL,
             "capabilities": {"tools": {}},
-            "serverInfo": {"name": "vanhanh-hub", "version": "1.0"},
+            "serverInfo": {"name": "naota-hub", "version": "1.0"},
         }}
     if method.startswith("notifications/"):
         return None
@@ -1892,17 +2349,24 @@ async def _handle_one(msg, mode, include_plugins=True, include_ambient=False, va
     if method == "tools/list":
         tools, _ = await discover_all(mode, vault_root=vault_root, include_plugins=include_plugins,
                                       include_ambient=include_ambient,
-                                      for_bot=for_bot)   # Claude/Codex có tool file native → không builtin file
+                                      for_bot=for_bot, **({"tool_allowlist": tool_allowlist}
+                                                         if tool_allowlist is not None else {}))
         if gate is not None:
-            # Vanhanh Gate: bốn tool chat CHỈ có ở cửa cho AI bên ngoài (chat_bridge.py).
+            # Naota Gate: bốn tool chat CHỈ có ở cửa cho AI bên ngoài (chat_bridge.py).
             import chat_bridge
             tools = chat_bridge.tool_specs(mode) + list(tools)
+        if tool_allowlist is not None:
+            tools, _ = _scope_tools(tools, {t["fn"]: {} for t in tools}, tool_allowlist)
         return {"jsonrpc": "2.0", "id": mid, "result": {"tools": [
             {"name": t["fn"], "description": (t.get("description") or t["fn"]),
              "inputSchema": t.get("schema") or {"type": "object", "properties": {}}}
             for t in tools]}}
     if method == "tools/call":
         name = params.get("name") or ""
+        if tool_allowlist is not None and not _scope_tools([], {name: {}}, tool_allowlist)[1]:
+            return {"jsonrpc": "2.0", "id": mid, "result": {
+                "content": [{"type": "text", "text": "ERROR: Tool is outside this workflow's allowed list."}],
+                "isError": True}}
         if gate is not None:
             import chat_bridge
             if name in chat_bridge.TOOLS:
@@ -1913,8 +2377,10 @@ async def _handle_one(msg, mode, include_plugins=True, include_ambient=False, va
                     "isError": result.startswith("ERROR:"),
                 }}
         _, route = await discover_all(mode, vault_root=vault_root, include_plugins=include_plugins,
-                                      include_ambient=include_ambient, for_bot=for_bot)
-        result = str(await mcp_client.call_route(route, name, params.get("arguments") or {}))
+                                      include_ambient=include_ambient, for_bot=for_bot,
+                                      **({"tool_allowlist": tool_allowlist} if tool_allowlist is not None else {}))
+        with tool_result_shaper.for_model():
+            result = str(await mcp_client.call_route(route, name, params.get("arguments") or {}))
         ghi_chu = _ghi_chu_brain(vault_nguon, vault_root, vault_header_hong)
         if ghi_chu:
             result += "\n\n" + ghi_chu
@@ -1936,20 +2402,32 @@ async def handle_http(request):
     # → so sánh hằng-thời-gian chống dò theo timing.
     if not _secrets.compare_digest(auth, f"Bearer {hub_token()}"):
         return JSONResponse({"error": "unauthorized"}, status_code=401)
-    mode = (request.headers.get("x-vanhanh-mode") or "full").strip().lower()
+    mode = (request.headers.get("x-naota-mode") or "full").strip().lower()
     # Engine SDK đấu plugin in-process gửi header này để hub bỏ nhóm plugin (tránh tool trùng)
-    include_plugins = (request.headers.get("x-vanhanh-no-plugins") or "").strip() != "1"
-    # Chỉ engine Claude (config claude_config_path gắn X-Vanhanh-Engine=claude) mới có tool native
+    include_plugins = (request.headers.get("x-naota-no-plugins") or "").strip() != "1"
+    # Chỉ engine Claude (config claude_config_path gắn X-Naota-Engine=claude) mới có tool native
     # mcp__* của connector tài khoản Claude → chỉ nó cần gợi ý ambient. Codex/engine API không có.
-    include_ambient = (request.headers.get("x-vanhanh-engine") or "").strip().lower() == "claude"
+    include_ambient = (request.headers.get("x-naota-engine") or "").strip().lower() == "claude"
     # Codex chạy MCP qua HTTP hub (khác Claude SDK đấu plugin in-process), nên nếu không mang
-    # brain hiện tại thì plugin vanhanh_schedule có tool nhưng không biết phải đọc kho cron nào.
+    # brain hiện tại thì plugin naota_schedule có tool nhưng không biết phải đọc kho cron nào.
     # Header chỉ nhận đường dẫn thư mục có thật; thiếu header thì `resolve_vault` suy ra brain
     # đang mở rồi NÓI RA ở kết quả tool (xem khối chú thích ở `_brain_dang_mo`). Bearer
     # hub_token vẫn là lớp auth bắt buộc phía trên.
-    # A dedicated bot's Claude Code config carries X-Vanhanh-Bot: 1 (see `claude_config_path(bot=True)`), so the hub
+    # A dedicated bot's Claude Code config carries X-Naota-Bot: 1 (see `claude_config_path(bot=True)`), so the hub
     # hides OWNER_ONLY_TOOLS from it. The header can only take tools AWAY; leaving it out grants nothing new.
-    for_bot = (request.headers.get("x-vanhanh-bot") or "").strip() == "1"
+    for_bot = (request.headers.get("x-naota-bot") or "").strip() == "1"
+    tool_allowlist = None
+    raw_allowlist = request.headers.get("x-naota-tool-allowlist")
+    if raw_allowlist is not None:
+        try:
+            tool_allowlist = json.loads(raw_allowlist)
+            if (len(raw_allowlist) > 16000 or not isinstance(tool_allowlist, list)
+                    or len(tool_allowlist) > 256
+                    or any(not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9_.*-]{1,200}", name)
+                           for name in tool_allowlist)):
+                raise ValueError("invalid tool allowlist")
+        except (ValueError, TypeError):
+            return JSONResponse({"error": "invalid_tool_allowlist"}, status_code=400)
     # Who is talking (`turn` for tool hooks). The CLI engine of a chat turn sends the opaque key
     # that turn issued; the header names nobody by itself, so a forged or stale key is just None.
     # ALWAYS bind, even to None: this request must never inherit a turn from whatever context
@@ -1962,7 +2440,8 @@ async def handle_http(request):
         with improvement_activation.cli_transport():
             return await tra_loi_jsonrpc(request, mode, include_plugins=include_plugins,
                                          include_ambient=include_ambient,
-                                         raw_vault=request.headers.get("x-vanhanh-vault"), for_bot=for_bot)
+                                         raw_vault=request.headers.get("x-naota-vault"), for_bot=for_bot,
+                                         **({"tool_allowlist": tool_allowlist} if tool_allowlist is not None else {}))
     finally:
         turn_context.reset(tok)
 
@@ -1980,7 +2459,7 @@ async def _handle_one_traced(msg, *args, **kwargs):
 
 
 async def tra_loi_jsonrpc(request, mode, include_plugins=True, include_ambient=False,
-                          raw_vault=None, for_bot=False, gate=None):
+                          raw_vault=None, for_bot=False, gate=None, tool_allowlist=None):
     """Đọc thân JSON-RPC của `request`, chạy qua hub, trả Response. KHÔNG xác thực gì cả.
 
     Tách khỏi `handle_http` để một cửa khác (ví dụ plugin tự lo OAuth qua `register_http`) đi
@@ -1988,12 +2467,12 @@ async def tra_loi_jsonrpc(request, mode, include_plugins=True, include_ambient=F
     và chỉ khác lớp xác thực phía trước. Hai bản chép của cùng một vòng xử lý là hai chỗ để
     lệch nhau.
 
-    `gate`: cửa Vanhanh Gate truyền `{"source": "<tên AI>"}` để có thêm bốn tool chat của
+    `gate`: cửa Naota Gate truyền `{"source": "<tên AI>"}` để có thêm bốn tool chat của
     `chat_bridge` (tìm, đọc, gửi vào hội thoại, đọc kết quả). None (mặc định) thì không có, nên
-    Claude Code, Codex và mọi engine của chính Vanhanh không bao giờ thấy chúng.
+    Claude Code, Codex và mọi engine của chính Naota không bao giờ thấy chúng.
     """
     vault_root, vault_nguon, vault_header_hong = resolve_vault(raw_vault)
-    # "read_docs" opens documents of ONE brain, the bot's, named by the X-Vanhanh-Vault header Vanhanh
+    # "read_docs" opens documents of ONE brain, the bot's, named by the X-Naota-Vault header Naota
     # writes into the bot's config. Without a valid header `resolve_vault` would fall back to the
     # brain the owner has open, i.e. hand a stranger the owner's documents. No header, no tools.
     if (mode or "").strip().lower() == chatbot_doc_tools.MODE and vault_nguon != "header":
@@ -2006,13 +2485,16 @@ async def tra_loi_jsonrpc(request, mode, include_plugins=True, include_ambient=F
         if isinstance(body, list):
             out = [r for r in [await _handle_one_traced(m, mode, include_plugins, include_ambient,
                                                         vault_root, vault_nguon, vault_header_hong,
-                                                        for_bot=for_bot, gate=gate)
+                                                        for_bot=for_bot, gate=gate,
+                                                        **({"tool_allowlist": tool_allowlist}
+                                                           if tool_allowlist is not None else {}))
                                for m in body] if r is not None]
             if not out:
                 return Response(status_code=202)
             return JSONResponse(out)
         res = await _handle_one_traced(body, mode, include_plugins, include_ambient, vault_root,
-                                       vault_nguon, vault_header_hong, for_bot=for_bot, gate=gate)
+                                       vault_nguon, vault_header_hong, for_bot=for_bot, gate=gate,
+                                       **({"tool_allowlist": tool_allowlist} if tool_allowlist is not None else {}))
         if res is None:
             return Response(status_code=202)
         return JSONResponse(res)
@@ -2033,11 +2515,11 @@ def _has_connections():
 
 
 def claude_config_path(mode="full", vault_root=None, bot=False):
-    """Ghi file --mcp-config 1 entry 'vanhanh'. 0 connection bật → None (giữ hành vi cũ:
+    """Ghi file --mcp-config 1 entry 'naota'. 0 connection bật → None (giữ hành vi cũ:
     không config → Claude dùng MCP sẵn của máy).
 
-    `vault_root` gắn thêm header X-Vanhanh-Vault, tức hub cấp CẢ nhóm tool file
-    (vanhanh_read_file/vanhanh_write_file/vanhanh_use_skill) và khoá chúng vào đúng brain đó qua
+    `vault_root` gắn thêm header X-Naota-Vault, tức hub cấp CẢ nhóm tool file
+    (naota_read_file/naota_write_file/naota_use_skill) và khoá chúng vào đúng brain đó qua
     `_safe_path`. Mặc định KHÔNG gắn, và đó là chủ ý: engine Claude bình thường đã có Read/
     Write native nên thêm nhóm này chỉ tạo hai bộ tool trùng chức năng.
 
@@ -2045,7 +2527,7 @@ def claude_config_path(mode="full", vault_root=None, bot=False):
     quyền. Bot không được chạm Read/Write của Claude Code (nó nhận đường dẫn tuyệt đối, trèo
     ra khỏi brain được), nên tool file phải đi qua hub để `_safe_path` chặn.
 
-    `bot=True` adds X-Vanhanh-Bot: 1 so the hub hides OWNER_ONLY_TOOLS, and writes a separate file (suffix
+    `bot=True` adds X-Naota-Bot: 1 so the hub hides OWNER_ONLY_TOOLS, and writes a separate file (suffix
     `_bot`) so the owner's own config for the same brain never carries the header.
 
     File tách riêng theo brain (hậu tố băm) vì đây là file DÙNG CHUNG cho mọi phiên: hai bot
@@ -2055,23 +2537,23 @@ def claude_config_path(mode="full", vault_root=None, bot=False):
     # The "read_docs" bot level needs no connection at all: its tools come from the bot's own brain.
     if not _has_connections() and mode != chatbot_doc_tools.MODE:
         return None
-    headers = {"Authorization": f"Bearer {hub_token()}", "X-Vanhanh-Mode": mode,
-               "X-Vanhanh-Engine": "claude"}
+    headers = {"Authorization": f"Bearer {hub_token()}", "X-Naota-Mode": mode,
+               "X-Naota-Engine": "claude"}
     hau_to = ""
     if vault_root:
         try:
             vault = str(Path(vault_root).expanduser().resolve())
         except Exception:
             vault = str(vault_root)
-        headers["X-Vanhanh-Vault"] = vault
+        headers["X-Naota-Vault"] = vault
         hau_to = "_" + hashlib.sha1(vault.encode("utf-8")).hexdigest()[:10]
     if bot:
-        headers["X-Vanhanh-Bot"] = "1"
+        headers["X-Naota-Bot"] = "1"
         hau_to += "_bot"
     p = STATE_DIR / f".mcp_hub_{mode}{hau_to}.json"
-    # X-Vanhanh-Engine=claude: báo hub đây là engine Claude (có tool native mcp__* của connector
-    # tài khoản Claude) → vanhanh_connections/lazy search kèm gợi ý ambient. Codex/engine API không gắn.
-    p.write_text(json.dumps({"mcpServers": {"vanhanh": {
+    # X-Naota-Engine=claude: báo hub đây là engine Claude (có tool native mcp__* của connector
+    # tài khoản Claude) → naota_connections/lazy search kèm gợi ý ambient. Codex/engine API không gắn.
+    p.write_text(json.dumps({"mcpServers": {"naota": {
         "type": "http", "url": hub_url(), "headers": headers,
     }}}, ensure_ascii=False), encoding="utf-8")
     try:
@@ -2087,20 +2569,20 @@ def antigravity_config_path(mode="full", vault_root=None):
     Chỉ có tác dụng nếu bản `agy` trên máy khai một cờ nhận file cấu hình - `AntigravityCLI.
     _build_args` hỏi `co_co()` rồi mới truyền. Vì sao vẫn ghi dù chưa chắc dùng được: cấu hình
     HOME mà `agy` thật sự nạp là file DÙNG CHUNG, nên hai brain chạy đồng thời sẽ ghi đè header
-    X-Vanhanh-Vault của nhau. Bên Codex chỗ này chữa bằng override argv; ở đây file per-brain là
+    X-Naota-Vault của nhau. Bên Codex chỗ này chữa bằng override argv; ở đây file per-brain là
     thứ tương đương, và nó nằm sẵn đó cho ngày cờ kia có thật.
 
     Hình dạng entry lấy từ `antigravity_cli.hub_entry` - KHÔNG viết tay `httpUrl` như bên Gemini.
     """
     mode = (mode or "full").strip().lower()
-    headers = {"Authorization": f"Bearer {hub_token()}", "X-Vanhanh-Mode": mode}
+    headers = {"Authorization": f"Bearer {hub_token()}", "X-Naota-Mode": mode}
     hau_to = ""
     if vault_root:
         try:
             vault = str(Path(vault_root).expanduser().resolve())
         except Exception:
             vault = str(vault_root)
-        headers["X-Vanhanh-Vault"] = vault
+        headers["X-Naota-Vault"] = vault
         hau_to = "_" + hashlib.sha1(vault.encode("utf-8")).hexdigest()[:10]
     try:
         import antigravity_cli
@@ -2108,7 +2590,7 @@ def antigravity_config_path(mode="full", vault_root=None):
     except Exception:
         entry = {"serverUrl": hub_url(), "url": hub_url(), "headers": headers, "disabled": False}
     p = STATE_DIR / f".mcp_agy_{mode}{hau_to}.json"
-    p.write_text(json.dumps({"mcpServers": {"vanhanh": entry}}, ensure_ascii=False),
+    p.write_text(json.dumps({"mcpServers": {"naota": entry}}, ensure_ascii=False),
                  encoding="utf-8")
     try:
         os.chmod(p, 0o600)   # chứa hub token
@@ -2124,16 +2606,16 @@ def _toml_str(s):
 def codex_profile_name():
     """Tên profile Codex của BẢN NÀY (file `~/.codex/<tên>.config.toml`).
 
-    Vì sao không phải hằng số "vanhanh": nhiều bản Vanhanh cài native trên cùng một VPS chạy chung
+    Vì sao không phải hằng số "naota": nhiều bản Naota cài native trên cùng một VPS chạy chung
     một user, tức chung `$HOME`. Tên cố định là bản khởi động sau ghi đè profile của bản trước,
     mà profile đó chứa URL + token của hub, nên Codex của bản A quay sang gọi hub của bản B - sai
     im lặng, không lỗi nào hiện ra. Gắn cổng vào tên là hết đụng (Docker thì mỗi container một
     HOME nên vốn đã không dính).
 
-    Cổng mặc định giữ nguyên tên "vanhanh" để máy đang chạy không phải sinh file mới.
+    Cổng mặc định giữ nguyên tên "naota" để máy đang chạy không phải sinh file mới.
     """
     p = hub_port()
-    return "vanhanh" if p == 7777 else f"vanhanh-{p}"
+    return "naota" if p == 7777 else f"naota-{p}"
 
 
 def codex_profile_path():
@@ -2141,17 +2623,17 @@ def codex_profile_path():
 
 
 def codex_profile(mode="full"):
-    """Ghi ~/.codex/<profile>.config.toml 1 entry hub → `codex exec -p <profile>` thấy MỌI MCP của Vanhanh."""
+    """Ghi ~/.codex/<profile>.config.toml 1 entry hub → `codex exec -p <profile>` thấy MỌI MCP của Naota."""
     path = codex_profile_path()
     try:
-        # Hub còn cung cấp plugin nội bộ (vanhanh_schedule, datetime-vn...) ngay cả khi user chưa
+        # Hub còn cung cấp plugin nội bộ (naota_schedule, datetime-vn...) ngay cả khi user chưa
         # đấu connector ngoài. Không được xoá profile chỉ vì mcp_store đang rỗng.
-        lines = ["[mcp_servers.vanhanh]",
+        lines = ["[mcp_servers.naota]",
                  f"url = {_toml_str(hub_url())}",
                  "startup_timeout_sec = 20",
-                 "[mcp_servers.vanhanh.http_headers]",
+                 "[mcp_servers.naota.http_headers]",
                  f'{_toml_str("Authorization")} = {_toml_str("Bearer " + hub_token())}',
-                 f'{_toml_str("X-Vanhanh-Mode")} = {_toml_str(mode)}', ""]
+                 f'{_toml_str("X-Naota-Mode")} = {_toml_str(mode)}', ""]
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("\n".join(lines), encoding="utf-8")
         try:
@@ -2166,12 +2648,12 @@ def codex_profile(mode="full"):
 
 # Tiền tố của override brain. KHÔNG được bọc tên header trong dấu nháy: Codex tách khoá của
 # `-c` bằng `path.split('.')` (codex-rs/config/src/overrides.rs, apply_toml_override) và giữ
-# NGUYÊN dấu nháy, nên `http_headers."X-Vanhanh-Vault"` thành header tên `"X-Vanhanh-Vault"` - có
+# NGUYÊN dấu nháy, nên `http_headers."X-Naota-Vault"` thành header tên `"X-Naota-Vault"` - có
 # cả hai dấu nháy. Đó không phải tên header HTTP hợp lệ, và rmcp-client của Codex bỏ qua nó
 # với đúng một dòng warn (rmcp-client/src/utils.rs, build_default_headers). Hub không bao giờ
 # nhận được brain, rơi về "phiên cập nhật gần nhất" của CẢ MÁY - sự cố từng gặp: dashboard
 # đang ở My Second Brain mà lệnh tạo đơn TTS chạy trên brain Lê Văn A.
-CODEX_VAULT_KEY = "mcp_servers.vanhanh.http_headers.X-Vanhanh-Vault"
+CODEX_VAULT_KEY = "mcp_servers.naota.http_headers.X-Naota-Vault"
 
 
 def ma_hoa_vault(vault: str) -> str:
@@ -2184,7 +2666,7 @@ def ma_hoa_vault(vault: str) -> str:
 def codex_vault_override(vault_root):
     """Override `-c` theo từng tiến trình Codex để hub nhận đúng brain mà không ghi đè profile chung.
 
-    Profile vanhanh là file dùng chung cho mọi cuộc chat. Nhét X-Vanhanh-Vault thẳng vào file đó sẽ
+    Profile naota là file dùng chung cho mọi cuộc chat. Nhét X-Naota-Vault thẳng vào file đó sẽ
     race khi hai brain chạy đồng thời; override argv giữ context tách biệt theo đúng phiên.
     """
     if not vault_root:
@@ -2196,14 +2678,14 @@ def codex_vault_override(vault_root):
     return f"{CODEX_VAULT_KEY}={_toml_str(ma_hoa_vault(vault))}"
 
 
-CODEX_MODE_KEY = "mcp_servers.vanhanh.http_headers.X-Vanhanh-Mode"
+CODEX_MODE_KEY = "mcp_servers.naota.http_headers.X-Naota-Mode"
 _CODEX_MODES = ("suggest", "auto", "full", "gated")
 
 
 def dat_codex_mode(extra_config, mode):
     """Pin the hub permission level of ONE Codex process with a `-c` override, replacing any earlier one.
 
-    The shared Codex profile is written with `X-Vanhanh-Mode: full` (the chat path). Previously a
+    The shared Codex profile is written with `X-Naota-Mode: full` (the chat path). Previously a
     background job at suggest or auto (reminder, loop, Kanban) reached hub tools at FULL through that
     profile, while Grok and Antigravity already got the job's own level. An unknown level falls back to
     the strictest one, as every other mode mapping here does."""
@@ -2221,7 +2703,7 @@ def dat_codex_vault(extra_config, vault_root):
     Engine Telegram giữ nguyên một CodexCLI qua nhiều lượt. Chỉ nối thêm khi chuỗi chưa có thì
     đổi brain A -> B -> A để lại cả [A, B] trong argv, và Codex lấy giá trị đứng sau: lượt đang
     ở A vẫn chạy trên B. Bỏ cả dạng cũ có dấu nháy để bản vá này không để lại rác."""
-    cu = (CODEX_VAULT_KEY + "=", 'mcp_servers.vanhanh.http_headers."X-Vanhanh-Vault"=')
+    cu = (CODEX_VAULT_KEY + "=", 'mcp_servers.naota.http_headers."X-Naota-Vault"=')
     extra_config[:] = [x for x in extra_config if not str(x).startswith(cu)]
     override = codex_vault_override(vault_root)
     if override:
@@ -2236,22 +2718,32 @@ def dat_codex_vault(extra_config, vault_root):
 # (codex-mcp/src/connection_manager/tool_catalog.rs). Hub trả `tools/list` qua `discover_all`,
 # cache 60 giây hết hạn là dò lại mọi connector, mất khoảng 2 giây. Hai con số đua nhau nên việc
 # nền lúc có tool hub lúc không (canary: 4 trên 12 lượt nhắc hẹn không thấy
-# `mcp__vanhanh__*`), model đi vòng qua app ChatGPT hoặc báo không làm được mà nhắc hẹn vẫn ghi xong.
+# `mcp__naota__*`), model đi vòng qua app ChatGPT hoặc báo không làm được mà nhắc hẹn vẫn ghi xong.
 # `required = true` bắt Codex chờ hub tới `startup_timeout_sec` của profile; hub không lên thì
 # phiên không mở và `codex exec` thoát lỗi TRƯỚC khi gọi model (core/src/session/session.rs); câu
 # lỗi đó do claude_cli.codex_error_text đọc. Chỉ gắn khi profile hub có mặt: override vào
-# `mcp_servers.vanhanh` mà thiếu entry đó thì Codex từ chối khởi động ("invalid transport").
-CODEX_REQUIRED_KEY = "mcp_servers.vanhanh.required"
+# `mcp_servers.naota` mà thiếu entry đó thì Codex từ chối khởi động ("invalid transport").
+CODEX_REQUIRED_KEY = "mcp_servers.naota.required"
 # `features.apps = false` gỡ hẳn server `codex_apps` (app ChatGPT gắn với tài khoản,
 # codex-mcp/src/mcp/mod.rs). Tool của nó không đi qua hub nên không chịu mức quyền của việc, và
 # là đường vòng model từng chọn cả khi hub có mặt (canary).
 CODEX_APPS_KEY = "features.apps"
 
 
+# A required hub gets a longer wait than the profile's 20 seconds. With `required = true` a hub that answers
+# `tools/list` late no longer costs the tools, it costs the WHOLE run: Codex exits before it calls the model. Field
+# report 2026-11-10: 8 scheduled runs lost in ten days, mostly when several schedules opened a Codex session in the
+# same minute. Chat keeps the profile's 20 seconds; codex_steer.START_TIMEOUT_S (120) leaves room for this.
+CODEX_REQUIRED_TIMEOUT_KEY = "mcp_servers.naota.startup_timeout_sec"
+CODEX_REQUIRED_TIMEOUT_S = 45
+
+
 def dat_codex_hub_bat_buoc(extra_config):
     """Gắn `required = true` cho entry hub vào `-c` của MỘT CodexCLI, THAY bản cũ nếu có."""
-    extra_config[:] = [x for x in extra_config if not str(x).startswith(CODEX_REQUIRED_KEY + "=")]
+    extra_config[:] = [x for x in extra_config
+                       if not str(x).startswith((CODEX_REQUIRED_KEY + "=", CODEX_REQUIRED_TIMEOUT_KEY + "="))]
     extra_config.append(f"{CODEX_REQUIRED_KEY}=true")
+    extra_config.append(f"{CODEX_REQUIRED_TIMEOUT_KEY}={CODEX_REQUIRED_TIMEOUT_S}")
     return extra_config
 
 
@@ -2320,7 +2812,7 @@ def _extract_label(text, paths):
 # Nên "đăng nhập lại mà không thấy ô tick nào" là đúng cơ chế, không phải hỏng - đường duy
 # nhất để tick lại từ đầu là gỡ ứng dụng ở trang quyền của tài khoản Google.
 REVOKE_HINT = (" Đăng nhập lại mà Google không hiện ô tick quyền nào là bình thường: quyền đã"
-               " cấp thì nó cho qua thẳng. Muốn tick lại từ đầu thì gỡ Vanhanh tại"
+               " cấp thì nó cho qua thẳng. Muốn tick lại từ đầu thì gỡ Naota tại"
                " https://myaccount.google.com/permissions rồi Kết nối lại.")
 
 
@@ -2345,9 +2837,9 @@ def chan_doan_loi(err, conn_id=""):
     Vì sao tách riêng khỏi _friendly_tool_error: bộ dịch này trước đây chỉ cắm vào nút Test,
     trong khi 99% lần người dùng gặp lỗi là lúc GỌI TOOL THẬT - và ở đó model chỉ nhận được
     nguyên văn tiếng Anh của Google rồi tự suy diễn. Vụ từng gặp: Google trả "The caller does
-    not have permission", Vanhanh đọc xong kết luận nhầm là "hub chặn quyền" và đi sửa tầng
+    not have permission", Naota đọc xong kết luận nhầm là "hub chặn quyền" và đi sửa tầng
     permission, trong khi hub không hề chặn (mức full thì allowed() cho qua ngay, và thông báo
-    chặn của Vanhanh là tiếng Việt chứ không phải tiếng Anh).
+    chặn của Naota là tiếng Việt chứ không phải tiếng Anh).
 
     conn_id (tuỳ chọn): có thì nhánh thiếu scope nói luôn THIẾU CÁI GÌ, không bắt người dùng đoán."""
     e = (err or "").strip()
@@ -2365,11 +2857,11 @@ def chan_doan_loi(err, conn_id=""):
         return "API này chưa được bật trong project Google Cloud của bạn." + link + extra
     if "insufficient authentication scopes" in low or "access_token_scope_insufficient" in low:
         # Đây KHÔNG phải lỗi hỏng key: token đúng nhưng thiếu đúng một phạm vi quyền. Xoá đi cài
-        # lại không chữa được nếu bản Vanhanh đang chạy xin thiếu scope (vụ suggest_time cần
+        # lại không chữa được nếu bản Naota đang chạy xin thiếu scope (vụ suggest_time cần
         # calendar.events.freebusy) - nên phải nói rõ là đăng nhập LẠI sau khi cập nhật.
         return ("Tài khoản đã kết nối nhưng token chưa đủ phạm vi quyền cho tool này."
                 + _missing_scope_note(conn_id) +
-                " Bấm Đăng nhập lại và tick chọn đầy đủ các quyền. Nếu vừa cập nhật Vanhanh thì"
+                " Bấm Đăng nhập lại và tick chọn đầy đủ các quyền. Nếu vừa cập nhật Naota thì"
                 " BẮT BUỘC đăng nhập lại: token cũ chỉ mang những quyền xin ở bản trước, xoá"
                 " kết nối rồi tạo lại cũng không thêm được quyền mới." + REVOKE_HINT)
     if ("missing required authentication credential" in low or "unauthenticated" in low
@@ -2382,7 +2874,7 @@ def chan_doan_loi(err, conn_id=""):
     # phải ghi danh lại - đúng bẫy của người dùng khi chuyển từ gmail cá nhân sang mail tên miền.
     if "caller does not have permission" in low or "permission_denied" in low:
         return ("Google từ chối chính TÀI KHOẢN đang đăng nhập (403 PERMISSION_DENIED). Đây KHÔNG"
-                " phải Vanhanh chặn: mức quyền của kết nối chặn thì Vanhanh báo bằng tiếng Việt kèm chữ"
+                " phải Naota chặn: mức quyền của kết nối chặn thì Naota báo bằng tiếng Việt kèm chữ"
                 " 'bị chặn'. Với server MCP của Google, lỗi này thường do 1 trong 2: tài khoản đó"
                 " chưa ghi danh Google Workspace Developer Preview Program, hoặc project chưa bật"
                 " API MCP riêng. Ghi danh tính theo TỪNG tài khoản Google, nên vừa đổi sang tài"
@@ -2436,7 +2928,7 @@ async def validate_connection(conn_id):
                             + ". Press Sign in again and tick every permission box."
                             " If Google shows no permission boxes when you sign in again, that is"
                             " normal: permissions already granted are passed straight through. To"
-                            " tick them again from scratch, remove Vanhanh at"
+                            " tick them again from scratch, remove Naota at"
                             " https://myaccount.google.com/permissions and then Connect again.")}
         except Exception as e:
             print(f"[hub scope] {e}", file=sys.stderr)

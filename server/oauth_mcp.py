@@ -1,5 +1,5 @@
 """
-OAuth 2.1 cho remote MCP server (chuẩn MCP Authorization) - Vanhanh TỰ giữ token,
+OAuth 2.1 cho remote MCP server (chuẩn MCP Authorization) - Naota TỰ giữ token,
 mọi engine dùng chung, KHÔNG cần mở terminal gõ /mcp như trước.
 Luồng: discovery (RFC 9728 / .well-known) → DCR (RFC 7591, nếu server hỗ trợ)
 → authorize PKCE S256 → callback → token → tự refresh.
@@ -10,6 +10,7 @@ Không import mcp_client/mcp_hub (tránh vòng import).
 import asyncio
 import base64
 import hashlib
+import ipaddress
 import json
 import re
 import secrets as _secrets
@@ -50,9 +51,9 @@ def _conn(conn_id):
 # Vì sao tồn tại: Google cấp token theo TỪNG scope, và mỗi tool của server MCP chỉ nhận một
 # danh sách scope nhất định. Token thiếu một scope vẫn đăng nhập xanh, tools/list vẫn chạy,
 # validate cũng có thể xanh (list_calendars chỉ cần scope danh sách lịch) - nhưng đúng tool cần
-# scope đó thì Google trả ACCESS_TOKEN_SCOPE_INSUFFICIENT. Trước đây Vanhanh không lưu scope thật
+# scope đó thì Google trả ACCESS_TOKEN_SCOPE_INSUFFICIENT. Trước đây Naota không lưu scope thật
 # nên không phân biệt nổi "chưa đăng nhập" với "đăng nhập rồi mà thiếu quyền", và người dùng xoá
-# đi cài lại mãi vẫn dính vì bản thân danh sách scope Vanhanh xin mới là chỗ sai.
+# đi cài lại mãi vẫn dính vì bản thân danh sách scope Naota xin mới là chỗ sai.
 _SCOPE_ALIAS = {   # xin bằng tên ngắn, Google trả về dạng URL đầy đủ
     "email": "https://www.googleapis.com/auth/userinfo.email",
     "profile": "https://www.googleapis.com/auth/userinfo.profile",
@@ -149,10 +150,11 @@ def _prm_candidates(url):
         [origin + "/.well-known/oauth-protected-resource"]
 
 
-async def _protected_resource(client, metadata_url):
+async def _protected_resource(client, metadata_url, **get_kw):
     """(issuer, scopes_supported, resource) from protected resource metadata, or None when there is none. The issuer is
-    "" when the metadata names no authorization server."""
-    r = await client.get(metadata_url)
+    "" when the metadata names no authorization server. `get_kw` goes to the request (the cross-host hint passes
+    follow_redirects=False)."""
+    r = await client.get(metadata_url, **get_kw)
     if r.status_code != 200:
         return None
     rm = r.json()
@@ -165,6 +167,76 @@ async def _protected_resource(client, metadata_url):
     return (str(servers[0]) if servers else ""), prm_scopes, str(rm.get("resource") or "").strip()
 
 
+_RESOLVE_TIMEOUT = 10                              # seconds for the address lookup of a cross-host hint
+_NAT64 = ipaddress.ip_network("64:ff9b::/96")      # NAT64 well-known prefix: the last 32 bits are an IPv4 address
+_DEFAULT_PORTS = {"https": 443, "http": 80}
+
+
+async def _resolve(host):
+    """Addresses `host` resolves to (a seam for tests)."""
+    infos = await asyncio.get_running_loop().getaddrinfo(host, 443)
+    return {str(i[4][0]) for i in infos}
+
+
+def _is_public_address(addr):
+    """True for a global unicast address. A NAT64 address is judged by the IPv4 address it carries."""
+    ip = ipaddress.ip_address(str(addr).split("%", 1)[0])
+    if ip.version == 6 and ip in _NAT64:
+        ip = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+    return ip.is_global
+
+
+async def _public_https_url(url):
+    """True when `url` is https on the default port, names an ASCII DNS host (no IP literal, no userinfo) and every
+    address the host resolves to is public. Guards the fetch of a `resource_metadata` hint on another host (#1343).
+    https rules out the plain-http metadata and loopback services an SSRF goes for, and the certificate is checked
+    against the name in the hint; the address check covers an internal host with a real certificate. The issuer
+    metadata `_discover` fetches next is not checked here (that request predates this change)."""
+    try:
+        p = urllib.parse.urlsplit(str(url or ""))
+        host = p.hostname or ""
+        if p.scheme != "https" or not host or not host.isascii() or p.username is not None or p.password is not None:
+            return False
+        if p.port not in (None, 443):
+            return False
+        try:
+            ipaddress.ip_address(host)
+            return False
+        except ValueError:
+            pass
+        addrs = await asyncio.wait_for(_resolve(host), _RESOLVE_TIMEOUT)
+        return bool(addrs) and all(_is_public_address(a) for a in addrs)
+    except Exception:
+        return False
+
+
+def _same_origin(a, b):
+    """Scheme, host and port of two URLs match, default ports filled in."""
+    try:
+        x, y = urllib.parse.urlsplit(str(a or "")), urllib.parse.urlsplit(str(b or ""))
+        return (bool(x.scheme) and x.scheme == y.scheme and bool(x.hostname) and x.hostname == y.hostname
+                and (x.port or _DEFAULT_PORTS.get(x.scheme)) == (y.port or _DEFAULT_PORTS.get(y.scheme)))
+    except ValueError:
+        return False
+
+
+def _same_resource(a, b):
+    """RFC 9728 section 3.3: metadata reached through a `resource_metadata` hint is used only when its `resource` is the
+    URL the client called. Scheme and host compare case-insensitively, one trailing slash is ignored, path parameters
+    and query must match, the fragment is ignored."""
+    try:
+        x, y = urllib.parse.urlsplit(str(a or "").strip()), urllib.parse.urlsplit(str(b or "").strip())
+    except ValueError:
+        return False
+    if not (x.scheme and x.netloc and y.scheme and y.netloc):
+        return False
+
+    def bare(path):
+        return path[:-1] if path.endswith("/") else path
+    return ((x.scheme.lower(), x.netloc.lower(), bare(x.path), x.query)
+            == (y.scheme.lower(), y.netloc.lower(), bare(y.path), y.query))
+
+
 async def _discover(url):
     """Tìm authorization server metadata cho 1 MCP url. Trả dict metadata hoặc None."""
     async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
@@ -173,7 +245,7 @@ async def _discover(url):
         try:
             r = await client.post(url, json={"jsonrpc": "2.0", "id": 1, "method": "initialize",
                                              "params": {"protocolVersion": "2025-06-18", "capabilities": {},
-                                                        "clientInfo": {"name": "vanhanh", "version": "1.0"}}},
+                                                        "clientInfo": {"name": "naota", "version": "1.0"}}},
                                   headers={"Accept": "application/json, text/event-stream"})
             www = r.headers.get("www-authenticate") or ""
             m = None
@@ -184,14 +256,26 @@ async def _discover(url):
             ms = re.search(r'scope="([^"]*)"', www)
             if ms:
                 www_scope = ms.group(1).strip()
-            # Chống SSRF: metadata URL do server trả về CHỈ được fetch khi cùng host với
-            # chính MCP url user đã khai (chuẩn RFC 9728 đặt metadata cùng origin).
+            # SSRF: a metadata URL the server hands back is fetched as is only on the MCP url's own host. A hint on
+            # another host is fetched only under the guards of the branch below (#1343).
             if m:
                 mp = urllib.parse.urlparse(m)
                 up = urllib.parse.urlparse(url)
                 if mp.scheme in ("http", "https") and mp.netloc == up.netloc:
                     prm = await _protected_resource(client, m)
                     if prm:
+                        issuer, prm_scopes, prm_resource = prm
+                        issuer = issuer or None
+                elif (up.scheme == "https" and _same_origin(getattr(r, "url", ""), url)
+                      and await _public_https_url(m)):
+                    # #1343: the hint may name another host. impact.com serves MCP on mcp.impact.com and its metadata
+                    # on app.impact.com, so every candidate on the MCP host is a 404 and the card said there was no
+                    # OAuth. RFC 9728 allows this and makes the `resource` value the check: the metadata is used only
+                    # when it names the URL called. The 401 must come from the URL the owner typed (a redirect to
+                    # another host does not get to pick the sign-in server), and the hint is fetched without
+                    # redirects, so it cannot bounce to a host never checked.
+                    prm = await _protected_resource(client, m, follow_redirects=False)
+                    if prm and _same_resource(prm[2], url):
                         issuer, prm_scopes, prm_resource = prm
                         issuer = issuer or None
         except Exception:
@@ -248,19 +332,34 @@ async def _discover(url):
     return None
 
 
-# Chọn phạm vi (scope) cho nhánh DISCOVERY. Trước đây Vanhanh xin NGUYÊN danh sách `scopes_supported` của máy chủ
+# Chọn phạm vi (scope) cho nhánh DISCOVERY. Trước đây Naota xin NGUYÊN danh sách `scopes_supported` của máy chủ
 # đăng nhập, tức mọi phạm vi máy đó BIẾT, không phải phạm vi ứng dụng được phép xin. Higgsfield đăng nhập qua Clerk: danh sách
 # có `private_metadata`, ứng dụng tự đăng ký (DCR) không được xin, Clerk trả invalid_scope và không kết nối được. Thứ tự theo chuẩn MCP: scope trong WWW-Authenticate của máy chủ MCP, rồi `scopes_supported` của protected
 # resource metadata (RFC 9728), cuối cùng mới tới danh sách của máy chủ đăng nhập. Phạm vi nhà cung cấp đã từ chối một lần
 # (`blocked_scopes`, ghi lúc nhận invalid_scope) bị bỏ ở mọi nguồn; `scope_omit` = không gửi scope nào.
-def _chon_scopes(md, ent):
+# #1343: a connection set to read-only (`perm` "readonly") does not ask for the write scope the menu offers (impact.com:
+# `mcp:read`, `mcp:write`), so the provider itself refuses writes; the hub's tool-name check stays the main guard.
+# Only names ending in "write" are dropped, and only when a scope other than a sign-in one (openid, profile, email,
+# offline_access) is left, so a server whose only working scope is a write one still signs in. Other spellings
+# (`repo`, `Mail.ReadWrite`, `mcp:admin`) are not touched. Raising the connection above read-only later needs a new
+# sign-in for the write scope; nothing flags that yet.
+_WRITE_SCOPE = re.compile(r"(?:^|[:._/])write$", re.IGNORECASE)
+_SIGN_IN_SCOPES = {"openid", "profile", "email", "offline_access"}   # sign-in only, no tool works with these alone
+
+
+def _pick_scopes(md, ent, perm=None):
     ent = ent or {}
     if ent.get("scope_omit"):
         return []
-    chan = {str(x) for x in (ent.get("blocked_scopes") or [])}
-    for nguon in (str(md.get("_www_scope") or "").split(), md.get("_prm_scopes") or [], md.get("scopes_supported") or []):
-        if nguon:
-            return [str(x) for x in nguon if str(x).strip() and str(x) not in chan]
+    blocked = {str(x) for x in (ent.get("blocked_scopes") or [])}
+    for source in (str(md.get("_www_scope") or "").split(), md.get("_prm_scopes") or [], md.get("scopes_supported") or []):
+        if source:
+            picked = [str(x) for x in source if str(x).strip() and str(x) not in blocked]
+            if perm == "readonly":
+                read_only = [x for x in picked if not _WRITE_SCOPE.search(x)]
+                if any(x.lower() not in _SIGN_IN_SCOPES for x in read_only):
+                    return read_only
+            return picked
     return []
 
 
@@ -290,11 +389,11 @@ def canonical_resource(url, prm_resource=""):
 
 
 def _dcr_redirect_mismatch(reg, redirect_uri):
-    """True when a registration answer lists its callbacks and Vanhanh's is not among them.
+    """True when a registration answer lists its callbacks and Naota's is not among them.
 
     Some providers answer DCR with a shared, pre-registered client (Spacemail: client_id "starlight.mcp") whose
-    allowlist does not hold the callback Vanhanh asked for. Their sign-in page then fails with a generic error and never
-    returns to Vanhanh, so the only honest place to say so is here, before sending the owner there."""
+    allowlist does not hold the callback Naota asked for. Their sign-in page then fails with a generic error and never
+    returns to Naota, so the only honest place to say so is here, before sending the owner there."""
     uris = (reg or {}).get("redirect_uris")
     if not isinstance(uris, list) or not uris:
         return False
@@ -365,7 +464,7 @@ async def start_auth(conn_id, redirect_uri, _retry=0):
             try:
                 async with httpx.AsyncClient(timeout=20) as client:
                     r = await client.post(md["registration_endpoint"], json={
-                        "client_name": "VANHANH", "redirect_uris": [redirect_uri],
+                        "client_name": "NAOTA", "redirect_uris": [redirect_uri],
                         "grant_types": ["authorization_code", "refresh_token"],
                         "response_types": ["code"], "token_endpoint_auth_method": "none",
                     })
@@ -384,11 +483,11 @@ async def start_auth(conn_id, redirect_uri, _retry=0):
                 print(f"[oauth dcr] {e}", file=sys.stderr)
         if dcr_mismatch:
             return {"ok": False, "error": localefmt.chu(
-                "Nhà cung cấp trả về một ứng dụng đăng nhập dùng chung không chấp nhận địa chỉ quay về của Vanhanh ("
+                "Nhà cung cấp trả về một ứng dụng đăng nhập dùng chung không chấp nhận địa chỉ quay về của Naota ("
                 + redirect_uri + "). Trang đăng nhập của họ sẽ báo lỗi dù bạn nhập đúng mật khẩu, nên đừng thử lại "
                 "mật khẩu. Đây là giới hạn phía nhà cung cấp: cần họ cho tự đăng ký đúng địa chỉ này. Trong lúc chờ, "
                 "dùng API key hoặc cách kết nối khác nếu nhà cung cấp có.",
-                "The provider answered with a shared sign-in app that does not accept Vanhanh's return address ("
+                "The provider answered with a shared sign-in app that does not accept Naota's return address ("
                 + redirect_uri + "). Their sign-in page will fail even with the right password, so retrying the "
                 "password will not help. This is a provider-side limit: they need to allow registering this address. "
                 "Meanwhile, use an API key or another way to connect if the provider offers one.")}
@@ -408,7 +507,7 @@ async def start_auth(conn_id, redirect_uri, _retry=0):
             if dcr_detail:
                 msg += localefmt.chu(f" (máy chủ báo: {dcr_detail})", f" (server says: {dcr_detail})")
             return {"ok": False, "error": msg}
-        scopes = _chon_scopes(md, ent)
+        scopes = _pick_scopes(md, ent, conn.get("perm"))
         scope_param, scope_sep = "scope", " "
         extra_params = {}
         add_resource = True
@@ -471,7 +570,7 @@ async def handle_callback(state, code, error="", error_description=""):
         return {"ok": False, "error": localefmt.chu("Phiên OAuth không hợp lệ hoặc đã hết hạn - thử lại từ đầu",
                                                     "The OAuth session is invalid or has expired - start again")}
     if error:
-        # Nhà cung cấp báo lỗi ngay ở bước xin quyền: KHÔNG có code để đổi. Trước đây Vanhanh vẫn đem chuỗi rỗng đi đổi
+        # Nhà cung cấp báo lỗi ngay ở bước xin quyền: KHÔNG có code để đổi. Trước đây Naota vẫn đem chuỗi rỗng đi đổi
         # và chỉ hiện "invalid_grant", che mất lỗi thật.
         if error == "invalid_scope" and p.get("discovery") and p.get("retry", 0) < _SCOPE_THU_LAI:
             store = _load()

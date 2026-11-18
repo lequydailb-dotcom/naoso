@@ -83,7 +83,7 @@ check("composer follows the running model: shown() is the fallback card, else th
 check("picker tick, effort lock, Fast bolt, plan ring and /model use the running model",
   /selected: shown\(\),/.test(mp) && /const effM = shown\(\);/.test(mp)
   && /function renderFast\(\) \{\s*const eff = shown\(\);/.test(mp) && /function fastTitle\(on\) \{\s*const eff = shown\(\);/.test(mp)
-  && /hienTai: function \(\) \{\s*const eff = shown\(\);/.test(mp) && /closeLimit\(\);\s*const eff = shown\(\);/.test(mp));
+  && /hienTai: function \(\) \{\s*const eff = shown\(\);/.test(mp) && /function effMount\(\) \{[\s\S]{0,300}?const eff = shown\(\);/.test(mp));
 // "Effort cũng theo model dự phòng luôn".
 check("Effort chip and slider show the fallback card's own level (an assistant's chat keeps its own)",
   /const shownEffort = \(\) => \(agentEff \? agentEff\.level : onFallback\(\) \? route\.reasoning : state\.reasoning\);/.test(mp)
@@ -96,7 +96,7 @@ check("the choice itself is not rewritten by a fallback (only picking a model pi
   (mp.match(/sessionPin = \{ provider:/g) || []).length === 2 && !/sessionPin = route/.test(mp) && !/saveModel\(\{ main: \{ provider: route/.test(mp));
 check("picker rows carry the route tags", /\+ routeTags\(p\.id\),/.test(mp));
 check("app.js hands each route frame to the chip and writes its line",
-  /data\.type === "route"/.test(app) && /window\.VanhanhModelBar\.noteRoute\(sid, data\)/.test(app)
+  /data\.type === "route"/.test(app) && /window\.NaotaModelBar\.noteRoute\(sid, data\)/.test(app)
   && /if \(isActive && _dong\) ghiDoiDuong\(_dong\);/.test(app));
 const KL = /const KHUNG_LUOT = \[([^\]]*)\]/.exec(app);
 check("a route frame never starts a turn by itself", !!KL && !/"route"/.test(KL[1]));

@@ -24,11 +24,11 @@ import sys
 import tempfile
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="vanhanh-read-batch-")
-os.environ["VANHANH_STATE_DIR"] = _STATE
-os.environ["VANHANH_SESSIONS_DB"] = str(Path(_STATE) / "sessions.db")
+_STATE = tempfile.mkdtemp(prefix="naota-read-batch-")
+os.environ["NAOTA_STATE_DIR"] = _STATE
+os.environ["NAOTA_SESSIONS_DB"] = str(Path(_STATE) / "sessions.db")
 os.environ["BRAINS_DIR"] = str(Path(_STATE) / "brains")
-os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
+os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -48,7 +48,7 @@ def check(name, cond, extra=""):
 # ---- 1. what may run ----------------------------------------------------------------------------------------------------
 ok_paths = ["/settings", "/skills?brain=brain", "/sessions/3292f379b17b41ffa56591518c3b4e85?limit=30&tools=0",
             "/sessions/3292f379b17b41ffa56591518c3b4e85/meta", "/background?brain=brain&chat_id=web%3Aabc",
-            "/telegram/status", "/agents/vanhanh-core/pulse?brain=brain", "/usage/summary?period=this_month&refresh=0"]
+            "/telegram/status", "/agents/naota-core/pulse?brain=brain", "/usage/summary?period=this_month&refresh=0"]
 for p in ok_paths:
     check(f"a plain read may run: {p}", read_batch.allowed(p))
 bad_paths = ["/workflows/run?slug=x", "/workflows/resume", "/claude/status?refresh=1", "/usage/summary?refresh=true",
@@ -70,7 +70,7 @@ def samples(pattern):
         for alt in m.group(1).split("|"):
             out += samples(pattern[:m.start()] + alt + pattern[m.end():])
         return out
-    return ["/" + pattern.replace("[^/?]+", "vanhanh-core").replace("[0-9a-z]{8,64}", "3292f379b17b41ff")]
+    return ["/" + pattern.replace("[^/?]+", "naota-core").replace("[0-9a-z]{8,64}", "3292f379b17b41ff")]
 
 
 corpus = []
@@ -154,7 +154,7 @@ check("the cut is a real wait_for, not httpx's timeout", "asyncio.wait_for(sub.g
       in (ROOT / "server" / "read_batch.py").read_text(encoding="utf-8"))
 
 # ---- 6. behind a reverse proxy ---------------------------------------------------------------------------------------------
-proxy = {"X-Forwarded-Proto": "https", "X-Forwarded-Host": "vanhanh.example.com"}
+proxy = {"X-Forwarded-Proto": "https", "X-Forwarded-Host": "naota.example.com"}
 direct = client.get("/messenger/setup?brain=brain", headers=proxy).json()
 r = client.post("/batch", json={"paths": ["/messenger/setup?brain=brain", "/threads/setup?brain=brain"]}, headers=proxy)
 got = events(r.text)
@@ -162,11 +162,11 @@ ms = json.loads(got.get("/messenger/setup?brain=brain", {}).get("b") or "{}")
 th = json.loads(got.get("/threads/setup?brain=brain", {}).get("b") or "{}")
 check("a direct GET behind the proxy answers https", direct.get("https") is True, direct.get("webhook_url"))
 check("the batched /messenger/setup answers https too", ms.get("https") is True, ms.get("webhook_url"))
-check("its webhook address is the public one", str(ms.get("webhook_url") or "").startswith("https://vanhanh.example.com/"),
+check("its webhook address is the public one", str(ms.get("webhook_url") or "").startswith("https://naota.example.com/"),
       ms.get("webhook_url"))
 check("the batched answer equals the direct one", ms == direct)
 check("the batched /threads/setup builds https addresses",
-      "http://" not in json.dumps(th) and "https://vanhanh.example.com" in json.dumps(th), th)
+      "http://" not in json.dumps(th) and "https://naota.example.com" in json.dumps(th), th)
 check("X-Forwarded-For is still not passed on", "x-forwarded-for" not in read_batch._FORWARD)
 
 src = (ROOT / "server" / "main.py").read_text(encoding="utf-8")

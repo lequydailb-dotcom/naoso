@@ -15,7 +15,7 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-tz-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-tz-")
 
 import config as cfgmod  # noqa: E402
 import context_compiler as cc  # noqa: E402

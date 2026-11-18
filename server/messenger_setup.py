@@ -6,7 +6,7 @@ stuck on was everything AROUND it, all of it done by hand on developers.facebook
   - pasting a USER token where a PAGE token is needed (Graph error 100 on check, error 210 when
     the bot subscribes the Page or sends a reply);
   - a short-lived token that dies within the hour;
-  - an app webhook saved without the `messages` field ticked, so Meta never calls Vanhanh and
+  - an app webhook saved without the `messages` field ticked, so Meta never calls Naota and
     the bot looks healthy while hearing nothing;
   - a token without `pages_read_engagement` / `pages_manage_metadata`.
 
@@ -40,6 +40,8 @@ COMMENT_SCOPES = ("pages_read_user_content", "pages_manage_engagement")
 POST_SCOPES = ("pages_manage_posts",)
 # Instagram through the same Page: the linked account, its direct messages and its comments.
 IG_SCOPES = ("instagram_basic", "instagram_manage_messages", "instagram_manage_comments")
+# Post and Page insights (reach, saves, clicks), asked only when the owner ticks it on the login.
+INSIGHTS_SCOPES = ("read_insights",)
 
 
 def _app_token(app_id: str, app_secret: str) -> str:
@@ -152,7 +154,7 @@ async def app_webhook(client, app_id: str, app_secret: str) -> dict:
 
 async def set_app_webhook(client, app_id: str, app_secret: str, callback_url: str, verify_token: str) -> dict:
     """Register (or overwrite) the app's `page` webhook with the fields the bot needs. Meta calls
-    `callback_url` with the verify token while this request is open, so Vanhanh must be reachable
+    `callback_url` with the verify token while this request is open, so Naota must be reachable
     at that address for it to succeed."""
     params = {"object": "page", "callback_url": callback_url, "fields": SUBSCRIBED_FIELDS + "," + FEED_FIELD,
               "include_values": "true", "verify_token": verify_token,
@@ -266,6 +268,15 @@ def posts_item(scopes) -> dict:
                   "Log in with Facebook again on the Messenger card and accept the posting permission."))
 
 
+def insights_item(scopes) -> dict:
+    """Warning row for reading post and Page insights. Never red: optional, ticked on the login when wanted."""
+    lack = [x for x in INSIGHTS_SCOPES if x not in (scopes or [])]
+    return _item("insights", True if not lack else None, ("Đọc số liệu bài viết", "Reads post insights"),
+                 ", ".join(lack),
+                 ("Đăng nhập Facebook lại ở thẻ Kết nối Meta và tick Đọc số liệu bài viết.",
+                  "Log in with Facebook again on the Meta card and tick Read post insights."))
+
+
 async def run_checks(client, page_id: str, page_token: str, app_secret: str, app_id: str = "",
                      webhook_url: str = "", bot_running: Optional[bool] = None) -> dict:
     """The full checklist for one Page. Returns {"ok", "app_id", "page_name", "items"}; "ok" is
@@ -282,8 +293,8 @@ async def run_checks(client, page_id: str, page_token: str, app_secret: str, app
                         "The token expired or was revoked. Connect again with a new token.")))
     is_page = info["type"] == "PAGE"
     items.append(_item("token_type", is_page, ("Là token của Trang", "Is a Page token"), info["type"],
-                       ("Đang là token người dùng, Meta sẽ báo lỗi 210 khi gửi tin. Kết nối lại để Vanhanh tự đổi sang token Trang.",
-                        "This is a user token, Meta answers error 210 when sending. Connect again and Vanhanh derives the Page token.")))
+                       ("Đang là token người dùng, Meta sẽ báo lỗi 210 khi gửi tin. Kết nối lại để Naota tự đổi sang token Trang.",
+                        "This is a user token, Meta answers error 210 when sending. Connect again and Naota derives the Page token.")))
     if is_page:
         same = not info["profile_id"] or info["profile_id"] == str(page_id)
         items.append(_item("token_page", same, ("Token đúng Trang", "Token matches the Page"), info["profile_id"],
@@ -316,14 +327,14 @@ async def run_checks(client, page_id: str, page_token: str, app_secret: str, app
             url_ok = wh.get("found") and url.rstrip("/").endswith(WEBHOOK_PATH) and (
                 not webhook_url or url.rstrip("/") == webhook_url.rstrip("/"))
             items.append(_item("webhook", bool(url_ok and wh.get("active")),
-                               ("Webhook của app trỏ về Vanhanh", "App webhook points at Vanhanh"), url,
-                               ("Bấm Sửa tự động để Vanhanh khai lại webhook.", "Click Repair and Vanhanh registers the webhook again."),
+                               ("Webhook của app trỏ về Naota", "App webhook points at Naota"), url,
+                               ("Bấm Sửa tự động để Naota khai lại webhook.", "Click Repair and Naota registers the webhook again."),
                                auto=True))
             lack = [f for f in WEBHOOK_FIELDS if f not in wh.get("fields", [])]
             items.append(_item("webhook_fields", wh.get("found") and not lack,
                                ("Webhook nhận tin nhắn", "Webhook receives messages"),
                                ", ".join(lack) if lack else ", ".join(WEBHOOK_FIELDS),
-                               ("Meta chưa gửi tin sang Vanhanh. Bấm Sửa tự động.", "Meta does not forward messages yet. Click Repair."),
+                               ("Meta chưa gửi tin sang Naota. Bấm Sửa tự động.", "Meta does not forward messages yet. Click Repair."),
                                auto=True))
         if is_page:
             ps = await page_subscription(client, page_id, page_token, app_id)
@@ -334,6 +345,7 @@ async def run_checks(client, page_id: str, page_token: str, app_secret: str, app
                                ("Bấm Sửa tự động.", "Click Repair."), auto=True))
             items.append(comments_item(info["scopes"], ps.get("fields", []) if ps.get("ok") else []))
     items.append(posts_item(info["scopes"]))
+    items.append(insights_item(info["scopes"]))
     if bot_running is not None:
         items.append(_item("bot", None if not bot_running else True, ("Có bot đang trực", "A bot is answering"), "",
                            ("Vào Chatbot, Bot, tạo hoặc bật bot cho kênh này.",
@@ -350,8 +362,8 @@ async def repair(client, page_id: str, page_token: str, app_id: str, app_secret:
         if not r.get("ok"):
             notes.append(r.get("error", ""))
     else:
-        notes.append(localefmt.chu("Mở Vanhanh bằng địa chỉ HTTPS rồi bấm lại, Meta chỉ gửi tin tới HTTPS.",
-                                   "Open Vanhanh over its HTTPS address and try again, Meta only calls HTTPS."))
+        notes.append(localefmt.chu("Mở Naota bằng địa chỉ HTTPS rồi bấm lại, Meta chỉ gửi tin tới HTTPS.",
+                                   "Open Naota over its HTTPS address and try again, Meta only calls HTTPS."))
     s = await subscribe_page(client, page_id, page_token)
     if not s.get("ok"):
         notes.append(s.get("error", ""))
@@ -375,8 +387,8 @@ async def connect(page_id: str, app_id: str, app_secret: str, token: str, webhoo
                                                                     "The token is too short, copy the whole EAA... string.")}
     if not str(webhook_url or "").startswith("https://"):
         return {"ok": False, "step": "https", "error": localefmt.chu(
-            "Vanhanh cần địa chỉ HTTPS (Cài đặt, Truy cập từ xa) và bạn phải mở Vanhanh bằng địa chỉ đó.",
-            "Vanhanh needs an HTTPS address (Settings, Remote access) and you must open Vanhanh through it.")}
+            "Naota cần địa chỉ HTTPS (Cài đặt, Truy cập từ xa) và bạn phải mở Naota bằng địa chỉ đó.",
+            "Naota needs an HTTPS address (Settings, Remote access) and you must open Naota through it.")}
     own = client is None
     client = client or httpx.AsyncClient(timeout=25)
     try:

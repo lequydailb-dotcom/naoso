@@ -10,8 +10,8 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-agent-voice-state-")
-os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="vanhanh-agent-voice-brains-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-agent-voice-state-")
+os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="naota-agent-voice-brains-")
 
 import main  # noqa: E402
 import voice_live  # noqa: E402
@@ -46,7 +46,7 @@ nora = main._voice_partner_settings(cfg, sid_nora, "brain")
 check("Milo receives Maple", milo["voice"]["chatgpt_voice"] == "maple")
 check("Nora receives Breeze", nora["voice"]["chatgpt_voice"] == "breeze")
 check("Global setting unchanged", cfg["voice"]["chatgpt_voice"] == "juniper")
-check("Normal Vanhanh chat uses global voice", main._voice_partner_settings(cfg, sid_default, "brain") is cfg)
+check("Normal Naota chat uses global voice", main._voice_partner_settings(cfg, sid_default, "brain") is cfg)
 check("Unknown session does not override voice", main._voice_partner_settings(cfg, "", "brain") is cfg)
 api_cfg = {"voice": {"live_provider": "openai", "live_voice": "cedar", "chatgpt_voice": "juniper"}}
 check("API Live provider does not change", main._voice_partner_settings(api_cfg, sid_milo, "brain") is api_cfg)

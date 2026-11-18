@@ -20,7 +20,7 @@ import os
 import tempfile
 from unittest.mock import patch
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-oauth-prm-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-oauth-prm-"))
 
 import oauth_mcp  # noqa: E402
 

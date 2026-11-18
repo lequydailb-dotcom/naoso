@@ -53,7 +53,7 @@ const con = fs.readFileSync(path.join(__dirname, "..", "..", "dashboard", "conso
 check("a card in the Available grid, filed under messaging, opening the form", () => {
   const h = M.catCard("Nhắn tin");
   assert.ok(/class="cat-card msc-cat" data-cat="Nhắn tin"/.test(h) && /data-msc-open="1"/.test(h));
-  assert.ok(con.includes('window.VanhanhMessenger.catCard((cat.find(c => c.id === "zalo") || {}).category || "")'));
+  assert.ok(con.includes('window.NaotaMessenger.catCard((cat.find(c => c.id === "zalo") || {}).category || "")'));
 });
 check("connected Pages are one card in the Connected list, nothing when none", () => {
   assert.strictEqual(M.groupHtml([]), "");
@@ -67,7 +67,7 @@ check("connected Pages are one card in the Connected list, nothing when none", (
 });
 check("no section of its own, form in the shared dialog", () => {
   assert.ok(!con.includes("Facebook Messenger setup card"));
-  assert.ok(con.includes("window.VanhanhConnModal = { open: connModal, head: mHead, close: closeConnModal }"));
+  assert.ok(con.includes("window.NaotaConnModal = { open: connModal, head: mHead, close: closeConnModal }"));
   const src = fs.readFileSync(path.join(__dirname, "..", "..", "dashboard", "messenger-connect.js"), "utf8");
   assert.ok(src.includes("M.open(M.head(") && !src.includes('class="cview-section msc"'));
   assert.ok(!/class="lv-card lv-card-new msc-form"/.test(M.formHtml({ https: true })));
@@ -164,6 +164,14 @@ check("Instagram: opt-in tick on the form, sent to the login", () => {
   assert.ok(h.includes('data-f-ig="1"') && !/data-f-ig="1" checked/.test(h));
   const src = fs.readFileSync(path.join(__dirname, "..", "..", "dashboard", "messenger-connect.js"), "utf8");
   assert.ok(src.includes("instagram: !!(igBox && igBox.checked)"));
+});
+// Post insights, an opt-in tick of its own.
+check("Post insights: opt-in tick on the form with its (i), sent to the login", () => {
+  const h = M.formHtml({ https: true }, null);
+  assert.ok(h.includes('data-f-insights="1"') && !/data-f-insights="1" checked/.test(h));
+  assert.ok(h.includes("msc.insights_tick") && h.includes("msc.insights_tick_how"));
+  const src = fs.readFileSync(path.join(__dirname, "..", "..", "dashboard", "messenger-connect.js"), "utf8");
+  assert.ok(src.includes("insights: !!(insBox && insBox.checked)"));
 });
 check("Instagram: the Page list names the linked account", () => {
   const h = M.pickHtml([{ id: "1", name: "Shop", ig_username: "shop.vn" }, { id: "2", name: "Kho" }]);

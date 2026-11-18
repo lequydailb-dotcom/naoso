@@ -1,6 +1,6 @@
 """Regression: a plan limit that names a CLOCK time.
 
-Claude on the Pro plan prints "You've hit your limit · resets 1:50am (Asia/Bangkok)". Vanhanh only
+Claude on the Pro plan prints "You've hit your limit · resets 1:50am (Asia/Bangkok)". Naota only
 read delays ("resets in 2 hours"), so the card said the provider did not say when it reopens and
 no automatic retry was scheduled. The clock time is now read in the tz in parentheses (zoneinfo),
 or in local time without one, and the NEXT occurrence of that time is the reset.
@@ -64,6 +64,24 @@ check("midnight (UTC)", clock("resets midnight (UTC)", NOW) == utc(2026, 10, 23,
 check("weekly form with a date", clock("Weekly limit reached ∙ resets Oct 24, 1am (UTC)", NOW) == utc(2026, 10, 24, 1, 0))
 check("a past date means next year", clock("resets Jan 2 at 3pm (UTC)", NOW) == utc(2027, 1, 2, 15, 0))
 check("GMT+7 offset form", clock("resets 1:50am (GMT+7)", NOW) == utc(2026, 10, 22, 18, 50))
+
+# ── a date that carries its year (issue 1334) ──
+# The ChatGPT plan prints the year when the reset is days away. The year was not accepted, so the whole
+# sentence matched nothing and the reset read as "unknown" (reset_epoch 0).
+DATED = "You've hit your usage limit. try again at Nov 13th, 2026 3:32 PM."
+check("a year after the day is read", clock(DATED, NOW) == local(2026, 11, 13, 15, 32))
+dated = limit_learner.parse_subscription_limit(DATED, engine_hint="codex", now=NOW)
+check("the dated notice has a reset time (not 'unknown')",
+      dated is not None and dated.engine == "codex" and dated.reset_epoch == local(2026, 11, 13, 15, 32))
+check("the same notice without the year reads as before",
+      clock("You've hit your usage limit. try again at Nov 13th 3:32 PM.", NOW) == local(2026, 11, 13, 15, 32))
+check("year, then 'at', then a tz", clock("resets Jan 2, 2027 at 3pm (UTC)", NOW) == utc(2027, 1, 2, 15, 0))
+check("year without a comma", clock("resets Oct 24 2026 1am (UTC)", NOW) == utc(2026, 10, 24, 1, 0))
+check("the stated year wins over 'the next occurrence'",
+      clock("resets Nov 13, 2027 1am (UTC)", NOW) == utc(2027, 11, 13, 1, 0))
+check("a stated year is never rolled forward: a dated time already past is unknown",
+      clock("try again at Oct 1st, 2026 3:32 PM", NOW) == 0.0)
+check("Feb 30 with a year is rejected, not guessed", clock("resets Feb 30, 2027 1am (UTC)", NOW) == 0.0)
 
 # ── no time zone: local time ──
 now_local = local(2026, 10, 23, 0, 30)

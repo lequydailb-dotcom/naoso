@@ -2,12 +2,12 @@
 
     python tests/run.py bot_shield      (no network)
 
-Purpose: block indexing and keep AI bots away from Vanhanh when the admin link leaks out. Three layers:
+Purpose: block indexing and keep AI bots away from Naota when the admin link leaks out. Three layers:
 X-Robots-Tag noindex on every answer, /robots.txt, and a 403 for requests that declare themselves a crawler, AI agent,
 SEO tool or scanner. The traps this file guards:
 
   - a real browser, an in-app browser (Zalo, Facebook, Coc Coc, Naver) or a link preview caught as a bot;
-  - a webhook, OAuth callback, MCP endpoint or plugin route (Vanhanh Gate) or share link answered 403 because the caller's UA matched;
+  - a webhook, OAuth callback, MCP endpoint or plugin route (Naota Gate) or share link answered 403 because the caller's UA matched;
   - robots.txt "fixed" to disallow Googlebot, which would leave a leaked link listed instead of removing it;
   - the middleware wired somewhere other than outermost, so the 401 of the login gate goes out without noindex.
 """
@@ -18,9 +18,9 @@ import sys
 import tempfile
 import urllib.robotparser
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-botshield-")
-os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="vanhanh-botshield-brains-")
-os.environ.pop("VANHANH_BLOCK_BOTS", None)
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-botshield-")
+os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="naota-botshield-brains-")
+os.environ.pop("NAOTA_BLOCK_BOTS", None)
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -89,7 +89,7 @@ PEOPLE_AND_TOOLS = (
     "WhatsApp/2.23.20.0",
     "LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient +http://www.linkedin.com)",
     "facebookexternalua",
-    # the Vanhanh CLI, scripts, MCP clients, uptime monitors
+    # the Naota CLI, scripts, MCP clients, uptime monitors
     "curl/8.5.0", "python-requests/2.32.3", "python-httpx/0.27.2", "claude-code/2.1.0", "openai-mcp/1.0.0",
     "Mozilla/5.0+(compatible; UptimeRobot/2.0; http://www.uptimerobot.com/)", "GitHub-Hookshot/abc123",
     "",
@@ -120,9 +120,9 @@ check("robots.txt has no em or en dash", "\u2014" not in bs.robots_txt() and "\u
 
 
 # ---- 3. which paths are never blocked --------------------------------------------------------
-for path in ("/robots.txt", "/hooks/abc123", "/ext/vanhanh.gate/mcp", "/.well-known/oauth-authorization-server",
+for path in ("/robots.txt", "/hooks/abc123", "/ext/naota.gate/mcp", "/.well-known/oauth-authorization-server",
              "/hub/mcp", "/chatbot-api/v1/turn", "/whatsapp/webhook", "/messenger/webhook", "/zalo-oa/webhook",
-             "/threads/webhook", "/connect/oauth/callback", "/messenger/privacy", "/zalo_verifier123.html", "/health",
+             "/threads/webhook", "/wechat/webhook", "/connect/oauth/callback", "/messenger/privacy", "/zalo_verifier123.html", "/health",
              "/s/abc/", "/s/abc/data.json"):
     check(f"machine endpoint exempt: {path}", bs.exempt(path))
 for path in ("/", "/s", "/static/app.js", "/auth/login", "/agents", "/hub/other", "/hooksx",
@@ -173,11 +173,11 @@ check("a route that set its own X-Robots-Tag keeps it", r.headers.get("x-robots-
 r = client.get("/stream", headers=BROWSER)
 check("a streamed answer passes whole, with the header", r.text == "ab" and "noindex" in r.headers.get("x-robots-tag", ""))
 
-os.environ["VANHANH_BLOCK_BOTS"] = "0"
+os.environ["NAOTA_BLOCK_BOTS"] = "0"
 r = client.get("/", headers=GPT)
-check("VANHANH_BLOCK_BOTS=0 lets declared bots through", r.status_code == 200, r.status_code)
+check("NAOTA_BLOCK_BOTS=0 lets declared bots through", r.status_code == 200, r.status_code)
 check("... and still sends noindex", "noindex" in r.headers.get("x-robots-tag", ""))
-os.environ.pop("VANHANH_BLOCK_BOTS")
+os.environ.pop("NAOTA_BLOCK_BOTS")
 
 
 def call(client_addr, headers):
@@ -198,14 +198,14 @@ def call(client_addr, headers):
     return next(m["status"] for m in sent if m["type"] == "http.response.start")
 
 
-check("a tool on this machine is never blocked (Vanhanh's own engines)", call(("127.0.0.1", 5000), GPT) == 200)
+check("a tool on this machine is never blocked (Naota's own engines)", call(("127.0.0.1", 5000), GPT) == 200)
 check("CANARY: a tunnel or proxy on this machine does not count as local",
       call(("127.0.0.1", 5000), {**GPT, "x-forwarded-for": "203.0.113.9"}) == 403)
 check("... nor does Cloudflare Tunnel", call(("127.0.0.1", 5000), {**GPT, "cf-connecting-ip": "203.0.113.9"}) == 403)
 
 
 # ---- 5. main wires it outermost, robots.txt public, dashboard tagged ----------------------------
-os.environ["VANHANH_REQUIRE_LOGIN"] = "1"
+os.environ["NAOTA_REQUIRE_LOGIN"] = "1"
 import main  # noqa: E402
 
 check("main wires BotShield as the OUTERMOST middleware",

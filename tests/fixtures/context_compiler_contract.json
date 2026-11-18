@@ -7,17 +7,17 @@
     "openai-oauth"
   ],
   "required_terms": [
-    "Bạn là Vanhanh",
-    "Không bịa capability",
-    "Dữ liệu live",
-    "Memory chỉ là nguồn tham khảo",
-    "quyền gateway",
-    "Cách trả lời"
+    "You are Naota",
+    "Never invent capabilities",
+    "Live data",
+    "Memory is a sourced reference",
+    "permissions the gateway",
+    "How to answer"
   ],
   "forbidden_terms": [
     "# === BỘ NHỚ DÀI HẠN",
     "# === SKILL KHẢ DỤNG",
-    "# === NĂNG LỰC VANHANH HIỆN CÓ",
+    "# === NĂNG LỰC NAOTA HIỆN CÓ",
     "output contract",
     "Output contract"
   ]

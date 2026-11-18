@@ -3,7 +3,7 @@
     python tests/run.py project_panel      (NO network)
 
 Before this round `projects` was only a LABEL that grouped conversations to reduce clutter - it
-did not change Vanhanh's behaviour at all. Round 1 built the store + API so a project can carry
+did not change Naota's behaviour at all. Round 1 built the store + API so a project can carry
 content: its own instructions, a list of documents in the brain, a list of links.
 
 Two decisions worth guarding, because each has a wrong version that looks more reasonable:
@@ -22,7 +22,7 @@ from _paths import ROOT, SERVER  # noqa: E402,F401
 import os
 import tempfile
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-proj-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-proj-"))
 
 import sessions  # noqa: E402
 
@@ -36,7 +36,7 @@ def check(name, condition, detail=""):
         _fails.append(name)
 
 
-st = sessions.SessionStore(os.path.join(tempfile.mkdtemp(prefix="vanhanh-proj-db-"), "s.db"))
+st = sessions.SessionStore(os.path.join(tempfile.mkdtemp(prefix="naota-proj-db-"), "s.db"))
 
 # ============================================================
 # 1. Instructions: save, edit, clear, and TRUNCATE AT SAVE TIME
@@ -56,7 +56,7 @@ st.update_project(pid, instructions="")
 check('passing "" CLEARS the instructions', st.get_project(pid)["instructions"] == "")
 
 # Truncate in the STORE, not only when building the prompt: a cap at prompt time alone lets the
-# store grow with every edit, and the user sees their text saved while Vanhanh quietly reads only
+# store grow with every edit, and the user sees their text saved while Naota quietly reads only
 # part of it.
 st.update_project(pid, instructions="x" * (sessions.PROJECT_INSTRUCTIONS_MAX + 500))
 check(f"instructions are cut to the {sessions.PROJECT_INSTRUCTIONS_MAX} cap at save time",
@@ -187,8 +187,12 @@ _add_route = _main.split("def projects_add_file", 1)[1].split("\n@app.", 1)[0]
 check("CANARY: the add-file route takes the brain from the PROJECT, not from the client",
       'p.get("brain")' in _add_route and "brain: str = Form" not in _add_route,
       _add_route[:200])
+# 2026-11-12: the fence moved one call down. The three add routes (project, chat, agent) share `_asset_target`, which
+# takes a file or a whole folder; it must still go through `_safe_path` before anything is stored.
+_target_fn = _main.split("def _asset_target", 1)[1].split("\ndef ", 1)[0]
 check("CANARY: and checks the path with _safe_path before writing the store",
-      "_safe_path(" in _add_route, _add_route[:200])
+      "_asset_target(" in _add_route and "_safe_path(" in _target_fn
+      and _add_route.index("_asset_target(") < _add_route.index("add_project_file("), _add_route[:200])
 # ── Uploaded documents must land somewhere DURABLE, not in the cache area ────
 # attachments/ is pruned by media_gc by age (30 days by default) and by a size cap. A project's
 # documents are attached for long-term use, so they must go to Sources.

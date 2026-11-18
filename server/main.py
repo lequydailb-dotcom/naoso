@@ -1,15 +1,17 @@
 """
-VANHANH - Backend
+NAOTA - Backend
 Kiến trúc: Voice (browser) ⇄ FastAPI WebSocket ⇄ Claude Code CLI subprocess
 
-Vanhanh KHÔNG gọi Anthropic API trực tiếp. Mọi reasoning + tool calling đi qua
+Naota KHÔNG gọi Anthropic API trực tiếp. Mọi reasoning + tool calling đi qua
 `claude` CLI đã cài trên máy → tự kế thừa MCP, skills, auth.
 """
 import brain_seed_i18n   # file hạt giống của brain mới theo ngôn ngữ người dùng
 import brain_label   # tên hiển thị của brain, tách khỏi thư mục
 import brain_export   # xuất/nhập cả bộ não thành một file .zip
 import brain_order   # thứ tự brain trong bảng chọn: chủ tự sắp, còn lại theo tên hiển thị
-import default_brain   # which brain is the default: the owner's choice, `Brain Default` until one is made
+import vault_tree_prefs   # pinned folders and folders open by default in the Vault tree (2026-11-11)
+import default_brain   # which brain is the default: a choice since 2026-11-09, `Brain Default` until one is made
+import kept            # values the event loop reads from memory instead of waiting for the disk (2026-11-13)
 import localefmt   # múi giờ theo cấu hình, thay UTC+7 nhúng cứng
 import html as html_mod   # escape lời báo lỗi OAuth trên trang callback (biến cục bộ `html` che tên module)
 import posixpath
@@ -32,6 +34,7 @@ import binascii
 import re
 import urllib.parse
 import secrets
+import filecmp
 import shutil
 import time
 import types as _types   # object tạm cho _apply_antigravity_hub ở endpoint kiểm tra
@@ -52,7 +55,7 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 # No time cap on one Claude Code / Codex tool call unless the owner sets one (remove every model time
 # cap). claude_sdk_engine.py is pinned byte for byte (qualified native profile) and still names "3600" as its default,
 # so the default is set here, before any engine runs; the other engines name "0" in their own source.
-os.environ.setdefault("VANHANH_CLAUDE_TOOL_TIMEOUT", "0")
+os.environ.setdefault("NAOTA_CLAUDE_TOOL_TIMEOUT", "0")
 
 # No WebSocket compression, whatever started uvicorn (ws_compat explains the Safari drops it prevents).
 import ws_compat  # noqa: E402
@@ -77,7 +80,9 @@ import vision_input
 import borrowed_eyes   # mắt mượn: bộ não khác xem hộ ảnh khi model của bot không xem được
 import image_vision
 import openai_oauth
+import signin_loss   # a plan card that lost its sign-in moves the turn on, like one out of quota (2026-11-12)
 import claude_update   # tự chạy `claude update` hằng ngày để model mới hiện ra
+import sdk_update      # same daily tick: the claude-agent-sdk package moves to newer releases of its series
 import agy_update      # cùng việc đó cho Antigravity CLI: `agy update` hằng ngày
 import claude_models   # model Claude LIVE cho provider anthropic-cli (hỏi bằng API key, nếu có)
 import winproc         # chạy lệnh con câm lặng trên Windows (không nháy console đen)
@@ -90,6 +95,7 @@ import totp            # xác thực 2 lớp (TOTP) cho cổng đăng nhập - t
 import claude_auth     # gói Claude Code xác thực bằng gì: phiên subscription hay API key
 import aux_engine   # engine việc nền: Claude / Codex / API rẻ
 import model_routing   # provider order, per-card model/effort, several accounts per provider
+import plan_limits     # the plan's 5-hour and weekly meters (side work pauses near the limit)
 import plan_accounts   # several accounts on one subscription plan card (Codex, Grok, Claude Code)
 import adv_keys   # gateway lists: Advanced API key (OpenAI route) and Claude Compatible (Anthropic route)
 import mcp_store
@@ -102,22 +108,28 @@ import purge          # xoá kết nối cho sạch: chủ sở hữu duy nhất
 import core_off       # năng lực MẶC ĐỊNH gỡ được: trạng thái ghi ở STATE_DIR, không sửa cây code
 import packs          # GÓI mở rộng: thả thư mục vào STATE_DIR/packs là có thêm connector
 import cred_exchange   # đổi credential hộ user (vd App Password -> Google master token) khi đấu
-import ops_index_watch   # keeps every brain's Vanhanh/index.md current, cheaply
+import ops_index_watch   # keeps every brain's Naota/index.md current, cheaply
 import plugins_host   # hệ PLUGIN: thư mục Python thả vào, tự thêm tool/hook cho mọi engine qua hub
 import web_security   # chống CSRF-to-localhost + DNS-rebinding cho web API cục bộ
 import security_log   # account security log: sign-ins, account changes, outside edits
 import image_gen      # tạo ảnh bằng gói ChatGPT (OAuth) - Codex Responses + tool image_generation
 import media_gc       # dọn vùng cache media (attachments/ + inbox/) theo hạn tuổi + trần dung lượng
 import inbox         # hòm thư: mọi kết quả chạy nền để lại một mẩu thư bền ở server
-import notify_policy  # Vanhanh Core decides which notices ring (groups, levels, modes, the owner's reactions)
+import notify_policy  # Naota Core decides which notices ring (groups, levels, modes, the owner's reactions)
 import webpush       # thông báo đẩy trình duyệt (Web Push, tự mã hoá - không thêm thư viện)
 import stt            # nghe tin thoại (Whisper qua Groq) -> chữ, cho kênh Telegram/Zalo
 import luot_dang_chay # sổ lượt chat đang chạy theo brain: tool giao việc tự biết khung chat nào hỏi
 import tool_label     # một dòng mô tả lệnh gọi công cụ (lệnh nào, file nào) cho khối tiến trình
 import turn_plan     # the engine's task plan (TodoWrite, update_plan) for the plan card in the chat
-import nghe_sua       # sửa chữ nghe nhầm theo ngữ cảnh (Nauta -> Vanhanh) + hotwords cho Whisper
+import nghe_sua       # sửa chữ nghe nhầm theo ngữ cảnh (Nauta -> Naota) + hotwords cho Whisper
 import transcript_fix  # rewrites what the mic heard at the end of a dictation: the main brain, with the chat as context
 import next_prompt  # suggests the owner's next message after a reply (ghost text, Tab fills it in)
+import auto_background  # picks the light and mid model an Automatic background model runs on
+import job_scorecard    # each background job finds the lightest model that gets it done
+import core_loop        # Naota Core's improvement loop: one loop, many knobs
+import tool_pins        # the tools a brain calls most are shown directly (one knob of that loop)
+import job_tune         # the owner's side of that loop, from chat (tool naota_tune)
+import self_upgrade     # improvement on the owner's request: backup, undo, own code, update (tool naota_improve)
 import phien_am       # từ tiếng Anh -> cách đọc kiểu Việt (đọc loa + so âm câu nghe được)
 import voice_privacy
 voice_privacy.install()
@@ -126,14 +138,15 @@ import oauth_mcp
 import system_sync   # tầng năng lực HỆ THỐNG (skill/loop mặc định) - update theo phiên bản app
 import agent_rules   # mục Luật chủ dặn / Bổ sung (tự học) + chốt chặn giữ dòng của chủ
 import skill_router   # nguồn chân lý khám phá skill (canonical <brain>/skills) dùng chung mọi engine
-import skill_usage     # telemetry: đếm skill nào THẬT SỰ được dùng qua vanhanh_use_skill (tín hiệu DƯƠNG một chiều)
+import skill_usage     # telemetry: đếm skill nào THẬT SỰ được dùng qua naota_use_skill (tín hiệu DƯƠNG một chiều)
 import share_bundle   # xuất/nhập gói agent/skill/workflow (.zip) để chia sẻ giữa brain/người dùng
 import ssl_shared   # one SSL context for every httpx client, built off the event loop
 ssl_shared.install()
 import share_store    # link CHIA SẺ CÔNG KHAI của một file trong brain (/s/<token>)
 import share_stats    # view counter of those public links
 import share_render   # dựng trang xem cho link chia sẻ (markdown -> html, khung trang)
-import usage_store   # đếm token/chi phí Vanhanh tự đo (đa nhà cung cấp)
+import local_open     # open a file outside the brain with the owner's own app (chat links)
+import usage_store   # đếm token/chi phí Naota tự đo (đa nhà cung cấp)
 import usage_index   # dashboard token: index log thô Claude+Codex + query summary/insights
 import usage_parsers as up_parsers   # bảng giá + khớp model, dùng chung với indexer
 import usage_saving   # tiết kiệm đối chứng ngược, mốc sự kiện, dự báo, ngân sách
@@ -149,9 +162,10 @@ import readonly_path_runtime # Phase 6: exact-schema, two-round read-only canary
 import readonly_orchestrator # Phase 7: checkpointed multi-round read-only DAG
 import adaptive_context_runtime # Phase 8: state + sourced memory + lazy skill canaries
 import agent_runtime           # Phase 11: agent = workflow có quyền replan trong quyền đã cấp
-import resonance               # Vanhanh Resonance MVP: một lượt engine chỉ chữ + receipt do host quan sát
-import resonance_store         # Vanhanh Resonance MVP: kho mục tiêu SQLite có revision (M2)
-import resonance_api           # Vanhanh Resonance MVP: API thẻ mục tiêu và phản hồi (M4)
+import resonance               # Naota Resonance MVP: một lượt engine chỉ chữ + receipt do host quan sát
+import resonance_store         # Naota Resonance MVP: kho mục tiêu SQLite có revision (M2)
+import resonance_api           # Naota Resonance MVP: API thẻ mục tiêu và phản hồi (M4)
+import agent_presence          # Auto registry in step with the assistant files (pack reinstall, 2026-11-11)
 import limit_learner          # học hạn mức từ chính lỗi nhà cung cấp trả về
 import limit_resume           # tự chạy lại lượt chat khi gói thuê bao mở lại hạn mức
 import quota_scheduler        # sổ cái TPM dùng chung (Việc 6)
@@ -169,6 +183,7 @@ import messenger_setup  # Messenger connect wizard and health check
 import messenger_oauth  # Log in with Facebook for the Messenger card
 import zalo_oa_bot      # Zalo OA transport + webhook router
 import zalo_oa_oauth    # Grant access with Zalo: OAuth v4 + PKCE for the Zalo OA form
+import wechat_bot       # WeChat Official Account transport + webhook router
 import channel_context   # metadata kênh + gom file trả về kênh chat (port gateway hermes-agent)
 import lang as lang_mod   # chốt ngôn ngữ trả lời cho một lượt
 import lang_registry      # sổ đăng ký: mọi thứ về một ngôn ngữ nằm đúng một chỗ
@@ -183,11 +198,12 @@ import agent_tags   # tag của agent: nhiều tag, nhóm cũ thành một tag
 import cli_autoinstall   # trạng thái agy/grok do container Docker tự cài
 import agent_assets      # tài liệu & link gắn vào MỘT trợ lý (lưu trong frontmatter agent)
 import workflow_chat     # persona_cua_phien: kênh agent:/workflow: đổi cách _do_turn chạy lượt
-import vanhanh_core        # Vanhanh Core: system assistant pinned in every brain
+import naota_core        # Naota Core: system assistant pinned in every brain
 import main_prompt_rendering  # pure shared prompt blocks; no live reads
 import main_attachment_rendering  # pure shared attachment templates; no live reads
 import memory_control    # list/edit/forget memories, learning switch, person profile
-import memory_chat       # the same, plus agent lessons, from chat (tool vanhanh_memory)
+import memory_chat       # the same, plus agent lessons, from chat (tool naota_memory)
+import project_context   # 2026-11-13: what Naota learnt about a project, and tool naota_project
 import memory_receipt    # the "Đã nhớ · Hoàn tác" line under an answer, and no empty "đã quên"
 import chatbot_cuoc_chat  # danh sách cuộc chat cho ô chọn người/nhóm của form bot
 import chatbot_reply_policy        # bộ phán xử hội thoại nhóm: bot tự quyết nói hay im
@@ -198,8 +214,10 @@ import channel_accounts  # tài khoản kênh dạng token, bot chỉ trỏ tớ
 import brain_ident       # one brain, many spellings ("brain", absolute path)
 import channels          # sổ đăng ký kênh của Hộp thư hội thoại
 import conversations     # Hộp thư hội thoại khách: kho khách -> hội thoại -> tin (Chatbot V2)
+import customer_profile  # what a bot remembers about one customer, written by the background model (2026-11-12)
 import zalo_personal_channel   # Hộp thư hội thoại: đọc tin Zalo cá nhân từ MCP theo cursor
-import deploy_info              # Vanhanh đang đứng ở đâu (docker/native) - xem _deploy_mode
+import zalo_push               # naota-zalo wakes the read loop when a message arrives (no timer)
+import deploy_info              # Naota đang đứng ở đâu (docker/native) - xem _deploy_mode
 import node_security            # News item when this machine's Node.js misses a security release
 import ollama_catalog           # danh mục model để gợi ý + tìm kiếm
 import ollama_local             # dò/tải/gỡ model trên máy chạy Ollama
@@ -214,7 +232,7 @@ from sessions import get_store   # kho phiên hội thoại (sqlite + fts5): lis
 import compaction   # nén hội thoại dài cho engine API (tóm tắt phần cũ thay vì cắt bỏ)
 import lenh_he_thong   # lõi dùng chung của lệnh "/" hệ thống (web + Telegram): /plan /compact /usage...
 from chat_runtime import ChatRuntime
-import ui_bridge   # tool vanhanh_ui bảo dashboard mở trang/file/việc rồi đợi trình duyệt đáp
+import ui_bridge   # tool naota_ui bảo dashboard mở trang/file/việc rồi đợi trình duyệt đáp
 import ui_targets   # đổi lời nói ("mở trang công cụ") thành id trang dashboard hiểu
 import voice_turn_protocol
 import voice_brain   # Voice V2: bộ não giọng nói riêng (Antigravity sống lâu / Groq / Gemini...)
@@ -226,9 +244,9 @@ import codex_steer  # Codex chat turns on app-server take those messages mid-way
 import warm_pool  # engine processes kept warm between the owner's chat turns
 import claude_warm  # Claude Code chat turns on a warm process
 import codex_realtime  # ChatGPT Live: một Codex app-server sống lâu, realtime trên gói ChatGPT
-import voice_call     # nút mic là gọi Vanhanh: tự chọn ChatGPT Live / Live API / Cơ bản
+import voice_call     # nút mic là gọi Naota: tự chọn ChatGPT Live / Live API / Cơ bản
 
-app = FastAPI(title="VANHANH")
+app = FastAPI(title="NAOTA")
 import voice_persona  # a voice call from a partner's chat speaks as that partner
 _CHAT_RUNTIME = ChatRuntime()
 
@@ -264,7 +282,7 @@ _WRITE_PATH = None
 # Tham số write ĐÃ ĐƯỢC DUYỆT, giữ trong RAM theo invocation_id. Cố ý KHÔNG persist:
 # raw arguments không được vào runtime store (bất biến privacy từ Phase 0). Hệ quả có
 # chủ đích: khởi động lại tiến trình là mất phần duyệt, và lượt xác nhận fail-closed
-# thay vì chạy một hành động ghi mà Vanhanh không còn đọc lại được tham số.
+# thay vì chạy một hành động ghi mà Naota không còn đọc lại được tham số.
 _WRITE_PENDING_ARGS: dict[str, dict] = {}
 _WRITE_PENDING_ARGS_MAX = 64
 _REGISTRY_SHADOW_TASKS = set()
@@ -275,10 +293,10 @@ import bot_shield
 app.add_middleware(nen_phan_hoi.NenPhanHoi)
 # CORS KHÔNG dùng '*' nữa: dashboard cùng-origin (không cần CORS). Chống trang web độc ĐỌC API qua trình duyệt;
 # phần chống GHI/CSRF ở _csrf_guard bên dưới.
-# Vá bảo mật: cửa CORS cho MỌI localhost:<cổng> (để tiện dev) giờ chỉ mở khi VANHANH_DEV_CORS=1. Trên
+# Vá bảo mật: cửa CORS cho MỌI localhost:<cổng> (để tiện dev) giờ chỉ mở khi NAOTA_DEV_CORS=1. Trên
 # máy không đặt mật khẩu, nó cho bất kỳ trang nào chạy ở một cổng localhost khác (dev server, app khác) đọc được
 # cả API: file trong brain, hội thoại. Dashboard, CLI và plugin không cần nó.
-if (os.getenv("VANHANH_DEV_CORS", "") or "").strip().lower() in ("1", "true", "yes", "on"):
+if (os.getenv("NAOTA_DEV_CORS", "") or "").strip().lower() in ("1", "true", "yes", "on"):
     app.add_middleware(CORSMiddleware,
                        allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$",
                        allow_methods=["*"], allow_headers=["*"])
@@ -325,9 +343,16 @@ _AUTH_PUBLIC_EXACT = ("/", "/favicon.ico", "/health", "/auth/status", "/auth/log
                       # /zalo-oa/webhook: Zalo calls it with no cookie; the route checks
                       # X-ZEvent-Signature under the OA secret keys of the Zalo OA accounts.
                       "/zalo-oa/webhook",
+                      # /zalo/push (2026-11-10): naota-zalo on this machine calls it with no cookie when a personal
+                      # Zalo message arrives. The route takes direct local requests only and checks this server
+                      # process's own bearer (zalo_push.token_ok).
+                      "/zalo/push",
                       # /zalo-oa/oauth/callback: Zalo sends the browser back here after the OA admin allows the
                       # app (OAuth v4); the unguessable `state` from an authenticated /zalo-oa/oauth/start is the check.
                       "/zalo-oa/oauth/callback",
+                      # /wechat/webhook: WeChat calls it with no cookie. GET is the URL check, POST a follower's
+                      # message; both are checked in the route against the signature made with Naota's own token.
+                      "/wechat/webhook",
                       # /chatbot-api/v1/turn: a server of the owner asks one Chatbot. No cookie; the route
                       # checks the source address and the key of an internal API channel account itself
                       # (channels/api.py). That key opens this path only, and an API token does not open it.
@@ -335,9 +360,9 @@ _AUTH_PUBLIC_EXACT = ("/", "/favicon.ico", "/health", "/auth/status", "/auth/log
 # Endpoint CHỈ-LOCALHOST: agent (Claude CLI chạy cùng máy/container) curl được mà không cần
 # cookie đăng nhập; request từ ngoài (qua Traefik/Caddy/LAN) đến từ IP khác loopback → vẫn bị chặn.
 # /reminders/cancel đi cùng nhóm với /reminders (TẠO nhắc): huỷ là thao tác YẾU HƠN tạo, nên
-# miễn cùng mức là nhất quán chứ không nới rào - thiếu nó thì vanhanh_schedule (plugin in-process,
+# miễn cùng mức là nhất quán chứ không nới rào - thiếu nó thì naota_schedule (plugin in-process,
 # gọi localhost không cookie) huỷ nhắc hẹn LUÔN lỗi 401 khi đã bật mật khẩu (gate_active()=True).
-# /reminders/update cùng nhóm: SỬA lịch cũng là thao tác yếu hơn TẠO, và vanhanh_schedule
+# /reminders/update cùng nhóm: SỬA lịch cũng là thao tác yếu hơn TẠO, và naota_schedule
 # (op=update) gọi từ chính máy này khi user nói "đổi giờ việc đó sang 8h" - thiếu nó thì sửa lịch
 # bằng chat trả 401 câm. /reminders/delete CỐ Ý không có ở đây: xoá hẳn thì để dashboard (có
 # session) làm, chat chỉ cần huỷ.
@@ -346,7 +371,7 @@ _AUTH_PUBLIC_EXACT = ("/", "/favicon.ico", "/health", "/auth/status", "/auth/log
 # connect from 127.0.0.1, so the old address-only check let anyone holding the tunnel URL create a reminder (task or
 # script mode, full permission level) or push a file to Telegram without logging in. _auth_guard now asks
 # _direct_local_request(), which also refuses requests carrying a forwarding header. The in-process callers
-# (vanhanh_schedule, the curl recipes the engines run) call 127.0.0.1 directly and send no such header.
+# (naota_schedule, the curl recipes the engines run) call 127.0.0.1 directly and send no such header.
 _AUTH_LOCAL_EXACT = ("/telegram/send-file", "/reminders", "/reminders/cancel", "/reminders/update")
 
 
@@ -363,7 +388,7 @@ def duong_dan_router(request) -> str:
         -> router vẫn chạy                /agents (endpoint thật, cần đăng nhập)
 
     Đo thật trên chính app này : request đó trả 200 kèm danh sách trợ lý thay vì
-    401, tức LÁCH HẲN cổng đăng nhập của mọi Vanhanh mở ra Internet. scope["path"] là đường
+    401, tức LÁCH HẲN cổng đăng nhập của mọi Naota mở ra Internet. scope["path"] là đường
     dẫn router dùng, không dính header Host, nên hàng rào và endpoint đọc cùng một thứ.
     """
     return request.scope.get("path") or ""
@@ -401,6 +426,7 @@ async def _auth_guard(request: Request, call_next):
     """Chặn endpoint khi CẦN đăng nhập (đã đặt mật khẩu HOẶC chạy public) mà chưa có session.
     Khi chạy public (0.0.0.0) lần đầu chưa có mật khẩu → vẫn chặn để ÉP tạo tài khoản trước
     (setup_required), tránh hở dashboard điều khiển Claude full quyền ra Internet."""
+    renewed = ""
     if cfgmod.gate_active():
         path = duong_dan_router(request)   # KHÔNG phải request.url.path - xem duong_dan_router
         public = (path in _AUTH_PUBLIC_EXACT
@@ -413,7 +439,7 @@ async def _auth_guard(request: Request, call_next):
                   # khi đúng tiền tố, để request thường không phải đi tra danh sách plugin.
                   or ((path.startswith("/ext/") or path.startswith("/.well-known/"))
                       and plugins_host.http_cong_khai(path, request.method)))
-        if not public and not cfgmod.valid_session(request.cookies.get("vanhanh_session", "")):
+        if not public and not cfgmod.valid_session(request.cookies.get("naota_session", "")):
             # Client ngoài trình duyệt (CLI, script, cron) không có cookie. Nhánh token là
             # đường DUY NHẤT của chúng - xem cli-spec. Đặt SAU nhánh
             # cookie để dashboard không phải đọc file token mỗi request.
@@ -424,10 +450,18 @@ async def _auth_guard(request: Request, call_next):
         elif not public:
             try:
                 # "last active" in the device list of Account > Security
-                cfgmod.touch_session(request.cookies.get("vanhanh_session", ""), security_log.client_ip(request))
+                cfgmod.touch_session(request.cookies.get("naota_session", ""), security_log.client_ip(request))
+                # Sliding expiry: a session in use stays alive (see renew_session in config.py).
+                if cfgmod.renew_session(request.cookies.get("naota_session", "")):
+                    renewed = request.cookies.get("naota_session", "")
             except Exception:  # noqa: BLE001
                 pass
-    return await call_next(request)
+    resp = await call_next(request)
+    # Re-issue the 30-day cookie for a renewed session. Checked after call_next: this request may be /auth/logout,
+    # which ends the session, and the cookie must not come back then.
+    if renewed and cfgmod.valid_session(renewed):
+        _session_cookie(resp, renewed, request)
+    return resp
 
 
 def _bearer(request) -> str:
@@ -469,6 +503,7 @@ for _mt, _ext in (("application/vnd.openxmlformats-officedocument.spreadsheetml.
     mimetypes.add_type(_mt, _ext)
 import tinh_gon  # noqa: E402
 import static_bundle  # noqa: E402
+import session_assets_scan  # noqa: E402
 
 # Minified scripts and styles survive a restart (tinh_gon.set_cache_dir): outside the code tree, so an update
 # never ships a stale copy, and keyed by each file's bytes, so an update re-minifies only what it changed.
@@ -526,7 +561,7 @@ class _NenTinh:
     Vì sao cần nén: dashboard nạp 42 file js/css. Đo trên repo này 1.631 KB không nén, gzip
     xuống 496 KB (giảm 69%). Mà `root()` đóng dấu `?v=<phiên bản>` lên MỌI file, nên mỗi bản
     cập nhật là 42 URL đổi một lượt, cache `immutable` trượt sạch, trình duyệt kéo lại trọn
-    1,6 MB. Đó đúng là câu "update Vanhanh xong vào chậm" người dùng đã báo.
+    1,6 MB. Đó đúng là câu "update Naota xong vào chậm" người dùng đã báo.
 
     VÌ SAO KHÔNG `app.add_middleware(GZipMiddleware)` THẲNG - đây là phần dễ làm sai nhất:
     GZipMiddleware của Starlette NUỐT TRỌN response streaming rồi mới trả một cục. Đo thật
@@ -535,7 +570,7 @@ class _NenTinh:
         không nén : chunk về ở 0,01s / 0,31s / 0,61s / 0,91s / 1,21s
         có nén    : CẢ NĂM chunk cùng về ở 1,50s
 
-    Vanhanh có 4 endpoint `text/event-stream` (chat, terminal, việc nền). Bật nén toàn cục là
+    Naota có 4 endpoint `text/event-stream` (chat, terminal, việc nền). Bật nén toàn cục là
     người dùng gõ câu hỏi rồi nhìn màn hình trống tới khi câu trả lời xong hẳn - đổi một lỗi
     chậm lấy một lỗi nặng hơn hẳn.
 
@@ -586,12 +621,12 @@ async def _static_cache_headers(request: Request, call_next):
 
 @app.middleware("http")
 async def _ngon_ngu_thiet_bi(request: Request, call_next):
-    """Mỗi request mang ngôn ngữ giao diện của THIẾT BỊ gọi nó (cookie `vanhanh_lang`, do
+    """Mỗi request mang ngôn ngữ giao diện của THIẾT BỊ gọi nó (cookie `naota_lang`, do
     dashboard/i18n/index.js đặt), để `localefmt.chu()` trả đúng thứ tiếng người đang nhìn.
 
     Đặt SAU cùng nên chạy NGOÀI cùng (Starlette bọc từ ngoài vào): câu báo lỗi của cả hàng
     rào CSRF và đăng nhập cũng được trả đúng ngôn ngữ."""
-    tok = localefmt.dat_ngon_ngu_yeu_cau(request.cookies.get("vanhanh_lang", ""))
+    tok = localefmt.dat_ngon_ngu_yeu_cau(request.cookies.get("naota_lang", ""))
     try:
         return await call_next(request)
     finally:
@@ -600,8 +635,8 @@ async def _ngon_ngu_thiet_bi(request: Request, call_next):
 
 @app.middleware("http")
 async def _server_timing(request: Request, call_next):
-    """Header `Server-Timing: app;dur=<ms>`: thời gian Vanhanh xử lý một request, đo NGOÀI CÙNG (đặt sau mọi middleware
-    khác). Trình duyệt hiện nó trong tab Network (Timing), kể cả khi đi qua Cloudflare, nên tách được "Vanhanh chậm"
+    """Header `Server-Timing: app;dur=<ms>`: thời gian Naota xử lý một request, đo NGOÀI CÙNG (đặt sau mọi middleware
+    khác). Trình duyệt hiện nó trong tab Network (Timing), kể cả khi đi qua Cloudflare, nên tách được "Naota chậm"
     với "đường proxy chậm" mà không cần vào máy chủ (đo thật: qua Cloudflare 5 giây, thẳng VPS 0,4
     giây). Chỉ là một con số thời gian, không lộ dữ liệu gì; không đụng WebSocket."""
     t0 = time.perf_counter()
@@ -641,22 +676,22 @@ SYSTEM_PROMPT = CLAUDE_MD_PATH.read_text(encoding="utf-8") if CLAUDE_MD_PATH.exi
 #
 # lowered from 33,600 to 29,200. The plugin, capability-building, attached-file and
 # agent/workflow sections were condensed (their templates and details already live in the
-# vanhanh-builder skill and the tool descriptions), saving about 1,850 tokens on every turn of every
+# naota-builder skill and the tool descriptions), saving about 1,850 tokens on every turn of every
 # engine. The cap moves down with it so the saving is not quietly refilled; same ~600 spare chars.
 PROMPT_KERNEL_MAX_CHARS = 29_200
 
 # Bộ nhớ dài hạn - lưu TRONG vault đang chọn để đi theo vault
 MEMORY_SEED = (
-    "# Bộ nhớ Vanhanh - Index\n\n"
-    "> Chỉ mục bộ nhớ dài hạn của Vanhanh. Mỗi dòng = 1 ký ức, trỏ tới file trong `facts/`.\n"
-    "> Nội dung file này được nạp vào đầu mỗi câu hỏi để Vanhanh nhớ ngữ cảnh.\n\n"
-    "_(Chưa có ký ức nào. Vanhanh sẽ học dần sau mỗi hội thoại.)_\n"
+    "# Bộ nhớ Naota - Index\n\n"
+    "> Chỉ mục bộ nhớ dài hạn của Naota. Mỗi dòng = 1 ký ức, trỏ tới file trong `facts/`.\n"
+    "> Nội dung file này được nạp vào đầu mỗi câu hỏi để Naota nhớ ngữ cảnh.\n\n"
+    "_(Chưa có ký ức nào. Naota sẽ học dần sau mỗi hội thoại.)_\n"
 )
 
 def _atomic_write_text(path, content: str, encoding: str = "utf-8"):
     """Ghi file nguyên tử: viết ra .tmp cùng thư mục → fsync → os.replace.
 
-    Mặc định write_text() ghi trực tiếp; nếu Vanhanh crash hoặc mất điện
+    Mặc định write_text() ghi trực tiếp; nếu Naota crash hoặc mất điện
     giữa chừng, file (loop_config.json, automations.json, memory .md...)
     sẽ bị cắt cụt → JSON corrupt / frontmatter hỏng. Pattern port từ
     hermes-agent/utils.py:atomic_replace - bảo đảm reader luôn thấy bản
@@ -737,7 +772,7 @@ def _gop_memory_lac_chu_hoa(root: Path, mem: Path) -> None:
     VÌ SAO CÓ HÀM NÀY (vụ đã gặp)
     Linux phân biệt hoa thường, nên `Memory/` và `memory/` là HAI thư mục thật sự khác nhau -
     trên máy Mac thì không, nên lỗi này không bao giờ lộ ra lúc chạy thử. Tài liệu của chính
-    Vanhanh lại dạy sai đường: CLAUDE.md và AGENTS.md seed vào mỗi brain đều viết `Memory/` hoa,
+    Naota lại dạy sai đường: CLAUDE.md và AGENTS.md seed vào mỗi brain đều viết `Memory/` hoa,
     trong khi MỌI đường đọc đều lấy `memory/` thường. Model làm theo tài liệu, ghi ký ức vào
     `Memory/`, và ký ức đó BIẾN MẤT: không vào chỉ mục nạp mỗi lượt, không vào memory_index,
     còn `/brain/migrate` thì từ chối gộp vì "memory đã tồn tại". Không một dòng lỗi nào.
@@ -814,7 +849,7 @@ def _brain_memory_dir(brain: str) -> Path:
 # Trần cho chỉ mục bộ nhớ nạp vào MỌI lượt chat. Đo trên brain thật: 87 ký ức = 18.363 ký tự
 # (~5,7k token) và tăng tuyến tính theo số ký ức - đúng cái bệnh curator vừa mắc, không có gì
 # chặn. Trần này chưa cắt gì hôm nay (18.363 < 20.000), nó biến đường dốc thành đường phẳng.
-MEMORY_INDEX_MAX = int(os.getenv("VANHANH_MEMORY_INDEX_MAX", "20000"))
+MEMORY_INDEX_MAX = int(os.getenv("NAOTA_MEMORY_INDEX_MAX", "20000"))
 # Existing memory-index consumers use the same matcher as the shared formatter.
 _MEM_ITEM_RE = main_prompt_rendering._MEM_ITEM_RE
 
@@ -848,10 +883,10 @@ def _project_block(project_id: str, chi_huong_dan: bool = False) -> str:
     ĐỒNG HÀNH XỬ ("luôn trả lời bằng tiếng Anh", "tránh màu xanh dương"), còn danh sách tài
     liệu là dữ liệu TRA CỨU. Bỏ dữ liệu tra cứu lúc siết ngân sách thì model cùng lắm phải hỏi
     lại; bỏ hợp đồng hành xử thì cùng một project, cùng một câu hỏi, lượt này tuân luật lượt
-    kia không - và người dùng không có cách nào biết vì sao, chỉ thấy Vanhanh bướng.
+    kia không - và người dùng không có cách nào biết vì sao, chỉ thấy Naota bướng.
 
     GHIM FILE = NẠP NỘI DUNG. Spec ban đầu chỉ liệt kê tên và thêm chữ "(ghim)", tức là ghim
-    chỉ đổi thứ tự danh sách. Nhưng người dùng ghim bảng giá vào project thì họ nghĩ Vanhanh đã
+    chỉ đổi thứ tự danh sách. Nhưng người dùng ghim bảng giá vào project thì họ nghĩ Naota đã
     BIẾT bảng giá, chứ không phải biết TÊN nó. Nạp nội dung mới làm cái nút ghim thành công
     tắc thật, và trần ở trên để chính họ cầm cán cân token.
     """
@@ -888,6 +923,150 @@ def _project_has_rules(project_id: str) -> bool:
         return False
 
 
+def _project_learned_block(project_id: str) -> str:
+    """What Naota learnt about the project of this chat (notes, and what each attached document holds), plus the
+    short invitation to keep learning. "" outside a project.
+
+    NOT part of `build_system_prompt` on purpose: the qualified native trial rebuilds that function's output from its
+    own pinned readers (improvement_trial_dashboard.py), which know nothing of the two tables behind this block. It is
+    appended at the call sites instead, next to `_khoi_coding`, the way the GitHub block is.
+
+    The invitation follows the brain's "remember new things" switch: off means Naota learns nothing new here either.
+    """
+    if not project_id:
+        return ""
+    try:
+        p = get_store().get_project_full(project_id)
+        if not p:
+            return ""
+        learning = memory_control.learning_enabled(_brain_memory_dir(p.get("brain") or "brain"))
+        return project_context.render_learned_block(p, learning=learning)
+    except Exception as e:  # noqa: BLE001 - learnt context is an extra, never a broken turn
+        print(f"[project learned] {type(e).__name__}: {e}", file=sys.stderr)
+        return ""
+
+
+def _project_brain_root(brain: str) -> str:
+    """Canonical root of the brain a project (or a tool call) names, for telling whose project it is. Raises when the
+    folder is gone: `_brain_root` then falls back to the default brain, which is right for reading a file and wrong
+    for ownership, since a project of a deleted brain would pass as the default brain's own."""
+    name = (brain or "").strip()
+    if name and name != "brain" and not os.path.isdir(name):
+        raise ValueError("brain folder is gone")
+    return str(Path(_brain_root(name)).resolve())
+
+
+def _project_agent_find(root: str, ref: str):
+    """(slug, name) of an assistant of this brain named by slug or by name, or None."""
+    ref = (ref or "").strip()
+    if not ref:
+        return None
+    path = _agent_md_path(root, ref)
+    if path is not None:
+        return path.stem, (_read_md(path)[0] or {}).get("name") or path.stem
+    hits = [a for a in agents_index(root, kem_prompt=False) if str(a.get("name") or "").strip().lower() == ref.lower()]
+    return (hits[0]["slug"], hits[0].get("name") or hits[0]["slug"]) if len(hits) == 1 else None
+
+
+def _project_agent_docs(root: str, slug: str) -> dict:
+    path = _agent_md_path(root, slug)
+    return agent_assets.doc(_read_md(path)[0]) if path is not None else {"files": [], "links": []}
+
+
+def _project_agent_edit(root: str, slug: str, change):
+    """Run `change(meta) -> (new meta, result)` on an assistant's file under the agent write lock; the file is written
+    only when the meta changed. A ValueError of `change` (the list is full) reaches the caller."""
+    with _AGENT_META_LOCK:
+        path = _agent_md_path(root, slug)
+        if path is None:
+            raise ValueError("trợ lý không còn trong brain")
+        meta, body = _read_md(path)
+        new_meta, result = change(meta)
+        if new_meta is not meta:
+            _write_md(path, new_meta, body)
+        return result
+
+
+def _project_team_find(root: str, ref: str):
+    """A team of this brain named by id or by name (case does not matter), or None."""
+    ref = (ref or "").strip()
+    if not ref or not _TEAM_API.exists():
+        return None
+    key = _brain_key(root)
+    team = _TEAM_API.teams().get(ref)
+    if team and team.get("brain_id") == key:
+        return team
+    hits = [t for t in _TEAM_API.teams().list_teams(key, limit=200)
+            if str(t.get("name") or "").strip().lower() == ref.lower()]
+    return hits[0] if len(hits) == 1 else None
+
+
+def _project_team_attach(team, raw: str) -> list:
+    """Attach one file or folder to a team the way the team's own panel does (`_team_attach`): a file just dropped into
+    a chat is copied into the team folder, a file of the brain stays where it is. Raises ValueError outside the brain."""
+    text = (raw or "").strip().replace("\\", "/")
+    if not text:
+        return []
+    brain = team.get("brain_id") or "brain"
+    candidate = Path(text)
+    staging = Path(STAGING).resolve()
+    if candidate.is_absolute() and staging in candidate.resolve().parents:
+        target = candidate.resolve()
+    else:
+        target = candidate.resolve() if candidate.is_absolute() else _safe_serve_path(brain, text)
+        broot = Path(_brain_root(brain)).resolve()
+        if broot not in target.parents:
+            raise ValueError(localefmt.chu("Chỉ gắn được file hay thư mục nằm trong brain của nhóm",
+                                           "Only a file or folder inside the team's brain can be attached"))
+    if not target.exists():
+        return []
+    return _team_attach(team, [{"path": str(target), "name": target.name}])
+
+
+def _project_attach_target(brain: str, raw: str):
+    """(stored path, name, is_dir) for a path the MODEL gave to `naota_project op=add_file`, or None when nothing is
+    there. Raises ValueError outside the allowed area.
+
+    Three spellings arrive: a path from the browse ceiling (what the drawer stores), a path from the brain root (what
+    the model reads in chat), and the absolute path of a file the owner just dropped into the chat box. A dropped
+    file sits in the staging folder, which is swept after a few days, so it is COPIED into the brain's sources folder
+    first, the same place the drawer's own upload puts a file. Everything is stored from the browse ceiling.
+
+    Narrower than the drawer on purpose: the drawer lets the OWNER attach anything under the browse ceiling (a whole
+    drive on localhost), while this is the model's hand, steered by whatever it just read. It attaches only what
+    lives inside the project's own brain.
+    """
+    text = (raw or "").strip().replace("\\", "/")
+    if not text:
+        return None
+    ceiling = _files_root(brain)
+    staging = Path(STAGING).resolve()
+    candidate = Path(text)
+    if candidate.is_absolute():
+        target = candidate.resolve()
+        if staging in target.parents:
+            if not target.is_file():
+                return None
+            folder = Path(_resolve_subfolder(_brain_root(brain), *_THU_MUC_LOGIC["sources"]))
+            same = folder / _sanitize_filename(target.name)
+            # Asked twice for the same dropped file (a retry, a second turn): reuse the copy, do not pile up name_1.
+            if same.is_file() and filecmp.cmp(str(target), str(same), shallow=False):
+                copied = same
+            else:
+                copied = Path(_unique_path(str(folder), _sanitize_filename(target.name)))
+                shutil.copy2(str(target), str(copied))
+            target = copied.resolve()
+    else:
+        target = _safe_serve_path(brain, text)
+        if not target.exists():
+            return None
+    brain_root = Path(_brain_root(brain)).resolve()
+    if (brain_root not in target.parents) or (target != ceiling and ceiling not in target.parents):
+        raise ValueError(localefmt.chu("Chỉ gắn được file hay thư mục nằm trong brain của project",
+                                       "Only a file or folder inside the project's brain can be attached"))
+    return _asset_target(brain, _files_rel(ceiling, target))
+
+
 def _liet_ke_tai_lieu(brain: str, files: list, links: list):
     """Observe ordinary pinned file rows; the shared pure renderer owns templates.
 
@@ -899,7 +1078,9 @@ def _liet_ke_tai_lieu(brain: str, files: list, links: list):
     for item in files[:PROJECT_FILES_LIET_KE]:
         prepared = None
         path = item.get("path") or ""
-        if item.get("pinned") and os.path.splitext(path)[1].lower() in PROJECT_GHIM_DUOI:
+        if item.get("pinned") and path.endswith("/"):
+            prepared = _folder_asset_text(brain, path)
+        elif item.get("pinned") and os.path.splitext(path)[1].lower() in PROJECT_GHIM_DUOI:
             try:
                 # Read policy includes the serving ceiling, as in the legacy path.
                 text = _safe_serve_path(brain, path).read_text(encoding="utf-8", errors="replace")
@@ -913,16 +1094,54 @@ def _liet_ke_tai_lieu(brain: str, files: list, links: list):
         file_max=PROJECT_GHIM_FILE_MAX, total_max=PROJECT_GHIM_TONG_MAX)
 
 
+def _folder_asset_text(brain: str, path: str):
+    """What a PINNED folder loads into the prompt (2026-11-12): a short tree of what it holds, so the model knows which
+    files are there without listing the folder first. None when the folder is gone (the row then says it cannot be
+    read). The tree is the one a team's working folder shows (team_docs.tree: two levels, capped)."""
+    import team_docs
+    try:
+        folder = _safe_serve_path(brain, path)
+        if not folder.is_dir():
+            return None
+        lines = team_docs.tree(str(folder))
+    except Exception:  # noqa: BLE001 - an unreadable folder is a row that says so, never a broken turn
+        return None
+    text = ("Thư mục này gồm (hai tầng đầu; mở file bên trong bằng tool đọc file khi cần):\n" + "\n".join(lines)
+            if lines else "(thư mục đang trống)")
+    return main_attachment_rendering.PreparedAttachmentText(text[:PROJECT_GHIM_FILE_MAX], len(text))
+
+
+def _asset_target(brain: str, path: str):
+    """(stored path, name, is_dir) of a brain file or folder about to be attached to a project, a chat or an agent, or
+    None when nothing is there. Raises ValueError when the path leaves the allowed area (`_safe_path`).
+
+    A folder is stored with ONE trailing "/" (2026-11-12, owner: "chọn được cả thư mục"): that slash is the whole
+    marker, read by the prompt renderer and by the dashboard, so no table and no frontmatter key had to change. The
+    empty path is refused: it resolves to the browse ceiling itself, which is not something to attach."""
+    target = _safe_path(brain, path)
+    rel = (path or "").strip().replace("\\", "/").strip("/")
+    if rel and target.is_dir():
+        return rel + "/", target.name, True
+    if target.is_file():
+        return path, target.name, False
+    return None
+
+
+def _asset_missing():
+    return JSONResponse({"error": localefmt.chu("Không tìm thấy file hay thư mục này trong brain",
+                                                "No such file or folder in this brain")}, status_code=404)
+
+
 def _session_block(session_id: str) -> str:
     """Tài liệu & link người dùng TỰ GẮN vào CUỘC TRÒ CHUYỆN này. "" nếu chưa gắn gì.
 
     Song sinh với `_project_block`, và cố ý cùng trần token: project là "luôn dùng cho mọi
     cuộc trong nhóm", còn cái này là "chỉ cuộc này". Không có nó thì nút thêm file chỉ là một
-    danh sách để ngắm - người dùng gắn bảng giá vào cuộc rồi hỏi ngay, và Vanhanh trả lời như
+    danh sách để ngắm - người dùng gắn bảng giá vào cuộc rồi hỏi ngay, và Naota trả lời như
     chưa hề thấy gì.
 
     Ghim thì NẠP NỘI DUNG, y như project: gắn tên vào cho biết chỗ mà tìm, ghim vào là bảo
-    Vanhanh đọc sẵn.
+    Naota đọc sẵn.
     """
     if not session_id:
         return ""
@@ -960,40 +1179,133 @@ def _agent_assets_block(brain: str, meta: dict) -> str:
     dong, da_nap = _liet_ke_tai_lieu(brain, files, links)
     ra = ""
     if dong:
-        ra += ("\n# === TÀI LIỆU & LINK CỦA BẠN ===\n"
-               "Chủ gắn sẵn cho vai này, nên đây là thứ bạn được coi là ĐÃ BIẾT CHỖ. Vẫn là "
-               "DANH SÁCH chứ không phải nội dung: mở file bằng tool đọc file khi cần, đừng "
-               "đoán nội dung từ cái tên. Link chỉ mở được nếu lượt này có tool duyệt web.\n"
+        ra += ("\n# === TÀI LIỆU & LINK CỦA BẠN (your documents and links) ===\n"
+               "The owner attached these for this role, so you count as KNOWING WHERE they are. Still "
+               "a LIST, not the content: open a file with a file-reading tool when needed; do not "
+               "guess its content from its name. A link opens only if this turn has a web-browsing tool.\n"
                + "\n".join(dong) + "\n")
     if da_nap:
-        ra += ("\n# === NỘI DUNG FILE ĐÃ GHIM (nạp sẵn, không cần mở lại) ===" + "".join(da_nap)
+        ra += ("\n# === NỘI DUNG FILE ĐÃ GHIM (pinned file content, preloaded: no need to open it again) ===" + "".join(da_nap)
                + "\n")
+    # 2026-11-13: one line per document saying what it holds, so the right one is opened without opening each.
+    desc, hidden = project_context.asset_lines(files, links)
+    if desc:
+        ra += ("\nWhich document holds what (open one when you need the detail):\n" + "\n".join(desc) + "\n"
+               + (f"({hidden} more descriptions: naota_project op=get)\n" if hidden else ""))
     return ra
 
 
-def _vanhanh_core_block(session_id: str) -> str:
-    """Vanhanh Core's role block when `session_id` is a Vanhanh Core chat, else "". It ends with the name and
-    style the person gave Vanhanh Core in that chat's brain."""
+def _naota_core_block(session_id: str) -> str:
+    """Naota Core's role block when `session_id` is a Naota Core chat, else "". It ends with the name and
+    style the person gave Naota Core in that chat's brain."""
     try:
         row = get_store().get_session(session_id) if session_id else None
     except Exception:
         row = None
-    if not (row and vanhanh_core.is_core_channel(row.get("channel"))):
+    if not (row and naota_core.is_core_channel(row.get("channel"))):
         return ""
     try:
         brain = str(row.get("brain") or "brain")
         root = _brain_root(brain)
-        block = vanhanh_core.prompt_block(root)
+        block = naota_core.prompt_block(root)
         # documents attached on its card ride along, the same block an agent gets.
-        return block + _agent_assets_block(brain, vanhanh_core.read_core(root)[0])
+        return block + _agent_assets_block(brain, naota_core.read_core(root)[0])
     except Exception as e:  # noqa: BLE001 - a broken brain file must not break the turn
-        print(f"[vanhanh core block] {type(e).__name__}: {e}", file=sys.stderr)
-        return vanhanh_core.prompt_block()
+        print(f"[naota core block] {type(e).__name__}: {e}", file=sys.stderr)
+        return naota_core.prompt_block()
 
 
 # Stable prompt: the clock line points at the per-message header instead of holding the time.
-_STABLE_CLOCK_NOTE = ("Giờ hiện tại ghi ở dòng `[Giờ gửi tin này: ...]` đầu tin nhắn mới nhất của user; "
-                      "dùng đúng giờ đó cho \"bây giờ\", \"hôm nay\", \"hôm qua\".")
+# The text lives in context_compiler since #1329, so the token-saving path writes the very same line.
+_STABLE_CLOCK_NOTE = context_compiler.STABLE_CLOCK_NOTE
+
+
+def _with_turn_context(cli, plan, prompt, sysprompt):
+    """(prompt, system prompt) of a Claude Code turn, with the plan's per-turn context where the model reads it (#1329).
+
+    What the token-saving path used to append to the system prompt (conversation state, retrieved memory, the selected
+    skill) changes with every message, so it made every new chat rewrite the whole cached block. It now opens the
+    FIRST message of a thread instead. A resumed thread keeps the system prompt of its first turn, so later turns never
+    saw this context before either; leaving it out there keeps the thread from growing by it every turn.
+    A prompt that is not plain text cannot carry it: the context then stays in the system prompt for that turn, as
+    before, rather than get lost."""
+    ctx = getattr(plan, "turn_context", "") if not getattr(cli, "session_id", None) else ""
+    if not ctx:
+        return prompt, sysprompt
+    if isinstance(prompt, str):
+        return ctx + "\n\n" + prompt, sysprompt
+    sysprompt = sysprompt + "\n\n" + ctx
+    cli.system_prompt = sysprompt
+    return prompt, sysprompt
+
+
+def _lang_turn_text(message: str) -> str:
+    """The words the person typed, without the blocks Naota puts in front of them, for language detection.
+
+    2026-11-15: the dashboard's context blocks are Vietnamese ("[FILE ĐANG MỞ trong trình sửa của Naota: ...]",
+    "[File đính kèm ...]", "[NGỮ CẢNH GIAO DIỆN: ...]"), and one Vietnamese-only letter in them made `lang.detect`
+    call a whole English message Vietnamese: the clock line, the skill list and the voice then followed Vietnamese.
+    Nothing left after stripping keeps the original, so a message that is only a block still reads as before.
+    """
+    raw = str(message or "")
+    try:
+        clean = raw
+        for _ in range(4):
+            nxt = share_render.chu_nguoi_go(chat_recall.strip_block(clean.lstrip()))
+            if nxt == clean:
+                break
+            clean = nxt
+    except Exception:  # noqa: BLE001 - detection falls back to the raw text
+        clean = raw
+    return clean or raw
+
+
+def _background_lang_decision():
+    """`lang.resolve_background`: the task's own language. Never raises (a broken setting = follow the task).
+
+    No Settings pin since 2026-11-15 (owner: the language setting is the interface's only); `ui_lang` only names
+    the language of the clock line and skill list."""
+    try:
+        lc = (cfgmod.read_settings() or {}).get("locale") or {}
+    except Exception:  # noqa: BLE001
+        lc = {}
+    return lang_mod.resolve_background(ui_lang=lc.get("ui_lang") or "")
+
+
+def migrate_reply_lang_to_profile() -> str:
+    """Move a reply language pinned in Settings into the person's profile, once. Returns the language moved, or "".
+
+    Owner, 2026-11-15: "the language setting only sets the interface, not the language Naota replies in". The
+    "Naota replies in" picker is gone and nothing reads `locale.reply_lang` for a reply any more. Someone who had
+    pinned one still means it, so it becomes a plain sentence in the profile the model reads every turn ("Always
+    reply to me in English"), the same place they would now write it themselves, and the setting goes back to
+    "auto" (the improvement trials read that key, so it stays and stays "auto").
+    """
+    try:
+        lc = (cfgmod.read_settings() or {}).get("locale") or {}
+        code = lang_registry.reply_code(lc.get("reply_lang") or "")
+        if not code:
+            return ""
+        info = lang_registry.reply_info(code)
+        line = f"Always reply to me in {info.english}, whatever language I write in."
+        current = memory_control.read_profile()
+        if line not in current:
+            memory_control.write_profile((current + "\n" + line).strip())
+        cfgmod.update_settings({"locale": {"reply_lang": "auto"}})
+        print(f"[reply_lang] moved the pinned reply language ({code}) into the profile", file=sys.stderr)
+        return code
+    except Exception as exc:  # noqa: BLE001 - startup must never fail on this
+        print(f"[reply_lang] migration skipped: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return ""
+
+
+def _background_system_prompt(brain: str = "brain") -> str:
+    """The system prompt of work with no chat turn: Kanban tasks, reminders, loops, learning (2026-11-15).
+
+    They used to call `build_system_prompt(brain)` with no language, which names Vietnamese, so an English or
+    Japanese owner got every background report in Vietnamese. Now: the Settings pin, else the task's own language.
+    """
+    return build_system_prompt(brain, lang=_background_lang_decision())
 
 
 def _turn_facts_header(brain: str, session_id: str, lang: str = "", first: bool = True) -> str:
@@ -1004,6 +1316,9 @@ def _turn_facts_header(brain: str, session_id: str, lang: str = "", first: bool 
     the system prompt of its first turn anyway, so these were frozen there before; the header keeps the same
     freshness without breaking the shared prompt cache. Never raises: a missing line must not
     break the chat turn.
+
+    2026-11-15: the usage line speaks English unless the turn's language is Vietnamese. It lands in the person's
+    message, and Vietnamese words there pulled English chats toward Vietnamese.
     """
     lines = []
     try:
@@ -1022,9 +1337,14 @@ def _turn_facts_header(brain: str, session_id: str, lang: str = "", first: bool 
         try:
             _t = usage_store.summary().get("today", {}).get("total", {})
             if _t.get("in") or _t.get("out"):
-                lines.append(f"[Mức dùng hôm nay (Vanhanh tự đo, không phải hạn mức gói): "
-                             f"{_t.get('in', 0):,} token vào + {_t.get('out', 0):,} token ra qua "
-                             f"{_t.get('turns', 0)} lượt. Chi tiết ở panel 'Mức dùng'.]")
+                if lang_registry.chuan_hoa(lang) == "vi":
+                    lines.append(f"[Mức dùng hôm nay (Naota tự đo, không phải hạn mức gói): "
+                                 f"{_t.get('in', 0):,} token vào + {_t.get('out', 0):,} token ra qua "
+                                 f"{_t.get('turns', 0)} lượt. Chi tiết ở panel 'Mức dùng'.]")
+                else:
+                    lines.append(f"[Usage today (measured by Naota, not the plan's limit): "
+                                 f"{_t.get('in', 0):,} tokens in + {_t.get('out', 0):,} tokens out over "
+                                 f"{_t.get('turns', 0)} turns. Details in the 'Usage' panel.]")
         except Exception:  # noqa: BLE001
             pass
     return "\n".join(lines)
@@ -1034,7 +1354,7 @@ def build_system_prompt(brain: str = "brain", include_memory: bool = True,
                         include_skills: bool = True,
                         lang: "lang_mod.LangDecision | str | None" = None,
                         project_id: str = "", session_id: str = "", stable: bool = False) -> str:
-    """CLAUDE.md + nạp MEMORY.md của vault đang chọn → Vanhanh luôn nhớ ngữ cảnh.
+    """CLAUDE.md + nạp MEMORY.md của vault đang chọn → Naota luôn nhớ ngữ cảnh.
 
     `stable`: leave out what changes from turn to turn (the clock, today's
     usage, the latest workflow run) so the prompt is byte-identical across new chats of one brain.
@@ -1058,9 +1378,12 @@ def build_system_prompt(brain: str = "brain", include_memory: bool = True,
             mem = idx.read_text(encoding="utf-8")
     except Exception:
         mem = ""
-    if include_memory:
-        # the person's own profile (every brain) BEFORE the brain's memory, which wins where they differ.
-        base += memory_control.profile_block()
+    # 0.188.0: the person's own profile (every brain) BEFORE the brain's memory, which wins where they differ.
+    # #1349: NOT tied to `include_memory`. The token-saving levels build this prompt without the memory index to
+    # load memories selectively, and the profile went with it, so a rule written once on the Profile page reached
+    # the model only with saving switched off. It is a behaviour contract (at most 4,000 characters), like the
+    # project instructions, not a memory to retrieve.
+    base += memory_control.profile_block()
     if include_memory and mem.strip():
         base += main_prompt_rendering.render_memory_block(mem, memory_cap=MEMORY_INDEX_MAX)
     if not memory_control.learning_enabled(_brain_memory_dir(brain)):
@@ -1079,8 +1402,8 @@ def build_system_prompt(brain: str = "brain", include_memory: bool = True,
             base += _session_block(session_id)
         except Exception:
             pass
-        base += _vanhanh_core_block(session_id)
-    # Đường dẫn lớp Agentic của vault đang làm việc (để Vanhanh tạo agent/workflow/loop qua chat)
+        base += _naota_core_block(session_id)
+    # Đường dẫn lớp Agentic của vault đang làm việc (để Naota tạo agent/workflow/loop qua chat)
     root = _brain_root(brain)
     system_sync.ensure_synced(root)   # brain nào cũng có đủ năng lực hệ thống (1 lần/process, rẻ)
     try:
@@ -1096,35 +1419,35 @@ def build_system_prompt(brain: str = "brain", include_memory: bool = True,
     except Exception:
         pass
     ag, wf = _agents_dir(brain), _workflows_dir(brain)
-    lp = Path(root) / "Vanhanh" / "loops"
+    lp = Path(root) / "Naota" / "loops"
     sk = _skills_dir(brain)
     base += main_prompt_rendering.render_agentic_paths(root, ag, wf, lp, sk)
-    # Resonance (M2): chỉ brain đã bật mới có dòng này và mới thấy tool vanhanh_goal. CLAUDE.md đã hết ngân sách
+    # Resonance (M2): chỉ brain đã bật mới có dòng này và mới thấy tool naota_goal. CLAUDE.md đã hết ngân sách
     # ký tự, và brain chưa bật thì không được dài thêm chữ nào.
     # Đường tìm tool khác nhau theo engine. Khi engine Claude dựng được server plugin in-process
-    # "vanhanh-plugins", hub bị báo bỏ nhóm plugin (X-Vanhanh-No-Plugins), nên vanhanh_search_tools của hub không
-    # trả về vanhanh_goal; tool đến model qua namespace mcp__vanhanh-plugins__. Claude Code có hoãn nạp nó sau
-    # ToolSearch hay không thì chưa xác minh (lần chạy 1 cho thấy vanhanh_task từng bị hoãn như vậy), nên dòng
-    # dưới chỉ nói "chưa nạp thì tìm". Dòng cũ chỉ nêu vanhanh_search_tools.
-    # Ranh giới bốn loại việc chỉ nằm ở dòng này và mô tả vanhanh_goal: cả hai chỉ có trong lượt của agent đã bật.
-    # Mô tả vanhanh_task giữ nguyên để brain tắt tính năng không nhận chỉ dẫn mới.
+    # "naota-plugins", hub bị báo bỏ nhóm plugin (X-Naota-No-Plugins), nên naota_search_tools của hub không
+    # trả về naota_goal; tool đến model qua namespace mcp__naota-plugins__. Claude Code có hoãn nạp nó sau
+    # ToolSearch hay không thì chưa xác minh (lần chạy 1 cho thấy naota_task từng bị hoãn như vậy), nên dòng
+    # dưới chỉ nói "chưa nạp thì tìm". Dòng cũ chỉ nêu naota_search_tools.
+    # Ranh giới bốn loại việc chỉ nằm ở dòng này và mô tả naota_goal: cả hai chỉ có trong lượt của agent đã bật.
+    # Mô tả naota_task giữ nguyên để brain tắt tính năng không nhận chỉ dẫn mới.
     # A1: theo agent của LƯỢT (ngữ cảnh lượt do host gắn), không theo công tắc brain cũ; chat thường không có dòng này.
     if _resonance_turn_enabled(root):
         base += "\n- " + _RESONANCE_GOAL_HINT
-    # Quét cây skill MỘT lần cho cả hai khối dưới. Trước đây _vanhanh_capability_summary
+    # Quét cây skill MỘT lần cho cả hai khối dưới. Trước đây _naota_capability_summary
     # gọi list_skills còn _skill_router_block gọi list_enabled_meta (vốn chỉ là list_skills
     # lọc lại), nên cả cây skill bị đi và parse YAML HAI lần mỗi lượt chat - đo được 18ms
     # mỗi lần trên brain 30 skill. Lỗi thì để None và mỗi khối tự quét như cũ.
-    # Quét LUÔN, kể cả khi bỏ khối router. Khối "NĂNG LỰC VANHANH HIỆN CÓ" chỉ ĐẾM skill và
+    # Quét LUÔN, kể cả khi bỏ khối router. Khối "NĂNG LỰC NAOTA HIỆN CÓ" chỉ ĐẾM skill và
     # liệt kê tên nhóm (vài chục ký tự), nên nó không phải chỗ tốn token; nhưng đưa cho nó một
-    # danh sách rỗng thì Vanhanh sẽ tự khai là mình không có skill nào - một câu SAI, và sai theo
+    # danh sách rỗng thì Naota sẽ tự khai là mình không có skill nào - một câu SAI, và sai theo
     # hướng khiến nó đi tạo lại thứ đã có.
     try:
         _skills = skill_router.list_skills(root, _lma)
     except Exception:
         _skills = None
     try:
-        base += _vanhanh_capability_summary(brain, _skills, with_last_run=not stable)   # chỉ mục năng lực LIVE (mọi engine biết Vanhanh có gì)
+        base += _naota_capability_summary(brain, _skills, with_last_run=not stable)   # chỉ mục năng lực LIVE (mọi engine biết Naota có gì)
     except Exception:
         pass
     try:
@@ -1133,8 +1456,8 @@ def build_system_prompt(brain: str = "brain", include_memory: bool = True,
     except Exception:
         pass
     # Đồng hồ. Cùng một dòng với capsule của đường tiết kiệm (context_compiler.dong_ho), để
-    # bật hay tắt tiết kiệm thì Vanhanh vẫn biết bây giờ mấy giờ y như nhau. Model không có
-    # đồng hồ, và tool `vanhanh_now` thì không phải đường nào cũng phát tool.
+    # bật hay tắt tiết kiệm thì Naota vẫn biết bây giờ mấy giờ y như nhau. Model không có
+    # đồng hồ, và tool `naota_now` thì không phải đường nào cũng phát tool.
     # Khối NGÔN NGỮ + đồng hồ đi CÙNG NHAU và đi CUỐI, sát chỗ model bắt đầu trả lời.
     # Ngôn ngữ đặt ở cuối vì luật càng gần chỗ sinh chữ thì model càng ít trôi; đồng hồ
     # đi kèm vì tên thứ trong tuần cũng phải theo ngôn ngữ đó.
@@ -1144,7 +1467,7 @@ def build_system_prompt(brain: str = "brain", include_memory: bool = True,
     if stable:
         return base   # usage goes in _turn_facts_header
     try:
-        # 1 dòng MỨC DÙNG để Vanhanh TRẢ LỜI được khi user hỏi "token tiêu bao nhiêu" (chi tiết ở panel).
+        # 1 dòng MỨC DÙNG để Naota TRẢ LỜI được khi user hỏi "token tiêu bao nhiêu" (chi tiết ở panel).
         _t = usage_store.summary().get("today", {}).get("total", {})
         base += main_prompt_rendering.render_usage_block(_t)
     except Exception:
@@ -1221,16 +1544,19 @@ def build_adaptive_source_prompt(brain: str = "brain", include_memory: bool = Fa
     """
     root = _brain_root(brain)
     ag, wf = _agents_dir(brain), _workflows_dir(brain)
-    loops = Path(root) / "Vanhanh" / "loops"
+    loops = Path(root) / "Naota" / "loops"
     skills = _skills_dir(brain)
     parts = [
-        "# Vanhanh adaptive source contract",
+        "# Naota adaptive source contract",
         f"Brain root: {root}",
-        "MCP Hub và tool gateway là nguồn capability live. Chỉ gọi tool được cung cấp; "
-        "không bịa tool, dữ liệu live hay kết quả hành động.",
+        "The MCP Hub and the tool gateway are the source of live capabilities. Call only the tools "
+        "provided; never invent tools, live data or action results.",
         f"Agent files: {ag}/<slug>.md; workflow files: {wf}/<slug>.md; "
         f"loop files: {loops}/<slug>.md; skill files: {skills}/<slug>/SKILL.md.",
     ]
+    # #1349: the person's profile rides along on the small base too, whatever `include_memory` says (see
+    # build_system_prompt). Before the memory fallback, which wins where they differ.
+    parts.append(memory_control.profile_block().strip())
     if include_memory:
         try:
             idx = _brain_memory_dir(brain) / "MEMORY.md"
@@ -1238,7 +1564,7 @@ def build_adaptive_source_prompt(brain: str = "brain", include_memory: bool = Fa
         except OSError:
             memory = ""
         if memory.strip():
-            parts.append("# Bộ nhớ fallback\n" + _fit_memory_index(memory))
+            parts.append("# Memory fallback\n" + _fit_memory_index(memory))
     if include_skills:
         try:
             system_sync.ensure_synced(root)
@@ -1262,7 +1588,7 @@ from secret_redact import redact_secrets as _redact_secrets  # noqa: E402
 # Cap kích thước mỗi message khi ghi conversation log - port head/tail truncation
 # từ hermes-agent/agent/prompt_builder.py::_truncate_content. conversations/*.md là
 # "nguyên liệu để học" (rewire đọc lại) VÀ bị git commit; user paste 1 source dài
-# hoặc Vanhanh trả báo cáo dài → log phình, rewire tốn token, repo nặng. Giữ đầu +
+# hoặc Naota trả báo cáo dài → log phình, rewire tốn token, repo nặng. Giữ đầu +
 # đuôi (đủ ngữ cảnh để học), bỏ giữa, ghi rõ đã cắt bao nhiêu ký tự.
 _LOG_MSG_MAX_CHARS = 4000
 _LOG_HEAD_CHARS = 2800
@@ -1277,7 +1603,7 @@ def _clip_for_log(text: str, max_chars: int = _LOG_MSG_MAX_CHARS) -> str:
               f"{_LOG_TAIL_CHARS} cuối / tổng {len(text)} …]\n\n")
     return head + marker + tail
 
-def log_conversation(brain: str, user_msg: str, vanhanh_msg: str):
+def log_conversation(brain: str, user_msg: str, naota_msg: str):
     """Ghi log hội thoại vào Memory của vault đang chọn (nguyên liệu để học)."""
     try:
         from datetime import datetime, timezone, timedelta
@@ -1285,14 +1611,14 @@ def log_conversation(brain: str, user_msg: str, vanhanh_msg: str):
         conv = _brain_memory_dir(brain) / "conversations"
         f = conv / f"{now.strftime('%Y-%m-%d')}.md"
         u = _clip_for_log(_redact_secrets(user_msg))
-        j = _clip_for_log(_redact_secrets(vanhanh_msg))
-        entry = f"\n## {now.strftime('%H:%M')}\n**Bạn:** {u}\n\n**Vanhanh:** {j}\n"
+        j = _clip_for_log(_redact_secrets(naota_msg))
+        entry = f"\n## {now.strftime('%H:%M')}\n**Bạn:** {u}\n\n**Naota:** {j}\n"
         with open(f, "a", encoding="utf-8") as fh:
             fh.write(entry)
     except Exception as e:
         print(f"[memory log error] {e}", file=__import__('sys').stderr)
 
-# Working directory cho Claude CLI - mặc định là root project VANHANH
+# Working directory cho Claude CLI - mặc định là root project NAOTA
 # để Claude đọc được CLAUDE.md và truy cập MCPs cài globally
 CLAUDE_CWD = os.getenv("CLAUDE_CWD", str(Path(__file__).parent.parent))
 
@@ -1405,14 +1731,14 @@ async def root():
     # Trước đây mọi file mang `?v=<phiên bản app>`, nên bump VERSION là 42 URL đổi MỘT LƯỢT
     # dù phần lớn file không hề sửa. Cộng với `max-age=31536000, immutable` ở middleware trên,
     # mỗi bản cập nhật bắt trình duyệt tải lại trọn bộ tài sản tĩnh - đúng câu người dùng báo
-    # từng gặp: "update Vanhanh xong nó load vào chậm". Sửa một dòng lỗi chính tả trong console.js
+    # từng gặp: "update Naota xong nó load vào chậm". Sửa một dòng lỗi chính tả trong console.js
     # không có lý do gì bắt tải lại cả graph.js lẫn lucide-icons.js.
     #
     # `fps` ngay dòng trên đã có sẵn crc32 từng file (dùng cho freshness.js), nên đổi khoá
     # sang nó là miễn phí. File nào thật sự đổi mới đổi URL; file không đổi giữ nguyên cache.
     # Rơi về `ver` khi không băm được (file lạ, lỗi đọc) - thà bể cache còn hơn phục vụ đồ cũ.
     html = _stamp_asset_keys(html, fps, ver)
-    # the ~110 startup scripts go out as one bundle (static_bundle.py); vanhanh-fresh then lists the bundle in
+    # the ~110 startup scripts go out as one bundle (static_bundle.py); naota-fresh then lists the bundle in
     # place of the files it holds, so freshness.js checks exactly what the browser ran.
     html, swap = await asyncio.to_thread(static_bundle.apply, html, DASHBOARD_PATH)
     if swap:
@@ -1422,8 +1748,9 @@ async def root():
     # một bản cập nhật xong người dùng vẫn thấy logo cũ cho tới khi tự bấm Ctrl+Shift+R.
     # Con số `?v=` trong index.html trước đây gõ tay, và đúng như mọi con số gõ tay khác,
     # nó đứng yên ở 5 qua hàng chục bản.
-    html = html.replace("/brand-logo?v=5", "/brand-logo?v=" + ver).replace(
-        'src="/brand-logo"', 'src="/brand-logo?v=' + ver + '"')
+    # The key also carries the logo file's own time, so an uploaded logo gets a new URL and /brand-logo?v=... can be
+    # cached for a long time: a reload on a shaky network no longer shows a broken logo.
+    html = re.sub(r'/brand-logo(?:\?v=[\w.]+)?(?=")', "/brand-logo?v=" + _logo_stamp(ver), html)
     # The mascot's own picture as the tab icon (dashboard.pet.image + favicon): set it in the page itself, so the
     # tab shows it from the first paint and on the login screen too, not only after pet.js has run.
     pet_icon = _pet_icon_file()
@@ -1435,7 +1762,7 @@ async def root():
     # freshness.js phát hiện ra chuyện đó.
     # Operator theme (STATE_DIR/branding/theme.css): outside the code tree, survives updates.
     html = _inject_brand_theme(html)
-    moc = ('<script id="vanhanh-fresh" type="application/json">'
+    moc = ('<script id="naota-fresh" type="application/json">'
            # `up`: seconds since this server process started; the start-up screen says a fresh restart
            # can take a little longer (boot-splash.js).
            + json.dumps({"version": ver, "assets": fps, "up": int(time.time() - _PROCESS_STARTED)}, ensure_ascii=False)
@@ -1468,12 +1795,14 @@ async def stop(payload: dict = Body(None)):
 # ============================================================
 # Auth - 1 tài khoản admin (đặt lần đầu để chặn người lạ khi lên VPS)
 # ============================================================
-def _session_cookie(resp, token, request=None):
+def _session_cookie(resp, token, request=None, remember=True):
+    # remember=False ("Keep me signed in" unticked): no max_age, so the browser drops the cookie when it closes. The
+    # server side of it is config._SHORT_SESSION_IDLE.
     # KHÔNG tự suy Secure từ X-Forwarded-Proto: nhiều proxy (vd Hostinger port-path http://host/PORT/)
     # phục vụ HTTP → cookie Secure sẽ KHÔNG được trình duyệt gửi lại → KẸT vòng đăng nhập (đăng nhập/
     # tạo tài khoản xong vẫn bị hỏi lại từ đầu). Mặc định TẮT Secure để chạy được cả HTTP lẫn HTTPS.
-    # Chỉ bật khi bạn CHẮC CHẮN HTTPS đầu-cuối: đặt env VANHANH_SECURE_COOKIE=1.
-    secure = os.getenv("VANHANH_SECURE_COOKIE", "").strip().lower() in ("1", "true", "yes", "on")
+    # Chỉ bật khi bạn CHẮC CHẮN HTTPS đầu-cuối: đặt env NAOTA_SECURE_COOKIE=1.
+    secure = os.getenv("NAOTA_SECURE_COOKIE", "").strip().lower() in ("1", "true", "yes", "on")
     # HTTPS thật qua TÊN MIỀN RIÊNG (Caddy On-Demand TLS): Host khớp custom domain → chắc chắn đi
     # qua Caddy = HTTPS đầu-cuối → bật Secure. An toàn: KHÔNG suy từ X-Forwarded-Proto, và không
     # ảnh hưởng bản localhost/Hostinger (Host khác custom domain → giữ nguyên như cũ).
@@ -1485,8 +1814,8 @@ def _session_cookie(resp, token, request=None):
                 secure = True
         except Exception:
             pass
-    resp.set_cookie("vanhanh_session", token, httponly=True, samesite="lax",
-                    secure=secure, max_age=30 * 86400, path="/")
+    resp.set_cookie("naota_session", token, httponly=True, samesite="lax",
+                    secure=secure, max_age=(30 * 86400 if remember else None), path="/")
     return resp
 
 
@@ -1499,10 +1828,10 @@ def _sec(request, event: str, **kw) -> None:
         print(f"[security_log] {event}: {type(e).__name__}: {e}", file=sys.stderr)
 
 
-def _new_login_session(request, user: str = "", how: str = "") -> str:
+def _new_login_session(request, user: str = "", how: str = "", remember: bool = True) -> str:
     """A session for a successful sign-in, recorded with its device; a network never seen before is an alert."""
     ip, ua = security_log.request_meta(request)
-    tok = cfgmod.new_session(ip, ua)
+    tok = cfgmod.new_session(ip, ua, remember=remember)
     try:
         new_net = security_log.note_login_network(ip)
         security_log.record("login_new_network" if new_net else "login_ok", ip=ip, ua=ua, user=user, detail=how)
@@ -1521,7 +1850,7 @@ async def auth_status(request: Request):
     cfg = cfgmod.read_settings()
     enabled = cfgmod.auth_enabled(cfg)
     require = cfgmod.require_login()
-    has_session = cfgmod.valid_session(request.cookies.get("vanhanh_session", ""))
+    has_session = cfgmod.valid_session(request.cookies.get("naota_session", ""))
     # authed: có session thật; HOẶC bản local không bắt buộc login + chưa đặt mật khẩu (giữ UX cũ).
     authed = has_session or (not enabled and not require)
     return {"needs_setup": not enabled, "auth_required": enabled or require,
@@ -1535,9 +1864,9 @@ async def auth_status(request: Request):
             # tự biết, còn CHỦ thì cần biết NGAY để khỏi tưởng 2FA "tự tắt".
             "totp_broken": cfgmod.totp_hong(cfg),
             "totp_recovery_left": (cfgmod.totp_recovery_left(cfg) if authed else None),
-            # install.sh có thể ghi VANHANH_SETUP_2FA=1 vào .env khi người cài chọn bật 2FA.
+            # install.sh có thể ghi NAOTA_SETUP_2FA=1 vào .env khi người cài chọn bật 2FA.
             # Đây chỉ là LỜI NHẮC cho giao diện mở sẵn màn bật, không phải một cơ chế bảo mật.
-            "totp_suggested": (_env_bat("VANHANH_SETUP_2FA") and not cfgmod.totp_enabled(cfg)),
+            "totp_suggested": (_env_bat("NAOTA_SETUP_2FA") and not cfgmod.totp_enabled(cfg)),
             "username": (cfg.get("auth", {}).get("username", "") if authed else "")}
 
 
@@ -1585,8 +1914,11 @@ def _login_fail(ip):
 
 @app.post("/auth/login")
 async def auth_login(request: Request, username: str = Form(...), password: str = Form(...),
-                     code: str = Form("")):
+                     code: str = Form(""), remember: str = Form("1")):
     """Đăng nhập. `code` chỉ cần khi đã bật 2FA - nhận CẢ mã 6 số lẫn mã khôi phục.
+
+    `remember` is the "Keep me signed in on this device" box. "0" gives a session that ends when the browser closes
+    (see _session_cookie and config._SHORT_SESSION_IDLE). Missing means "1", so an older client keeps the 30 days.
 
     Thứ tự kiểm CÓ CHỦ Ý: mật khẩu trước, mã sau. Đảo lại là biến ô mã thành một máy dò xem
     tài khoản nào đã bật 2FA, cho người còn chưa biết mật khẩu.
@@ -1605,15 +1937,15 @@ async def auth_login(request: Request, username: str = Form(...), password: str 
         await asyncio.sleep(0.5)   # làm chậm brute-force online
         loi = localefmt.chu("Sai tài khoản hoặc mật khẩu.", "Wrong username or password.")
         # Account set from the server environment (Docker, Hostinger): a reset there also sets
-        # the USERNAME to VANHANH_ADMIN_USER (default "admin"), which is easy to miss when the
+        # the USERNAME to NAOTA_ADMIN_USER (default "admin"), which is easy to miss when the
         # account was first created under another name. Say so. The default name is public in
         # the docs, so this tells an attacker nothing new.
         if isinstance((cfg.get("auth") or {}).get("env_applied"), dict):
             loi += " " + localefmt.chu(
-                "Máy chủ này đặt tài khoản qua biến môi trường: tên đăng nhập là VANHANH_ADMIN_USER "
-                "(mặc định admin), mật khẩu là VANHANH_ADMIN_PASSWORD của lần Redeploy gần nhất.",
-                "This server sets the account from its environment: the username is VANHANH_ADMIN_USER "
-                "(default admin) and the password is VANHANH_ADMIN_PASSWORD from the last redeploy.")
+                "Máy chủ này đặt tài khoản qua biến môi trường: tên đăng nhập là NAOTA_ADMIN_USER "
+                "(mặc định admin), mật khẩu là NAOTA_ADMIN_PASSWORD của lần Redeploy gần nhất.",
+                "This server sets the account from its environment: the username is NAOTA_ADMIN_USER "
+                "(default admin) and the password is NAOTA_ADMIN_PASSWORD from the last redeploy.")
         return JSONResponse({"ok": False, "error": loi}, status_code=401)
     # totp_hong: 2FA bật trong file nhưng secret không giải mã được (mất .secret_key).
     # Vẫn PHẢI hỏi mã (fail-closed) - chỉ mã khôi phục qua được vì nó băm, không mã hoá.
@@ -1662,7 +1994,9 @@ async def auth_login(request: Request, username: str = Form(...), password: str 
                                 status_code=401)
     _LOGIN_FAILS.pop(ip, None)
     _how = "password+2fa" if (cfgmod.totp_enabled(cfg) or _tfa_hong) else "password"
-    return _session_cookie(JSONResponse({"ok": True}), _new_login_session(request, username.strip(), _how), request)
+    keep = str(remember or "").strip().lower() not in ("0", "false", "no", "off")
+    return _session_cookie(JSONResponse({"ok": True}), _new_login_session(request, username.strip(), _how, keep),
+                           request, remember=keep)
 
 
 # ---- Xác thực 2 lớp: bật / xác nhận / tắt ----
@@ -1670,14 +2004,14 @@ async def auth_login(request: Request, username: str = Form(...), password: str 
 # /auth/tokens: cho token đổi được cách đăng nhập thì một token rò ra là kẻ cầm nó tự gắn 2FA
 # của mình vào rồi khoá chính chủ ra ngoài.
 def _doi_phien_that(request: Request):
-    if cfgmod.gate_active() and not cfgmod.valid_session(request.cookies.get("vanhanh_session", "")):
+    if cfgmod.gate_active() and not cfgmod.valid_session(request.cookies.get("naota_session", "")):
         return JSONResponse({"ok": False, "error": localefmt.chu("Thao tác này phải đăng nhập bằng trình duyệt.", "This action requires signing in from a browser.")},
                             status_code=403)
     return None
 
 
 def _ten_hien_thi(cfg=None) -> str:
-    """Tên NGƯỜI để hiện trong app Authenticator, sau tên workspace: "VANHANH: Đại Lê".
+    """Tên NGƯỜI để hiện trong app Authenticator, sau tên workspace: "NAOTA: Hoàng Ngọc Vương".
 
     Thứ tự ưu tiên có lý do: `USER_NAME` là tên người dùng tự đặt cho chính mình, còn
     `auth.username` là tên ĐĂNG NHẬP - thường là "admin", đúng về kỹ thuật nhưng vô nghĩa khi
@@ -1712,7 +2046,7 @@ async def auth_2fa_start(request: Request):
     _TOTP_CHO.clear()
     _TOTP_CHO.update(secret=secret, ts=time.time())
     uri = totp.otpauth_uri(secret, _ten_hien_thi(cfg),
-                           cfg.get("workspace_name") or "VANHANH")
+                           cfg.get("workspace_name") or "NAOTA")
     return {"ok": True, "secret": secret, "uri": uri, "qr_svg": totp.qr_svg(uri)}
 
 
@@ -1828,9 +2162,13 @@ async def auth_password(request: Request, current_password: str = Form(""),
     # Đổi mật khẩu = hạ MỌI phiên cũ (máy khác, trình duyệt khác) rồi cấp lại phiên cho chính
     # máy này. Thiếu bước này thì cái phiên mà người ta đổi mật khẩu để đuổi đi vẫn sống thêm
     # 30 ngày, và việc đổi coi như không có tác dụng.
+    # The new session keeps this device's "Keep me signed in" choice: changing the password on a borrowed device must
+    # not turn its sign-in into a 30-day one.
+    keep = cfgmod.session_remembered(request.cookies.get("naota_session", ""))
     cfgmod.clear_sessions()
     return _session_cookie(JSONResponse({"ok": True, "username": a.get("username", "")}),
-                           cfgmod.new_session(*security_log.request_meta(request)), request)
+                           cfgmod.new_session(*security_log.request_meta(request), remember=keep), request,
+                           remember=keep)
 
 
 @app.get("/auth/tokens")
@@ -1847,7 +2185,7 @@ async def auth_tokens_create(request: Request, name: str = Form(""), scope: str 
     Thiếu rào này thì một token rò ra là kẻ cầm nó tự cấp thêm token vĩnh viễn cho mình, và
     thu hồi cái đã rò cũng vô nghĩa.
     """
-    if cfgmod.gate_active() and not cfgmod.valid_session(request.cookies.get("vanhanh_session", "")):
+    if cfgmod.gate_active() and not cfgmod.valid_session(request.cookies.get("naota_session", "")):
         return JSONResponse({"ok": False, "error": localefmt.chu(
             "Tạo token phải đăng nhập bằng trình duyệt "
             "(không dùng token để tạo token).",
@@ -1871,7 +2209,7 @@ async def auth_tokens_revoke(request: Request, id: str = Form(...)):
 
 @app.post("/auth/logout")
 async def auth_logout(request: Request):
-    tok = request.cookies.get("vanhanh_session", "")
+    tok = request.cookies.get("naota_session", "")
     # this device stops receiving the account's notifications once it logs out.
     try:
         webpush.huy_theo_phien(_phien_bam(tok))
@@ -1881,7 +2219,7 @@ async def auth_logout(request: Request):
         _sec(request, "logout")
     cfgmod.drop_session(tok)
     resp = JSONResponse({"ok": True})
-    resp.delete_cookie("vanhanh_session", path="/")
+    resp.delete_cookie("naota_session", path="/")
     return resp
 
 
@@ -1905,7 +2243,7 @@ _LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
 
 
 def _local_tool_call(request: Request) -> bool:
-    """A login-exempt call from a tool on this machine (vanhanh_schedule, an engine's curl), never from a web page.
+    """A login-exempt call from a tool on this machine (naota_schedule, an engine's curl), never from a web page.
 
     Security fix (2026-11-05 audit): _direct_local_request() only looks at the client address. With login on, the
     DNS-rebinding Host check in web_security is skipped, so a page the owner opens could rebind its own name to
@@ -1942,9 +2280,9 @@ async def auth_disable(request: Request, password: str = Form(""), code: str = F
     if cfgmod.require_login() or not _direct_local_request(request):
         return JSONResponse({"ok": False, "error": localefmt.chu(
             "Không tắt được đăng nhập trên máy mở ra ngoài (VPS, Docker, tunnel). Chỉ tắt được khi "
-            "mở dashboard ngay trên máy cá nhân chạy Vanhanh.",
+            "mở dashboard ngay trên máy cá nhân chạy Naota.",
             "Login cannot be turned off on a server reachable from outside (VPS, Docker, tunnel). "
-            "It can only be turned off from the personal machine running Vanhanh.")}, status_code=403)
+            "It can only be turned off from the personal machine running Naota.")}, status_code=403)
     ip = request.client.host if request.client else "?"
     if _login_locked(ip):
         return JSONResponse({"ok": False, "error": localefmt.chu("Quá nhiều lần sai - thử lại sau ít phút.", "Too many failed attempts - try again in a few minutes.")}, status_code=429)
@@ -1990,7 +2328,7 @@ async def auth_security(request: Request, limit: int = 100):
     if (loi := _doi_phien_that(request)) is not None:
         return loi
     cfg = cfgmod.read_settings()
-    tok = request.cookies.get("vanhanh_session", "")
+    tok = request.cookies.get("naota_session", "")
     events = security_log.recent(max(1, min(int(limit or 100), 500)))
     last_ok = next((e for e in events if e.get("event") in ("login_ok", "login_new_network")), None)
     since = time.time() - 7 * 86400
@@ -2003,8 +2341,8 @@ async def auth_security(request: Request, limit: int = 100):
             "totp_enabled": cfgmod.totp_enabled(cfg),
             "totp_broken": cfgmod.totp_hong(cfg),
             "public": cfgmod.require_login(),
-            "env_password_set": bool(cfgmod.clean_password(os.getenv("VANHANH_ADMIN_PASSWORD", ""))),
-            "reset_2fa_env_set": bool(str(os.getenv("VANHANH_RESET_2FA", "") or "").strip()),
+            "env_password_set": bool(cfgmod.clean_password(os.getenv("NAOTA_ADMIN_PASSWORD", ""))),
+            "reset_2fa_env_set": bool(str(os.getenv("NAOTA_RESET_2FA", "") or "").strip()),
             "tokens": len(cfgmod.list_api_tokens()),
             "sessions": cfgmod.list_sessions(tok),
             "last_login": last_ok,
@@ -2019,7 +2357,7 @@ async def auth_sessions_revoke(request: Request, id: str = Form(""), others: str
     No password needed: ending sessions only takes access away, it never hands any out."""
     if (loi := _doi_phien_that(request)) is not None:
         return loi
-    tok = request.cookies.get("vanhanh_session", "")
+    tok = request.cookies.get("naota_session", "")
     if others:
         n = max(0, len(cfgmod.SESSIONS) - (1 if tok in cfgmod.SESSIONS else 0))
         cfgmod.clear_sessions(keep=tok)
@@ -2039,7 +2377,7 @@ async def auth_sessions_revoke(request: Request, id: str = Form(""), others: str
 
 
 # ============================================================
-# Providers - nhà cung cấp model. MỌI kind đều được cấp MCP Vanhanh + tool file brain + skill;
+# Providers - nhà cung cấp model. MỌI kind đều được cấp MCP Naota + tool file brain + skill;
 # khác nhau ở ĐƯỜNG đi và ở việc chạy được lệnh máy hay không:
 #   kind=cli   (Claude Code, Gemini CLI) - MCP native + Bash, chạy lệnh máy
 #   kind=oauth (ChatGPT qua Codex) - MCP native + kho MCP gốc Codex, chạy lệnh máy
@@ -2057,8 +2395,8 @@ PROVIDER_DEFS = [   # thứ tự = thứ tự hiển thị card ở trang Models
     # rồi tới id đầy đủ để `_claude_api_model` dịch được alias sang tên thật.
     {"id": "anthropic-cli", "label": "Claude Code", "kind": "cli", "key_field": None,          "catalog_key": "claude",
      "default_models": ["fable", "opus", "sonnet", "haiku",
-                        "claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-1",
-                        "claude-opus-5", "claude-sonnet-5",
+                        "claude-fable-5-2", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5",
+                        "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5",
                         "claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"]},
     {"id": "openai-oauth",  "label": "OpenAI OAuth (ChatGPT)",  "kind": "oauth", "key_field": None,             "catalog_key": "openai-oauth",
      "default_models": []},  # model/list của Codex app-server là nguồn chân lý; không ghim version ở đây
@@ -2081,8 +2419,8 @@ PROVIDER_DEFS = [   # thứ tự = thứ tự hiển thị card ở trang Models
     {"id": "openrouter",    "label": "OpenRouter",              "kind": "api", "key_field": "openrouter_key",    "catalog_key": "openrouter",
      "default_models": ["openai/gpt-4o-mini"]},
     {"id": "anthropic-api", "label": "Anthropic (API)",         "kind": "api", "key_field": "anthropic_api_key", "catalog_key": "anthropic-api",
-     "default_models": ["claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-1",
-                        "claude-opus-5", "claude-sonnet-5",
+     "default_models": ["claude-fable-5-2", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5",
+                        "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5",
                         "claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"]},
     {"id": "openai",        "label": "OpenAI (ChatGPT API)",    "kind": "api", "key_field": "openai_api_key",    "catalog_key": "openai",
      "default_models": ["gpt-4o", "gpt-4o-mini", "o3-mini"]},
@@ -2095,7 +2433,7 @@ PROVIDER_DEFS = [   # thứ tự = thứ tự hiển thị card ở trang Models
     {"id": "deepseek",      "label": "DeepSeek (API)",          "kind": "api", "key_field": "deepseek_api_key",  "catalog_key": "deepseek",
      "default_models": ["deepseek-flash", "deepseek-v4-pro"]},
     # Ollama Cloud. CỐ Ý không đấu bản chạy trên máy nhà: bản đó đòi một ô địa chỉ riêng, tức
-    # một ca đặc biệt duy nhất xuyên suốt lớp này, trong khi phần đông người dùng Vanhanh chạy
+    # một ca đặc biệt duy nhất xuyên suốt lớp này, trong khi phần đông người dùng Naota chạy
     # nó trên VPS - nơi "localhost" là chính cái container chứ không phải máy họ.
     # default_models RỖNG: danh sách model của Ollama đổi luôn, /provider/models nạp bản LIVE.
     {"id": "ollama",        "label": "Ollama Cloud",            "kind": "api", "key_field": "ollama_key",
@@ -2252,16 +2590,16 @@ def _providers_view(cfg):
         }
         if p["kind"] == "oauth":
             item["account"] = oauth.get("account_id", "")
-            # The vendor's plan code, named by vanhanh-store's plan-name catalog or tidied (no table in code).
+            # The vendor's plan code, named by naota-store's plan-name catalog or tidied (no table in code).
             import plan_limits
             item["plan"] = plan_limits.ten_goi(oauth.get("plan", ""), "codex")
-            # Đăng nhập ChatGPT do CHÍNH VANHANH lo (OAuth device code, token ghi vào ~/.codex)
+            # Đăng nhập ChatGPT do CHÍNH NAOTA lo (OAuth device code, token ghi vào ~/.codex)
             # nên "Đã kết nối" không chứng minh máy có binary `codex`. Máy thiếu nó là thẻ
             # xanh mà chat vỡ - ca đã gặp: người mới cài kết nối được nhưng không dùng
             # được. Lộ cli_found để thẻ nói thẳng ngay tại trang Models.
             item["cli_found"] = bool(find_codex_cli())
             item["cai_lenh"] = "npm install -g @openai/codex"
-            item["cli_env"] = "VANHANH_CODEX_BIN"
+            item["cli_env"] = "NAOTA_CODEX_BIN"
             item["docker"] = deploy_info.deploy_mode() == "docker"
         if p["id"] == "grok-cli":
             _k = grok_cli.auth_status()
@@ -2274,9 +2612,9 @@ def _providers_view(cfg):
             item["cai_lenh"] = grok_cli.lenh_cai()
             item["tu_cai"] = cli_autoinstall.state("grok")   # Docker tự cài lúc khởi động
             item["dang_nhap"] = grok_cli.login_huong_dan()
-            # Phiên nằm trong `~/.grok/auth.json` do chính CLI giữ, Vanhanh không sở hữu nó -
+            # Phiên nằm trong `~/.grok/auth.json` do chính CLI giữ, Naota không sở hữu nó -
             # nhưng `grok logout` thì gọi được, nên thẻ CÓ nút Ngắt (khác `agy`).
-            item["auth_by_vanhanh"] = False
+            item["auth_by_naota"] = False
         if p["id"] == "antigravity-cli":
             _a = antigravity_cli.auth_status_nen()   # cùng lý do nhánh `configured` ở trên
             item["cli_found"] = bool(antigravity_cli.find_antigravity_cli())
@@ -2284,10 +2622,10 @@ def _providers_view(cfg):
             item["auth_error"] = _a.get("error", "")
             item["cai_lenh"] = antigravity_cli.lenh_cai()
             item["tu_cai"] = cli_autoinstall.state("agy")    # Docker tự cài lúc khởi động
-            # The token lives in the OS keyring, which Vanhanh does not hold. Since 05/11/2026 the card still has Disconnect:
-            # it runs the CLI's own sign-out when there is one, else switches the card off in Vanhanh (`vanhanh_off`).
-            item["auth_by_vanhanh"] = False
-            item["vanhanh_off"] = bool(_a.get("vanhanh_off"))
+            # The token lives in the OS keyring, which Naota does not hold. Since 05/11/2026 the card still has Disconnect:
+            # it runs the CLI's own sign-out when there is one, else switches the card off in Naota (`naota_off`).
+            item["auth_by_naota"] = False
+            item["naota_off"] = bool(_a.get("naota_off"))
             # Đăng nhập làm trong TERMINAL, không phải trên dashboard - xem
             # `antigravity_cli.login_huong_dan()` để biết vì sao. Thẻ Models chỉ đưa lại đúng
             # lệnh cần gõ.
@@ -2303,7 +2641,7 @@ def _providers_view(cfg):
             # nhưng bản cài tay thiếu binary `claude` thì chat chết ngay lượt đầu.
             item["cli_found"] = bool(find_claude_cli())
             item["cai_lenh"] = "npm install -g @anthropic-ai/claude-code"
-            item["cli_env"] = "VANHANH_CLAUDE_BIN"
+            item["cli_env"] = "NAOTA_CLAUDE_BIN"
             item["docker"] = deploy_info.deploy_mode() == "docker"
         out.append(item)
     return out
@@ -2388,12 +2726,13 @@ def _routing_key_saved(m, key_field, label: str = "") -> None:
     model_routing.add_to_order(m, d["id"])
 
 
-def _aux_model():
+def _aux_model(tag: str = ""):
     """Model việc nền khi provider là Claude. '' = không đổi (mặc định CLI).
 
     Provider khác Claude thì model KHÔNG phải alias Claude, trả '' để nhánh cũ đừng gán
-    nhầm vào engine Claude - việc chọn engine đúng do _aux_swap lo."""
-    spec = aux_engine.read_spec()
+    nhầm vào engine Claude - việc chọn engine đúng do _aux_swap lo.
+    `tag`: the job, so an Automatic background model answers with the right tier (aux_engine.tier_for_tag)."""
+    spec = aux_engine.read_spec(tag=tag)
     return spec["model"] if aux_engine.is_claude(spec) else ""
 
 
@@ -2403,19 +2742,296 @@ def _aux_swap(cli, mode=None, tag=None):
     return aux_engine.swap(cli, mode=mode, tag=tag, codex_profile=_write_codex_profile)
 
 
-def _reply_policy_sandbox_engine(system_prompt: str, tag: str, cwd_name: str = "reply_policy_cwd"):
+def _side_work_paused() -> str:
+    """A short reason while the work Naota starts on its own (self-learning, the next-message suggestion,
+    auto-learning) must wait, "" otherwise. It waits when the plan that work would run on has used most of
+    its 5-hour allowance (plan_limits.side_pause) and resumes by itself after the reset. Never raises."""
+    try:
+        st = plan_limits.side_pause(aux_engine.read_spec(tag="learn").get("provider"))
+    except Exception:   # noqa: BLE001 - a broken meter must not stop that work for good
+        return ""
+    if not st.get("paused"):
+        return ""
+    return localefmt.chu("hạn mức 5 giờ của gói đã dùng {pct}%, việc Naota tự làm nghỉ tới lúc hạn mức mở lại",
+                         "the plan's 5-hour allowance is {pct}% used, Naota's own background work waits for the reset",
+                         pct=st.get("pct") or 0)
+
+
+# ---- Automatic background model (auto_background.py) -------------------------------------------------------------
+_AUTO_BG_BUSY = [False]
+_MAIN_LOOP = [None]            # the server's event loop, for notices raised from a worker thread (core_loop.tick)
+
+
+def _scorecard_changed(ch: dict) -> None:
+    """A background job moved to another model on its own (job_scorecard.py): one quiet notice in the bell, with
+    the reason and the way back. Called from wherever the run finished, so it only schedules the notice."""
+    why = {"failed": localefmt.chu("lần chạy vừa rồi không đạt", "its last run did not pass"),
+           "probe": localefmt.chu("đã chạy tốt nhiều lần liền nên thử model nhẹ hơn",
+                                  "it ran well several times in a row, so a lighter model gets a try"),
+           "probe_failed": localefmt.chu("model nhẹ hơn không làm được việc này",
+                                         "the lighter model could not do this job")}.get(ch.get("why"), "")
+    text = localefmt.chu(
+        "Việc nền \"{ten}\" chuyển từ {cu} sang {moi}: {ly_do}. Muốn quay lại thì nhắn Naota \"hoàn lại thay đổi "
+        "model số {ma}\".",
+        "Background job \"{ten}\" moved from {cu} to {moi}: {ly_do}. To go back, tell Naota \"undo model change "
+        "{ma}\".",
+        ten=ch.get("label") or ch.get("job") or "", cu=ch.get("from_model") or "mặc định",
+        moi=ch.get("to_model") or "mặc định", ly_do=why, ma=ch.get("id") or "")
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return                      # no loop here (a worker thread): the change is still in `naota_tune op=status`
+    loop.create_task(_notify_owner("", text, kind="system", source="models", level="info", group="cost",
+                                   dedup=f"scorecard:{ch.get('job')}:{ch.get('to_model')}:{ch.get('id')}"))
+
+
+job_scorecard.on_change = _scorecard_changed
+
+# ---- Naota Core keeps the lessons about HOW to learn (core_loop.py) ----------------------------------------------
+# They are ordinary lessons of Naota Core in the scoped lesson store (agent_lessons), tagged so the learner loads
+# only these and not Core's lessons about how to talk. The owner sees and revokes them like any assistant's lessons.
+LEARNING_LESSON_TAG = "learning"
+LEARNING_LESSON_HEAD = ("=== BÀI HỌC VỀ CÁCH HỌC (chủ dặn Naota Core hoặc Naota Core rút ra; áp dụng khi quyết định "
+                        "điều gì đáng ghi lại, luật này đứng trên các hướng dẫn bên dưới) ===")
+
+
+def _core_lesson_key(brain, register=False):
+    return _agent_jobs_key(_brain_key(_brain_root(brain)), naota_core.SLUG, register=register)
+
+
+def _learning_lessons(brain) -> list:
+    """Active lessons about how to learn that Naota Core holds for this brain: [{id, text, source}]."""
+    try:
+        store = _pulse_store()
+        key = _core_lesson_key(brain) if store is not None else None
+        if not key:
+            return []
+        return [{"id": r["id"], "text": r["text"], "source": r["source"]}
+                for r in agent_lessons.lessons(store, key, status="active", scope="*")
+                if LEARNING_LESSON_TAG in (r.get("source_refs") or [])]
+    except Exception as e:   # noqa: BLE001 - lessons are an extra, never a reason to fail
+        print(f"[learning lessons] {type(e).__name__}: {e}", file=sys.stderr)
+        return []
+
+
+def _learning_lessons_block(brain) -> str:
+    rows = _learning_lessons(brain)[:agent_lessons.PROMPT_LIMIT]
+    return (LEARNING_LESSON_HEAD + "\n" + "\n".join("- " + r["text"] for r in rows)) if rows else ""
+
+
+def _teach_learning(root, text, source="owner") -> int:
+    """Store one lesson about how to learn on Naota Core of this brain. Returns its id."""
+    store = _resonance_store()
+    key = _core_lesson_key(root, register=True)
+    return agent_lessons.add(store, agent_key=key, scope="*", kind="method", text=text, source=source,
+                             source_refs=[LEARNING_LESSON_TAG], by=source)
+
+
+def _memory_forgotten(mem_dir, info: dict) -> None:
+    """The owner removed a memory. When Naota had learned it on its own, that batch got it wrong: it counts
+    against the model that learns, so the next batch runs one rung up (job_scorecard)."""
+    if info.get("learned"):
+        job_scorecard.feedback("learn", False, note="chủ xoá ghi nhớ: " + str(info.get("title") or "")[:80])
+
+
+memory_control.on_forget = _memory_forgotten
+
+
+def _improve_notice(text: str, dedup: str) -> None:
+    """One quiet notice from Naota Core's improvement loop, from the event loop or from its worker thread."""
+    coro = _notify_owner("", text, kind="system", source="models", level="info", group="cost", dedup=dedup)
+    try:
+        asyncio.get_running_loop().create_task(coro)
+        return
+    except RuntimeError:
+        pass
+    loop = _MAIN_LOOP[0]
+    if loop is None or not loop.is_running():
+        coro.close()                # nobody to tell right now: the change is still in `naota_tune op=status`
+        return
+    asyncio.run_coroutine_threadsafe(coro, loop)
+
+
+def _knob_changed(ch: dict) -> None:
+    """A knob of Naota Core's loop moved: one quiet notice, with the reason and the way back."""
+    if ch.get("actor") == "owner":
+        return                      # the owner just asked for it in chat: no need to tell them again
+    text = localefmt.chu(
+        "Naota Core vừa chỉnh \"{ten}\" từ {cu} sang {moi}: {ly_do}. Muốn quay lại thì nhắn Naota \"hoàn lại thay "
+        "đổi {ma}\".",
+        "Naota Core changed \"{ten_en}\" from {cu} to {moi}: {ly_do}. To go back, tell Naota \"undo change {ma}\".",
+        ten=ch.get("title_vi") or ch.get("knob") or "", ten_en=ch.get("title_en") or ch.get("knob") or "",
+        cu=ch.get("old"), moi=ch.get("new"), ly_do=ch.get("why") or "", ma=ch.get("id") or "")
+    _improve_notice(text, f"knob:{ch.get('id')}")
+
+
+core_loop.on_change = _knob_changed
+job_tune.wire(teach=_teach_learning, lessons=_learning_lessons)
+
+
+def _pins_changed(ch: dict) -> None:
+    """A brain's list of pinned tools changed (tool_pins.py): one quiet notice when tools were added. A tool that
+    only left the list went back behind search, nothing is lost, so that alone is not worth a notice."""
+    if not ch.get("added"):
+        return
+    text = localefmt.chu(
+        "Naota ghim sẵn công cụ hay dùng của brain {brain}{bot}: {tools}. Từ giờ các công cụ này được gọi thẳng, bớt "
+        "một vòng tìm mỗi lần dùng. Không muốn thì nhắn Naota \"đừng ghim công cụ nữa\".",
+        "Naota pinned the tools brain {brain}{bot_en} uses most: {tools}. They are now called directly, one search "
+        "round fewer each time. To stop, tell Naota \"stop pinning tools\".",
+        brain=ch.get("brain") or "", bot=" (chatbot)" if ch.get("bot") else "",
+        bot_en=" (chatbot)" if ch.get("bot") else "", tools=", ".join(ch.get("added") or []))
+    _improve_notice(text, f"pins:{ch.get('key')}:{','.join(ch.get('added') or [])}")
+
+
+tool_pins.on_change = _pins_changed
+# How many tools one brain may pin is a knob of Naota Core's loop; which tools is decided by use (tool_pins.py).
+core_loop.register(core_loop.Knob(
+    id="tools.pin_limit", title_vi="Số công cụ ghim sẵn tối đa mỗi brain", title_en="Tools one brain may pin",
+    lo=tool_pins.LIMIT_LO, hi=tool_pins.LIMIT_HI, default=tool_pins.LIMIT_DEFAULT,
+    read=tool_pins.limit, write=tool_pins.set_limit, rule=tool_pins.limit_rule))
+
+
+def _improve_tick() -> None:
+    """Naota Core's improvement loop, one pass, in a worker thread: pinned tools follow use, then every knob's
+    rule looks at its counters once. Plain code, no model."""
+    tool_pins.tick()
+    core_loop.tick()
+
+
+async def _auto_background_ask(prompt: str) -> str:
+    """One text-only turn on the MAIN brain: read the provider's model list and pick the light and mid model.
+    Same sandbox as the judges (empty folder, no MCP, no tool), so the list is only read, never acted on."""
+    base = _reply_policy_sandbox_engine("You configure an assistant app. Answer with the JSON asked for, nothing else.",
+                                        "auto-background", cwd_name="auto_background_cwd")
+    cli = aux_engine.strip_tools(aux_engine.swap(base, mode="suggest", tag="auto-background",
+                                                 spec=aux_engine.main_spec(), codex_profile=_write_codex_profile), base)
+    if not cli.is_available():
+        raise RuntimeError("main brain not ready")
+    final = ""
+    async for ev in cli.query(prompt):
+        if ev.get("type") == "final":
+            final = ev.get("content", "") or ""
+        elif ev.get("type") == "error":
+            raise RuntimeError(str(ev.get("content") or "engine error")[:200])
+    if aux_engine.final_loi_dang_nhap(final):
+        raise RuntimeError("main brain signed out")
+    return final
+
+
+async def _auto_background_models(provider: str) -> list:
+    """The provider's model list for this account, with the provider's own description where it sends one."""
+    idx = await provider_models_index(provider, refresh=True)
+    out = []
+    for mid in idx.get("models") or []:
+        desc = codex_models.description_for(mid) if provider == "openai-oauth" else ""
+        out.append({"id": mid, "description": desc})
+    return out
+
+
+def _auto_background_save(provider: str, state: dict) -> None:
+    cfg = cfgmod.read_settings()
+    cfg.setdefault("model", {}).setdefault("auto_background", {})[provider] = state
+    cfgmod.write_settings(cfg)
+
+
+def _auto_background_notice(provider: str, picks: dict, before: str) -> str:
+    label = (_provider_def(provider) or {}).get("label") or provider
+    light = picks.get("light") or picks.get("mid") or ""
+    mid = picks.get("mid") or before or ""
+    return localefmt.chu(
+        "Model việc nền đang ở chế độ Tự động ({nha}). Việc Naota tự làm (tự học, gợi ý câu tiếp) chạy bằng "
+        "{nhe}; việc bạn giao chạy nền (nhắc hẹn, loop, Kanban) chạy bằng {giua}. Mục đích là đỡ tốn hạn mức. "
+        "Muốn dùng model khác thì đổi ở trang Models, khối Model việc nền.",
+        "The background model is on Automatic ({nha}). Naota's own work (self-learning, next-message suggestions) "
+        "runs on {nhe}; the jobs you hand over (reminders, loops, Kanban) run on {giua}. This saves plan allowance. "
+        "To use another model, change it on the Models page, Background model block.",
+        nha=label, nhe=light or (before or label), giua=mid or label)
+
+
+async def _auto_background_tick(force: bool = False) -> dict:
+    """Keep the picks of an Automatic background model current. Called every scheduler tick; it only does
+    work when MAIN's provider has no pick yet or its model list is due for a look (once a day), and it asks the
+    main brain only when that list really changed. A background model chosen by hand is never touched."""
+    if _AUTO_BG_BUSY[0]:
+        return {"ok": False, "reason": "busy"}
+    cfg = cfgmod.read_settings()
+    m = cfg.get("model") or {}
+    auto = model_routing.background_auto(m)
+    if "auto" not in (m.get("auxiliary") or {}):
+        # Written once, so the choice no longer depends on a comparison with the starting config.
+        cfg.setdefault("model", {}).setdefault("auxiliary", {})["auto"] = auto
+        cfgmod.write_settings(cfg)
+    if not auto:
+        return {"ok": True, "reason": "manual"}
+    prov = model_routing.main_provider(m)
+    state = dict(model_routing.background_picks(m, prov))
+    now = time.time()
+    if not prov or (not force and not auto_background.due(state, now)):
+        return {"ok": True, "reason": "not_due"}
+    _AUTO_BG_BUSY[0] = True
+    try:
+        try:
+            models = await _auto_background_models(prov)
+        except Exception as e:   # noqa: BLE001
+            print(f"[auto background] model list of {prov}: {type(e).__name__}: {e}", file=sys.stderr)
+            models = []
+        sig = auto_background.signature(models) if models else ""
+        if models and state.get("sig") == sig:
+            _auto_background_save(prov, {**state, "checked": now})
+            return {"ok": True, "reason": "unchanged"}
+        picks = None
+        if models:
+            try:
+                picks = await auto_background.choose(
+                    (_provider_def(prov) or {}).get("label") or prov, models,
+                    model_routing.profile(m, prov)["model"], _auto_background_ask)
+            except Exception as e:   # noqa: BLE001 - engine down, signed out, timeout: try again later
+                print(f"[auto background] choosing for {prov}: {type(e).__name__}: {e}", file=sys.stderr)
+        if picks is None:
+            # No list or no usable answer: keep what was picked before and look again in an hour.
+            _auto_background_save(prov, {**state, "retry_at": now + auto_background.RETRY_S,
+                                         "checked": now - auto_background.RECHECK_S + auto_background.RETRY_S})
+            return {"ok": False, "reason": "no_answer"}
+        _auto_background_save(prov, {"light": picks["light"], "mid": picks["mid"],
+                                     "ladder": list(picks.get("ladder") or []), "sig": sig,
+                                     "checked": now, "at": now})
+        if auto_background.changed(state, picks) and (picks["light"] or picks["mid"]):
+            await _notify_owner("", _auto_background_notice(prov, picks, model_routing.profile(m, prov)["model"]),
+                                kind="system", source="models", level="info", group="cost",
+                                dedup=f"auto-background:{prov}:{sig}")
+        return {"ok": True, "reason": "picked", "picks": picks}
+    finally:
+        _AUTO_BG_BUSY[0] = False
+
+
+def _reply_policy_sandbox_engine(system_prompt: str, tag: str, cwd_name: str = "reply_policy_cwd",
+                                 bare: bool = True):
     """Engine Claude trong thư mục TRỐNG, không MCP, không công cụ: dùng chung cho người phán xử, vòng tự soát
-    và lượt chỉ chữ của Resonance. `cwd_name` tách thư mục trống theo nơi gọi để phiên Claude của chúng không lẫn nhau."""
+    và lượt chỉ chữ của Resonance. `cwd_name` tách thư mục trống theo nơi gọi để phiên Claude của chúng không lẫn nhau.
+
+    `bare` (on by default): a text-only turn carries neither the claude_code preset nor one tool schema. No tool
+    can run here anyway (the gate below refuses every call), yet until now each of these turns still sent the preset
+    and the schemas: 27,665 input tokens against 183 for the same question, measured in `_claude_sub_stream`. The
+    next-message suggestion alone spent that after EVERY chat turn. The named deny list stays as the second wall;
+    "*" only takes the schemas out of the request. Pass bare=False for a turn whose session or pinned evidence
+    depends on the preset."""
     cwd = cfgmod.STATE_DIR / cwd_name
     cwd.mkdir(parents=True, exist_ok=True)
     cli = claude_engine(system_prompt=system_prompt, cwd=str(cwd), tag=tag,
-                        allowed_tools=["vanhanh_reply_policy_khong_cong_cu"])
+                        allowed_tools=["naota_reply_policy_khong_cong_cu"])
     _mcpf = _empty_mcp_file()
     if _mcpf:
         cli.mcp_config = _mcpf
         cli.mcp_strict = True
     cli.disallowed_tools = list(BOT_CAM_NATIVE) + ["PowerShell", "Skill", "SlashCommand", "TodoWrite", "MultiEdit",
                                                     "ExitPlanMode", "NotebookRead"]
+    if bare:
+        cli.disallowed_tools = ["*"] + cli.disallowed_tools
+        if system_prompt:
+            cli.system_prompt_raw = True
+            if hasattr(cli, "_options") and hasattr(cli, "_write_sysprompt_file"):
+                _raw_prompt_through_file(cli)   # a long prompt as one argv entry dies on Linux
     return cli
 
 
@@ -2450,9 +3066,18 @@ async def _transcript_rewrite_ask(prompt: str) -> str:
     sounds like an order is only rewritten, never carried out."""
     base = _reply_policy_sandbox_engine(transcript_fix.REWRITE_SYSTEM, "transcript-rewrite",
                                         cwd_name="transcript_rewrite_cwd")
+    # 2026-11-13: lowest thinking level for Claude Code. Fixing a dictated sentence needs no plan, and at the CLI's
+    # own default the owner waited through seconds of thinking on every recording. The main_spec below carries no
+    # level, so swap() leaves this one in place. An older `claude` without the flag runs as before.
+    if claude_cli.co_co("--effort"):
+        try:
+            base.effort = "low"
+        except Exception:  # noqa: BLE001 - an engine without the field keeps its default
+            pass
     cli = aux_engine.swap(base, mode="suggest", tag="transcript-rewrite", spec=aux_engine.main_spec(),
                           codex_profile=_write_codex_profile)
     cli = aux_engine.strip_tools(cli, base)
+    _rewrite_low_effort_codex(cli)
     if not cli.is_available():
         raise RuntimeError("main brain not ready")
     final = ""
@@ -2466,6 +3091,27 @@ async def _transcript_rewrite_ask(prompt: str) -> str:
     return final
 
 
+def _rewrite_low_effort_codex(cli) -> None:
+    """Codex links of the dictation rewrite think at "low" (2026-11-13), the same reason as Claude Code's flag above.
+
+    Only when Codex lists "low" for that model (or no ladder has been read yet): a value the model does not know would
+    fail the run, and a run at the default is still a rewrite."""
+    try:
+        links = list(cli._all()) if isinstance(cli, aux_engine._FallbackChain) else [cli]
+    except Exception:  # noqa: BLE001
+        return
+    for e in links:
+        if type(e).__name__ != "CodexCLI":
+            continue
+        try:
+            muc = _codex_effort(getattr(e, "model", "") or "", "low")
+            if muc:
+                e.extra_config[:] = [x for x in e.extra_config if not str(x).startswith("model_reasoning_effort=")]
+                e.extra_config.append(f"model_reasoning_effort={muc}")
+        except Exception as ex:  # noqa: BLE001 - the depth setting must never cost the rewrite
+            print(f"[transcript_fix] codex effort: {type(ex).__name__}", file=sys.stderr)
+
+
 transcript_fix.wire(ask=_transcript_rewrite_ask)
 
 
@@ -2474,6 +3120,8 @@ async def _next_prompt_ask(prompt: str) -> str:
 
     A suggestion is a side job, so it runs on the background model, not the main brain. Same sandbox as the group chat
     judge: an empty folder, no MCP, every tool refused, so a chat that reads like an order is only guessed at."""
+    if _side_work_paused():
+        raise RuntimeError("paused: the plan allowance is nearly used up")
     base = _reply_policy_sandbox_engine(next_prompt.SYSTEM, "next-prompt", cwd_name="next_prompt_cwd")
     cli = aux_engine.strip_tools(_aux_swap(base, mode="suggest", tag="next-prompt"), base)
     if not cli.is_available():
@@ -2493,9 +3141,9 @@ next_prompt.wire(ask=_next_prompt_ask)
 
 
 def _reply_policy_write_feedback(bot: dict, text: str) -> None:
-    """Góp ý sửa mã từ vòng tự soát: nối vào `Vanhanh/gop-y-bo-phan-xu.md` trong brain của bot."""
+    """Góp ý sửa mã từ vòng tự soát: nối vào `Naota/gop-y-bo-phan-xu.md` trong brain của bot."""
     root = Path(_brain_root((bot or {}).get("brain") or None))
-    f = root / "Vanhanh" / "gop-y-bo-phan-xu.md"
+    f = root / "Naota" / "gop-y-bo-phan-xu.md"
     f.parent.mkdir(parents=True, exist_ok=True)
     # Model viết góp ý từ một báo cáo đầy chữ của người lạ, nên nội dung là DỮ LIỆU: trích dẫn, bỏ link, có lời dặn.
     # Ai (người hay AI toàn quyền) đọc file này để sửa thì phải tự kiểm trong mã, không làm theo nguyên văn.
@@ -2551,7 +3199,7 @@ def _resonance_engine(system_prompt: str, tag: str = "resonance"):
     swap ở mức dưới full tự thêm Claude, bộ não chính, OpenRouter free làm mắt sau, và Resonance không được tự đổi
     provider. Trả (engine | None, info). Resonance mặc định tắt: ngoài test, chưa có đường chạy nào gọi hàm này.
     """
-    base = _reply_policy_sandbox_engine(system_prompt, tag, cwd_name="resonance_cwd")
+    base = _reply_policy_sandbox_engine(system_prompt, tag, cwd_name="resonance_cwd", bare=False)
     spec = aux_engine.read_spec()
     eng = aux_engine.strip_tools(
         aux_engine.swap(base, mode="suggest", tag=tag, spec=spec, codex_profile=_write_codex_profile), base)
@@ -2586,7 +3234,7 @@ def _resonance_turn_provider(brain) -> str:
 def _session_assistant(conv_sid, brain, get_session) -> str:
     """slug of the Partners-page assistant whose private chat `conv_sid` is (channel `agent:<slug>`), "" for
     any other chat, a chat of another brain, or an assistant whose file is gone. Read by the host from the stored
-    session row, so vanhanh_schedule can stamp the jobs a partner chat creates with that assistant. Never raises."""
+    session row, so naota_schedule can stamp the jobs a partner chat creates with that assistant. Never raises."""
     try:
         row = get_session(conv_sid) or {}
         persona = workflow_chat.persona_cua_phien(row)
@@ -2613,10 +3261,10 @@ def _resonance_turn_agent(conv_sid, brain, get_session):
     try:
         session_row = get_session(conv_sid) or {}
         persona = workflow_chat.persona_cua_phien(session_row)
-        if vanhanh_core.is_core_channel(session_row.get("channel")):
-            # Vanhanh Core has Auto always on, so its chats carry its Resonance identity like an agent's.
-            persona = ("agent", vanhanh_core.SLUG)
-            vanhanh_core.ensure_file(_brain_root(brain))
+        if naota_core.is_core_channel(session_row.get("channel")):
+            # Naota Core has Auto always on, so its chats carry its Resonance identity like an agent's.
+            persona = ("agent", naota_core.SLUG)
+            naota_core.ensure_file(_brain_root(brain))
             _core_auto_on(brain)
         if not persona or persona[0] != "agent":
             return None
@@ -2647,13 +3295,12 @@ def _resonance_turn_agent(conv_sid, brain, get_session):
 # trợ lý (_agent_chat_prompt). Chỉ nối khi lượt thuộc một trợ lý đang bật (_resonance_turn_enabled); review A1 tích
 # hợp P1-1: trước đó chỉ build_system_prompt có dòng này, mà phiên trợ lý lại không dùng hàm đó.
 _RESONANCE_GOAL_HINT = (
-    "MỤC TIÊU (Hệ thống cộng hưởng đang bật): việc xong ngay trong lượt thì làm luôn; việc nền một "
-    "lần, xong là hết trách nhiệm thì vanhanh_task; nhắc giờ cố định thì vanhanh_schedule. Người dùng giao "
-    "trách nhiệm theo đuổi kết quả SAU lượt chat (làm, tự kiểm, sửa theo phản hồi, duy trì, chờ sự kiện, "
-    "giữ việc mở tới khi đạt) thì gọi tool vanhanh_goal op=create; bổ sung ý cho mục tiêu đang mở thì "
-    "op=update. Tool chưa nạp thì tìm: Claude Code dùng ToolSearch (mcp__vanhanh-plugins__vanhanh_goal), "
-    "engine khác dùng vanhanh_search_tools. Câu hỏi, tư vấn: KHÔNG lập mục tiêu. Sản phẩm: nộp toàn văn qua "
-    "vanhanh_submit_deliverable."
+    "GOALS (Resonance is on): a job done within the turn, just do it; one-off background work, naota_task; a "
+    "reminder at a fixed time, naota_schedule. When the user hands you a result to pursue AFTER the chat turn "
+    "(doing, self-checking, fixing from feedback, maintaining, waiting for an event, keeping it open until met), "
+    "call tool naota_goal op=create; to add to an open goal, op=update. Tool not loaded: Claude Code uses ToolSearch "
+    "(mcp__naota-plugins__naota_goal), other engines naota_search_tools. Questions and advice: set NO goal. "
+    "Deliverables: submit the full text through naota_submit_deliverable."
 )
 
 
@@ -2690,7 +3337,7 @@ def _resonance_after_turn(conv_sid, brain, user_mid, t0, runtime_trace):
         # cổng tiếp nhận bản chat nằm ở kho (finish_handoff) nên không tiếp nhận gì trái quyền.
         if not user_mid or not _resonance_turn_key():
             return None
-        p = resonance_store.Principal("agent", "vanhanh", _brain_key(brain))
+        p = resonance_store.Principal("agent", "naota", _brain_key(brain))
         mref = resonance.message_ref(conv_sid, user_mid)
         d = resonance.route_after_turn(_resonance_store(), p, mref, tasks_feature.store.list_tasks(root),
                                        f"{WEB_CHAT_PREFIX}{conv_sid}", t0)
@@ -2732,8 +3379,8 @@ def _resonance_after_turn(conv_sid, brain, user_mid, t0, runtime_trace):
 _TURN_ENGINE: dict = {}
 
 # Sent in the same Claude Code thread when a chat turn ended cleanly with no text at all. Model prompt:
-# Vietnamese, like the other Vanhanh notes to the model.
-EMPTY_ANSWER_NUDGE = ("[Vanhanh] Lượt vừa rồi bạn kết thúc mà không viết chữ nào cho người dùng, nên họ chỉ thấy một "
+# Vietnamese, like the other Naota notes to the model.
+EMPTY_ANSWER_NUDGE = ("[Naota] Lượt vừa rồi bạn kết thúc mà không viết chữ nào cho người dùng, nên họ chỉ thấy một "
                       "bong bóng trống. Hãy trả lời tin nhắn cuối cùng của họ ngay bây giờ (kể cả khi chỉ là một câu "
                       "ngắn). Việc lượt trước đã làm bằng công cụ là ĐÃ xong, đừng làm lại.")
 
@@ -2804,15 +3451,15 @@ def _resonance_note_write(conv_sid, user_mid, brain, ev) -> None:
 async def _resonance_push_card(conv_sid, brain_root, decision) -> bool:
     """Đặt thẻ "Em đang hướng tới" vào khung chat sau lượt vừa lập (hoặc cập nhật) mục tiêu. Khoá báo cáo theo
     tin nhắn: chạy lại cùng lượt không đặt thẻ thứ hai."""
-    g = _resonance_store().get(resonance_store.Principal("agent", "vanhanh", _brain_key(brain_root)), decision.goal_id)
+    g = _resonance_store().get(resonance_store.Principal("agent", "naota", _brain_key(brain_root)), decision.goal_id)
     if g is None:
         return False
     key = f"turn:{decision.message_ref}"
     if _resonance_reported(g, key):
         return False
-    text = (localefmt.chu("Vanhanh đã lập mục tiêu từ việc này.", "Vanhanh set a goal from this request.")
+    text = (localefmt.chu("Naota đã lập mục tiêu từ việc này.", "Naota set a goal from this request.")
             if decision.kind == "create_goal" else
-            localefmt.chu("Vanhanh đã cập nhật cách hiểu mục tiêu.", "Vanhanh updated its understanding of the goal."))
+            localefmt.chu("Naota đã cập nhật cách hiểu mục tiêu.", "Naota updated its understanding of the goal."))
     return await push_to_chat(conv_sid, text, card=resonance.goal_block(g.id, g.revision, report=key))
 
 
@@ -2864,22 +3511,38 @@ def _resonance_agents_meta(root):
 
 
 def _resonance_agents_meta_core(root):
-    """The Auto page's list: Vanhanh Core first (Auto always on), then the brain's agents. Teams keep
-    `_resonance_agents_meta`, without Vanhanh Core."""
+    """The Auto page's list: Naota Core first (Auto always on), then the brain's agents. Teams keep
+    `_resonance_agents_meta`, without Naota Core."""
     try:
         main_prov = _chat_provider(cfgmod.read_settings().get("model", {}) or {})[0]
     except Exception:  # noqa: BLE001
         main_prov = ""
     out = []
     try:
-        _cm = vanhanh_core.read_core(root)[0]
+        _cm = naota_core.read_core(root)[0]
         _cp = _core_pin(cfgmod.read_settings().get("model", {}) or {})
-        out.append({"slug": vanhanh_core.SLUG, "name": _cm.get("name") or vanhanh_core.NAME,
-                    "provider": _cp.get("provider") or main_prov, "avatar": agent_avatar.for_agent(_cm, vanhanh_core.SLUG),
+        out.append({"slug": naota_core.SLUG, "name": _cm.get("name") or naota_core.NAME,
+                    "provider": _cp.get("provider") or main_prov, "avatar": agent_avatar.for_agent(_cm, naota_core.SLUG),
                     "title": str(_cm.get("role") or "")[:120], "system": True})
     except Exception as e:  # noqa: BLE001
         print(f"[resonance meta core] {type(e).__name__}: {e}", file=sys.stderr)
     return out + _resonance_agents_meta(root)
+
+
+async def _pack_agents_changed(root: str) -> None:
+    """A Store pack just placed or removed assistant files in brain `root` (2026-11-11): bring the Auto registry in
+    step right away (agent_presence.sync) and tell the open tabs when a state changed. No registry yet: nothing to do,
+    and none is created just for this."""
+    if _RESONANCE_STORE is None and not (Path(cfgmod.STATE_DIR) / "resonance.sqlite3").is_file():
+        return
+    bkey = _brain_key(root)
+
+    def _run():
+        slugs = [m["slug"] for m in _resonance_agents_meta_core(bkey)]
+        return agent_presence.sync(_resonance_store(), bkey, slugs)
+    res = await asyncio.to_thread(_run)
+    if res["missing"] or res["restored"]:
+        await _CHAT_RUNTIME.publish({"type": "resonance_agents"})
 
 
 _RESONANCE_API_DEPS = resonance_api.ResonanceApiDeps(
@@ -2907,7 +3570,7 @@ def _resonance_reported(goal, report_key) -> bool:
     lúc lưu tin và lúc đánh dấu outbox thì nhịp sau thấy đã lưu, chỉ đánh dấu, không gửi lần hai.
 
     Bằng chứng là biên nhận `report_receipts` do push_to_chat ghi cùng giao dịch với tin (review M4 vòng 2), không
-    phải chuỗi khoá xuất hiện đâu đó trong hội thoại: lời chat trích JSON, hay cả một khối VANHANH_RESONANCE do model
+    phải chuỗi khoá xuất hiện đâu đó trong hội thoại: lời chat trích JSON, hay cả một khối NAOTA_RESONANCE do model
     tự viết ra, đều không có biên nhận nên không làm mất báo cáo thật. Tra theo khoá chính nên không giới hạn độ sâu
     (review M4, P2-2). Có biên nhận vẫn đối chiếu lại khối thẻ trong tin: đúng khoá, đúng mục tiêu."""
     try:
@@ -2926,20 +3589,20 @@ def _resonance_deps(brain_id):
     if not root or not Path(root).is_dir():
         return None
     return resonance.GoalDeps(engine_factory=_resonance_engine, budget=resonance.CallBudget(0),
-                              store=_resonance_store(), principal=resonance_store.Principal("agent", "vanhanh", root),
+                              store=_resonance_store(), principal=resonance_store.Principal("agent", "naota", root),
                               brain_root=root, evidence=_RESONANCE_EVIDENCE, notify=_resonance_notify)
 
 
-# A4: công cụ hub `vanhanh_submit_deliverable` (plugin trong tiến trình) dùng đúng phụ thuộc của server.
+# A4: công cụ hub `naota_submit_deliverable` (plugin trong tiến trình) dùng đúng phụ thuộc của server.
 resonance.set_deps_provider(_resonance_deps)
 
 
 async def _resonance_tick():
     """Một nhịp Resonance trong scheduler (M3). Chưa từng có kho thì thoát ngay, không tạo file nào. Chạy NỀN
     (create_task) vì một bước có thể gọi model tới max_wall_s; cờ bận giữ cho hai nhịp không chồng nhau."""
-    # VANHANH_RESONANCE_TICK_PAUSED=1: tạm dừng nhịp Resonance của tiến trình này (sandbox, pilot): lượt chat vẫn lập
+    # NAOTA_RESONANCE_TICK_PAUSED=1: tạm dừng nhịp Resonance của tiến trình này (sandbox, pilot): lượt chat vẫn lập
     # được mục tiêu nhưng không lượt việc nền nào chạy cho tới khi tiến trình khác (không đặt biến) nhận lịch.
-    if os.environ.get("VANHANH_RESONANCE_TICK_PAUSED") == "1":
+    if os.environ.get("NAOTA_RESONANCE_TICK_PAUSED") == "1":
         return
     if _RESONANCE_TICK_BUSY[0] or not (Path(cfgmod.STATE_DIR) / "resonance.sqlite3").exists():
         return
@@ -2953,7 +3616,7 @@ async def _resonance_tick():
     finally:
         _RESONANCE_TICK_BUSY[0] = False
 
-# Model đã GỠ khỏi Vanhanh mà cài đặt cũ của người dùng có thể còn giữ. `chatgpt-web`
+# Model đã GỠ khỏi Naota mà cài đặt cũ của người dùng có thể còn giữ. `chatgpt-web`
 # chạy bằng một trình duyệt lái trang chatgpt.com, và bị gỡ vì trên máy chủ
 # thuê Cloudflare chặn IP. Ai đang chọn nó thì lượt chat kế tiếp rơi vào nhánh Codex, và nhánh
 # đó TỰ CHỮA: đổi sang model Codex thật, ghi lại cài đặt, báo một dòng. Để điều đó xảy ra thì
@@ -2974,7 +3637,7 @@ def _codex_safe_model(model: str) -> str:
     if m and m not in _MODEL_DA_GO and (m in cat or m.endswith("-codex")):
         return m
     # Catalog rỗng (cài mới/offline): không truyền -m để Codex tự chọn default
-    # hiện hành của chính nó, thay vì Vanhanh đoán một model id rồi sớm lỗi thời.
+    # hiện hành của chính nó, thay vì Naota đoán một model id rồi sớm lỗi thời.
     return cat[0] if cat else ""
 
 def _is_codex_model(model: str) -> bool:
@@ -3024,7 +3687,8 @@ def _provider_key(mcfg, d):
 
 def _route_ready(mcfg, prov) -> bool:
     """Whether a card can take a chat turn right now: an API card needs a key that is not resting, a plan card must
-    not be known to be out of quota. Unknown means yes: the turn itself reports the provider's own error."""
+    not be known to be out of quota or signed out (`_SIGNED_OUT`, 2026-11-12). Unknown means yes: the turn itself
+    reports the provider's own error."""
     d = _provider_def(prov)
     if not d:
         return False
@@ -3034,7 +3698,7 @@ def _route_ready(mcfg, prov) -> bool:
         if d.get("key_field") and d["id"] not in _ROUTING_SINGLE_KEY:
             return bool(model_routing.usable_accounts(mcfg, prov, d["key_field"]))
         return bool(_provider_key(mcfg, d))
-    if _pin_limited_until(prov):
+    if _pin_limited_until(prov) or _signed_out_until(prov):
         return False
     if plan_accounts.in_use(prov) and plan_accounts.has_extra(mcfg, prov):
         return plan_accounts.pick(mcfg, prov) is not None   # every account of the plan off, resting or signed out
@@ -3159,6 +3823,8 @@ def _plan_main_signed_in(provider: str) -> None:
     except Exception as e:  # noqa: BLE001 - a sign-in must never fail on this
         print(f"[plan accounts] clear rest {provider}: {type(e).__name__}: {e}", file=sys.stderr)
     _PIN_LIMITED.pop(provider, None)
+    _SIGNED_OUT.pop(provider, None)        # 2026-11-12: a fresh sign-in lifts the signed-out mark at once
+    _SIGNED_OUT_TOLD.pop(provider, None)   # and the next loss is worth telling the owner again
 
 
 def _clear_pin_limit(provider: str) -> bool:
@@ -3177,7 +3843,96 @@ def _clear_pin_limit(provider: str) -> bool:
             model_routing.clear_rest(prov, plan_accounts.MAIN)   # one account: its rest IS the card's rest
     except Exception as e:  # noqa: BLE001 - lifting a mark must never fail the owner's click
         print(f"[routing] clear limit {prov}: {type(e).__name__}: {e}", file=sys.stderr)
-    return had
+    return _SIGNED_OUT.pop(prov, None) is not None or had
+
+
+# A plan card that lost its SIGN-IN (owner's report 12/11/2026, a customer's bot on an agent set to ChatGPT): provider ->
+# epoch until which turns skip the card, exactly as they skip a plan out of quota. Before, only a quota refusal moved
+# a turn on; a signed-out plan refused every turn while another model was signed in. Kept apart from `_PIN_LIMITED` so
+# the page never says "out of quota until 12:40" about a card that needs a sign-in. In memory only: after a restart the
+# first turn finds out again, at the cost of one quick refusal. Lifted by signing in, by choosing the card on purpose
+# (`_clear_pin_limit`), or by itself after `signin_loss.RETRY_S`, when one turn tries the card again.
+_SIGNED_OUT: dict = {}
+# provider -> time the owner was last told, so a card that stays signed out rings the bell once a day, not every window.
+_SIGNED_OUT_TOLD: dict = {}
+SIGNED_OUT_NOTICE_EVERY_S = 24 * 3600
+
+
+def _signed_out_until(provider: str, now: float = None) -> float:
+    """Epoch until which `provider` is known to be signed out, 0 when it is not (or the window ran out)."""
+    prov = str(provider or "")
+    now = time.time() if now is None else now
+    until = float(_SIGNED_OUT.get(prov, 0) or 0)
+    if until <= now:
+        _SIGNED_OUT.pop(prov, None)
+        return 0.0
+    return until
+
+
+def _signin_lost_text(provider: str, text, answer: bool = False) -> bool:
+    """Whether an engine's error (or, with `answer`, its whole answer) says the plan card `provider` lost its sign-in.
+    Only the four plan cards have a sign-in to lose; a quota sentence is never one."""
+    prov = str(provider or "")
+    if prov not in _ROUTING_PLAN_PROVIDERS or not str(text or "").strip():
+        return False
+    try:
+        if _subscription_limit_event(str(text), _NHA_SANG_ENGINE.get(prov, ""))[0]:
+            return False
+    except Exception:  # noqa: BLE001 - the detector below still decides
+        pass
+    return signin_loss.is_signin_error(text, answer=answer)
+
+
+def _signin_lost_message(provider: str, raw="") -> str:
+    """What the owner reads when a plan card lost its sign-in and no other route took the turn."""
+    name = _route_name(provider)
+    detail = " ".join(str(raw or "").split())[:200]
+    return localefmt.chu(
+        f"⚠ {name} mất đăng nhập nên lượt này chưa chạy. Vào trang Models đăng nhập lại {name}, hoặc chọn model khác."
+        + (f" (Chi tiết: {detail})" if detail else ""),
+        f"⚠ {name} lost its sign-in, so this turn did not run. Sign in to {name} again on the Models page, or pick "
+        "another model." + (f" (Details: {detail})" if detail else ""))
+
+
+def _note_signin_lost(provider: str, account: str = None, now: float = None) -> None:
+    """A turn on plan card `provider` was refused for a lost sign-in: turns skip the card for `signin_loss.RETRY_S`.
+
+    On a card with several accounts the account that was refused rests, and the card itself is only marked when no
+    other account can run (as `_note_pin_limit` does for quota). The owner is told once through the inbox. Never
+    raises: a mark must not turn one failure into two."""
+    prov = str(provider or "")
+    if prov not in _ROUTING_PLAN_PROVIDERS:
+        return
+    now = time.time() if now is None else now
+    until = now + signin_loss.RETRY_S
+    try:
+        if plan_accounts.in_use(prov):
+            m = cfgmod.read_settings().get("model") or {}
+            if plan_accounts.has_extra(m, prov):
+                aid = account or _PLAN_ACCOUNT_LAST.get(prov, plan_accounts.MAIN)
+                model_routing.mark_rest(prov, aid, until=until)
+                if plan_accounts.usable(m, prov, now):
+                    return
+    except Exception as e:  # noqa: BLE001
+        print(f"[routing] signed out {prov}: {type(e).__name__}: {e}", file=sys.stderr)
+    first = not _signed_out_until(prov, now)
+    _SIGNED_OUT[prov] = until
+    if first:
+        print(f"[routing] {prov} lost its sign-in: turns use the next card for {int(signin_loss.RETRY_S)} s",
+              file=sys.stderr)
+    if now - float(_SIGNED_OUT_TOLD.get(prov, 0) or 0) < SIGNED_OUT_NOTICE_EVERY_S:
+        return
+    _SIGNED_OUT_TOLD[prov] = now
+    try:
+        name = _route_name(prov)
+        inbox.add(localefmt.chu(
+            f"{name} mất đăng nhập. Naota đang chạy bằng model khác đã kết nối (nếu có). "
+            f"Vào trang Models đăng nhập lại {name} để dùng lại model này.",
+            f"{name} lost its sign-in. Naota is running on another connected model (if there is one). "
+            f"Sign in to {name} again on the Models page to use this model again."),
+            kind="system", dedup=f"signed-out:{prov}:{time.strftime('%Y-%m-%d', time.localtime(now))}")
+    except Exception as e:  # noqa: BLE001 - a missed notice never fails the turn
+        print(f"[routing] signed-out notice {prov}: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 def _note_api_limit(mcfg, prov: str, key: str, raw: str = "", seconds: float = 0.0) -> None:
@@ -3207,8 +3962,8 @@ def _note_api_limit(mcfg, prov: str, key: str, raw: str = "", seconds: float = 0
 # (spec 6.4): a chat turn that runs out of quota before writing a word or calling a tool runs again at once on
 # the next route: the next account of the same card, then the next card of the usage order. At most this many hops.
 REROUTE_MAX_HOPS = 3
-# Lines Vanhanh itself writes into the step list; they are not tool calls of the model.
-_REROUTE_QUIET_TOOLS = ("vanhanh_nen_mach", "vanhanh_autoshrink")
+# Lines Naota itself writes into the step list; they are not tool calls of the model.
+_REROUTE_QUIET_TOOLS = ("naota_nen_mach", "naota_autoshrink")
 _ROUTE_SHORT = {"anthropic-cli": "Claude Code", "openai-oauth": "ChatGPT", "grok-cli": "Grok Build",
                 "antigravity-cli": "Antigravity"}
 
@@ -3243,8 +3998,12 @@ def _route_account_no(mcfg, prov: str, key: str = ""):
         return 0, ""
 
 
-def _chat_next_route(mcfg, failed: str, failed_key: str = "", tried=(), failed_account: str = None) -> dict:
+def _chat_next_route(mcfg, failed: str, failed_key: str = "", tried=(), failed_account: str = None,
+                     reason: str = "quota") -> dict:
     """Where a chat turn that ran out of quota goes next, or {} when nothing is left.
+
+    `reason="signin"` (2026-11-12): the card lost its sign-in instead (`_note_signin_lost` already marked it); the
+    route is chosen the same way and only the status line says why.
 
     The failing account is already resting (`_note_pin_limit`, `_note_api_limit`), so `_route_ready` and the
     account pickers skip it. Same card first while it still has an account that can run, then the usage order,
@@ -3281,15 +4040,17 @@ def _chat_next_route(mcfg, failed: str, failed_key: str = "", tried=(), failed_a
         old_no, old_lab = _route_account_no(mcfg, prov, failed_key if kind == "api" else
                                             (failed_account or _PLAN_ACCOUNT_LAST.get(prov, plan_accounts.MAIN)))
         new_no, new_lab = _route_account_no(mcfg, prov, ref)
+        why_vi, why_en = (("mất đăng nhập", "lost its sign-in") if reason == "signin"
+                          else ("hết lượt", "is out of quota"))
         if kind == "api":
             new_s, old_s = (new_lab or f"key {new_no}"), (old_lab or f"key {old_no}")
-            vi = f"Đang dùng {_route_name(prov)} ({new_s}) vì {old_s} hết lượt."
-            en = f"Using {_route_name(prov)} ({new_s}) because {old_s} is out of quota."
+            vi = f"Đang dùng {_route_name(prov)} ({new_s}) vì {old_s} {why_vi}."
+            en = f"Using {_route_name(prov)} ({new_s}) because {old_s} {why_en}."
         else:
             vi = (f"Đang dùng {_route_name(prov)} ({new_lab or f'tài khoản {new_no}'}) vì "
-                  f"{old_lab or f'tài khoản {old_no}'} hết lượt.")
+                  f"{old_lab or f'tài khoản {old_no}'} {why_vi}.")
             en = (f"Using {_route_name(prov)} ({new_lab or f'account {new_no}'}) because "
-                  f"{old_lab or f'account {old_no}'} is out of quota.")
+                  f"{old_lab or f'account {old_no}'} {why_en}.")
         return {"route": (prov, kind, key, model), "status": localefmt.chu(vi, en), "tried": tried}
     try:
         signed_in = set(_routing_connected_ids(cfgmod.read_settings()))
@@ -3304,8 +4065,12 @@ def _chat_next_route(mcfg, failed: str, failed_key: str = "", tried=(), failed_a
             model = _effective_main({"model": mcfg}).get("model") or model
         if cand == "openrouter":
             model = model or mcfg.get("openrouter_model")
-        vi = f"Đang dùng {_route_name(cand)} vì {_route_name(failed)} hết lượt."
-        en = f"Using {_route_name(cand)} because {_route_name(failed)} is out of quota."
+        if reason == "signin":
+            vi = f"Đang dùng {_route_name(cand)} vì {_route_name(failed)} mất đăng nhập."
+            en = f"Using {_route_name(cand)} because {_route_name(failed)} lost its sign-in."
+        else:
+            vi = f"Đang dùng {_route_name(cand)} vì {_route_name(failed)} hết lượt."
+            en = f"Using {_route_name(cand)} because {_route_name(failed)} is out of quota."
         return {"route": (cand, cd.get("kind", "cli"), _provider_key(mcfg, cd), model),
                 "status": localefmt.chu(vi, en), "tried": tried}
     return {}
@@ -3342,9 +4107,9 @@ def _chat_provider_for_session(mcfg, row):
     TRONG phiên đó. Ghim hỏng (provider không còn cấu hình) thì rơi về mặc định chung
     thay vì chết lượt chat.
 
-    Every Vanhanh Core chat runs on Vanhanh Core's own pin (`_core_pin`), or on the main
+    Every Naota Core chat runs on Naota Core's own pin (`_core_pin`), or on the main
     model while it has none; the pin of the single chat is ignored."""
-    if vanhanh_core.is_core_channel((row or {}).get("channel")):
+    if naota_core.is_core_channel((row or {}).get("channel")):
         _cp = _core_pin(mcfg)
         row = {"pinned_provider": _cp.get("provider") or "", "pinned_model": _cp.get("model") or ""}
     pprov = ((row or {}).get("pinned_provider") or "").strip()
@@ -3353,10 +4118,11 @@ def _chat_provider_for_session(mcfg, row):
     d = _provider_def(pprov)
     if not d:
         return _chat_provider(mcfg)
-    if pprov == "antigravity-cli" and antigravity_cli.vanhanh_off():
+    if pprov == "antigravity-cli" and antigravity_cli.naota_off():
         return _chat_provider(mcfg)   # 05/11/2026: the owner disconnected that card; a pin to it must not keep using it
-    if _pin_limited_until(pprov):
+    if _pin_limited_until(pprov) or _signed_out_until(pprov):
         # The pinned model's plan is out of quota: run on the main chat's model until it resets.
+        # 2026-11-12: the same while the plan is known to be signed out (an agent or a bot pinned to ChatGPT).
         main_route = _chat_provider(mcfg)
         if main_route[0] != pprov:
             return main_route
@@ -3371,11 +4137,11 @@ def _chat_provider_for_session(mcfg, row):
 
 
 def _chat_selected(mcfg, row) -> dict:
-    """{'provider','model'} the owner CHOSE for one chat, before any fallback: the chat's own pin (Vanhanh Core's pin in
+    """{'provider','model'} the owner CHOSE for one chat, before any fallback: the chat's own pin (Naota Core's pin in
     a Core chat), else MAIN. `_chat_provider_for_session` says where the turn really runs; the two differ while the
     chosen card is out of quota or cannot run (the composer chip shows both)."""
     row = row or {}
-    if vanhanh_core.is_core_channel(row.get("channel")):
+    if naota_core.is_core_channel(row.get("channel")):
         pin = _core_pin(mcfg)
     else:
         pp = str(row.get("pinned_provider") or "").strip()
@@ -3384,6 +4150,36 @@ def _chat_selected(mcfg, row) -> dict:
         return {"provider": pin["provider"], "model": pin.get("model") or ""}
     em = _effective_main({"model": mcfg or {}})
     return {"provider": em["provider"], "model": em.get("model") or ""}
+
+
+def _card_broken(mcfg, prov: str) -> bool:
+    """`prov` cannot run at all (card gone, API key removed, card disconnected), as opposed to resting out of quota or
+    signed out for a while (`_pin_health` does not see a sign-out, so a signed-out card counts as resting)."""
+    usable, resting_until = _pin_health(mcfg, prov)
+    return not usable and not resting_until
+
+
+def _pin_to_stamp(mcfg, row, prov: str, model: str):
+    """(provider, model) a dashboard chat turn stamps as the chat's pin, or None to leave the pin as it is.
+
+    The stamp anchors a chat on its model from the first turn (owner, 16/08): a new or unpinned chat gets the model it
+    runs on, and a broken pin (card gone, key removed, card disconnected) is replaced by the main model it falls back
+    to. A FALLBACK while a card only rests (out of quota, signed out) is never stamped: it replaced the
+    owner's pin, so the chat stayed on the fallback model after the quota came back. The pin stays as it is, and an
+    unpinned chat is stamped on its first turn back on the card it really belongs to."""
+    prov, model = str(prov or ""), str(model or "")
+    row = row or {}
+    if (str(row.get("pinned_provider") or "").strip() == prov
+            and str(row.get("pinned_model") or "") == model):
+        return None
+    sel = _chat_selected(mcfg, row)["provider"]
+    if prov != sel:
+        if not _card_broken(mcfg, sel):
+            return None     # the chosen card (the pin, or MAIN for an unpinned chat) only rests
+        main_prov = _effective_main({"model": mcfg or {}})["provider"]
+        if prov != main_prov and not _card_broken(mcfg, main_prov):
+            return None     # a broken pin falls back to the main model, which rests too
+    return prov, model
 
 
 def _route_rest_until(mcfg, prov: str, now: float = None) -> float:
@@ -3423,19 +4219,27 @@ def _route_view(mcfg, row, run=None, now: float = None) -> dict:
            "selected_provider": sel["provider"], "selected_model": sel["model"],
            "selected_name": _route_name(sel["provider"]), "fallback": prov != sel["provider"],
            # Effort of the card running (the Effort chip follows a fallback card too). An assistant's
-           # or Vanhanh Core's chat thinks at its own level whatever the card; the composer shows that level there.
+           # or Naota Core's chat thinks at its own level whatever the card; the composer shows that level there.
            "reasoning": _chat_reasoning(mcfg or {}, prov) if prov else "off"}
-    limited = {}
+    limited, signed_out = {}, []
     for p in _uniq_ids([sel["provider"], *model_routing.order(mcfg or {})]):
+        if _signed_out_until(p, now):
+            signed_out.append(p)     # 2026-11-12: needs a sign-in, not a wait; never shown as "out of quota until"
+            continue
         until = _route_rest_until(mcfg, p, now)
         if until and not _route_ready(mcfg, p):
             limited[p] = until
     out["limited"] = limited
+    out["signed_out"] = signed_out
     if out["fallback"]:
-        until = limited.get(sel["provider"]) or _pin_limited_until(sel["provider"], now)
-        out["reason"] = "quota" if until else "unavailable"
+        lost = sel["provider"] in signed_out
+        until = 0 if lost else (limited.get(sel["provider"]) or _pin_limited_until(sel["provider"], now))
+        out["reason"] = "signin" if lost else "quota" if until else "unavailable"
         out["until"] = float(until or 0)
-        if until:
+        if lost:
+            vi = f"{out['selected_name']} mất đăng nhập → đang dùng {out['name']}."
+            en = f"{out['selected_name']} lost its sign-in → using {out['name']}."
+        elif until:
             vi = f"{out['selected_name']} hết lượt → đang dùng {out['name']}."
             en = f"{out['selected_name']} is out of quota → using {out['name']}."
         else:
@@ -3454,8 +4258,8 @@ def _uniq_ids(ids) -> list:
 
 
 def _core_pin(mcfg) -> dict:
-    """{'provider','model'} Vanhanh Core is pinned to, or {} when it follows the main model. Set from the model
-    bar of any Vanhanh Core chat (`POST /sessions/{id}/model`); "Follow the main model" clears it."""
+    """{'provider','model'} Naota Core is pinned to, or {} when it follows the main model. Set from the model
+    bar of any Naota Core chat (`POST /sessions/{id}/model`); "Follow the main model" clears it."""
     prov = str((mcfg or {}).get("core_provider") or "").strip()
     return {"provider": prov, "model": str((mcfg or {}).get("core_model") or "").strip()} if prov else {}
 
@@ -3463,11 +4267,11 @@ def _core_pin(mcfg) -> dict:
 def _pin_health(mcfg, prov: str) -> tuple:
     """(usable, limited_until) of a model pin on `prov`, judged the way `_chat_provider_for_session` routes it: the
     provider must exist, an API provider needs its key, and a plan out of quota runs the main model for now.
-    Shared by the chat model bar (`/sessions/{id}/meta`) and the Vanhanh Core card (`/vanhanh-core/model`)."""
+    Shared by the chat model bar (`/sessions/{id}/meta`) and the Naota Core card (`/naota-core/model`)."""
     d = _provider_def(prov)
     # Same key reading as routing (`_provider_key`): a home Ollama with no key must not read as a broken pin.
     ok = bool(d) and (d.get("kind") != "api" or bool(_provider_key(mcfg, d)))
-    if ok and prov == "antigravity-cli" and antigravity_cli.vanhanh_off():
+    if ok and prov == "antigravity-cli" and antigravity_cli.naota_off():
         ok = False   # disconnected on the Models page: the chat runs on the main model (_chat_provider_for_session)
     lim_until = _pin_limited_until(prov) if ok else 0
     if lim_until and _chat_provider(mcfg)[0] != prov:
@@ -3476,8 +4280,8 @@ def _pin_health(mcfg, prov: str) -> tuple:
 
 
 async def _set_core_pin(provider: str, model: str) -> dict:
-    """Pin Vanhanh Core as a whole (empty provider = follow the main model). The one writer of `model.core_provider` /
-    `core_model`, used by the model bar of a Core chat and by the Vanhanh Core card on the Agents page."""
+    """Pin Naota Core as a whole (empty provider = follow the main model). The one writer of `model.core_provider` /
+    `core_model`, used by the model bar of a Core chat and by the Naota Core card on the Agents page."""
     prov = (provider or "").strip()
     mdl = (model or "").strip() if prov else ""
     await asyncio.to_thread(cfgmod.update_settings, {"model": {"core_provider": prov, "core_model": mdl}})
@@ -3485,11 +4289,11 @@ async def _set_core_pin(provider: str, model: str) -> dict:
 
 
 def _core_model_view(mcfg) -> dict:
-    """What the Vanhanh Core card shows: the pin (or none), whether it can run, the main model it otherwise
+    """What the Naota Core card shows: the pin (or none), whether it can run, the main model it otherwise
     follows, and the provider/model the next Core turn really runs on (`run_*`, after every fallback)."""
     pin = _core_pin(mcfg)
     em = _effective_main({"model": mcfg})
-    run = _chat_provider_for_session(mcfg, {"channel": vanhanh_core.CHANNEL})
+    run = _chat_provider_for_session(mcfg, {"channel": naota_core.CHANNEL})
     out = {"pinned": bool(pin), "pinned_provider": pin.get("provider") or None, "pinned_model": pin.get("model") or None,
            "pin_ok": True, "main_provider": em["provider"], "main_model": em["model"] or "",
            "run_provider": run[0], "run_model": run[3] or ""}
@@ -3536,7 +4340,7 @@ def _ear_brain_provider(cfg, row=None, agent=None) -> str:
 
     Owner: "the ear follows the model in use", and for agents "the agent's own model's vendor, not the main one's".
       - `agent` {brain, slug} (a dedicated bot, a voice message to an agent): the model that agent file chose;
-      - `row` (the dashboard chat being dictated into): its pinned model (Vanhanh Core's pin in a Core chat), else, in a
+      - `row` (the dashboard chat being dictated into): its pinned model (Naota Core's pin in a Core chat), else, in a
         partner's chat, that partner's model;
       - otherwise, or when the agent stays on "Default": the main model.
     Never raises: a missing agent file or session only means the main model's ear."""
@@ -3547,7 +4351,7 @@ def _ear_brain_provider(cfg, row=None, agent=None) -> str:
             if g:
                 return g["provider"]
         if row:
-            if str(row.get("pinned_provider") or "").strip() or vanhanh_core.is_core_channel(row.get("channel")):
+            if str(row.get("pinned_provider") or "").strip() or naota_core.is_core_channel(row.get("channel")):
                 return _chat_provider_for_session(mcfg, row)[0]
             persona = workflow_chat.persona_cua_phien(row)
             if persona and persona[0] == "agent":
@@ -3644,7 +4448,7 @@ def _api_stream(prov, key, model, messages, reasoning="off"):
 # Allowlist rỗng-thật cho engine Claude Code: bật cổng `can_use_tool` mà không tool nào khớp,
 # nên MỌI tool bị từ chối per-call. Danh sách rỗng [] KHÔNG dùng được - nó falsy nên engine rơi
 # vào nhánh bypassPermissions, tức mở toang đúng cái ta đang muốn đóng.
-CLAUDE_SUB_KHONG_TOOL = ["__vanhanh_claude_sub_khong_tool__"]
+CLAUDE_SUB_KHONG_TOOL = ["__naota_claude_sub_khong_tool__"]
 
 
 def _claude_sub_tach(messages):
@@ -3741,7 +4545,7 @@ def _claude_sub_stream(model, messages, reasoning="off", *, brain=None, tag="cha
 
     Đường cũ tự đọc `~/.claude/.credentials.json` rồi gửi `Authorization: Bearer <token>` tới
     api.anthropic.com. Anthropic cấm đúng việc đó (xem claude_auth.py), và cách họ bắt là soi
-    dấu vân tay request - thứ mà request Vanhanh tự dựng chắc chắn không có. Nay lượt này chạy
+    dấu vân tay request - thứ mà request Naota tự dựng chắc chắn không có. Nay lượt này chạy
     qua chính binary `claude`, nên ai đăng nhập và ai trả tiền là chuyện của Claude Code.
 
     `tiet_kiem=True` cho đường Siêu tiết kiệm: gửi system prompt TRẦN thay vì preset
@@ -3840,7 +4644,7 @@ async def _cli_sub_doc(g, prompt, model):
 
 # Tool NATIVE của Claude Code mà bot chuyên trách TUYỆT ĐỐI không được chạm, ở mọi mức quyền.
 # Bot phục vụ người lạ nhắn tới, nên "chạy được lệnh máy" là một hạng rủi ro khác hẳn phần còn
-# lại của Vanhanh. Allowlist bên dưới đã đủ chặn (mọi tool ngoài list bị `can_use_tool` từ chối
+# lại của Naota. Allowlist bên dưới đã đủ chặn (mọi tool ngoài list bị `can_use_tool` từ chối
 # per-call); danh sách này là lớp thứ hai, để một hôm nào đó allowlist bị nới thì đây vẫn giữ.
 BOT_CAM_NATIVE = ["Bash", "BashOutput", "KillShell", "WebFetch", "WebSearch", "Task",
                   "Write", "Edit", "NotebookEdit", "Read", "Glob", "Grep"]
@@ -3854,10 +4658,10 @@ def _claude_sub_stream_tools(model, messages, reasoning="off", *, brain=None, ta
     nào có tool native, nên không con nào trèo ra khỏi brain của bot được. Mở engine Claude
     Code là MẤT sự thật đó. Nó được dựng lại ở đây bằng bốn lớp tường minh, và cả bốn đều cần:
 
-    1. `allowed_tools` chỉ có `mcp__vanhanh` → cổng `can_use_tool` TỪ CHỐI mọi tool khác từng lần
+    1. `allowed_tools` chỉ có `mcp__naota` → cổng `can_use_tool` TỪ CHỐI mọi tool khác từng lần
        gọi, kể cả Bash/Read/Write builtin của Claude Code.
     2. `BOT_CAM_NATIVE` chặn thẳng nhóm native, phòng khi lớp 1 bị nới sau này.
-    3. Config hub mang X-Vanhanh-Vault = brain CỦA BOT → tool file đi qua `_safe_path` của đúng
+    3. Config hub mang X-Naota-Vault = brain CỦA BOT → tool file đi qua `_safe_path` của đúng
        brain đó. Thiếu nó thì hub không cấp nhóm tool file (mặc định của đường Claude), và bot
        mức Được ghi mất khả năng ghi - vì lớp 1 đã chặn Write native rồi.
     4. `mcp_strict` → không nạp MCP ambient của máy chủ, tức bot không thấy connector của chủ.
@@ -3872,12 +4676,12 @@ def _claude_sub_stream_tools(model, messages, reasoning="off", *, brain=None, ta
     cli = claude_engine(system_prompt=sys_txt, cwd=vault, tag=tag,
                         allowed_tools=list(mcp_hub.allow_patterns()),
                         model=_claude_api_model(model) or None)
-    cli.vanhanh_mode = mode
-    cli.vanhanh_vault = vault
+    cli.naota_mode = mode
+    cli.naota_vault = vault
     cli.mcp_config = mcp_hub.claude_config_path(mode, vault_root=vault, bot=True)
     cli.mcp_strict = cli.mcp_config is not None
-    # Lớp hai cho OWNER_ONLY_TOOLS: hub đã giấu nhờ header X-Vanhanh-Bot, chặn thêm ở đây phòng hub đổi.
-    cli.disallowed_tools = list(BOT_CAM_NATIVE) + [f"mcp__vanhanh__{t}" for t in sorted(mcp_hub.OWNER_ONLY_TOOLS)]
+    # Lớp hai cho OWNER_ONLY_TOOLS: hub đã giấu nhờ header X-Naota-Bot, chặn thêm ở đây phòng hub đổi.
+    cli.disallowed_tools = list(BOT_CAM_NATIVE) + [f"mcp__naota__{t}" for t in sorted(mcp_hub.OWNER_ONLY_TOOLS)]
     return _claude_sub_doc(cli, _claude_kem_anh(messages, _cli_do_sau(cli, reasoning, prompt)), model)
 
 
@@ -3987,7 +4791,7 @@ def _coding_ctx_luot(row, brain=None, sid="", chat_id=""):
 
 async def _api_stream_mcp(prov, key, model, messages, reasoning="off", brain=None,
                           force_lazy=False, mode="full", coding_row=None, owner_sid="", owner_chat=""):
-    """Model API/OAuth dùng MCP của Vanhanh qua HUB: đa tài khoản + quyền + audit + builtin tools
+    """Model API/OAuth dùng MCP của Naota qua HUB: đa tài khoản + quyền + audit + builtin tools
     (file vault, use_skill) → engine API cũng là agent thực thụ. anthropic-api giờ CÓ tool loop.
     ChatGPT OAuth ở các kênh tương tác đi qua Codex CLI native MCP, không dùng fallback này.
 
@@ -4010,7 +4814,7 @@ async def _api_stream_mcp(prov, key, model, messages, reasoning="off", brain=Non
             if _hub_enabled():
                 vault_root = _brain_root(brain) if brain else None
                 # staging=True: đây là đường chat của CHỦ (dashboard + Telegram của chủ), tức
-                # đúng nơi người dùng đính kèm/dán file. Cho vanhanh_read_file với tới vùng nhận
+                # đúng nơi người dùng đính kèm/dán file. Cho naota_read_file với tới vùng nhận
                 # file của khung chat, nếu không thì khối "[File đính kèm để ĐỌC…]" mà chính
                 # dashboard chèn vào câu hỏi là một lời hứa engine API không giữ nổi. Bot
                 # chuyên trách dựng tool ở chỗ khác và KHÔNG truyền cờ này - khách lạ vẫn chỉ
@@ -4031,7 +4835,7 @@ async def _api_stream_mcp(prov, key, model, messages, reasoning="off", brain=Non
                     inventory_tools, inventory_route = tools, route
         except Exception as e:
             print(f"[mcp discover] {e}", file=__import__('sys').stderr)
-        # The owner's chat turn gets vanhanh_plan (plan_tool.py): the checklist Claude Code, Codex and Grok keep with their
+        # The owner's chat turn gets naota_plan (plan_tool.py): the checklist Claude Code, Codex and Grok keep with their
         # own tools, drawn as the plan card. Not for a customer bot or a background job (no chat to draw in).
         if (owner_sid or coding_row) and tools:
             try:
@@ -4197,13 +5001,13 @@ async def _execute_write_proposal(plan, provider: str, api_key: str, model: str,
         _CONTEXT_RUNTIME.revoke_capability_lease(
             runtime_trace, lease.lease_id, planned.get("error_code") or "planner_failed")
         text = ("Model không lập được tham số đúng hợp đồng cho hành động ghi này. "
-                "Vanhanh đã dừng an toàn, chưa gọi tool và chưa thay đổi gì.")
+                "Naota đã dừng an toàn, chưa gọi tool và chưa thay đổi gì.")
         _CONTEXT_RUNTIME.record_runtime_event(runtime_trace, "write_path.failed", {
             "stage": "argument_planner", "error_code": planned.get("error_code") or "unknown",
             "model_rounds": 1, "tool_calls": 0,
         })
         await ws.send_text(json.dumps({
-            "type": "response", "content": text, "engine": "vanhanh-gateway",
+            "type": "response", "content": text, "engine": "naota-gateway",
             "model": actual_model, "session_id": session_id,
             **_ctx_frame(runtime_trace, tokens_in),
         }))
@@ -4214,13 +5018,13 @@ async def _execute_write_proposal(plan, provider: str, api_key: str, model: str,
     if not valid:
         _CONTEXT_RUNTIME.revoke_capability_lease(runtime_trace, lease.lease_id, error_code)
         text = ("Tham số model đề xuất không đạt JSON Schema của capability. "
-                "Vanhanh chưa gọi tool và chưa thay đổi gì.")
+                "Naota chưa gọi tool và chưa thay đổi gì.")
         _CONTEXT_RUNTIME.record_runtime_event(runtime_trace, "write_path.failed", {
             "stage": "argument_validation", "error_code": error_code,
             "model_rounds": 1, "tool_calls": 0,
         })
         await ws.send_text(json.dumps({
-            "type": "response", "content": text, "engine": "vanhanh-gateway",
+            "type": "response", "content": text, "engine": "naota-gateway",
             "model": actual_model, "session_id": session_id,
             **_ctx_frame(runtime_trace, tokens_in),
         }))
@@ -4230,19 +5034,19 @@ async def _execute_write_proposal(plan, provider: str, api_key: str, model: str,
         runtime_trace, plan, args, session_id)
     status = registered.get("status")
     if status == "duplicate":
-        text = ("Hành động này đã được ghi nhận trước đó nên Vanhanh KHÔNG chạy lại. "
+        text = ("Hành động này đã được ghi nhận trước đó nên Naota KHÔNG chạy lại. "
                 f"Trạng thái hiện tại: {registered.get('invocation_status')}.")
     elif status == "locked":
         text = ("Đang có một hành động ghi khác trên cùng tài nguyên chưa kết thúc. "
-                "Vanhanh dừng để tránh ghi chồng; bạn xử lý xong việc kia rồi nhắn lại.")
+                "Naota dừng để tránh ghi chồng; bạn xử lý xong việc kia rồi nhắn lại.")
     elif status != "prepared":
-        text = ("Không ghi được ý định vào sổ nên Vanhanh dừng trước khi gọi tool. "
+        text = ("Không ghi được ý định vào sổ nên Naota dừng trước khi gọi tool. "
                 "Chưa có gì thay đổi.")
     elif not str(registered.get("confirmation_code") or "").strip():
         # Không có mã thì KHÔNG có cách nào duyệt: nút bấm sẽ chết và câu gõ tay cũng
         # vô nghĩa. Nói thẳng là hỏng còn hơn bày ra một lời đề xuất không duyệt được.
         status = "no_confirmation_code"
-        text = ("Vanhanh không tạo được mã duyệt cho hành động ghi này nên đã dừng. "
+        text = ("Naota không tạo được mã duyệt cho hành động ghi này nên đã dừng. "
                 "Chưa có gì thay đổi.")
     else:
         code = str(registered.get("confirmation_code")).strip()
@@ -4261,13 +5065,13 @@ async def _execute_write_proposal(plan, provider: str, api_key: str, model: str,
             ],
         }, ensure_ascii=False)
         text = (
-            f"Vanhanh chuẩn bị chạy hành động ghi: {lease.capability_name}.\n"
+            f"Naota chuẩn bị chạy hành động ghi: {lease.capability_name}.\n"
             f"Tham số: {summary}\n\n"
-            f"Việc này thay đổi dữ liệu thật và không tự hoàn tác được, nên Vanhanh "
+            f"Việc này thay đổi dữ liệu thật và không tự hoàn tác được, nên Naota "
             f"CHƯA chạy. Bạn bấm nút duyệt bên dưới, hoặc nhắn lại đúng câu: "
             f"XAC NHAN {code}\n"
             f"Không muốn nữa thì nhắn: huỷ\n"
-            f"<!-- VANHANH_ASK: {ask} -->"
+            f"<!-- NAOTA_ASK: {ask} -->"
         )
     if status != "prepared":
         _CONTEXT_RUNTIME.revoke_capability_lease(
@@ -4309,10 +5113,10 @@ async def _execute_write_confirmation(plan, ws, session_id: str, runtime_trace,
             runtime_trace, str(invocation.get("id") or ""),
             str(invocation.get("lease_id") or ""), "FAILED_VALIDATION",
             error_code="capability_changed_since_proposal")
-        text = ("Capability đã thay đổi kể từ lúc Vanhanh đề xuất, nên hành động ghi bị "
+        text = ("Capability đã thay đổi kể từ lúc Naota đề xuất, nên hành động ghi bị "
                 "huỷ để không chạy nhầm phiên bản cũ. Chưa có gì thay đổi.")
         await ws.send_text(json.dumps({
-            "type": "response", "content": text, "engine": "vanhanh-gateway",
+            "type": "response", "content": text, "engine": "naota-gateway",
             "model": model, "session_id": session_id,
             **_ctx_frame(runtime_trace, 0),
         }))
@@ -4326,10 +5130,10 @@ async def _execute_write_confirmation(plan, ws, session_id: str, runtime_trace,
             runtime_trace, str(invocation.get("id") or ""),
             str(invocation.get("lease_id") or ""), "FAILED_FINAL",
             error_code="approved_arguments_unavailable")
-        text = ("Vanhanh không còn giữ tham số đã được duyệt (tiến trình đã khởi động lại), "
-                "nên không chạy hành động ghi này. Bạn nhắn lại yêu cầu để Vanhanh đề xuất mới.")
+        text = ("Naota không còn giữ tham số đã được duyệt (tiến trình đã khởi động lại), "
+                "nên không chạy hành động ghi này. Bạn nhắn lại yêu cầu để Naota đề xuất mới.")
         await ws.send_text(json.dumps({
-            "type": "response", "content": text, "engine": "vanhanh-gateway",
+            "type": "response", "content": text, "engine": "naota-gateway",
             "model": model, "session_id": session_id,
             **_ctx_frame(runtime_trace, 0),
         }))
@@ -4348,9 +5152,9 @@ async def _execute_write_confirmation(plan, ws, session_id: str, runtime_trace,
             runtime_trace, str(invocation.get("id") or ""),
             str(invocation.get("lease_id") or ""), "FAILED_FINAL",
             error_code="write_route_unavailable")
-        text = "Không còn đường gọi tool ghi này, Vanhanh dừng an toàn. Chưa có gì thay đổi."
+        text = "Không còn đường gọi tool ghi này, Naota dừng an toàn. Chưa có gì thay đổi."
         await ws.send_text(json.dumps({
-            "type": "response", "content": text, "engine": "vanhanh-gateway",
+            "type": "response", "content": text, "engine": "naota-gateway",
             "model": model, "session_id": session_id,
             **_ctx_frame(runtime_trace, 0),
         }))
@@ -4370,15 +5174,15 @@ async def _execute_write_confirmation(plan, ws, session_id: str, runtime_trace,
         reconciled = await canary.reconcile_unknown(
             runtime_trace, invocation, _brain_root(brain), profile)
         if reconciled.get("status") == "SUCCEEDED":
-            text = ("Kết nối bị gián đoạn giữa chừng nên Vanhanh đã kiểm chứng lại bằng một "
-                    "lệnh đọc: hành động ĐÃ được thực hiện. Vanhanh không chạy lại.")
+            text = ("Kết nối bị gián đoạn giữa chừng nên Naota đã kiểm chứng lại bằng một "
+                    "lệnh đọc: hành động ĐÃ được thực hiện. Naota không chạy lại.")
         elif reconciled.get("status") == "FAILED_FINAL":
-            text = ("Kết nối bị gián đoạn, Vanhanh kiểm chứng lại bằng lệnh đọc và thấy hành "
-                    "động CHƯA được thực hiện. Bạn nhắn lại nếu muốn Vanhanh làm lại.")
+            text = ("Kết nối bị gián đoạn, Naota kiểm chứng lại bằng lệnh đọc và thấy hành "
+                    "động CHƯA được thực hiện. Nhắn lại nếu muốn Naota làm lại.")
         else:
-            text = ("Kết nối bị gián đoạn và Vanhanh KHÔNG kiểm chứng được là hành động đã "
-                    "chạy hay chưa. Vanhanh tuyệt đối không chạy lại để tránh làm hai lần. "
-                    "Bạn kiểm tra trực tiếp bên hệ thống đích rồi báo lại giúp mình.")
+            text = ("Kết nối bị gián đoạn và Naota KHÔNG kiểm chứng được là hành động đã "
+                    "chạy hay chưa. Naota tuyệt đối không chạy lại để tránh làm hai lần. "
+                    "Hãy kiểm tra trực tiếp bên hệ thống đích rồi báo lại.")
     elif status == "SUCCEEDED":
         evidence = outcome.get("evidence")
         text = "Đã thực hiện xong hành động ghi."
@@ -4388,7 +5192,7 @@ async def _execute_write_confirmation(plan, ws, session_id: str, runtime_trace,
         text = ("Tool báo lỗi rõ ràng nên hành động KHÔNG được thực hiện. "
                 f"Mã lỗi: {outcome.get('error_code')}.")
     else:
-        text = ("Vanhanh dừng trước khi gọi tool vì ý định ghi không còn hợp lệ. "
+        text = ("Naota dừng trước khi gọi tool vì ý định ghi không còn hợp lệ. "
                 f"Mã: {outcome.get('error_code')}.")
     _CONTEXT_RUNTIME.record_runtime_event(runtime_trace, "write_path.completed", {
         "status": status, "model_rounds": 0, "tool_calls": 1 if status != "REJECTED" else 0,
@@ -4396,7 +5200,7 @@ async def _execute_write_confirmation(plan, ws, session_id: str, runtime_trace,
         "invocation_id": outcome.get("invocation_id", ""),
     })
     await ws.send_text(json.dumps({
-        "type": "response", "content": text, "engine": "vanhanh-gateway",
+        "type": "response", "content": text, "engine": "naota-gateway",
         "model": model, "session_id": session_id,
         **_ctx_frame(runtime_trace, 0),
     }))
@@ -4725,14 +5529,14 @@ async def _execute_readonly_path(plan, provider: str, api_key: str, model: str,
         )
         final_text = (
             "Model không tạo được arguments đúng contract cho capability read-only. "
-            "Vanhanh đã dừng an toàn, chưa gọi tool và không tự chuyển sang vòng agent cũ."
+            "Naota đã dừng an toàn, chưa gọi tool và không tự chuyển sang vòng agent cũ."
         )
         _CONTEXT_RUNTIME.record_runtime_event(runtime_trace, "readonly_path.failed", {
             "stage": "argument_planner", "error_code": planned.get("error_code") or "unknown",
             "model_rounds": 1, "tool_calls": 0,
         })
         await ws.send_text(json.dumps({
-            "type": "response", "content": final_text, "engine": "vanhanh-gateway",
+            "type": "response", "content": final_text, "engine": "naota-gateway",
             "model": actual_model, "session_id": session_id,
             **_ctx_frame(runtime_trace, tokens_in),
         }))
@@ -4759,7 +5563,7 @@ async def _execute_readonly_path(plan, provider: str, api_key: str, model: str,
             "model_rounds": 1, "tool_calls": 1,
         })
         await ws.send_text(json.dumps({
-            "type": "response", "content": final_text, "engine": "vanhanh-gateway",
+            "type": "response", "content": final_text, "engine": "naota-gateway",
             "model": actual_model, "session_id": session_id,
             **_ctx_frame(runtime_trace, tokens_in),
         }))
@@ -4795,7 +5599,7 @@ async def _execute_readonly_path(plan, provider: str, api_key: str, model: str,
             "model_rounds": 1, "tool_calls": 1, "evidence_id": evidence.id,
         })
         await ws.send_text(json.dumps({
-            "type": "response", "content": final_text, "engine": "vanhanh-gateway",
+            "type": "response", "content": final_text, "engine": "naota-gateway",
             "model": actual_model, "session_id": session_id,
             **_ctx_frame(runtime_trace, tokens_in),
         }))
@@ -4898,8 +5702,8 @@ def _schedule_cancel_reply(action: dict) -> str:
         return str(action.get("list_result") or "Không có lịch đang chạy để xoá.")
     if action.get("needs_choice"):
         return (
-            "Mình đã đọc danh sách lịch thật nhưng có nhiều mục gần giống nhau nên chưa xoá để tránh nhầm. "
-            "Bạn nói đúng tên hoặc ID cần xoá:\n\n" + str(action.get("list_result") or "")
+            "Đã đọc danh sách lịch thật nhưng có nhiều mục gần giống nhau nên chưa xoá để tránh nhầm. "
+            "Cho biết đúng tên hoặc ID cần xoá:\n\n" + str(action.get("list_result") or "")
         )
     return "⚠ " + str(action.get("error") or "Không thể thao tác lịch.")
 
@@ -4916,8 +5720,9 @@ def _reasoning_level(mcfg):
 
 
 # Default: medium.
-# Each assistant keeps its own reasoning level in its frontmatter (`reasoning`), used by its chat, its team turns
-# and nothing else. An assistant that never set one thinks at "medium", not at the main chat's level.
+# Each assistant keeps its own reasoning level in its frontmatter (`reasoning`), used by its chat and its team
+# turns. An assistant that never set one thinks at "medium" there, not at the main chat's level. A workflow step uses
+# the level only when the assistant set one (see _agent_own_reasoning).
 AGENT_REASONING_DEFAULT = "medium"
 
 
@@ -4926,8 +5731,41 @@ def _agent_reasoning(meta) -> str:
     return r if r in engine.REASONING_LEVELS else AGENT_REASONING_DEFAULT
 
 
+def _agent_own_reasoning(meta) -> str:
+    """The level an assistant set for ITSELF in its frontmatter, "" when it set none (or "off"). A workflow step uses
+    this one, not `_agent_reasoning`: a step whose assistant never picked a level keeps the engine's own
+    default as before, instead of every existing workflow dropping to "medium" overnight."""
+    r = str((meta or {}).get("reasoning") or "").strip()
+    return r if r in engine.REASONING_LEVELS and r != "off" else ""
+
+
+def _apply_step_reasoning(eng, reasoning, codex=False) -> None:
+    """Set a workflow step engine's thinking depth from its assistant's own level. The step's prompt is never
+    touched: an engine that cannot take the level as a real setting just runs at its default."""
+    if not reasoning:
+        return
+    try:
+        if codex:
+            muc = _codex_effort(getattr(eng, "model", "") or "", reasoning)
+            if muc:
+                eng.extra_config[:] = [x for x in eng.extra_config if not str(x).startswith("model_reasoning_effort=")]
+                eng.extra_config.append(f"model_reasoning_effort={muc}")
+        elif _CLI_EFFORT.get(reasoning) and claude_cli.co_co("--effort"):
+            eng.effort = _CLI_EFFORT[reasoning]
+    except Exception as e:  # noqa: BLE001 - the depth setting must never cost the step
+        print(f"[workflow] step reasoning {reasoning}: {type(e).__name__}: {e}", file=sys.stderr)
+
+
+def _step_reasoning_kw(agent_sysprompt, slug) -> dict:
+    """Keyword arguments for a step's `mk(...)`: `reasoning` when the assistant set a level, nothing otherwise, so a
+    caller that passes its own plain `mk` (tests, older runners) is called exactly as before."""
+    read = getattr(agent_sysprompt, "own_reasoning", None)
+    r = read(slug) if callable(read) else ""
+    return {"reasoning": r} if r else {}
+
+
 def _core_reasoning(mcfg) -> str:
-    """Vanhanh Core's reasoning level, `model.core_reasoning` in settings. Rule: Vanhanh Core
+    """Naota Core's reasoning level, `model.core_reasoning` in settings. Rule: Naota Core
     follows the main chat until the owner picks a level for it in its own chat; from then on that level sticks."""
     r = str((mcfg or {}).get("core_reasoning") or "").strip()
     return r if r in engine.REASONING_LEVELS else _reasoning_level(mcfg)
@@ -4939,8 +5777,8 @@ def _core_reasoning(mcfg) -> str:
 _CLI_THINK_KW = {"low": "think", "medium": "think hard", "high": "think harder",
                  "xhigh": "ultrathink", "ultra": "ultrathink"}
 
-# Mức của Vanhanh -> mức của Claude Code (`claude --effort`, cùng thang trong claude-agent-sdk).
-# Trùng khít bốn mức đầu; "ultra" là tên Vanhanh của mức trên cùng, Claude Code gọi là "max".
+# Mức của Naota -> mức của Claude Code (`claude --effort`, cùng thang trong claude-agent-sdk).
+# Trùng khít bốn mức đầu; "ultra" là tên Naota của mức trên cùng, Claude Code gọi là "max".
 _CLI_EFFORT = {"low": "low", "medium": "medium", "high": "high", "xhigh": "xhigh", "ultra": "max"}
 
 
@@ -4975,7 +5813,7 @@ def _cli_do_sau(cli, reasoning, message):
     một mức khác mức người dùng chọn.
 
     - CLI có `--effort` (bản mới): đặt `cli.effort`, prompt giữ NGUYÊN VĂN. Đây là đường đúng -
-      thang của Claude Code trùng khít thang của Vanhanh nên "Rất cao" và "Tối đa" khác nhau
+      thang của Claude Code trùng khít thang của Naota nên "Rất cao" và "Tối đa" khác nhau
       thật, và tin nhắn người dùng không bị dính thêm một câu tiếng Việt ở cuối.
     - CLI cũ: rơi về từ khoá trong prompt như trước, không mất tính năng.
     """
@@ -5007,7 +5845,7 @@ _GOI_SUY_NGHI = {
 # Thang effort dùng khi nói chuyện với CLI ngoài Claude Code, xếp từ nhẹ tới nặng. Tên lấy
 # theo thang chung của các nhà cung cấp để `co_effort` đối chiếu thẳng với `--help` của CLI.
 _THANG_EFFORT = ("low", "medium", "high", "xhigh", "max")
-_BAC_VANHANH = {"low": 0, "medium": 1, "high": 2, "xhigh": 3, "ultra": 4}
+_BAC_NAOTA = {"low": 0, "medium": 1, "high": 2, "xhigh": 3, "ultra": 4}
 
 
 def _nhac_suy_nghi(reasoning, message):
@@ -5023,7 +5861,7 @@ def _co_effort_lui(mod, reasoning):
     phải ra xhigh chứ không được rơi thẳng về câu nhắc trong prompt - rơi như thế là nấc TRÊN
     lại yếu hơn nấc dưới, đúng kiểu vô lý mà người dùng không bao giờ đoán ra.
     """
-    i = _BAC_VANHANH.get(reasoning or "")
+    i = _BAC_NAOTA.get(reasoning or "")
     if i is None:
         return []
     for muc in reversed(_THANG_EFFORT[:i + 1]):
@@ -5061,9 +5899,9 @@ def _cli_do_sau_khac(cli, mod, reasoning, message):
 def _cli_fast(cli):
     """Fast mode for Claude Code: `settings='{"fastMode": true}'` on the SDK options
     when this turn has the bolt on and the model supports it (Opus 5.5, Opus 5, Opus 4.8).
-    Keeps the repo CLAUDE.md excluded (claude_cli.vanhanh_claude_settings)."""
+    Keeps the repo CLAUDE.md excluded (claude_cli.naota_claude_settings)."""
     try:
-        cli.fast_settings = claude_cli.vanhanh_claude_settings(
+        cli.fast_settings = claude_cli.naota_claude_settings(
             fast_mode.claude_sdk_settings(getattr(cli, "model", "") or "", fast_mode.current()))
     except Exception:  # noqa: BLE001 - an engine without this attribute just runs at the normal tier
         pass
@@ -5085,18 +5923,40 @@ def _codex_fast(cli):
         pass
 
 
+# The three levels every Codex model with reasoning accepts. The `model/list` ladder lives in RAM only, so after each
+# restart, until someone opens the Models page, a background bot fell back to the config.toml default (measured
+# 10/11/2026: a bot set to medium ran at high). With no ladder known yet, these three are still passed as they are;
+# the rarer levels (minimal, xhigh, ultra) keep waiting for the real ladder..
+_CODEX_COMMON_EFFORTS = ("low", "medium", "high")
+
+
+def _codex_effort(model, reasoning) -> str:
+    """Naota level -> the Codex effort to pass for this model, "" = pass nothing. From the model's own ladder when it
+    is known; one of the three common levels when no ladder has been read yet."""
+    model, reasoning = str(model or ""), str(reasoning or "")
+    try:
+        level = codex_models.muc_cho(model, reasoning)
+    except Exception:  # noqa: BLE001 - a failed lookup must not break the turn
+        return ""
+    if level or reasoning not in _CODEX_COMMON_EFFORTS:
+        return level
+    try:
+        ladder_unknown = not codex_models.efforts_for(model)
+    except Exception:  # noqa: BLE001
+        ladder_unknown = False
+    return reasoning if ladder_unknown else ""
+
+
 def _codex_do_sau(cli, reasoning, message):
     """Độ sâu suy nghĩ cho Codex CLI: `-c model_reasoning_effort=<mức>`.
 
-    Mức KHÔNG do Vanhanh chọn theo một bảng chép tay mà lấy từ thang chính Codex khai cho đúng
+    Mức KHÔNG do Naota chọn theo một bảng chép tay mà lấy từ thang chính Codex khai cho đúng
     model đang chạy (`model/list` -> `supported_reasoning_efforts`), nên không bao giờ gửi một
-    giá trị model không hiểu. Chưa hỏi được danh sách model lần nào thì `muc_cho` trả rỗng và
-    lượt chạy bằng mặc định của Codex, y như trước - kèm câu nhắc trong prompt cho đỡ phí.
+    giá trị model không hiểu. Chưa hỏi được danh sách model lần nào thì ba nấc phổ thông vẫn
+    được truyền (`_codex_effort`); nấc khác thì lượt chạy bằng mặc định của Codex, kèm câu nhắc
+    trong prompt cho đỡ phí.
     """
-    try:
-        muc = codex_models.muc_cho(getattr(cli, "model", "") or "", reasoning or "")
-    except Exception:  # noqa: BLE001 - tra cứu hỏng không được phá lượt chat
-        muc = ""
+    muc = _codex_effort(getattr(cli, "model", "") or "", reasoning)
     if not muc:
         return _nhac_suy_nghi(reasoning, message)
     override = f"model_reasoning_effort={muc}"
@@ -5110,12 +5970,12 @@ def _toml_str(s):
 
 
 def _write_codex_profile():
-    """Ghi ~/.codex/<profile>.config.toml → `codex exec -p <profile>` thấy MCP của Vanhanh.
+    """Ghi ~/.codex/<profile>.config.toml → `codex exec -p <profile>` thấy MCP của Naota.
     Hub bật (mặc định): 1 entry hub - Codex dùng được MỌI transport (cả stdio/internal) + đa tài
     khoản + quyền. Hub tắt: per-server http như cũ. Trả tên profile nếu có server, None nếu rỗng.
 
     Tên profile lấy từ `mcp_hub.codex_profile_name()` (gắn cổng khi cổng khác mặc định) để nhiều
-    bản Vanhanh chạy chung một $HOME không ghi đè profile của nhau - xem chú thích ở hàm đó."""
+    bản Naota chạy chung một $HOME không ghi đè profile của nhau - xem chú thích ở hàm đó."""
     if _hub_enabled():
         return mcp_hub.codex_profile("full")
     path = mcp_hub.codex_profile_path()
@@ -5148,14 +6008,14 @@ def _write_codex_profile():
 
 
 def _apply_grok_hub(cli, vault_root=None, mode="full"):
-    """Gắn MCP hub của Vanhanh vào tiến trình `grok`, khoá theo đúng brain đang mở.
+    """Gắn MCP hub của Naota vào tiến trình `grok`, khoá theo đúng brain đang mở.
 
     Cùng khuôn `_apply_gemini_hub` ngay trên, và cùng lý do: Grok đọc `[mcp_servers.*]` từ
-    `config.toml` của THƯ MỤC LÀM VIỆC, mà Vanhanh luôn chạy nó với cwd = gốc brain - nên ghi
+    `config.toml` của THƯ MỤC LÀM VIỆC, mà Naota luôn chạy nó với cwd = gốc brain - nên ghi
     file ngay trong brain vừa đúng chỗ vừa cô lập sẵn từng brain. Không đụng
     `~/.grok/config.toml`: đó là cấu hình cá nhân người dùng dùng cho mọi thứ chạy bằng `grok`.
 
-    Header y hệt bốn engine kia (`Bearer hub_token` + X-Vanhanh-Mode + X-Vanhanh-Vault) nên hub áp
+    Header y hệt bốn engine kia (`Bearer hub_token` + X-Naota-Mode + X-Naota-Vault) nên hub áp
     đúng một bộ luật quyền cho cả năm.
 
     Hình dạng entry lấy từ `grok_cli.hub_entry` chứ KHÔNG viết tay ở đây - Grok dùng khoá `url`,
@@ -5167,22 +6027,22 @@ def _apply_grok_hub(cli, vault_root=None, mode="full"):
         return cli
     hub = None
     if _hub_enabled():
-        headers = {"Authorization": f"Bearer {mcp_hub.hub_token()}", "X-Vanhanh-Mode": mode}
+        headers = {"Authorization": f"Bearer {mcp_hub.hub_token()}", "X-Naota-Mode": mode}
         try:
-            headers["X-Vanhanh-Vault"] = str(Path(root).expanduser().resolve())
+            headers["X-Naota-Vault"] = str(Path(root).expanduser().resolve())
         except Exception:
-            headers["X-Vanhanh-Vault"] = str(root)
+            headers["X-Naota-Vault"] = str(root)
         hub = grok_cli.hub_entry(mcp_hub.hub_url(), headers)
     grok_cli.ghi_mcp_settings(root, hub)
     return cli
 
 
 def _apply_antigravity_hub(cli, vault_root=None, mode="full"):
-    """Gắn MCP hub của Vanhanh vào tiến trình `agy`.
+    """Gắn MCP hub của Naota vào tiến trình `agy`.
 
-    Header y hệt ba engine kia (`Bearer hub_token` + X-Vanhanh-Mode + X-Vanhanh-Vault) nên hub áp
+    Header y hệt ba engine kia (`Bearer hub_token` + X-Naota-Mode + X-Naota-Vault) nên hub áp
     đúng một bộ luật quyền cho cả bốn. Hai chỗ KHÁC hẳn `_apply_gemini_hub`, và cả hai là lý do
-    bộ não này chạy suốt mấy bản mà không có lấy một tool nào của Vanhanh:
+    bộ não này chạy suốt mấy bản mà không có lấy một tool nào của Naota:
 
     - **Hình dạng entry** dựng bằng `antigravity_cli.hub_entry()` chứ không viết tay ở đây.
       `agy` đọc khoá `serverUrl`; `httpUrl` (khoá của Gemini CLI) bị nó bỏ qua không một tiếng
@@ -5197,11 +6057,11 @@ def _apply_antigravity_hub(cli, vault_root=None, mode="full"):
         return cli
     hub = None
     if _hub_enabled():
-        headers = {"Authorization": f"Bearer {mcp_hub.hub_token()}", "X-Vanhanh-Mode": mode}
+        headers = {"Authorization": f"Bearer {mcp_hub.hub_token()}", "X-Naota-Mode": mode}
         try:
-            headers["X-Vanhanh-Vault"] = str(Path(root).expanduser().resolve())
+            headers["X-Naota-Vault"] = str(Path(root).expanduser().resolve())
         except Exception:
-            headers["X-Vanhanh-Vault"] = str(root)
+            headers["X-Naota-Vault"] = str(root)
         hub = antigravity_cli.hub_entry(mcp_hub.hub_url(), headers)
     antigravity_cli.ghi_mcp_settings(root, hub)
     try:
@@ -5226,20 +6086,20 @@ def _apply_codex_hub(cli, vault_root=None):
 
 
 def _apply_mcp(cli, mode="full", brain=None):
-    """Gắn MCP do Vanhanh quản lý vào 1 engine Claude (registry rỗng → không đổi gì, dùng MCP sẵn của máy).
-    Hub bật: config 1 entry trỏ hub kèm X-Vanhanh-Mode - deny/perm/audit chặn TẠI hub (lớp cứng),
+    """Gắn MCP do Naota quản lý vào 1 engine Claude (registry rỗng → không đổi gì, dùng MCP sẵn của máy).
+    Hub bật: config 1 entry trỏ hub kèm X-Naota-Mode - deny/perm/audit chặn TẠI hub (lớp cứng),
     không cần --disallowedTools. Hub tắt: per-server + --disallowedTools như cũ."""
     try:
-        cli.vanhanh_mode = mode   # engine SDK dùng để enforce min_mode plugin in-process
+        cli.naota_mode = mode   # engine SDK dùng để enforce min_mode plugin in-process
         # Brain đang làm việc → engine truyền xuống ctx của plugin. Đặt TƯỜNG MINH, không suy từ
         # cwd: trước đây chat chạy với cwd=CLAUDE_CWD (gốc project) nên suy từ cwd từng trượt
         # đúng ở đường chat; nay chat đã chạy cwd=brain, nhưng đặt rõ thì đúng ở MỌI chỗ dựng engine.
-        cli.vanhanh_vault = _brain_root(brain) if brain else None
+        cli.naota_vault = _brain_root(brain) if brain else None
         if _hub_enabled():
             cli.mcp_config = mcp_hub.claude_config_path(mode)
-            # `strict` = chỉ dùng MCP của Vanhanh, bỏ qua config MCP sẵn có của máy. Ở mức FULL
+            # `strict` = chỉ dùng MCP của Naota, bỏ qua config MCP sẵn có của máy. Ở mức FULL
             # thì cờ này bị bỏ qua, cố ý: connector ambient của tài khoản Claude (Gmail, Google
-            # Drive, Lịch) nằm ngoài registry của Vanhanh và chỉ gọi được bằng tool native, nên
+            # Drive, Lịch) nằm ngoài registry của Naota và chỉ gọi được bằng tool native, nên
             # strict ở mức full là mở allowlist ra rồi lại khoá cửa sau. Người bật strict muốn
             # siết mấy mức DƯỚI; ai đã chủ động chọn Toàn quyền cho một việc thì việc đó phải
             # thật sự toàn quyền, không thì "Toàn quyền" là một cái nhãn nói dối.
@@ -5351,6 +6211,8 @@ def claude_status(refresh: bool = False):
     # The daily-update switch on the card: its state, and whether the env var forces it off.
     d["auto_update"] = claude_update.bat()
     d["auto_update_env_off"] = claude_update.env_off()
+    # 2026-11-10: the Claude Agent SDK package follows the same switch (sdk_update.py). A file read, no subprocess.
+    d["sdk"] = sdk_update.status()
     return d
 
 
@@ -5377,8 +6239,28 @@ async def _cap_nhat_claude(ly_do: str) -> dict:
 
 @app.post("/claude/update")
 async def claude_update_now():
-    """Nút "Cập nhật Claude Code" trên trang Models: chạy ngay, không chờ vòng hằng ngày."""
-    return await _cap_nhat_claude("tay")
+    """Nút "Cập nhật Claude Code" trên trang Models: chạy ngay, không chờ vòng hằng ngày.
+
+    2026-11-10: the same press also looks for a newer Claude Agent SDK (sdk_update.py); its result rides along under
+    `sdk` and never changes whether the Claude Code update itself counts as done."""
+    kq = await _cap_nhat_claude("tay")
+    kq = dict(kq or {})
+    kq["sdk"] = await _update_sdk("manual")
+    return kq
+
+
+async def _update_sdk(reason: str) -> dict:
+    """One SDK update attempt on a worker thread (pip and a check process: minutes, never on the event loop)."""
+    try:
+        r = await asyncio.to_thread(sdk_update.update, reason)
+    except Exception as e:  # noqa: BLE001 - reported, never a broken request or a dead loop
+        r = {"ok": False, "error": f"{type(e).__name__}: {e}"}
+    if r.get("changed"):
+        print(f"[sdk update] claude-agent-sdk {r.get('from')} -> {r.get('to')} ({reason}); in use after the next restart",
+              file=sys.stderr)
+    elif not r.get("ok") and not r.get("docker"):
+        print(f"[sdk update] not updated ({reason}): {r.get('error')}", file=sys.stderr)
+    return {**r, **{k: v for k, v in sdk_update.status().items() if k in ("installed", "loaded", "restart_needed")}}
 
 
 @app.on_event("startup")
@@ -5393,9 +6275,36 @@ async def _widen_io_pool():
     n = max(32, (os.cpu_count() or 1) * 4)
     try:
         asyncio.get_running_loop().set_default_executor(
-            concurrent.futures.ThreadPoolExecutor(max_workers=n, thread_name_prefix="vanhanh-io"))
+            concurrent.futures.ThreadPoolExecutor(max_workers=n, thread_name_prefix="naota-io"))
     except Exception as e:  # noqa: BLE001 - the stock pool still works, only smaller
         print(f"[io pool] kept the default pool: {type(e).__name__}: {e}", file=sys.stderr)
+
+
+@app.on_event("startup")
+async def _reply_lang_to_profile():
+    """Once per start: a reply language still pinned in Settings moves into the profile (see the function)."""
+    await asyncio.to_thread(migrate_reply_lang_to_profile)
+
+
+@app.on_event("startup")
+async def _prime_kept_values():
+    """Read once, on a worker thread, what the event loop asks for from its first request on (kept.py): the settings
+    signature, the default brain folder, the pack and plugin signatures, the MCP catalog, the hub token, the bot and
+    channel stores, the `claude` path of GET /health. Without it the first request after a restart reads each of them
+    on the event loop, and right after an update is exactly when the disk is slowest. Waits ten seconds at most; a
+    slower disk finishes the reads behind the server's back."""
+    def run():
+        for read in (cfgmod.read_settings, _default_brain_dir, packs.signature, mcp_catalog.load, mcp_hub.hub_token,
+                     mcp_hub._store_mtime, lambda: plugins_host.shared_signature(), channel_accounts._load,
+                     chatbot_store._load, _HEALTH_CLI.get):
+            try:
+                read()
+            except Exception as e:  # noqa: BLE001 - the first caller reads it instead
+                print(f"[kept] prime: {type(e).__name__}: {e}", file=sys.stderr)
+    try:
+        await asyncio.wait_for(asyncio.to_thread(run), timeout=10)
+    except Exception as e:  # noqa: BLE001 - a timeout: the thread goes on, the server starts
+        print(f"[kept] prime not finished at start-up: {type(e).__name__}", file=sys.stderr)
 
 
 @app.on_event("startup")
@@ -5403,6 +6312,21 @@ async def _warm_shared_ssl():
     """Build the one SSL context every httpx client shares (ssl_shared.py) on a worker thread, so not even the first
     client loads the certificate bundle on the event loop."""
     await asyncio.to_thread(ssl_shared.warm)
+
+
+@app.on_event("startup")
+async def _usage_ledger_compact_on_start():
+    """2026-11-13: drop the Team replay snapshots earlier versions kept in usage.json (usage_store._TEAM_SNAPSHOTS).
+
+    A Team that worked a lot left tens of thousands of them, and every model call re-read and rewrote that file on the
+    event loop: open pages lost their connection while a Team was busy. On a worker thread, so a file of many megabytes
+    is small again before the first turn reads it."""
+    try:
+        dropped = await asyncio.to_thread(usage_store.compact)
+        if dropped:
+            print(f"[usage] usage.json: removed {dropped} team snapshots kept by an earlier version", file=sys.stderr)
+    except Exception as e:  # noqa: BLE001 - the first record() does the same clean-up
+        print(f"[usage] compact failed: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 @app.on_event("startup")
@@ -5424,7 +6348,7 @@ async def _routing_migrate_on_start():
 async def _tu_cap_nhat_claude():
     """Mỗi giờ xem đã tới hạn chưa; tới hạn (24 giờ) thì chạy `claude update` một lần.
 
-    Không có vòng này thì máy chỉ dùng Claude qua Vanhanh kẹt ở bản CLI cũ mãi, và model mới
+    Không có vòng này thì máy chỉ dùng Claude qua Naota kẹt ở bản CLI cũ mãi, và model mới
     (Sonnet 5.5) không bao giờ hiện trong trình chọn. Chờ 2 phút sau khi khởi
     động cho server nhẹ tay đã.
     """
@@ -5443,6 +6367,11 @@ async def _tu_cap_nhat_claude():
             except Exception as e:
                 print(f"[claude update] vòng tự cập nhật lỗi: {type(e).__name__}: {e}",
                       file=sys.stderr)
+            try:
+                if sdk_update.enabled() and sdk_update.due():
+                    await _update_sdk("auto")
+            except Exception as e:  # noqa: BLE001
+                print(f"[sdk update] daily pass failed: {type(e).__name__}: {e}", file=sys.stderr)
             await asyncio.sleep(3600)
     asyncio.create_task(_vong())
 
@@ -5502,7 +6431,7 @@ async def antigravity_check(brain: str = "brain"):
     cá nhân. Nút này phải trả lời được câu "chat được chưa", nên chạy thật một lượt.
 
     Phần `mcp` thêm vào canh đúng hạng lỗi đã ba lần lọt lưới: cấu hình ghi thành công
-    nhưng SAI CHỖ hoặc SAI KHOÁ, `agy` chạy trơn tru mà không có lấy một tool nào của Vanhanh, và
+    nhưng SAI CHỖ hoặc SAI KHOÁ, `agy` chạy trơn tru mà không có lấy một tool nào của Naota, và
     không ở đâu có một câu lỗi để lần ra. Ghi lại cấu hình rồi ĐỌC LẠI chính file đó.
     """
     root = _brain_root(brain)
@@ -5541,7 +6470,7 @@ def grok_status():
 
 # ---- Extra accounts on a subscription plan card (plan_accounts) ----
 # Account 1 keeps its own card controls above. An extra account signs in into its own folder: ChatGPT through
-# Vanhanh's device-code flow (tokens written to that folder's auth.json), Grok through `grok login --device-auth`,
+# Naota's device-code flow (tokens written to that folder's auth.json), Grok through `grok login --device-auth`,
 # Claude Code through `claude auth login` (a link, then a code pasted back). One sign-in runs at a time.
 _PLAN_LOGIN: dict = {}
 
@@ -5601,8 +6530,8 @@ async def plan_account_login_start(request: Request):
     _PLAN_LOGIN[aid] = {"provider": prov, "label": str(body.get("label") or "")[:60], "ts": time.time()}
     kind = plan_accounts.KIND[prov]
     if kind == "agy":
-        # agy signs in on a keyboard screen in a terminal, so the page gives the command to paste into Vanhanh's
-        # Terminal page (same user as Vanhanh): agy with this account's HOME and file storage.
+        # agy signs in on a keyboard screen in a terminal, so the page gives the command to paste into Naota's
+        # Terminal page (same user as Naota): agy with this account's HOME and file storage.
         import shlex
         cli = antigravity_cli.find_antigravity_cli() or "agy"
         cmd = " ".join(f"{k}={shlex.quote(v)}" for k, v in plan_accounts.env_for(prov, folder).items()) + " " + shlex.quote(cli)
@@ -5708,7 +6637,7 @@ async def grok_login_start():
     """Bước 1: mở vòng device code, trả link + mã để người dùng mở trên máy của họ.
 
     Chỉ có MỘT bước, không có `login-code` đối xứng như Gemini: `grok login --device-auth` tự
-    đứng hỏi máy chủ tới khi người dùng bấm xong trên web, nên Vanhanh không nhận lại mã nào cả.
+    đứng hỏi máy chủ tới khi người dùng bấm xong trên web, nên Naota không nhận lại mã nào cả.
     Giao diện gọi tiếp `/grok/login-poll` để biết đã xong chưa.
     """
     global _GROK_MAIN_LOGIN_PENDING
@@ -5771,8 +6700,8 @@ def _drop_card(provider: str) -> None:
 async def antigravity_logout():
     """Disconnect the Antigravity card ("the Antigravity card has no Disconnect button").
 
-    The Google session sits in the OS keyring, out of Vanhanh's reach, so this does what it honestly can: run the CLI's
-    own sign-out when the binary lists one, and in any case switch the card off in Vanhanh, so no chat, background job
+    The Google session sits in the OS keyring, out of Naota's reach, so this does what it honestly can: run the CLI's
+    own sign-out when the binary lists one, and in any case switch the card off in Naota, so no chat, background job
     or fallback runs on it until the owner taps "Connect again"."""
     out = await asyncio.to_thread(antigravity_cli.logout)
     try:
@@ -5822,7 +6751,7 @@ async def grok_check(brain: str = "brain"):
 
     Phần `mcp` ghi lại cấu hình rồi ĐỌC LẠI chính file đó, canh hạng lỗi đã ba lần lọt lưới với
     `agy`: ghi thành công nhưng sai chỗ hoặc sai khoá thì CLI chạy trơn tru mà không có lấy một
-    tool nào của Vanhanh, và không ở đâu có một câu lỗi để lần ra.
+    tool nào của Naota, và không ở đâu có một câu lỗi để lần ra.
     """
     root = _brain_root(brain)
     try:
@@ -5835,7 +6764,7 @@ async def grok_check(brain: str = "brain"):
         mcp["hub_bat"] = _hub_enabled()
         d["mcp"] = mcp
     except Exception as e:
-        d["mcp"] = {"co_vanhanh": False, "loi": f"{type(e).__name__}: {e}"}
+        d["mcp"] = {"co_naota": False, "loi": f"{type(e).__name__}: {e}"}
     # Kèm chẩn đoán: câu lỗi của `auth_status` bảo người dùng "bấm Kiểm tra lại để xem chi
     # tiết", nên nút đó phải THẬT SỰ có chi tiết, không thì lại là một vòng bấm vô ích nữa.
     try:
@@ -5907,7 +6836,7 @@ def claude_logout():
     return d
 
 
-# ---- MCP do Vanhanh quản lý (engine Claude Code) ----
+# ---- MCP do Naota quản lý (engine Claude Code) ----
 @app.get("/mcp/list")
 async def mcp_list():
     return {"servers": mcp_store.list_servers(),
@@ -5983,7 +6912,7 @@ async def mcp_strict(request: Request):
 def mcp_ambient():
     """MCP sẵn của từng CLI - chỉ hiển thị. servers = Claude Code (đồng bộ claude.ai);
     codex_servers = kho MCP gốc của Codex (~/.codex/config.toml, user tự `codex mcp add`).
-    Engine ChatGPT nạp kho gốc đó vì profile vanhanh chỉ phủ THÊM lên config gốc."""
+    Engine ChatGPT nạp kho gốc đó vì profile naota chỉ phủ THÊM lên config gốc."""
     return {"servers": mcp_native_list(), "codex_servers": codex_mcp_native_list()}
 
 
@@ -6010,16 +6939,26 @@ async def mcp_oauth_auth(request: Request):
 # ============================================================
 @app.post("/hub/mcp")
 async def hub_mcp(request: Request):
-    """Endpoint MCP hub - Claude Code/Codex đấu vào đây (auth bằng Bearer hub_token riêng)."""
+    """Endpoint MCP hub - Claude Code/Codex đấu vào đây (auth bằng Bearer hub_token riêng).
+
+    Security fix (2026-11-10): only a caller on this machine is answered. Every engine reaches the hub at
+    `mcp_hub.hub_url()`, which is always 127.0.0.1, so nothing legitimate arrives through a tunnel, a reverse proxy or
+    the LAN. Before this the bearer alone opened the hub from the Internet, and the bearer is a long-lived value that
+    engine configs keep on disk (some inside a brain). The bearer check in `handle_http` stays as the second lock."""
+    if not _direct_local_request(request):
+        return JSONResponse({"error": "forbidden", "detail": "the hub only answers this machine"}, status_code=403)
     return await mcp_hub.handle_http(request)
 
 
 @app.get("/connect/catalog")
-async def connect_catalog():
+def connect_catalog():
     """Kho kết nối cho giao diện, kèm phần người dùng đã GỠ và kết nối đã mồ côi.
 
     `catalog` đã TRỪ cái đã gỡ (lọc trong `mcp_catalog.load`), còn `removed` là danh sách để vẽ
-    khu "Đã gỡ" có nút Cài lại - nên nó phải đọc từ `tat_ca()` chứ không phải `load()`."""
+    khu "Đã gỡ" có nút Cài lại - nên nó phải đọc từ `tat_ca()` chứ không phải `load()`.
+
+    A plain `def` since 2026-11-13: it reads the catalog file twice, the connection store three times and the pack
+    ledger, which as `async def` all ran on the event loop each time the Connections page opened."""
     tat_ca = mcp_catalog.tat_ca()
     da_go = core_off.da_go("connectors")
     return {"catalog": mcp_catalog.public_catalog(), "connections": mcp_store.list_connections(),
@@ -6052,27 +6991,28 @@ packs_routes.register(app, packs_routes.PacksDeps(
     # local chưa đặt mật khẩu, mà cài một gói là chạy mã lạ trong tiến trình server. Và cố ý
     # KHÔNG nhận API token - token dành cho tự động hoá, còn "tự động cài gói" là thứ không
     # nên có đường tồn tại.
-    co_phien=lambda r: cfgmod.valid_session(r.cookies.get("vanhanh_session", "")),
+    co_phien=lambda r: cfgmod.valid_session(r.cookies.get("naota_session", "")),
     lam_moi_hub=lambda: (mcp_hub.invalidate_cache(), _write_codex_profile()),
     # Lambda chứ không truyền thẳng `_brain_root`: hàm đó định nghĩa ở phía DƯỚI trong
     # main.py, mà lời gọi register phải nằm đúng chỗ này để giữ thứ tự route. Lambda hoãn
     # việc tra tên tới lúc thật sự gọi, khi đó hàm đã tồn tại.
     brain_root=lambda b: _brain_root(b),
+    agents_changed=lambda root: _pack_agents_changed(root),
 ))
 
-# Công cụ TUỲ CHỌN (trình duyệt cho Vanhanh tự kiểm thử giao diện). Đăng ký NGAY SAU trang Gói vì
+# Công cụ TUỲ CHỌN (trình duyệt cho Naota tự kiểm thử giao diện). Đăng ký NGAY SAU trang Gói vì
 # cùng một họ: cả hai đều mang thứ mới về máy, nên dùng chung đúng một luật xác thực.
 import routes.tools as tools_routes   # noqa: E402
 
 tools_routes.register(app, tools_routes.ToolsDeps(
-    co_phien=lambda r: cfgmod.valid_session(r.cookies.get("vanhanh_session", "")),
+    co_phien=lambda r: cfgmod.valid_session(r.cookies.get("naota_session", "")),
     lam_moi_hub=lambda: (mcp_hub.invalidate_cache(), _write_codex_profile()),
 ))
 
 # ---- Đường HTTP của plugin ----
 #
 # Lõi chỉ CHUYỂN request; luật nằm ở plugins_host (ai được mở đường, đường nào công khai, đường
-# nào không cookie). Sinh ra để "Vanhanh trong ChatGPT" (nay là Vanhanh Gate) rời lõi thành một gói trong kho, nhưng cố
+# nào không cookie). Sinh ra để "Naota trong ChatGPT" (nay là Naota Gate) rời lõi thành một gói trong kho, nhưng cố
 # ý làm chung: webhook của dịch vụ ngoài là cùng một nhu cầu.
 _EXT_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"]
 
@@ -6112,7 +7052,7 @@ async def plugin_http(request: Request, slug: str, rest: str = ""):
     # Đường không công khai: đòi PHIÊN TRÌNH DUYỆT thật. Hàng rào phía trước đã cho token API
     # qua, nhưng một token rò ra không được mở trang cài đặt của plugin.
     if (not r["public"] and cfgmod.gate_active()
-            and not cfgmod.valid_session(request.cookies.get("vanhanh_session", ""))):
+            and not cfgmod.valid_session(request.cookies.get("naota_session", ""))):
         return JSONResponse({"error": localefmt.chu("Trang này phải đăng nhập bằng trình duyệt.", "This page requires signing in from a browser.")}, status_code=401)
     return await _goi_plugin_http(request, lp, r["handler"], r["no_cookie"])
 
@@ -6127,7 +7067,7 @@ async def plugin_well_known(request: Request, rest: str):
 
 @app.post("/connect/core-toggle")
 async def connect_core_toggle(request: Request):
-    """Gỡ hoặc cài lại một connector CÓ SẴN của Vanhanh.
+    """Gỡ hoặc cài lại một connector CÓ SẴN của Naota.
 
     "Gỡ" ở đây KHÔNG xoá file trong `system/`: cây code là read-only trên Docker và bị ghi đè
     bởi `git pull` trên bản native, nên lựa chọn phải sống ở STATE_DIR mới qua được một lần cập
@@ -6168,7 +7108,7 @@ async def connect_add(request: Request):
     tự lấy tên shop làm label) → key sai thì xoá, không lưu rác."""
     data = await request.json()
     con_id = (data.get("connector_id") or "").strip()
-    # Connector cần trình duyệt TRÊN MÁY CHẠY VANHANH (workspace-mcp: OAuth callback cứng
+    # Connector cần trình duyệt TRÊN MÁY CHẠY NAOTA (workspace-mcp: OAuth callback cứng
     # localhost:8000) mà user đang mở dashboard qua domain public → luồng đăng nhập Google
     # chắc chắn đứt ở ERR_CONNECTION_REFUSED. Chặn kèm lời giải thích + đường
     # thay thế; can_force để ca đặc biệt (đấu sẵn từ xa, sang máy bấm đồng ý sau) vẫn đi được.
@@ -6179,29 +7119,29 @@ async def connect_add(request: Request):
             request.headers.get("x-forwarded-host", ""))
         if not web_security.host_kieu_local(host_thay):
             return {"ok": False, "can_force": True, "error": localefmt.chu(
-                    "Kết nối này chạy OAuth trên CHÍNH MÁY cài Vanhanh (Google sẽ chuyển về "
-                    "localhost:8000), mà bạn đang mở Vanhanh qua domain public - đăng nhập Google "
+                    "Kết nối này chạy OAuth trên CHÍNH MÁY cài Naota (Google sẽ chuyển về "
+                    "localhost:8000), mà bạn đang mở Naota qua domain public - đăng nhập Google "
                     "sẽ đứt giữa chừng với lỗi không kết nối được. Trên VPS hãy dùng thẻ Lịch "
                     "và Gmail riêng (hai thẻ đó đăng nhập ngay trong dashboard). Nếu máy chạy "
-                    "Vanhanh có màn hình và bạn sẽ bấm đồng ý trên đó, bấm Kết nối lần nữa.",
-                    "This connection runs OAuth on the SAME MACHINE Vanhanh is installed on (Google "
-                    "redirects back to localhost:8000), but you are opening Vanhanh through a public "
+                    "Naota có màn hình và bạn sẽ bấm đồng ý trên đó, bấm Kết nối lần nữa.",
+                    "This connection runs OAuth on the SAME MACHINE Naota is installed on (Google "
+                    "redirects back to localhost:8000), but you are opening Naota through a public "
                     "domain, so the Google sign-in will break halfway with a connection error. On a "
                     "VPS, use the separate Calendar and Gmail cards (those two sign in right inside "
-                    "the dashboard). If the machine running Vanhanh has a screen and you will click "
+                    "the dashboard). If the machine running Naota has a screen and you will click "
                     "Allow there, click Connect again.")}
         if _deploy_mode() == "docker":
-            # Vanhanh in Docker on the same computer. Google sends the browser back to localhost:8000 on that
+            # Naota in Docker on the same computer. Google sends the browser back to localhost:8000 on that
             # computer, which reaches the sign-in listener only when the container publishes port 8000
-            # (docker-compose.google.yml). Vanhanh cannot see the host's port mapping from inside, so it says it once.
+            # (docker-compose.google.yml). Naota cannot see the host's port mapping from inside, so it says it once.
             return {"ok": False, "can_force": True, "error": localefmt.chu(
-                    "Vanhanh đang chạy trong Docker. Sau khi bấm đồng ý, Google chuyển trình duyệt về "
+                    "Naota đang chạy trong Docker. Sau khi bấm đồng ý, Google chuyển trình duyệt về "
                     "localhost:8000 trên máy bạn, nên container phải mở cổng 8000 (chỉ cho chính máy này). "
-                    "Làm một lần trong thư mục Vanhanh: docker compose -f docker-compose.yml -f "
+                    "Làm một lần trong thư mục Naota: docker compose -f docker-compose.yml -f "
                     "docker-compose.google.yml up -d. Đã làm rồi thì bấm Kết nối lần nữa.",
-                    "Vanhanh is running in Docker. After you click Allow, Google sends the browser back to "
+                    "Naota is running in Docker. After you click Allow, Google sends the browser back to "
                     "localhost:8000 on your computer, so the container must publish port 8000 (to this "
-                    "computer only). Do it once in the Vanhanh folder: docker compose -f docker-compose.yml -f "
+                    "computer only). Do it once in the Naota folder: docker compose -f docker-compose.yml -f "
                     "docker-compose.google.yml up -d. If you already did, click Connect again.")}
     # Dùng lại key OAuth client của connection khác (vd Gmail dùng lại key đã tạo cho
     # Calendar) - copy server-side, secrets không bao giờ về browser.
@@ -6263,7 +7203,7 @@ async def connect_substack_resolve_uid(q: str = Query("")):
     """Tra User ID (+ gợi ý Publication URL) của một tài khoản Substack từ handle hoặc URL trang
     Hồ sơ. Substack đã đổi URL Hồ sơ sang dạng substack.com/@handle (không còn dãy số), nên trợ lý
     lấy nhanh ở trang Docs gọi endpoint này - server hỏi API CÔNG KHAI của Substack (không cần đăng
-    nhập Substack, không đụng secret) rồi trả về id. Endpoint vẫn sau auth guard (cần session Vanhanh)."""
+    nhập Substack, không đụng secret) rồi trả về id. Endpoint vẫn sau auth guard (cần session Naota)."""
     import re
     raw = (q or "").strip()
     m = re.search(r"/profile/(\d{3,})", raw)   # URL /profile/<id>-name kiểu cũ: số chính là user_id
@@ -6364,7 +7304,7 @@ async def connect_delete(request: Request):
 
 @app.post("/connect/relogin")
 async def connect_relogin(request: Request):
-    """Vứt token mà connector tự cache ngoài Vanhanh (workspace-mcp) mà GIỮ nguyên kết nối.
+    """Vứt token mà connector tự cache ngoài Naota (workspace-mcp) mà GIỮ nguyên kết nối.
 
     Vì sao cần một nút riêng: với connector loại này, nút Kết nối lại chỉ lưu lại Client ID/Secret
     chứ không đụng được token - server con đã có credential trên đĩa nên không bao giờ mở lại màn
@@ -6380,10 +7320,10 @@ async def connect_relogin(request: Request):
     connect_health.forget(cid)
     return {"ok": True, "cleared": done,
             "message": (localefmt.chu(
-                "Đã xoá đăng nhập Google cũ. Nhờ Vanhanh làm một việc bất kỳ với nguồn này, "
-                "trình duyệt trên máy chạy Vanhanh sẽ mở để bạn cấp lại quyền.",
-                "The old Google sign-in was removed. Ask Vanhanh to do anything with this source and "
-                "the browser on the machine running Vanhanh will open so you can grant access again.")
+                "Đã xoá đăng nhập Google cũ. Nhờ Naota làm một việc bất kỳ với nguồn này, "
+                "trình duyệt trên máy chạy Naota sẽ mở để bạn cấp lại quyền.",
+                "The old Google sign-in was removed. Ask Naota to do anything with this source and "
+                "the browser on the machine running Naota will open so you can grant access again.")
                         if done else
                         localefmt.chu("Kết nối này không tự giữ token riêng, hoặc chưa từng đăng nhập.",
                                       "This connection keeps no token of its own, or was never signed in."))}
@@ -6398,6 +7338,12 @@ async def connect_default(request: Request):
 @app.get("/connect/audit")
 async def connect_audit(limit: int = Query(80), id: str = Query("")):
     return {"entries": mcp_hub.audit_tail(limit=min(int(limit or 80), 500), conn_id=(id or None))}
+
+
+@app.get("/connect/result-stats")
+async def connect_result_stats(days: int = Query(7)):
+    """How large tool results were and how much of them the model was handed (tool_result_shaper)."""
+    return await asyncio.to_thread(mcp_hub.result_size_stats, days)
 
 
 # ---- Zalo: đăng nhập QR ngay trong UI ----
@@ -6422,7 +7368,7 @@ async def connect_zalo_cancel(request: Request):
     return zalo_login.cancel(data.get("sid"))
 
 
-# ---- OAuth chuẩn MCP: Vanhanh tự giữ token, không cần terminal ----
+# ---- OAuth chuẩn MCP: Naota tự giữ token, không cần terminal ----
 @app.post("/connect/oauth/start")
 async def connect_oauth_start(request: Request):
     data = await request.json()
@@ -6514,8 +7460,8 @@ async def connect_oauth_callback(state: str = Query(""), code: str = Query(""), 
         except Exception as e:
             print(f"[oauth label] {e}")
         html = ("<html><body style='font-family:sans-serif;background:#111;color:#eee;text-align:center;padding-top:80px'>"
-                + localefmt.chu("<h2>✓ Đã kết nối thành công</h2><p>Đóng tab này và quay lại Vanhanh, bấm Làm mới ở trang Kết nối.</p>",
-                                "<h2>✓ Connected successfully</h2><p>Close this tab, go back to Vanhanh and click Refresh on the Connections page.</p>")
+                + localefmt.chu("<h2>✓ Đã kết nối thành công</h2><p>Đóng tab này và quay lại Naota, bấm Làm mới ở trang Kết nối.</p>",
+                                "<h2>✓ Connected successfully</h2><p>Close this tab, go back to Naota and click Refresh on the Connections page.</p>")
                 + "</body></html>")
     else:
         html = (f"<html><body style='font-family:sans-serif;background:#111;color:#eee;text-align:center;padding-top:80px'>"
@@ -6642,8 +7588,12 @@ def _routing_view(mcfg, providers) -> dict:
         until = _pin_limited_until(p)
         if until:
             limited[p] = int(until)
+    background = model_routing.background_spec(mcfg)
+    if background.get("auto"):
+        # Automatic: the page names both models, the one for Naota's own work and the one for handed-over jobs.
+        background["light"] = model_routing.background_spec(mcfg, "light")["model"]
     return {"order": o, "profiles": {p: model_routing.profile(mcfg, p) for p in o}, "limited": limited,
-            "background": model_routing.background_spec(mcfg), "chat_in_use": chat, "bg_in_use": bg,
+            "background": background, "chat_in_use": chat, "bg_in_use": bg,
             "multi_key": list(_routing_key_fields()), "multi_plan": [p for p in plan_accounts.KIND if plan_accounts.available(p)],
             "defaults": {p["id"]: d for p in providers if (d := _default_model_name(mcfg, p["id"]))}}
 
@@ -6663,10 +7613,9 @@ async def settings_set(section: str = Form(...), data: str = Form("{}")):
         # người dùng bấm lưu, thấy báo thành công, F5 xong mất sạch - không lỗi, không log.
         lc = cfg.setdefault("locale", {})
         if "reply_lang" in patch:
-            v = str(patch["reply_lang"] or "").strip().lower()
-            # "auto" là giá trị HỢP LỆ, không phải chuỗi rỗng: nó nghĩa là "bám theo người
-            # dùng", khác hẳn với "chưa chọn".
-            lc["reply_lang"] = "auto" if v in ("", "auto") else (lang_registry.chuan_hoa(v) or "auto")
+            # 2026-11-15 (owner): the language setting is the interface's only; Naota replies in the language of
+            # whoever writes. A page cached from before may still send a pin: it is not stored.
+            lc["reply_lang"] = "auto"
         if "ui_lang" in patch:
             lc["ui_lang"] = lang_registry.chuan_hoa(patch["ui_lang"]) or lang_registry.MAC_DINH
             # Nguồn của giá trị: "tu_dong" = dashboard tự ghi theo trình duyệt của thiết bị ghé
@@ -6679,7 +7628,7 @@ async def settings_set(section: str = Form(...), data: str = Form("{}")):
             name = localefmt.valid_tz(raw) if raw else "Asia/Ho_Chi_Minh"
             if not name:
                 # Refuse instead of storing it: localefmt would fall back to UTC+7 without a word, and the picker would
-                # keep showing a timezone Vanhanh is not using.
+                # keep showing a timezone Naota is not using.
                 return JSONResponse({"ok": False, "error": localefmt.chu(
                     "Máy chủ không nhận ra múi giờ \"{tz}\"", "The server does not recognise the timezone \"{tz}\"",
                     tz=raw[:64])}, status_code=400)
@@ -6690,12 +7639,12 @@ async def settings_set(section: str = Form(...), data: str = Form("{}")):
         # The suggested next message (next_prompt.py): the "+" menu of the composer switches it on and off.
         if "suggest_next" in patch:
             cfg.setdefault("chat", {})["suggest_next"] = bool(patch["suggest_next"])
-        # vanhanh_plan for the API brains (plan_tool.py): the "+" menu of the composer switches it on and off.
+        # naota_plan for the API brains (plan_tool.py): the "+" menu of the composer switches it on and off.
         if "plan_tool" in patch:
             cfg.setdefault("chat", {})["plan_tool"] = bool(patch["plan_tool"])
     elif section == "general":
         if "workspace_name" in patch:
-            cfg["workspace_name"] = patch["workspace_name"] or "VANHANH"
+            cfg["workspace_name"] = patch["workspace_name"] or "NAOTA"
         if "setup_done" in patch:
             cfg["setup_done"] = bool(patch["setup_done"])
     elif section == "model":
@@ -6761,6 +7710,9 @@ async def settings_set(section: str = Form(...), data: str = Form("{}")):
                 # Thiếu provider (client cũ) = Claude, đúng hành vi trước khi mở nhiều provider.
                 prov = aux_patch.get("provider") or aux_engine.CLAUDE
                 aux["provider"] = prov if _provider_def(prov) else aux_engine.CLAUDE
+                aux["auto"] = False      # a model picked by hand: Automatic never replaces it
+            if aux_patch.get("auto") is True:
+                aux["auto"] = True       # back to Automatic (model_routing.background_spec)
             if "reasoning" in aux_patch:   # the background model keeps its own effort
                 r = aux_patch["reasoning"]
                 aux["reasoning"] = r if r in engine.REASONING_LEVELS else "off"
@@ -6942,7 +7894,7 @@ async def settings_set(section: str = Form(...), data: str = Form("{}")):
                     pet["image"] = ""
                 elif avatar_upload.hop_le(v):
                     pet["image"] = v
-            # Use that picture as the browser tab icon too, so several Vanhanh tabs tell apart at a glance.
+            # Use that picture as the browser tab icon too, so several Naota tabs tell apart at a glance.
             if "favicon" in pet_moi:
                 pet["favicon"] = bool(pet_moi["favicon"])
             cfg["dashboard"]["pet"] = pet
@@ -6992,7 +7944,7 @@ async def settings_set(section: str = Form(...), data: str = Form("{}")):
             v["call_engine"] = patch["call_engine"]
         if patch.get("live_provider") in voice_live.PROVIDERS:
             v["live_provider"] = patch["live_provider"]
-        # Live over an API key: ignore speech not meant for Vanhanh, and the reply pace.
+        # Live over an API key: ignore speech not meant for Naota, and the reply pace.
         if "live_proactive" in patch:
             v["live_proactive"] = bool(patch["live_proactive"])
         if patch.get("live_turn") in voice_live.TURN_PRESETS:
@@ -7083,7 +8035,7 @@ def _do_backup(brain: str = "") -> dict:
     cfg = cfgmod.read_settings()
     b = cfg.get("backup", {}) or {}
     if not (b.get("repo_url") and b.get("token")):
-        return {"ok": False, "error": localefmt.chu("Chưa cấu hình repo URL + token", "Repo URL and token are not configured yet")}
+        return {"ok": False, "error": localefmt.chu("Chưa cấu hình repository URL + token", "Repository URL and token are not configured yet")}
     mirror = str(cfgmod.STATE_DIR / "brains-backup")   # repo mirror riêng (tránh nested git từng brain)
     res = git_brain.sync_brains(BRAINS_DIR, mirror, b["repo_url"], b["token"], b.get("branch") or "main",
                                 trash_dir=str(cfgmod.STATE_DIR / "brain-trash"),
@@ -7231,6 +8183,113 @@ def _loc_model_chat(ids, cam):
     return [i for i in ids if i and not any(k in i.lower() for k in cam)]
 
 
+def _model_ids(body) -> list:
+    """Model ids out of a gateway's model-list reply, in the order given.
+
+    Sellers do not agree on the envelope: OpenAI wraps the rows in {"data": [...]}, some proxies answer the bare
+    list, others {"models": [...]}, and a row is {"id": ...}, {"name": ...} or a plain string. Reading only the
+    first shape left the picker empty for a gateway that had just answered with its whole list."""
+    rows = body
+    if isinstance(body, dict):
+        rows = body.get("data")
+        if not isinstance(rows, list):
+            rows = body.get("models")
+    out = []
+    for x in rows if isinstance(rows, list) else []:
+        if isinstance(x, dict):
+            x = x.get("id") or x.get("name") or x.get("model")
+        x = str(x or "").strip()
+        if x.startswith("models/"):   # Google's OpenAI-format endpoint names rows "models/gemini-..."
+            x = x[len("models/"):]
+        if x and x not in out:
+            out.append(x)
+    return out
+
+
+_VERSIONED_BASE = re.compile(r"/v\d+[a-z0-9]*$", re.I)
+
+
+def _openai_list_urls(base: str) -> list:
+    """Where an OpenAI-format gateway may keep its model list: (list URL, base it implies).
+
+    {base}/models first. A base typed without its version ("https://api.example.com") is the most common slip, so
+    {base}/v1/models is tried next; a list found there means the API lives under /v1."""
+    base = (base or "").rstrip("/")
+    urls = [(base + "/models", base)]
+    if base and not _VERSIONED_BASE.search(base):
+        urls.append((base + "/v1/models", base + "/v1"))
+    return urls
+
+
+async def _openai_list_models(base: str, key: str, timeout: float = 20) -> dict:
+    """Ask an OpenAI-format gateway for its models.
+
+    Returns {"ids", "base", "status", "why"}: `base` is the address the list was found under (it differs from the
+    one passed in when only {base}/v1/models answered), `status` the HTTP status of the first try that reached the
+    server (0 = none did), `why` a short cause for the owner when `ids` is empty."""
+    import httpx
+    headers = {"Authorization": f"Bearer {key or 'none'}"}
+    out = {"ids": [], "base": base, "status": 0, "why": ""}
+    async with httpx.AsyncClient(timeout=timeout) as c:
+        for url, at in _openai_list_urls(base):
+            try:
+                r = await c.get(url, headers=headers)
+            except Exception as e:
+                out["why"] = out["why"] or type(e).__name__
+                break   # the host itself did not answer: another path on it will not either
+            out["status"] = out["status"] or r.status_code
+            if r.status_code in (401, 403):
+                out["status"] = r.status_code
+                out["why"] = f"HTTP {r.status_code}"
+                break   # the key was refused: do not send it to a second path
+            if r.status_code != 200:
+                out["why"] = out["why"] or f"HTTP {r.status_code}"
+                continue
+            try:
+                ids = _model_ids(r.json())
+            except Exception:
+                ids = []
+            if ids:
+                out.update(ids=ids, base=at, why="")
+                break
+            out["why"] = out["why"] or localefmt.chu("không có danh sách model", "no model list")
+    return out
+
+
+def _adopt_listed_base(prov: str, old_base: str, new_base: str) -> None:
+    """A gateway saved before Naota checked addresses, with its version left off: keep the address its list was
+    found under, so the model the owner picks next can actually chat. Only a gateway with no model saved gets here
+    (one that passed the connect check keeps its address untouched)."""
+    with cfgmod._SETTINGS_LOCK:
+        cfg = cfgmod.read_settings()
+        m = cfg.setdefault("model", {})
+        gws = adv_keys.gateways(m, prov)
+        g = next((x for x in gws if x["base"] == old_base and not x["models"]), None)
+        if not g:
+            return
+        if isinstance(m.get(adv_keys.field(prov)), list) and m[adv_keys.field(prov)]:
+            adv_keys.update(m, prov, g["id"], base=new_base, key=g["key"])
+        else:   # one gateway in the three old fields, never turned into a list
+            m[adv_keys._SPEC[prov]["legacy"] + "_base"] = new_base
+        cfgmod.write_settings(cfg)
+
+
+async def _openai_compat_models(m):
+    """Models of the OpenAI-format gateway in use: the names saved with it first (typed by the owner, or listed
+    when it was connected), then whatever the gateway lists now. A gateway that lists nothing is not an error when
+    names were saved. Returns (ids or None, why)."""
+    base = engine.openai_compat_base()
+    if not base:
+        return None, ""
+    g = next((x for x in adv_keys.gateways(m, adv_keys.OPENAI) if x["base"] == base), None)
+    saved = list(g["models"]) if g else []
+    key = (m.get("openai_compat_key") or "").strip() or "none"
+    got = await _openai_list_models(base, key)
+    if got["ids"] and got["base"] != base and not saved:
+        _adopt_listed_base(adv_keys.OPENAI, base, got["base"])
+    return (_gop_giu_thu_tu(saved, sorted(got["ids"])) or None), got["why"]
+
+
 def _anthropic_compat_typed(m) -> list:
     """Model names the owner typed for the Anthropic-compatible gateway."""
     return [str(x).strip() for x in (m.get("anthropic_compat_models") or []) if str(x).strip()]
@@ -7252,14 +8311,30 @@ async def _anthropic_compat_models(m, base=None, key=None):
         async with httpx.AsyncClient(timeout=20) as c:
             r = await c.get(base + "/v1/models", headers=engine.anthropic_headers(key, compat=True))
         if r.status_code == 200:
-            data = r.json().get("data") or []
-            live = [x.get("id") for x in data if isinstance(x, dict) and x.get("id")]
+            try:
+                live = _model_ids(r.json())
+            except Exception:
+                live = []   # a web page instead of a list: same as no list
         elif not typed:
             r.raise_for_status()
     except Exception:
         if not typed:
             raise
     return _gop_giu_thu_tu(typed, live) or None
+
+
+def _is_web_page(r) -> bool:
+    """True when an HTTP reply is a web page (the gateway's own site), not its API."""
+    try:
+        if "html" in str((getattr(r, "headers", None) or {}).get("content-type") or "").lower():
+            return True
+        return str(getattr(r, "text", "") or "").lstrip()[:1] == "<"
+    except Exception:
+        return False   # cannot tell: keep the old rule, a 200 is accepted
+
+
+class _NoModelList(Exception):
+    """A gateway was asked and gave no list; the text is the short cause shown to the owner."""
 
 
 async def _fetch_provider_models(provider, m):
@@ -7332,15 +8407,10 @@ async def _fetch_provider_models(provider, m):
             data = r.json().get("data") or []
         return sorted(x.get("id") for x in data if isinstance(x, dict) and x.get("id")) or None
     if provider == "openai-compat":
-        base = engine.openai_compat_base()
-        if not base:
-            return None
-        key = (m.get("openai_compat_key") or "").strip() or "none"
-        async with httpx.AsyncClient(timeout=20) as c:
-            r = await c.get(base + "/models", headers={"Authorization": f"Bearer {key}"})
-            r.raise_for_status()
-            data = r.json().get("data") or []
-        return sorted(x.get("id") for x in data if isinstance(x, dict) and x.get("id")) or None
+        ids, why = await _openai_compat_models(m)
+        if not ids and why:
+            raise _NoModelList(why)
+        return ids
     if provider == "anthropic-compat":
         return await _anthropic_compat_models(m)
     if provider == "ollama":
@@ -7399,12 +8469,17 @@ async def _fetch_provider_models(provider, m):
         #      credential của ai, và tự mới theo mỗi lần cập nhật Claude Code.
         # Đường 2 là thứ thay cho việc mượn token OAuth đã gỡ: từ đó tới nay gói
         # thuê bao không có nguồn live nào, nên máy nào lỡ nhớ một catalog cũ là kẹt ở đó
-        # vĩnh viễn - nâng cấp Vanhanh cũng không thấy dòng model mới (Fable 5.1).
+        # vĩnh viễn - nâng cấp Naota cũng không thấy dòng model mới (Fable 5.1).
         ids = await claude_models.fetch_models(m.get("anthropic_api_key") or "")
         if ids:
             return ids
         # Chạy ở worker: quét file binary ~200MB, cỡ 0,3 giây lần đầu rồi nhớ theo mtime.
-        return await asyncio.to_thread(claude_cli.list_models)
+        ids = await asyncio.to_thread(claude_cli.list_models)
+        if not ids:
+            return None
+        # The binary's catalog is only as new as the installed Claude Code. Union it with the models this Naota
+        # release ships, so a new model reaches a machine whose CLI has not updated yet (Fable 5.2, 2026-11-10).
+        return claude_cli.merge_models(ids, (_provider_def(provider) or {}).get("default_models"))
     return None
 
 
@@ -7431,24 +8506,30 @@ def _remember_catalog(cfg, d, ids):
     # Chặn phình settings.json (OpenRouter vài trăm model). Endpoint tự khai thì giữ đủ: cắt ở 50
     # là thẻ báo "50 model" sai sự thật với proxy có nhiều hơn.
     keep = list(ids if key in ("openai-compat", "anthropic-compat") else ids[:50])
-    cat = cfg.setdefault("model", {}).setdefault("catalog", {})
-    if cat.get(key) == keep:
+    if ((cfg.get("model") or {}).get("catalog") or {}).get(key) == keep:
         return
-    cat[key] = keep
+    # 2026-11-13: `cfg` was read BEFORE the provider was asked, and that call can take 20 seconds. Writing that
+    # copy back whole undid whatever was saved meanwhile: a key connected while a model list was still loading
+    # vanished again. Only the one catalog entry goes into the settings as they are NOW.
     try:
-        cfgmod.write_settings(cfg)
+        with cfgmod._SETTINGS_LOCK:
+            now_cfg = cfgmod.read_settings()
+            cat = now_cfg.setdefault("model", {}).setdefault("catalog", {})
+            if cat.get(key) != keep:
+                cat[key] = keep
+                cfgmod.write_settings(now_cfg)
     except Exception as e:
         import sys
         print(f"[models] không ghi được catalog {key}: {e}", file=sys.stderr)
 
 
-def _vi_sao_khong_co_model(provider: str, m: dict) -> str:
+def _vi_sao_khong_co_model(provider: str, m: dict, cause: str = "") -> str:
     """Vì sao provider này không trả về model nào - viết cho NGƯỜI ĐỌC, không phải log.
 
     Hầu hết đường lấy model hỏng theo kiểu IM LẶNG: hàm trả None chứ không ném lỗi, nên phía
     trên chỉ còn một danh sách rỗng và giao diện đành nói "không có model" - đúng nhưng vô
     dụng. ChatGPT là ca nặng nhất vì nó KHÔNG có catalog dự phòng (danh sách model do Codex
-    quyết, Vanhanh cố ý không ghim version), nên hỏng là thẻ hiện đúng "0 model" ngay sau khi
+    quyết, Naota cố ý không ghim version), nên hỏng là thẻ hiện đúng "0 model" ngay sau khi
     người dùng vừa đăng nhập xong - trông y như đăng nhập hỏng.
     """
     d = _provider_def(provider) or {}
@@ -7463,11 +8544,11 @@ def _vi_sao_khong_co_model(provider: str, m: dict) -> str:
                 "Không thấy Codex CLI trên máy - danh sách model của gói ChatGPT do chính "
                 "Codex cấp. Cài bằng `npm i -g @openai/codex` (macOS có thể dùng "
                 "`brew install codex`) rồi bấm lại. Cài ở chỗ lạ thì trỏ thẳng bằng biến "
-                "môi trường VANHANH_CODEX_BIN.",
+                "môi trường NAOTA_CODEX_BIN.",
                 "Codex CLI was not found on this machine - the model list of the ChatGPT plan comes "
                 "from Codex itself. Install it with `npm i -g @openai/codex` (on macOS you can use "
                 "`brew install codex`), then click again. If it is installed somewhere unusual, point "
-                "to it with the VANHANH_CODEX_BIN environment variable.")
+                "to it with the NAOTA_CODEX_BIN environment variable.")
         return localefmt.chu(
             "Có Codex CLI nhưng nó chưa trả được danh sách model. Thường là bản Codex quá "
             "cũ (`npm i -g @openai/codex@latest`), hoặc máy chưa chạy `codex login` lần nào.",
@@ -7484,22 +8565,26 @@ def _vi_sao_khong_co_model(provider: str, m: dict) -> str:
                              "xem lỗi cụ thể.",
                              "Could not reach Ollama at the saved address. Open the Models page, Local Model "
                              "tab, to see the exact error.")
-    if provider == "openai-compat":
-        if not (m.get("openai_compat_base") or "").strip():
-            return localefmt.chu("Chưa đặt Base URL cho OpenAI Compatible.",
-                                 "No Base URL set for OpenAI Compatible.")
-        return localefmt.chu("Không đọc được danh sách model từ {base}/models. Kiểm tra Base URL (tính tới /v1) "
-                             "và key, hoặc gõ tên model bằng tay.",
-                             "Could not read the model list from {base}/models. Check the Base URL (up to /v1) "
-                             "and the key, or type the model name by hand.")
-    if provider == "anthropic-compat":
-        if not (m.get("anthropic_compat_base") or "").strip():
-            return localefmt.chu("Chưa đặt Base URL cho Anthropic Compatible.",
-                                 "No Base URL set for Anthropic Compatible.")
-        return localefmt.chu("Cổng này không trả danh sách model. Vào trang Models, thẻ Anthropic Compatible, "
-                             "gõ tên model bên bán đưa rồi bấm Lưu.",
-                             "This gateway does not list its models. On the Models page, Anthropic Compatible "
-                             "card, type the model name the seller gave you and press Save.")
+    if provider in adv_keys.PROVIDERS:
+        card = _card_label(d)
+        base = (m.get(adv_keys._SPEC[provider]["legacy"] + "_base") or "").strip()
+        if not base:
+            return localefmt.chu(f"Chưa đặt Base URL cho {card}.", f"No Base URL set for {card}.")
+        host, why = adv_keys.host(base), (f" ({cause})" if cause else "")
+        where = localefmt.chu(f"Mở trang Models, thẻ {card}, bấm dấu ba chấm cạnh key rồi chọn Sửa",
+                              f"Open the Models page, {card} card, press the three dots next to the key and choose Edit")
+        if cause in ("HTTP 401", "HTTP 403"):
+            return localefmt.chu(f"{host} từ chối API key{why}. {where}, dán lại key.",
+                                 f"{host} refused the API key{why}. {where}, then paste the key again.")
+        if provider == adv_keys.OPENAI:
+            return localefmt.chu(
+                f"{host} không trả danh sách model{why}. {where}: kiểm tra Base URL đã tính tới /v1 chưa, hoặc gõ "
+                "tên model bên bán đưa.",
+                f"{host} did not return a model list{why}. {where}: check that the Base URL goes up to /v1, or "
+                "type the model name the seller gave you.")
+        return localefmt.chu(
+            f"{host} không trả danh sách model{why}. {where}, gõ tên model bên bán đưa.",
+            f"{host} did not return a model list{why}. {where}, then type the model name the seller gave you.")
     if d.get("key_field") and not m.get(d["key_field"]):
         return localefmt.chu("Chưa có API key cho nhà cung cấp này.", "No API key for this provider yet.")
     return ""
@@ -7512,7 +8597,7 @@ async def provider_models_index(provider: str, refresh: bool = False) -> dict:
     d = _provider_def(provider) or {}
     cat = m.get("catalog", {}) or {}
     # HỢP hai danh sách chứ không phải "cái nhớ được ĐÈ cái mặc định". Đây là gốc của lỗi
-    # "nâng cấp Vanhanh rồi vẫn không có model mới": `_remember_catalog` ghi danh sách live vào
+    # "nâng cấp Naota rồi vẫn không có model mới": `_remember_catalog` ghi danh sách live vào
     # settings.json, mà `config._deep_merge` thì THAY danh sách chứ không nối - nên từ lần ghi
     # đó trở đi, bản mặc định mới trong config.py không bao giờ tới được người dùng nữa. Một
     # model đã ngừng bán mà còn nằm trong danh sách chỉ phiền lúc chọn nhầm; một model MỚI
@@ -7523,13 +8608,33 @@ async def provider_models_index(provider: str, refresh: bool = False) -> dict:
     c = _PROV_MODELS_CACHE.get(provider)
     if not refresh and c and (now - c["ts"]) < 600 and c.get("ids"):
         return {"models": c["ids"], "live": True, "cached": True}
+    is_gateway = provider in adv_keys.PROVIDERS
+    asked_base = (m.get(adv_keys._SPEC[provider]["legacy"] + "_base") or "") if is_gateway else ""
+    cause = ""
     try:
         ids = await _fetch_provider_models(provider, m)
+    except _NoModelList as e:
+        ids, last_err, cause = None, None, str(e)
     except Exception as e:
         ids = None
         last_err = f"{type(e).__name__}: {e}"
+        code = getattr(getattr(e, "response", None), "status_code", 0)
+        cause = f"HTTP {code}" if code else type(e).__name__
     else:
         last_err = None
+    if is_gateway:
+        # A gateway card: the raw exception text means nothing to the person choosing a model, so the reason is
+        # always the sentence that says what to do. And the card may have moved to another gateway while this one
+        # was being asked (a key added, removed, rotated): its list must not be kept under the new gateway's name.
+        m_now = cfgmod.read_settings().get("model", {})
+        moved = (m_now.get(adv_keys._SPEC[provider]["legacy"] + "_base") or "") not in (
+            asked_base, *[u[1] for u in _openai_list_urls(asked_base)])
+        if ids and not moved:
+            _PROV_MODELS_CACHE[provider] = {"ids": ids, "ts": now}
+            _remember_catalog(cfg, d, ids)
+        if ids:
+            return {"models": ids, "live": True}
+        return {"models": fallback, "live": False, "error": _vi_sao_khong_co_model(provider, m_now, cause)}
     if ids:
         _PROV_MODELS_CACHE[provider] = {"ids": ids, "ts": now}
         _remember_catalog(cfg, d, ids)
@@ -7636,15 +8741,24 @@ async def reflect(brain: str = Form("brain")):
             "status": res.get("status", ""), "report": rep, "git": g}
 
 
+# 2026-11-13: Docker's health check and every uptime probe call GET /health, and each call looked the `claude` binary
+# up by walking the folders of PATH on the disk, on the event loop. When the disk stalled, the probe that was meant to
+# tell whether Naota is alive timed out with it: the container was marked unhealthy and taken out of service while
+# Naota itself was fine. The answer now comes from memory (kept.py).
+_HEALTH_CLI = kept.Value(lambda: find_claude_cli(), name="claude cli path")
+
+
 @app.get("/health")
-async def health():
-    cli = find_claude_cli()
-    return {
-        "status": "ok",
-        "claude_cli": cli or "NOT FOUND",
-        "claude_cli_available": cli is not None,
-        "cwd": CLAUDE_CWD,
-    }
+async def health(request: Request):
+    cli = _HEALTH_CLI.get()
+    out = {"status": "ok", "claude_cli_available": cli is not None}
+    # 2026-11-10: the probe is public (watchdog, uptime checks, the CLI). The two absolute paths, which usually give
+    # away the OS user and the install folder, go only to a signed-in session or to this machine itself.
+    if (not cfgmod.gate_active() or _direct_local_request(request)
+            or cfgmod.valid_session(request.cookies.get("naota_session", ""))):
+        out["claude_cli"] = cli or "NOT FOUND"
+        out["cwd"] = CLAUDE_CWD
+    return out
 
 
 # Đồ thị note (GET /graph + WS /ws/graph) đã bóc sang routes/graph.py.
@@ -7686,8 +8800,15 @@ def _default_brain_dir() -> Path:
     Local = <project>/brains. Đây là 'bộ não khởi đầu' - user vẫn chọn brain khác trong danh
     sách hoặc folder ngoài bất kỳ qua 'path:<thư mục>'. KHÔNG hardcode vault cá nhân nào.
 
-    the owner can make another brain the default (POST /brains/default, server/default_brain.py);
-    `Brain Default` is only the folder used until they do."""
+    Since 2026-11-09 the owner can make another brain the default (POST /brains/default, server/default_brain.py);
+    `Brain Default` is only the folder used until they do.
+
+    2026-11-13: nearly every request asks for this, and each call cost one stat of the pointer file plus a mkdir
+    on the event loop. The loop now gets the folder from memory (kept.py); `_brain_paths_changed()` drops it."""
+    return _DEFAULT_BRAIN_DIR.get()
+
+
+def _default_brain_dir_now() -> Path:
     p = default_brain.path(BRAINS_DIR)
     try:
         p.mkdir(parents=True, exist_ok=True)
@@ -7695,13 +8816,28 @@ def _default_brain_dir() -> Path:
         pass
     return p
 
+
+_DEFAULT_BRAIN_DIR = kept.Value(lambda: _default_brain_dir_now(), key=lambda: str(BRAINS_DIR), name="default brain")
+# "is this brain a folder" and "its resolved path", per brain path. Same reason: both ran on the event loop for
+# almost every request that names a brain.
+_BRAIN_IS_DIR = kept.Keyed(lambda b: os.path.isdir(b), name="brain folder")
+
+
+def _brain_paths_changed() -> None:
+    """A brain was created, deleted or made the default through Naota: read the folders again now. A folder changed
+    any other way (a restore, an import, by hand) is seen within kept.RECHECK_S."""
+    _DEFAULT_BRAIN_DIR.drop()
+    _BRAIN_IS_DIR.drop()
+    kept.forget_resolved()
+
+
 brain_ident.set_default_dir(_default_brain_dir)
 
 
 def _brain_root(brain: str) -> str:
     if not brain or brain == "brain":
         return str(_default_brain_dir())
-    return brain if os.path.isdir(brain) else str(_default_brain_dir())
+    return brain if _BRAIN_IS_DIR.get(brain) else str(_default_brain_dir())
 
 
 def _cwd_luot_chat(row, brain: str) -> str:
@@ -7724,6 +8860,51 @@ def _cwd_luot_chat(row, brain: str) -> str:
     except Exception:
         pass
     return _brain_root(brain)
+
+
+def _inherited_repos(row, persona, brain: str) -> list:
+    """GitHub repos a chat inherits (2026-11-15): its project's, then its assistant's (a private chat on the Partners
+    page). Names only; github_repos.seed_session decides which ones this chat still lacks."""
+    names: list = []
+    pid = (row or {}).get("project_id") or ""
+    if pid:
+        try:
+            names += get_store().project_repo_names(pid)
+        except Exception as e:  # noqa: BLE001 - a store hiccup only means no inherited repo this turn
+            print(f"[repo seed] project {pid}: {type(e).__name__}: {e}", file=sys.stderr)
+    if persona and persona[0] == "agent":
+        try:
+            names += agent_assets.repo_names(_read_md(_agents_dir(brain) / f"{persona[1]}.md")[0])
+        except Exception as e:  # noqa: BLE001
+            print(f"[repo seed] agent {persona[1]}: {type(e).__name__}: {e}", file=sys.stderr)
+    return names
+
+
+async def _seed_chat_repos(ws, row, brain: str, persona) -> None:
+    """Attach the repos of the chat's project or assistant BEFORE the engine starts, so this very turn runs in them.
+    Each repo is offered once per chat (a repo detached from the chat stays detached). A failure is said in one line
+    and never stops the turn; the repo is tried again next turn."""
+    sid = (row or {}).get("id") or ""
+    if not sid:
+        return
+    try:
+        import github_repos
+        names = await asyncio.to_thread(_inherited_repos, row, persona, brain)
+        given = set(await asyncio.to_thread(github_repos.seeded, sid)) if names else set()
+        if not [n for n in names if n.lower() not in given]:
+            return
+        await ws.send_text(json.dumps({"type": "status", "content": localefmt.chu(
+            "Đang gắn repository GitHub vào cuộc này...", "Attaching the GitHub repositories to this chat...")}))
+        res = await asyncio.to_thread(github_repos.seed_session, sid, brain, str(_brain_root(brain)), names)
+    except Exception as e:  # noqa: BLE001 - an inherited repo must never break the turn
+        print(f"[repo seed] {sid[:12]}: {type(e).__name__}: {e}", file=sys.stderr)
+        return
+    if res.get("attached"):
+        print(f"[repo seed] {sid[:12]} attached {', '.join(res['attached'])}", file=sys.stderr)
+    for f in res.get("failed") or []:
+        await ws.send_text(json.dumps({"type": "system", "content": localefmt.chu(
+            f"Chưa gắn được repository {f['full_name']} vào cuộc này: {f['error']}. Lượt sau Naota thử lại.",
+            f"Could not attach {f['full_name']} to this chat: {f['error']}. Naota tries again next turn.")}))
 
 
 def _khoi_coding(row, brain: str = "") -> str:
@@ -7785,7 +8966,7 @@ def _brain_key(brain) -> str:
     """
     root = _brain_root(str(brain or ""))
     try:
-        return str(Path(root).resolve())
+        return kept.resolved(root)
     except OSError:
         return str(root)
 
@@ -7819,7 +9000,7 @@ def _brain_keys(brain) -> list:
 
 def _brain_sub(root, new_name: str, old_rel: str) -> Path:
     """Subfolder trong brain theo cấu trúc CHUẨN MỚI (phẳng <root>/<new_name>).
-    Fallback cấu trúc CŨ (<root>/<old_rel>, vd Vanhanh/agents, Memory) nếu mới chưa có →
+    Fallback cấu trúc CŨ (<root>/<old_rel>, vd Naota/agents, Memory) nếu mới chưa có →
     không vỡ vault chưa migrate. Chưa có cả hai → tạo mới."""
     root = Path(root)
     new = root / new_name
@@ -7983,19 +9164,19 @@ async def ingest_upload(
                 "folder": os.path.basename(sources)}
     return {"ok": False, "error": localefmt.chu("Không tạo được .md", "Could not create the .md file"), "raw": final[:200]}
 
-# Cấu trúc chuẩn Vanhanh - kiểm tra khi mở vault
+# Cấu trúc chuẩn Naota - kiểm tra khi mở vault
 # detect: regex khớp tên folder top-level (linh hoạt "06 - Sources" / "Sources")
 STANDARD_STRUCTURE = [
     # Nội dung người dùng đưa vào - nguồn lưu trữ (source of truth)
     {"key": "sources", "label": "sources", "kind": "dir", "detect": r"^(\d+\s*[-_.]\s*)?sources$", "create": "sources", "essential": True},
-    # Lớp vận hành Vanhanh (alt = vị trí cũ chưa migrate → không báo thiếu nhầm)
-    {"key": "agents", "label": "agents", "kind": "dir", "detect": r"^agents$", "alt": "Vanhanh/agents", "create": "agents", "essential": True},
-    {"key": "workflows", "label": "workflows", "kind": "dir", "detect": r"^workflows$", "alt": "Vanhanh/workflows", "create": "workflows", "essential": True},
+    # Lớp vận hành Naota (alt = vị trí cũ chưa migrate → không báo thiếu nhầm)
+    {"key": "agents", "label": "agents", "kind": "dir", "detect": r"^agents$", "alt": "Naota/agents", "create": "agents", "essential": True},
+    {"key": "workflows", "label": "workflows", "kind": "dir", "detect": r"^workflows$", "alt": "Naota/workflows", "create": "workflows", "essential": True},
     {"key": "memory", "label": "memory", "kind": "dir", "detect": r"^memory$", "alt": "Memory", "create": "memory", "essential": True},
     # Skill: canonical phẳng skills/<slug>/SKILL.md (mirror sang .claude/skills cho Claude native),
     # chia nhóm bằng field `group` trong frontmatter. alt = .claude/skills (vị trí cũ chưa migrate).
     {"key": "skills", "label": "skills", "kind": "dir", "detect": r"^skills$", "alt": ".claude/skills", "create": "skills", "essential": False},
-    # Tuỳ chọn - Vanhanh chưng cất source → wiki (nuôi graph); đính kèm ảnh/file
+    # Tuỳ chọn - Naota chưng cất source → wiki (nuôi graph); đính kèm ảnh/file
     {"key": "wiki", "label": "wiki", "kind": "dir", "detect": r"^(\d+\s*[-_.]\s*)?wiki$", "create": "wiki", "essential": False},
     {"key": "attachments", "label": "attachments", "kind": "dir", "detect": r"^(\d+\s*[-_.]\s*)?attachments$", "create": "attachments", "essential": False},
     # Bộ sổ bullet journal - nơi ghi chép + task hằng ngày, dataview kéo từ đây.
@@ -8039,8 +9220,8 @@ def _check_structure(root: Path):
                       "where": where, "essential": it["essential"]})
     return items
 
-VANHANH_README = (
-    "# Vanhanh\n\nLớp điều phối của VANHANH trong vault này.\n\n"
+NAOTA_README = (
+    "# Naota\n\nLớp điều phối của NAOTA trong vault này.\n\n"
     "- `agents/` - các Agent (vai trò + skills + bộ nhớ riêng)\n"
     "- `workflows/` - quy trình nhiều agent (status active/off)\n"
     "- Skills dùng chung ở `skills/` (tự mirror sang `.claude/skills` cho Claude Code native)\n"
@@ -8065,19 +9246,19 @@ TASKINBOX_SEED = (
     "Việc thêm nhanh từ dashboard - kéo về đúng sổ khi rảnh.\n"
 )
 SCHEMA_SEED = (
-    "# AGENTS.md - Vault Schema (Vanhanh)\n\n"
-    "> Vault này hoạt động với VANHANH. Cấu trúc:\n\n"
+    "# AGENTS.md - Vault Schema (Naota)\n\n"
+    "> Vault này hoạt động với NAOTA. Cấu trúc:\n\n"
     "- `01 - Daily Log/` → `04 - Future Log/` - bộ sổ bullet journal (nhật ký ngày/tuần/tháng/tương lai, chứa task `- [ ]`; khối dataview kéo việc từ đây)\n"
     "- `06 - Sources/` - ghi chú thô (source of truth)\n"
     "- `07 - Wiki/` - tri thức đã chưng cất, có `[[wikilink]]`\n"
-    "- `memory/` - bộ nhớ dài hạn của Vanhanh (facts + conversations)\n"
-    "- `Vanhanh/` - agents + workflows\n\n"
+    "- `memory/` - bộ nhớ dài hạn của Naota (facts + conversations)\n"
+    "- `Naota/` - agents + workflows\n\n"
     "Nguyên lý: Sources → (ingest) → Wiki. Tri thức tích luỹ, không tái phát hiện.\n"
 )
 
 def _ensure_brain_scaffold(root):
     """Tạo cấu trúc chuẩn cho MỘT brain (idempotent): sources/agents/workflows/memory/wiki/
-    attachments + Vanhanh/README + memory seed. Dùng cho brain mặc định lẫn brain mới tạo."""
+    attachments + Naota/README + memory seed. Dùng cho brain mặc định lẫn brain mới tạo."""
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
     present = {i["key"] for i in _check_structure(root) if i["present"]}
@@ -8091,13 +9272,13 @@ def _ensure_brain_scaffold(root):
                 (root / it["create"]).write_text(SCHEMA_SEED, encoding="utf-8")
         except Exception as e:
             print(f"[brain scaffold] {it['key']}: {e}", file=__import__('sys').stderr)
-    jr = root / "Vanhanh" / "README.md"
+    jr = root / "Naota" / "README.md"
     if not jr.exists():
         jr.parent.mkdir(parents=True, exist_ok=True)
-        jr.write_text(brain_seed_i18n.chon(VANHANH_README), encoding="utf-8")
+        jr.write_text(brain_seed_i18n.chon(NAOTA_README), encoding="utf-8")
     try:
         # Seed trang Dashboard trong thư mục dashboard (create-if-missing, user sửa gì giữ
-        # nấy). Khối ```tasks trong seed chạy thật trên dashboard Vanhanh.
+        # nấy). Khối ```tasks trong seed chạy thật trên dashboard Naota.
         #
         # KHÔNG seed "Task Inbox.md" nữa: nút "+ Việc" tự tạo nó ở lần thêm việc đầu tiên
         # (xem `files_taskadd`), nên rải sẵn chỉ để lại một file rỗng trong cây thư mục của
@@ -8112,7 +9293,7 @@ def _ensure_brain_scaffold(root):
     except Exception:
         pass
     try:
-        # Năng lực HỆ THỐNG (skill vanhanh-builder/ingest/query/lint + loop tự-cải-tiến): nguồn chuẩn
+        # Năng lực HỆ THỐNG (skill naota-builder/ingest/query/lint + loop tự-cải-tiến): nguồn chuẩn
         # nằm ở tầng app (.claude/skills + system/loops, đi theo phiên bản), mirror vào brain qua
         # manifest - cài nếu thiếu, UPDATE khi app lên bản mới, giữ nguyên nếu user đã sửa.
         system_sync.sync_brain(str(root))
@@ -8128,14 +9309,14 @@ def _ensure_brain_scaffold(root):
     except Exception as e:
         print(f"[meta tools seed] {e}", file=__import__('sys').stderr)
     try:
-        rebuild_vanhanh_index(str(root))   # chỉ mục tầng vận hành (Vanhanh/index.md)
+        rebuild_naota_index(str(root))   # chỉ mục tầng vận hành (Naota/index.md)
     except Exception as e:
-        print(f"[vanhanh index] {e}", file=__import__('sys').stderr)
+        print(f"[naota index] {e}", file=__import__('sys').stderr)
 
 
 def _ensure_default_brain():
     """Seed brain mặc định (<BRAINS_DIR>/Brain Default) lúc khởi động → deploy mới có ngay 'bộ não
-    Vanhanh khởi đầu', không hiện banner 'cấu trúc chưa chuẩn'."""
+    Naota khởi đầu', không hiện banner 'cấu trúc chưa chuẩn'."""
     try:
         _ensure_brain_scaffold(_default_brain_dir())
     except Exception as e:
@@ -8215,7 +9396,7 @@ def vault_check(brain: str = Query("brain")):
 
 @app.post("/vault/init")
 async def vault_init(brain: str = Form("brain")):
-    """Tạo các mục cấu trúc còn thiếu để vault chạy với Vanhanh. Dùng CHUNG scaffold với brain
+    """Tạo các mục cấu trúc còn thiếu để vault chạy với Naota. Dùng CHUNG scaffold với brain
     mới tạo (đủ bộ: cấu trúc + memory seed + schema/wiki nav + năng lực HỆ THỐNG + index) →
     vault ngoài chọn qua path: cũng có đầy đủ chức năng mặc định, không còn bản seed thiếu."""
     root = Path(_brain_root(brain))
@@ -8234,7 +9415,7 @@ async def brain_migrate(brain: str = Form("brain")):
     import shutil
     root = Path(_brain_root(brain))
     moved, skipped = [], []
-    for old_rel, new_rel in [("Vanhanh/agents", "agents"), ("Vanhanh/workflows", "workflows"), ("Memory", "memory")]:
+    for old_rel, new_rel in [("Naota/agents", "agents"), ("Naota/workflows", "workflows"), ("Memory", "memory")]:
         src, dst = root / old_rel, root / new_rel
         if dst.exists():
             skipped.append(localefmt.chu(f"{new_rel} (đã tồn tại - bỏ qua)",
@@ -8436,6 +9617,8 @@ async def new_brain(name: str = Form(...)):
         _ensure_brain_scaffold(root)
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+    finally:
+        _brain_paths_changed()
     git_brain.clear_tombstone(BRAINS_DIR, safe)   # dựng lại não cùng tên -> gỡ giấy báo tử để không bị xoá oan
     return {"ok": True, "name": safe, "path": str(root)}
 
@@ -8514,6 +9697,8 @@ async def delete_brain(name: str = Form(...), confirm: str = Form("")):
     except Exception as e:
         return JSONResponse({"ok": False, "error": localefmt.chu(f"Không xoá được (brain đang bận?): {e}", f"Could not delete (is the brain busy?): {e}")},
                             status_code=500)
+    finally:
+        _brain_paths_changed()
 
     _eager_brain_sync()   # đẩy lệnh xoá + tombstone lên remote NGAY thay vì chờ chu kỳ 6h
     return {"ok": True, "name": safe, "trashed": bool(dest)}
@@ -8568,6 +9753,7 @@ async def brain_set_default(brain: str = Form(...)):
     if old is not None and root == old:
         return {"ok": True, "name": root.name, "label": brain_label.display(root), "unchanged": True}
     ok, why = await asyncio.to_thread(default_brain.set_folder, BRAINS_DIR, root.name)
+    _brain_paths_changed()
     if not ok:
         return JSONResponse({"ok": False, "error": localefmt.chu("Không đặt được brain này làm mặc định",
                                                                  "Could not make this brain the default")},
@@ -8620,7 +9806,7 @@ async def brain_ties(brain: str = Query(...)):
 # ---- a whole brain as one .zip file, out and back in (server/brain_export.py) ----
 
 def _managed_brain_dir(brain: str):
-    """The folder of a brain Vanhanh manages ("brain", "path:<folder>" or a folder name), or None. Only brains inside
+    """The folder of a brain Naota manages ("brain", "path:<folder>" or a folder name), or None. Only brains inside
     BRAINS_DIR are exported: an external folder may be anything on the disk."""
     b = (brain or "").strip()
     if b == "brain" or not b:
@@ -8655,7 +9841,7 @@ async def brain_export_start(brain: str = Form("brain")):
     (brain_export.kept_out); the disk must keep brain_export.KEEP_FREE free."""
     root = _managed_brain_dir(brain)
     if root is None:
-        return JSONResponse({"ok": False, "error": localefmt.chu("Chỉ xuất được bộ não Vanhanh quản lý", "Only brains Vanhanh manages can be exported")},
+        return JSONResponse({"ok": False, "error": localefmt.chu("Chỉ xuất được bộ não Naota quản lý", "Only brains Naota manages can be exported")},
                             status_code=404)
     job = await asyncio.to_thread(brain_export.export_start, root, _brain_io_dir("brain-export"),
                                   _brain_zip_name(root), _app_version())
@@ -8779,7 +9965,7 @@ def _today():
 # NHÓM (field `group` trong frontmatter) - dùng chung cho CẢ BA loại năng lực: skill, agent,
 # workflow. Một brain dùng lâu có vài chục agent và workflow, danh sách phẳng thì tìm bằng mắt.
 # Cố tình dùng ĐÚNG một field và ĐÚNG một tên nhóm mặc định cho cả ba, để trang Studio, chỉ mục
-# Vanhanh/index.md và AI khi tự tạo năng lực đều hiểu giống nhau, không đẻ cách phân loại thứ hai.
+# Naota/index.md và AI khi tự tạo năng lực đều hiểu giống nhau, không đẻ cách phân loại thứ hai.
 NHOM_MAC_DINH = "Chung"
 
 
@@ -8857,10 +10043,10 @@ def _loi_tag(code: str, status: int = 400):
 
 
 def _agents_dir(brain):
-    return _brain_sub(_brain_root(brain), "agents", "Vanhanh/agents")
+    return _brain_sub(_brain_root(brain), "agents", "Naota/agents")
 def _workflows_dir(brain):
-    return _brain_sub(_brain_root(brain), "workflows", "Vanhanh/workflows")
-vanhanh_core.AGENTS_DIR = _agents_dir   # Vanhanh Core's own agent file lives where the brain keeps its agents
+    return _brain_sub(_brain_root(brain), "workflows", "Naota/workflows")
+naota_core.AGENTS_DIR = _agents_dir   # Naota Core's own agent file lives where the brain keeps its agents
 
 def _agent_memory(brain, slug):
     f = _brain_memory_dir(brain) / "agents" / slug / "MEMORY.md"
@@ -8872,17 +10058,17 @@ def _agent_memory(brain, slug):
 # ---- Agent tự bồi đắp: "model ĐỀ XUẤT, code GHI" (đúng nguyên tắc docs/22-tu-hoc) ----
 # Bản đầu cho agent tự Edit MEMORY.md, rào bằng lời "chỉ thêm dòng". Rào bằng
 # lời thì model yếu có ngày Write đè cả file, và luật cấm-xoá làm bài học sai nằm vĩnh
-# viễn, bộ nhớ chỉ phình không bao giờ gọn. Nay: agent phát dòng `VANHANH_LESSON: ...`
+# viễn, bộ nhớ chỉ phình không bao giờ gọn. Nay: agent phát dòng `NAOTA_LESSON: ...`
 # cuối output, code bóc lấy và ghi vào ĐÚNG mục "## Bài học (tự học)" - trần cứng +
 # chống trùng ép bằng code, phần chủ viết tay ngoài mục đó không bao giờ bị chạm.
 _BAI_HOC_HEADER = "## Bài học (tự học)"
 _BAI_HOC_TRAN = 15          # giữ N dòng MỚI NHẤT - bộ nhớ đặc dần thay vì dài dần
-_BAI_HOC_RE = re.compile(r"^[ \t]*VANHANH_LESSON:[ \t]*(.+?)[ \t]*$", re.MULTILINE)
+_BAI_HOC_RE = re.compile(r"^[ \t]*NAOTA_LESSON:[ \t]*(.+?)[ \t]*$", re.MULTILINE)
 
 def _boc_bai_hoc(out):
-    """Tách các dòng VANHANH_LESSON khỏi output agent. Trả (bài học, output đã sạch) -
+    """Tách các dòng NAOTA_LESSON khỏi output agent. Trả (bài học, output đã sạch) -
     phải bóc khỏi output vì `out` chảy tiếp vào {{prev}} của bước sau và lên UI."""
-    if not out or "VANHANH_LESSON" not in out:
+    if not out or "NAOTA_LESSON" not in out:
         return [], out
     lessons = [m.group(1).strip()[:300] for m in _BAI_HOC_RE.finditer(out)][:3]
     sach = re.sub(r"\n{3,}", "\n\n", _BAI_HOC_RE.sub("", out)).strip()
@@ -8920,12 +10106,12 @@ def _ghi_bai_hoc(brain, slug, lessons):
 
 def _ghi_luat_chu(brain, slug, rules):
     """Ghi luật CHỦ dặn vào mục "## Luật chủ dặn": chống trùng, KHÔNG có trần, không bao giờ
-    bị đẩy ra. Trước đây luật của chủ chỉ có đường VANHANH_LESSON, nên trôi khỏi cửa sổ 15
+    bị đẩy ra. Trước đây luật của chủ chỉ có đường NAOTA_LESSON, nên trôi khỏi cửa sổ 15
     dòng sau 15 bài học khác."""
     _ghi_muc_bo_nho_agent(brain, slug, agent_rules.OWNER_RULES_HEADER, rules, None)
 
 def _agent_run_task_text(task) -> str:
-    """The owner's own request, without the blocks Vanhanh put in front of it.
+    """The owner's own request, without the blocks Naota put in front of it.
 
     A chat turn reaches the agent with a recall block ([NHỚ LẠI TỪ CÁC CUỘC TRÒ CHUYỆN TRƯỚC: ...]) and the dashboard's
     context blocks ([NGỮ CẢNH GIAO DIỆN: ...], open file, attachments) in front. Logged as they were, old chat excerpts
@@ -8977,7 +10163,7 @@ def agents_index(brain: str, *, kem_prompt: bool = True) -> list:
     """
     out = []
     for f in sorted(_agents_dir(brain).glob("*.md")):
-        if vanhanh_core.is_core_slug(f.stem):
+        if naota_core.is_core_slug(f.stem):
             continue   # reserved for the system assistant (GET /agents adds it first)
         meta, body = _read_md(f)
         out.append({"slug": f.stem, "name": meta.get("name", f.stem),
@@ -9013,23 +10199,23 @@ def list_agents(brain: str = Query("brain"), prompt: int = Query(1), system: int
     đây để đổ vào ô sửa, và trả về rỗng cho nó là bấm Lưu một cái mất trắng prompt.
     """
     ds = agents_index(brain, kem_prompt=bool(prompt))
-    # `system=1` (the Partners page): Vanhanh Core first. Pickers that need a brain agent FILE (team members,
+    # `system=1` (the Partners page): Naota Core first. Pickers that need a brain agent FILE (team members,
     # chatbots, the "/" menu) do not ask for it, so they never offer the system assistant.
-    return {"agents": ([_vanhanh_core_entry(brain)] if system else []) + ds}
+    return {"agents": ([_naota_core_entry(brain)] if system else []) + ds}
 
 
-def _vanhanh_core_entry(brain: str) -> dict:
-    """Vanhanh Core's row for GET /agents: always first, with the system flags."""
+def _naota_core_entry(brain: str) -> dict:
+    """Naota Core's row for GET /agents: always first, with the system flags."""
     try:
         moc = get_store().moc_cap_nhat_theo_kenh(_brain_keys(brain), "agent:")
     except Exception:
         moc = {}
     root = _brain_root(brain)
-    e = vanhanh_core.list_entry(moc.get(vanhanh_core.CHANNEL, 0), root=root)
-    meta = vanhanh_core.read_core(root)[0]
-    e["role"] = vanhanh_core.role_text(meta, localefmt.chu)
-    e["avatar"] = agent_avatar.for_agent(meta, vanhanh_core.SLUG)   # the face picked on its card, else the stable one
-    # the agent editor shows Vanhanh Core's model (its pin, empty = the main model) and its own level.
+    e = naota_core.list_entry(moc.get(naota_core.CHANNEL, 0), root=root)
+    meta = naota_core.read_core(root)[0]
+    e["role"] = naota_core.role_text(meta, localefmt.chu)
+    e["avatar"] = agent_avatar.for_agent(meta, naota_core.SLUG)   # the face picked on its card, else the stable one
+    # the agent editor shows Naota Core's model (its pin, empty = the main model) and its own level.
     mcfg = cfgmod.read_settings().get("model", {})
     pin = _core_pin(mcfg)
     e["model"], e["model_provider"] = pin.get("model") or "", pin.get("provider") or ""
@@ -9042,50 +10228,50 @@ _CORE_AUTO_DONE: set = set()
 
 
 def _core_auto_on(brain: str) -> None:
-    """Auto (Resonance) is always on for Vanhanh Core: register it and switch it on, once per brain
-    per process. A missing entry needs nothing from the owner: the brain's Vanhanh Core file is made right here."""
+    """Auto (Resonance) is always on for Naota Core: register it and switch it on, once per brain
+    per process. A missing entry needs nothing from the owner: the brain's Naota Core file is made right here."""
     try:
         bkey = _brain_key(brain)
         if not bkey or bkey in _CORE_AUTO_DONE:
             return
-        vanhanh_core.ensure_file(_brain_root(brain))
+        naota_core.ensure_file(_brain_root(brain))
         rs = _resonance_store()
         owner = resonance_store.Principal("owner", "owner", bkey)
-        live = rs.agent(bkey, vanhanh_core.SLUG)
+        live = rs.agent(bkey, naota_core.SLUG)
         if live is None or not live.get("enabled"):
             if live is not None and live.get("status") == "missing":
                 rs.agent_confirm(owner, live["agent_key"], True)
-            rs.agent_set_enabled(owner, vanhanh_core.SLUG, True)
+            rs.agent_set_enabled(owner, naota_core.SLUG, True)
         _CORE_AUTO_DONE.add(bkey)
     except Exception as e:  # noqa: BLE001 - never fail the Partners page over this
-        print(f"[vanhanh core auto] {type(e).__name__}: {e}", file=sys.stderr)
+        print(f"[naota core auto] {type(e).__name__}: {e}", file=sys.stderr)
 
 
 def _core_refusal() -> JSONResponse:
-    """The one answer to deleting, unpinning or re-tagging Vanhanh Core, or creating a new agent on its slug. Everything
+    """The one answer to deleting, unpinning or re-tagging Naota Core, or creating a new agent on its slug. Everything
     else (picture, name, role, instructions, documents, skills, model) is edited like any agent."""
     return JSONResponse({"ok": False, "code": "system_assistant", "error": localefmt.chu(
-        "Vanhanh Core là trợ lý hệ thống: không xoá hay bỏ ghim được. Mọi thứ khác sửa như một trợ lý thường.",
-        "Vanhanh Core is the system assistant: it cannot be deleted or unpinned. Everything else is edited like any "
+        "Naota Core là trợ lý hệ thống: không xoá hay bỏ ghim được. Mọi thứ khác sửa như một trợ lý thường.",
+        "Naota Core is the system assistant: it cannot be deleted or unpinned. Everything else is edited like any "
         "other assistant.")}, status_code=403)
 
 
-@app.post("/vanhanh-core/session")
-def vanhanh_core_session(brain: str = Form("brain")):
-    """This brain's default Vanhanh Core chat, made when missing (deleted or archived ones are not revived)."""
-    sid = vanhanh_core.default_session(get_store(), _brain_key(brain), same_brain=_cung_brain)
-    return {"id": sid, "channel": vanhanh_core.CHANNEL}
+@app.post("/naota-core/session")
+def naota_core_session(brain: str = Form("brain")):
+    """This brain's default Naota Core chat, made when missing (deleted or archived ones are not revived)."""
+    sid = naota_core.default_session(get_store(), _brain_key(brain), same_brain=_cung_brain)
+    return {"id": sid, "channel": naota_core.CHANNEL}
 
 
-@app.get("/vanhanh-core/model")
-def vanhanh_core_model_get():
-    """The Vanhanh Core card's model row: its pin, or the main model it follows, and what really runs."""
+@app.get("/naota-core/model")
+def naota_core_model_get():
+    """The Naota Core card's model row: its pin, or the main model it follows, and what really runs."""
     return _core_model_view(cfgmod.read_settings().get("model", {}))
 
 
-@app.post("/vanhanh-core/model")
-async def vanhanh_core_model_set(provider: str = Form(""), model: str = Form("")):
-    """Pin Vanhanh Core to a model from the Agents page (empty provider = follow the main model). Same pin as the model
+@app.post("/naota-core/model")
+async def naota_core_model_set(provider: str = Form(""), model: str = Form("")):
+    """Pin Naota Core to a model from the Agents page (empty provider = follow the main model). Same pin as the model
     bar of a Core chat, so the two places can never disagree."""
     prov = (provider or "").strip()
     if prov and not _provider_def(prov):
@@ -9123,9 +10309,9 @@ def agent_get(slug: str = Query(...), brain: str = Query("brain")):
     Qua `_agent_md_path` chứ không tự ghép tên file: slug đến từ URL, mà `../../x` ghép thẳng
     vào đường dẫn là đọc được file ngoài thư mục agents.
     """
-    if vanhanh_core.is_core_slug(slug):
-        _cm, _cb = vanhanh_core.read_core(_brain_root(brain))
-        e = _vanhanh_core_entry(brain)
+    if naota_core.is_core_slug(slug):
+        _cm, _cb = naota_core.read_core(_brain_root(brain))
+        e = _naota_core_entry(brain)
         # The editor gets the role as stored (saving it unchanged must not swap in the translated line).
         return {**e, "role": str(_cm.get("role") or e["role"]), "chatgpt_voice": str(_cm.get("chatgpt_voice") or ""), "prompt": _cb}
     path = _agent_md_path(brain, slug)
@@ -9149,19 +10335,19 @@ async def save_agent(name: str = Form(...), role: str = Form(""), skills: str = 
                      avatar_eye: str = Form(None), avatar_eye_color: str = Form(None),
                      avatar_eye_size: str = Form(None), avatar_image: str = Form(None), tags: str = Form(None),
                      reasoning: str = Form(None), chatgpt_voice: str = Form(None)):
-    # Trợ lý MỚI đặt tên file không dấu ("Mây Work" -> may-work.md), đúng quy ước slug của Vanhanh. Trước
+    # Trợ lý MỚI đặt tên file không dấu ("Mây Work" -> may-work.md), đúng quy ước slug của Naota. Trước
     # tên giữ nguyên dấu; các file đó vẫn đọc, sửa, xoá được nhờ skill_router.valid_file_slug.
     # TẠO MỚI = form không gửi slug. Nhóm chat team (mục 5.1): tạo mới mà slug suy từ tên đã có file thì
     # KHÔNG ghi đè agent cũ (trước đây ghi đè âm thầm tên, vai, lời nhắc của người khác); trả 409 kèm gợi ý slug trống.
     creating = not (slug or "").strip()
     slug = slug or _ascii_slug(name)
-    core = vanhanh_core.is_core_slug(slug)
+    core = naota_core.is_core_slug(slug)
     if core and creating:
         return _core_refusal()   # a new agent can never take the system assistant's slug
     if core:
-        # Vanhanh Core is edited with the same form as any agent. Its file is made first, its model
-        # is Vanhanh Core's pin (the same one as the model chip of its chat) and its level is its own, both in settings.
-        vanhanh_core.ensure_file(_brain_root(brain))
+        # Naota Core is edited with the same form as any agent. Its file is made first, its model
+        # is Naota Core's pin (the same one as the model chip of its chat) and its level is its own, both in settings.
+        naota_core.ensure_file(_brain_root(brain))
         mp_core = (model_provider or "").strip()
         await _set_core_pin(mp_core if (mp_core and (model or "").strip() and _provider_def(mp_core)) else "", model)
         if isinstance(reasoning, str) and reasoning in engine.REASONING_LEVELS:
@@ -9244,7 +10430,7 @@ async def delete_agent(slug: str = Form(...), brain: str = Form("brain")):
     # slug ghép thẳng vào tên file: phải hợp lệ, không thì `../x` xoá được file ngoài thư mục agents.
     if not skill_router.valid_file_slug(slug):
         return JSONResponse({"ok": False, "error": "slug không hợp lệ"}, status_code=400)
-    if vanhanh_core.is_core_slug(slug):
+    if naota_core.is_core_slug(slug):
         return _core_refusal()
     def _xoa():
         # Tìm và xoá file TRONG khoá ghi agent, ở worker (R5): thao tác tag hay form đang giữ khoá thì xoá
@@ -9304,9 +10490,9 @@ def _agent_file(brain: str, slug: str):
     dạng tách dấu (NFD), còn slug tới từ trình duyệt là dạng dựng sẵn (NFC), hai chuỗi trông y hệt mà
     so khác nhau."""
     import unicodedata
-    # Vanhanh Core: a real file in every brain, made from the platform definition when missing.
-    if vanhanh_core.is_core_slug(slug):
-        return vanhanh_core.ensure_file(_brain_root(brain))
+    # Naota Core: a real file in every brain, made from the platform definition when missing.
+    if naota_core.is_core_slug(slug):
+        return naota_core.ensure_file(_brain_root(brain))
     d = _agents_dir(brain)
     for dang in dict.fromkeys((slug, unicodedata.normalize("NFC", slug), unicodedata.normalize("NFD", slug))):
         f = d / f"{dang}.md"
@@ -9344,7 +10530,7 @@ async def agent_assets_list(slug: str, brain: str = Query("brain")):
     meta, _body = _read_md(f)
     kho = agent_assets.doc(meta)
     return {"ok": True, "slug": slug, "name": meta.get("name", slug),
-            "files": kho["files"], "links": kho["links"]}
+            "files": kho["files"], "links": kho["links"], "repos": agent_assets.repos(meta)}
 
 
 @app.post("/agents/{slug}/assets/files")
@@ -9353,16 +10539,17 @@ async def agent_assets_add_file(slug: str, path: str = Form(...), name: str = Fo
     try:
         # Kiểm đường dẫn TRƯỚC khi ghi vào frontmatter: không có bước này thì lưu được một
         # path trèo ra ngoài brain rồi mới vỡ lúc nạp nội dung vào prompt.
-        alo = _safe_path(brain, path)
+        # 2026-11-12: a folder is accepted too (`_asset_target`), stored with a trailing "/". The empty path, which
+        # resolves to the browse ceiling itself, is still refused there.
+        found = _asset_target(brain, path)
     except ValueError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
-    # `is_file` chứ không phải `exists`: một đường dẫn rỗng giải ra chính thư mục trần, mà
-    # thư mục thì "có tồn tại" - gắn được một hàng trỏ vào thư mục, ghim vào là đọc lỗi.
-    if not alo.is_file():
-        return JSONResponse({"error": localefmt.chu("Không tìm thấy file trong brain này", "File not found in this brain")}, status_code=404)
+    if not found:
+        return _asset_missing()
+    stored, real_name, is_dir = found
     fid, loi = await asyncio.to_thread(
-        _agent_assets_sua, brain, slug, lambda m: agent_assets.them_file(m, path, name or alo.name))
-    return loi or {"ok": True, "id": fid}
+        _agent_assets_sua, brain, slug, lambda m: agent_assets.them_file(m, stored, name or real_name))
+    return loi or {"ok": True, "id": fid, "dir": is_dir}
 
 
 @app.post("/agents/{slug}/assets/files/{file_id}/delete")
@@ -9393,6 +10580,21 @@ async def agent_assets_add_link(slug: str, url: str = Form(...), label: str = Fo
     return loi or {"ok": True, "id": lid}
 
 
+@app.post("/agents/{slug}/assets/describe")
+async def agent_assets_describe(slug: str, kind: str = Form(...), ref: str = Form(...), description: str = Form(""),
+                                brain: str = Form("brain")):
+    """One line saying what an attached file (`ref` its stored path) or link (`ref` its URL) holds (2026-11-13).
+    Stored in the assistant's file, next to the document, so it travels with the assistant."""
+    refused = _project_text_refused(description)
+    if refused:
+        return refused
+    ok, loi = await asyncio.to_thread(
+        _agent_assets_sua, brain, slug, lambda m: agent_assets.describe(m, kind, ref, description))
+    if loi:
+        return loi
+    return {"ok": True} if ok else JSONResponse({"error": "not found"}, status_code=404)
+
+
 @app.post("/agents/{slug}/assets/links/{link_id}/delete")
 async def agent_assets_del_link(slug: str, link_id: str, brain: str = Form("brain")):
     ok, loi = await asyncio.to_thread(_agent_assets_sua, brain, slug, lambda m: agent_assets.go_link(m, link_id))
@@ -9405,6 +10607,52 @@ async def agent_assets_pin_link(slug: str, link_id: str, pinned: str = Form("1")
     on = str(pinned).strip() in ("1", "true", "True", "on")
     ok, loi = await asyncio.to_thread(_agent_assets_sua, brain, slug, lambda m: agent_assets.ghim_link(m, link_id, on))
     return loi or {"ok": bool(ok), "pinned": on}
+
+
+def _repo_names_form(raw: str) -> list:
+    """Comma separated full names, as the repo picker sends them (team-github.js)."""
+    return [x.strip() for x in str(raw or "").split(",") if x.strip()]
+
+
+async def _repos_prepare(brain: str, have: list, names: list):
+    """The list to store for a project or an assistant: the names kept as they are, the new ones checked and cloned
+    (github_repos.prepare) so their chats only add a worktree. Returns (names, error JSONResponse or None)."""
+    import github_repos
+    low = {h.lower() for h in have}
+    new = [n for n in names if n.lower() not in low]
+    try:
+        fixed = await asyncio.to_thread(github_repos.prepare, brain, str(_brain_root(brain)), new)
+    except github_repos.RepoError as e:
+        return None, JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+    return [n for n in names if n.lower() in low] + fixed, None
+
+
+def _agent_repo_rows(brain: str, slug: str):
+    """The assistant's repo rows, or None when there is no such assistant. Reads its file: call it in a thread."""
+    f = _agent_md_path(brain, slug)
+    return agent_assets.repos(_read_md(f)[0]) if f else None
+
+
+@app.post("/agents/{slug}/assets/repos")
+async def agent_assets_set_repos(slug: str, repos: str = Form(""), brain: str = Form("brain")):
+    """Set the assistant's GitHub repos (2026-11-15). Each private chat with it gets them on its next turn, on the
+    chat's own branch. Removing one only takes it off the list: chats that have it keep it."""
+    have = await asyncio.to_thread(_agent_repo_rows, brain, slug)
+    if have is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    names = _repo_names_form(repos)
+    if len(names) > agent_assets.REPOS_MAX:
+        return JSONResponse({"ok": False, "error": localefmt.chu(
+            f"Mỗi trợ lý chỉ gắn được tối đa {agent_assets.REPOS_MAX} repository",
+            f"Each assistant can have at most {agent_assets.REPOS_MAX} repositories")}, status_code=400)
+    final, err = await _repos_prepare(brain, [r["full_name"] for r in have], names)
+    if err:
+        return err
+    change, loi = await asyncio.to_thread(_agent_assets_sua, brain, slug, lambda m: agent_assets.set_repos(m, final))
+    if loi:
+        return loi
+    rows = await asyncio.to_thread(_agent_repo_rows, brain, slug)
+    return {"ok": True, "repos": rows or [], **(change or {})}
 
 
 # ---- Skills ----
@@ -9570,10 +10818,10 @@ async def save_skill(name: str = Form(...), description: str = Form(""), group: 
 async def delete_skill(slug: str = Form(...), brain: str = Form("brain")):
     if system_sync.is_system_skill(slug):
         return JSONResponse({"error": localefmt.chu(
-            "Skill hệ thống của VANHANH - không xoá được (đi theo "
+            "Skill hệ thống của NAOTA - không xoá được (đi theo "
             "phiên bản app, xoá cũng tự cài lại khi cập nhật). Muốn ngừng dùng "
             "thì TẮT skill (bỏ tích).",
-            "This is a VANHANH system skill and cannot be deleted (it ships with "
+            "This is a NAOTA system skill and cannot be deleted (it ships with "
             "the app version and would reinstall itself on update). To stop using it, "
             "turn the skill OFF (untick it).")}, status_code=400)
     if not skill_router.valid_slug(slug):
@@ -9618,7 +10866,7 @@ async def skill_set_group(slug: str = Form(...), group: str = Form(...), brain: 
 # Quản lý File (File Manager) - duyệt / đọc / sửa / tải / xoá file.
 # TRẦN duyệt (_files_ceiling): mặc định localhost = ổ đĩa chứa brain (out được ra root để
 # đọc/sửa data ngoài vault); public bind (VPS/login) = khoá trong brain. Chỉnh bằng
-# VANHANH_FILES_ROOT. Điểm vào mặc định LUÔN là brain. _safe_path chặn vượt trần (chống ../).
+# NAOTA_FILES_ROOT. Điểm vào mặc định LUÔN là brain. _safe_path chặn vượt trần (chống ../).
 # ============================================================
 _TEXT_EXTS = {".md", ".txt", ".json", ".yaml", ".yml", ".csv", ".js", ".ts", ".py",
               ".html", ".css", ".toml", ".ini", ".log", ".sh", ".bat", ".xml", ".svg", ".env"}
@@ -9626,11 +10874,11 @@ _TEXT_EXTS = {".md", ".txt", ".json", ".yaml", ".yml", ".csv", ".js", ".ts", ".p
 
 def _files_ceiling(brain: str) -> Path:
     """Ranh giới trên của File Manager (không cho 'Lên' quá đây). Brain LUÔN nằm trong trần.
-    VANHANH_FILES_ROOT: `brain`/`vault` = khoá trong brain | `drive`/`root` = ổ đĩa chứa brain |
+    NAOTA_FILES_ROOT: `brain`/`vault` = khoá trong brain | `drive`/`root` = ổ đĩa chứa brain |
     <đường dẫn tuyệt đối> = trần tuỳ ý (phải chứa brain). KHÔNG đặt: localhost → ổ đĩa (chủ máy
     tin cậy), bind public → khoá brain (fail-closed, tránh hở cả ổ đĩa qua web)."""
     broot = Path(_brain_root(brain)).resolve()
-    env = os.getenv("VANHANH_FILES_ROOT", "").strip()
+    env = os.getenv("NAOTA_FILES_ROOT", "").strip()
     ceil = None
     if env:
         low = env.lower()
@@ -9748,6 +10996,30 @@ def files_list(brain: str = Query("brain"), path: str = Query(None), subdirs: in
             "items": items}
 
 
+@app.get("/files/tree-prefs")
+async def files_tree_prefs(brain: str = Query("brain")):
+    """The folders this brain's Vault tree pins to the top (`pinned`) and unfolds on load (`open`), as paths relative
+    to the brain root (vault_tree_prefs.py). Folders that are gone are left out."""
+    def _read():
+        return vault_tree_prefs.read(cfgmod.read_settings(), _brain_root(brain))
+    return {"ok": True, **(await asyncio.to_thread(_read))}
+
+
+@app.post("/files/tree-prefs")
+async def files_tree_prefs_save(brain: str = Form("brain"), pinned: str = Form("[]"),
+                                open_dirs: str = Form("[]", alias="open")):
+    """Save both lists of the Vault tree for this brain. Each is a JSON list of brain-relative folder paths; the
+    whole pair is replaced, so the client sends what it shows."""
+    try:
+        raw = {"pinned": json.loads(pinned or "[]"), "open": json.loads(open_dirs or "[]")}
+    except json.JSONDecodeError:
+        return JSONResponse({"ok": False, "error": localefmt.chu("Danh sách thư mục không hợp lệ", "Invalid folder list")},
+                            status_code=400)
+    root = _brain_root(brain)
+    await asyncio.to_thread(cfgmod.update_settings, vault_tree_prefs.patch(root, raw))
+    return {"ok": True, **vault_tree_prefs.clean(raw)}
+
+
 _AN_THU_MUC = (".", "node_modules", "__pycache__")
 
 
@@ -9803,6 +11075,15 @@ async def files_search(brain: str = Query("brain"), q: str = Query(""), limit: i
     except (TypeError, ValueError):
         limit = 50
     SKIP_DIRS = {".git", "node_modules", "__pycache__", ".obsidian", ".trash", ".venv", ".pytest_cache"}
+    # 2026-11-12: several words match a name that holds all of them, in any order and with anything between: typing
+    # "bảng giá" finds `bang-gia-dich-vu.md`. One word, or the words as typed, match as before.
+    words = qf.split()
+
+    def _name_hit(name: str) -> bool:
+        if ql in name.lower():
+            return True
+        folded = _fold_accents(name)
+        return qf in folded or (len(words) > 1 and all(w in folded for w in words))
 
     def _walk():
         out = []
@@ -9812,7 +11093,7 @@ async def files_search(brain: str = Query("brain"), q: str = Query(""), limit: i
                 for dn in sorted(dirnames):
                     if len(out) >= limit:
                         return out
-                    if ql not in dn.lower() and qf not in _fold_accents(dn):
+                    if not _name_hit(dn):
                         continue
                     try:
                         rel = _files_rel(root, Path(dirpath) / dn)
@@ -9827,7 +11108,7 @@ async def files_search(brain: str = Query("brain"), q: str = Query(""), limit: i
                     return out
                 p = Path(dirpath) / fn
                 ext = p.suffix.lower()
-                name_hit = mode in ("name", "all") and (ql in fn.lower() or qf in _fold_accents(fn))
+                name_hit = mode in ("name", "all") and _name_hit(fn)
                 content_hit = False
                 snippet, line_no = "", 0
                 if mode in ("content", "all") and ext in _TEXT_EXTS:
@@ -10053,6 +11334,7 @@ async def files_delete(brain: str = Form("brain"), path: str = Form(...)):
             p.unlink()
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+    await asyncio.to_thread(_tree_prefs_follow, brain, p, None)
     return {"ok": True}
 
 
@@ -10067,7 +11349,19 @@ async def files_rename(brain: str = Form("brain"), path: str = Form(...), newnam
     if not p.exists():
         return JSONResponse({"error": localefmt.chu("Không tìm thấy", "Not found")}, status_code=404)
     p.rename(dst)
+    await asyncio.to_thread(_tree_prefs_follow, brain, p, dst)
     return {"ok": True}
+
+
+def _tree_prefs_follow(brain: str, old: Path, new) -> None:
+    """A folder pinned or open by default in the Vault tree keeps that after a rename and loses it on delete
+    (vault_tree_prefs.moved). Never fails the file operation that just succeeded."""
+    try:
+        change = vault_tree_prefs.moved(cfgmod.read_settings(), _brain_root(brain), old, new)
+        if change:
+            cfgmod.update_settings(change)
+    except Exception as e:
+        print(f"[vault_tree_prefs] could not follow {old} -> {new}: {e}", file=sys.stderr)
 
 
 # Tên LOGIC của thư mục -> (regex nhận diện, tên tạo mới nếu chưa có). Có bảng này để client
@@ -10230,7 +11524,7 @@ async def zip_dir_response(brain: str, path: str, probe: bool = False):
         except Exception as e:
             return JSONResponse({"error": localefmt.chu(f"Không đọc được thư mục: {e}", f"Could not read the folder: {e}")}, status_code=500)
         return {"ok": True, "files": files, "bytes": total, "name": name}
-    fd, tmp = tempfile.mkstemp(prefix="vanhanh-zip-", suffix=".zip")
+    fd, tmp = tempfile.mkstemp(prefix="naota-zip-", suffix=".zip")
     os.close(fd)
     try:
         await run_in_threadpool(_zip_dir_sync, d, tmp)
@@ -10298,6 +11592,58 @@ async def files_raw(brain: str = Query("brain"), path: str = Query(...), dl: int
     return raw_file_response(brain, path, dl=bool(dl))
 
 
+_LOCAL_OPEN_MSG = {
+    "not_absolute": ("Đây không phải đường dẫn đầy đủ tới một file trên máy.", "This is not a full path to a file on this computer."),
+    "outside": ("Chỉ mở được file trong thư mục người dùng của máy này.", "Only files inside this computer's home folder can be opened."),
+    "missing": ("Không tìm thấy file. Có thể nó đã bị đổi tên, chuyển chỗ hoặc xoá.", "File not found. It may have been renamed, moved or deleted."),
+}
+
+
+def _local_open_here(request: Request) -> bool:
+    """The browser sits on the machine that runs Naota: no tunnel, no proxy, not inside Docker."""
+    return _direct_local_request(request) and not os.path.exists("/.dockerenv")
+
+
+@app.get("/files/open-local")
+async def files_open_local_available(request: Request):
+    """Whether a click on a file outside the brain can open it for THIS browser. The chat asks once per page and
+    draws such links only on a yes: on a VPS, through a tunnel or in Docker the path stays the plain text it was,
+    instead of a link that can only answer "not on this computer"."""
+    return {"available": _local_open_here(request) and local_open.can_launch()}
+
+
+@app.post("/files/open-local")
+async def files_open_local(request: Request, path: str = Form(...), brain: str = Form("brain")):
+    """Open a file OUTSIDE the brain (a full path Naota wrote in chat) with the owner's own app.
+
+    Asks the OS to open it, like a double click in Finder; nothing is served over HTTP, so it is
+    only offered to a browser on this very machine: through a tunnel or proxy, or inside Docker, the
+    file would open on a screen nobody is looking at. Rules on what a click may open or only reveal
+    live in local_open.py."""
+    if not _local_open_here(request):
+        return JSONResponse({"error": localefmt.chu(
+            "Link này chỉ mở được khi bạn dùng Naota ngay trên máy đang chạy nó.",
+            "This link only opens when you use Naota on the computer that runs it.")}, status_code=403)
+    roots = [Path.home()]
+    try:
+        roots.append(Path(_brain_root(brain)))
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        target = local_open.resolve_target(path, roots)
+    except local_open.LocalOpenError as e:
+        vi, en = _LOCAL_OPEN_MSG.get(e.code, _LOCAL_OPEN_MSG["missing"])
+        return JSONResponse({"error": localefmt.chu(vi, en), "code": e.code},
+                            status_code=404 if e.code == "missing" else 400)
+    action = local_open.plan(target)
+    try:
+        local_open.launch(action, target)
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse({"error": localefmt.chu("Không mở được file: ", "Could not open the file: ") + str(e)},
+                            status_code=500)
+    return {"ok": True, "action": action, "path": str(target)}
+
+
 # ---- CHIA SẺ CÔNG KHAI một file (nút Chia sẻ trong trình sửa) ----
 # Người cầm link KHÔNG đăng nhập, nên đây là mặt tiền công khai duy nhất chạm vào file trong
 # brain. Ba điều giữ nó lành:
@@ -10310,9 +11656,9 @@ async def files_raw(brain: str = Query("brain"), path: str = Query(...), dl: int
 def _share_chan(ban) -> str:
     """Dòng chân trang: nói rõ đây là file được chia sẻ, để người xem biết mình đang xem gì."""
     if share_store.is_conversation(ban):
-        return localefmt.chu("Đoạn hội thoại được chia sẻ từ VANHANH", "A conversation shared from VANHANH")
+        return localefmt.chu("Đoạn hội thoại được chia sẻ từ NAOTA", "A conversation shared from NAOTA")
     ten = os.path.basename(str(ban.get("path") or "")) or "file"
-    return share_render.esc(ten) + localefmt.chu(" · được chia sẻ từ VANHANH", " · shared from VANHANH")
+    return share_render.esc(ten) + localefmt.chu(" · được chia sẻ từ NAOTA", " · shared from NAOTA")
 
 
 def _share_file(ban):
@@ -10336,7 +11682,7 @@ def _ung_vien_tai_nguyen(duong_dan_file: str, p: str):
          theo GỐC BRAIN, nên note nằm trong thư mục con mà viết ![](anh.jpg) là ảnh không bao
          giờ hiện.
       2. THEO GỐC BRAIN - hành vi cũ, giữ để note đang trỏ kiểu đó vẫn chạy.
-      3. attachments/<tên file> - nơi Vanhanh tự cất ảnh nó sinh ra.
+      3. attachments/<tên file> - nơi Naota tự cất ảnh nó sinh ra.
 
     Hàng rào phạm vi KHÔNG đổi: mỗi ứng viên vẫn phải qua đủ hai cổng của _share_asset, nên
     thêm ứng viên ở đây không mở rộng thêm thứ gì đọc được.
@@ -10359,13 +11705,26 @@ def _ung_vien_tai_nguyen(duong_dan_file: str, p: str):
     return ra
 
 
+def _share_private_zone(x, brain_root) -> bool:
+    """inbox/ (files customers and the owner's Telegram send), memory/, or any dot folder, relative to the brain.
+
+    Vá bảo mật 2026-11-05: a note shared from the brain root made "its folder" the whole brain, so the token served
+    every image or audio file in it, inbox photos named by sequential message id included. 2026-11-10: shared by
+    `_share_asset` and `_share_sibling`; the sibling route of a shared .html page had been left without it."""
+    try:
+        parts = Path(x).resolve().relative_to(brain_root).parts
+    except (ValueError, OSError):
+        return False
+    return bool(parts) and (parts[0].lower() in ("inbox", "memory") or any(s.startswith(".") for s in parts[:-1]))
+
+
 def _share_asset(ban, p: str):
     """File TÀI NGUYÊN kèm theo (ảnh trong .md, css/js cạnh file .html).
 
     HAI hàng rào cùng lúc, và cần cả hai:
 
     1. VỊ TRÍ: trong thư mục chứa file được chia sẻ (kể cả thư mục con), hoặc trong
-       `attachments` của brain - nơi Vanhanh cất ảnh theo quy ước.
+       `attachments` của brain - nơi Naota cất ảnh theo quy ước.
     2. LOẠI FILE: phải nằm trong `DUOI_TAI_NGUYEN`, tức chỉ ảnh, css, js, phông, âm thanh,
        phim. Không tài liệu.
 
@@ -10384,15 +11743,7 @@ def _share_asset(ban, p: str):
     goc_brain = Path(_brain_root(brain)).resolve()
 
     def _vung_rieng(x) -> bool:
-        """inbox/ (files customers and the owner's Telegram send), memory/, or any dot folder, relative to the brain.
-
-        Vá bảo mật: a note shared from the brain root made "its folder" the whole brain, so the token served
-        every image or audio file in it, inbox photos named by sequential message id included."""
-        try:
-            parts = x.resolve().relative_to(goc_brain).parts
-        except (ValueError, OSError):
-            return False
-        return bool(parts) and (parts[0].lower() in ("inbox", "memory") or any(s.startswith(".") for s in parts[:-1]))
+        return _share_private_zone(x, goc_brain)
 
     def _qua_cong(f) -> bool:
         """Đúng hai hàng rào ở trên, hỏi cho MỘT ứng viên (cộng vùng riêng của brain, trừ khi chính file chia sẻ nằm ở đó)."""
@@ -10440,7 +11791,7 @@ def _share_trang_hoi_thoai(ban, addr: str = ""):
     meta = localefmt.chu(f"{len(tin)} tin nhắn", f"{len(tin)} messages")
     trang = share_render.trang_hoi_thoai(
         ten, tin, "/s/" + (addr or ban["token"]) + "/asset", meta, _share_chan(ban),
-        nhan_nguoi=localefmt.chu("Người hỏi", "Question"), nhan_vanhanh="Vanhanh")
+        nhan_nguoi=localefmt.chu("Người hỏi", "Question"), nhan_naota="Naota")
     return HTMLResponse(trang, headers={"Content-Security-Policy": share_render.CSP_TINH,
                                         "X-Content-Type-Options": "nosniff",
                                         "Referrer-Policy": "no-referrer"})
@@ -10448,7 +11799,7 @@ def _share_trang_hoi_thoai(ban, addr: str = ""):
 
 def _share_anh_hoi_thoai(ban, p: str):
     """Ảnh trong một hội thoại được chia sẻ: CHỈ ảnh và tài nguyên trình bày nằm trong `attachments`
-    của brain - nơi Vanhanh cất ảnh nó tạo ra. Không ghi chú, không file nào khác của brain."""
+    của brain - nơi Naota cất ảnh nó tạo ra. Không ghi chú, không file nào khác của brain."""
     brain = str(ban.get("brain") or "brain")
     dinh_kem = Path(_brain_root(brain)).resolve() / "attachments"
     raw = (p or "").replace("\\", "/").strip().lstrip("/")
@@ -10490,7 +11841,7 @@ def _share_count_view(request: Request, ban) -> None:
         purpose = (request.headers.get("sec-purpose") or request.headers.get("purpose") or "").lower()
         if "prefetch" in purpose or share_stats.is_bot(ua):
             return
-        if cfgmod.gate_active() and cfgmod.valid_session(request.cookies.get("vanhanh_session", "")):
+        if cfgmod.gate_active() and cfgmod.valid_session(request.cookies.get("naota_session", "")):
             return          # the owner checking their own link
         share_stats.record_view(ban["token"], share_stats.visitor_key(_share_visitor_ip(request), ua))
     except Exception as e:  # noqa: BLE001 - a counter must never break the page
@@ -10568,8 +11919,11 @@ async def share_list(brain: str = Query("")):
                                   for b, t in zip(ds, ten)]}
 
 
+# 2026-11-13: the four public routes below are plain `def`, so FastAPI runs them on a worker thread. Each one looks
+# the link up, checks the file and reads or serves it; as `async def` all of that ran on the event loop, and readers
+# of a shared page froze the whole server whenever the disk stalled (GET /health/loop on the owner's VPS).
 @app.get("/s/{token}")
-async def share_xem(token: str, request: Request):
+def share_xem(token: str, request: Request):
     """TRANG XEM công khai. Không cần đăng nhập - xem chú thích đầu khối. `token` may be the link's custom address."""
     ban = share_store.get(token)
     if not ban:
@@ -10577,7 +11931,7 @@ async def share_xem(token: str, request: Request):
                             status_code=404)
     addr = _share_addr(token, ban)
     if share_store.is_conversation(ban):
-        resp = await asyncio.to_thread(_share_trang_hoi_thoai, ban, addr)
+        resp = _share_trang_hoi_thoai(ban, addr)
         if resp.status_code == 200:
             _share_count_view(request, ban)
         return resp
@@ -10618,7 +11972,7 @@ async def share_xem(token: str, request: Request):
 
 
 @app.get("/s/{token}/raw")
-async def share_raw(token: str, dl: int = Query(0)):
+def share_raw(token: str, dl: int = Query(0)):
     """File gốc, để tải về hoặc để trang .html nhúng thẳng."""
     ban = share_store.get(token)
     if not ban:
@@ -10636,7 +11990,7 @@ async def share_raw(token: str, dl: int = Query(0)):
 
 
 @app.get("/s/{token}/asset")
-async def share_asset(token: str, p: str = Query(...)):
+def share_asset(token: str, p: str = Query(...)):
     """Ảnh và tài nguyên kèm theo. Phạm vi bó hẹp, xem _share_asset."""
     ban = share_store.get(token)
     if not ban:
@@ -10692,6 +12046,11 @@ def _share_sibling(ban, p: str):
     thu_muc = goc.parent
     if not (f.parent == thu_muc or thu_muc in f.parents):
         return None
+    # A page shared from the brain root has the whole brain as "its folder": the private zones stay closed to it, unless
+    # the shared page itself lives in one (same rule as _share_asset).
+    goc_brain_rieng = Path(_brain_root(brain)).resolve()
+    if _share_private_zone(f, goc_brain_rieng) and not _share_private_zone(goc, goc_brain_rieng):
+        return None
     duoi = f.suffix.lower()
     if duoi in share_render.DUOI_TAI_NGUYEN:
         return f
@@ -10735,7 +12094,7 @@ def share_xem_html(token: str, request: Request):
 
 
 @app.get("/s/{token}/{p:path}")
-async def share_sibling(token: str, p: str):
+def share_sibling(token: str, p: str):
     """File cạnh trang .html chia sẻ, theo đường dẫn tương đối app đó xin. Phạm vi: _share_sibling.
 
     Header `Access-Control-Allow-Origin: *` là BẮT BUỘC chứ không phải cho rộng rãi: trang chạy
@@ -11194,7 +12553,7 @@ async def capability_meta(kind: str = Form(...), slug: str = Form(...),
     các tag đó trên tập hiện có; `tags` thay cả tập (`[]` = bỏ hết). `group` của client cũ theo luật
     tương thích (agent nhiều tag thì 409, không thay nhiều tag bằng một).
     """
-    if (kind or "").strip() == "agent" and vanhanh_core.is_core_slug(slug):
+    if (kind or "").strip() == "agent" and naota_core.is_core_slug(slug):
         return _core_refusal()
     thu_muc = _META_KIND.get((kind or "").strip())
     if not thu_muc:
@@ -11415,7 +12774,7 @@ async def import_capability(file: UploadFile = File(...), brain: str = Form("bra
         except Exception:
             pass
     try:
-        rebuild_vanhanh_index(root)
+        rebuild_naota_index(root)
     except Exception:
         pass
     return {"ok": not res.get("errors"), **res}
@@ -11423,7 +12782,7 @@ async def import_capability(file: UploadFile = File(...), brain: str = Form("bra
 
 @app.get("/usage")
 async def usage_stats():
-    """Token/chi phí Vanhanh TỰ ĐO theo nhà cung cấp (hôm nay + tổng). Kèm số dư THẬT của OpenRouter
+    """Token/chi phí Naota TỰ ĐO theo nhà cung cấp (hôm nay + tổng). Kèm số dư THẬT của OpenRouter
     nếu có key (provider duy nhất lộ số dư qua API); các provider còn lại API không cho lấy hạn mức."""
     out = usage_store.summary()
     out["daily"] = usage_store.daily(14)   # chuỗi 14 ngày cho đồ thị trang Mức dùng
@@ -11495,9 +12854,52 @@ async def usage_insights(period: str = "this_month", refresh: int = 0):
     if refresh:
         await _usage_refresh_once()
     try:
-        return {"items": await asyncio.to_thread(usage_index.insights, period=period)}
+        items = await asyncio.to_thread(usage_index.insights, period=period)
     except ValueError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
+    try:
+        extra = await asyncio.to_thread(_tool_result_insight)
+        if extra:
+            items = list(items or []) + [extra]
+    except Exception:  # noqa: BLE001 - one extra line must never take the whole list down
+        pass
+    return {"items": items}
+
+
+def _tool_result_insight():
+    """One line for the Usage page from the hub's own meter (mcp_hub.result_size_stats): how much of what the
+    connected sources returned in the last 7 days a model actually had to read. None when there is nothing to say."""
+    st = mcp_hub.result_size_stats(7)
+    if not st.get("calls") or int(st.get("raw_chars") or 0) < 50_000:
+        return None
+    raw, sent = int(st["raw_chars"]), int(st["sent_chars"])
+    vi = localefmt.ngon_ngu_giao_dien() == "vi"
+
+    def num(n):
+        text = f"{int(n):,}"
+        return text.replace(",", ".") if vi else text
+    heavy = (st.get("by_tool") or [{}])[0]
+    name = " ".join(x for x in (str(heavy.get("source") or ""), str(heavy.get("tool") or "")) if x)
+    if not st.get("shaping_on"):
+        if not st.get("over_cap"):
+            return None
+        return {"level": "warn",
+                "title": localefmt.chu("Làm gọn kết quả tool đang tắt", "Tool result shaping is off"),
+                "detail": localefmt.chu(
+                    f"7 ngày qua có {num(st['over_cap'])} kết quả tool vượt 8.000 ký tự, model phải nhận nguyên "
+                    f"hoặc bị cắt. Nặng nhất: {name}.",
+                    f"In the last 7 days {num(st['over_cap'])} tool results were over 8,000 characters; the model "
+                    f"got them whole or cut. Heaviest: {name}.")}
+    if st.get("saved_pct", 0) < 5:
+        return None
+    return {"level": "info",
+            "title": localefmt.chu(f"Kết quả tool: giữ {st['saved_pct']}% ngoài hội thoại",
+                                   f"Tool results: {st['saved_pct']}% kept out of the conversation"),
+            "detail": localefmt.chu(
+                f"7 ngày qua các nguồn trả về {num(raw)} ký tự, model chỉ phải đọc {num(sent)} (ước khoảng "
+                f"{num(st['saved_tokens_est'])} token). Bản đầy đủ vẫn được cất để tra lại. Nặng nhất: {name}.",
+                f"In the last 7 days the sources returned {num(raw)} characters and the model read {num(sent)} "
+                f"(about {num(st['saved_tokens_est'])} tokens saved). Full copies stay stored. Heaviest: {name}.")}
 
 
 @app.post("/usage/refresh")
@@ -11697,8 +13099,8 @@ async def usage_tong_quan(period: str = "this_month", brain: str = "brain", refr
     phi = await _phi_moi_muc(brain)
     muc_nay = current_preset(cfgmod.read_settings().get("context_runtime") or {})
     gia_1m, nguon_gia = _gia_input_1m(_ten_model_chinh(mcfg), mcfg)
-    luot_vanhanh = await asyncio.to_thread(usage_index.luot_theo_ngay, period)
-    tk = usage_saving.tiet_kiem(luot_vanhanh, phi, muc_nay, gia_1m_usd=gia_1m)
+    luot_naota = await asyncio.to_thread(usage_index.luot_theo_ngay, period)
+    tk = usage_saving.tiet_kiem(luot_naota, phi, muc_nay, gia_1m_usd=gia_1m)
     tk["nguon_gia"] = nguon_gia
     tk["nhan_muc"] = (RUNTIME_PRESETS.get(muc_nay) or {}).get("nhan") or muc_nay
 
@@ -11746,7 +13148,7 @@ async def usage_tong_quan(period: str = "this_month", brain: str = "brain", refr
 async def usage_ngan_sach(gia_goi_thang_usd: str = Form(""), ngan_sach_thang_usd: str = Form(""),
                           tran_5h: str = Form(""), tu_phanh: str = Form(""),
                           bao_cao_tuan: str = Form("")):
-    """Bốn con số Vanhanh KHÔNG tự biết được: giá gói, trần tiền tháng, trần cửa sổ 5h, tự phanh.
+    """Bốn con số Naota KHÔNG tự biết được: giá gói, trần tiền tháng, trần cửa sổ 5h, tự phanh.
 
     Trường bỏ trống = giữ nguyên. Gửi "0" mới là xoá. Phân biệt hai cái đó quan trọng: giao
     diện chỉ gửi ô người dùng vừa sửa, gửi thiếu mà bị hiểu là 0 thì bấm lưu một ô là mất ba
@@ -11786,7 +13188,7 @@ async def usage_ngan_sach(gia_goi_thang_usd: str = Form(""), ngan_sach_thang_usd
 
     # ĐỦ ĐIỀU KIỆN MỚI HẸN LỊCH. Hai thứ vừa bật đều hẹn giờ báo về cho người dùng: cảnh báo
     # ngân sách và báo cáo tuần. Chưa đấu kênh nào thì tới giờ chúng chạy xong rồi rơi vào hư
-    # không, và người dùng tưởng Vanhanh quên. Không chặn (họ có thể sắp đấu), nhưng phải NÓI.
+    # không, và người dùng tưởng Naota quên. Không chặn (họ có thể sắp đấu), nhưng phải NÓI.
     canh_bao = []
     co_ngoai, ly_do = _kenh_con_thieu()
     if not co_ngoai and (m.get("bao_cao_tuan") or m["ngan_sach_thang_usd"] > 0):
@@ -11799,8 +13201,8 @@ async def usage_ngan_sach(gia_goi_thang_usd: str = Form(""), ngan_sach_thang_usd
             "and cannot reach your phone."))
     if m["ngan_sach_thang_usd"] > 0 and not m.get("tu_phanh"):
         canh_bao.append(localefmt.chu(
-            "Tự phanh đang tắt, nên chạm trần Vanhanh chỉ nhắc chứ không dừng tiêu tiền.",
-            "Auto-brake is off, so when the cap is hit Vanhanh only reminds you and does not stop spending."))
+            "Tự phanh đang tắt, nên chạm trần Naota chỉ nhắc chứ không dừng tiêu tiền.",
+            "Auto-brake is off, so when the cap is hit Naota only reminds you and does not stop spending."))
 
     await _kiem_ngan_sach(nhac=False)     # đặt lại phanh ngay, đừng đợi vòng lặp nền
     return {"ok": True, "gia_goi_thang_usd": m["gia_goi_thang_usd"],
@@ -11853,14 +13255,14 @@ async def _kiem_ngan_sach(nhac: bool = True) -> dict:
             usage_saving.ghi_moc("ngan_sach", khoa, "", f"Nhắc ngân sách: {khoa}")
             if ns["muc_do"] == "het":
                 tin = (f"Ngân sách API tháng này đã hết: tiêu ${da:.2f} trên trần ${tran:.2f}.\n"
-                       + ("Vanhanh đã tự chuyển việc nền sang đường không tốn tiền."
+                       + ("Naota đã tự chuyển việc nền sang đường không tốn tiền."
                           if bat_phanh else
                           "Tự phanh đang tắt nên việc nền vẫn tiêu tiền như thường."))
             else:
                 tin = (f"Ngân sách API tháng này đã dùng {ns['ty_le'] * 100:.0f}%: "
                        f"${da:.2f} trên trần ${tran:.2f}. Còn ${ns['con']:.2f}.")
             try:
-                # kind="system": Vanhanh TỰ nói, không phải trả lời câu ai hỏi. Đúng nhãn mà
+                # kind="system": Naota TỰ nói, không phải trả lời câu ai hỏi. Đúng nhãn mà
                 # inbox.py đặt tên sẵn cho ca này ("cảnh báo hết hạn mức"), và nhãn đó là thứ
                 # người dùng đọc trên thẻ thư để biết tin này từ đâu ra.
                 await _notify_owner("", tin, kind="system", source="cost",
@@ -11878,7 +13280,7 @@ async def _bao_cao_tuan_neu_toi_gio() -> bool:
 
     Vì sao đẩy chứ không đợi người ta mở trang: trang Mức dùng chỉ hữu ích khi có người nhớ
     mở nó ra, mà thứ người ta cần biết ("tuần rồi tiêu gấp đôi vì một cái loop") lại đúng là
-    thứ không ai nghĩ tới việc đi kiểm. Vanhanh đã có sẵn đường nhắn chủ động, dùng nó.
+    thứ không ai nghĩ tới việc đi kiểm. Naota đã có sẵn đường nhắn chủ động, dùng nó.
 
     Dấu đã-gửi lưu trong nhật ký mốc theo tuần ISO, nên máy khởi động lại giữa sáng thứ Hai
     cũng không gửi hai lần.
@@ -12085,10 +13487,12 @@ async def _run_workflow_step(node, prompt, mk, agent_sysprompt, sink, router=Non
     reason = ""
     step_extra = tuple((node.metadata or {}).get("tools") or ())
     while True:
-        gcli = mk(sysprompt, agent_model, agent_prov, step_extra)
         out = ""
         loi_engine = ""
-        async for ev in gcli.query(cur_prompt):
+        # `_step_run` builds the engine itself: a plan card that lost its sign-in runs the step again elsewhere.
+        async for ev in _step_run(
+                lambda: mk(sysprompt, agent_model, agent_prov, step_extra,
+                           **_step_reasoning_kw(agent_sysprompt, node.agent)), cur_prompt):
             if ev["type"] == "text":
                 await sink({"type": "step_text", "i": index, "node": node.id,
                             "content": ev["content"]})
@@ -12128,7 +13532,7 @@ async def _run_workflow_step(node, prompt, mk, agent_sysprompt, sink, router=Non
             f"KẾT QUẢ CẦN KIỂM CHỨNG:\n{out}\n\n"
             "Đánh giá kết quả có ĐẠT nhiệm vụ không. Trả JSON như hướng dẫn."
         )
-        vcli = mk(v_sys, v_model, v_prov)
+        vcli = mk(v_sys, v_model, v_prov, **_step_reasoning_kw(agent_sysprompt, node.verify_agent))
         v_out = ""
         v_err = ""
         async for ev in vcli.query(v_prompt):
@@ -12154,7 +13558,7 @@ async def _run_workflow_step(node, prompt, mk, agent_sysprompt, sink, router=Non
             "CẢI THIỆN kết quả lần trước theo phản hồi: giữ phần đã tốt, sửa đúng chỗ bị chê. Làm cho ĐẠT."
         )
     if learn:
-        out = learn(node.agent, out)   # bóc VANHANH_LESSON + ghi bộ nhớ TRƯỚC khi out chảy tiếp
+        out = learn(node.agent, out)   # bóc NAOTA_LESSON + ghi bộ nhớ TRƯỚC khi out chảy tiếp
     if log_run:
         log_run(node.agent, prompt, out)
     if verified is False:
@@ -12175,7 +13579,7 @@ _STEP_NATIVE_TOOLS = ("WebFetch", "WebSearch")
 def _step_grant(extra_tools):
     """(allowlist additions, natives) for the `tools:` one step declares.
 
-    Lower-case names are plugin tools (vanhanh_generate_image...), granted one by one through
+    Lower-case names are plugin tools (naota_generate_image...), granted one by one through
     plugins_host.grant_patterns; the tool's own min_mode is still checked against the run's
     mode at call time, so a step can never lift the level. Upper-case names are native Claude
     tools, of which only _STEP_NATIVE_TOOLS are accepted."""
@@ -12206,11 +13610,12 @@ def _workflow_agent_helpers(brain, tools, mode=None):
     if ungated_mode not in ("suggest", "auto", "full"):
         ungated_mode = "suggest"
 
-    def _mk(sysprompt, model=None, provider="", extra_tools=()):
+    def _mk(sysprompt, model=None, provider="", extra_tools=(), reasoning=""):
         # An interactive step whose agent pins no model runs on the owner's MAIN model, like a chat turn
         #: before this it always fell back to Claude, whatever brain was picked
         # on the Models page. A pinned agent keeps its pin; the gated background run (tools is not None) stays on
-        # Claude Code by design, see the comment further down.
+        # Claude Code by design, see the comment further down, with one exception since 2026-11-12: an agent set to
+        # ChatGPT runs on Codex under the step's own tool list (the branch right below).
         from_main = False
         if tools is None and not str(model or "").strip() and not str(provider or "").strip():
             main_spec = _effective_main(cfgmod.read_settings())
@@ -12218,6 +13623,43 @@ def _workflow_agent_helpers(brain, tools, mode=None):
             provider = str(main_spec.get("provider") or "")
             from_main = True
         prov = _agent_model_provider(model, provider)
+        signed_out = bool(_signed_out_until(prov))
+        if signed_out and tools is None:
+            # 2026-11-12: this step's card (the agent's own model, or MAIN) is known to have lost its sign-in. An
+            # ungated step then runs where a chat turn would run right now (`_chat_provider`: MAIN, or the next card
+            # of the usage order that can run), with that card's own model, instead of failing on every run until the
+            # owner signs in again. Nothing saved changes; the agent's model is used again once its card is back.
+            try:
+                route = _chat_provider(cfgmod.read_settings().get("model", {}) or {})
+                if route[0] and route[0] != prov:
+                    print(f"[workflow] {prov} is signed out: this step runs on {route[0]}", file=sys.stderr)
+                    model, provider, from_main = str(route[3] or ""), route[0], True
+                    prov, signed_out = _agent_model_provider(model, provider), False
+            except Exception as e:  # noqa: BLE001 - the step then reports the provider's own error, as before
+                print(f"[workflow] signed-out route {prov}: {type(e).__name__}: {e}", file=sys.stderr)
+        if prov == "openai-oauth" and tools is not None and not signed_out:
+            # Gated background step of an agent set to ChatGPT (owner decision 2026-11-12, from PR #1333): run it on
+            # Codex instead of silently on Claude Code. The safety rail moves with it: read-only sandbox, no native
+            # shell, web, sub-agent or app tools, and the Naota hub answers only the step's own tool list at the
+            # run's level (`workflow_codex`). Checked on Codex CLI 0.167.2: with these overrides the request carries
+            # no exec, web or multi-agent tool.
+            # When that environment cannot be built (no Codex CLI, no hub profile, a tool the list cannot express)
+            # the step falls back to the gated Claude Code path below, which is what every such step ran on before,
+            # so a workflow that works today keeps working. The same while ChatGPT is known to be signed out
+            # (`signed_out`, 2026-11-12).
+            try:
+                import workflow_codex
+                allowed, _ = _step_grant(extra_tools)
+                cc = workflow_codex.build(
+                    cwd=vault_root, model=_codex_safe_model(model) if model else None,
+                    instructions=sysprompt, allowed=list(tools) + allowed, mode=gated_mode,
+                    apply_hub=_apply_codex_hub, extra_servers=_codex_user_mcp_servers())
+            except ValueError as e:
+                print(f"[workflow] restricted ChatGPT step runs on Claude Code instead: {e}", file=sys.stderr)
+            else:
+                openai_oauth.write_codex_auth()
+                _apply_step_reasoning(cc, reasoning, codex=True)
+                return _step_engine(cc, "openai-oauth")   # the ChatGPT account with quota, the next one when it runs out
         if prov == "openai-oauth" and (model or from_main) and tools is None and find_codex_cli():
             openai_oauth.write_codex_auth()
             cc = CodexCLI(cwd=vault_root, tag="workflow", model=_codex_safe_model(model),
@@ -12226,7 +13668,8 @@ def _workflow_agent_helpers(brain, tools, mode=None):
             # Fast mode: workflow steps run in the background, so force the normal tier.
             cc.extra_config[:] = [x for x in cc.extra_config if not str(x).startswith("service_tier=")]
             cc.extra_config.append('service_tier="default"')
-            return cc
+            _apply_step_reasoning(cc, reasoning, codex=True)
+            return _step_engine(cc, "openai-oauth")   # the ChatGPT account with quota, the next one when it runs out
         allowed, natives = (_step_grant(extra_tools) if tools is not None else ([], []))
         gated_tools = (list(tools) + allowed) if tools is not None else None
         c = claude_engine(system_prompt=sysprompt, cwd=vault_root, tag="workflow",
@@ -12235,6 +13678,7 @@ def _workflow_agent_helpers(brain, tools, mode=None):
         # khác mà nhét vào đây là Claude nhận một tên nó không hiểu (bug cũ: agent
         # chọn Gemini/OpenRouter vẫn chạy Claude, im lặng, không ai biết).
         c.model = ((model if prov == "anthropic-cli" else "") or _aux_model() or None)
+        _apply_step_reasoning(c, reasoning)
         if tools is not None:
             _mcpf = _empty_mcp_file()
             if _mcpf:
@@ -12246,34 +13690,38 @@ def _workflow_agent_helpers(brain, tools, mode=None):
                 # A plugin tool is granted (the step's `tools:`, or a Kanban "image" job's own
                 # list): the plugin needs the brain (images land in its attachments/) and the
                 # level to check min_mode.
-                c.vanhanh_vault = vault_root
-                c.vanhanh_mode = gated_mode
-            # Trần chung cho fork nền (mặc định không giới hạn, env VANHANH_BG_MAX_WALL_S): một bước
+                c.naota_vault = vault_root
+                c.naota_mode = gated_mode
+            # Trần chung cho fork nền (mặc định không giới hạn, env NAOTA_BG_MAX_WALL_S): một bước
             # workflow quét dữ liệu thật cũng có thể chạy quá 300s như việc lịch/Kanban.
             c.max_wall_s = aux_engine.bg_max_wall_s()
         else:
-            # An ungated step (a workflow run from chat, or a Kanban `wf:` job at `full`) gets the Vanhanh hub at
+            # An ungated step (a workflow run from chat, or a Kanban `wf:` job at `full`) gets the Naota hub at
             # the run's level, like the Codex branch above (_apply_codex_hub) and like route `auto`. Before, only
-            # vanhanh_vault was set: in-process plugins worked, every MCP registered in Vanhanh did not, so the agent
+            # naota_vault was set: in-process plugins worked, every MCP registered in Naota did not, so the agent
             # reported "missing tool" and the job stopped at its acceptance check.
             _apply_mcp(c, mode=ungated_mode, brain=vault_root)
-            c.vanhanh_vault = vault_root
+            c.naota_vault = vault_root
         # `tools is not None` = workflow chạy NỀN ở chế độ giới hạn công cụ. Ở đó agent luôn
         # phải là Claude Code, y như nhánh Codex ngay trên: giới hạn an toàn nằm ở
         # allowed_tools + disallowed_tools của chính CLI đó, engine nhà khác lấy tool từ hub
         # nên không mang theo được rào ấy. Đây là hành vi đã hứa trong docs/07, không phải
         # bỏ sót - đổi nó là nới quyền cho việc chạy nền mà không ai yêu cầu.
+        # Since 2026-11-12 ChatGPT is the one exception (branch at the top of this function): its rail is the hub
+        # allowlist plus the read-only Codex sandbox. Every other provider still runs gated steps on Claude Code.
         if tools is None and prov not in ("anthropic-cli", "openai-oauth"):
             # Nhà khác Claude/Codex: mượn ĐÚNG bộ dựng engine của việc nền thay vì viết bản
             # thứ hai - aux_engine.swap lo cả key, khả dụng, tool qua hub và chuỗi dự phòng
             # (nhà đã chọn chết giữa chừng thì lùi về Claude/bộ não chính, không chết lặng).
-            # Gọi SAU khi đã gắn vanhanh_vault/system_prompt vì _build_* đọc lại từ engine này.
+            # Gọi SAU khi đã gắn naota_vault/system_prompt vì _build_* đọc lại từ engine này.
             try:
-                c = aux_engine.swap(c, tag="workflow", codex_profile=_write_codex_profile,
-                                    spec={"provider": prov, "model": (model or "")})
+                return aux_engine.swap(c, tag="workflow", codex_profile=_write_codex_profile,
+                                       spec={"provider": prov, "model": (model or "")})   # rotates accounts itself
             except Exception as e:
                 print(f"[agent engine] {prov}: {type(e).__name__}: {e}", file=__import__('sys').stderr)
-        return c
+        # Claude Code runs this step (the agent's own choice, a gated background run, or a card that could not be
+        # built): on the Claude account that has quota. Only the account moves, never the provider.
+        return _step_engine(c, "anthropic-cli")
 
     def _agent_sysprompt(aslug, surface=None, agent_key=None, session_created_at=None, skill_served=False):
         """`surface` (dm, team, kanban, workflow): where this prompt runs, known by the host. Only with it can an
@@ -12294,16 +13742,17 @@ def _workflow_agent_helpers(brain, tools, mode=None):
             + f"\n# Bộ nhớ của bạn (file: {mem_path}):\n{amem or '(chưa có ký ức nào)'}\n"
             + "\n# Tự bồi đắp lúc dùng: nếu cuối nhiệm vụ rút ra được bài học TÁI DÙNG cho vai này "
               "(cách làm tốt hơn, lỗi cần tránh, ngữ cảnh riêng đã học được), KẾT THÚC câu trả lời "
-              "bằng tối đa 2 dòng riêng, mỗi dòng đúng dạng `VANHANH_LESSON: <bài học một câu>`. "
-              "Vanhanh tự ghi vào mục `## Bài học (tự học)` của file bộ nhớ trên (tự loại trùng, giữ "
+              "bằng tối đa 2 dòng riêng, mỗi dòng đúng dạng `NAOTA_LESSON: <bài học một câu>`. "
+              "Naota tự ghi vào mục `## Bài học (tự học)` của file bộ nhớ trên (tự loại trùng, giữ "
               f"{_BAI_HOC_TRAN} dòng mới nhất). KHÔNG tự sửa file bộ nhớ trực tiếp - phần ngoài mục "
-              "đó là của chủ. Lượt chạy không có gì đáng nhớ thì ĐỪNG phát VANHANH_LESSON, và đừng "
+              "đó là của chủ (chủ bảo sửa thì dùng `naota_improve` op=save). "
+              "Lượt chạy không có gì đáng nhớ thì ĐỪNG phát NAOTA_LESSON, và đừng "
               "lặp lại bài học đã có trong bộ nhớ.\n"
             + "\n# Luật chủ dặn: khi CHỦ nói rõ một luật lâu dài cho vai này (\"từ giờ\", \"luôn\", "
               "\"đừng bao giờ\", vd \"nhắn Zalo thì không dùng markdown\"), làm theo ngay VÀ kết thúc "
-              "câu trả lời bằng một dòng riêng `VANHANH_RULE: <luật một câu, giữ nguyên ý chủ>`. Vanhanh ghi "
+              "câu trả lời bằng một dòng riêng `NAOTA_RULE: <luật một câu, giữ nguyên ý chủ>`. Naota ghi "
               f"vào mục `{agent_rules.OWNER_RULES_HEADER}` của file bộ nhớ trên, mục này không bao giờ "
-              "bị tự xoá. CHỈ dùng cho lời chủ dặn; bài học bạn tự rút ra thì vẫn là VANHANH_LESSON. "
+              "bị tự xoá. CHỈ dùng cho lời chủ dặn; bài học bạn tự rút ra thì vẫn là NAOTA_LESSON. "
               "Luật đã có trong mục đó thì đừng phát lại.\n"
             + _AGENT_TOOLKIT_BLOCK
             + (_agent_procedure_block(brain, aslug, surface, agent_key, session_created_at, skill_served) if surface else "")
@@ -12313,15 +13762,24 @@ def _workflow_agent_helpers(brain, tools, mode=None):
                 (ameta.get("model") or "").strip() or None,
                 (ameta.get("model_provider") or "").strip())
 
+    def _own_reasoning(aslug):
+        try:
+            return _agent_own_reasoning(_read_md(_agents_dir(brain) / f"{aslug}.md")[0])
+        except Exception:  # noqa: BLE001 - an unreadable assistant file means "no level set"
+            return ""
+    # Read by _step_reasoning_kw at the step call sites. An attribute, not a fifth return value: the 4-tuple of
+    # _agent_sysprompt is unpacked in a dozen places (chat, team, Kanban) that have their own reasoning rule.
+    _agent_sysprompt.own_reasoning = _own_reasoning
+
     def _log_run(aslug, task, out):
         _log_agent_run(brain, aslug, task, out)
 
     def _learn(aslug, out):
-        """Bóc VANHANH_LESSON khỏi output, ghi vào bộ nhớ agent, trả output ĐÃ SẠCH
+        """Bóc NAOTA_LESSON khỏi output, ghi vào bộ nhớ agent, trả output ĐÃ SẠCH
         (marker không được chảy vào {{prev}} của bước sau hay lên UI)."""
-        # VANHANH_RULE ở đây (bước workflow, việc nền) KHÔNG có chủ đang nói chuyện trực tiếp nên
+        # NAOTA_RULE ở đây (bước workflow, việc nền) KHÔNG có chủ đang nói chuyện trực tiếp nên
         # không đủ căn cứ là luật chủ dặn: bóc khỏi output và hạ xuống thành bài học. Đường chat
-        # với chủ (_ket_luot_agent) bóc VANHANH_RULE TRƯỚC khi gọi tới đây.
+        # với chủ (_ket_luot_agent) bóc NAOTA_RULE TRƯỚC khi gọi tới đây.
         rules, out = agent_rules.extract_rules(out or "")
         lessons, sach = _boc_bai_hoc(out or "")
         lessons = lessons + rules
@@ -12339,36 +13797,41 @@ def _workflow_agent_helpers(brain, tools, mode=None):
 # tập viên", bảo chủ "tự copy lệnh sang agent Đăng tải"; khi chủ nới prompt thì nó BỊA rằng đã
 # "bàn giao cho chuyên viên dang_tai" (không có agent nào tên vậy, không gọi tool nào) và hẹn
 # "có kết quả em báo lại ngay". Vai chuyên môn chỉ là CÁCH LÀM, không phải hàng rào công cụ:
-# agent chạy trên cùng hub tool với Vanhanh. Ba luật dưới chốt đúng ba lỗi đó.
+# agent chạy trên cùng hub tool với Naota. Ba luật dưới chốt đúng ba lỗi đó.
 _AGENT_TOOLKIT_BLOCK = (
     "\n# Công cụ và giới hạn thật của bạn\n"
     "- Vai trò ở trên là CHUYÊN MÔN CHÍNH, không phải hàng rào. Bạn có TOÀN BỘ bộ công cụ của "
-    "Vanhanh qua hub: đọc/ghi file trong brain (`vanhanh_read_file`, `vanhanh_write_file`, "
-    "`vanhanh_list_dir`), gọi các kết nối ngoài đã nối như Google Drive, Composio, POS, Zalo... "
-    "(`vanhanh_connections` để xem đang nối gì, `vanhanh_search_tools` rồi `vanhanh_run_tool` để gọi), "
-    "chạy skill (`vanhanh_use_skill`), giao việc nền Kanban (`vanhanh_task`), đặt nhắc hẹn "
-    "(`vanhanh_schedule`). Việc ngoài chuyên môn mà công cụ làm được (đẩy file lên Drive, đăng "
+    "Naota qua hub: đọc/ghi file trong brain (`naota_read_file`, `naota_write_file`, "
+    "`naota_list_dir`), gọi các kết nối ngoài đã nối như Google Drive, Composio, POS, Zalo... "
+    "(`naota_connections` để xem đang nối gì, `naota_search_tools` rồi `naota_run_tool` để gọi), "
+    "chạy skill (`naota_use_skill`), giao việc nền Kanban (`naota_task`), đặt nhắc hẹn "
+    "(`naota_schedule`). Việc ngoài chuyên môn mà công cụ làm được (đẩy file lên Drive, đăng "
     "bài, gửi tin) thì LÀM LUÔN bằng tool; KHÔNG từ chối vì \"không phải việc của vai này\" và "
-    "KHÔNG bảo chủ tự đi copy lệnh sang agent khác. Việc nền (`vanhanh_task`) CHỈ khi chủ bảo "
+    "KHÔNG bảo chủ tự đi copy lệnh sang agent khác. Việc nền (`naota_task`) CHỈ khi chủ bảo "
     "rõ một việc cần làm mà lượt này không làm xong được; bàn kế hoạch, nhắc tới chữ \"việc\", "
     "hay bước tiếp theo do chính bạn nghĩ ra thì KHÔNG giao việc nền, nói ra trong câu trả lời.\n"
     "- KHÔNG có cơ chế \"gọi agent khác\" hay \"bàn giao cho đồng nghiệp\". Chỉ được nói đã giao "
-    "việc khi CHÍNH BẠN vừa gọi `vanhanh_task` trong lượt này và đọc được kết quả tool trả về. "
+    "việc khi CHÍNH BẠN vừa gọi `naota_task` trong lượt này và đọc được kết quả tool trả về. "
     "Tuyệt đối không bịa tên agent, không kể rằng một agent khác \"đang làm\" hay \"vừa phản "
-    "hồi\". Thiếu kết nối (ví dụ chưa nối Drive) thì kiểm tra bằng `vanhanh_connections` trước, "
+    "hồi\". Thiếu kết nối (ví dụ chưa nối Drive) thì kiểm tra bằng `naota_connections` trước, "
     "rồi nói đúng cái đang thiếu.\n"
     "- Lượt trả lời của bạn KẾT THÚC khi bạn nói xong, không ai đánh thức bạn làm nốt. Không hẹn "
     "\"có kết quả em báo lại\", \"sếp chờ em chút\". " + "Chỉ hai lối đúng: làm xong ngay trong lượt và "
     "trả kết quả thật, hoặc giao việc nền / nhắc hẹn rồi nói rõ đã giao gì, kết quả về đâu. "
     "Không làm được cả hai thì nói thẳng là chưa làm.\n"
+    # 2026-11-15 (owner): asked to improve, an assistant may change itself and the whole system, with undo.
+    "- CHỦ bảo cải tiến (chính bạn, trợ lý khác, skill, quy trình, cả Naota): làm luôn bằng `naota_improve` "
+    "(op=save có sao lưu cho file của bạn agents/<slug>.md, skill, workflow, bộ nhớ; op=source để sửa mã nguồn "
+    "Naota qua GitHub; op=update để máy lên bản mới), rồi báo đổi gì và mã hoàn tác. Không ai yêu cầu thì "
+    "không tự sửa, chỉ đề xuất.\n"
 )
-# Câu "chỉ hai lối" ở trên ĐÚNG khi trợ lý chưa bật Cộng hưởng. Bật rồi thì có lối thứ ba (vanhanh_goal); để nguyên câu
+# Câu "chỉ hai lối" ở trên ĐÚNG khi trợ lý chưa bật Cộng hưởng. Bật rồi thì có lối thứ ba (naota_goal); để nguyên câu
 # cũ là bảo model rằng lối đó không tồn tại (review A1 tích hợp, P1-1). Thay đúng câu đó, chỉ trong phiên trò chuyện.
 _AGENT_HAI_LOI = ("Chỉ hai lối đúng: làm xong ngay trong lượt và trả kết quả thật, hoặc giao việc nền / nhắc hẹn rồi "
                   "nói rõ đã giao gì, kết quả về đâu. Không làm được cả hai thì nói thẳng là chưa làm.")
 _AGENT_BA_LOI = ("Ba lối đúng: làm xong ngay trong lượt và trả kết quả thật; giao việc nền / nhắc hẹn rồi nói rõ đã "
                  "giao gì, kết quả về đâu; hoặc, khi chủ giao trách nhiệm theo đuổi tới khi đạt, lập mục tiêu bằng "
-                 "vanhanh_goal rồi nói rõ Vanhanh làm tiếp ở nền trong hạn mức và kết quả tự về khung chat này. Không "
+                 "naota_goal rồi nói rõ Naota làm tiếp ở nền trong hạn mức và kết quả tự về khung chat này. Không "
                  "làm được lối nào thì nói thẳng là chưa làm.")
 
 
@@ -12376,13 +13839,13 @@ def _agent_chat_prompt(brain, slug, channel="dashboard", conv_sid="", skill_serv
     """System prompt khi CHỦ chat trực tiếp với một trợ lý ở trang Cộng sự.
 
     Là ĐÚNG prompt mà workflow dùng cho trợ lý đó (vai, thân file, kỹ năng, bộ nhớ riêng, luật
-    VANHANH_LESSON), cộng một câu nói rõ đây là trò chuyện chứ không phải một bước quy trình.
+    NAOTA_LESSON), cộng một câu nói rõ đây là trò chuyện chứ không phải một bước quy trình.
     Cố ý KHÔNG nối CLAUDE.md, bộ nhớ của chủ hay khối kênh: người dùng đang muốn nói chuyện với
-    "Người viết", không phải với Vanhanh đội mũ Người viết.
+    "Người viết", không phải với Naota đội mũ Người viết.
 
     `channel`: "dashboard" (the Partners page), "cli" (POST /chat with `agent`), "telegram" (the
     owner's bot, `@<agent>` or /agent) or "voice" (a voice call from the partner's chat,
-    `_voice_ask_vanhanh`). Only the closing line that tells the agent where the owner is talking from changes; the CLI and Telegram engines append their own channel block after this
+    `_voice_ask_naota`). Only the closing line that tells the agent where the owner is talking from changes; the CLI and Telegram engines append their own channel block after this
     prompt.
     """
     if not (_agents_dir(brain) / f"{slug}.md").exists():
@@ -12397,17 +13860,17 @@ def _agent_chat_prompt(brain, slug, channel="dashboard", conv_sid="", skill_serv
     # tắt, hay không có lượt, thì prompt y như trước A1.
     if _resonance_turn_enabled(brain):
         sysprompt = (sysprompt.replace(_AGENT_HAI_LOI, _AGENT_BA_LOI)
-                     + "\n# Cộng hưởng (đang bật cho bạn)\n- " + _RESONANCE_GOAL_HINT + "\n")
-    where = ("qua Vanhanh CLI (terminal hoặc HTTP /chat)" if channel == "cli"
+                     + "\n# Resonance (on for you)\n- " + _RESONANCE_GOAL_HINT + "\n")
+    where = ("qua Naota CLI (terminal hoặc HTTP /chat)" if channel == "cli"
              else "qua Telegram" if channel == "telegram"
-             else "trong một cuộc gọi thoại trên dashboard Vanhanh (khung chat của bạn ở trang Cộng sự); câu bạn "
+             else "trong một cuộc gọi thoại trên dashboard Naota (khung chat của bạn ở trang Cộng sự); câu bạn "
                   "viết ra được đọc lại thành tiếng, nên viết gọn, không bảng" if channel == "voice"
-             else "trên dashboard Vanhanh (trang Cộng sự)")
+             else "trên dashboard Naota (trang Cộng sự)")
     # the dashboard chat id, so a chat_id/owner_chat the model passes names this chat. An agent DM never had
-    # the channel block or the `[Phiên chat: ...]` header, so its jobs used to report to Vanhanh Core.
+    # the channel block or the `[Phiên chat: ...]` header, so its jobs used to report to Naota Core.
     # A voice call runs in that same dashboard chat, so its jobs report there too.
-    phien = (f" Phiên chat này là `web:{conv_sid}`: việc nền (`vanhanh_task`) và nhắc hẹn, việc định kỳ "
-             "(`vanhanh_schedule`) giao từ đây tự báo kết quả về đúng khung chat này; nhắc hẹn và việc định kỳ "
+    phien = (f" Phiên chat này là `web:{conv_sid}`: việc nền (`naota_task`) và nhắc hẹn, việc định kỳ "
+             "(`naota_schedule`) giao từ đây tự báo kết quả về đúng khung chat này; nhắc hẹn và việc định kỳ "
              "tới giờ chạy bằng chính vai của bạn."
              if channel in ("dashboard", "voice") and conv_sid else "")
     return (sysprompt + _agent_builder_block(brain) + _agent_identity_block(_name)
@@ -12417,16 +13880,16 @@ def _agent_chat_prompt(brain, slug, channel="dashboard", conv_sid="", skill_serv
 
 
 def _agent_identity_block(name) -> str:
-    """Who the assistant is in a chat with the owner: a partner inside Vanhanh, not a bare model.
+    """Who the assistant is in a chat with the owner: a partner inside Naota, not a bare model.
 
     The assistant prompt opens with its name and role but never said where it lives. On Codex an assistant asked
-    "who are you" answered that it was ChatGPT , and an API engine's own "you run on model
+    "who are you" answered that it was ChatGPT and an API engine's own "you run on model
     X" fact pulled the same way. Answering with the engine stays right when the owner asks which MODEL it runs on."""
     return (
         "\n# Bạn là ai\n"
-        f"- Bạn là {name}, một cộng sự (trợ lý chuyên trách) trong VANHANH, hệ trợ lý AI cá nhân của chủ. Vanhanh là "
+        f"- Bạn là {name}, một cộng sự (trợ lý chuyên trách) trong NAOTA, hệ trợ lý AI cá nhân của chủ. Naota là "
         "hệ thống bạn chạy bên trong: cùng brain, cùng kết nối và công cụ, nhưng vai, giọng và bộ nhớ là của bạn.\n"
-        f"- Hỏi bạn là ai thì trả lời bạn là {name}, cộng sự trong Vanhanh của chủ, kèm vai của mình. KHÔNG tự nhận là "
+        f"- Hỏi bạn là ai thì trả lời bạn là {name}, cộng sự trong Naota của chủ, kèm vai của mình. KHÔNG tự nhận là "
         "ChatGPT, Claude, Gemini, Grok hay một trợ lý AI chung chung. Chỉ khi chủ hỏi rõ đang chạy model hay engine "
         "nào mới nói đúng tên model đó.\n"
     )
@@ -12434,9 +13897,9 @@ def _agent_identity_block(name) -> str:
 
 def _background_agent_prompt(brain, slug) -> str:
     """system prompt of a reminder or loop made in a partner chat, so it does its job AS that assistant (role,
-    file body, assets, memory, owner rules) instead of as plain Vanhanh. No procedure overlay: that belongs to a surface
+    file body, assets, memory, owner rules) instead of as plain Naota. No procedure overlay: that belongs to a surface
     the host knows (dm, team, workflow). Raises FileNotFoundError when the assistant file is gone; the caller then
-    runs the job as Vanhanh."""
+    runs the job as Naota."""
     if not (_agents_dir(brain) / f"{slug}.md").is_file():
         raise FileNotFoundError(slug)
     _mk, _agent_sysprompt, _log, _learn = _workflow_agent_helpers(brain, None)
@@ -12446,7 +13909,7 @@ def _background_agent_prompt(brain, slug) -> str:
 
 
 def _finish_background_agent_run(brain, slug, task, out) -> str:
-    """after a background run as an assistant: VANHANH_LESSON lines go to its memory and the run to its log, like
+    """after a background run as an assistant: NAOTA_LESSON lines go to its memory and the run to its log, like
     a workflow step; the cleaned text is what gets posted."""
     _mk, _agent_sysprompt, _log, _learn = _workflow_agent_helpers(brain, None)
     clean = _learn(slug, out)
@@ -12567,19 +14030,19 @@ def _agent_builder_block(brain) -> str:
 
     `_agent_chat_prompt` leaves CLAUDE.md and the "LỚP AGENTIC" block out on purpose, and those were the only places
     that named these paths. Claude Code still found its way (it runs inside the brain folder and loads the
-    vanhanh-builder skill natively), but an API engine only knows what the prompt says: asked to create an agent or
+    naota-builder skill natively), but an API engine only knows what the prompt says: asked to create an agent or
     give one a model, it answered that it could not. Every line here is a hub tool or
     a vault path every engine reaches.
     """
     root = _brain_root(brain)
     return (
         "\n# Tạo năng lực mới khi chủ nhờ (mọi engine, kể cả engine API)\n"
-        f"- Trước khi tạo, nạp mẫu chuẩn: `vanhanh_use_skill` name=vanhanh-builder, rồi ghi bằng `vanhanh_write_file` "
+        f"- Trước khi tạo, nạp mẫu chuẩn: `naota_use_skill` name=naota-builder, rồi ghi bằng `naota_write_file` "
         f"đường dẫn TUYỆT ĐỐI: agent `{_agents_dir(brain)}/<slug>.md`, workflow `{_workflows_dir(brain)}/<slug>.md`, "
-        f"skill `{_skills_dir(brain)}/<slug>/SKILL.md`, loop `{Path(root) / 'Vanhanh' / 'loops'}/<slug>.md`.\n"
-        "- Tạo trợ lý kèm model riêng, hay đổi model của trợ lý đang có: tool `vanhanh_team` op=create_agent / "
-        "op=set_agent_model (slug, model, model_provider). Chưa thấy tool thì tìm bằng `vanhanh_search_tools`.\n"
-        "- Nhắc hẹn, việc định kỳ: `vanhanh_schedule`. Đừng nói là không tạo được khi các tool trên có sẵn.\n"
+        f"skill `{_skills_dir(brain)}/<slug>/SKILL.md`, loop `{Path(root) / 'Naota' / 'loops'}/<slug>.md`.\n"
+        "- Tạo trợ lý kèm model riêng, hay đổi model của trợ lý đang có: tool `naota_team` op=create_agent / "
+        "op=set_agent_model (slug, model, model_provider). Chưa thấy tool thì tìm bằng `naota_search_tools`.\n"
+        "- Nhắc hẹn, việc định kỳ: `naota_schedule`. Đừng nói là không tạo được khi các tool trên có sẵn.\n"
     )
 
 
@@ -12613,14 +14076,18 @@ def _agent_turn_system_prompt(brain, slug, conv_sid, channel="dashboard") -> str
 
 def _dm_lessons_prompt(brain, slug, conv_sid) -> str:
     """T3 phần L (thiết kế 8.1): bài học `dm:<agent_key>` và `*` của trợ lý cho lượt chat riêng (mọi phiên), kèm câu nói
-    VANHANH_LESSON giờ ghi vào kho chat riêng. Không bao giờ nạp bài học của nhóm. Lỗi thì chỉ còn câu luật."""
+    NAOTA_LESSON giờ ghi vào kho chat riêng. Không bao giờ nạp bài học của nhóm. Lỗi thì chỉ còn câu luật."""
     try:
         key = _dm_agent_key(brain, slug, conv_sid)
         block = agent_lessons.prompt_block(_resonance_store(), key, f"dm:{key}") if key else ""
     except Exception as _e:   # noqa: BLE001
         print(f"[dm lessons block] {type(_e).__name__}: {_e}", file=sys.stderr)
         block = ""
-    return agent_lessons.DM_LESSON_RULE + (("\n" + block + "\n") if block else "")
+    # 2026-11-13: in a private chat the assistant also keeps its own documents in order (tool naota_project
+    # agent=<slug>). Here, in the block both compositions share (`_agent_turn_system_prompt` and the dashboard turn),
+    # so the dashboard, the CLI and Telegram turns stay identical.
+    return (agent_lessons.DM_LESSON_RULE + (("\n" + block + "\n") if block else "")
+            + project_context.AGENT_GUIDE.format(slug=slug))
 
 
 def _dm_agent_key(brain, slug, conv_sid="", register=False):
@@ -12644,7 +14111,7 @@ def _dm_agent_key(brain, slug, conv_sid="", register=False):
 
 
 def _ket_luot_agent(brain, slug, user_message, final_text, conv_sid="") -> str:
-    """Cuối một lượt chat với trợ lý: bóc VANHANH_LESSON vào kho bài học PHẠM VI CHAT RIÊNG (`dm:<agent_key>`, T3 phần L,
+    """Cuối một lượt chat với trợ lý: bóc NAOTA_LESSON vào kho bài học PHẠM VI CHAT RIÊNG (`dm:<agent_key>`, T3 phần L,
     thiết kế 8.1: không còn vào MEMORY.md để bài học riêng không rò vào lượt nhóm), ghi luật chủ dặn như cũ, ghi nhật ký
     chạy của trợ lý (memory/agents/<slug>/runs), trả về text SẠCH để lưu phiên và hiện lên chat."""
     _mk, _agent_sysprompt, _log, _learn = _workflow_agent_helpers(brain, None)
@@ -12654,8 +14121,8 @@ def _ket_luot_agent(brain, slug, user_message, final_text, conv_sid="") -> str:
     if rules and (user_message or "").strip():
         _ghi_luat_chu(brain, slug, rules)
         rules = []
-    # Không có câu của chủ trong lượt thì VANHANH_RULE không có căn cứ: hạ xuống bài học.
-    lessons, sach = _boc_bai_hoc(text + "".join(f"\nVANHANH_LESSON: {r}" for r in rules))
+    # Không có câu của chủ trong lượt thì NAOTA_RULE không có căn cứ: hạ xuống bài học.
+    lessons, sach = _boc_bai_hoc(text + "".join(f"\nNAOTA_LESSON: {r}" for r in rules))
     if lessons and not memory_control.learning_enabled(_brain_memory_dir(brain)):
         lessons = []   # learning is off for this brain; the lines are still stripped from the answer
     if lessons:
@@ -12902,10 +14369,13 @@ async def _execute_workflow_raw(brain, slug, input="", tools=None, session_id=""
         reason = ""
         loi_buoc = ""      # bước này HỎNG vì sao. "" = bước chạy được.
         while True:
-            gcli = _mk(sysprompt, agent_model, agent_prov, step_extra)   # áp model agent đã chọn
             out = ""
             loi_engine = ""
-            async for ev in gcli.query(cur_prompt):
+            # áp model agent đã chọn. `_step_run` builds the engine itself: a plan card that lost its sign-in runs the
+            # step again elsewhere (2026-11-12).
+            async for ev in _step_run(
+                    lambda: _mk(sysprompt, agent_model, agent_prov, step_extra,
+                                **_step_reasoning_kw(_agent_sysprompt, agent_slug)), cur_prompt):
                 if ev["type"] == "text":
                     yield {"type": "step_text", "i": i, "content": ev["content"]}
                 elif ev["type"] == "tool_call":
@@ -12942,7 +14412,8 @@ async def _execute_workflow_raw(brain, slug, input="", tools=None, session_id=""
                 f"KẾT QUẢ CẦN KIỂM CHỨNG:\n{out}\n\n"
                 "Đánh giá kết quả có ĐẠT nhiệm vụ không. Trả JSON như hướng dẫn."
             )
-            vcli = _mk(v_sys, v_model, v_prov)   # agent kiểm chứng cũng dùng model của nó
+            vcli = _mk(v_sys, v_model, v_prov,   # agent kiểm chứng cũng dùng model của nó
+                       **_step_reasoning_kw(_agent_sysprompt, verify_slug))
             v_out = ""
             v_err = ""
             async for ev in vcli.query(v_prompt):
@@ -12993,7 +14464,7 @@ async def _execute_workflow_raw(brain, slug, input="", tools=None, session_id=""
             yield {"type": "error", "i": i, "agent": agent_name, "content": msg,
                    "needs_input": True}
             return
-        out = _learn(agent_slug, out)   # bóc VANHANH_LESSON + ghi bộ nhớ trước khi out thành {{prev}}
+        out = _learn(agent_slug, out)   # bóc NAOTA_LESSON + ghi bộ nhớ trước khi out thành {{prev}}
         prev = out
         yield {"type": "step_done", "i": i, "agent": agent_name, "output": out, "verified": verified}
         _log(agent_slug, task_f, out)
@@ -13288,18 +14759,18 @@ SAFE_FILE_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "LS"]
 READONLY_TOOLS = ["Read", "Glob", "Grep", "LS"]
 
 # Vòng tự cải thiện đã TÁCH sang module self_improve.py - giờ là MULTI-LOOP: N loop định
-# nghĩa bằng file <vault>/Vanhanh/loops/<slug>.md, state ở <vault>/Vanhanh/loop-state.json,
+# nghĩa bằng file <vault>/Naota/loops/<slug>.md, state ở <vault>/Naota/loop-state.json,
 # thực thi TUẦN TỰ (1 lock). main.py chỉ tiêm helper + giữ shim mỏng cho code cũ.
 # Endpoints /loops/* (mới) + /loop/* (shim legacy) nằm trong router của self_improve.
 import self_improve
 
 
 _SECURITY_ALERT_TEXT = {
-    "login_new_network": ("Đăng nhập Vanhanh từ một mạng mới", "Vanhanh sign-in from a new network"),
-    "login_recovery_code": ("Có người đăng nhập Vanhanh bằng MÃ KHÔI PHỤC 2FA", "Someone signed in to Vanhanh with a 2FA RECOVERY CODE"),
-    "setup": ("Tài khoản quản trị Vanhanh vừa được tạo", "The Vanhanh admin account was just created"),
-    "username_changed": ("Tên đăng nhập Vanhanh vừa bị đổi", "The Vanhanh username was just changed"),
-    "password_changed": ("Mật khẩu Vanhanh vừa bị đổi", "The Vanhanh password was just changed"),
+    "login_new_network": ("Đăng nhập Naota từ một mạng mới", "Naota sign-in from a new network"),
+    "login_recovery_code": ("Có người đăng nhập Naota bằng MÃ KHÔI PHỤC 2FA", "Someone signed in to Naota with a 2FA RECOVERY CODE"),
+    "setup": ("Tài khoản quản trị Naota vừa được tạo", "The Naota admin account was just created"),
+    "username_changed": ("Tên đăng nhập Naota vừa bị đổi", "The Naota username was just changed"),
+    "password_changed": ("Mật khẩu Naota vừa bị đổi", "The Naota password was just changed"),
     "2fa_enabled": ("Xác thực 2 lớp vừa được BẬT", "Two-factor authentication was just turned ON"),
     "2fa_disabled": ("Xác thực 2 lớp vừa bị TẮT", "Two-factor authentication was just turned OFF"),
     "2fa_recovery_regenerated": ("Bộ mã khôi phục 2FA vừa được tạo lại", "The 2FA recovery codes were just regenerated"),
@@ -13307,9 +14778,9 @@ _SECURITY_ALERT_TEXT = {
     "login_disabled": ("Yêu cầu đăng nhập vừa bị tắt", "The login requirement was just turned off"),
     "env_account_created": ("Tài khoản admin được tạo từ biến môi trường", "Admin account created from the environment"),
     "env_account_reset": ("Tài khoản admin được đặt lại từ biến môi trường (Redeploy)", "Admin account reset from the environment (redeploy)"),
-    "env_2fa_reset": ("2FA được gỡ bằng VANHANH_RESET_2FA", "2FA removed with VANHANH_RESET_2FA"),
-    "auth_changed_outside": ("CẢNH BÁO: file cài đặt bị sửa tài khoản từ BÊN NGOÀI Vanhanh. Mọi phiên đã bị đăng xuất.",
-                             "WARNING: the account in the settings file was changed OUTSIDE Vanhanh. Every session was signed out."),
+    "env_2fa_reset": ("2FA được gỡ bằng NAOTA_RESET_2FA", "2FA removed with NAOTA_RESET_2FA"),
+    "auth_changed_outside": ("CẢNH BÁO: file cài đặt bị sửa tài khoản từ BÊN NGOÀI Naota. Mọi phiên đã bị đăng xuất.",
+                             "WARNING: the account in the settings file was changed OUTSIDE Naota. Every session was signed out."),
 }
 
 
@@ -13345,7 +14816,7 @@ async def _loop_notify(text: str, source: str = "loop", level: str = "important"
 
     It used to go to EVERY Telegram id on the allow-list. It is the owner's business only, so it now lands in the
     bell (kind system) and on the owner's own Telegram when that is known (`_owner_telegram_id`).
-    `source` and `level` place it for Vanhanh Core's rules (a loop pausing itself: job, important)."""
+    `source` and `level` place it for Naota Core's rules (a loop pausing itself: job, important)."""
     try:
         await _notify_owner("", text, kind="system", source=source, level=level)
     except Exception as e:
@@ -13397,20 +14868,20 @@ async def _tg_send_to(chat_id, text) -> tuple:
 
 
 def khoi_viec(viec) -> str:
-    """Khối ẩn <!-- VANHANH_VIEC: {...} --> cho dashboard vẽ THẺ việc nền (dashboard/chat-viec.js).
+    """Khối ẩn <!-- NAOTA_VIEC: {...} --> cho dashboard vẽ THẺ việc nền (dashboard/chat-viec.js).
 
     Nằm ngay trong nội dung lưu vào kho phiên nên F5 hay mở lại hội thoại vẫn vẽ đúng thẻ.
-    `strip_control_blocks` bóc nó cho Telegram/Zalo/hòm thư như mọi khối VANHANH_* khác."""
+    `strip_control_blocks` bóc nó cho Telegram/Zalo/hòm thư như mọi khối NAOTA_* khác."""
     if not isinstance(viec, dict):
         return ""
     gon = {k: str(viec.get(k) or "")[:200] for k in ("kind", "status", "title", "id", "call") if viec.get(k)}
     if not gon:
         return ""
-    return "<!-- VANHANH_VIEC: " + json.dumps(gon, ensure_ascii=False).replace("-->", "- ->") + " -->"
+    return "<!-- NAOTA_VIEC: " + json.dumps(gon, ensure_ascii=False).replace("-->", "- ->") + " -->"
 
 
 def _resonance_card(card) -> tuple:
-    """Khối VANHANH_RESONANCE gắn vào tin của push_to_chat (Resonance M4), cùng biên nhận báo cáo nếu khối mang khoá.
+    """Khối NAOTA_RESONANCE gắn vào tin của push_to_chat (Resonance M4), cùng biên nhận báo cáo nếu khối mang khoá.
 
     Chỉ nhận đúng khuôn khối đó, không cho chuỗi tuỳ ý lọt vào kho phiên. Khối mang khoá báo cáo thì trả
     {"key", "goal_id"} để kho phiên ghi biên nhận CÙNG giao dịch với tin: đối soát outbox chỉ tin biên nhận này,
@@ -13425,7 +14896,7 @@ def _resonance_card(card) -> tuple:
 
 
 async def push_to_chat(session_id, text, viec=None, card="", nho="") -> bool:
-    """Đẩy MỘT tin của Vanhanh vào đúng phiên chat web, ngoài luồng hỏi-đáp thường.
+    """Đẩy MỘT tin của Naota vào đúng phiên chat web, ngoài luồng hỏi-đáp thường.
 
     Vì sao cần: việc Kanban / loop / nhắc hẹn chạy nền xong thì lượt chat đã kết thúc từ lâu,
     không còn chỗ nào để trả lời. Trước đây kết quả CHỈ đi Telegram, nên người dùng ngồi
@@ -13445,7 +14916,7 @@ async def push_to_chat(session_id, text, viec=None, card="", nho="") -> bool:
     # `card` (Resonance M4): thẻ mục tiêu, gắn SAU khi bóc như thẻ việc. Xem _resonance_card.
     # `nho`: the memory receipt block from memory_receipt.receipt_block, nothing else (dashboard/chat-nho.js).
     # or the change receipt block from change_receipt.receipt_block (dashboard/chat-doi.js).
-    if nho and (str(nho).startswith("<!-- VANHANH_NHO: ") or str(nho).startswith("<!-- VANHANH_DOI: ")) \
+    if nho and (str(nho).startswith("<!-- NAOTA_NHO: ") or str(nho).startswith("<!-- NAOTA_DOI: ")) \
             and str(nho).endswith(" -->"):
         clean = clean + "\n" + str(nho)
     card, report = _resonance_card(card)
@@ -13579,6 +15050,8 @@ def huy_viec_nen_giong(conv_sid: str) -> int:
 
     Đường huỷ trong `_voice_bg_task` lo phần còn lại: gạch tên khỏi sổ, đóng thẻ Việc sang
     CHẶN kèm lý do, và đẩy một câu về khung chat. Nên ở đây chỉ cần cancel.
+    Live handoffs left running after their call ended are in the same registry; their own cancel path
+    (`voice_live_ws._ask_brain`) posts the "stopped" line.
     """
     tasks = list(_VOICE_BG_TASKS.get(str(conv_sid)) or [])
     n = 0
@@ -13658,15 +15131,15 @@ async def _bo_vao_hom_thu(owner_chat, text, *, kind="answer", label="", source="
         # người dùng lại phải tự đi tìm - đúng cái phiền mà hòm thư sinh ra để bỏ.
         url = f"/?mo_thu={item['id']}"
         # "hide content" in the bell's settings shows only that something arrived; the text is read after
-        # opening Vanhanh, where login is checked again.
+        # opening Naota, where login is checked again.
         title, body = item["title"], item["body"][:200]
         if (cfgmod.read_settings().get("push") or {}).get("preview") == "hidden":
-            title, body = "Vanhanh", localefmt.chu("Bạn có tin mới trong Vanhanh.", "You have a new message in Vanhanh.")
+            title, body = "Naota", localefmt.chu("Bạn có tin mới trong Naota.", "You have a new message in Naota.")
         # KHÔNG await: mỗi đăng ký chết là một request chờ tới 15 giây, mà việc rung chuông
         # không được phép giữ chân cái đã xong. Hòm thư đã ghi rồi - push chỉ là chuông cửa.
         # Giữ tham chiếu tới task, không thì bộ dọn rác có thể nuốt nó giữa chừng.
         t = asyncio.create_task(
-            webpush.gui_het(title, body, url, tag=f"vanhanh-{item['id']}", phien_hop_le=_phien_con_hieu_luc(),
+            webpush.gui_het(title, body, url, tag=f"naota-{item['id']}", phien_hop_le=_phien_con_hieu_luc(),
                             **({"quiet_if_visible": True} if push_if_away else {})))
         _PUSH_TASKS.add(t)
         t.add_done_callback(_PUSH_TASKS.discard)
@@ -13676,7 +15149,7 @@ async def _bo_vao_hom_thu(owner_chat, text, *, kind="answer", label="", source="
 
 
 def _notify_decide(text, *, kind="answer", source="", quiet=False, level="", group="", viec=None, dedup="") -> dict:
-    """Vanhanh Core's verdict on one notice (`notify_policy.decide`). Never raises: a broken rule store rings."""
+    """Naota Core's verdict on one notice (`notify_policy.decide`). Never raises: a broken rule store rings."""
     try:
         g = notify_policy.group_of(source=source, kind=kind, viec=viec, dedup=dedup, group=group)
         lv = notify_policy.level_of(level=level, quiet=quiet, group=g)
@@ -13692,7 +15165,7 @@ def _owner_telegram_id() -> str:
 
     Explicit link first: `telegram.owner_chat_id`, set on the Telegram settings card, and only while it is still on
     the allow-list. Without it, a single allowed id is the owner's beyond doubt. Several ids and no link: nobody;
-    Vanhanh no longer sends to "the first id", which may be a colleague who shares the bot.
+    Naota no longer sends to "the first id", which may be a colleague who shares the bot.
     """
     tg = cfgmod.read_settings().get("telegram", {}) or {}
     ids = tg_parse_ids(tg.get("chat_id"))
@@ -13705,7 +15178,7 @@ def _owner_telegram_id() -> str:
 async def _alert_owner_telegram(text: str, *, source: str, level: str = "urgent", group: str = "") -> tuple:
     """One copy of a "needs you" notice to the owner's own Telegram, for notices whose main route never goes there
     (a web chat that made the job, a Team notice kept in the bell). A failure must reach the phone even when nobody
-    has the dashboard open. Vanhanh Core's filter still decides: a group the owner turned off or a muted kind is not
+    has the dashboard open. Naota Core's filter still decides: a group the owner turned off or a muted kind is not
     sent. Returns (sent, reason)."""
     own = _owner_telegram_id()
     if not own:
@@ -13721,19 +15194,19 @@ async def _alert_owner_telegram(text: str, *, source: str, level: str = "urgent"
 
 
 def _report_route(owner_chat, brain, kind, quiet=False, filtered=False) -> dict:
-    """Where one report goes (Vanhanh Core spec section 6). Pure decision, no sending.
+    """Where one report goes (Naota Core spec section 6). Pure decision, no sending.
 
-    - `web:<sid>` of a chat that still exists: that chat, nothing copied to Vanhanh Core.
-    - `web:<sid>` of a deleted chat: the source brain's Vanhanh Core when the brain is known, else a routing error.
-    - an outside channel (Telegram id, `zalo:`, `slack:`...): that channel, plus the source brain's Vanhanh Core so the
+    - `web:<sid>` of a chat that still exists: that chat, nothing copied to Naota Core.
+    - `web:<sid>` of a deleted chat: the source brain's Naota Core when the brain is known, else a routing error.
+    - an outside channel (Telegram id, `zalo:`, `slack:`...): that channel, plus the source brain's Naota Core so the
       report can be read and discussed on the dashboard too.
-    - empty: the source brain's Vanhanh Core and the owner's own Telegram (see `_owner_telegram_id`). A system notice
+    - empty: the source brain's Naota Core and the owner's own Telegram (see `_owner_telegram_id`). A system notice
       has no brain and goes to the bell and the owner's Telegram. A report with neither target nor brain is not
       guessed: it stays in the bell marked `no_target`.
     The brain is the one the WORK belongs to, passed by the producer, never the brain open on screen.
 
-    A notice Vanhanh Core filtered (`filtered`) with no chat of its own stays in the bell only: not copied into
-    Vanhanh Core's chat, not sent to the owner's Telegram. A chat or channel that asked for the work still gets it.
+    A notice Naota Core filtered (`filtered`) with no chat of its own stays in the bell only: not copied into
+    Naota Core's chat, not sent to the owner's Telegram. A chat or channel that asked for the work still gets it.
     """
     cid = str(owner_chat or "").strip()
     bk = ""
@@ -13744,7 +15217,7 @@ def _report_route(owner_chat, brain, kind, quiet=False, filtered=False) -> dict:
             bk = ""
 
     def core():
-        return vanhanh_core.default_session(get_store(), bk, same_brain=_cung_brain) if bk else ""
+        return naota_core.default_session(get_store(), bk, same_brain=_cung_brain) if bk else ""
 
     if cid.startswith(WEB_CHAT_PREFIX):
         sid = cid[len(WEB_CHAT_PREFIX):]
@@ -13758,8 +15231,8 @@ def _report_route(owner_chat, brain, kind, quiet=False, filtered=False) -> dict:
             return {"chat": core(), "external": "", "brain": bk, "lost_origin": True}
         return {"chat": "", "external": "", "brain": "", "routing": "lost_origin"}
     own = _owner_telegram_id()
-    # Vanhanh Core is a place to work, not a log. A run that went fine (`quiet`) stays in the bell, where
-    # "Ask Vanhanh Core" can still bring it in; only what needs the owner lands in the chat. A report for an outside
+    # Naota Core is a place to work, not a log. A run that went fine (`quiet`) stays in the bell, where
+    # "Ask Naota Core" can still bring it in; only what needs the owner lands in the chat. A report for an outside
     # channel is copied in only when that channel is the owner's own, never someone else's who shares the bot.
     if cid:
         mine = bool(own) and cid == own
@@ -13776,11 +15249,11 @@ def _report_route(owner_chat, brain, kind, quiet=False, filtered=False) -> dict:
 async def _notify_owner(owner_chat, text, *, kind="answer", label="", source="",
                         quiet=False, ngan="", viec=None, web="", card="", brain="", dedup="",
                         level="", group="") -> tuple:
-    """Báo cáo cho NGƯỜI YÊU CẦU loop/task (mặc định của Vanhanh). Quy tắc:
+    """Báo cáo cho NGƯỜI YÊU CẦU loop/task (mặc định của Naota). Quy tắc:
       - owner_chat dạng "web:<sid>" → đẩy thẳng vào ĐÚNG khung chat web đã giao việc.
       - owner_chat dạng "zalo:<id>" → gửi qua bot Zalo cho ĐÚNG người đó.
       - owner_chat là chat_id Telegram trong whitelist → gửi ĐÚNG người đó.
-      - owner_chat rỗng (không rõ ai giao) → Vanhanh Core của brain nguồn (`brain`) và Telegram của CHÍNH chủ
+      - owner_chat rỗng (không rõ ai giao) → Naota Core của brain nguồn (`brain`) và Telegram của CHÍNH chủ
         (`_owner_telegram_id`); không có brain thì chỉ giữ trong hòm thư, không đoán (`_report_route`).
 
     Vì sao có nhánh web: người ngồi dashboard giao việc xong thì lượt chat đã đóng, mà kênh
@@ -13807,7 +15280,7 @@ async def _notify_owner(owner_chat, text, *, kind="answer", label="", source="",
     Trả (ok, error). `ok` là ĐÃ TỚI ĐƯỢC NGƯỜI DÙNG, và hòm thư tính là tới: nó nằm ở
     server, còn sau F5, thấy được từ máy khác. Nhờ vậy một cái nhắc hẹn trên máy chưa đấu
     Telegram không còn bị ghi là "failed" trong khi nội dung đang nằm sẵn trong hòm."""
-    # Vanhanh Core's verdict first, so a filtered notice is neither copied to its chat nor sent to Telegram.
+    # Naota Core's verdict first, so a filtered notice is neither copied to its chat nor sent to Telegram.
     dec = _notify_decide(text, kind=kind, source=source, quiet=quiet, level=level, group=group, viec=viec, dedup=dedup)
     filtered = dec.get("verdict") != "loud"
     route = _report_route(owner_chat, brain, kind, quiet=quiet or filtered, filtered=filtered)
@@ -13826,12 +15299,12 @@ async def _notify_owner(owner_chat, text, *, kind="answer", label="", source="",
         return bool(vao_hom), ("" if vao_hom else "no_target")
     ok, err = False, ""
     if chat:
-        # in Vanhanh Core's chat the notice carries the bell item's marker, so an emoji on it there is feedback
+        # in Naota Core's chat the notice carries the bell item's marker, so an emoji on it there is feedback
         # on this notice (`_notice_feedback_from_chat`). Only the chat copy: the bell and other channels stay clean.
         mark = ""
         try:
-            if vao_hom and vao_hom.get("id") and vanhanh_core.is_core_channel((get_store().get_session(chat) or {}).get("channel")):
-                mark = f"\n<!-- vanhanh-cite:inbox:{vao_hom['id']} -->"
+            if vao_hom and vao_hom.get("id") and naota_core.is_core_channel((get_store().get_session(chat) or {}).get("channel")):
+                mark = f"\n<!-- naota-cite:inbox:{vao_hom['id']} -->"
         except Exception:  # noqa: BLE001
             mark = ""
         ok, err = await _gui_qua_kenh(f"{WEB_CHAT_PREFIX}{chat}", text + mark, ngan=ngan, viec=viec,
@@ -13865,7 +15338,7 @@ def _cat_cho_tg(text: str) -> str:
     t = str(text or "")
     if len(t) <= _TRAN_TIN_TG:
         return t
-    return t[:_TRAN_TIN_TG].rstrip() + "\n\n… (còn nữa - xem đầy đủ trong hòm thư của Vanhanh)"
+    return t[:_TRAN_TIN_TG].rstrip() + "\n\n… (còn nữa - xem đầy đủ trong hòm thư của Naota)"
 
 
 async def _gui_qua_kenh(owner_chat, text, *, ngan="", viec=None, web="", card="") -> tuple:
@@ -13922,8 +15395,8 @@ async def _gui_qua_kenh(owner_chat, text, *, ngan="", viec=None, web="", card=""
 
 
 def _loop_mcp_allow():
-    """Pattern MCP cho allowlist của loop. Hub bật: mọi tool nằm dưới server 'vanhanh' → 1 pattern;
-    quyền đọc/ghi thật sự do hub chặn theo X-Vanhanh-Mode. Hub tắt: 'mcp__<namespace>' như cũ."""
+    """Pattern MCP cho allowlist của loop. Hub bật: mọi tool nằm dưới server 'naota' → 1 pattern;
+    quyền đọc/ghi thật sự do hub chặn theo X-Naota-Mode. Hub tắt: 'mcp__<namespace>' như cũ."""
     try:
         conns = [c for c in mcp_store.list_connections() if c.get("enabled")]
         if not conns:
@@ -13937,7 +15410,7 @@ def _loop_mcp_allow():
 
 
 loop_feature = self_improve.register(app, self_improve.LoopDeps(
-    build_system_prompt=build_system_prompt,
+    build_system_prompt=_background_system_prompt,   # 2026-11-15: Settings pin or the task's language, not vi
     brain_root=_brain_root,
     aux_model=_aux_model,
     aux_swap=_aux_swap,
@@ -13947,8 +15420,8 @@ loop_feature = self_improve.register(app, self_improve.LoopDeps(
     safe_tools=SAFE_FILE_TOOLS,
     readonly_tools=READONLY_TOOLS,
     notify=_loop_notify,
-    report=_notify_owner,               # báo NGƯỜI YÊU CẦU loop mỗi vòng (rỗng → Vanhanh Core của brain loop)
-    apply_mcp=_apply_mcp,               # loop ĐỌC được dữ liệu thật qua MCP Vanhanh-quản-lý
+    report=_notify_owner,               # báo NGƯỜI YÊU CẦU loop mỗi vòng (rỗng → Naota Core của brain loop)
+    apply_mcp=_apply_mcp,               # loop ĐỌC được dữ liệu thật qua MCP Naota-quản-lý
     mcp_allow_patterns=_loop_mcp_allow,
     build_agent_prompt=_background_agent_prompt,          # made in a partner chat -> runs as that assistant
     finish_agent_run=_finish_background_agent_run,
@@ -13978,18 +15451,29 @@ async def run_loop_cycle(reason="manual"):
 import learn as learn_mod
 
 learn_feature = learn_mod.register(app, learn_mod.LearnDeps(
-    build_system_prompt=build_system_prompt,
+    build_system_prompt=_background_system_prompt,   # 2026-11-15: Settings pin or the task's language, not vi
     brain_root=_brain_root,
     brain_memory_dir=_brain_memory_dir,
     resolve_subfolder=_resolve_subfolder,
-    aux_model=_aux_model,
+    aux_model=lambda: _aux_model("learn"),
     aux_swap=_aux_swap,
     atomic_write_text=_atomic_write_text,
     sessions_store=get_store(),
     state_dir=cfgmod.STATE_DIR,
     readonly_tools=READONLY_TOOLS,
     stage_agent_procedure=lambda brain, slug, text: _stage_learned_procedure(brain, slug, text),
+    side_work_paused=lambda: _side_work_paused(),
+    learning_lessons=lambda brain: _learning_lessons_block(brain),
 ))
+
+# The first knob of Naota Core's loop that is not a model: how many turns worth learning must be queued before an
+# automatic batch. Moved by plain code from how many recent batches learned nothing (learn.min_turns_rule).
+core_loop.register(core_loop.Knob(
+    id="learn.min_turns", title_vi="Số lượt tối thiểu trước một mẻ tự học",
+    title_en="Turns needed before a learning batch",
+    lo=learn_mod.LearnFeature.MIN_TURNS_LO, hi=learn_mod.LearnFeature.MIN_TURNS_HI,
+    default=learn_mod.LearnFeature.MIN_TURNS_DEFAULT,
+    read=learn_feature.min_turns, write=learn_feature.set_min_turns, rule=learn_feature.min_turns_rule))
 
 
 # ============================================================
@@ -14043,7 +15527,7 @@ tasks_feature = tasks_mod.register(app, tasks_mod.TasksDeps(
     atomic_write_text=_atomic_write_text,
     execute_workflow=execute_workflow,
     workflows_dir=_workflows_dir,
-    build_system_prompt=build_system_prompt,
+    build_system_prompt=_background_system_prompt,   # 2026-11-15: Settings pin or the task's language, not vi
     aux_model=_aux_model,
     aux_swap=_aux_swap,
     safe_tools=SAFE_FILE_TOOLS,
@@ -14051,7 +15535,7 @@ tasks_feature = tasks_mod.register(app, tasks_mod.TasksDeps(
     scheduler_brains=_background_brains,
     apply_mcp=_apply_mcp,
     mcp_allow_patterns=_loop_mcp_allow,
-    report=_notify_owner,               # báo NGƯỜI YÊU CẦU task khi chạy xong (rỗng → Vanhanh Core của brain việc)
+    report=_notify_owner,               # báo NGƯỜI YÊU CẦU task khi chạy xong (rỗng → Naota Core của brain việc)
 ))
 
 # Nối learn → Kanban: engine học đề xuất việc nền → enqueue vào backlog.
@@ -14059,14 +15543,14 @@ tasks_feature = tasks_mod.register(app, tasks_mod.TasksDeps(
 learn_feature.deps.enqueue_task = tasks_feature.enqueue
 
 # Nối ngược Kanban → learn: việc nền chạy xong (hoặc vướng) thì xếp vào hàng đợi tự học.
-# Không có nhánh này thì Vanhanh chỉ học được từ những gì NÓI trong chat, còn những gì nó TỰ LÀM
+# Không có nhánh này thì Naota chỉ học được từ những gì NÓI trong chat, còn những gì nó TỰ LÀM
 # trong nền - phần kinh nghiệm thực chiến - trôi qua không để lại bài học nào.
 tasks_feature.deps.learn_hook = learn_feature.enqueue_job
 
 
 # ============================================================
 # NHẮC HẸN TỪ CHAT (reminders.py) - "30 phút nữa nhắc anh...", "8h30 sáng mai...".
-# Vanhanh tự đặt qua POST /reminders (localhost), scheduler nền đánh thức đúng giờ → bắn Telegram.
+# Naota tự đặt qua POST /reminders (localhost), scheduler nền đánh thức đúng giờ → bắn Telegram.
 # mode notify = nhắn lại · mode task = chạy engine (đọc MCP, ghi nháp) rồi báo. KHÔNG tiền/đơn.
 # ============================================================
 import reminders as reminders_mod
@@ -14081,9 +15565,9 @@ import cache_keepwarm
 
 
 def _notify_ready() -> tuple:
-    """(sẵn_sàng, lý_do): Vanhanh có đường BÁO kết quả cho người dùng hay chưa. Nhắc hẹn và việc
+    """(sẵn_sàng, lý_do): Naota có đường BÁO kết quả cho người dùng hay chưa. Nhắc hẹn và việc
     nền chỉ có giá trị khi tới giờ nó nói được với ai đó - chưa đấu kênh nào thì việc chạy xong
-    rồi kết quả rơi vào hư không, người dùng tưởng Vanhanh quên. Dùng để chặn ngay lúc TẠO.
+    rồi kết quả rơi vào hư không, người dùng tưởng Naota quên. Dùng để chặn ngay lúc TẠO.
 
     ĐỦ MỘT kênh là đủ. Zalo cũng tính: người dùng chỉ đấu Zalo mà bị chặn tạo nhắc
     hẹn với lý do "bot Telegram chưa bật" là một câu vừa sai vừa không sửa được, và nó đẩy họ
@@ -14166,12 +15650,30 @@ async def _send_voice_file(chat_id, path, brain) -> tuple:
     """The voice note as an audio message where the channel needs the file itself. Telegram: the asking chat, or the
     owner's own chat when the reminder has none (same rule as _report_route). The web chat plays the link already."""
     cid = str(chat_id or "").strip()
-    if cid.startswith(("web:", "zalo:")) or _TG_BOT is None:
+    if cid.startswith("zalo:"):
+        return await _zalo_send_file_to(cid[len("zalo:"):], path)
+    if cid.startswith("web:") or _TG_BOT is None:
         return False, "no file channel"
     cid = cid or _owner_telegram_id()
     if not cid:
         return False, "no Telegram chat"
     return await _TG_BOT.send_file(path, chat=cid)
+
+
+async def _zalo_send_file_to(chat_id, path) -> tuple:
+    """One image to ONE chat of the owner's Zalo bot (a scheduled report that comes as a picture). Same gate as
+    `_zalo_send_to`: bot on, and only a chat on its allow-list. Zalo Bot has `sendPhoto` and nothing else, so a
+    file that is not an image comes back as (False, reason) from `ZaloBot.send_file`, never silently dropped."""
+    z = cfgmod.read_settings().get("zalo_bot", {})
+    ids = tg_parse_ids(z.get("chat_id"))
+    cid = str(chat_id or "").strip()
+    if not (z.get("enabled") and z.get("token")):
+        return False, localefmt.chu("Bot Zalo chưa bật", "The Zalo bot is off")
+    if not cid or (ids and cid not in ids):
+        return False, localefmt.chu("Chat Zalo này không nằm trong danh sách được phép",
+                                    "This Zalo chat is not on the allow-list")
+    bot = _ZALO_BOT or zalo_bot.ZaloBot(z["token"], "", None)
+    return await bot.send_file(path, chat=cid)
 
 
 import my_tasks as my_tasks_mod
@@ -14180,9 +15682,9 @@ import gcal_read
 
 async def _habit_coach_ask(prompt: str) -> str:
     """Habit coach: one text-only turn on the background model, like the page watch summary."""
-    if os.environ.get("VANHANH_NO_REAL_JUDGE_ENGINE") == "1":
-        raise RuntimeError("VANHANH_NO_REAL_JUDGE_ENGINE")
-    cli = _reply_policy_sandbox_engine("You write short, warm habit lines as Vanhanh's star mascot. Answer with JSON only.",
+    if os.environ.get("NAOTA_NO_REAL_JUDGE_ENGINE") == "1":
+        raise RuntimeError("NAOTA_NO_REAL_JUDGE_ENGINE")
+    cli = _reply_policy_sandbox_engine("You write short, warm habit lines as Naota's star mascot. Answer with JSON only.",
                                        "habit-coach", cwd_name="habit_coach_cwd")
     base = cli
     cli = aux_engine.strip_tools(_aux_swap(cli, mode="suggest", tag="habit-coach"), base)
@@ -14208,12 +15710,55 @@ my_tasks_feature = my_tasks_mod.register(app, my_tasks_mod.MyTasksDeps(
     tz=reminders_mod.VN_TZ,
     # habit lines written by Core, and read-only Google Calendar events.
     ask=_habit_coach_ask, calendar=gcal_read.events))
+
+
+async def _scout_run(vault_root: str, prompt: str, tag: str, wall_s: int) -> dict:
+    """Run ONE read-only scout on the background model (scout.py) and return its report.
+
+    Built exactly like a reminder at the `suggest` level, the one background path that is already read-only by
+    construction: an allowlist of read tools plus the Naota hub, the hub enforcing `suggest` (no write, no outside
+    action, whatever the prompt says), then the engine the owner chose for background work. The scout gets its own
+    short system prompt instead of the brain's full one: it needs to know how to read, not who Naota is."""
+    import scout as scout_mod
+    tools = list(READONLY_TOOLS)
+    try:
+        tools += list(_loop_mcp_allow() or [])
+    except Exception:  # noqa: BLE001 - no connection yet: the scout can still read files
+        pass
+    root = vault_root if vault_root and os.path.isdir(vault_root) else _brain_root("brain")
+    cli = claude_engine(system_prompt=scout_mod.SYSTEM_PROMPT, cwd=root, tag=tag, allowed_tools=tools)
+    _apply_mcp(cli, mode="suggest", brain=root)
+    cli = _aux_swap(cli, mode="suggest", tag=tag)
+    cli.max_wall_s = int(wall_s)
+    if not cli.is_available():
+        return {"text": "", "error": "the background engine is not ready (Models page)"}
+    spec = aux_engine.read_spec(tag=tag)
+    out, err, usage = "", "", {"input": 0, "output": 0}
+    async for ev in cli.query(prompt):
+        kind = ev.get("type")
+        if kind == "final":
+            out = ev.get("content", "") or out
+            usage["input"] += int(ev.get("tokens_in") or 0)
+            usage["output"] += int(ev.get("tokens_out") or 0)
+        elif kind == "usage":
+            usage["input"] += int(ev.get("input") or 0)
+            usage["output"] += int(ev.get("output") or 0)
+        elif kind == "error":
+            err = str(ev.get("content") or "") or err
+    label = " ".join(x for x in (str(spec.get("provider") or ""), str(spec.get("model") or "")) if x)
+    return {"text": out, "error": err, "model": label, "usage": usage}
+
+
+import scout as _scout_mod   # noqa: E402 - the hub lists naota_scout only once a runner exists
+_scout_mod.configure(_scout_run)
+
+
 reminders_feature = reminders_mod.register(app, reminders_mod.RemindersDeps(
     brain_root=_brain_root,
     atomic_write_text=_atomic_write_text,
     send_telegram=_bao_nhac_hen,
     notify_ready=_notify_ready,
-    build_system_prompt=build_system_prompt,
+    build_system_prompt=_background_system_prompt,   # 2026-11-15: Settings pin or the task's language, not vi
     aux_model=_aux_model,
     aux_swap=_aux_swap,
     safe_tools=SAFE_FILE_TOOLS,
@@ -14255,7 +15800,7 @@ async def _webhook_call_tool(brain, level, name, args):
         return "ERROR: the webhook's brain folder no longer exists"
     _, route = await mcp_hub.discover_all(level, vault_root=str(_brain_root(brain)), include_plugins=True)
     if name not in route and mcp_hub._LAZY_RUN in route:
-        # Lazy menu on: the tool is behind vanhanh_run_tool, which calls the same guarded route.
+        # Lazy menu on: the tool is behind naota_run_tool, which calls the same guarded route.
         return str(await mcp_client.call_route(route, mcp_hub._LAZY_RUN, {"name": name, "args": args or {}}))
     return str(await mcp_client.call_route(route, name, args or {}))
 
@@ -14303,12 +15848,33 @@ async def _watch_send(chat_id, text, viec=None, web="", brain="", dedup=""):
 
 async def _watch_summarize(prompt: str) -> str:
     """Tóm tắt một thay đổi: model nền, CHỈ CHỮ, thư mục rỗng, không MCP (nội dung trang là dữ liệu lạ)."""
-    if os.environ.get("VANHANH_NO_REAL_JUDGE_ENGINE") == "1":
-        raise RuntimeError("VANHANH_NO_REAL_JUDGE_ENGINE")
+    if os.environ.get("NAOTA_NO_REAL_JUDGE_ENGINE") == "1":
+        raise RuntimeError("NAOTA_NO_REAL_JUDGE_ENGINE")
     cli = _reply_policy_sandbox_engine("Bạn tóm tắt ngắn một thay đổi trên trang web cho chủ shop. Chỉ trả lời "
                                        "bằng chữ, 1-3 câu.", "web-watch-summary", cwd_name="web_watch_cwd")
     base = cli
     cli = aux_engine.strip_tools(_aux_swap(cli, mode="suggest", tag="web-watch-summary"), base)
+    if not cli.is_available():
+        raise RuntimeError("background engine not ready")
+    final = ""
+    async for ev in cli.query(prompt):
+        if ev.get("type") == "final":
+            final = ev.get("content", "") or ""
+        elif ev.get("type") == "error":
+            raise RuntimeError(str(ev.get("content") or "engine error")[:200])
+    return final
+
+
+async def _customer_profile_ask(prompt: str) -> str:
+    """One turn of the BACKGROUND model for a customer profile (`customer_profile.py`): text only, empty folder, no
+    MCP. The prompt holds a stranger's chat messages, so the engine is the judge's sandbox: whatever a message says,
+    the model has nothing to act with."""
+    if os.environ.get("NAOTA_NO_REAL_JUDGE_ENGINE") == "1":
+        raise RuntimeError("NAOTA_NO_REAL_JUDGE_ENGINE")
+    cli = _reply_policy_sandbox_engine(customer_profile.SYSTEM_PROMPT, "customer-profile",
+                                       cwd_name="customer_profile_cwd")
+    base = cli
+    cli = aux_engine.strip_tools(_aux_swap(cli, mode="suggest", tag="customer-profile"), base)
     if not cli.is_available():
         raise RuntimeError("background engine not ready")
     final = ""
@@ -14328,7 +15894,7 @@ watch_feature = web_watch.register(app, web_watch.WebWatchDeps(
     channels=_kenh_con_thieu,
 ))
 
-# stats for both tabs of the Tasks page (task_stats.py): what Vanhanh did next to what the owner did.
+# stats for both tabs of the Tasks page (task_stats.py): what Naota did next to what the owner did.
 import task_stats  # noqa: E402
 
 
@@ -14350,26 +15916,26 @@ task_stats_feature = task_stats.register(app, task_stats.TaskStatsDeps(
     brain_root=_brain_root, my_tasks=lambda: my_tasks_feature, task_store=lambda: tasks_feature.store,
     tz=reminders_mod.VN_TZ, agent_names=_stats_agent_names, bot_jobs=bot_jobs_feature.map))
 
-# login vault (login_vault.py). The owner's sign-in cookies, encrypted, reused by vanhanh_login and by
+# login vault (login_vault.py). The owner's sign-in cookies, encrypted, reused by naota_login and by
 # page watches. Its routes need a real dashboard session: an API token can neither read nor add a sign-in.
 import login_vault  # noqa: E402
 
 login_vault.register(app, login_vault.LoginVaultDeps(
     state_dir=lambda: cfgmod.STATE_DIR,
-    has_session=lambda r: cfgmod.valid_session(r.cookies.get("vanhanh_session", "")),
+    has_session=lambda r: cfgmod.valid_session(r.cookies.get("naota_session", "")),
     fetch=web_watch.fetch,
 ))
 
 
 # ============================================================
-# a broken background run reaches Vanhanh Core (incident_desk.py), plus the read-only health scan
+# a broken background run reaches Naota Core (incident_desk.py), plus the read-only health scan
 # (sentinel.py). Idea from OpenMausBot's team incidents and Sentinel.
 # ============================================================
 async def _incident_ask(prompt: str) -> str:
     """Triage turn: the background model, TEXT ONLY, empty folder, no MCP (the report quotes error text an outsider
     may have shaped). Raises when no engine is ready, and in tests (same switch as the group judge)."""
-    if os.environ.get("VANHANH_NO_REAL_JUDGE_ENGINE") == "1":
-        raise RuntimeError("VANHANH_NO_REAL_JUDGE_ENGINE")
+    if os.environ.get("NAOTA_NO_REAL_JUDGE_ENGINE") == "1":
+        raise RuntimeError("NAOTA_NO_REAL_JUDGE_ENGINE")
     cli = _reply_policy_sandbox_engine("Bạn phân loại sự cố của việc nền. Chỉ trả về đúng một dòng JSON được yêu "
                                        "cầu, không thêm lời dẫn.", "incident-triage", cwd_name="incident_cwd")
     base = cli
@@ -14386,10 +15952,10 @@ async def _incident_ask(prompt: str) -> str:
 
 
 async def _incident_post(brain: str, text: str, chat: str = "") -> None:
-    # Empty chat id: the brain's Vanhanh Core chat, the inbox and the owner's Telegram (_report_route).
+    # Empty chat id: the brain's Naota Core chat, the inbox and the owner's Telegram (_report_route).
     # `chat` is the chat the broken job came from (a partner chat, a Telegram id): the notice goes there, and a
-    # deleted chat falls back to Vanhanh Core (_report_route, lost_origin).
-    # A failure that needs the owner is urgent: Vanhanh Core rings only urgent notices by default, so at "important" a
+    # deleted chat falls back to Naota Core (_report_route, lost_origin).
+    # A failure that needs the owner is urgent: Naota Core rings only urgent notices by default, so at "important" a
     # broken job never reached the owner's Telegram on a fresh install. The owner can still mute the group.
     await _notify_owner(chat, text, kind="report", source="incident", brain=brain,
                         level="urgent" if text.startswith("⚠") else "info",
@@ -14404,7 +15970,7 @@ async def _incident_post(brain: str, text: str, chat: str = "") -> None:
 
 
 async def _incident_retry_kanban(inc: dict) -> tuple:
-    ok = tasks_feature.store.move(str(inc.get("ref") or ""), "ready", "incident retry by Vanhanh Core")
+    ok = tasks_feature.store.move(str(inc.get("ref") or ""), "ready", "incident retry by Naota Core")
     return bool(ok), "moved back to ready" if ok else "could not move the job"
 
 
@@ -14494,7 +16060,7 @@ async def cache_keepwarm_set(payload: dict = Body(None)):
 def schedules_run_here() -> bool:
     """False when the owner switched scheduled work off on THIS machine. The flag lives in settings.json, which
     never syncs, while reminders and loops sync to every machine through the brain repo: without it, a reminder
-    fires once on each machine running Vanhanh."""
+    fires once on each machine running Naota."""
     return not cfgmod.read_settings().get("schedules_off_here")
 
 
@@ -14723,18 +16289,18 @@ async def _nhan_nuoi_tien_trinh(tag: str, brain: str, owner_chat: str, final_tex
         return ""
     if not ds:
         return ""
-    # Giọng "mình" như các dòng hệ thống khác (promise_note): dòng này không biết người dùng
-    # xưng hô thế nào, "mình" là cách trung tính nhất.
-    dong = ["Mình đang theo dõi việc chạy nền của lượt này:"]
+    # No personal pronoun: this line does not know how the user and Naota address
+    # each other, and a fixed "mình" reads as Naota forgetting the user's own choice.
+    dong = ["Đang theo dõi việc chạy nền của lượt này:"]
     for v in ds:
         dong.append(f"- `{v['mo_ta']}`")
     tiep = next((v.get("sau_khi_xong") for v in ds if v.get("sau_khi_xong")), "")
     if tu_lam_tiep and tiep:
-        dong.append(f"\nXong là mình tự báo về đây rồi làm tiếp: {tiep}")
+        dong.append(f"\nXong sẽ tự báo về đây rồi làm tiếp: {tiep}")
     elif tu_lam_tiep and any(v.get("noi_tiep") for v in ds):
-        dong.append("\nXong là mình tự báo về đây rồi làm nốt phần đã hẹn, không cần hỏi lại.")
+        dong.append("\nXong sẽ tự báo về đây rồi làm nốt phần đã hẹn, không cần hỏi lại.")
     else:
-        dong.append("\nXong là mình tự báo về đây, không cần hỏi lại.")
+        dong.append("\nXong sẽ tự báo về đây, không cần hỏi lại.")
     return "\n".join(dong)
 
 
@@ -14750,7 +16316,7 @@ async def _khi_tien_trinh_xong(v: dict) -> None:
     if trang == "huy":
         dau, st = f"Đã dừng việc chạy nền sau {tl}.", "cancelled"
     elif trang == "bo_theo_doi":
-        dau, st = (f"Việc chạy nền vẫn chưa xong sau {tl}, Vanhanh ngừng theo dõi để khỏi treo mãi. "
+        dau, st = (f"Việc chạy nền vẫn chưa xong sau {tl}, Naota ngừng theo dõi để khỏi treo mãi. "
                    "Nó vẫn đang chạy trên máy."), "timeout"
     else:
         dau, st = f"Việc chạy nền đã xong sau {tl}.", "done"
@@ -14764,9 +16330,9 @@ async def _khi_tien_trinh_xong(v: dict) -> None:
     se_tiep = muon_tiep and runner is not None and do_sau < tien_trinh_nen.TRAN_NOI_TIEP
     loi_dan = str(v.get("sau_khi_xong") or "")
     if se_tiep:
-        than.append("Mình làm tiếp phần còn lại ngay bây giờ.")
+        than.append("Sẽ làm tiếp phần còn lại ngay bây giờ.")
     elif muon_tiep:
-        than.append("Nhắn \"làm tiếp\" để mình làm nốt" + (f": {loi_dan}" if loi_dan else " phần đã hẹn."))
+        than.append("Nhắn \"làm tiếp\" để làm nốt" + (f": {loi_dan}" if loi_dan else " phần đã hẹn."))
     text = "\n\n".join(than)
     try:
         await _notify_owner(owner, text, kind="answer", label="Việc chạy nền", source="job",
@@ -14812,6 +16378,9 @@ async def _bao_luot_dai_xong(conv_sid: str, brain, turn_tag: str, user_message: 
     text = str(final_text or "")
     if not turn_done_notice.should_notify(elapsed, user_message, text):
         return False
+    import chat_bridge as _cb
+    if _cb.co_viec(conv_sid):
+        return False   # work an outside AI sent: chat_bridge rings once, and only if that AI did not read the answer
     body = turn_done_notice.notice_text(channel_context.strip_control_blocks(text))
     if not body:
         return False
@@ -14823,7 +16392,7 @@ async def _bao_luot_dai_xong(conv_sid: str, brain, turn_tag: str, user_message: 
 
 async def _canh_bao_hua_suong(brain: str, chat_id: str, final_text: str,
                               runtime_trace=None) -> str:
-    """Dòng sự thật khi Vanhanh hứa "xong em báo" mà lượt đó KHÔNG có việc nền nào.
+    """Dòng sự thật khi Naota hứa "xong em báo" mà lượt đó KHÔNG có việc nền nào.
 
     Trả về chuỗi cảnh báo (rỗng = không cần cảnh báo). Người gọi quyết định dán vào đâu:
     dashboard đẩy thành một bong bóng riêng (câu trả lời đã stream xong từ lâu), Telegram nối
@@ -14863,6 +16432,10 @@ async def _canh_bao_hua_suong(brain: str, chat_id: str, final_text: str,
 # Nguyên tắc: chỉ ĐỔI CÁCH VIẾT của link, không đổi câu chữ; và KHÔNG BỊA - link nào không thấy
 # file thì nói ra trong một dòng riêng, thà thừa một dòng còn hơn một cái link câm.
 _LINK_BO_QUA = ("#", "mailto:", "data:", "tel:", "blob:", "/files/raw", "/files/download")
+# `agents/x.md#L66-L75`: an IDE-style line suffix CLI engines put on file links. The file is
+# `agents/x.md`; checked with the suffix on, a real file was reported missing. `#L66`, `#L66-L75`, `#L66-75` and a
+# column (`#L66C3`) count, in any case; a heading anchor such as `#lien-he` does not.
+_LINE_SUFFIX_RE = re.compile(r"#L\d+(?:C\d+)?(?:-L?\d+(?:C\d+)?)?$", re.IGNORECASE)
 _BACKTICK_RE = re.compile(r"`([^`\n]+)`")
 # `file:///brains/Brain%20Default/wiki/x.md`, `file://localhost/...`, `file:/C:/...`. Harness của
 # Antigravity dặn model "dùng link markdown kiểu GitHub với giao thức file://" (bug đã gặp:
@@ -15065,11 +16638,12 @@ def _link_file_khong_thay(brain_root: str, text: str) -> list:
             raw = file_uri
         elif not raw or "://" in raw or raw.lower().startswith(_LINK_BO_QUA):
             continue
+        path_only = _LINE_SUFFIX_RE.sub("", raw)
         # Chỉ xét thứ TRÔNG NHƯ đường dẫn file (có thư mục hoặc có đuôi). `[Models](models)` hay
         # `[xem](muc-2)` là chữ, không phải file - báo "không thấy" cho chúng là báo động giả.
-        if "/" not in raw and "\\" not in raw and not re.search(r"\.[A-Za-z0-9]{1,6}$", raw):
+        if "/" not in path_only and "\\" not in path_only and not re.search(r"\.[A-Za-z0-9]{1,6}$", path_only):
             continue
-        t = raw
+        t = path_only
         if re.search(r"%[0-9a-fA-F]{2}", t):
             try:
                 t = urllib.parse.unquote(t)
@@ -15097,7 +16671,7 @@ def _cau_link_khong_thay(thieu: list) -> str:
     """Dòng sự thật khi câu trả lời dẫn link tới file không có trong brain. Không đổ lỗi, không
     đoán nguyên nhân; chỉ nói mình không thấy và chỉ chỗ tự kiểm."""
     ds = ", ".join(f"`{x}`" for x in thieu[:5])
-    return ("⚠ Câu trả lời có dẫn link tới file mà mình không tìm thấy trong brain: " + ds +
+    return ("⚠ Câu trả lời có dẫn link tới file không tìm thấy trong brain: " + ds +
             ". Có thể file được ghi ở chỗ khác hoặc chưa được ghi thật. Kiểm tra ở trang Tệp tin "
             "trước khi tin vào link đó.")
 
@@ -15137,9 +16711,9 @@ async def lint(brain: str = Query("brain")):
 
 
 # ============================================================
-# VANHANH INDEX - chỉ mục tầng vận hành (agents/skills/workflows/loops/plugins).
-# Song song wiki/index.md: để MỌI engine (Claude/Codex/OpenRouter) đọc 1 chỗ là hiểu Vanhanh
-# có năng lực gì. SINH TỪ FILE (không sửa tay) → không bao giờ lệch. Ghi Vanhanh/index.md CHỈ KHI
+# NAOTA INDEX - chỉ mục tầng vận hành (agents/skills/workflows/loops/plugins).
+# Song song wiki/index.md: để MỌI engine (Claude/Codex/OpenRouter) đọc 1 chỗ là hiểu Naota
+# có năng lực gì. SINH TỪ FILE (không sửa tay) → không bao giờ lệch. Ghi Naota/index.md CHỈ KHI
 # nội dung đổi (change-gated → không churn git). Bản LIVE gọn được chèn vào system prompt.
 # ============================================================
 def _gather_capabilities(brain: str, skills=None) -> dict:
@@ -15176,7 +16750,7 @@ def _gather_capabilities(brain: str, skills=None) -> dict:
                 "paused": bool(st.get(lp["slug"], {}).get("auto_paused_reason"))})
     except Exception:
         pass
-    # Tool thật sự hiện với brain này. `describe` chỉ đọc manifest nên không biết `visible_fn` (ví dụ vanhanh_goal
+    # Tool thật sự hiện với brain này. `describe` chỉ đọc manifest nên không biết `visible_fn` (ví dụ naota_goal
     # chỉ hiện ở brain đã bật Resonance); liệt kê tool đang bị giấu là mời bộ não gọi một tool không tồn tại.
     try:
         _visible = {t["fn"] for t in plugins_host.plugin_tools("full", str(root))[0]}
@@ -15198,14 +16772,14 @@ def _gather_capabilities(brain: str, skills=None) -> dict:
     return caps
 
 
-def _render_vanhanh_index(caps: dict) -> str:
+def _render_naota_index(caps: dict) -> str:
     n_on_loops = sum(1 for l in caps["loops"] if l["enabled"])
     n_on_wf = sum(1 for w in caps["workflows"] if w["status"] == "active")
     plugins = caps.get("plugins", [])
     n_on_plugins = sum(1 for p in plugins if p.get("loaded"))
-    L = ["# Vanhanh Index (tầng vận hành)", "",
-         "> Tự sinh từ file - ĐỪNG sửa tay. Chỉ mục mọi năng lực của Vanhanh trong brain này để bất kỳ "
-         "AI/engine đọc 1 chỗ là hiểu Vanhanh làm được gì. Song song `wiki/index.md` (tri thức).", "",
+    L = ["# Naota Index (tầng vận hành)", "",
+         "> Tự sinh từ file - ĐỪNG sửa tay. Chỉ mục mọi năng lực của Naota trong brain này để bất kỳ "
+         "AI/engine đọc 1 chỗ là hiểu Naota làm được gì. Song song `wiki/index.md` (tri thức).", "",
          f"**Tổng quan:** {len(caps['agents'])} agents · {len(caps['skills'])} skills · "
          f"{len(caps['workflows'])} workflows ({n_on_wf} bật) · {len(caps['loops'])} loops ({n_on_loops} bật) · "
          f"{len(plugins)} plugins ({n_on_plugins} chạy)", ""]
@@ -15271,7 +16845,7 @@ def _render_vanhanh_index(caps: dict) -> str:
             if p.get("loaded"):
                 stt = "chạy"
             elif p.get("gated"):
-                stt = "⚠ tắt bằng env VANHANH_ENABLE_USER_PLUGINS=false"
+                stt = "⚠ tắt bằng env NAOTA_ENABLE_USER_PLUGINS=false"
             elif p.get("error"):
                 stt = "⚠ lỗi"
             else:
@@ -15302,7 +16876,7 @@ def _render_vanhanh_index(caps: dict) -> str:
         flags.append(f"- Loop tự tạm dừng (cần xem): {', '.join(paused)}")
     p_gated = [p["slug"] for p in plugins if p.get("gated")]
     if p_gated:
-        flags.append(f"- Plugin bật nhưng máy này tắt plugin người dùng (VANHANH_ENABLE_USER_PLUGINS=false): {', '.join(p_gated)}")
+        flags.append(f"- Plugin bật nhưng máy này tắt plugin người dùng (NAOTA_ENABLE_USER_PLUGINS=false): {', '.join(p_gated)}")
     p_err = [p["slug"] for p in plugins if p.get("error")]
     if p_err:
         flags.append(f"- Plugin lỗi nạp: {', '.join(p_err)}")
@@ -15312,11 +16886,11 @@ def _render_vanhanh_index(caps: dict) -> str:
     return "\n".join(L) + "\n"
 
 
-def rebuild_vanhanh_index(brain: str) -> dict:
-    """Dựng lại Vanhanh/index.md từ file. Chỉ ghi KHI nội dung đổi (chống churn git)."""
+def rebuild_naota_index(brain: str) -> dict:
+    """Dựng lại Naota/index.md từ file. Chỉ ghi KHI nội dung đổi (chống churn git)."""
     try:
-        content = _render_vanhanh_index(_gather_capabilities(brain))
-        idx = Path(_brain_root(brain)) / "Vanhanh" / "index.md"
+        content = _render_naota_index(_gather_capabilities(brain))
+        idx = Path(_brain_root(brain)) / "Naota" / "index.md"
         old = idx.read_text(encoding="utf-8") if idx.exists() else ""
         if old != content:
             idx.parent.mkdir(parents=True, exist_ok=True)
@@ -15333,20 +16907,20 @@ def _ops_index_signature(root: str) -> str:
 
 
 _OPS_INDEX_WATCH = ops_index_watch.IndexWatcher(
-    signature_of=_ops_index_signature, rebuild=rebuild_vanhanh_index,
+    signature_of=_ops_index_signature, rebuild=rebuild_naota_index,
     shared_signature=plugins_host.shared_signature)
 
 
 def _ops_index_brains() -> list:
-    """Every brain whose Vanhanh/index.md the scheduler keeps current, as resolved roots (one entry per brain).
+    """Every brain whose Naota/index.md the scheduler keeps current, as resolved roots (one entry per brain).
 
-    The folders in BRAINS_DIR that are real brains (they have Vanhanh/), plus the brains the loop scheduler knows,
+    The folders in BRAINS_DIR that are real brains (they have Naota/), plus the brains the loop scheduler knows,
     which may live outside BRAINS_DIR. Before, only the second list was swept, so a brain with no loop kept
     the index from the day it was created."""
     cands = []
     try:
         cands += [str(p) for p in sorted(Path(BRAINS_DIR).iterdir())
-                  if p.is_dir() and not p.name.startswith(".") and (p / "Vanhanh").is_dir()]
+                  if p.is_dir() and not p.name.startswith(".") and (p / "Naota").is_dir()]
     except OSError:
         pass
     try:
@@ -15371,7 +16945,7 @@ def _ops_index_sweep() -> list:
 
 def _dong_lan_chay_gan_nhat(brain) -> str:
     """Một dòng cho system prompt: lần chạy quy trình gần nhất của brain, rỗng nếu chưa có.
-    Nhờ dòng này, hỏi "quy trình chạy gần nhất ra sao" ở khung chat chính là Vanhanh biết ngay
+    Nhờ dòng này, hỏi "quy trình chạy gần nhất ra sao" ở khung chat chính là Naota biết ngay
     có gì để tra và tra bằng tool nào."""
     try:
         import workflow_runs
@@ -15389,10 +16963,10 @@ def _dong_lan_chay_gan_nhat(brain) -> str:
     except Exception:
         luc = "?"
     return (f"Lần chạy quy trình gần nhất: {r['name']} lúc {luc} ({r['nhan']}). "
-            "Chi tiết hay các lần khác: tool vanhanh_workflow (op=runs, op=show).")
+            "Chi tiết hay các lần khác: tool naota_workflow (op=runs, op=show).")
 
 
-def _vanhanh_capability_summary(brain: str, skills=None, with_last_run: bool = True) -> str:
+def _naota_capability_summary(brain: str, skills=None, with_last_run: bool = True) -> str:
     """Render the live summary from capabilities loaded by the production caller.
 
     with_last_run=False (stable prompt): the latest workflow run moves to `_turn_facts_header`."""
@@ -15408,7 +16982,7 @@ def _vanhanh_capability_summary(brain: str, skills=None, with_last_run: bool = T
 
 def _skill_router_block(brain: str, root: str, skills=None) -> str:
     """ROUTER SKILL đa-engine (chèn vào system prompt của MỌI engine). Liệt kê skill đang BẬT kèm
-    mô tả (trigger) + chỉ rõ 2 cách nạp: tool vanhanh_use_skill (engine API có tool) HOẶC mở thẳng
+    mô tả (trigger) + chỉ rõ 2 cách nạp: tool naota_use_skill (engine API có tool) HOẶC mở thẳng
     file SKILL.md bằng công cụ đọc file (Claude/Codex - dùng ĐƯỜNG DẪN TUYỆT ĐỐI vì cwd có thể là
     /app). Đây là thứ giúp skill chạy trên cả ChatGPT/Codex, không phụ thuộc cơ chế native của Claude.
     Cắt theo CẢ số mục lẫn ngân sách ký tự (skill_router.cat_theo_ngan_sach), và xếp theo mức
@@ -15427,11 +17001,11 @@ def _skill_router_block(brain: str, root: str, skills=None) -> str:
         visible, skills_dir=skills_dir, hidden_count=hidden_count, description_max=skill_router.SKILL_DESC_MAX)
 
 
-@app.get("/vanhanh/index")
-def vanhanh_index(brain: str = Query("brain")):
-    """Dựng lại + trả nội dung Vanhanh/index.md (chỉ mục tầng vận hành)."""
-    rebuild_vanhanh_index(brain)
-    idx = Path(_brain_root(brain)) / "Vanhanh" / "index.md"
+@app.get("/naota/index")
+def naota_index(brain: str = Query("brain")):
+    """Dựng lại + trả nội dung Naota/index.md (chỉ mục tầng vận hành)."""
+    rebuild_naota_index(brain)
+    idx = Path(_brain_root(brain)) / "Naota" / "index.md"
     return {"ok": True, "content": idx.read_text(encoding="utf-8") if idx.exists() else "",
             "counts": {k: len(v) for k, v in _gather_capabilities(brain).items()}}
 
@@ -15440,16 +17014,16 @@ def vanhanh_index(brain: str = Query("brain")):
 # PLUGINS - tool/hook native cho MỌI engine (port ý tưởng plugin của Hermes).
 # Plugin = thư mục Python (plugin.yaml + plugin.py với register(ctx)) thả vào 1 trong 3 nơi:
 #   - bundled  <project>/system/plugins/<slug>/     (ship theo app, tin cậy)
-#   - user     <VANHANH_STATE_DIR>/plugins/<slug>/    (TOÀN CỤC - chung MỌI brain; nơi cài mặc định)
+#   - user     <NAOTA_STATE_DIR>/plugins/<slug>/    (TOÀN CỤC - chung MỌI brain; nơi cài mặc định)
 #   - vault    <brain>/plugins/<slug>/              (riêng 1 brain)
-# user + vault run real code: loaded by default; VANHANH_ENABLE_USER_PLUGINS=false opts out (old alias *_VAULT_*).
+# user + vault run real code: loaded by default; NAOTA_ENABLE_USER_PLUGINS=false opts out (old alias *_VAULT_*).
 # ============================================================
 @app.post("/image/generate")
 async def image_generate(prompt: str = Form(...), aspect_ratio: str = Form("square"),
                          quality: str = Form("medium"), brain: str = Form("brain"),
                          images: str = Form("")):
     """Tạo ảnh bằng gói ChatGPT (OAuth) → lưu vào attachments/ của vault. Cho UI/gọi trực tiếp;
-    engine LLM dùng tool vanhanh_generate_image (plugin image-chatgpt). Trả rel_path để nhúng ![](...).
+    engine LLM dùng tool naota_generate_image (plugin image-chatgpt). Trả rel_path để nhúng ![](...).
 
     `images`: đường dẫn ảnh MẪU trong brain, phân tách bằng dấu phẩy hoặc xuống dòng - có ảnh
     thì ChatGPT nhìn thấy ảnh thật để sửa/dựng theo thay vì vẽ từ mô tả suông."""
@@ -15482,7 +17056,7 @@ async def plugins_toggle(slug: str = Form(...), enabled: str = Form(...), brain:
         return JSONResponse({"error": res.get("error", localefmt.chu("lỗi", "error"))}, status_code=400)
     mcp_hub.invalidate_cache()   # tool builtin/plugin nằm trong route cache của hub → phải làm mới
     try:
-        rebuild_vanhanh_index(brain)
+        rebuild_naota_index(brain)
     except Exception:
         pass
     return res
@@ -15507,7 +17081,7 @@ async def plugins_remove(slug: str = Form(...), removed: str = Form("1"),
         return JSONResponse({"error": res.get("error", localefmt.chu("lỗi", "error"))}, status_code=400)
     mcp_hub.invalidate_cache()
     try:
-        rebuild_vanhanh_index(brain)
+        rebuild_naota_index(brain)
     except Exception:
         pass
     return res
@@ -15546,7 +17120,7 @@ async def _start_scheduler():
         pass
     cfgmod.apply_tool_env()   # secret Cài đặt (key ElevenLabs...) → env cho tool ngoài (video-use)
     try:
-        loop_feature.ensure_migrated()   # loop_config.json cũ → Vanhanh/loops/vong-lap-goc.md (1 lần)
+        loop_feature.ensure_migrated()   # loop_config.json cũ → Naota/loops/vong-lap-goc.md (1 lần)
     except Exception as e:
         print(f"[loops migrate] {e}", file=_sys.stderr)
     try:
@@ -15567,26 +17141,26 @@ async def _start_scheduler():
     except Exception as e:
         print(f"[connect health start] {e}", file=_sys.stderr)
     try:
-        # Account block edited while Vanhanh was stopped: caught here, before the env reset below re-stamps the file.
+        # Account block edited while Naota was stopped: caught here, before the env reset below re-stamps the file.
         cfgmod.auth_guard_check(grace=0)
     except Exception as e:
         print(f"[auth guard] {e}", file=_sys.stderr)
     try:
         _env_admin = cfgmod.provision_admin_from_env()
         if _env_admin == "created":
-            print("[auth] Đã tạo tài khoản admin từ VANHANH_ADMIN_PASSWORD (env).", file=_sys.stderr)
-            security_log.record("env_account_created", user=os.getenv("VANHANH_ADMIN_USER", "admin"), source="env")
+            print("[auth] Đã tạo tài khoản admin từ NAOTA_ADMIN_PASSWORD (env).", file=_sys.stderr)
+            security_log.record("env_account_created", user=os.getenv("NAOTA_ADMIN_USER", "admin"), source="env")
         elif _env_admin == "reset":
-            print("[auth] VANHANH_ADMIN_PASSWORD/VANHANH_ADMIN_USER đổi so với lần trước: đã đặt lại "
+            print("[auth] NAOTA_ADMIN_PASSWORD/NAOTA_ADMIN_USER đổi so với lần trước: đã đặt lại "
                   "tài khoản admin theo env (giữ 2FA, huỷ các phiên cũ).", file=_sys.stderr)
-            security_log.record("env_account_reset", user=os.getenv("VANHANH_ADMIN_USER", "admin"), source="env",
+            security_log.record("env_account_reset", user=os.getenv("NAOTA_ADMIN_USER", "admin"), source="env",
                                 detail="2FA kept, all sessions ended")
         if cfgmod.reset_2fa_from_env() == "reset":
-            print("[auth] VANHANH_RESET_2FA: đã TẮT xác thực 2 lớp và huỷ mọi phiên. Đăng nhập lại, bật 2FA mới, "
-                  "rồi xoá biến VANHANH_RESET_2FA.", file=_sys.stderr)
+            print("[auth] NAOTA_RESET_2FA: đã TẮT xác thực 2 lớp và huỷ mọi phiên. Đăng nhập lại, bật 2FA mới, "
+                  "rồi xoá biến NAOTA_RESET_2FA.", file=_sys.stderr)
             security_log.record("env_2fa_reset", source="env", detail="2FA turned off, all sessions ended")
-        if str(os.getenv("VANHANH_ADMIN_PASSWORD", "") or "").strip():
-            print("[auth] Nhắc: VANHANH_ADMIN_PASSWORD vẫn nằm trong biến môi trường dạng chữ thường. Tài khoản đã "
+        if str(os.getenv("NAOTA_ADMIN_PASSWORD", "") or "").strip():
+            print("[auth] Nhắc: NAOTA_ADMIN_PASSWORD vẫn nằm trong biến môi trường dạng chữ thường. Tài khoản đã "
                   "được đặt, có thể xoá biến này rồi khởi động lại (tài khoản không bị ảnh hưởng).", file=_sys.stderr)
         # Mã thiết lập đã bỏ: dọn file .setup_token còn sót từ bản cũ, để không còn
         # một "chìa khoá" nằm trong thư mục state mà không ai dùng tới.
@@ -15658,12 +17232,20 @@ async def _start_scheduler():
                 #      flag; hard daily caps live in auto_learning.
                 if not _AUTO_LEARNING_BUSY[0]:
                     asyncio.create_task(_auto_learning_tick())
+                # 3b6) Automatic background model: picks for MAIN's provider, re-made when its model list changed.
+                #      A settings read on most ticks; the main brain is asked only when the list really changed.
+                if not _AUTO_BG_BUSY[0] and os.environ.get("NAOTA_AUTO_BACKGROUND_PAUSED") != "1":
+                    asyncio.create_task(_auto_background_tick())
                 # 3c) Ngân sách token + báo cáo tuần. Nhịp RIÊNG 10 phút chứ không theo 30s:
                 #     mỗi lượt kiểm là một truy vấn sqlite cả tháng, chạy 30 giây một lần thì
                 #     chính cái đồng hồ đo tiền lại thành thứ tốn tài nguyên nhất.
                 try:
                     if time.time() - _NGAN_SACH_LAST[0] >= 600:
                         _NGAN_SACH_LAST[0] = time.time()
+                        # Naota Core's improvement loop: every knob's rule looks at its counters once. Plain code, in
+                        # a worker thread; a rule moves its knob at most once a day.
+                        _MAIN_LOOP[0] = asyncio.get_running_loop()
+                        await asyncio.to_thread(_improve_tick)
                         await _kiem_ngan_sach(nhac=True)
                         await _bao_cao_tuan_neu_toi_gio()
                 except Exception as nse:
@@ -15677,12 +17259,12 @@ async def _start_scheduler():
                             await asyncio.to_thread(_do_backup)   # 1 lần: toàn bộ thư mục brains, 2 chiều
                 except Exception as be:
                     print(f"[backup tick] {type(be).__name__}: {be}", file=__import__('sys').stderr)
-                # 5) Vanhanh index: every brain, but only the ones whose agents/skills/workflows/loops/plugins
+                # 5) Naota index: every brain, but only the ones whose agents/skills/workflows/loops/plugins
                 #    changed on disk (stat-only signature, see ops_index_watch), a few per tick.
                 try:
                     await asyncio.to_thread(_ops_index_sweep)
                 except Exception as ie:
-                    print(f"[vanhanh index tick] {type(ie).__name__}: {ie}", file=__import__('sys').stderr)
+                    print(f"[naota index tick] {type(ie).__name__}: {ie}", file=__import__('sys').stderr)
                 # 6) Dọn media quá hạn: attachments/ + inbox/ là VÙNG CACHE chứ không phải
                 #    tri thức. Nhịp riêng 6 TIẾNG (không theo nhịp 30s của vòng lặp) vì đây là
                 #    quét đĩa, và to_thread vì quét đồng bộ trong event loop từng làm container
@@ -15812,6 +17394,11 @@ async def _start_scheduler():
         chatbot_reply_policy.wire(ask=_reply_policy_ask)
         chatbot_reply_policy_review.wire(ask=_reply_policy_review_ask, notify=_reply_policy_notify,
                                          write_feedback=_reply_policy_write_feedback, get_bot=chatbot_store.get_bot)
+        # 2026-11-12: after a private chat goes quiet, the background model writes down what the bot should remember
+        # about that customer (the note of the Info panel), and the bot reads it on later turns.
+        customer_profile.wire(ask=_customer_profile_ask, get_bot=chatbot_store.get_bot,
+                              is_notice=chatbot_runtime.engine_notice)
+        customer_profile.start()
         kq = chatbot_runtime.sync_all()
         if kq.get("errors"):
             print(f"[chatbot] bật lỗi: {kq['errors']}", file=__import__('sys').stderr)
@@ -16016,7 +17603,7 @@ async def path_exists(path: str = Query("", description="Đường dẫn tuyệt
 async def config():
     s = cfgmod.read_settings()
     return {
-        "workspace_name": s.get("workspace_name") or os.getenv("WORKSPACE_NAME", "VANHANH"),
+        "workspace_name": s.get("workspace_name") or os.getenv("WORKSPACE_NAME", "NAOTA"),
         "user_name": os.getenv("USER_NAME", localefmt.chu("Bạn", "You")),
         "tts_voice": os.getenv("TTS_VOICE", "en-US-EmmaMultilingualNeural"),
         "tts_rate": os.getenv("TTS_RATE", "+5%"),
@@ -16026,7 +17613,7 @@ async def config():
 # ============================================
 # Phiên bản + cập nhật trong UI
 # ============================================
-GITHUB_REPO = "lequydailb-dotcom/vanhanh"
+GITHUB_REPO = "lequydailb-dotcom/naoso"
 _UPDATE_TASKS = set()   # giữ ref mạnh cho asyncio.create_task (tránh GC nuốt mất task)
 
 
@@ -16085,7 +17672,7 @@ async def _watchtower_ly_do() -> str:
     Watchtower BẬT SẴN trong cả hai file compose (VPS lẫn Hostinger), nên hai mã
     dưới đây đổi NGHĨA - đọc kỹ trước khi sửa câu chữ ở dashboard theo:
 
-    - no_token: WATCHTOWER_TOKEN không được set, mà mọi file compose của Vanhanh đều đặt sẵn
+    - no_token: WATCHTOWER_TOKEN không được set, mà mọi file compose của Naota đều đặt sẵn
       biến này. Nghĩa là stack đang chạy được deploy từ một file compose CŨ (hoặc một file tự
       viết). Cách ra: lấy compose mới rồi deploy lại - Hostinger bấm Redeploy, VPS chạy
       `docker compose up -d --pull always`.
@@ -16316,6 +17903,12 @@ async def _watchtower_update(token: str, started_at: str):
 async def do_update():
     """Cập nhật lên bản mới nhất. Git checkout (windows/native) → spawn updater.py TÁCH RỜI
     (stop/pull/pip/start/health/rollback). Docker → Watchtower nếu có, không thì hướng dẫn Redeploy."""
+    return await _update_core()
+
+
+async def _update_core():
+    """The body of POST /update, shared with `naota_improve op=update` (a route handler is never called as a plain
+    function, test_handler_khong_goi_truc_tiep). Returns a dict, or a JSONResponse when it refuses."""
     import sys as _sys
     import subprocess
     import datetime as _dt
@@ -16344,11 +17937,11 @@ async def do_update():
             _write_update_state({"phase": "idle"})   # nhả claim
             return JSONResponse({"ok": False, "self_built": True, "current": cur, "latest": latest,
                 "error": localefmt.chu(
-                    f"Vanhanh này chạy bằng image tự đóng gói, không phải image chính thức, nên kéo lại hay Redeploy "
+                    f"Naota này chạy bằng image tự đóng gói, không phải image chính thức, nên kéo lại hay Redeploy "
                     f"vẫn ra đúng bản cũ. Đổi sang image chính thức một lần (dữ liệu, brain và đăng nhập giữ nguyên): "
                     f"trong file compose, sửa dòng image: thành {deploy_info.OFFICIAL_IMAGE}:latest rồi chạy lệnh dưới. "
                     f"Từ đó nút cập nhật dùng được. Tự build từ mã nguồn thì cập nhật bằng ./update.sh. Hướng dẫn đầy đủ: DEPLOY.md, mục Cập nhật.",
-                    f"This Vanhanh runs a self-built image, not the official one, so pulling or Redeploying brings back "
+                    f"This Naota runs a self-built image, not the official one, so pulling or Redeploying brings back "
                     f"the same old version. Switch to the official image once (data, brains and logins are kept): in "
                     f"the compose file, change the image: line to {deploy_info.OFFICIAL_IMAGE}:latest, then run the "
                     f"command below. After that the Update button works. Building from source? Update with ./update.sh. "
@@ -16405,7 +17998,7 @@ async def do_update():
     try:
         py = _sys.executable
         updater = str(PROJECT_ROOT / "server" / "updater.py")
-        port = os.getenv("VANHANH_PORT", "7777")
+        port = os.getenv("NAOTA_PORT", "7777")
         args = [py, updater, "--old-sha", old_sha, "--old-version", cur,
                 "--target", latest or "", "--port", str(port),
                 "--server-pid", str(os.getpid())]
@@ -16421,12 +18014,32 @@ async def do_update():
         return JSONResponse({"ok": False, "error": str(e), "manual": "./update.sh"}, status_code=500)
 
 
+async def _self_upgrade_start() -> dict:
+    """`naota_improve op=update` (2026-11-15): the very same path as the Update button, its answer as a dict."""
+    res = await _update_core()
+    if isinstance(res, dict):
+        return res
+    try:
+        return json.loads(bytes(res.body).decode("utf-8"))
+    except Exception:  # noqa: BLE001
+        return {"ok": False, "error": localefmt.chu("Cập nhật không bắt đầu được.", "The update did not start.")}
+
+
+async def _self_upgrade_versions() -> tuple:
+    cur = _read_version()
+    latest, _err = await _latest_remote_version(cur)
+    return cur, latest
+
+
+self_upgrade.wire(start=_self_upgrade_start, versions=_self_upgrade_versions, turn_busy=luot_dang_chay.has_turn)
+
+
 # ============================================================
 # Tự khởi động cùng máy (autostart) - Windows: ghi HKCU Run key trỏ wscript chạy
-# start-vanhanh.vbs (đã tự tắt bản cũ + chạy NỀN ẩn). Per-user, KHÔNG cần quyền admin.
+# start-naota.vbs (đã tự tắt bản cũ + chạy NỀN ẩn). Per-user, KHÔNG cần quyền admin.
 # Registry là nguồn sự thật duy nhất - không lưu trùng vào settings.json.
 # ============================================================
-_AUTOSTART_NAME = "Vanhanh"
+_AUTOSTART_NAME = "Naota"
 _AUTOSTART_RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 # Task Manager tab "Startup" KHÔNG xoá mục trong Run key khi người dùng bấm Disable. Nó ghi
 # một cờ 12 byte vào khoá riêng dưới đây, rồi Explorer bỏ qua mục đó lúc đăng nhập.
@@ -16442,7 +18055,7 @@ _AUTOSTART_APPROVED_ON = bytes([2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
 
 def _autostart_command() -> str:
-    """Lệnh chạy khi đăng nhập Windows: wscript chạy start-vanhanh.vbs ẩn (kill cũ + chạy nền).
+    """Lệnh chạy khi đăng nhập Windows: wscript chạy start-naota.vbs ẩn (kill cũ + chạy nền).
 
     Có thêm /open để server lên xong thì mở luôn dashboard cùng trình
     duyệt. Lệnh cũ không có /open vẫn chạy được nên KHÔNG tính là đường dẫn cũ, xem _autostart_legacy_command.
@@ -16452,7 +18065,7 @@ def _autostart_command() -> str:
 
 def _autostart_legacy_command() -> str:
     """Lệnh cũ (chỉ chạy nền, không mở trình duyệt). Vẫn hợp lệ, bật lại là lên bản có /open."""
-    vbs = str(PROJECT_ROOT / "start-vanhanh.vbs")
+    vbs = str(PROJECT_ROOT / "start-naota.vbs")
     return f'wscript.exe //nologo "{vbs}"'
 
 
@@ -16468,13 +18081,13 @@ def _autostart_thieu_gi(root=None) -> list:
     """Mảnh nào của dây chuyền khởi động không còn trên đĩa.
 
     Thiếu một trong hai là lúc đăng nhập chắc chắn không có gì chạy, mà cũng chẳng có lỗi nào
-    hiện ra: `wscript` im lặng khi không thấy file .vbs, còn `cmd` thì ghi lỗi vào vanhanh.log,
+    hiện ra: `wscript` im lặng khi không thấy file .vbs, còn `cmd` thì ghi lỗi vào naota.log,
     một file không ai mở ra xem bao giờ. Kiểm ngay lúc đọc trạng thái thì rẻ hơn nhiều.
     """
     goc = Path(root) if root else PROJECT_ROOT
     thieu = []
-    if not (goc / "start-vanhanh.vbs").is_file():
-        thieu.append("start-vanhanh.vbs")
+    if not (goc / "start-naota.vbs").is_file():
+        thieu.append("start-naota.vbs")
     if not (goc / ".venv" / "Scripts" / "python.exe").is_file():
         thieu.append(r".venv\Scripts\python.exe")
     return thieu
@@ -16514,14 +18127,14 @@ def _autostart_status() -> dict:
     """Trạng thái ĐẦY ĐỦ của autostart, đủ để nói vì sao nó không chạy.
 
     `enabled` một mình không trả lời được câu hỏi thật của người dùng ("sao mở máy lên không
-    thấy Vanhanh"): Run key còn nguyên vẫn có ba đường chết lặng khác nhau, và cả ba đều được
+    thấy Naota"): Run key còn nguyên vẫn có ba đường chết lặng khác nhau, và cả ba đều được
     kiểm ở đây - Windows chặn, đường dẫn cũ, hoặc file đã mất.
     """
     if os.name != "nt":
         return {"supported": False, "enabled": False}
     expected = _autostart_command()
     st = {"supported": True, "enabled": False, "expected": expected,
-          "log": str(PROJECT_ROOT / "server" / "vanhanh.log")}
+          "log": str(PROJECT_ROOT / "server" / "naota.log")}
     try:
         import winreg
         try:
@@ -16917,7 +18530,7 @@ async def notifications_info():
 
 async def _notifications_data():
     """The News feed itself (releases + announcements), shared by the route and by code that needs the items
-    (marking all read, asking Vanhanh Core about one). Route handlers are not called as plain functions."""
+    (marking all read, asking Naota Core about one). Route handlers are not called as plain functions."""
     now = time.monotonic()
     ngon_ngu = localefmt.ngon_ngu_giao_dien()
     cached = _NOTIFICATION_CACHE.get("data")
@@ -16953,9 +18566,9 @@ async def _notifications_data():
         releases.append({
             "id": f"release:{rel.get('version')}",
             "kind": "update",
-            "title": f"VANHANH v{rel.get('version')}",
-            "summary": bullets[0] if bullets else localefmt.chu("Bản cập nhật VANHANH mới.",
-                                                                "A new VANHANH update."),
+            "title": f"NAOTA v{rel.get('version')}",
+            "summary": bullets[0] if bullets else localefmt.chu("Bản cập nhật NAOTA mới.",
+                                                                "A new NAOTA update."),
             "body": "\n".join(f"• {item}" for item in bullets[1:5]),
             "published_at": rel.get("date") or "",
             "priority": "high" if (is_current or (is_new and is_latest)) else "normal",
@@ -17012,9 +18625,9 @@ async def notifications_read_post(payload: dict = Body(None)):
 
 
 def _cite_text(src: str, item: dict, brain: str) -> str:
-    """A notice or report put into Vanhanh Core so the person can ask about it (spec 7.3 and 15).
+    """A notice or report put into Naota Core so the person can ask about it (spec 7.3 and 15).
 
-    Written as data with its source and time, and said to be a snapshot: Vanhanh must check live state with tools
+    Written as data with its source and time, and said to be a snapshot: Naota must check live state with tools
     before talking about "now". The marker lets a second click reuse it instead of posting it twice."""
     ts = item.get("ts") or 0
     when = item.get("published_at") or (localefmt.format_ts(ts, "%d/%m/%Y %H:%M") if ts else "")
@@ -17035,15 +18648,15 @@ def _cite_text(src: str, item: dict, brain: str) -> str:
     note = localefmt.chu("Nội dung tại thời điểm thông báo, không phải trạng thái hiện tại. Hỏi gì tiếp cứ nhắn ở đây.",
                          "Content as of the notice, not the current state. Ask anything about it here.")
     return (f"📌 **{head}**" + (f" · {meta}" if meta else "") + f"\n\n**{title}**\n{body}\n\n_{note}_\n"
-            f"<!-- vanhanh-cite:{src}:{item.get('id', '')} -->")
+            f"<!-- naota-cite:{src}:{item.get('id', '')} -->")
 
 
-@app.post("/vanhanh-core/cite")
-async def vanhanh_core_cite(payload: dict = Body(None)):
-    """Open a notice or report in this brain's Vanhanh Core to ask about it.
+@app.post("/naota-core/cite")
+async def naota_core_cite(payload: dict = Body(None)):
+    """Open a notice or report in this brain's Naota Core to ask about it.
 
     `source`: "inbox" (an item of the bell) or "news" (a release or announcement); `id`; `brain`: the brain open now,
-    used only for news and for an inbox item that has no source brain. The text goes into the person's own Vanhanh Core
+    used only for news and for an inbox item that has no source brain. The text goes into the person's own Naota Core
     chat, never back into the shared notice. Asking twice reuses the first copy."""
     p = payload or {}
     src = "news" if p.get("source") == "news" else "inbox"
@@ -17058,15 +18671,15 @@ async def vanhanh_core_cite(payload: dict = Body(None)):
                             status_code=404)
     brain = (item.get("brain") if src == "inbox" else "") or str(p.get("brain") or "brain")
     store = get_store()
-    sid = vanhanh_core.default_session(store, _brain_key(brain), same_brain=_cung_brain)
-    mark = f"<!-- vanhanh-cite:{src}:{iid} -->"
+    sid = naota_core.default_session(store, _brain_key(brain), same_brain=_cung_brain)
+    mark = f"<!-- naota-cite:{src}:{iid} -->"
     try:
         da_co = any(mark in str(m.get("content") or "") for m in (store.get_messages(sid) or [])[-80:])
     except Exception:
         da_co = False
     if not da_co:
         store.append_message(sid, "assistant", _cite_text(src, item, brain))
-    return {"ok": True, "id": sid, "channel": vanhanh_core.CHANNEL, "reused": da_co}
+    return {"ok": True, "id": sid, "channel": naota_core.CHANNEL, "reused": da_co}
 
 
 # ============================================
@@ -17110,22 +18723,22 @@ async def inbox_delete(payload: dict = Body(None)):
     return {"ok": ok, "unread": inbox.so_chua_doc()}
 
 
-# ── Vanhanh Core, the notification commander ────────────
+# ── Naota Core, the notification commander ────────────
 async def _core_say(brain: str, text: str) -> None:
-    """One short line from Vanhanh Core in its own chat (what its judge just changed). Never raises."""
+    """One short line from Naota Core in its own chat (what its judge just changed). Never raises."""
     try:
         bk = _brain_key(brain or "brain")
-        sid = vanhanh_core.default_session(get_store(), bk, same_brain=_cung_brain)
+        sid = naota_core.default_session(get_store(), bk, same_brain=_cung_brain)
         if sid:
             await _gui_qua_kenh(f"{WEB_CHAT_PREFIX}{sid}", text)
     except Exception as e:  # noqa: BLE001
-        print(f"[notify policy] Vanhanh Core could not say it: {type(e).__name__}: {e}", file=sys.stderr)
+        print(f"[notify policy] Naota Core could not say it: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 @app.post("/inbox/react")
 async def inbox_react(payload: dict = Body(None)):
     """The owner's feedback on one bell item: a Resonance emoji (`value`) and/or "needed" / "not_needed" (`axis`).
-    Vanhanh Core's judge learns from it (`notify_policy.react`) and says in its chat what it changed."""
+    Naota Core's judge learns from it (`notify_policy.react`) and says in its chat what it changed."""
     p = payload or {}
     iid = str(p.get("id") or "")
     value = str(p.get("value") or "").strip()
@@ -17219,7 +18832,7 @@ def _phien_con_hieu_luc():
 async def push_subscribe(request: Request, payload: dict = Body(None)):
     p = payload or {}
     ok, err = webpush.dang_ky(p.get("subscription") or p, str(p.get("nhan") or ""),
-                              phien=_phien_bam(request.cookies.get("vanhanh_session", "")))
+                              phien=_phien_bam(request.cookies.get("naota_session", "")))
     return {"ok": ok, "error": err, "subs": webpush.so_sub()}
 
 
@@ -17234,11 +18847,11 @@ async def push_test():
     """Gửi thử một thông báo. Không có nút này thì người dùng bật quyền xong vẫn không biết
     nó có chạy thật hay không, mà lần "thật" đầu tiên có khi phải đợi tới sáng hôm sau."""
     ok, don, chi_tiet = await webpush.gui_het(
-        "Vanhanh", localefmt.chu("Thông báo đẩy đã chạy. Từ giờ có kết quả là Vanhanh báo ngay cả khi bạn "
+        "Naota", localefmt.chu("Thông báo đẩy đã chạy. Từ giờ có kết quả là Naota báo ngay cả khi bạn "
                                "không mở dashboard.",
-                               "Push notifications work. From now on Vanhanh tells you as soon as there "
+                               "Push notifications work. From now on Naota tells you as soon as there "
                                "is a result, even when the dashboard is closed."),
-        "/?mo_thu=test", tag="vanhanh-test")
+        "/?mo_thu=test", tag="naota-test")
     # Trả CHI TIẾT theo từng thiết bị, không chỉ một con số. Bản đầu trả ok=true khi có BẤT KỲ
     # thiết bị nào nhận được, nên máy tính nhận còn điện thoại hỏng thì màn hình vẫn báo
     # "đã gửi" - người dùng không có đường nào lần ra. Đây đúng là lỗi đã gặp.
@@ -17282,7 +18895,7 @@ def _current_logo_file():
 
 
 _BRAND_THEME_MAX_BYTES = 512 * 1024
-_BRAND_THEME_MODE_RE = re.compile(r"/\*\s*vanhanh-default-mode:\s*(light|dark|auto)\s*\*/")
+_BRAND_THEME_MODE_RE = re.compile(r"/\*\s*naota-default-mode:\s*(light|dark|auto)\s*\*/")
 
 
 def _brand_theme_file():
@@ -17302,7 +18915,7 @@ def _brand_theme_file():
 def _inject_brand_theme(html: str) -> str:
     """Append the operator theme AFTER the bundled stylesheets so it wins the cascade.
 
-    The theme may carry `/* vanhanh-default-mode: light */` to pick the theme for a device
+    The theme may carry `/* naota-default-mode: light */` to pick the theme for a device
     that has never chosen one. A manual choice already in localStorage always wins."""
     p = _brand_theme_file()
     if p is None:
@@ -17314,8 +18927,8 @@ def _inject_brand_theme(html: str) -> str:
     m = _BRAND_THEME_MODE_RE.search(data[:4096].decode("utf-8", "ignore"))
     if m:
         # Must run before the inline theme script at the top of <head>, which reads this key.
-        seed = ("<script>try{if(!localStorage.getItem('vanhanh.theme'))"
-                "localStorage.setItem('vanhanh.theme','" + m.group(1) + "')}catch(e){}</script>")
+        seed = ("<script>try{if(!localStorage.getItem('naota.theme'))"
+                "localStorage.setItem('naota.theme','" + m.group(1) + "')}catch(e){}</script>")
         html = html.replace("<head>", "<head>\n  " + seed, 1)
     link = f'<link rel="stylesheet" href="/brand-theme.css?v={binascii.crc32(data):08x}">\n'
     return html.replace("</head>", link + "</head>", 1)
@@ -17332,13 +18945,24 @@ async def brand_theme_css():
                         headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
 
+def _logo_stamp(ver):
+    """Cache key for /brand-logo: app version plus the logo file's time, so a new logo means a new URL."""
+    p = _current_logo_file() or _DEFAULT_LOGO
+    try:
+        return "%s.%d" % (ver, int(p.stat().st_mtime))
+    except OSError:
+        return str(ver)
+
+
 @app.get("/brand-logo")
-async def brand_logo():
+async def brand_logo(v: str = ""):
     p = _current_logo_file() or _DEFAULT_LOGO
     if not p.exists():
         return JSONResponse({"error": "no logo"}, status_code=404)
-    # cache ngắn: đổi ảnh xong thấy ngay trong ~1 phút; JS còn bust bằng ?v= khi vừa upload.
-    return FileResponse(str(p), headers={"Cache-Control": "public, max-age=60"})
+    # With ?v= the URL changes whenever the logo does (_logo_stamp, or the upload's own ?v=), so keep it 30 days: a
+    # reload on a shaky network then never shows a broken logo. Bare /brand-logo stays short.
+    age = 2592000 if v else 60
+    return FileResponse(str(p), headers={"Cache-Control": "public, max-age=%d" % age})
 
 
 _ICON_MEDIA = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
@@ -17348,7 +18972,7 @@ _ICON_MEDIA = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
 def _pet_icon_file():
     """The mascot's own uploaded picture when the owner uses it as the tab icon, else None.
 
-    Lets someone with several Vanhanh open (shop, family, a VPS for a client) tell the tabs apart. On by default once
+    Lets someone with several Naota open (shop, family, a VPS for a client) tell the tabs apart. On by default once
     a picture is uploaded; `favicon: false` keeps the logo on the tab. The name goes through avatar_upload, so a
     hand-edited settings.json cannot point this at any other file."""
     pet = (cfgmod.read_settings().get("dashboard") or {}).get("pet") or {}
@@ -17646,7 +19270,10 @@ async def stt_fix_route(request: Request):
         body = await request.json()
     except Exception:
         return {"ok": False, "text": "", "ly_do": "json_hong"}
-    text = str((body or {}).get("text") or "")[:2000]
+    # 2026-11-13: never cut here. The text used to be cut at 2000 characters and the answer replaced the whole
+    # dictation in the browser, so everything after about two and a half minutes of speech was lost. transcript_fix
+    # keeps every word of a long text and only decides whether a model reads it.
+    text = str((body or {}).get("text") or "")
     cfg = cfgmod.read_settings()
     # `final`: the recording ended, the main brain rewrites the whole sentence with the chat as context.
     if (body or {}).get("final"):
@@ -17658,29 +19285,37 @@ async def stt_fix_route(request: Request):
 
 @app.get("/chat/suggest")
 def chat_suggest_state():
-    """Whether the suggested next message is on (the "+" menu of the composer shows the switch)."""
-    return {"enabled": next_prompt.enabled(cfgmod.read_settings())}
+    """Whether the suggested next message is on (the "+" menu of the composer shows the switch), and `live`: how
+    patiently the box may ask for the rest of a draft while the owner types (None: it does not ask)."""
+    cfg = cfgmod.read_settings()
+    return {"enabled": next_prompt.enabled(cfg), "live": next_prompt.live_policy(cfg)}
 
 
 @app.get("/chat/plan")
 def chat_plan_state():
-    """Whether the API brains get vanhanh_plan (plan_tool.py); the "+" menu of the composer shows the switch."""
+    """Whether the API brains get naota_plan (plan_tool.py); the "+" menu of the composer shows the switch."""
     import plan_tool
     return {"enabled": plan_tool.enabled(cfgmod.read_settings())}
 
 
 @app.post("/chat/suggest")
 async def chat_suggest(request: Request):
-    """The owner's likely next message once Vanhanh has answered, see next_prompt.py.
+    """The owner's likely next message once Naota has answered, see next_prompt.py.
 
     Body {"context": [{"role": "user"|"assistant", "text": "..."}, ...]}, the last messages on screen, oldest first.
-    Never an error: any trouble gives an empty suggestion, and the chat box keeps its usual placeholder."""
+    With "draft" (what the owner has typed so far, 2026-11-13) the answer is only the REST of that sentence, and
+    "hint" carries the suggestion that was showing. Never an error: any trouble gives an empty suggestion, and the
+    chat box keeps its usual placeholder."""
     try:
         body = await request.json()
     except Exception:
         return {"ok": False, "text": ""}
-    ctx = (body or {}).get("context") if isinstance(body, dict) else None
-    return {"ok": True, **await next_prompt.suggest(cfgmod.read_settings(), ctx)}
+    body = body if isinstance(body, dict) else {}
+    cfg = cfgmod.read_settings()
+    ctx = body.get("context")
+    if isinstance(body.get("draft"), str) and body["draft"]:
+        return {"ok": True, **await next_prompt.complete(cfg, ctx, body["draft"], body.get("hint") or "")}
+    return {"ok": True, **await next_prompt.suggest(cfg, ctx), "live": next_prompt.live_policy(cfg)}
 
 
 @app.get("/voice/call")
@@ -17853,7 +19488,7 @@ async def voice_options(brains: int = 1):
         ],
         "chatgpt_voice": v.get("chatgpt_voice") or voice_live.PROVIDERS["chatgpt"]["default_voice"],
         "voice_brains_active": voice_brain.active_count(),
-        # Thẻ gọn: dòng "Đang dùng", ô Giọng Vanhanh đổi theo đường gọi, ô Đường gọi.
+        # Thẻ gọn: dòng "Đang dùng", ô Giọng Naota đổi theo đường gọi, ô Đường gọi.
         "call": voice_call.select_call_engine(cfg),
         # Bộ não giọng của đường Cơ bản (đã chọn từ bản cũ, hoặc máy tự chọn trên gói), "" = bộ não chính.
         "voice_brain": {"id": _vb, "label": (voice_brain.BRAIN_PROVIDERS.get(_vb) or {}).get("label", "")},
@@ -17880,7 +19515,7 @@ def _eleven_models() -> list:
 
 
 def _ngon_ngu_cuoc_goi(meta) -> str:
-    """Ngôn ngữ người dùng THẬT SỰ nói trong cuộc gọi, do `_voice_ask_vanhanh` gửi kèm. "" nếu không có.
+    """Ngôn ngữ người dùng THẬT SỰ nói trong cuộc gọi, do `_voice_ask_naota` gửi kèm. "" nếu không có.
 
     Câu giao việc cho bộ não chính không phải lời người dùng: ChatGPT Live tự diễn đạt lại và có
     lúc viết bằng tiếng Anh ("Check the Drive link the user sent..."). Bộ não chính bám theo thứ
@@ -17895,9 +19530,9 @@ def _voice_agent(conv_sid: str, brain: str):
     runs in a partner's chat (Partners page, session channel `agent:<slug>`), else None.
 
     The Partners page shares the chat frame of the main chat, so a call started there carries that partner's session
-    id. Until this was fixed the call ignored it: the call model spoke as plain Vanhanh and the work it handed off ran
-    as plain Vanhanh too, so asked who it was, it answered that it was ChatGPT. Any failure is None:
-    the call then runs as Vanhanh, as before, instead of not starting."""
+    id. Until this was fixed the call ignored it: the call model spoke as plain Naota and the work it handed off ran
+    as plain Naota too, so asked who it was, it answered that it was ChatGPT. Any failure is None:
+    the call then runs as Naota, as before, instead of not starting."""
     if not conv_sid:
         return None
     try:
@@ -17957,9 +19592,13 @@ def _voice_brain_conf(conf: dict, conv_sid: str, brain: str) -> dict:
     return {**conf, "system": voice_persona.apply(voice_brain.SYSTEM_PROMPT, persona[0], persona[1])}
 
 
-async def _voice_ask_vanhanh(request: str, conv_sid: str, brain: str, key: str = "", progress=None,
+# Runs on each chat's shared voice circuit (`voice:<sid>`) right now, by chat id. See `_voice_ask_naota`.
+_VOICE_SHARED_RUNS: dict = {}
+
+
+async def _voice_ask_naota(request: str, conv_sid: str, brain: str, key: str = "", progress=None,
                            call_lang: str = "") -> str:
-    """Tool `ask_vanhanh` của phiên Live, và việc nền của làn nhanh (V3): chạy MỘT lượt bộ não
+    """Tool `ask_naota` của phiên Live, và việc nền của làn nhanh (V3): chạy MỘT lượt bộ não
     chính rồi trả chữ.
 
     Đi qua `_tg_answer` (vỏ chung của Telegram/CLI) với khoá phiên `voice:<sid>`. `key` riêng
@@ -17979,28 +19618,75 @@ async def _voice_ask_vanhanh(request: str, conv_sid: str, brain: str, key: str =
     hội thoại Live lo - vỏ chen tin vào nữa là ghi đôi.
     """
     own_key = bool(key)   # khoá riêng dùng một lần: phiên RAM của nó phải chết theo, xem finally
+    shared_id = str(conv_sid or "")
+    if not key and _VOICE_SHARED_RUNS.get(shared_id):
+        # The chat's shared circuit is still busy, e.g. with a handoff left running after the previous call ended
+        #: a one-shot circuit, so this run does not queue behind it.
+        key, own_key = f"voice:{conv_sid}:{uuid.uuid4().hex[:8]}", True
     key = key or f"voice:{conv_sid}"
-    # A call in a partner's chat hands its work to that partner (prompt, model, memory), not to plain Vanhanh.
-    agent = _voice_agent(conv_sid, brain)
-    sess = _tg_session(_agent_sess_key(key, agent))
+    if not own_key:
+        _VOICE_SHARED_RUNS[shared_id] = _VOICE_SHARED_RUNS.get(shared_id, 0) + 1
     try:
-        root = _brain_root(brain)
-        if os.path.isdir(root):
-            sess["brain"] = root
-    except Exception:
-        pass
-    try:
-        out = await _tg_answer(request, meta={"chat_id": key, "call_lang": call_lang},
-                               progress=progress, channel="cli",
-                               phien_kho=str(conv_sid or ""), ghi_kho=False, agent=agent)
-    except Exception as e:
-        return f"Bộ não chính lỗi: {type(e).__name__}: {e}"
+        # A call in a partner's chat hands its work to that partner (prompt, model, memory), not to plain Naota.
+        agent = _voice_agent(conv_sid, brain)
+        sess = _tg_session(_agent_sess_key(key, agent))
+        try:
+            root = _brain_root(brain)
+            if os.path.isdir(root):
+                sess["brain"] = root
+        except Exception:
+            pass
+        try:
+            out = await _tg_answer(request, meta={"chat_id": key, "call_lang": call_lang},
+                                   progress=progress, channel="cli",
+                                   phien_kho=str(conv_sid or ""), ghi_kho=False, agent=agent)
+        except Exception as e:
+            return f"Bộ não chính lỗi: {type(e).__name__}: {e}"
+        finally:
+            if own_key:
+                _TG_SESS.pop(_agent_sess_key(key, agent), None)
     finally:
-        if own_key:
-            _TG_SESS.pop(_agent_sess_key(key, agent), None)
+        if not own_key:
+            left = _VOICE_SHARED_RUNS.get(shared_id, 0) - 1
+            if left > 0:
+                _VOICE_SHARED_RUNS[shared_id] = left
+            else:
+                _VOICE_SHARED_RUNS.pop(shared_id, None)
     if isinstance(out, dict):
         return channel_context.strip_control_blocks(str(out.get("text") or ""))[:6000] or "(không có nội dung)"
     return str(out or "")[:6000]
+
+
+async def _voice_after_call(conv_sid: str, brain: str, request: str, result: str, status: str = "done") -> bool:
+    """Deliver a Live handoff that outlived its call.
+
+    A user asked Naota to keep checking, hung up, and the answer never came: closing the call cancelled the running
+    handoff. Now the handoff finishes on its own and its answer lands in the call's chat the way any background
+    result does (`_notify_owner` with `web:<sid>`: stored in the chat, the bell, a push notification), as a job card
+    titled with the request. `status` is done | failed | timeout | cancelled; the last two carry no answer, so a short
+    line says the work stopped. Returns True when it reached the owner."""
+    sid = str(conv_sid or "").strip()
+    text = str(result or "").strip()
+    if status == "timeout":
+        mins = int(VOICE_BG_TIMEOUT // 60)
+        text = localefmt.chu(
+            f"Việc giao trong cuộc gọi vẫn chưa xong sau {mins} phút kể từ lúc cúp máy nên đã dừng, chưa có kết quả. "
+            "Giao lại, hoặc hỏi thẳng ở khung chat để chạy trực tiếp.",
+            f"The job handed over during the call was still not done {mins} minutes after the call ended, so it was "
+            "stopped without a result. Hand it over again, or ask in the chat to run it directly.")
+    elif status == "cancelled":
+        text = localefmt.chu("Việc giao trong cuộc gọi đã dừng giữa chừng, chưa có kết quả.",
+                             "The job handed over during the call was stopped before it finished, there is no result.")
+    if not sid or not text:
+        return False
+    try:
+        ok, _err = await _notify_owner(f"{WEB_CHAT_PREFIX}{sid}", text, kind="answer",
+                                       label=localefmt.chu("Cuộc gọi", "Call"), source="voice", brain=brain,
+                                       viec={"kind": "job", "status": status, "title": str(request or "")[:160]})
+        return bool(ok)
+    except Exception as e:  # noqa: BLE001 - the call is over, nothing else can report this
+        print(f"[voice live] after-call delivery failed: {type(e).__name__}: {e}", file=sys.stderr)
+        return False
 
 
 def _live_call_lang(said: str, recognition_lang: str = "") -> str:
@@ -18025,9 +19711,9 @@ def _voice_quota_frame(prov) -> dict:
     if reset > time.time():
         when = localefmt.format_ts(reset, "%H:%M")
     vi = "ChatGPT Live đã hết lượt của gói ChatGPT" + (f" (mở lại lúc {when})" if when else "") + \
-        ". Vanhanh chuyển sang tài khoản hoặc đường gọi kế tiếp."
+        ". Naota chuyển sang tài khoản hoặc đường gọi kế tiếp."
     en = "ChatGPT Live is out of quota on the ChatGPT plan" + (f" (back at {when})" if when else "") + \
-        ". Vanhanh moves to the next account or call path."
+        ". Naota moves to the next account or call path."
     return {"type": "error", "code": "quota", "message": localefmt.chu(vi, en)}
 
 
@@ -18040,13 +19726,20 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
     Khung JSON từ trình duyệt: {"type":"text","text":...} | {"type":"ask","text":...,"display":...,"files":[...]}
     | {"type":"stop"}. Byte = audio. "ask" là tin có file đính kèm gõ trong lúc gọi: chạy MỘT lượt bộ não
     chính ngay tại đây rồi model chỉ đọc lại, không mở lượt chat thường song song.
+    When the call ends (the browser sends "stop" on every hang-up, silence and path change, so it is not a cancel), a
+    handoff the main brain is still working on keeps running and posts its answer to the chat.
     """
-    if cfgmod.gate_active() and not cfgmod.valid_session(ws.cookies.get("vanhanh_session", "")):
+    if cfgmod.gate_active() and not cfgmod.valid_session(ws.cookies.get("naota_session", "")):
         await ws.close(code=1008)
         return
     await ws.accept()
+    # False once the call has ended (hang-up, silence, a dropped line). From then on nothing is sent on the socket:
+    # a handoff still running finishes on its own and posts its answer to the chat (`_voice_after_call`).
+    call = {"open": True}
 
     async def _j(obj):
+        if not call["open"]:
+            return
         try:
             await ws.send_text(json.dumps(obj, ensure_ascii=False))
         except Exception:
@@ -18088,8 +19781,8 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
                 memory_index = _fit_memory_index(idx.read_text(encoding="utf-8"), cap=voice_live.MEMORY_CHARS)
         except Exception:
             memory_index = ""
-    # A call from a partner's chat speaks as that partner (name, role, file, memory), not as plain Vanhanh.
-    # `_voice_persona` logs its own failures; anything else still starts the call, as Vanhanh.
+    # A call from a partner's chat speaks as that partner (name, role, file, memory), not as plain Naota.
+    # `_voice_persona` logs its own failures; anything else still starts the call, as Naota.
     _persona_kw = {}
     try:
         _p = _voice_persona(session_id, brain)
@@ -18131,6 +19824,10 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
     ui_ctx = {"text": ""}          # khối [NGỮ CẢNH GIAO DIỆN: ...] mới nhất từ trình duyệt
     spoken = {"text": ""}          # câu người dùng vừa NÓI (không phải câu model diễn đạt lại)
     tool_tasks: set = set()
+    # Handoffs to the main brain from the moment one is taken until the brain answers. Hanging up does not cancel
+    # these (work asked for just before hanging up used to never get its answer); see the `finally` at the end.
+    brain_work: set = set()
+    expired: set = set()           # handoffs stopped by the time limit after the call (VOICE_BG_TIMEOUT)
     # Không lặp câu trả lời (lỗi đã gặp). Lần giao việc tới khi bộ não chính còn đang
     # làm có thể là LỜI NÓI THÊM ("Ok, xong thì báo anh nhé": bỏ), CÂU HỎI TIẾN ĐỘ ("xong chưa": trả lời
     # ngay từ `jobs`) hoặc việc mới thật (chạy SONG SONG, voice_live.parallel_request). Trước đây cả
@@ -18139,11 +19836,11 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
     # câu tiến độ), nên lời đọc đó không thành bong bóng thứ hai và không vào lịch sử.
     jobs: dict = {}                  # việc bộ não chính đang chạy: số thứ tự -> {request, started, step}
     job_seq = {"n": 0}
-    spoke = {"t": 0.0}               # lần gần nhất Vanhanh nói về việc nền (kết quả hay tiến độ)
+    spoke = {"t": 0.0}               # lần gần nhất Naota nói về việc nền (kết quả hay tiến độ)
     heartbeat = {"task": None}
     readback = {"pending": 0, "active": False}
     # File pasted during the call: while its brain turn runs, and ATTACHMENT_GUARD_S after its answer is
-    # read, an ask_vanhanh from the model about an image or file is that same file, not a second turn.
+    # read, an ask_naota from the model about an image or file is that same file, not a second turn.
     attach_guard = {"busy": 0, "until": 0.0, "names": []}
 
     async def from_client():
@@ -18225,11 +19922,11 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
         name = str(ev.get("name") or "")
         cid = str(ev.get("id") or "")
         req = str((ev.get("args") or {}).get("request") or "")
-        if name != "ask_vanhanh":
+        if name != "ask_naota":
             return await _run_one(name, cid, req, [])
         if (attach_guard["busy"] or asyncio.get_running_loop().time() < attach_guard["until"]) \
                 and voice_live.is_about_attachment(req, attach_guard["names"]):
-            print(f"[voice live] bỏ ask_vanhanh trùng với file vừa gửi trong khung chat: {req[:80]!r}", file=sys.stderr)
+            print(f"[voice live] bỏ ask_naota trùng với file vừa gửi trong khung chat: {req[:80]!r}", file=sys.stderr)
             try:
                 await prov.send_tool_ack(cid, name, voice_live.ATTACHMENT_ACK)
             except Exception:
@@ -18267,7 +19964,7 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
         await _run_one(name, cid, req, running)
 
     async def _heartbeat():
-        """Việc chạy lâu thì Vanhanh tự lên tiếng: người dùng đang không nhìn màn hình, im lặng mấy phút
+        """Việc chạy lâu thì Naota tự lên tiếng: người dùng đang không nhìn màn hình, im lặng mấy phút
         là họ không biết còn sống hay đã chết.
 
         Chỉ nói khi không ai đang nói và đã cách lần nói trước đủ lâu. Câu này không thành bong bóng,
@@ -18294,24 +19991,51 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
             spoke["t"] = now
 
     def _deferred(name: str) -> bool:
-        """Gemini 3.1 Live cannot talk while a tool runs: answer ask_vanhanh at once, deliver the result later."""
+        """Gemini 3.1 Live cannot talk while a tool runs: answer ask_naota at once, deliver the result later."""
         try:
-            return name == "ask_vanhanh" and bool(prov.defers_tool_results())
+            return name == "ask_naota" and bool(prov.defers_tool_results())
         except Exception:
             return False
 
     def _ensure_heartbeat():
+        if not call["open"]:
+            return   # a handoff kept after the call: nobody is listening for progress lines
         task = heartbeat["task"]
         if task is None or task.done():
             heartbeat["task"] = asyncio.create_task(_heartbeat())
             tool_tasks.add(heartbeat["task"])
             heartbeat["task"].add_done_callback(tool_tasks.discard)
 
+    def _expire(task):
+        """VOICE_BG_TIMEOUT after the call ended: stop a handoff whose brain is still working."""
+        if task in brain_work and not task.done():
+            expired.add(task)
+            task.cancel()
+
+    async def _ask_brain(request: str, sent: str, key: str, progress, said: str):
+        """One main-brain run of a handoff: (answer, failed). Stopped after the call ended (the time limit, or the
+        owner stopping the background work), it still says so in the chat, like the fast lane's background work."""
+        try:
+            return await _voice_ask_naota(sent, conv_sid, brain, key=key, progress=progress,
+                                          call_lang=_live_call_lang(said, lang)), False
+        except asyncio.CancelledError:
+            if not call["open"]:
+                await _voice_after_call(conv_sid, brain, request, "",
+                                        status="timeout" if asyncio.current_task() in expired else "cancelled")
+            raise
+        except Exception as e:
+            return f"Bộ não chính lỗi: {type(e).__name__}: {e}", True
+
     async def _run_one(name: str, cid: str, req: str, running: list):
+        me = asyncio.current_task()
+        if name == "ask_naota":
+            brain_work.add(me)   # taken: from here on hanging up no longer drops it
         await _j({"type": "tool", "name": name, "status": "running"})
         deferred = _deferred(name)
         try:
-            if deferred:
+            if not call["open"]:
+                pass   # hung up while the line above was sending: the provider is closed
+            elif deferred:
                 # Close the call now so the model keeps listening and talking; the result follows.
                 await prov.send_tool_result(cid, name, voice_live.DEFERRED_ACK)
             else:
@@ -18322,7 +20046,7 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
         job = {"request": req, "started": loop.time(), "step": ""}
         job_seq["n"] += 1
         job_id = job_seq["n"]
-        if name == "ask_vanhanh":
+        if name == "ask_naota":
             jobs[job_id] = job
             _ensure_heartbeat()
         sent = voice_live.parallel_request(running, req) if running else req
@@ -18332,19 +20056,26 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
         async def _note_step(step):
             job["step"] = str(step or "")
 
+        failed = False
         try:
-            if name == "ask_vanhanh":
+            if name == "ask_naota":
                 # Đang có việc khác chạy thì việc này cần MẠCH ENGINE riêng: dùng chung khoá phiên là nó
                 # xếp hàng trong engine sau việc kia, đúng cái chờ mà thiết kế hiện tại bỏ khoá chung để tránh.
                 key = f"voice:{conv_sid}:p{job_id}" if running else ""
-                result = await _voice_ask_vanhanh(sent, conv_sid, brain, key=key, progress=_note_step,
-                                                call_lang=_live_call_lang(spoken["text"], lang))
+                result, failed = await _ask_brain(req, sent, key, _note_step, spoken["text"])
             else:
                 result = f"Tool {name} không có."
         except Exception as e:
-            result = f"Bộ não chính lỗi: {type(e).__name__}: {e}"
+            result, failed = f"Bộ não chính lỗi: {type(e).__name__}: {e}", True
         finally:
             jobs.pop(job_id, None)
+            brain_work.discard(me)
+        if not call["open"]:
+            # The call ended while the brain worked: the answer goes to the chat like any background
+            # result. The socket and the provider are closed, so neither is touched.
+            if name == "ask_naota" and not (running and voice_live.is_noop_result(result)):
+                await _voice_after_call(conv_sid, brain, req, result, status="failed" if failed else "done")
+            return
         if running and voice_live.is_noop_result(result):
             # Bộ não thấy câu nói thêm không có việc mới: không bong bóng, không đọc ra loa.
             print(f"[voice live] lời nói thêm không có việc mới: {str(running[0])[:60]!r}", file=sys.stderr)
@@ -18357,7 +20088,7 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
             return
         # Bản ĐẦY ĐỦ (bảng, link, file) hiện thành bong bóng và vào lịch sử; model chỉ đọc phần
         # tóm tắt (spec mục 3.2), nên không có bong bóng này thì số liệu chi tiết mất hút.
-        if name == "ask_vanhanh" and str(result or "").strip():
+        if name == "ask_naota" and str(result or "").strip():
             try:
                 store.append_message(conv_sid, "assistant", str(result))
             except Exception:
@@ -18384,10 +20115,12 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
     async def _run_client_ask(full: str, said: str):
         """ONE brain turn for a file pasted in the chat during the call; the model only reads the answer out.
 
-        Same bookkeeping as an ask_vanhanh job (status frames, `jobs` for progress questions, the result bubble), but
+        Same bookkeeping as an ask_naota job (status frames, `jobs` for progress questions, the result bubble), but
         nobody asked through a tool call, so the answer reaches the model with `read_result`. The dashboard does not
         open an ordinary chat turn for this message, so this is the only voice that speaks the answer."""
-        await _j({"type": "tool", "name": "ask_vanhanh", "status": "running"})
+        me = asyncio.current_task()
+        brain_work.add(me)   # like an ask_naota job, it outlives a hang-up
+        await _j({"type": "tool", "name": "ask_naota", "status": "running"})
         loop = asyncio.get_running_loop()
         running = [j["request"] for j in jobs.values()]
         job = {"request": said or "file đính kèm", "started": loop.time(), "step": ""}
@@ -18399,21 +20132,27 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
         async def _note_step(step):
             job["step"] = str(step or "")
 
+        title = said or localefmt.chu("File đính kèm", "Attached file")
+        failed = False
         try:
             key = f"voice:{conv_sid}:p{job_id}" if running else ""
-            result = await _voice_ask_vanhanh(full, conv_sid, brain, key=key, progress=_note_step,
-                                            call_lang=_live_call_lang(said or spoken["text"], lang))
+            result, failed = await _ask_brain(title, full, key, _note_step, said or spoken["text"])
         except Exception as e:
-            result = f"Bộ não chính lỗi: {type(e).__name__}: {e}"
+            result, failed = f"Bộ não chính lỗi: {type(e).__name__}: {e}", True
         finally:
             jobs.pop(job_id, None)
+            brain_work.discard(me)
         try:
+            if not call["open"]:
+                # The call ended while the brain read the file: the answer goes to the chat, as in `_run_one`.
+                await _voice_after_call(conv_sid, brain, title, result, status="failed" if failed else "done")
+                return
             if str(result or "").strip():
                 try:
                     store.append_message(conv_sid, "assistant", str(result))
                 except Exception:
                     pass
-                await _j({"type": "tool_result", "name": "ask_vanhanh", "text": str(result)})
+                await _j({"type": "tool_result", "name": "ask_naota", "text": str(result)})
                 # Wait for a pause so the answer does not cut across the person or the model.
                 await prov.wait_quiet(voice_live.LATE_RESULT_WAIT_S)
                 readback["pending"] += 1   # the model's reading is not a second bubble
@@ -18426,7 +20165,7 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
         finally:
             attach_guard["busy"] = max(0, attach_guard["busy"] - 1)
             attach_guard["until"] = loop.time() + voice_live.ATTACHMENT_GUARD_S
-            await _j({"type": "tool", "name": "ask_vanhanh", "status": "done"})
+            await _j({"type": "tool", "name": "ask_naota", "status": "done"})
 
     async def from_provider():
         while True:
@@ -18489,7 +20228,7 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
                 await _j(ev)
             elif t == "interrupted":
                 readback["active"], readback["pending"] = False, 0
-                # Đoạn đã đọc dở vẫn là lời Vanhanh đã nói: chốt vào phiên rồi xoá bộ đệm,
+                # Đoạn đã đọc dở vẫn là lời Naota đã nói: chốt vào phiên rồi xoá bộ đệm,
                 # không để nó dính sang lượt sau.
                 if asst_buf["text"].strip():
                     try:
@@ -18515,6 +20254,7 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
         for t in pending:
             t.cancel()
     finally:
+        call["open"] = False
         t1.cancel()
         t2.cancel()
         await asyncio.gather(t1, t2, return_exceptions=True)
@@ -18526,8 +20266,17 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
             except Exception:
                 pass
             asst_buf["text"] = ""
+        loop = asyncio.get_running_loop()
         for task in list(tool_tasks):
-            task.cancel()
+            if task in brain_work and not task.done():
+                # Hanging up (or a silence or a dropped line closing the socket) no longer drops work the
+                # owner asked for. The handoff finishes and posts its answer to this chat. It joins the chat's voice
+                # background work (a strong reference; "stop the background work" cancels it) and its time limit.
+                _nho_viec_nen_giong(conv_sid, task)
+                limit = loop.call_later(VOICE_BG_TIMEOUT, _expire, task)
+                task.add_done_callback(lambda _t, h=limit: h.cancel())
+            else:
+                task.cancel()
         await prov.close()
         try:
             await ws.close()
@@ -18539,16 +20288,16 @@ async def voice_live_ws(ws: WebSocket, session_id: str = Query(""), brain: str =
 async def tts_voices(lang: str = Query("")):
     """Giọng Edge cho MỘT ngôn ngữ. Không truyền `lang` = ngôn ngữ trả lời đang cấu hình.
 
-    Trước đây hàm này lọc cứng `Locale.startswith("vi")`, nên dù Vanhanh có trả lời tiếng Anh
+    Trước đây hàm này lọc cứng `Locale.startswith("vi")`, nên dù Naota có trả lời tiếng Anh
     thì ô chọn giọng vẫn chỉ hiện giọng Việt - và một câu tiếng Anh đọc bằng giọng Việt thì
     nghe như máy hỏng. Danh sách ngôn ngữ lấy từ sổ đăng ký chứ không khai lại ở đây.
     """
     import edge_tts   # lazy - xem ghi chú ở đầu file
-    ma = lang_registry.chuan_hoa(lang) or localefmt.ngon_ngu_tra_loi()
-    # Tiền tố locale suy từ giọng mặc định của ngôn ngữ đó ("vi-VN-HoaiMyNeural" -> "vi-VN"),
-    # để thêm ngôn ngữ vẫn chỉ là thêm một dòng trong sổ đăng ký.
-    giong_mac_dinh = lang_registry.giong_tts(ma, "edge")
-    tien_to = "-".join(giong_mac_dinh.split("-")[:2]) if giong_mac_dinh else ma
+    # Any nameable language (2026-11-15): `lang=ja` lists Japanese voices.
+    ma = lang_registry.reply_code(lang) or localefmt.ngon_ngu_tra_loi()
+    # Tiền tố locale lấy từ danh mục ngôn ngữ trả lời ("ja-JP"); ngôn ngữ đủ mục thì suy từ giọng
+    # mặc định ("vi-VN-HoaiMyNeural" -> "vi-VN"), như trước.
+    tien_to = lang_registry.reply_info(ma).edge or ma
     voices = await edge_tts.list_voices()
     return {
         "lang": ma,
@@ -18635,7 +20384,7 @@ async def _luot_quy_trinh(store, conv_sid, user_message, brain, slug, emit, resu
 async def _persist_turn(store, conv_sid, brain, user_message, final_text, turn_started: float = 0):
     """Lưu lượt vừa xong: kho phiên + tiêu đề + nhật ký Memory + hàng đợi tự học.
 
-    Bóc khối điều khiển (`<!-- VANHANH_ASK ... -->`) TRƯỚC khi lưu. Dashboard vẽ nút từ sự kiện
+    Bóc khối điều khiển (`<!-- NAOTA_ASK ... -->`) TRƯỚC khi lưu. Dashboard vẽ nút từ sự kiện
     WebSocket SỐNG, còn bản lưu chỉ để đọc lại và để TỰ HỌC - giữ khối thô ở đây là đẩy rác
     vào đúng corpus dùng để học. (`openStoredSession` bên dashboard vốn không dựng lại nút từ
     lịch sử, nên bóc khối không mất gì cả.)
@@ -18740,7 +20489,7 @@ def _bao_lan_nhanh_bo_qua(vconf) -> bool:
 # ============================================
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
-    if cfgmod.gate_active() and not cfgmod.valid_session(ws.cookies.get("vanhanh_session", "")):
+    if cfgmod.gate_active() and not cfgmod.valid_session(ws.cookies.get("naota_session", "")):
         await ws.close(code=1008)
         return
     await ws.accept()
@@ -18749,7 +20498,7 @@ async def websocket_endpoint(ws: WebSocket):
 
 async def _chat_socket(ws):
     """Vòng nhận tin của khung chat, tách khỏi `websocket_endpoint` chỉ để server
-    tự gọi được nó: Vanhanh Gate (`chat_bridge`) đưa tin của ChatGPT/Claude vào hội thoại bằng
+    tự gọi được nó: Naota Gate (`chat_bridge`) đưa tin của ChatGPT/Claude vào hội thoại bằng
     một kết nối ẢO đi đúng con đường này, nên lượt đó chạy y hệt khi chủ gõ tay (chữ chạy trên
     mọi tab, nút Dừng, lưu kho, ghi nhật ký tự học). Cổng đăng nhập vẫn nằm ở endpoint: chỉ mã
     trong tiến trình mới gọi thẳng được hàm này."""
@@ -18803,9 +20552,9 @@ async def _chat_socket(ws):
                                "dup": False, "rejected": True})
         if payload.get("message") and sid and not _CHAT_RUNTIME.get_job(sid):
             await send_client({"type": "error", "session_id": sid, "content": localefmt.chu(
-                f"Máy chủ gặp lỗi khi nhận tin này ({type(exc).__name__}), Vanhanh chưa chạy nó. Gửi lại sau ít phút, "
+                f"Máy chủ gặp lỗi khi nhận tin này ({type(exc).__name__}), Naota chưa chạy nó. Gửi lại sau ít phút, "
                 "nếu vẫn lỗi thì báo nhà phát triển kèm nhật ký máy chủ.",
-                f"The server hit an error taking this message ({type(exc).__name__}), Vanhanh did not run it. Send it "
+                f"The server hit an error taking this message ({type(exc).__name__}), Naota did not run it. Send it "
                 "again in a few minutes, and report it with the server log if it keeps failing.")})
             await send_client({"type": "turn_done", "session_id": sid})
 
@@ -18816,15 +20565,16 @@ async def _chat_socket(ws):
             self._sid = sid
             self._runtime_trace = runtime_trace
             # what the turn has put out so far, to know whether it can run again on the next route.
-            self.acted = False      # the model called a tool (Vanhanh's own housekeeping lines aside)
+            self.acted = False      # the model called a tool (Naota's own housekeeping lines aside)
             self.said = ""          # streamed text, first 2000 characters
             self.can_hold = False   # armed by _do_turn when another route may take over
             self._held = None       # frames held back after an error while nothing was put out yet
 
         def untouched(self) -> bool:
             """Nothing the owner could lose: no tool ran and no word was written (a streamed out-of-quota sentence
-            is not a word of the answer)."""
-            return not self.acted and (not self.said.strip() or _het_luot_ap_dao(self.said))
+            is not a word of the answer, nor is a "Not logged in" line, 2026-11-12)."""
+            return not self.acted and (not self.said.strip() or _het_luot_ap_dao(self.said)
+                                       or signin_loss.is_signin_error(self.said, answer=True))
 
         async def flush(self):
             held, self._held = self._held, None
@@ -18863,7 +20613,8 @@ async def _chat_socket(ws):
     try:
         async def _do_turn(conv_sid, user_message, brain, turn_tag, runtime_trace=None,
                            has_attachments=False, resume_attempt=0, user_mid=0, user_text=None,
-                           _task_skills=None, _turn_token=None, _route=None, _tried=(), _hops_left=0):
+                           _task_skills=None, _turn_token=None, _route=None, _tried=(), _hops_left=0, effort=""):
+            # `effort`: a level for THIS turn only, over the card's own (Naota Gate: the outside AI asked for it).
             # `_route`, `_tried`, `_hops_left`: run_turn reruns the turn on the next route after a quota error
             # that came before any output (_chat_next_route); `_hops_left` 0 means this run may not hand over.
             ws = _SendProxy(conv_sid, runtime_trace)  # các nhánh engine bên dưới dùng ws proxy này
@@ -18935,6 +20686,15 @@ async def _chat_socket(ws):
                             _note_pin_limit("grok-cli", account=_turn_acc.get("grok-cli"))   # that account rests
                 except Exception:  # noqa: BLE001 - a meter must never break a turn
                     pass
+                # 2026-11-12: the plan refused because its sign-in is gone. The card is marked, so this turn may run
+                # again on the next route (below, as for quota) and the next turns skip the card.
+                _lost = _LIMIT_ENGINE_PROVIDER.get(str(engine_hint or ""), "")
+                if not noi and not _limit_state.get("quota") and _signin_lost_text(_lost, raw):
+                    _limit_state["signin"] = True
+                    _note_signin_lost(_lost, account=_turn_acc.get(_lost))
+                    _CONTEXT_RUNTIME.record_runtime_event(
+                        runtime_trace, "subscription.signed_out", {"engine": engine_hint, "model": model or ""})
+                    frame["content"] = _signin_lost_message(_lost, raw)
                 return json.dumps(frame)
             # NGÔN NGỮ chốt MỘT LẦN cho cả lượt, ngay đây. Chốt sớm và chốt một chỗ là để câu
             # trả lời, giọng đọc và các cổng chặn không bao giờ hiểu khác nhau trong cùng một
@@ -18942,8 +20702,8 @@ async def _chat_socket(ws):
             # bám theo thứ tiếng người dùng vừa viết - xem đầu file lang.py.
             _lc = _cfg_all.get("locale") or {}
             _lang_qd = lang_mod.resolve(
-                turn_text=user_message,
-                reply_pref=_lc.get("reply_lang") or "auto",
+                turn_text=_lang_turn_text(user_message),   # the person's own words, not Naota's blocks (2026-11-15)
+                # No `reply_pref` since 2026-11-15: the language setting is the interface's only (owner).
                 ui_lang=_lc.get("ui_lang") or "",
             )
             try:
@@ -18962,6 +20722,10 @@ async def _chat_socket(ws):
                         f"Trợ lý '{_persona[1]}' không còn trong brain này. Mở trang Cộng sự để chọn trợ lý khác.",
                         f"Assistant '{_persona[1]}' is no longer in this brain. Open the Partners page to pick another one.")}))
                 return ""
+            # 2026-11-15: the GitHub repos of the chat's project or assistant join the chat before any engine reads
+            # its folder (`_cwd_luot_chat`, `_khoi_coding` below). A rerun on another route finds them already there.
+            if not _route:
+                await _seed_chat_repos(ws, _row0, brain, _persona)
             prov, kind, api_key, api_model = _route or _chat_provider_for_session(mcfg, _row0)
             # tell the composer which model really answers, so its chip stops showing the chosen
             # model with a green dot while a fallback card does the work. `rerouted`: run_turn already wrote the line.
@@ -18977,8 +20741,10 @@ async def _chat_socket(ws):
                     reasoning = _agent_reasoning(_read_md(_agents_dir(brain) / f"{_persona[1]}.md")[0])
                 except Exception:  # noqa: BLE001 - an unreadable file keeps the main level
                     pass
-            elif vanhanh_core.is_core_channel((_row0 or {}).get("channel")):
-                reasoning = _core_reasoning(mcfg)       # Vanhanh Core's own level, not the main chat's
+            elif naota_core.is_core_channel((_row0 or {}).get("channel")):
+                reasoning = _core_reasoning(mcfg)       # Naota Core's own level, not the main chat's
+            if effort in engine.REASONING_LEVELS:
+                reasoning = effort                      # this turn only; nothing saved changes
             fast_mode.use(mcfg.get("fast") is True)
             _CONTEXT_RUNTIME.set_route(
                 runtime_trace,
@@ -19016,7 +20782,7 @@ async def _chat_socket(ws):
 
             await ws.send_text(json.dumps({
                 "type": "status",
-                "content": localefmt.chu("Vanhanh đang suy nghĩ...", "Vanhanh is thinking...")
+                "content": localefmt.chu("Naota đang suy nghĩ...", "Naota is thinking...")
             }))
 
             if _persona and _persona[0] == "agent":
@@ -19045,8 +20811,8 @@ async def _chat_socket(ws):
                             session_id=conv_sid or "", stable=stable,
                         ) + channel_context.build_channel_block(
                             "dashboard", {"session_id": conv_sid}, telegram_running=bool(_TG_BOT),
-                            port=_vanhanh_port(), brain_root=_brain_root(brain), session_in_turn=stable,
-                        ) + _khoi_coding(_row0, brain)
+                            port=_naota_port(), brain_root=_brain_root(brain), session_in_turn=stable,
+                        ) + _khoi_coding(_row0, brain) + _project_learned_block(_row0.get("project_id") or "")
                 return _legacy_prompts[_key]
 
             async def _subscription_system_prompt(route_provider, route_model, route_kind, stable=False):
@@ -19058,7 +20824,7 @@ async def _chat_socket(ws):
 
                 Vì sao khác: bỏ CLAUDE.md đổi lấy token là món hời khi bị siết TPM và mỗi
                 token đều tính tiền. Với gói thuê bao thì không tính tiền theo token, mà
-                CLAUDE.md lại chính là 21.500 ký tự luật hành xử của Vanhanh - vứt nó đi để
+                CLAUDE.md lại chính là 21.500 ký tự luật hành xử của Naota - vứt nó đi để
                 tiết kiệm thứ mình không bị tính là đổi hành vi lấy một khoản không cần.
                 Nên ở đây chỉ chọn lọc hai nguồn ĐỌC THÊM: bộ nhớ và skill.
 
@@ -19074,8 +20840,8 @@ async def _chat_socket(ws):
                         session_id=conv_sid or "", stable=stable,
                     ) + channel_context.build_channel_block(
                         "dashboard", {"session_id": conv_sid}, telegram_running=bool(_TG_BOT),
-                        port=_vanhanh_port(), brain_root=_brain_root(brain), session_in_turn=stable,
-                    ) + _khoi_coding(_row0, brain)
+                        port=_naota_port(), brain_root=_brain_root(brain), session_in_turn=stable,
+                    ) + _khoi_coding(_row0, brain) + _project_learned_block(_row0.get("project_id") or "")
 
                 try:
                     plan = await asyncio.to_thread(
@@ -19083,6 +20849,8 @@ async def _chat_socket(ws):
                         runtime_trace, user_message, _brain_root(brain), conv_sid,
                         store.get_messages(conv_sid), "dashboard", route_provider,
                         route_model, route_kind, _base,
+                        stable_system=stable,   # #1329: the compiled prompt stays the same between new chats too
+                        lang="" if _lang_qd.theo_nguoi_dung else _lang_qd.lang,   # a pin only, so the cache holds
                     )
                 except Exception as _exc:   # noqa: BLE001 - không được phá lượt chat
                     _CONTEXT_RUNTIME.record_runtime_event(
@@ -19113,7 +20881,7 @@ async def _chat_socket(ws):
                         "dashboard", prov,
                         _codex_safe_model(api_model) if kind == "oauth"
                         else (api_model or mcfg.get("claude_model") or "mặc định"),
-                        kind, bool(has_attachments), _lang_qd.lang_cau_hoi, _lang_qd.lang,
+                        kind, bool(has_attachments), _lang_qd.lang_cau_hoi, _lang_qd.capsule_lang,
                     )
                     # Chỉ nhận "execute". "reject" của đường tắt là lời từ chối dựa trên
                     # TRẦN TỰ KHAI của gói thuê bao, không phải hạn mức nhà cung cấp nói ra -
@@ -19127,14 +20895,14 @@ async def _chat_socket(ws):
             if _schedule_action:
                 for _call in _schedule_action.get("calls") or []:
                     await ws.send_text(json.dumps({
-                        "type": "tool_call", "tool": "vanhanh_schedule",
+                        "type": "tool_call", "tool": "naota_schedule",
                         "content": localefmt.chu(f"⚙ Lịch: {_call.split(':')[-1]}",
                                                  f"⚙ Schedule: {_call.split(':')[-1]}"),
                     }))
                 final_text = _schedule_cancel_reply(_schedule_action)
                 await ws.send_text(json.dumps({
                     "type": "response", "content": final_text,
-                    "engine": "vanhanh_schedule", "model": "gateway",
+                    "engine": "naota_schedule", "model": "gateway",
                     "session_id": conv_sid,
                     **_ctx_frame(runtime_trace, _ctx_in, _ctx_cache),
                 }))
@@ -19191,7 +20959,7 @@ async def _chat_socket(ws):
                 # ===== Gói SuperGrok / X Premium+ qua GROK BUILD CLI - tool native + MCP hub =====
                 #
                 # CÓ nối lại mạch như nhánh Gemini/Codex, khác nhánh `agy` ngay dưới: `grok`
-                # tự sinh id phiên rồi phát ra trong dòng sự kiện, nên Vanhanh chỉ ĐỌC LẠI id đó
+                # tự sinh id phiên rồi phát ra trong dòng sự kiện, nên Naota chỉ ĐỌC LẠI id đó
                 # chứ không tự bịa ra một cái. Không có chuyện lưu nhầm một id sai dạng rồi
                 # lượt sau nối vào mạch không tồn tại - lý do khiến `agy` phải bỏ resume.
                 actual_model = api_model or None
@@ -19227,9 +20995,9 @@ async def _chat_socket(ws):
                              "last_input_tokens": int(_row0.get("last_input_tokens") or 0),
                              "threshold": compaction.SUBSCRIPTION_THREAD_MAX_TOKENS})
                         await ws.send_text(json.dumps({
-                            "type": "tool_call", "tool": "vanhanh_nen_mach",
-                            "content": localefmt.chu("⚙ Mạch hội thoại đã dài, Vanhanh mở mạch mới.",
-                                                     "⚙ The conversation thread got long, Vanhanh started a new one.")}))
+                            "type": "tool_call", "tool": "naota_nen_mach",
+                            "content": localefmt.chu("⚙ Mạch hội thoại đã dài, Naota mở mạch mới.",
+                                                     "⚙ The conversation thread got long, Naota started a new one.")}))
                     kcli.session_id = _k_mach or None
                     # Mạch mới thì mồi lại bằng transcript đã lưu, y như Codex/Gemini: không có
                     # bước này là mở mạch mới = mất sạch ngữ cảnh cuộc đang nói dở.
@@ -19262,7 +21030,7 @@ async def _chat_socket(ws):
                             final_text = ev.get("content") or ""
                         elif et == "usage":
                             # Token VÀO của lượt là dấu hiệu DUY NHẤT để biết mạch đã phình tới
-                            # đâu (CLI tự quản mạch, Vanhanh không nhìn vào được).
+                            # đâu (CLI tự quản mạch, Naota không nhìn vào được).
                             await asyncio.to_thread(store.set_last_input_tokens, conv_sid, int(ev.get("input_tokens") or 0))
                         elif et == "error":
                             _k_loi = True
@@ -19364,14 +21132,21 @@ async def _chat_socket(ws):
                 if api_model and actual_model != api_model:
                     # Tự chữa: model đã lưu không hợp lệ cho Codex → ghi lại model đúng (converge sau 1 lượt)
                     try:
-                        if (_row0.get("pinned_model") or "").strip():
+                        if ((_row0.get("pinned_provider") or "").strip() == "openai-oauth"
+                                and (_row0.get("pinned_model") or "").strip()):
                             # Phiên ghim một model đã bị gỡ khỏi catalog: sửa luôn cái ghim, nếu
                             # không lượt nào cũng đọc lại ghim cũ và nhắc câu này lần nữa.
                             # The stale model came from this session's pin (an agent chat pins its agent's model),
                             # so only the pin is fixed: rewriting the owner's main model here changed every other chat.
+                            # Only a ChatGPT pin; a pin to a card that rests stays the owner's choice.
                             await asyncio.to_thread(store.set_pinned_model, conv_sid, "openai-oauth", actual_model)
                         else:
-                            _fix = cfgmod.read_settings(); _set_main_model(_fix, "openai-oauth", actual_model); cfgmod.write_settings(_fix)
+                            _fix = cfgmod.read_settings()
+                            if _effective_main(_fix)["provider"] == "openai-oauth":
+                                _set_main_model(_fix, "openai-oauth", actual_model)
+                            else:   # ChatGPT only stands in for a resting card: fix its own card, never make it MAIN
+                                model_routing.set_profile(_fix.setdefault("model", {}), "openai-oauth", model=actual_model)
+                            cfgmod.write_settings(_fix)
                         await ws.send_text(json.dumps({"type": "system", "content": localefmt.chu(
                             f"⚠ Model '{api_model}' không chạy được qua Codex (tài khoản ChatGPT) - đã tự đổi sang '{actual_model}'. Đổi model khác ở trang Models nếu muốn.",
                             f"⚠ Model '{api_model}' does not run through Codex (ChatGPT account) - switched to "
@@ -19379,7 +21154,7 @@ async def _chat_socket(ws):
                     except Exception as _e:
                         print(f"[codex model self-heal] {_e}", file=__import__('sys').stderr)
                 openai_oauth.write_codex_auth()   # bắc cầu token đã nối ở Models → ~/.codex/auth.json (codex dùng được)
-                # cwd=brain (để Codex đọc được Vanhanh/skills + .claude/skills mirror bằng tool file
+                # cwd=brain (để Codex đọc được Naota/skills + .claude/skills mirror bằng tool file
                 # native, như nhánh workflow) + instructions=sysprompt (kèm ROUTER SKILL) → Codex
                 # dùng được skill. Mỗi hội thoại dashboard giữ riêng codex_thread_id để resume.
                 ccli = CodexCLI(cwd=_cwd_luot_chat(_row0, brain), model=actual_model, tag=turn_tag, instructions=sysprompt)
@@ -19414,14 +21189,14 @@ async def _chat_socket(ws):
                          "basis": "last_request" if _codex_do else "turn_total",
                          "threshold": compaction.SUBSCRIPTION_THREAD_MAX_TOKENS})
                     await ws.send_text(json.dumps({
-                        "type": "tool_call", "tool": "vanhanh_nen_mach",
+                        "type": "tool_call", "tool": "naota_nen_mach",
                         "content": localefmt.chu(
                             "⚙ Mạch hội thoại đã dài "
                             f"({_codex_ctx:,} token mỗi lượt), "
-                            "Vanhanh mở mạch mới và mang theo tóm tắt.",
+                            "Naota mở mạch mới và mang theo tóm tắt.",
                             "⚙ The conversation thread got long "
                             f"({_codex_ctx:,} tokens per turn), "
-                            "Vanhanh started a new one and carried a summary over."),
+                            "Naota started a new one and carried a summary over."),
                     }))
                 ccli.session_id = stored_codex_thread or None
                 if not ccli.is_available():
@@ -19526,8 +21301,8 @@ async def _chat_socket(ws):
                         await ws.send_text(json.dumps({
                             "type": "system",
                             "content": localefmt.chu(
-                                "Phiên Codex cũ không còn trên máy - Vanhanh đang khôi phục ngữ cảnh từ lịch sử đã lưu.",
-                                "The old Codex session is no longer on this machine - Vanhanh is restoring "
+                                "Phiên Codex cũ không còn trên máy - Naota đang khôi phục ngữ cảnh từ lịch sử đã lưu.",
+                                "The old Codex session is no longer on this machine - Naota is restoring "
                                 "the context from saved history.")
                         }))
                         ccli.session_id = None
@@ -19606,7 +21381,7 @@ async def _chat_socket(ws):
                     })
                     await ws.send_text(json.dumps({
                         "type": "response", "content": final_text,
-                        "engine": "vanhanh-gateway", "model": api_model or "?",
+                        "engine": "naota-gateway", "model": api_model or "?",
                         "session_id": conv_sid,
                         **_ctx_frame(runtime_trace, _ctx_in, _ctx_cache),
                     }))
@@ -19644,7 +21419,7 @@ async def _chat_socket(ws):
                                     _FAST_PATH.prepare, runtime_trace, user_message,
                                     _brain_root(brain), "dashboard", prov,
                                     api_model or "?", kind, bool(has_attachments),
-                                    _lang_qd.lang_cau_hoi, _lang_qd.lang,
+                                    _lang_qd.lang_cau_hoi, _lang_qd.capsule_lang,
                                 )
                             except Exception as _exc:
                                 fast_plan = None
@@ -19672,7 +21447,7 @@ async def _chat_socket(ws):
                     )
                     await ws.send_text(json.dumps({
                         "type": "response", "content": final_text,
-                        "engine": "vanhanh-gateway", "model": api_model or "?",
+                        "engine": "naota-gateway", "model": api_model or "?",
                         "session_id": conv_sid, "task_id": runtime_trace.task_id,
                         **_ctx_frame(runtime_trace, _ctx_in, _ctx_cache),
                     }))
@@ -19692,7 +21467,7 @@ async def _chat_socket(ws):
                     })
                     await ws.send_text(json.dumps({
                         "type": "response", "content": final_text,
-                        "engine": "vanhanh-gateway", "model": api_model or "?",
+                        "engine": "naota-gateway", "model": api_model or "?",
                         "session_id": conv_sid,
                         **_ctx_frame(runtime_trace, _ctx_in, _ctx_cache),
                     }))
@@ -19712,7 +21487,7 @@ async def _chat_socket(ws):
                     })
                     await ws.send_text(json.dumps({
                         "type": "response", "content": final_text,
-                        "engine": "vanhanh-gateway", "model": api_model or "?",
+                        "engine": "naota-gateway", "model": api_model or "?",
                         "session_id": conv_sid,
                         **_ctx_frame(runtime_trace, _ctx_in, _ctx_cache),
                     }))
@@ -19733,11 +21508,14 @@ async def _chat_socket(ws):
                             routing_overlays=kind == "api",
                         ) + (_project_block(_row0.get("project_id") or "", chi_huong_dan=True)
                              if _row0.get("project_id") else ""
-                        ) + _vanhanh_core_block(conv_sid or "") + channel_context.build_channel_block(
+                        ) + _naota_core_block(conv_sid or "") + channel_context.build_channel_block(
                             "dashboard", {"session_id": conv_sid},
-                            telegram_running=bool(_TG_BOT), port=_vanhanh_port(),
+                            telegram_running=bool(_TG_BOT), port=_naota_port(),
                             brain_root=_brain_root(brain),
-                        ) + _khoi_coding(_row0, brain)   # pinned folder and GitHub repos reach API brains too
+                        ) + _khoi_coding(_row0, brain) + (   # pinned folder and GitHub repos reach API brains too
+                            # 2026-11-13: what Naota learnt about the project rides the saving path too. It is the
+                            # distilled context (a few short lines), exactly what a tight budget should keep.
+                            _project_learned_block(_row0.get("project_id") or ""))
 
                     if _persona:
                         # Phiên cộng sự: prompt luôn là _agent_chat_prompt, không cần tốn công
@@ -19751,6 +21529,8 @@ async def _chat_socket(ws):
                                 runtime_trace, user_message, _brain_root(brain), conv_sid,
                                 store.get_messages(conv_sid), "dashboard", prov,
                                 api_model or "?", kind, _phase8_base,
+                                # 2026-11-15: the small base has no language block; the capsule carries the pin.
+                                lang="" if _lang_qd.theo_nguoi_dung else _lang_qd.lang,
                             )
                         except Exception as _exc:
                             _phase8_plan = adaptive_context_runtime.AdaptiveContextPlan(
@@ -19767,7 +21547,7 @@ async def _chat_socket(ws):
                             {"reason": _phase8_plan.reason, "path": "context_sources"})
                         await ws.send_text(json.dumps({
                             "type": "response", "content": final_text,
-                            "engine": "vanhanh-gateway", "model": api_model or "?",
+                            "engine": "naota-gateway", "model": api_model or "?",
                             "session_id": conv_sid,
                             **_ctx_frame(runtime_trace, _ctx_in, _ctx_cache),
                         }))
@@ -19859,7 +21639,7 @@ async def _chat_socket(ws):
                             # Thử lại chỉ có nghĩa khi việc cần làm là CO NHỎ. Hết hạn mức
                             # theo NGÀY, hay bị chặn nhịp mà không rõ chiều nào, thì gửi lại
                             # chỉ tốn thêm một lượt để ăn đúng cái lỗi đó lần nữa - và tệ hơn,
-                            # nó dựng lên vẻ "Vanhanh đang xử lý" trong khi không xử lý được gì.
+                            # nó dựng lên vẻ "Naota đang xử lý" trong khi không xử lý được gì.
                             if str(_limit_hit.get("remedy") or "") not in ("shrink", "wait"):
                                 break
                             # Không đọc được hạn mức từ lỗi lần này thì lấy con số đã HỌC được
@@ -19881,7 +21661,7 @@ async def _chat_socket(ws):
                                     "shrink_to": _target,
                                 })
                             await ws.send_text(json.dumps({
-                                "type": "tool_call", "tool": "vanhanh_autoshrink",
+                                "type": "tool_call", "tool": "naota_autoshrink",
                                 "content": localefmt.chu(
                                     f"⚙ Vượt hạn mức {_limit_hit.get('limit', 0):,} "
                                     f"{_LIMIT_KIND_LABEL.get(_limit_hit.get('kind') or '', 'token')}, "
@@ -19920,7 +21700,7 @@ async def _chat_socket(ws):
                 # the Claude account that should run now (only here: other engines never touch it).
                 _turn_acc["anthropic-cli"] = _plan_account_apply(cli, "anthropic-cli", mcfg)
                 # Cùng luật với Codex: mạch phình quá ngưỡng thì thôi --resume, mở mạch mới.
-                # Claude Code cũng tự quản transcript nên Vanhanh chỉ có đúng con số token vào
+                # Claude Code cũng tự quản transcript nên Naota chỉ có đúng con số token vào
                 # của lượt trước làm dấu hiệu.
                 _cli_xoay_mach = bool(cli.session_id) and compaction.nen_mach_thue_bao(
                     _row0.get("last_input_tokens"), msg_count=_row0.get("msg_count"),
@@ -19934,14 +21714,14 @@ async def _chat_socket(ws):
                          "last_input_tokens": int(_row0.get("last_input_tokens") or 0),
                          "threshold": compaction.SUBSCRIPTION_THREAD_MAX_TOKENS})
                     await ws.send_text(json.dumps({
-                        "type": "tool_call", "tool": "vanhanh_nen_mach",
+                        "type": "tool_call", "tool": "naota_nen_mach",
                         "content": localefmt.chu(
                             "⚙ Mạch hội thoại đã dài "
                             f"({int(_row0.get('last_input_tokens') or 0):,} token mỗi lượt), "
-                            "Vanhanh mở mạch mới.",
+                            "Naota mở mạch mới.",
                             "⚙ The conversation thread got long "
                             f"({int(_row0.get('last_input_tokens') or 0):,} tokens per turn), "
-                            "Vanhanh started a new one."),
+                            "Naota started a new one."),
                     }))
                 # Stable prompt: plain chats only. An agent DM keeps its own prompt, which has
                 # its own clock and session lines.
@@ -19951,13 +21731,14 @@ async def _chat_socket(ws):
                 cli.system_prompt = sysprompt
                 # mode: `full` cho mọi phiên như xưa nay; riêng phiên coding lấy theo chip Mức
                 # quyền của trang đó, vì ở trang ấy người dùng CHỌN mức chứ không thừa kế.
-                _apply_mcp(cli, mode=_muc_quyen_luot_chat(_row0, user_message), brain=brain)   # gắn MCP do Vanhanh quản lý (nhiều shop POSCake...)
+                _apply_mcp(cli, mode=_muc_quyen_luot_chat(_row0, user_message), brain=brain)   # gắn MCP do Naota quản lý (nhiều shop POSCake...)
                 _streamed = ""      # phần đã stream - phương án dự phòng khi luồng đứt trước 'final'
                 _cli_sid = None
                 _cost = None
                 if _stable_sp:
                     _cli_prompt = _cli_do_sau(cli, reasoning, user_message)
                     _hdr = _turn_facts_header(brain, conv_sid or "", _lang_qd.lang, first=not cli.session_id)
+                    _cli_prompt, sysprompt = _with_turn_context(cli, _sub_plan, _cli_prompt, sysprompt)   # #1329
                     if _hdr and isinstance(_cli_prompt, str):
                         _cli_prompt = _hdr + "\n" + _cli_prompt
                 else:
@@ -19966,7 +21747,7 @@ async def _chat_socket(ws):
                 if not cli.session_id:
                     # Bỏ --resume là Claude Code mất sạch mạch cũ. Mở mạch mới mà không mang
                     # theo gì thì đó không phải tiết kiệm, đó là làm hỏng hội thoại: người
-                    # dùng hỏi tiếp "cái đó" và Vanhanh không còn biết "cái đó" là gì. Mồi lại
+                    # dùng hỏi tiếp "cái đó" và Naota không còn biết "cái đó" là gì. Mồi lại
                     # từ transcript SQLite, đúng cách nhánh Codex/Gemini vẫn làm.
                     #
                     # Điều kiện là KHÔNG CÓ MẠCH chứ không phải "vừa xoay mạch" như bản cũ.
@@ -19975,8 +21756,8 @@ async def _chat_socket(ws):
                     # SQLite (xem `clear_native_threads` ở nhánh đường tắt); lượt trước
                     # đứt trước sự kiện `final` nên chưa kịp lưu id; và update/restart làm
                     # rollout cũ biến mất. Bản cũ chỉ mồi khi xoay nên cả ba ca kia đều mở
-                    # mạch tay không - Vanhanh quên sạch cuộc đang nói dở (ca đã gặp:
-                    # hỏi tiếp "ok tra và so sánh giúp anh" và Vanhanh hỏi lại "so
+                    # mạch tay không - Naota quên sạch cuộc đang nói dở (ca đã gặp:
+                    # hỏi tiếp "ok tra và so sánh giúp anh" và Naota hỏi lại "so
                     # sánh gì?"). Phiên MỚI thật sự thì get_messages rỗng và
                     # bootstrap_prompt tự trả về nguyên prompt, không tốn gì.
                     _cli_raw = [{"role": _m["role"], "content": _m["content"]}
@@ -20068,8 +21849,8 @@ async def _chat_socket(ws):
                     await ws.send_text(json.dumps({
                         "type": "system",
                         "content": localefmt.chu(
-                            "Phiên Claude cũ không còn trên máy - Vanhanh đang khôi phục ngữ cảnh từ lịch sử đã lưu.",
-                            "The old Claude session is no longer on this machine - Vanhanh is restoring "
+                            "Phiên Claude cũ không còn trên máy - Naota đang khôi phục ngữ cảnh từ lịch sử đã lưu.",
+                            "The old Claude session is no longer on this machine - Naota is restoring "
                             "the context from saved history.")
                     }))
                     cli.session_id = None
@@ -20103,6 +21884,12 @@ async def _chat_socket(ws):
                     await ws.send_text(_limit_frame(final_text, "claude-code",
                                                     cli.model or mcfg.get("claude_model") or ""))
                     final_text = ""      # khối _limit_state bên dưới lưu câu báo + hẹn chạy lại
+                elif final_text and not ws.acted and _signin_lost_text("anthropic-cli", final_text, answer=True):
+                    # 2026-11-12: Claude Code prints "Not logged in · Please run /login" as the ANSWER too. It is
+                    # not one: the card is marked signed out and the turn may run on the next route.
+                    await ws.send_text(_limit_frame(final_text, "claude-code",
+                                                    cli.model or mcfg.get("claude_model") or ""))
+                    final_text = ""
                 # Link file → dạng khung chat mở được, ưu tiên file vừa ghi trong lượt này.
                 try:
                     final_text = _chuan_hoa_link_file(
@@ -20118,7 +21905,7 @@ async def _chat_socket(ws):
 
             # Token VÀO của lượt vừa xong. Với engine gói thuê bao đây là DẤU HIỆU DUY NHẤT
             # cho biết mạch hội thoại của chúng đã phình tới đâu: Claude Code và Codex tự quản
-            # transcript ở phía chúng, Vanhanh không đếm được bằng cách nào khác. Lượt sau đọc
+            # transcript ở phía chúng, Naota không đếm được bằng cách nào khác. Lượt sau đọc
             # con số này để quyết định có mở mạch mới hay không (xem compaction).
             # Chỉ ghi khi ĐO ĐƯỢC: lượt lỗi trả 0 mà ghi đè thì tưởng mạch vừa được dọn.
             if _ctx_in > 0:
@@ -20129,10 +21916,12 @@ async def _chat_socket(ws):
 
             # (spec 6.4): out of quota before a single word or tool call -> run_turn reruns this turn at once on
             # the next route (next account of the card, then the next card). Nothing of this run is kept or shown.
-            if (_limit_state.get("quota") and _hops_left > 0 and ws.untouched()
+            # 2026-11-12: the same when the plan refused because its sign-in is gone (`_limit_frame` marked the card).
+            if ((_limit_state.get("quota") or _limit_state.get("signin")) and _hops_left > 0 and ws.untouched()
                     and (not final_text or (kind == "api" and not ws.said.strip()))):
                 _nxt = _chat_next_route(mcfg, prov, api_key if kind == "api" else "", _tried,
-                                        failed_account=_turn_acc.get(prov))
+                                        failed_account=_turn_acc.get(prov),
+                                        reason="quota" if _limit_state.get("quota") else "signin")
                 if _nxt:
                     ws.drop()
                     _CONTEXT_RUNTIME.record_runtime_event(runtime_trace, "routing.reroute",
@@ -20162,14 +21951,14 @@ async def _chat_socket(ws):
                     **_item.payload()}))
 
             if _persona and _persona[0] == "agent":
-                # Cuối lượt chat trợ lý: bóc VANHANH_LESSON vào bộ nhớ TRỢ LÝ (không phải bộ
-                # nhớ Vanhanh) và ghi nhật ký chạy của trợ lý, trước khi lượt được lưu như
+                # Cuối lượt chat trợ lý: bóc NAOTA_LESSON vào bộ nhớ TRỢ LÝ (không phải bộ
+                # nhớ Naota) và ghi nhật ký chạy của trợ lý, trước khi lượt được lưu như
                 # một lượt chat bình thường.
                 _final_truoc_boc = final_text
                 final_text = _ket_luot_agent(brain, _persona[1], user_message, final_text, conv_sid=conv_sid)
                 if final_text != _final_truoc_boc:
                     # Mọi nhánh engine ở trên (cli/grok-cli/antigravity-cli/codex/API) đã gửi
-                    # khung "response" RAW còn dòng VANHANH_LESSON trước khi luồng chạy tới đây
+                    # khung "response" RAW còn dòng NAOTA_LESSON trước khi luồng chạy tới đây
                     # (bong bóng chat đã hiện chữ thô, và loa CÓ THỂ đã đọc luôn bản thô đó).
                     # dashboard/app.js coi khung "response" là THAY HẲN nội dung bong bóng bằng
                     # `data.content` (xem `data.type === "response"` trong app.js: `t.text =
@@ -20224,7 +22013,7 @@ async def _chat_socket(ws):
                                            nho=change_receipt.receipt_block(_doi, _brain_key(brain)))
                 except Exception as _e:  # noqa: BLE001
                     print(f"[change receipt] {type(_e).__name__}: {_e}", file=sys.stderr)
-                # Engine bỏ lại lệnh chạy ngầm (render, build...) → Vanhanh nhận theo dõi và nói ra
+                # Engine bỏ lại lệnh chạy ngầm (render, build...) → Naota nhận theo dõi và nói ra
                 # ngay. PHẢI chạy trước cảnh báo hứa suông: có việc được theo dõi thì lời hứa
                 # "xong em gửi" đã có cơ chế thật đứng sau, không còn là hứa suông.
                 try:
@@ -20267,10 +22056,10 @@ async def _chat_socket(ws):
 
         async def run_turn(conv_sid, user_message, brain, turn_tag, runtime_trace=None,
                            has_attachments=False, resume_attempt=0, goc_chat="", user_mid=0,
-                           user_text=None):
+                           user_text=None, effort=""):
             _trace_token = context_runtime.bind_trace(runtime_trace)
             # Dashboard = the owner's own surface (signed-in session): no platform sender id.
-            # A1: kèm phiên, id tin và agent của phiên (host phân giải) để tool vanhanh_goal biết ĐÚNG lượt nào gọi.
+            # A1: kèm phiên, id tin và agent của phiên (host phân giải) để tool naota_goal biết ĐÚNG lượt nào gọi.
             # A4: lượt có trợ lý chụp thứ tự quyền của kho TRƯỚC khi engine chạy (gốc cấp lại sau ảnh chụp này
             # không vào được lượt này, kể cả lần đầu lượt chạm mục tiêu). Đọc lỗi thì -1: đóng khi lỗi.
             _ag_luot = _resonance_turn_agent(conv_sid, brain, store.get_session)
@@ -20278,13 +22067,13 @@ async def _chat_socket(ws):
                 "dashboard", chat_id=conv_sid, la_chu=True, session_id=conv_sid, message_id=user_mid,
                 agent=_ag_luot, authority_seq=(_ag_luot or {}).get("authority_seq"),
                 provider=(_ag_luot or {}).get("provider") or "")
-            # the Partners-page assistant of this chat ("" elsewhere), host-resolved, for vanhanh_schedule. An
+            # the Partners-page assistant of this chat ("" elsewhere), host-resolved, for naota_schedule. An
             # extra key like the chatbot turn's `bot_id`: turn_context.py is pinned by the native profile evidence.
             _luot_turn["assistant"] = _session_assistant(conv_sid, brain, store.get_session)
             _luot_token = turn_context.bind(_luot_turn)
             # Ghi vào sổ lượt đang chạy để tool giao việc biết kết quả phải về khung chat này
             # khi model quên truyền chat_id (luot_dang_chay.py). Kèm id tin và lời người
-            # dùng để tool vanhanh_goal (Resonance) biết đúng tin nhắn nào; 0 thì tool từ chối lập mục tiêu.
+            # dùng để tool naota_goal (Resonance) biết đúng tin nhắn nào; 0 thì tool từ chối lập mục tiêu.
             # `user_text` là ĐÚNG lời người dùng, tách khỏi ghi chú host gắn vào prompt (ghi chú câu
             # nghe, khối quy trình) và khối ngữ cảnh giao diện, để câu căn cứ không trích nhầm chữ của host.
             if user_text is None:
@@ -20313,7 +22102,7 @@ async def _chat_socket(ws):
                 final_text = await _do_turn(
                     conv_sid, user_message, brain, turn_tag, runtime_trace, has_attachments,
                     resume_attempt=resume_attempt, user_mid=user_mid, user_text=user_text,
-                    _task_skills=_task_skills, _turn_token=_luot_token, _hops_left=3,
+                    _task_skills=_task_skills, _turn_token=_luot_token, _hops_left=3, effort=effort,
                 )
                 # the route ran out of quota before writing anything -> same turn again on the next route,
                 # with one line saying why (spec 6.4). _do_turn stops handing over after 3 hops.
@@ -20330,7 +22119,7 @@ async def _chat_socket(ws):
                         conv_sid, user_message, brain, turn_tag, runtime_trace, has_attachments,
                         resume_attempt=resume_attempt, user_mid=user_mid, user_text=user_text,
                         _task_skills=_task_skills, _turn_token=_luot_token,
-                        _route=_nxt["route"], _tried=_nxt["tried"], _hops_left=3 - _hop,
+                        _route=_nxt["route"], _tried=_nxt["tried"], _hops_left=3 - _hop, effort=effort,
                     )
                 _resonance_after_turn(conv_sid, brain, user_mid, _t0_luot, runtime_trace)
                 # A long turn (a render the engine waited for, a background job's follow-up) rings the bell when done.
@@ -20383,6 +22172,13 @@ async def _chat_socket(ws):
                 await send_raw({"type": "turn_done", "session_id": conv_sid,
                                 **context_runtime.event_fields(runtime_trace), **_engine_outcome_pop(conv_sid)})
                 _CHAT_RUNTIME.finish_job(conv_sid, asyncio.current_task())
+                # Naota Gate: ChatGPT or Claude sent work into this chat and may have stopped waiting for it. The bridge
+                # rings the owner's phone once the outside AI has not picked the answer up (it cannot wake by itself).
+                try:
+                    import chat_bridge as _cb
+                    _cb.luot_xong(conv_sid)
+                except Exception as _e:  # noqa: BLE001 - a missed notice never fails the turn
+                    print(f"[gate notice] {type(_e).__name__}: {_e}", file=sys.stderr)
 
         async def run_workflow_turn(conv_sid, user_message, brain, turn_tag, runtime_trace, slug,
                                     resume=None, goc_chat=""):
@@ -20449,7 +22245,7 @@ async def _chat_socket(ws):
 
             Tin đến từ mic đi qua bộ não giọng (voice_brain) thay vì bộ não chính: trả lời
             ngắn trong 1-2 giây. Câu nào cần dữ liệu, tool hay hành động thì bộ não giọng trả
-            dòng `VANHANH_ASK_MAIN:`; khi đó câu chờ được đọc ra loa rồi lượt chuyển sang
+            dòng `NAOTA_ASK_MAIN:`; khi đó câu chờ được đọc ra loa rồi lượt chuyển sang
             run_turn như thường, CÙNG phiên, nên kho phiên vẫn một mạch.
 
             Bộ não giọng hỏng (chưa cài agy, hết key, hết giờ) thì rơi về run_turn, không để
@@ -20458,7 +22254,7 @@ async def _chat_socket(ws):
             # "Dừng việc nền đi" là LỆNH, xử NGAY TẠI ĐÂY, không hỏi model.
             #
             # Lỗi đã gặp - vòng lặp: bảo "tạm dừng cái việc tìm kiếm ngầm đi nhé" thì
-            # Vanhanh dạ vâng rồi GIAO THÊM một việc nền mới mang nội dung "dừng việc nền đang
+            # Naota dạ vâng rồi GIAO THÊM một việc nền mới mang nội dung "dừng việc nền đang
             # chạy"; nói lần nữa lại đẻ thêm một việc nữa. Dặn model thôi thì không đủ chắc,
             # vì luật của nó là "cần hành động thì giao bộ não chính", mà dừng việc nghe đúng
             # là một hành động. Nên chốt cứng ở đây: nhận ra câu lệnh là huỷ luôn rồi trả lời,
@@ -20482,22 +22278,22 @@ async def _chat_socket(ws):
             try:
                 hist = [m for m in store.get_messages(conv_sid)
                         if m.get("role") in ("user", "assistant")][-(voice_brain.HISTORY_N + 1):-1]
-                # Bóc khối ẩn (VANHANH_VIEC của thẻ việc nền...) để model giọng không chép lại nó.
+                # Bóc khối ẩn (NAOTA_VIEC của thẻ việc nền...) để model giọng không chép lại nó.
                 hist = [dict(m, content=channel_context.strip_control_blocks(m.get("content") or ""))
                         for m in hist]
             except Exception:
                 pass
             text, sent_upto, brain_obj = "", 0, None
-            _nghe_xong = False      # đã xét dòng đầu (VANHANH_NGHE) của lượt này chưa
+            _nghe_xong = False      # đã xét dòng đầu (NAOTA_NGHE) của lượt này chưa
             _nghe_hop_le = False
             original_message = user_message
-            # Lời người dùng cho vanhanh_goal: câu gốc, bóc khối ngữ cảnh giao diện (Resonance M2).
+            # Lời người dùng cho naota_goal: câu gốc, bóc khối ngữ cảnh giao diện (Resonance M2).
             _loi_goc = nghe_sua.split_ui_context(original_message)[1]
 
             async def _giu_cau_goc():
                 await send_raw({"type": "status", "session_id": conv_sid,
-                                "content": localefmt.chu("Vanhanh đang kiểm tra lại câu vừa nghe...",
-                                                         "Vanhanh is double-checking what it just heard...")})
+                                "content": localefmt.chu("Naota đang kiểm tra lại câu vừa nghe...",
+                                                         "Naota is double-checking what it just heard...")})
                 # Kho phiên và bong bóng giữ câu gốc; chỉ lời gửi bộ não chính kèm ghi chú để
                 # nó tự hiểu từ nghe nhầm mà không giải thích ra (voice_brain.GHI_CHU_CAU_NGHE).
                 await run_turn(conv_sid, original_message + "\n\n" + voice_brain.GHI_CHU_CAU_NGHE,
@@ -20509,7 +22305,7 @@ async def _chat_socket(ws):
                 số, phủ định, lệnh, và từ ngắn như "vâng" không thành tên "Vân". Sửa quá tay thì
                 trả False để bộ não chính nhận nguyên văn.
 
-                Bản trước khoá hẳn lớp này, làm Vanhanh mất khả năng hiểu câu theo ngữ cảnh.
+                Bản trước khoá hẳn lớp này, làm Naota mất khả năng hiểu câu theo ngữ cảnh.
                 Nay mở lại có rào: câu đã sửa thay bong bóng kèm chữ thô bên dưới, không
                 âm thầm. Lượt có biên nhận (giu_ban_chep) giữ nguyên bản lưu vì utterance_id đã
                 chốt nội dung; câu diễn giải vẫn dùng để trả lời."""
@@ -20549,14 +22345,14 @@ async def _chat_socket(ws):
 
             try:
                 # A call in a partner's chat speaks with that partner's prompt. The helper logs its own failures;
-                # anything else keeps the Vanhanh voice rather than dropping the fast lane.
+                # anything else keeps the Naota voice rather than dropping the fast lane.
                 conf = _voice_brain_conf(conf, conv_sid, brain)
             except Exception:  # noqa: BLE001
                 pass
             try:
                 brain_obj = await voice_brain.get_brain(conv_sid, conf)
-                await send_raw({"type": "status", "content": localefmt.chu("Vanhanh đang trả lời nhanh...",
-                                                                           "Vanhanh is answering quickly..."),
+                await send_raw({"type": "status", "content": localefmt.chu("Naota đang trả lời nhanh...",
+                                                                           "Naota is answering quickly..."),
                                 "session_id": conv_sid})
                 # Đang có việc nền thì dặn bộ não giọng (V3): kết quả tự hiện, đừng bịa, đừng giao lại.
                 _dan = [x for x in (voice_brain.pending_note(conv_sid),
@@ -20565,7 +22361,7 @@ async def _chat_socket(ws):
                 _hoi = "\n\n".join([user_message] + _dan)
                 async for delta in brain_obj.stream(_hoi, hist):
                     text += delta
-                    # Dòng đầu là VANHANH_NGHE (câu đã diễn giải): bóc ra NGAY khi nó khép, trước
+                    # Dòng đầu là NAOTA_NGHE (câu đã diễn giải): bóc ra NGAY khi nó khép, trước
                     # mọi lần flush, để bong bóng người dùng đổi trước khi loa bắt đầu đọc và
                     # để mốc sent_upto không bao giờ tính qua dòng đó.
                     if not _nghe_xong and "\n" in text:
@@ -20587,7 +22383,7 @@ async def _chat_socket(ws):
                 return
             except Exception as e:
                 # Rơi về bộ não chính thì phải NÓI RA NGAY TRONG KHUNG CHAT, không chỉ stderr.
-                # Trước đây chỗ này chỉ gửi một `status`, mà status bị dòng "Vanhanh đang suy
+                # Trước đây chỗ này chỉ gửi một `status`, mà status bị dòng "Naota đang suy
                 # nghĩ..." của run_turn đè lên trong vài mili giây: người dùng bật mic, nói, rồi
                 # chờ hàng chục giây như thể chưa từng có làn nhanh, và không có gì trên màn hình
                 # cho biết vì sao. Bong bóng `system` thì ở lại (như "Đã dừng lượt này."), và lỗi
@@ -20632,7 +22428,7 @@ async def _chat_socket(ws):
                 act, tgt = ui
                 # Bộ não giọng là model NHỎ: nó hay viết nhãn người dùng vừa nói ("công cụ",
                 # "kỹ năng") thay vì id trang. Dashboard chỉ nhận id chuẩn, nên tra bí danh ở
-                # đây - đúng bảng mà tool vanhanh_ui dùng. Tra không ra thì nói thật, đừng bắn
+                # đây - đúng bảng mà tool naota_ui dùng. Tra không ra thì nói thật, đừng bắn
                 # chữ lạ sang trình duyệt rồi nhận câu lỗi khó hiểu.
                 dung = ui_targets.normalize_target(act, tgt)
                 if act in ("open_page", "open_group") and not dung:
@@ -20727,7 +22523,7 @@ async def _chat_socket(ws):
             await _flush(final=True)
             clean = filler.strip()
             try:
-                # Lưu kèm khối VANHANH_VIEC "giao" để mở lại hội thoại vẫn thấy dòng "Đang làm
+                # Lưu kèm khối NAOTA_VIEC "giao" để mở lại hội thoại vẫn thấy dòng "Đang làm
                 # nền: ..." dưới câu xác nhận. Trước đây dòng đó chỉ sống trên màn hình.
                 await _persist_turn(store, conv_sid, brain, user_message,
                                     clean + "\n\n" + khoi_viec({"kind": "voice", "status": "giao",
@@ -20804,7 +22600,7 @@ async def _chat_socket(ws):
             viec = {"kind": "voice", "status": "done", "title": str(request)[:160], "id": tid}
             try:
                 out = await asyncio.wait_for(
-                    _voice_ask_vanhanh(request, conv_sid, brain, key=khoa_mach, call_lang=call_lang),
+                    _voice_ask_naota(request, conv_sid, brain, key=khoa_mach, call_lang=call_lang),
                     timeout=VOICE_BG_TIMEOUT,
                 )
             except asyncio.TimeoutError:
@@ -20865,14 +22661,14 @@ async def _chat_socket(ws):
             nào đang mở cũng thấy nó stream, Stop được, kết quả lưu vào kho phiên. Người dùng
             đang chat dở thì đợi lượt đó xong rồi mới chen vào (tối đa 10 phút), không cắt
             ngang. Tin mở lượt được lưu như một tin người dùng có đánh dấu rõ, để mở lại hội
-            thoại vẫn hiểu vì sao Vanhanh tự nói tiếp."""
+            thoại vẫn hiểu vì sao Naota tự nói tiếp."""
             for _ in range(120):
                 if not _CHAT_RUNTIME.get_job(conv_sid):
                     break
                 await asyncio.sleep(5)
             else:
-                await push_to_chat(conv_sid, "Việc chạy nền đã xong nhưng hội thoại đang bận quá "
-                                   "lâu, mình chưa làm tiếp được. Nhắn \"làm tiếp\" để mình làm nốt.")
+                await push_to_chat(conv_sid, "Việc chạy nền đã xong nhưng hội thoại bận quá lâu "
+                                   "nên chưa làm tiếp được. Nhắn \"làm tiếp\" để làm nốt.")
                 return
             store.append_message(conv_sid, "user", text)
             turn_tag = f"chat:{conv_sid[:12]}:{uuid.uuid4().hex[:8]}"
@@ -20943,7 +22739,7 @@ async def _chat_socket(ws):
                     await send_client({"type": "pong"})
                     continue
                 if action == "ui_result":
-                    # Dashboard vừa làm xong (hoặc từ chối) một `ui_action` do tool vanhanh_ui bắn
+                    # Dashboard vừa làm xong (hoặc từ chối) một `ui_action` do tool naota_ui bắn
                     # ra. Giải future đang đợi trong ui_bridge để tool trả lời model ngay trong lượt.
                     ui_bridge.resolve(str(payload.get("id") or ""), bool(payload.get("ok")),
                                       str(payload.get("detail") or ""), skipped=bool(payload.get("skipped")))
@@ -21060,10 +22856,10 @@ async def _chat_socket(ws):
                 brain = payload.get("brain", "brain")
                 _cfg_luot = cfgmod.read_settings()
                 mcfg = _cfg_luot.get("model", {})
-                # Tin từ MIC: sửa TÊN nghe nhầm ("Nauta", "Nota", "Nau ta" -> "Vanhanh" và từ vựng
+                # Tin từ MIC: sửa TÊN nghe nhầm ("Nauta", "Nota", "Nau ta" -> "Naota" và từ vựng
                 # người dùng khai) TRƯỚC khi lưu, bằng so khớp âm tất định của nghe_sua - không phải
                 # AI hay STT phụ. Bản trước gỡ lớp này cùng lúc với việc chặn AI viết lại câu, làm
-                # Vanhanh đáp "anh nói là Nauta". Lớp này không đụng từ phủ định, số,
+                # Naota đáp "anh nói là Nauta". Lớp này không đụng từ phủ định, số,
                 # lệnh (PROTECTED_WORDS), không sửa tên người thứ ba, và báo lại bong bóng kèm chữ thô
                 # nên không âm thầm. Idempotent nên tin gửi lại cùng utterance_id vẫn khớp receipt.
                 _nghe_tho = ""
@@ -21118,12 +22914,14 @@ async def _chat_socket(ws):
                 #   - ghim hỏng (provider mất key, đã rơi về mặc định chung) → thay bằng
                 #     model đang chạy thật, thanh model thôi khoe ghim chết;
                 #   - ghim lành → resolved == ghim, không có gì để ghi (no-op).
-                if ((_prow.get("pinned_provider") or "").strip() != prov
-                        or (_prow.get("pinned_model") or "") != (api_model or "")):
-                    try:
-                        store.set_pinned_model(conv_sid, prov, api_model or "")
-                    except Exception:
-                        pass
+                # A turn that runs on a fallback because a card only RESTS (out of quota, signed out) must
+                # not replace the owner's pin with the fallback model; `_pin_to_stamp` keeps the pin in that case.
+                try:
+                    _stamp = _pin_to_stamp(mcfg, _prow, prov, api_model)
+                    if _stamp:
+                        store.set_pinned_model(conv_sid, *_stamp)
+                except Exception:
+                    pass
                 # Đổi bộ não giữa chừng: mạch native của MỌI engine khác engine đang chạy lượt
                 # này lập tức thành stale, vì nó không chứa lượt sắp diễn ra. Quay lại engine đó
                 # mà cứ nối tiếp mạch cũ là nó mù đúng đoạn ở giữa, rồi trả lời lạc đề - đúng
@@ -21185,7 +22983,7 @@ async def _chat_socket(ws):
                         await send_client({"type": "chat_ack", "session_id": conv_sid, "client_msg_id": _cmid,
                                            "dup": False})
                 # Bong bóng đang hiện chữ thô của máy nghe: báo câu đã sửa tên để người dùng thấy
-                # Vanhanh hiểu câu nào, chữ thô hiện nhỏ bên dưới.
+                # Naota hiểu câu nào, chữ thô hiện nhỏ bên dưới.
                 if _nghe_tho:
                     await send_raw({"type": "user_text", "session_id": conv_sid,
                                     "text": nghe_sua.split_ui_context(user_message)[1],
@@ -21257,9 +23055,11 @@ async def _chat_socket(ws):
                         giu_ban_chep=bool(_voice_uid), user_mid=_user_mid)
                     task = asyncio.create_task(voice_turn_protocol.run(_voice_coro, store, conv_sid, _voice_uid) if _voice_uid else _voice_coro)
                 else:
+                    # `effort`: a level for this one message (Naota Gate, chat_bridge.gui), never saved. _do_turn ignores
+                    # anything off the ladder.
                     _voice_coro = run_turn(
                         conv_sid, user_message, brain, turn_tag, runtime_trace, has_attachments,
-                        goc_chat=_goc, user_mid=_user_mid)
+                        goc_chat=_goc, user_mid=_user_mid, effort=str(payload.get("effort") or ""))
                     task = asyncio.create_task(voice_turn_protocol.run(_voice_coro, store, conv_sid, _voice_uid) if _voice_uid else _voice_coro)
                 _CHAT_RUNTIME.register_job(
                     conv_sid, task, turn_tag,
@@ -21279,19 +23079,68 @@ async def _chat_socket(ws):
         _CHAT_RUNTIME.remove_client(client_id)
 
 
-# Vanhanh Gate: AI bên ngoài nhắn vào hội thoại qua đúng vòng chat ở trên. Lambda để test
+# Naota Gate: AI bên ngoài nhắn vào hội thoại qua đúng vòng chat ở trên. Lambda để test
 # thay `_CHAT_RUNTIME` sau khi nạp vẫn trúng.
 import chat_bridge  # noqa: E402
 
 async def _gate_luu_luot(sid, brain, tin, tra_loi):
-    """Ghi chép của Vanhanh Gate: lưu tin của chủ rồi đi ĐÚNG đường lưu một lượt chat (`_persist_turn`:
+    """Ghi chép của Naota Gate: lưu tin của chủ rồi đi ĐÚNG đường lưu một lượt chat (`_persist_turn`:
     Lịch sử, nhật ký hội thoại, vòng tự học), mà không chạy engine nào."""
     st = get_store()
     st.append_message(sid, "user", tin)
     return await _persist_turn(st, sid, brain, tin, tra_loi)
 
 
-chat_bridge.gan(lambda ws: _chat_socket(ws), lambda: _CHAT_RUNTIME, _gate_luu_luot)
+def _gate_models() -> dict:
+    """Naota Gate: the models an outside AI may pick for a chat, the way the chat's model bar lists them (connected
+    cards only, each with its catalog), plus the main model a chat with no pin follows."""
+    cfg = cfgmod.read_settings()
+    em = _effective_main(cfg)
+    ra = []
+    for p in _providers_view(cfg):
+        if not p.get("configured"):
+            continue
+        ids = [m if isinstance(m, str) else str((m or {}).get("id") or (m or {}).get("name") or "")
+               for m in (p.get("models") or [])]
+        ra.append({"provider": p["id"], "name": p.get("label") or p["id"], "models": [i for i in ids if i]})
+    return {"providers": ra, "main": {"provider": em.get("provider") or "", "model": em.get("model") or "",
+                                      "name": _route_name(em.get("provider") or "")}}
+
+
+def _gate_chat_model(sid: str) -> dict:
+    """Naota Gate: the model and effort one chat runs on next. Effort follows the same order as a turn: the card's own,
+    an assistant's own level in its chat, Naota Core's own level in a Core chat."""
+    row = get_store().get_session(sid) or {}
+    mcfg = cfgmod.read_settings().get("model", {})
+    v = _route_view(mcfg, row)
+    effort = v.get("reasoning") or "off"
+    try:
+        _p = workflow_chat.persona_cua_phien(row)
+        if _p and _p[0] == "agent":
+            effort = _agent_reasoning(_read_md(_agents_dir(row.get("brain") or "brain") / f"{_p[1]}.md")[0])
+        elif naota_core.is_core_channel(row.get("channel")):
+            effort = _core_reasoning(mcfg)
+    except Exception:  # noqa: BLE001 - an unreadable assistant file keeps the card's level, as a turn does
+        pass
+    pinned = bool(_core_pin(mcfg)) if naota_core.is_core_channel(row.get("channel")) \
+        else bool(str(row.get("pinned_provider") or "").strip())
+    return {"provider": v["selected_provider"], "model": v["selected_model"], "name": v["selected_name"],
+            "pinned": pinned, "effort": effort,
+            "runs_on": {"provider": v["provider"], "model": v["model"], "name": v["name"]} if v.get("fallback") else None,
+            "note": v.get("content") or ""}
+
+
+async def _gate_bao(sid: str, brain: str, body: str, label: str, dedup: str) -> bool:
+    """Naota Gate: leave a finished task's answer in the bell, which rings the phone (as a long turn does)."""
+    item = await _bo_vao_hom_thu(f"{WEB_CHAT_PREFIX}{sid}", body, kind="answer", label=label, source="job",
+                                 brain=_brain_key(brain or "brain"), dedup=dedup, push_if_away=True)
+    return bool(item) and not item.get("dropped")
+
+
+chat_bridge.gan(lambda ws: _chat_socket(ws), lambda: _CHAT_RUNTIME, _gate_luu_luot,
+                models=_gate_models, model_cua=_gate_chat_model, bao=_gate_bao,
+                # `_pin_chat_model` sits with the /sessions routes further down: looked up when called.
+                ghim=lambda sid, prov, model: _pin_chat_model(sid, prov, model))
 
 
 # ============================================================
@@ -21303,14 +23152,14 @@ chat_bridge.gan(lambda ws: _chat_socket(ws), lambda: _CHAT_RUNTIME, _gate_luu_lu
 # Toàn bộ phần khó (pty, tiến trình, bộ đệm màn hình) nằm trong server/terminal.py.
 # ============================================================
 def _terminal_cwd(brain: str) -> str:
-    """Thư mục shell mở ra. Mặc định là HOME của user đang chạy Vanhanh - "cmd gốc
+    """Thư mục shell mở ra. Mặc định là HOME của user đang chạy Naota - "cmd gốc
     của máy" như mọi terminal bình thường.
 
     Trước đây mở ở gốc brain và điều đó gây hại thật cho việc chính của tab này (cài + đăng
     nhập CLI): `agy` coi thư mục đang đứng là project của nó nên đăng nhập trong brain vừa
     khó vừa vấy file cấu hình vào vault. Cần thao tác brain thì shell đã có sẵn biến
-    $VANHANH_BRAIN - `cd "$VANHANH_BRAIN"` là về. Máy nào muốn khác thì đặt VANHANH_TERMINAL_CWD."""
-    rieng = str(os.getenv("VANHANH_TERMINAL_CWD", "")).strip()
+    $NAOTA_BRAIN - `cd "$NAOTA_BRAIN"` là về. Máy nào muốn khác thì đặt NAOTA_TERMINAL_CWD."""
+    rieng = str(os.getenv("NAOTA_TERMINAL_CWD", "")).strip()
     if rieng and os.path.isdir(rieng):
         return rieng
     try:
@@ -21343,7 +23192,7 @@ async def terminal_close(session: str = Form(...)):
 @app.websocket("/ws/terminal")
 async def terminal_ws(ws: WebSocket, session: str = Query(""), brain: str = Query("brain"),
                       cols: int = Query(80), rows: int = Query(24)):
-    if cfgmod.gate_active() and not cfgmod.valid_session(ws.cookies.get("vanhanh_session", "")):
+    if cfgmod.gate_active() and not cfgmod.valid_session(ws.cookies.get("naota_session", "")):
         await ws.close(code=1008)
         return
     await ws.accept()
@@ -21356,12 +23205,12 @@ async def terminal_ws(ws: WebSocket, session: str = Query(""), brain: str = Quer
         await ws.close()
 
     if not terminal.bat():
-        await bao_loi(localefmt.chu("Terminal đang tắt trên máy này (biến môi trường VANHANH_TERMINAL=0).",
-                                    "The terminal is turned off on this machine (environment variable VANHANH_TERMINAL=0)."))
+        await bao_loi(localefmt.chu("Terminal đang tắt trên máy này (biến môi trường NAOTA_TERMINAL=0).",
+                                    "The terminal is turned off on this machine (environment variable NAOTA_TERMINAL=0)."))
         return
     try:
         phien = terminal.KHO.mo(session, _terminal_cwd(brain), cols, rows, asyncio.get_running_loop(),
-                                extra_env={"VANHANH_BRAIN": str(_brain_root(brain))})
+                                extra_env={"NAOTA_BRAIN": str(_brain_root(brain))})
     except RuntimeError as e:
         await bao_loi(str(e))
         return
@@ -21471,13 +23320,13 @@ def _agent_history_channels(brain, channel) -> list:
     hội thoại bot với khách không hiện ở Trò chuyện mà nằm trong lịch sử của Agent nối với
     chatbot. Kênh của phiên bot là `bot:<slug hoặc id>` (xem `_tg_answer`).
 
-    The owner's chats from the admin channels and the CLI join too. Vanhanh Core's history holds the plain ones (Vanhanh Core
+    The owner's chats from the admin channels and the CLI join too. Naota Core's history holds the plain ones (Naota Core
     is who answers there); an agent's holds the ones routed to it, stored as `<channel>@<slug>` (`_owner_store_channel`)."""
     ch = str(channel or "").strip()
     if not ch.startswith("agent:"):
         return []
     slug = ch[len("agent:"):]
-    if vanhanh_core.is_core_channel(ch):
+    if naota_core.is_core_channel(ch):
         return list(OWNER_TURN_CHANNELS)
     keys = {str(k) for k in (_brain_keys(brain) or [])}
     out = [f"{c}@{slug}" for c in OWNER_TURN_CHANNELS]
@@ -21498,7 +23347,7 @@ def _agent_history_channels(brain, channel) -> list:
 
 
 # Slug của agent/workflow KHÔNG phải chỉ [a-z0-9-]: _slugify giữ nguyên chữ tiếng Việt, nên
-# brain thật có hẳn "vanhanh-an.md" và "kiểm-chứng-viên.md". Khuôn cũ chặn đúng những file đó,
+# brain thật có hẳn "naota-an.md" và "kiểm-chứng-viên.md". Khuôn cũ chặn đúng những file đó,
 # và trang Cộng sự bấm vào là ăn 400 - mở hội thoại không được mà không hiểu vì sao. Ở đây chỉ
 # cần chặn thứ có thể leo ra khỏi thư mục hay cắt nhầm kênh: dấu gạch chéo hai chiều, dấu hai
 # chấm (ngăn "agent:a:b") và khoảng trắng. Tồn tại file hay không thì kiểm ngay bên dưới.
@@ -21514,8 +23363,8 @@ def sessions_new(brain: str = Form("brain"), channel: str = Form("web")):
     m = _KENH_CONG_SU_RE.match(ch)
     if not m:
         return JSONResponse({"error": localefmt.chu(
-            "channel phải là agent:<slug>, workflow:<slug> hoặc coding:<repo>",
-            "channel must be agent:<slug>, workflow:<slug> or coding:<repo>")}, status_code=400)
+            "channel phải là agent:<slug>, workflow:<slug> hoặc coding:<repository>",
+            "channel must be agent:<slug>, workflow:<slug> or coding:<repository>")}, status_code=400)
     loai, slug = m.group(1), m.group(2)
     if loai == "coding":
         # Phiên của trang Coding. KHÔNG đòi phải có thư mục nào: bản trước bắt phải chọn repo
@@ -21524,11 +23373,11 @@ def sessions_new(brain: str = Form("brain"), channel: str = Form("web")):
         # với cwd = brain, y như mọi phiên thường.
         sid = get_store().create_session(brain=_brain_key(brain), engine="cli", channel=ch)
         return {"id": sid, "channel": ch}
-    if loai == "agent" and vanhanh_core.is_core_slug(slug):
-        # A further Vanhanh Core chat ("New chat"). Reports keep landing in the brain's default one.
-        sid = get_store().create_session(brain=_brain_key(brain), engine="cli", channel=vanhanh_core.CHANNEL,
-                                         title=vanhanh_core.NAME)
-        return {"id": sid, "channel": vanhanh_core.CHANNEL}
+    if loai == "agent" and naota_core.is_core_slug(slug):
+        # A further Naota Core chat ("New chat"). Reports keep landing in the brain's default one.
+        sid = get_store().create_session(brain=_brain_key(brain), engine="cli", channel=naota_core.CHANNEL,
+                                         title=naota_core.NAME)
+        return {"id": sid, "channel": naota_core.CHANNEL}
     thu_muc = _agents_dir(brain) if loai == "agent" else _workflows_dir(brain)
     if not (thu_muc / f"{slug}.md").exists():
         return JSONResponse({"error": localefmt.chu(f"{loai} '{slug}' không có trong brain này",
@@ -21635,7 +23484,7 @@ def _gan_reaction(store, session_id, msgs) -> None:
 
 @app.post("/sessions/{session_id}/messages/{message_id}/pin")
 async def sessions_message_pin(session_id: str, message_id: int, request: Request):
-    """pin an answer into the chat's table of contents, or unpin it. Body {"pinned": true|false}. Only Vanhanh's
+    """pin an answer into the chat's table of contents, or unpin it. Body {"pinned": true|false}. Only Naota's
     answers are pinned (a question is already in the list). Writes nothing else and starts no turn."""
     try:
         body = await request.json()
@@ -21673,7 +23522,7 @@ async def sessions_message_pin(session_id: str, message_id: int, request: Reques
 #   cuộc đã dài, đã tạo xong tài liệu, và giờ mới cần tìm. Quét tin nhắn thì mở được ngay cả
 #   cuộc từ tháng trước, không phải chờ tích luỹ dữ liệu mới.
 #
-# Đổi lại: chỉ thấy được file mà Vanhanh có NHẮC trong câu trả lời. CLAUDE.md đã dặn nhúng
+# Đổi lại: chỉ thấy được file mà Naota có NHẮC trong câu trả lời. CLAUDE.md đã dặn nhúng
 # `[tên](đường-dẫn)` mỗi khi tạo file cho người dùng, nên phần lớn rơi vào lưới; file ghi
 # lặng lẽ giữa lượt thì không.
 PHIEN_TS_MAX_FILE = 200        # trần một cuộc, đủ cho cuộc dài nhất mà không đổ ra vô hạn
@@ -21697,7 +23546,7 @@ def _ts_trong_brain(broot: Path, duong: Path):
 
 @app.get("/sessions/{session_id}/assets")
 def sessions_assets(session_id: str, brain: str = Query("")):
-    """File Vanhanh đã tạo và link đã nhắc trong CUỘC TRÒ CHUYỆN này.
+    """File Naota đã tạo và link đã nhắc trong CUỘC TRÒ CHUYỆN này.
 
     Ứng viên file có hai nguồn, và luật giữ khác nhau vì độ tin cậy khác nhau:
 
@@ -21716,55 +23565,45 @@ def sessions_assets(session_id: str, brain: str = Query("")):
     broot = Path(_brain_root(b)).resolve()
     ceil = _files_root(b)
 
-    files, links = {}, {}
-    for m in store.get_messages(session_id):
-        noi_dung = m.get("content") or ""
-        if not noi_dung:
-            continue
-        ts = m.get("ts") or 0
-        for tg in channel_context.markdown_targets(noi_dung):
-            raw = tg["raw"]
-            if "://" in raw or raw.startswith(("#", "mailto:", "data:", "tel:")):
-                continue
-            cand = channel_context._vault_markdown_candidate(raw, str(broot))
-            rp = _ts_trong_brain(broot, cand) if cand else None
-            if not rp:
-                continue
-            files.setdefault(os.path.normcase(str(rp)),
-                             {"p": rp, "nhan": tg["nhan"], "hinh": tg["hinh"], "ts": ts})["ts"] = ts
-        for raw in channel_context.extract_paths(noi_dung):
-            rp = _ts_trong_brain(broot, Path(raw))
-            if not rp or not rp.is_file():
-                continue
-            files.setdefault(os.path.normcase(str(rp)),
-                             {"p": rp, "nhan": "", "hinh": False, "ts": ts})["ts"] = ts
-        for u in channel_context.extract_urls(noi_dung):
-            links.setdefault(u, {"url": u, "ts": ts, "vai": m.get("role") or ""})
+    # What the messages mention is kept between calls and only new messages are read (session_assets_scan.py,
+    # 2026-11-12): the Info tab of a team asks this on every open, and reading a long team again each time took
+    # seconds of pure Python that slowed every other request. Whether a file exists is still asked here, every call.
+    seen = session_assets_scan.mentions(store, session_id, broot, _ts_trong_brain)
 
     ra_file = []
-    for v in files.values():
-        rp = v["p"]
+    for k in set(seen.linked) | set(seen.bare):
+        lk, br = seen.linked.get(k), seen.bare.get(k)
+        rp = (lk or br)["p"]
         co = rp.is_file()
+        if not co:
+            br = None             # a bare path counts only while its file exists
+        if not lk and not br:
+            continue
         try:
             st = rp.stat() if co else None
         except OSError:
             co, st = False, None
+        # The label is the one of the FIRST mention, as when the messages were read in order: a bare path named
+        # before the link leaves the row without a label.
+        first_is_link = bool(lk) and (not br or lk["first"] < br["first"])
         ra_file.append({
-            "path": _files_rel(ceil, rp),                 # theo TRẦN: đúng khuôn VanhanhOpenNoteAt nhận
+            "path": _files_rel(ceil, rp),                 # theo TRẦN: đúng khuôn NaotaOpenNoteAt nhận
             "brain_path": _files_rel(broot, rp),          # theo GỐC BRAIN: để hiện cho người đọc
             "name": rp.name,
-            "label": v["nhan"],
-            "image": v["hinh"],
+            "label": lk["label"] if first_is_link else "",
+            "image": lk["image"] if first_is_link else False,
             "exists": co,
             "size": st.st_size if st else 0,
-            "ts": v["ts"],
+            "ts": max(x["last"] for x in (lk, br) if x)[0],
             "manual": False,
             "_that": str(rp),
+            "_first": min(x["first"] for x in (lk, br) if x),
         })
-    ra_file.sort(key=lambda x: x["ts"], reverse=True)
-    ra_link = sorted(links.values(), key=lambda x: x["ts"], reverse=True)
-    for l in ra_link:
-        l["manual"] = False
+    ra_file.sort(key=lambda x: (-(x["ts"] or 0), x["_first"]))
+    for f in ra_file:
+        f.pop("_first", None)
+    ra_link = [{"url": l["url"], "ts": l["ts"], "vai": l["role"], "manual": False}
+               for l in sorted(seen.links.values(), key=lambda x: (-(x["ts"] or 0), x["first"]))]
 
     # ── Phần NGƯỜI DÙNG tự gắn ────────────────────────────────────────────────
     # Trộn lúc ĐỌC chứ không ghi đè: máy vẫn đoán như cũ, người vẫn thêm được thứ máy không
@@ -21797,39 +23636,45 @@ def _cuoc_tai_lieu_tay(session_id: str, sess: dict):
     gắn tay là một cử chỉ cố ý, im lặng bỏ đi thì người dùng tưởng thao tác của mình bị nuốt.
     """
     store = get_store()
+    notes = store.session_asset_notes(session_id)   # 2026-11-13: one-line descriptions
     brain = (sess.get("brain") or "brain").strip() or "brain"
     broot = Path(_brain_root(brain)).resolve()
     ra_f = []
     for f in store.list_session_files(session_id):
         duong = f.get("path") or ""
+        is_dir = duong.endswith("/")           # 2026-11-12: a whole folder, stored with a trailing "/"
         rp, co = None, False
         try:
             # `_safe_serve_path` (không phải `_safe_path`): đây là đường ĐỌC, và trần duyệt có
             # thể cao hơn gốc brain nên đường dẫn lưu theo trần lẫn theo gốc đều phải giải
             # được. Cùng lý do như chỗ nạp file ghim của project.
             rp = Path(_safe_serve_path(brain, duong))
-            co = rp.is_file()
+            co = rp.is_dir() if is_dir else rp.is_file()
         except Exception:
             rp = None
-        ten = f.get("name") or duong.replace("\\", "/").split("/")[-1]
+        ten = f.get("name") or duong.replace("\\", "/").rstrip("/").split("/")[-1]
         # Trần duyệt có thể CAO hơn gốc brain, nên file gắn tay chưa chắc nằm trong gốc brain.
         # `_files_rel` ném ValueError ở đúng ca đó; rơi về đường dẫn đã lưu là đủ để hiện.
         try:
             hien = _files_rel(broot, rp) if rp else duong
         except ValueError:
             hien = duong
+        if is_dir and hien and not hien.endswith("/"):
+            hien += "/"                        # the slash is what tells a folder from a file with no extension
         ra_f.append({
             "id": f.get("id"),
             "path": duong,
             "brain_path": hien,
             "name": rp.name if rp else ten,
             "label": ten,
-            "image": os.path.splitext(duong)[1].lower() in IMG_EXTS,
+            "image": not is_dir and os.path.splitext(duong)[1].lower() in IMG_EXTS,
+            "dir": is_dir,
             "exists": co,
             "size": 0,
             "ts": f.get("added_at") or 0,
             "pinned": bool(f.get("pinned")),
             "manual": True,
+            "description": (notes.get(("file", duong)) or {}).get("description", ""),
             "_that": str(rp) if rp else duong,
         })
     ra_l = [{
@@ -21840,6 +23685,7 @@ def _cuoc_tai_lieu_tay(session_id: str, sess: dict):
         "vai": "",
         "pinned": bool(l.get("pinned")),
         "manual": True,
+        "description": (notes.get(("link", l.get("url") or "")) or {}).get("description", ""),
     } for l in store.list_session_links(session_id)]
     return ra_f, ra_l
 
@@ -21861,22 +23707,36 @@ def sessions_add_file(session_id: str, path: str = Form(...), name: str = Form("
         return err
     b = (sess.get("brain") or "brain").strip() or "brain"
     try:
-        alo = _safe_path(b, path)
+        # 2026-11-12: a file or a whole folder (`_asset_target`; a folder is stored with a trailing "/"). The EMPTY
+        # path, which resolves to the browse ceiling itself, is still refused there.
+        found = _asset_target(b, path)
     except ValueError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
-    # `is_file()` chứ không phải `exists()`: đường dẫn RỖNG giải ra chính thư mục trần, mà thư
-    # mục thì "có tồn tại" - thế là gắn được một hàng trỏ vào một cái thư mục, ghim vào thì
-    # đọc lỗi. Ở đây chỉ nhận đúng file.
-    if not alo.is_file():
-        return JSONResponse({"error": localefmt.chu("Không tìm thấy file trong brain này",
-                                                    "File not found in this brain")}, status_code=404)
-    fid = get_store().add_session_file(session_id, path, name or alo.name)
+    if not found:
+        return _asset_missing()
+    stored, real_name, is_dir = found
+    fid = get_store().add_session_file(session_id, stored, name or real_name)
     if not fid:
         return JSONResponse(
             {"error": localefmt.chu(f"Cuộc này đã gắn đủ {sessions.SESSION_ASSETS_MAX} tài liệu",
                                     f"This chat already has the maximum of {sessions.SESSION_ASSETS_MAX} documents")},
             status_code=400)
-    return {"ok": True, "id": fid}
+    return {"ok": True, "id": fid, "dir": is_dir}
+
+
+@app.post("/sessions/{session_id}/assets/describe")
+def sessions_describe_asset(session_id: str, kind: str = Form(...), ref: str = Form(...), description: str = Form("")):
+    """One line saying what a document attached to this chat holds (2026-11-13). A team keeps its documents in its chat,
+    so this is also where a team document gets its description. Only a document attached by hand has a row to describe."""
+    sess, err = _cuoc_or_404(session_id)
+    if err:
+        return err
+    refused = _project_text_refused(description)
+    if refused:
+        return refused
+    if not get_store().set_session_asset_note(session_id, kind, ref, description, source="owner"):
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return {"ok": True}
 
 
 @app.post("/sessions/{session_id}/assets/files/{file_id}/delete")
@@ -21980,7 +23840,7 @@ def sessions_pin(session_id: str, pinned: str = Form("1")):
 
 @app.post("/sessions/{session_id}/archive")
 def sessions_archive(session_id: str, archived: str = Form("1")):
-    """Archive a chat (history menu): it leaves the list but keeps every message, so Vanhanh still remembers
+    """Archive a chat (history menu): it leaves the list but keeps every message, so Naota still remembers
     it and search still finds it. archived=0 brings it back. A new message from a person also brings it back
     (SessionStore.append_message)."""
     on = str(archived).strip() not in ("0", "false", "")
@@ -22042,8 +23902,8 @@ def _sessions_meta_sync(session_id: str):
     sess = get_store().get_session(session_id)
     if not sess:
         return JSONResponse({"error": "not found"}, status_code=404)
-    if vanhanh_core.is_core_channel(sess.get("channel")):
-        # a Vanhanh Core chat shows the pin of Vanhanh Core, not an old stamp of this one chat.
+    if naota_core.is_core_channel(sess.get("channel")):
+        # a Naota Core chat shows the pin of Naota Core, not an old stamp of this one chat.
         _cp = _core_pin(cfgmod.read_settings().get("model", {}))
         sess["pinned_provider"], sess["pinned_model"] = _cp.get("provider") or None, _cp.get("model") or None
     pp = (sess.get("pinned_provider") or "").strip()
@@ -22062,9 +23922,9 @@ def _sessions_meta_sync(session_id: str):
             sess["agent_reasoning"] = _agent_reasoning(_m)
         except Exception:  # noqa: BLE001
             pass
-    elif vanhanh_core.is_core_channel(sess.get("channel")):
-        # a Vanhanh Core chat is an assistant's chat for the level chip too, with its own level.
-        sess["agent_slug"] = vanhanh_core.SLUG
+    elif naota_core.is_core_channel(sess.get("channel")):
+        # a Naota Core chat is an assistant's chat for the level chip too, with its own level.
+        sess["agent_slug"] = naota_core.SLUG
         sess["agent_reasoning"] = _core_reasoning(cfgmod.read_settings().get("model", {}))
     # the model the next turn of this chat really runs on, so the chip is right on opening a chat
     # (a fallback card while the chosen one is out of quota) and goes back by itself once the quota returns.
@@ -22084,8 +23944,8 @@ async def agent_set_reasoning(slug: str, level: str = Form(...), brain: str = Fo
     if level not in engine.REASONING_LEVELS:
         return JSONResponse({"ok": False, "error": localefmt.chu("Mức suy luận không hợp lệ", "Invalid reasoning level")},
                             status_code=400)
-    if vanhanh_core.is_core_slug(slug):
-        # Vanhanh Core keeps its level in settings (no agent file of its own), apart from the main chat's `reasoning`.
+    if naota_core.is_core_slug(slug):
+        # Naota Core keeps its level in settings (no agent file of its own), apart from the main chat's `reasoning`.
         await asyncio.to_thread(cfgmod.update_settings, {"model": {"core_reasoning": level}})
         return {"ok": True, "slug": slug, "reasoning": level}
     path = _agents_dir(brain) / f"{slug}.md"
@@ -22103,6 +23963,29 @@ async def agent_set_reasoning(slug: str, level: str = Form(...), brain: str = Fo
     return await asyncio.to_thread(_luu)
 
 
+async def _pin_chat_model(session_id: str, provider: str, model: str, brain=None) -> dict:
+    """Pin one chat's model, what the chat's model bar does (empty provider = follow the main model again). Shared by
+    POST /sessions/{id}/model and Naota Gate (chat_bridge: the outside AI picks the model for the chat it writes in).
+    A failure comes back as {"ok": False, "status", "error"}.
+
+    A Naota Core chat pins Naota Core as a whole (`model.core_provider/core_model`), see `_core_pin`."""
+    prov = (provider or "").strip()
+    if prov and not _provider_def(prov):
+        return {"ok": False, "status": 400, "error": localefmt.chu(f"provider không tồn tại: {prov}",
+                                                                   f"provider does not exist: {prov}")}
+    if prov:
+        _clear_pin_limit(prov)   # picking a model in the chat bar means "use this one": its old quota mark goes
+    _row = get_store().get_session(session_id)
+    if _row and naota_core.is_core_channel(_row.get("channel")):
+        _cp = await _set_core_pin(prov, model)
+        if (_row.get("pinned_provider") or "").strip():
+            get_store().set_pinned_model(session_id, "", "")   # an older stamp of this chat must not show as a pin
+        return {"ok": True, "pinned_provider": _cp["provider"] or None, "pinned_model": _cp["model"] or None, "scope": "core"}
+    if not get_store().set_pinned_model(session_id, prov, model, brain=brain):
+        return {"ok": False, "status": 404, "error": localefmt.chu("phiên không tồn tại", "session does not exist")}
+    return {"ok": True, "pinned_provider": prov or None, "pinned_model": (model or "").strip() or None}
+
+
 @app.post("/sessions/{session_id}/model")
 async def sessions_set_model(session_id: str, provider: str = Form(""),
                              model: str = Form(""), brain: str = Form("")):
@@ -22111,26 +23994,12 @@ async def sessions_set_model(session_id: str, provider: str = Form(""),
     Có `brain` thì tạo hàng nếu phiên chưa tồn tại - dashboard mint id phía client nên
     user có thể đổi model trước cả tin nhắn đầu tiên (cùng khuôn /sessions/{id}/project).
     CHỦ Ý không đi qua _set_main_model: hàm đó ghi mốc nhật ký usage cho việc đổi bộ não
-    TOÀN CỤC, ghim theo phiên mà đi qua đó là rác hoá biểu đồ token.
-
-    A Vanhanh Core chat pins Vanhanh Core as a whole (`model.core_provider/core_model`), see `_core_pin`."""
-    prov = (provider or "").strip()
-    if prov and not _provider_def(prov):
-        return JSONResponse({"error": localefmt.chu(f"provider không tồn tại: {prov}",
-                                                    f"provider does not exist: {prov}")}, status_code=400)
-    if prov:
-        _clear_pin_limit(prov)   # picking a model in the chat bar means "use this one": its old quota mark goes
-    _row = get_store().get_session(session_id)
-    if _row and vanhanh_core.is_core_channel(_row.get("channel")):
-        _cp = await _set_core_pin(prov, model)
-        if (_row.get("pinned_provider") or "").strip():
-            get_store().set_pinned_model(session_id, "", "")   # an older stamp of this chat must not show as a pin
-        return {"ok": True, "pinned_provider": _cp["provider"] or None, "pinned_model": _cp["model"] or None, "scope": "core"}
-    ok = get_store().set_pinned_model(session_id, prov, model,
-                                      brain=_brain_key(brain) if (brain or "").strip() else None)
-    if not ok:
-        return JSONResponse({"error": localefmt.chu("phiên không tồn tại", "session does not exist")}, status_code=404)
-    return {"ok": True, "pinned_provider": prov or None, "pinned_model": (model or "").strip() or None}
+    TOÀN CỤC, ghim theo phiên mà đi qua đó là rác hoá biểu đồ token."""
+    out = await _pin_chat_model(session_id, provider, model,
+                                brain=_brain_key(brain) if (brain or "").strip() else None)
+    if not out.get("ok"):
+        return JSONResponse({"error": out["error"]}, status_code=out["status"])
+    return out
 
 
 @app.post("/sessions/{session_id}/project")
@@ -22212,16 +24081,17 @@ def projects_add_file(project_id: str, path: str = Form(...), name: str = Form("
     try:
         # Kiểm đường dẫn TRƯỚC khi ghi DB. Kho không biết brain nào nên không tự kiểm được;
         # bỏ bước này là lưu được một path trèo ra ngoài brain rồi mới vỡ lúc đọc.
-        alo = _safe_path(p.get("brain") or "brain", path)
+        # 2026-11-12: a file or a whole folder (`_asset_target`; a folder is stored with a trailing "/").
+        found = _asset_target(p.get("brain") or "brain", path)
     except ValueError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
-    if not alo.exists():
-        return JSONResponse({"error": localefmt.chu("Không tìm thấy file trong brain này",
-                                                    "File not found in this brain")}, status_code=404)
-    fid = get_store().add_project_file(project_id, path, name or alo.name)
+    if not found:
+        return _asset_missing()
+    stored, real_name, is_dir = found
+    fid = get_store().add_project_file(project_id, stored, name or real_name)
     if not fid:
         return JSONResponse({"error": localefmt.chu("thiếu đường dẫn", "missing path")}, status_code=400)
-    return {"ok": True, "id": fid}
+    return {"ok": True, "id": fid, "dir": is_dir}
 
 
 @app.post("/projects/{project_id}/files/{file_id}/delete")
@@ -22266,6 +24136,104 @@ def projects_del_link(project_id: str, link_id: str):
     return {"ok": get_store().remove_project_link(project_id, link_id)}
 
 
+@app.post("/projects/{project_id}/repos")
+async def projects_set_repos(project_id: str, repos: str = Form("")):
+    """Set the project's GitHub repos (2026-11-15), the same comma separated "set" the repo picker sends for a chat.
+    Every chat of the project gets them on its next turn, each on its own branch (github_repos.seed_session). A repo
+    removed here stays on the chats that already have it. The brain is the project's, never the client's."""
+    p, err = await asyncio.to_thread(_proj_or_404, project_id)
+    if err:
+        return err
+    names = _repo_names_form(repos)
+    if len(names) > sessions.PROJECT_REPOS_MAX:
+        return JSONResponse({"ok": False, "error": localefmt.chu(
+            f"Mỗi project chỉ gắn được tối đa {sessions.PROJECT_REPOS_MAX} repository",
+            f"Each project can have at most {sessions.PROJECT_REPOS_MAX} repositories")}, status_code=400)
+    have = await asyncio.to_thread(_project_repo_names_of, project_id)
+    final, bad = await _repos_prepare(p.get("brain") or "brain", have, names)
+    if bad:
+        return bad
+    change, rows = await asyncio.to_thread(_project_repos_store, project_id, final)
+    return {"ok": True, "repos": rows, **change}
+
+
+def _project_repo_names_of(project_id: str) -> list:
+    return get_store().project_repo_names(project_id)
+
+
+def _project_repos_store(project_id: str, names: list):
+    """Write the project's repo list and read it back (sqlite: call it in a thread). Returns (change, rows)."""
+    store = get_store()
+    return store.set_project_repos(project_id, names), store.list_project_repos(project_id)
+
+
+# ── What Naota learnt about a project (2026-11-13) ────────────────────────────
+#
+# The same rows the tool `naota_project` writes while Naota works. Here the OWNER is the one typing, so a note saved
+# or edited through these routes is theirs (`source="owner"`): it is listed first and never dropped to make room.
+# The two scans of `project_context.blocked_reason` still run: a pasted key must not ride on every turn of a project.
+
+def _project_text_refused(text: str):
+    why = project_context.blocked_reason(text) if (text or "").strip() else ""
+    if not why:
+        return None
+    return JSONResponse({"error": localefmt.chu("Không lưu, vì nội dung " + why,
+                                                "Not saved: the text looks like a secret or an injected command")},
+                        status_code=400)
+
+
+@app.post("/projects/{project_id}/notes")
+def projects_add_note(project_id: str, text: str = Form(...), kind: str = Form("fact")):
+    p, err = _proj_or_404(project_id)
+    if err:
+        return err
+    refused = _project_text_refused(text)
+    if refused:
+        return refused
+    res = get_store().add_project_note(project_id, text, kind=kind, source="owner")
+    if not res["id"]:
+        return JSONResponse({"error": localefmt.chu(
+            f"Chưa lưu được: ghi chú trống, hoặc project đã đủ {sessions.PROJECT_NOTES_CAP} ghi chú của bạn",
+            f"Not saved: the note is empty, or the project already holds {sessions.PROJECT_NOTES_CAP} of your notes")},
+            status_code=400)
+    return {"ok": True, "id": res["id"], "created": res["created"]}
+
+
+@app.post("/projects/{project_id}/notes/{note_id}/update")
+def projects_update_note(project_id: str, note_id: str, text: str = Form(None), kind: str = Form(None)):
+    p, err = _proj_or_404(project_id)
+    if err:
+        return err
+    refused = _project_text_refused(text or "")
+    if refused:
+        return refused
+    return {"ok": get_store().update_project_note(project_id, note_id, text=text, kind=kind, source="owner")}
+
+
+@app.post("/projects/{project_id}/notes/{note_id}/delete")
+def projects_del_note(project_id: str, note_id: str):
+    p, err = _proj_or_404(project_id)
+    if err:
+        return err
+    return {"ok": get_store().remove_project_note(project_id, note_id)}
+
+
+@app.post("/projects/{project_id}/describe")
+def projects_describe_asset(project_id: str, kind: str = Form(...), ref: str = Form(...),
+                            description: str = Form("")):
+    """One line saying what an attached file (`kind=file`, `ref` its stored path) or link (`kind=link`, `ref` its URL)
+    holds. An empty description removes it."""
+    p, err = _proj_or_404(project_id)
+    if err:
+        return err
+    refused = _project_text_refused(description)
+    if refused:
+        return refused
+    if not get_store().set_project_asset_note(project_id, kind, ref, description, source="owner"):
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return {"ok": True}
+
+
 @app.post("/projects/{project_id}/links/{link_id}/pin")
 def projects_pin_link(project_id: str, link_id: str, pinned: str = Form("1")):
     p, err = _proj_or_404(project_id)
@@ -22281,7 +24249,7 @@ def projects_pin(project_id: str, pinned: str = Form("1")):
 
     Khác hai route ghim kia (`.../files/{id}/pin`, `.../links/{id}/pin`): hai cái đó quyết
     định file/link có được NẠP SẴN vào prompt hay không, còn cái này thuần tuý là thứ tự
-    hiển thị, không đụng gì tới thứ Vanhanh đọc.
+    hiển thị, không đụng gì tới thứ Naota đọc.
     """
     store = get_store()
     if not store.get_project(project_id):
@@ -22418,7 +24386,7 @@ async def openai_compat_connect(request: Request):
 
     the Advanced card runs on the OpenAI format, so the seller's own list ({base}/models) fills the
     model picker and nobody has to type a model name. The URL is typed by the owner, so saving blind would show
-    "Connected" with a wrong key: Vanhanh calls {base}/models first, and for a seller with no list it sends one tiny
+    "Connected" with a wrong key: Naota calls {base}/models first, and for a seller with no list it sends one tiny
     /chat/completions request (max_tokens 1) with the model typed in the box that then opens.
     `id` edits that gateway, `add` appends one; a page from before (neither) edits the only gateway it knows.
     A blank key reuses the saved one, for the same gateway and URL only; a gateway may have no key at all (a server
@@ -22448,27 +24416,16 @@ async def openai_compat_connect(request: Request):
     if not key and old and base == old["base"]:
         key = old["key"]
     headers = {"Authorization": f"Bearer {key or 'none'}"}
-    live, why = [], ""
-    try:
-        async with httpx.AsyncClient(timeout=20) as c:
-            r = await c.get(base + "/models", headers=headers)
-        if r.status_code in (401, 403):
-            return {"ok": False, "error": localefmt.chu(f"API key không hợp lệ (HTTP {r.status_code}). Chưa lưu gì.",
-                                                        f"Invalid API key (HTTP {r.status_code}). Nothing was saved.")}
-        if r.status_code == 200:
-            try:
-                body = r.json()
-                rows = body.get("data") if isinstance(body, dict) else body
-                live = sorted({x.get("id") for x in (rows or []) if isinstance(x, dict) and x.get("id")})
-            except Exception:
-                live = []
-        else:
-            why = f"HTTP {r.status_code}"
-    except Exception as e:
-        why = type(e).__name__
+    got = await _openai_list_models(base, key)
+    if got["status"] in (401, 403):
+        return {"ok": False, "error": localefmt.chu(f"API key không hợp lệ (HTTP {got['status']}). Chưa lưu gì.",
+                                                    f"Invalid API key (HTTP {got['status']}). Nothing was saved.")}
+    live, why = sorted(got["ids"]), got["why"]
+    if live:
+        base = got["base"]   # the list was under {base}/v1: that is the address chat needs too
     if not live:
         if not typed:
-            if why and not why.startswith("HTTP"):
+            if not got["status"]:
                 return {"ok": False, "error": localefmt.chu(f"Không gọi được {base}/models ({why}). Kiểm tra lại Base URL.",
                                                             f"Could not reach {base}/models ({why}). Check the Base URL.")}
             # The box for model names stays hidden until a seller turns out to list none (same rule as Claude
@@ -22492,10 +24449,12 @@ async def openai_compat_connect(request: Request):
         if r.status_code in (401, 403):
             return {"ok": False, "error": localefmt.chu(f"API key không hợp lệ (HTTP {r.status_code}). Chưa lưu gì.",
                                                         f"Invalid API key (HTTP {r.status_code}). Nothing was saved.")}
-        if r.status_code == 404:
-            return {"ok": False, "error": localefmt.chu(f"Không thấy {url} (HTTP 404). Base URL phải tính tới /v1, "
+        # A gateway whose website answers every unknown path with a page says 200 here too: only a JSON reply is
+        # the API. Saving on that page made the card "Connected" with an address no chat turn could use.
+        if r.status_code == 404 or (r.status_code == 200 and _is_web_page(r)):
+            return {"ok": False, "error": localefmt.chu(f"Không thấy API ở {url}. Base URL phải tính tới /v1, "
                                                         "ví dụ https://api.example.com/v1.",
-                                                        f"{url} not found (HTTP 404). The Base URL must include /v1, "
+                                                        f"No API found at {url}. The Base URL must include /v1, "
                                                         "for example https://api.example.com/v1.")}
         if r.status_code not in (200, 429, 529):   # 429/529: key and model accepted, the gateway is only busy
             return {"ok": False, "error": localefmt.chu(f"Cổng trả HTTP {r.status_code} khi thử model {typed[0]}: {r.text[:160]}",
@@ -22521,7 +24480,7 @@ async def anthropic_compat_connect(request: Request):
 
     Same rule as OpenAI Compatible: the URL is typed by the owner, so saving blind would show
     "Connected" with a wrong key. The check differs because most such gateways have no
-    /v1/models: when the list is missing, Vanhanh sends one tiny /v1/messages request (max_tokens 1)
+    /v1/models: when the list is missing, Naota sends one tiny /v1/messages request (max_tokens 1)
     with the first typed model instead. A blank key reuses the saved one, for the same URL only."""
     import httpx
     data = await request.json()
@@ -22564,7 +24523,7 @@ async def anthropic_compat_connect(request: Request):
             return {"ok": False, "error": localefmt.chu(f"API key không hợp lệ (HTTP {r.status_code}). Chưa lưu gì.",
                                                         f"Invalid API key (HTTP {r.status_code}). Nothing was saved.")}
         if r.status_code == 200:
-            live = [x.get("id") for x in (r.json().get("data") or []) if isinstance(x, dict) and x.get("id")]
+            live = _model_ids(r.json())
     except Exception:
         live = []   # no list is normal here; the message check below decides
     if not live:
@@ -22588,10 +24547,10 @@ async def anthropic_compat_connect(request: Request):
         if r.status_code in (401, 403):
             return {"ok": False, "error": localefmt.chu(f"API key không hợp lệ (HTTP {r.status_code}). Chưa lưu gì.",
                                                         f"Invalid API key (HTTP {r.status_code}). Nothing was saved.")}
-        if r.status_code == 404:
-            return {"ok": False, "error": localefmt.chu(f"Không thấy {url} (HTTP 404). Kiểm tra Base URL bên bán đưa, "
+        if r.status_code == 404 or (r.status_code == 200 and _is_web_page(r)):   # a web page is not the API
+            return {"ok": False, "error": localefmt.chu(f"Không thấy API ở {url}. Kiểm tra Base URL bên bán đưa, "
                                                         "thường có dạng https://ten-mien.com hoặc https://ten-mien.com/anthropic.",
-                                                        f"{url} not found (HTTP 404). Check the Base URL the seller gave you, "
+                                                        f"No API found at {url}. Check the Base URL the seller gave you, "
                                                         "usually https://domain.com or https://domain.com/anthropic.")}
         # 429/529: the key and the model were accepted, the gateway is only busy right now.
         if r.status_code not in (200, 429, 529):
@@ -22785,7 +24744,7 @@ async def runtime_diagnostics(hours: float = Query(24.0), limit: int = Query(200
             # Token đã đốt trong 60 giây qua, gộp MỌI nguồn. Đây là thứ trả lời được câu
             # "sao canary bị chặn trong khi tôi có chat gì đâu": loop nền vừa ăn hết hạn mức.
             "tpm_window": quota_scheduler.snapshot(60),
-            # Hạn mức Vanhanh TỰ HỌC từ lỗi nhà cung cấp trả về. Khác quota_presets ở chỗ
+            # Hạn mức Naota TỰ HỌC từ lỗi nhà cung cấp trả về. Khác quota_presets ở chỗ
             # đây là số thật của tài khoản này, do chính nhà cung cấp nói ra.
             "learned_limits": limit_learner.snapshot(),
             # Mức tiết kiệm token đang chọn + danh sách mức, để giao diện vẽ ba nút thay
@@ -22872,7 +24831,7 @@ async def _uoc_tinh_tiet_kiem(brain: str = "brain") -> dict:
     def _dung_prompt_cu() -> str:
         return build_system_prompt(brain) + channel_context.build_channel_block(
             "dashboard", {"session_id": "uoc-tinh"}, telegram_running=bool(_TG_BOT),
-            port=_vanhanh_port(), brain_root=_brain_root(brain))
+            port=_naota_port(), brain_root=_brain_root(brain))
 
     try:
         # build_system_prompt quét cây skill và đọc file, khoảng 18ms - đẩy sang thread để
@@ -22885,6 +24844,7 @@ async def _uoc_tinh_tiet_kiem(brain: str = "brain") -> dict:
         vien = tok(cc.CORE_CONTRACT
                    + "Runtime identity: provider=x; model=y. "
                    + cc.ContextCompiler._channel_contract("dashboard")
+                   + cc.ContextCompiler._profile_section(cc.owner_profile())   # #1349: the capsule carries it too
                    + cc.dong_ho()
                    + cc.ContextCompiler._output_contract_text("dashboard"))
     except Exception:  # noqa: BLE001
@@ -22978,6 +24938,9 @@ _GIA_INPUT_1M = {
     "opus": 15.0, "sonnet-5": 2.0, "sonnet": 3.0, "haiku": 1.0,
     "gpt-5-mini": 0.25, "gpt-5": 1.25, "gpt-4o-mini": 0.15, "gpt-4o": 2.5, "o3": 2.0,
     "gemini-2.5-pro": 1.25, "gemini-2.5-flash": 0.30, "gemini": 0.30,
+    # Same numbers and sources as usage_pricing.json (its "_gemini" note). Without these rows Gemini 3 and 4 fell to the
+    # bare "gemini" row (0.30), so Gemini 4 read 5-13 times cheaper than it is.
+    "gemini-3": 2.0, "gemini-3.5-flash-lite": 0.30, "gemini-4": 4.0, "gemini-4-hydrogen": 1.5,
     "deepseek": 0.30, "llama": 0.10, "qwen": 0.20, "mistral": 0.20, "grok": 2.0,
 }
 _GIA_INPUT_MAC_DINH = 3.0     # không đoán được model thì lấy mức phổ biến tầm trung
@@ -23198,7 +25161,7 @@ _LIMIT_KIND_LABEL = {
     "rpm": "số lượt mỗi phút", "rpd": "số lượt mỗi ngày",
     "context": "cửa sổ ngữ cảnh", "rate": "nhịp gọi",
 }
-# Bản tiếng Anh cho dòng trạng thái trên màn hình (khung `vanhanh_autoshrink`). Câu trả lời
+# Bản tiếng Anh cho dòng trạng thái trên màn hình (khung `naota_autoshrink`). Câu trả lời
 # `_limit_autoshrink_message` vẫn dùng bản tiếng Việt ở trên vì nó vào lịch sử hội thoại.
 _LIMIT_KIND_LABEL_EN = {
     "tpm": "tokens per minute", "tpd": "tokens per day",
@@ -23239,7 +25202,7 @@ def _limit_autoshrink_message(provider: str, model: str, hit: dict) -> str:
             return (f"{provider} đang chặn nhịp gọi, bảo chờ {cho:.0f} giây. "
                     f"Bạn hỏi lại sau chừng đó là được.{loi}")
         return (f"{provider} từ chối lượt này vì hạn mức, nhưng không nói rõ hạn mức nào nên "
-                f"Vanhanh chưa biết phải làm gì để qua.{loi}")
+                f"Naota chưa biết phải làm gì để qua.{loi}")
 
     dau = f"{provider} báo vượt {nhan}: hạn mức {limit:,}"
     if used:
@@ -23258,7 +25221,7 @@ def _limit_autoshrink_message(provider: str, model: str, hit: dict) -> str:
         khi_nao = f" khoảng {cho:.0f} giây nữa" if cho else " một lát"
         return (dau + f"Cửa sổ hiện tại đã đầy vì các lượt trước, hỏi lại{khi_nao} là được. "
                 "Rút gọn câu hỏi không giúp vì hạn mức này đếm theo thời gian.")
-    return (dau + "Vanhanh đã tự rút gọn ngữ cảnh và thử lại một lần nhưng vẫn không vừa. "
+    return (dau + "Naota đã tự rút gọn ngữ cảnh và thử lại một lần nhưng vẫn không vừa. "
             + model_limits.blocked_hint(provider, model, requested or limit,
                                         _configured_api_providers()))
 
@@ -23490,7 +25453,7 @@ QUOTA_OWNER_OF = {
 
 # Ba MỨC tiết kiệm token, thay cho việc bắt người dùng tự hiểu 10 đường canary và đơn vị
 # basis point. Người dùng chỉ cần biết "tiết kiệm ít hay nhiều", còn bên dưới bật đường nào
-# là việc của Vanhanh.
+# là việc của Naota.
 #
 # Chỉ đưa vào đây những đường CHẠY ĐƯỢC với cấu hình mặc định. readonly_canary,
 # orchestrator_canary, write_canary... đều đòi allowlist capability mà mặc định rỗng, nên
@@ -23651,7 +25614,7 @@ async def runtime_preset_set(level: str = Form(...)):
         if "quota_profiles" not in entry:
             continue
         # BỔ SUNG chứ không phải "trống thì mới ghi". Bản trước bỏ qua khi danh sách đã có
-        # gì đó, nên người đổi bộ não (đúng thứ Vanhanh mời chào: đổi được bộ não) bị kẹt với
+        # gì đó, nên người đổi bộ não (đúng thứ Naota mời chào: đổi được bộ não) bị kẹt với
         # hạn mức của bộ não CŨ: `_quota` lọc theo provider nên không khớp cái nào, và mức
         # tiết kiệm lặng lẽ ngừng chạy trong khi trang vẫn ghi đang bật.
         co_san = [x for x in (entry.get("quota_profiles") or []) if isinstance(x, dict)]
@@ -23670,12 +25633,12 @@ async def runtime_preset_set(level: str = Form(...)):
             continue
         canh_bao.append(
             localefmt.chu(
-                f"Chưa có bảng hạn mức sẵn cho '{prov}', nên Vanhanh biên soạn ngữ cảnh theo trần "
+                f"Chưa có bảng hạn mức sẵn cho '{prov}', nên Naota biên soạn ngữ cảnh theo trần "
                 "mặc định (context_runtime.api_context). Vẫn tiết kiệm được ngay; sau lần đầu "
-                "nhà cung cấp báo vượt hạn mức, Vanhanh dùng đúng con số thật của họ.",
-                f"There is no built-in limit table for '{prov}' yet, so Vanhanh builds the context "
+                "nhà cung cấp báo vượt hạn mức, Naota dùng đúng con số thật của họ.",
+                f"There is no built-in limit table for '{prov}' yet, so Naota builds the context "
                 "under the default ceiling (context_runtime.api_context). It still saves right "
-                "away; the first time the provider reports a limit hit, Vanhanh uses their real "
+                "away; the first time the provider reports a limit hit, Naota uses their real "
                 "numbers."))
 
     da_bat, da_tat = [], []
@@ -23884,7 +25847,7 @@ async def runtime_task_resume(task_id: str):
 
 
 # ============================================================
-# Telegram bot - nhắn Telegram ↔ Vanhanh (dùng engine theo Settings; CLI thì có cả MCP)
+# Telegram bot - nhắn Telegram ↔ Naota (dùng engine theo Settings; CLI thì có cả MCP)
 # ============================================================
 _TG_BOT = None
 # ĐA PHIÊN theo tài khoản: mỗi chat_id giữ NGỮ CẢNH RIÊNG để không lẫn hội thoại giữa
@@ -24010,8 +25973,8 @@ def _tg_save_brain_map() -> None:
         print(f"[tg brain map write] {type(e).__name__}: {e}", file=sys.stderr)
 
 
-# the channels the owner talks to Vanhanh through outside the dashboard (the Admin channels page and the
-# terminal). Their chats show in Vanhanh Core's history on the Partners page; one routed to an agent is stored as
+# the channels the owner talks to Naota through outside the dashboard (the Admin channels page and the
+# terminal). Their chats show in Naota Core's history on the Partners page; one routed to an agent is stored as
 # `<channel>@<slug>` and shows in that agent's history instead (`_agent_history_channels`).
 OWNER_TURN_CHANNELS = ("telegram", "zalo", "lark", "discord", "slack", "whatsapp", "cli")
 
@@ -24099,9 +26062,9 @@ def _tg_chat_busy(chat) -> bool:
     return bool(t and not t.done())
 
 
-def _vanhanh_port() -> int:
+def _naota_port() -> int:
     try:
-        return int(os.getenv("VANHANH_PORT", "7777"))
+        return int(os.getenv("NAOTA_PORT", "7777"))
     except ValueError:
         return 7777
 
@@ -24151,7 +26114,7 @@ def _tg_compact_bg(sess, prov, api_key, api_model):
 #
 # QUAN TRỌNG: xoay chỉ xoay BẢN GHI. Ngữ cảnh engine (sess['cli'] của Claude CLI, thread Codex,
 # sess['or'] của nhánh API vốn đã có compact_mem lo cửa sổ) KHÔNG bị đụng tới, nên người dùng
-# Telegram không hề thấy Vanhanh quên gì - chỉ dashboard là thấy hội thoại chia thành khúc đọc được.
+# Telegram không hề thấy Naota quên gì - chỉ dashboard là thấy hội thoại chia thành khúc đọc được.
 _TG_CONV_IDLE_S = 12 * 3600      # nghỉ quá ngần này → lượt kế mở phiên mới
 _TG_CONV_MAX_MSGS = 200          # ~100 lượt hỏi-đáp/phiên → mở phiên mới dù đang chat liên tục
 _TG_CONV_ARCHIVE_DAYS = 30       # phiên Telegram nguội quá ngần này → tự cất vào kho lưu
@@ -24254,9 +26217,10 @@ def _tg_conv_sid(store, sess, brain, engine_label, model, channel="telegram"):
     return sess["sid"]
 
 
-# Số TIN (không phải lượt) mồi lại tối đa khi dựng lịch sử từ transcript. Bằng
-# BOT_LICH_SU_MAX bên dưới cho dễ nhớ: ~10 lượt hỏi-đáp, đủ để "cái đó", "như lần trước" còn
-# nghĩa, mà không thổi phồng lượt đầu sau mỗi lần restart.
+# Số TIN (không phải lượt) mồi lại tối đa khi dựng lịch sử từ transcript: ~10 lượt hỏi-đáp, đủ
+# để "cái đó", "như lần trước" còn nghĩa, mà không thổi phồng lượt đầu sau mỗi lần restart. Phần
+# cũ hơn đi theo bản tóm tắt nén của phiên. (Bot chuyên trách không có bản tóm tắt nên có trần
+# riêng, rộng hơn: BOT_HISTORY_MAX_MESSAGES bên dưới.)
 _TG_MOI_LAI_MAX = 20
 
 
@@ -24308,6 +26272,15 @@ def _tg_quota_out(out: str, prov: str, kind: str, api_key: str, mcfg, account: s
     elif hint:
         _note_pin_limit(getattr(lim, "engine", "") or hint, float(getattr(lim, "reset_epoch", 0) or 0),
                         account=account)
+    return True
+
+
+def _tg_signin_out(out: str, prov: str, account: str = None) -> bool:
+    """Whether a channel turn's error string says its plan card lost its sign-in (2026-11-12). When it does, the card
+    is marked signed out, so the next route and the next turns skip it (`_note_signin_lost`)."""
+    if not _signin_lost_text(prov, out):
+        return False
+    _note_signin_lost(prov, account=account)
     return True
 
 
@@ -24365,7 +26338,7 @@ async def _tg_answer(text, meta=None, progress=None, channel="telegram", bot=Non
     _luot = turn_context.from_meta(channel, meta, la_chu=not bot)
     if bot:
         # jobs this turn creates (reminders, loops, Kanban) are stamped with the bot, so the Tasks page
-        # shows them under the bot's assistant instead of Vanhanh Core.
+        # shows them under the bot's assistant instead of Naota Core.
         # A plain string, so a hook reading the turn (a shallow copy) cannot edit it for the next reader.
         _luot["bot_id"] = str(bot["id"])
         # An internal API turn opens private documents by the caller's scope list, never by its chat id. The
@@ -24458,12 +26431,21 @@ async def _tg_answer(text, meta=None, progress=None, channel="telegram", bot=Non
             mcfg=mcfg, prov=prov, kind=kind, api_key=api_key, api_model=api_model,
             store=store, conv_sid=conv_sid, channel=channel, bot=bot, agent=agent)
         # (spec 6.4): out of quota before any tool ran -> the same message again on the next route, with
-        # one progress line saying why. Customer bots keep their own model and never hop.
+        # one progress line saying why. Customer bots keep their own model and never hop on quota.
+        # 2026-11-12: a plan that lost its SIGN-IN hops too, and here a customer bot hops as well: its agent's model
+        # cannot answer anyone until the owner signs in again, and `_chat_provider_bot` sends the bot's next turns to
+        # the main route anyway once the card is marked. The customer never sees the routing line.
         _tried = []
-        while (isinstance(out, str) and not bot and not _hop_acted[0] and len(_tried) < REROUTE_MAX_HOPS
-               and _tg_quota_out(out, prov, kind, api_key, mcfg, account=_tg_turn_account(sess, prov))):
+        while isinstance(out, str) and not _hop_acted[0] and len(_tried) < REROUTE_MAX_HOPS:
+            _acc = _tg_turn_account(sess, prov)
+            if not bot and _tg_quota_out(out, prov, kind, api_key, mcfg, account=_acc):
+                _why = "quota"
+            elif _tg_signin_out(out, prov, account=_acc):
+                _why = "signin"
+            else:
+                break
             _nxt = _chat_next_route(mcfg, prov, api_key if kind == "api" else "", _tried,
-                                    failed_account=_tg_turn_account(sess, prov))
+                                    failed_account=_acc, reason=_why)
             if not _nxt:
                 break
             _tried = _nxt["tried"]
@@ -24471,7 +26453,7 @@ async def _tg_answer(text, meta=None, progress=None, channel="telegram", bot=Non
             _tg_ngat_mach(sess, tru=("codex" if prov == "openai-oauth" else prov if prov in ("grok-cli", "antigravity-cli")
                                      else prov if ((kind == "api" and api_key) or kind == "oauth") else "cli"))
             _CONTEXT_RUNTIME.set_route(runtime_trace, prov, api_model or mcfg.get("claude_model") or "mặc định")
-            if progress:
+            if progress and not bot:
                 try:
                     await progress("↻ " + _nxt["status"])
                 except Exception:  # noqa: BLE001
@@ -24482,7 +26464,7 @@ async def _tg_answer(text, meta=None, progress=None, channel="telegram", bot=Non
                 store=store, conv_sid=conv_sid, channel=channel, bot=bot, agent=agent)
 
         if agent and isinstance(out, dict):
-            # The agent prompt asks for VANHANH_LESSON / VANHANH_RULE lines and says they are saved. The
+            # The agent prompt asks for NAOTA_LESSON / NAOTA_RULE lines and says they are saved. The
             # /chat caller is the authenticated owner, as on the dashboard, so end the turn through
             # the same handler as an agent chat there: owner rules and lessons are recorded, the run
             # is logged, and the lines are stripped before the turn is stored or returned.
@@ -24574,6 +26556,11 @@ def _manual_session_undo(key: str, keep: int) -> None:
     lich = s.get("bot")
     if isinstance(lich, list) and len(lich) > keep:
         del lich[keep:]
+    if not keep:
+        # Nothing was in RAM before the draft, so the draft turn itself read the history back from the inbox
+        # (`chatbot_runtime.private_history`). Back to "not loaded": the next real turn reads it again, instead of
+        # starting from the empty list this cut would leave.
+        s["bot"] = None
     _tg_ngat_mach(s)
 
 
@@ -24598,10 +26585,17 @@ def _tg_ket(clean_out, files, canh_bao="", loi=(), khach=False):
     return {"text": txt, "files": files or []}
 
 
-# Số lượt hội thoại (user+assistant) giữ lại cho một người nói chuyện với bot. Cắt cứng thay
-# vì nén như đường chat của chủ: nén là thêm một lượt gọi model nữa, mà bot trả lời người lạ
-# thì cần nhanh và rẻ hơn là cần nhớ dai.
-BOT_LICH_SU_MAX = 20
+# How many MESSAGES (customer and bot counted separately) a bot keeps of its chat with one person. A hard cut, not
+# a summary as on the owner's chat: a summary is one more model call, and a bot answering strangers has to stay
+# fast and cheap.
+#
+# 20 until 2026-11-12. The owner then found the bot answering customers on too little and settled on 30, the same
+# number a group gets (`chatbot_runtime.NGU_CANH_TIN`). Not more on purpose: older messages are mostly small talk,
+# and what is worth keeping from them belongs in a per-customer profile, not in a longer transcript.
+# BOT_HISTORY_MAX_CHARS is the ceiling for the chat that is not short (pasted documents, 8,000-character messages),
+# where even 30 messages could outgrow a model's context and every turn would fail.
+BOT_HISTORY_MAX_MESSAGES = 30
+BOT_HISTORY_MAX_CHARS = 60_000
 
 # Danh sách tool cho phép của bot khi phải chạy qua CLI: một chuỗi KHÔNG khớp tool nào.
 #
@@ -24609,7 +26603,7 @@ BOT_LICH_SU_MAX = 20
 # và engine hiểu thành "không có allowlist" rồi chạy thẳng permission_mode="bypassPermissions"
 # - tức mở TOÀN QUYỀN đúng lúc mình định khoá chặt nhất. Một chuỗi vô nghĩa thì truthy, cổng
 # can_use_tool bật lên, và mọi tool đều rớt khỏi allowlist nên bị từ chối từng lượt gọi.
-BOT_KHONG_TOOL = ["__vanhanh_bot_khong_tool__"]
+BOT_KHONG_TOOL = ["__naota_bot_khong_tool__"]
 
 
 # ------------------------------------------------------------
@@ -24619,15 +26613,22 @@ BOT_KHONG_TOOL = ["__vanhanh_bot_khong_tool__"]
 # ghim đường đo, đọc stream, tính usage, cắt lịch sử) phải giống hệt nhau, nên chúng nằm ở đây
 # chứ không chép hai bản. Chép hai bản là cách chắc chắn để một hôm nào đó `usage_store.record`
 # có ở đường này mà thiếu ở đường kia - hoá đơn thiếu, và không ai nhìn ra được từ bên ngoài.
-def _bot_lich_su(sess):
+def _bot_history(sess):
     if sess.get("bot") is None:
         sess["bot"] = []
     return sess["bot"]
 
 
-def _bot_cat_lich_su(lich_su):
-    if len(lich_su) > BOT_LICH_SU_MAX:
-        del lich_su[:len(lich_su) - BOT_LICH_SU_MAX]
+def _trim_bot_history(history):
+    """Cut `history` in place to both ceilings, oldest first. The newest message always stays, and the list never
+    opens with an assistant message (some providers refuse a conversation that does)."""
+    if len(history) > BOT_HISTORY_MAX_MESSAGES:
+        del history[:len(history) - BOT_HISTORY_MAX_MESSAGES]
+    total = sum(len(str(m.get("content") or "")) for m in history)
+    while len(history) > 1 and total > BOT_HISTORY_MAX_CHARS:
+        total -= len(str(history.pop(0).get("content") or ""))
+    while len(history) > 1 and history[0].get("role") == "assistant":
+        history.pop(0)
 
 
 def _bot_ghim_duong(runtime_trace, prov, api_model, messages, tools=()):
@@ -24679,7 +26680,7 @@ async def _bot_doc_stream(stream, *, progress, runtime_trace, prov, api_model):
 def _bot_ket(out, lich_su):
     """Đóng gói câu trả lời của một lượt bot đã chạy được."""
     lich_su.append({"role": "assistant", "content": out})
-    _bot_cat_lich_su(lich_su)   # cắt SAU khi thêm, không thì trần bị vượt đúng một lượt mỗi vòng
+    _trim_bot_history(lich_su)   # cắt SAU khi thêm, không thì trần bị vượt đúng một lượt mỗi vòng
     return {"text": channel_context.strip_control_blocks(out), "files": []}
 
 
@@ -24807,7 +26808,7 @@ async def _bot_tra_loi(text, *, sess, sysprompt, prov, api_key, api_model, reaso
 
     Vì sao không đi theo bốn nhánh engine như đường chat của chủ:
 
-    1. **Để đổi bộ não không đổi trải nghiệm.** Đó là lời hứa gốc của Vanhanh. Đi bốn nhánh thì
+    1. **Để đổi bộ não không đổi trải nghiệm.** Đó là lời hứa gốc của Naota. Đi bốn nhánh thì
        Claude Code có Bash, Codex có kho MCP riêng, engine API bị trần vòng gọi tool - ba
        kiểu hành xử khác nhau cho cùng một con bot, và chủ đổi model là khách thấy khác ngay.
        Ở đây mọi engine nhận CÙNG system prompt, CÙNG tài liệu, CÙNG lịch sử, và đều không có
@@ -24832,9 +26833,9 @@ async def _bot_tra_loi(text, *, sess, sysprompt, prov, api_key, api_model, reaso
     `_bot_tra_loi_co_tool`. Hai đường tách hẳn nhau CÓ CHỦ Ý: đường này phải soi được bằng mắt
     là không có tool nào, và một test canh đúng thân hàm này (test_chatbot_cach_ly.py mục B2).
     """
-    lich_su = _bot_lich_su(sess)
+    lich_su = _bot_history(sess)
     lich_su.append({"role": "user", "content": _bot_lich_su_chu(text, images)})
-    _bot_cat_lich_su(lich_su)
+    _trim_bot_history(lich_su)
 
     # System dựng LẠI mỗi lượt: tài liệu tra được đổi theo từng câu hỏi. Giữ system cũ là bot
     # trả lời câu này bằng tài liệu của câu trước.
@@ -24950,9 +26951,10 @@ _MO_ANH_BANG_CONG_CU = ("anthropic-cli", "openai-oauth")
 
 
 def _bot_co_dong_ho(sys_bot, bot):
-    """Prompt of a lower-level bot plus the clock line. These bots have no `vanhanh_now` and no admin prompt (a full-power
-    bot gets the clock from there), so "is the shop open now?" was answered by guessing. Rebuilt every turn."""
-    return str(sys_bot or "") + "\n\n" + context_compiler.dong_ho(lang=str((bot or {}).get("ngon_ngu") or ""))
+    """Prompt of a lower-level bot plus the clock line. These bots have no `naota_now` and no admin prompt (a full-power
+    bot gets the clock from there), so "is the shop open now?" was answered by guessing. Rebuilt every turn.
+    A bot has no language pin any more (it follows its customer), so the line uses the machine's default."""
+    return str(sys_bot or "") + "\n\n" + context_compiler.dong_ho()
 
 
 def _bot_full_prompt(brain, sys_bot, lang, conv_sid=""):
@@ -24961,13 +26963,13 @@ def _bot_full_prompt(brain, sys_bot, lang, conv_sid=""):
 
     Đủ prompt admin vì chủ muốn bot Toàn quyền làm được đúng những gì kênh admin làm, và phần hướng
     dẫn công cụ, kỹ năng, giao việc nằm ở đó. Vai Agent đứng SAU và nói rõ nó thắng phần giới thiệu
-    Vanhanh ở trên, để bot vẫn là con bot chủ dựng chứ không tự xưng Vanhanh với khách."""
+    Naota ở trên, để bot vẫn là con bot chủ dựng chứ không tự xưng Naota với khách."""
     base = build_system_prompt(brain, lang=lang, session_id=conv_sid or "")
     return (base + "\n\n# === BOT TOÀN QUYỀN: VAI CỦA BẠN TRONG CUỘC CHAT NÀY ===\n"
             "Bạn đang trả lời qua một bot chuyên trách mà chủ đã đặt ở mức TOÀN QUYỀN: bạn có đủ công "
-            "cụ, kết nối, kỹ năng và quyền thao tác như khi chủ chat trực tiếp với Vanhanh. Người đang "
+            "cụ, kết nối, kỹ năng và quyền thao tác như khi chủ chat trực tiếp với Naota. Người đang "
             "nhắn có thể KHÔNG phải chủ. Nói chuyện theo đúng vai và quy định dưới đây; chỗ nào khác "
-            "phần giới thiệu Vanhanh ở trên thì làm theo phần dưới.\n\n" + str(sys_bot or ""))
+            "phần giới thiệu Naota ở trên thì làm theo phần dưới.\n\n" + str(sys_bot or ""))
 
 
 async def _bot_tra_loi_co_tool(text, *, sess, sysprompt, prov, api_key, api_model, reasoning,
@@ -24990,7 +26992,7 @@ async def _bot_tra_loi_co_tool(text, *, sess, sysprompt, prov, api_key, api_mode
     2. **Không lệnh máy, không lang thang web.** Không Bash, không WebFetch, không WebSearch,
        không Task - vì chúng vốn không nằm trong hub.
     3. **Mức quyền là lớp CỨNG, không phải lời dặn.** `muc_quyen` đi thẳng vào `discover_all`
-       rồi thành header `X-Vanhanh-Mode`: mức `auto` thì hub tự chặn nhóm nguy hiểm (tiền, đơn,
+       rồi thành header `X-Naota-Mode`: mức `auto` thì hub tự chặn nhóm nguy hiểm (tiền, đơn,
        gửi tin, đăng bài) ngay tại chỗ gọi, bất kể prompt nói gì và khách dụ khéo cỡ nào.
 
     Cái KHÔNG còn nữa, và chủ phải biết trước khi bật: ở mức này người điều khiển tool là KHÁCH
@@ -25003,9 +27005,9 @@ async def _bot_tra_loi_co_tool(text, *, sess, sysprompt, prov, api_key, api_mode
     rò tài liệu: hỏi một câu vu vơ đúng lúc có file khác vừa sinh ra là nhận được nó. Bot muốn
     đưa file cho khách thì nói đường dẫn trong câu trả lời.
     """
-    lich_su = _bot_lich_su(sess)
+    lich_su = _bot_history(sess)
     lich_su.append({"role": "user", "content": _bot_lich_su_chu(text, images)})
-    _bot_cat_lich_su(lich_su)
+    _trim_bot_history(lich_su)
     messages = [{"role": "system", "content": sysprompt}] + lich_su
     gui, co_anh = _bot_gan_anh(messages, prov, text, images)
     canh_bao_anh = ""
@@ -25136,16 +27138,16 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
     # bot Telegram phục vụ nhiều người, và ngôn ngữ của người này không được tràn sang người
     # kia.
     #
-    # Với bot chuyên trách thì ngôn ngữ do BẢN GHI BOT quyết, và cố ý KHÔNG truyền
-    # `reply_pref` của chủ xuống: bot ghim "auto" nghĩa là "bám theo khách", còn tràn cài đặt
-    # của chủ vào đó là phá đúng lý do trường `ngon_ngu` tồn tại - chủ người Việt bán cho
-    # khách Nhật thì ngôn ngữ của chủ là thông tin SAI để suy ra ngôn ngữ của bot.
+    # Bot chuyên trách bám theo KHÁCH: ngôn ngữ của chủ là thông tin sai để suy ra ngôn ngữ của bot (chủ người
+    # Việt bán cho khách Nhật). Từ 15/11/2026 bot cũng không còn ô ghim ngôn ngữ riêng.
     _lc_kenh = cfgmod.read_settings().get("locale") or {}
     _lang_qd = lang_mod.resolve(
-        turn_text=text,
-        chatbot_pin=(bot or {}).get("ngon_ngu") or "",
-        reply_pref=("" if bot else (_lc_kenh.get("reply_lang") or "auto")),
-        channel_default=(_ngon_ngu_cuoc_goi(meta) or ("vi" if channel == "zalo" and not bot else "")),
+        turn_text=_lang_turn_text(text),   # the person's own words, not Naota's blocks (2026-11-15)
+        # No Settings pin and no bot pin since 2026-11-15 (owner): a customer bot follows its customer, and anyone
+        # who wants a fixed language says so (in the chat, the profile or the bot's Agent file).
+        # Only a voice call names a language here (the caller's speech). Zalo owner chats used to default to
+        # Vietnamese ("a Vietnamese platform"); since 2026-11-15 they follow whoever writes, like every channel.
+        channel_default=_ngon_ngu_cuoc_goi(meta),
         ui_lang=("" if bot else (_lc_kenh.get("ui_lang") or "")),
     )
     try:
@@ -25162,9 +27164,9 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
                 pass
     # Block kênh (port gateway hermes-agent): engine biết đang trả lời qua đâu, ai đang nhắn,
     # và cách gửi file trả về (auto-attach + endpoint send-file).
-    # telegram_running phải theo kênh THẬT: bật cờ đó cho lượt CLI là dạy Vanhanh một công thức
+    # telegram_running phải theo kênh THẬT: bật cờ đó cho lượt CLI là dạy Naota một công thức
     # gửi file qua Telegram trong khi người hỏi đang ngồi ở terminal.
-    # Bot chuyên trách KHÔNG dùng system prompt của Vanhanh: prompt đó dạy cách điều phối, ghi
+    # Bot chuyên trách KHÔNG dùng system prompt của Naota: prompt đó dạy cách điều phối, ghi
     # vault, giao việc - toàn thứ bot trả lời người ngoài không được làm. Nó dùng prompt của
     # chính Agent nó trỏ tới. Xem chatbot_runtime.build_bot_prompt.
     _bot_full = False   # bot mức Toàn quyền: chạy ĐÚNG đường engine của kênh admin
@@ -25174,6 +27176,12 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
         # nêu đường dẫn thư mục thật của brain - kiến thức vận hành, không phải thứ đưa cho
         # một con bot đang nói chuyện với người lạ.
         _sys_bot = chatbot_runtime.build_bot_prompt(bot)
+        try:
+            # A customer talking to a bot is activity in this brain: a waiting self-learning batch
+            # starts its quiet time over (it runs 15 minutes after the LAST event, owner 10/11/2026).
+            learn_feature.touch(brain)
+        except Exception:   # noqa: BLE001
+            pass
         # Mức quyền đọc từ BẢN GHI, và giá trị lạ (file sửa tay, bản ghi cũ) rơi về Chỉ đọc.
         # Fail-closed là bắt buộc ở đây: đoán sai theo hướng kia là cấp tool cho một con bot
         # đang nói chuyện với người lạ.
@@ -25190,7 +27198,12 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
         # Nên mức này KHÔNG dừng ở đây: nó rơi xuống đúng các nhánh engine của chủ bên dưới (công cụ
         # gốc, MCP hub, kết nối của tài khoản Claude/ChatGPT, kỹ năng), chỉ khác hai chỗ: prompt mang
         # VAI của Agent, và brain là brain của bot. Đường tắt, nguồn chọn lọc và gateway huỷ lịch của
-        # chủ bị bỏ qua vì chúng thay prompt bằng giọng Vanhanh.
+        # chủ bị bỏ qua vì chúng thay prompt bằng giọng Naota.
+        if _muc != "full" and sess.get("bot") is None:
+            # First turn of this chat since the server started: the history lived in RAM only, so read a private
+            # chat back from the inbox instead of meeting a returning customer as a stranger. Full-access bots
+            # take the owner's engine branches below, which rebuild their own history from the session store.
+            sess["bot"] = chatbot_runtime.private_history(bot, meta, BOT_HISTORY_MAX_MESSAGES)
         if _muc == "full":
             _bot_full = True
             _sys_bot_full = _sys_bot
@@ -25251,7 +27264,7 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
         # HƯỚNG DẪN project đi cả vào đường tiết kiệm; danh sách tài liệu thì không.
         # Hướng dẫn là hợp đồng hành xử ("luôn trả lời bằng tiếng Anh"), vài trăm ký tự, và bỏ
         # nó đi nghĩa là cùng một project cùng một câu hỏi mà lượt này tuân luật lượt kia
-        # không - người dùng không có cách nào biết vì sao, chỉ thấy Vanhanh bướng. Danh sách
+        # không - người dùng không có cách nào biết vì sao, chỉ thấy Naota bướng. Danh sách
         # tài liệu là dữ liệu tra cứu, bỏ thì cùng lắm model phải hỏi lại.
         _n = build_adaptive_source_prompt(
             brain, include_memory=include_memory, include_skills=include_skills, routing_overlays=kind == "api")
@@ -25260,6 +27273,7 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
                 _n += _project_block(_pid, chi_huong_dan=True)
             except Exception:
                 pass
+            _n += _project_learned_block(_pid)   # 2026-11-13: short and distilled, so it rides the saving path too
         return _n
 
     if _bot_full:
@@ -25267,11 +27281,11 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
     elif agent:
         sysprompt = _cli_agent_prompt(brain, agent["slug"], conv_sid,
                                       channel=("telegram" if channel == "telegram"
-                                               # `call_lang` is set only by a voice call (_voice_ask_vanhanh)
+                                               # `call_lang` is set only by a voice call (_voice_ask_naota)
                                                else "voice" if "call_lang" in (meta or {}) else "cli"))
     try:
         if _bot_full or agent:
-            raise _BoQua()   # selected sources swap the prompt for Vanhanh's voice: not for a bot or an agent
+            raise _BoQua()   # selected sources swap the prompt for Naota's voice: not for a bot or an agent
         _p8 = await asyncio.to_thread(
             _get_adaptive_context().prepare, runtime_trace, text, _brain_root(brain),
             str(conv_sid or chat_id), [], channel, prov,
@@ -25289,12 +27303,12 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
     # có đường nào khác để đi, nên cứ chạy tiếp và để nhà cung cấp nói nếu thật sự quá hạn mức.
     if not sysprompt:
         sysprompt = build_system_prompt(brain, lang=_lang_qd, project_id=_pid,
-                                        session_id=conv_sid or "")
+                                        session_id=conv_sid or "") + _project_learned_block(_pid)
     if not _bot_full:
         # Khối kênh dạy cách tự gửi file qua Telegram của CHỦ và cách báo kết quả việc nền về chủ:
         # với bot thì người nhắn là người khác, nên bỏ.
         sysprompt += channel_context.build_channel_block(
-            channel, meta, telegram_running=(channel == "telegram"), port=_vanhanh_port(),
+            channel, meta, telegram_running=(channel == "telegram"), port=_naota_port(),
             brain_root=_brain_root(brain))
     if kind in ("cli", "oauth"):
         _schedule_registry_discovery_shadow(
@@ -25303,7 +27317,7 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
             api_model or mcfg.get("claude_model") or "mặc định", kind,
         )
     # The plain-words schedule cancel gateway is the owner's shortcut; a full-access bot and an agent
-    # turn still cancel through the vanhanh_schedule tool. The shortcut answers in Vanhanh's voice, not
+    # turn still cancel through the naota_schedule tool. The shortcut answers in Naota's voice, not
     # in the agent's role.
     schedule_action = None if (_bot_full or agent) else await _schedule_cancel_action(text, brain)
     if schedule_action:
@@ -25318,7 +27332,7 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
             _fp = await asyncio.to_thread(
                 _FAST_PATH.prepare, runtime_trace, text, _brain_root(brain), channel, prov,
                 api_model or mcfg.get("claude_model") or "mặc định", kind, False,
-                _lang_qd.lang_cau_hoi, _lang_qd.lang)
+                _lang_qd.lang_cau_hoi, _lang_qd.capsule_lang)
         except Exception as _e:
             _fp = None
             _CONTEXT_RUNTIME.record_runtime_event(
@@ -25358,7 +27372,7 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
         _apply_grok_hub(kcli, _brain_root(brain))
         _plan_account_apply(kcli, "grok-cli")   # the Grok account that should run now
         if not kcli.is_available():
-            return ("⚠ Chưa cài Grok Build CLI trên máy chạy Vanhanh. Cài một lần:\n"
+            return ("⚠ Chưa cài Grok Build CLI trên máy chạy Naota. Cài một lần:\n"
                     f"`{grok_cli.lenh_cai()}`\n"
                     "Rồi đăng nhập ở thẻ Grok trên trang Models.")
         _hoi = text
@@ -25404,7 +27418,7 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
         acli.mode = "full"
         _apply_antigravity_hub(acli, _brain_root(brain))
         if not acli.is_available():
-            return ("⚠ Chưa cài Antigravity CLI trên máy chạy Vanhanh. Cài một lần:\n"
+            return ("⚠ Chưa cài Antigravity CLI trên máy chạy Naota. Cài một lần:\n"
                     f"`{antigravity_cli.lenh_cai()}`\n"
                     "Rồi gõ `agy` một lần để đăng nhập Google.")
         _hoi = text
@@ -25589,7 +27603,7 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
             sess["or"] = [{"role": "system", "content": sysprompt + ident}]
             # Lịch sử này chỉ sống trong RAM, nên restart là mất. Dựng lại từ transcript đã
             # lưu (xem `_tg_lich_su_kho`) - đây là nửa THẬT SỰ quan trọng với người dùng chạy
-            # engine API: nối lại được id phiên mà lịch sử vẫn rỗng thì Vanhanh vẫn quên sạch.
+            # engine API: nối lại được id phiên mà lịch sử vẫn rỗng thì Naota vẫn quên sạch.
             #
             # Chỉ chạy khi `sess["or"]` rỗng, tức phiên vừa dựng: đang chat liên tục thì khối
             # này không đụng tới. /reset và đổi brain xoá cả sid lẫn liên kết bền nên
@@ -25749,7 +27763,7 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
         except Exception as _e:
             print(f"[link file telegram] {type(_e).__name__}: {_e}", file=sys.stderr)
         # File sinh ra trong lượt → bot gửi đính kèm SAU câu trả lời (xem telegram_bot._handle_turn).
-        # vault_root = brain phiên này: ảnh Vanhanh tạo nhúng dạng ![](attachments/x.png) (path tương
+        # vault_root = brain phiên này: ảnh Naota tạo nhúng dạng ![](attachments/x.png) (path tương
         # đối) được resolve về gốc vault để tự đính kèm về ĐÚNG người đang chat, khỏi phải curl.
         files = channel_context.collect_turn_files(out, written, t0,
                                                    cwd=_brain_root(brain), exclude=sess["sent"],
@@ -25763,7 +27777,7 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
 
 async def _tg_help_text(brain):
     return (
-        "🤖 Vanhanh Telegram\n\n"
+        "🤖 Naota Telegram\n\n"
         "Lệnh:\n"
         "/status - engine, model, vault, trạng thái\n"
         "/skills - liệt kê skill\n"
@@ -25775,14 +27789,14 @@ async def _tg_help_text(brain):
         "/cli - engine Claude (có MCP/skill)\n"
         "/or - engine OpenRouter (chat + MCP đa-model)\n"
         "/retry - gửi lại câu gần nhất\n"
-        "/usage - token và chi phí Vanhanh đã dùng\n"
+        "/usage - token và chi phí Naota đã dùng\n"
         "/tasks - việc nền đang chạy, xếp hàng, bị kẹt\n"
         "/memory - mục lục bộ nhớ dài hạn của brain\n"
         "/plan <việc> - chỉ lập kế hoạch, chưa làm gì ra ngoài\n"
         "/reset - hội thoại mới · /stop - dừng\n\n"
-        "Gửi tin thường để hỏi Vanhanh. ChatGPT/Codex và OpenRouter đều dùng được MCP của Vanhanh.\n"
+        "Gửi tin thường để hỏi Naota. ChatGPT/Codex và OpenRouter đều dùng được MCP của Naota.\n"
         "Gõ /tên-skill để gọi skill (cần engine Claude CLI).\n"
-        "Gửi file/ảnh vào đây để Vanhanh đọc. File Vanhanh tạo ra sẽ tự gửi lại cho bạn ở đây."
+        "Gửi file/ảnh vào đây để Naota đọc. File Naota tạo ra sẽ tự gửi lại cho bạn ở đây."
     )
 
 
@@ -26089,7 +28103,7 @@ async def _tg_command(cmd, arg, chat=None, meta=None):
         # không tốn gì - lượt kế cũng tạo.
         sess = _tg_session(chat_key)
         # Cắt mạch của CẢ BỐN engine. Trước đây chỉ Claude Code được reset và Codex bị vứt đối
-        # tượng, còn Grok/Antigravity giữ nguyên mạch native - /reset xong Vanhanh vẫn nhớ y
+        # tượng, còn Grok/Antigravity giữ nguyên mạch native - /reset xong Naota vẫn nhớ y
         # nguyên, đúng thứ người dùng gõ lệnh này để thoát khỏi.
         _tg_ngat_mach(sess)
         sess["or"] = None
@@ -26116,7 +28130,7 @@ async def _tg_command(cmd, arg, chat=None, meta=None):
         prov, model, ghim = _tg_model_hieu_luc(chat_key)
         busy = _tg_chat_busy(chat_key)
         bname = brain_label.display(_brain_root(brain))
-        return {"reply": ("📊 Trạng thái Vanhanh\n"
+        return {"reply": ("📊 Trạng thái Naota\n"
                           f"Provider: {prov}\n"
                           f"Model: {model}"
                           + (localefmt.chu(" (📌 ghim riêng cho cuộc trò chuyện này)", " (📌 pinned to this chat)")
@@ -26178,7 +28192,7 @@ async def _tg_command(cmd, arg, chat=None, meta=None):
         try:
             _or = await _openrouter_credits(cfgmod.read_settings().get("model", {}) or {})
         except Exception:
-            _or = None    # số dư là phần thêm: hỏng thì vẫn in số Vanhanh tự đo
+            _or = None    # số dư là phần thêm: hỏng thì vẫn in số Naota tự đo
         return {"reply": lenh_he_thong.dinh_dang_muc_dung(usage_store.summary(), _or)}
     if cmd in ("tasks", "viec"):
         try:
@@ -26194,7 +28208,7 @@ async def _tg_command(cmd, arg, chat=None, meta=None):
         # có cổng chặn ở hub: lượt Telegram chưa mang mức quyền riêng từng lượt.
         if not arg.strip():
             return {"reply": "Gõ /plan kèm việc cần lên kế hoạch, ví dụ: /plan dọn lại kho hàng "
-                             "cuối tháng. Vanhanh chỉ đọc và đề xuất, chưa làm gì ra ngoài."}
+                             "cuối tháng. Naota chỉ đọc và đề xuất, chưa làm gì ra ngoài."}
         return {"ask": lenh_he_thong.khoi_ke_hoach() + arg.strip()}
     if cmd == "agents":
         ags = agents_index(brain, kem_prompt=False)   # lệnh này chỉ in tên + vai trò
@@ -26252,12 +28266,12 @@ async def _tg_command(cmd, arg, chat=None, meta=None):
 
 
 # ---- Talking to an agent (partner) from the owner's Telegram bot ----
-# Seen in practice: "@TEST-Thẩm định viên ..." over Telegram was answered by Vanhanh,
+# Seen in practice: "@TEST-Thẩm định viên ..." over Telegram was answered by Naota,
 # and the partner's run log had no turn; the only command was /agents, which just lists them.
 # Now, in the OWNER's bot and only in a chat on its whitelist:
 #   - a message that starts with `@<agent name or slug>` is one turn of that agent;
-#   - `/agent <name>` makes that agent answer every message of the chat, `/agent off` goes back to Vanhanh;
-#   - `@vanhanh ...` asks Vanhanh one question while an agent is picked.
+#   - `/agent <name>` makes that agent answer every message of the chat, `/agent off` goes back to Naota;
+#   - `@naota ...` asks Naota one question while an agent is picked.
 # The turn itself is the CLI agent turn (`_tg_answer(..., agent=...)`): agent prompt, model,
 # own session, lessons, rules and run log. Customer-facing bot accounts (chatbot_runtime) have their own
 # answer and command functions, so none of this is reachable from them.
@@ -26292,9 +28306,9 @@ def _agent_name_key(s) -> str:
     return re.sub(r"[\s_\-]+", " ", _fold_accents(str(s or ""))).strip()
 
 
-# What `@...` or `/agent ...` call Vanhanh itself (the main assistant, not an agent of the brain).
-_TG_VANHANH_KEYS = frozenset({"vanhanh", _agent_name_key(vanhanh_core.NAME), _agent_name_key(vanhanh_core.SLUG)})
-_TG_AGENT_OFF = frozenset({"off", "tat", "huy", "none", "stop"}) | _TG_VANHANH_KEYS
+# What `@...` or `/agent ...` call Naota itself (the main assistant, not an agent of the brain).
+_TG_NAOTA_KEYS = frozenset({"naota", _agent_name_key(naota_core.NAME), _agent_name_key(naota_core.SLUG)})
+_TG_AGENT_OFF = frozenset({"off", "tat", "huy", "none", "stop"}) | _TG_NAOTA_KEYS
 
 
 def _tg_agent_rows(brain_root) -> list:
@@ -26302,7 +28316,7 @@ def _tg_agent_rows(brain_root) -> list:
     out = []
     try:
         for f in sorted(_agents_dir(brain_root).glob("*.md")):
-            if vanhanh_core.is_core_slug(f.stem):
+            if naota_core.is_core_slug(f.stem):
                 continue
             try:
                 meta, _ = _read_md(f)
@@ -26329,7 +28343,7 @@ _TG_MENTION_WORDS = 8   # longest agent name, in words, that a mention is tried 
 def _tg_agent_mention(text, rows, bot_username=""):
     """Read a leading `@<agent>` mention. Returns (kind, hits, rest):
 
-    kind "" (no mention: `rest` is the text unchanged), "agent" (one agent, `hits[0]`), "vanhanh",
+    kind "" (no mention: `rest` is the text unchanged), "agent" (one agent, `hits[0]`), "naota",
     "ambiguous" (several agents share that name, `hits`) or "unknown". Names have spaces, so the
     LONGEST run of words that names an agent wins ("@Writer Pro ..." picks "Writer Pro" over
     "Writer"). A leading mention of the bot itself (`@my_bot`, as in a group) is skipped first.
@@ -26348,10 +28362,10 @@ def _tg_agent_mention(text, rows, bot_username=""):
         end = words[n - 1].end()
         key = _agent_name_key(body[:end].rstrip(",.:;!?"))
         hits = [r for r in rows if key in (_agent_name_key(r["slug"]), _agent_name_key(r["name"]))]
-        if hits or key in _TG_VANHANH_KEYS:
+        if hits or key in _TG_NAOTA_KEYS:
             rest = re.sub(r"^[\s,:;]*(?:-\s+)?", "", body[end:])
             if not hits:
-                return "vanhanh", [], rest
+                return "naota", [], rest
             return ("agent" if len(hits) == 1 else "ambiguous"), hits, rest
     return "unknown", [], s
 
@@ -26372,14 +28386,14 @@ def _tg_agent_list_text(rows, head="") -> str:
     lines = [f"• {r['name']}" + (f" ({r['slug']})" if _agent_name_key(r["name"]) != _agent_name_key(r["slug"]) else "")
              for r in rows[:30]]
     return ((head + "\n\n") if head else "") + "\n".join(lines) + "\n\n" + localefmt.chu(
-        "Gõ @<tên> <câu hỏi> để hỏi một câu, hoặc /agent <tên> để cộng sự đó trả lời cả chat (/agent off để về Vanhanh).",
+        "Gõ @<tên> <câu hỏi> để hỏi một câu, hoặc /agent <tên> để cộng sự đó trả lời cả chat (/agent off để về Naota).",
         "Type @<name> <question> to ask once, or /agent <name> to let that partner answer the whole chat "
-        "(/agent off to go back to Vanhanh).")
+        "(/agent off to go back to Naota).")
 
 
 def _tg_agent_pinned(chat, root, rows):
     """(row, notice) of the agent picked with /agent for this chat. A pick whose brain changed (/brain)
-    or whose agent is gone is dropped, with a notice saying Vanhanh answers again."""
+    or whose agent is gone is dropped, with a notice saying Naota answers again."""
     pin = _TG_AGENT_MAP.get(str(chat))
     if not pin:
         return None, ""
@@ -26389,8 +28403,8 @@ def _tg_agent_pinned(chat, root, rows):
     _TG_AGENT_MAP.pop(str(chat), None)
     _tg_save_agent_map()
     return None, localefmt.chu(
-        f"(Cộng sự '{pin.get('slug')}' đã chọn không còn trong brain này, Vanhanh trả lời lại từ đây.)",
-        f"(The partner '{pin.get('slug')}' picked earlier is not in this brain any more, Vanhanh answers from here.)")
+        f"(Cộng sự '{pin.get('slug')}' đã chọn không còn trong brain này, Naota trả lời lại từ đây.)",
+        f"(The partner '{pin.get('slug')}' picked earlier is not in this brain any more, Naota answers from here.)")
 
 
 def _tg_agent_route(chat, text, bot_username="") -> dict:
@@ -26403,9 +28417,9 @@ def _tg_agent_route(chat, text, bot_username="") -> dict:
     root = _brain_root(_tg_brain(key))
     rows = _tg_agent_rows(root)
     if not rows:
-        return out   # nothing to pick: an `@someone` message is just a message to Vanhanh
+        return out   # nothing to pick: an `@someone` message is just a message to Naota
     kind, hits, rest = _tg_agent_mention(text, rows, bot_username)
-    if kind == "vanhanh":
+    if kind == "naota":
         out["text"] = rest or text
         return out
     if kind == "unknown":
@@ -26437,7 +28451,7 @@ def _tg_agent_route(chat, text, bot_username="") -> dict:
 
 def _tg_owner_precheck(text, meta):
     """Owner bot precheck: a mention that names no agent, or several, is answered with the list
-    BEFORE a turn starts (no "Vanhanh is working" message, no turn spent on a guess)."""
+    BEFORE a turn starts (no "Naota is working" message, no turn spent on a guess)."""
     m = meta or {}
     r = _tg_agent_route(m.get("chat_id"), text, m.get("bot_username") or "")
     return {"reply": r["reply"]} if r["reply"] else None
@@ -26490,15 +28504,15 @@ async def _tg_owner_command(cmd, arg, chat=None, meta=None):
             had = _TG_AGENT_MAP.pop(chat_key, None)
             if had:
                 _tg_save_agent_map()
-            return {"reply": localefmt.chu("Vanhanh trả lời chat này như thường.",
-                                           "Vanhanh answers this chat as usual.")}
+            return {"reply": localefmt.chu("Naota trả lời chat này như thường.",
+                                           "Naota answers this chat as usual.")}
         if not rows:
             return {"reply": localefmt.chu("Brain này chưa có cộng sự nào (tạo ở trang Cộng sự trên dashboard).",
                                            "This brain has no partner yet (create one on the Partners page).")}
         if not a:
             cur, notice = _tg_agent_pinned(chat_key, root, rows)
             head = (localefmt.chu(f"Đang trả lời chat này: {cur['name']}.", f"Answering this chat: {cur['name']}.")
-                    if cur else localefmt.chu("Đang trả lời chat này: Vanhanh.", "Answering this chat: Vanhanh."))
+                    if cur else localefmt.chu("Đang trả lời chat này: Naota.", "Answering this chat: Naota."))
             return {"reply": _tg_agent_list_text(rows, "\n".join(x for x in (notice, head) if x))}
         hits = _tg_agent_find(rows, a)
         if len(hits) != 1:
@@ -26511,12 +28525,12 @@ async def _tg_owner_command(cmd, arg, chat=None, meta=None):
         _tg_save_agent_map()
         name = hits[0]["name"]
         return {"reply": localefmt.chu(
-            f"🤝 Từ giờ {name} trả lời chat này. Gõ @vanhanh <câu hỏi> để hỏi Vanhanh một câu, /agent off để về Vanhanh.",
-            f"🤝 {name} answers this chat from now on. Type @vanhanh <question> to ask Vanhanh once, /agent off to go back.")}
+            f"🤝 Từ giờ {name} trả lời chat này. Gõ @naota <câu hỏi> để hỏi Naota một câu, /agent off để về Naota.",
+            f"🤝 {name} answers this chat from now on. Type @naota <question> to ask Naota once, /agent off to go back.")}
     res = await _tg_command(cmd, arg, chat, meta)
     if cmd in ("reset", "new", "clear"):
         # The chat's agent conversations live in their own sessions (`_agent_sess_key`): /reset
-        # starts those over too, not only Vanhanh's.
+        # starts those over too, not only Naota's.
         pre = chat_key + "@"
         for k in {k for k in list(_TG_SESS) + list(_TG_SID_MAP) if str(k).startswith(pre)}:
             s = _tg_session(k)
@@ -26527,14 +28541,14 @@ async def _tg_owner_command(cmd, arg, chat=None, meta=None):
             _tg_quen_sid(s)
     elif cmd in ("agents", "help", "menu", "start") and isinstance(res, dict) and "reply" in res:
         res["reply"] += "\n\n" + localefmt.chu(
-            "/agent <tên> - chọn cộng sự trả lời chat này (/agent off: về Vanhanh) · @<tên> <câu hỏi> - hỏi cộng sự một câu",
-            "/agent <name> - pick the partner that answers this chat (/agent off: back to Vanhanh) · "
+            "/agent <tên> - chọn cộng sự trả lời chat này (/agent off: về Naota) · @<tên> <câu hỏi> - hỏi cộng sự một câu",
+            "/agent <name> - pick the partner that answers this chat (/agent off: back to Naota) · "
             "@<name> <question> - ask a partner once")
     elif cmd == "status" and isinstance(res, dict) and "reply" in res:
         pin = _TG_AGENT_MAP.get(chat_key)
         if pin:
-            res["reply"] += "\n" + localefmt.chu(f"Cộng sự: {pin.get('slug')} (/agent off để về Vanhanh)",
-                                                 f"Partner: {pin.get('slug')} (/agent off to go back to Vanhanh)")
+            res["reply"] += "\n" + localefmt.chu(f"Cộng sự: {pin.get('slug')} (/agent off để về Naota)",
+                                                 f"Partner: {pin.get('slug')} (/agent off to go back to Naota)")
     return res
 
 
@@ -26557,7 +28571,7 @@ async def _stt_nghe(data, ten="", agent=None):
     _cfg = cfgmod.read_settings()
     key = (_cfg.get("model") or {}).get("groq_api_key") or ""
     # Gợi ý ngôn ngữ theo cấu hình. reply_lang="auto" -> truyền "" để Whisper TỰ DÒ, thay vì
-    # ép "vi" như trước: người nói tiếng Anh vào một Vanhanh đang để "auto" thì cái ép đó biến
+    # ép "vi" như trước: người nói tiếng Anh vào một Naota đang để "auto" thì cái ép đó biến
     # câu của họ thành một câu tiếng Việt sai nghĩa.
     _lc2 = _cfg.get("locale") or {}
     # Thứ tự: ngôn ngữ trả lời đã GHIM -> ngôn ngữ giao diện -> để Whisper tự dò.
@@ -26570,7 +28584,7 @@ async def _stt_nghe(data, ten="", agent=None):
     _ma = (lang_registry.chuan_hoa(_lc2.get("reply_lang") or "")
            or lang_registry.chuan_hoa(_lc2.get("ui_lang") or ""))
     # Cùng bộ từ vựng và lớp sửa nghe nhầm như mic trên dashboard (nghe_sua): tin thoại Telegram
-    # hay Zalo nói "Nauta" cũng phải ra "Vanhanh" trước khi vào bộ não.
+    # hay Zalo nói "Nauta" cũng phải ra "Naota" trước khi vào bộ não.
     _tv = nghe_sua.fix_vocabulary(_cfg)
     # not Groq only any more. Every ear the owner has is tried in turn (Groq, OpenAI, Gemini, then the
     # offline Whisper from the Tools page); one missing or failing hands over to the next (`stt.listen_any`).
@@ -26640,7 +28654,7 @@ def _zalo_ghi_cho(meta) -> str:
 
 
 def _zalo_cau_tu_choi(ma: str) -> str:
-    return ("Bạn chưa được cấp quyền dùng Vanhanh này.\n"
+    return ("Bạn chưa được cấp quyền dùng Naota này.\n"
             f"Mã ghép nối của bạn: {ma}\n"
             "Đưa mã này cho chủ máy để họ cho phép ở trang Kênh.")
 
@@ -26705,6 +28719,12 @@ def _zalo_precheck(text, meta):
     return {"reply": _zalo_ghi_cho(meta)}
 
 
+def _zalo_download_ok(chat) -> bool:
+    """Only an allowed chat has its photos, voice messages and files downloaded by the owner's Zalo bot."""
+    ids = tg_parse_ids(cfgmod.read_settings().get("zalo_bot", {}).get("chat_id"))
+    return str(chat or "").strip() in ids
+
+
 def _admin_bot_tokens() -> dict:
     """{chatbot channel: token} of the owner's admin bots that are switched on (Telegram, Zalo Bot). A dedicated bot on
     the Chatbot page never polls one of these (`chatbot_runtime.start_bot`): two pollers on one token split the
@@ -26731,7 +28751,8 @@ def restart_zalo_bot():
         # về mã ghép nối. Truyền cả hai là người lạ ăn hai câu từ chối cho một tin.
         _ZALO_BOT = zalo_bot.ZaloBot(z["token"], "", _zalo_answer, _zalo_command,
                                      download_dir=_zalo_inbox_dir,
-                                     precheck_fn=_zalo_precheck, stt_fn=_stt_nghe)
+                                     precheck_fn=_zalo_precheck, stt_fn=_stt_nghe,
+                                     download_ok_fn=_zalo_download_ok)
         _ZALO_BOT.start()
         try:
             chatbot_runtime.release_admin_token("zalo")   # a dedicated bot still polling this token lets go of it
@@ -26739,6 +28760,30 @@ def restart_zalo_bot():
             print(f"[zalo release] {type(e).__name__}: {e}", file=sys.stderr)
         return True
     return False
+
+
+ZALO_PUSH_MAX_BODY = 4096
+
+
+@app.post(zalo_push.PATH)
+async def zalo_push_wake(request: Request, conn: str = Query("")):
+    """A wake-up from a naota-zalo process this server started: "something landed in my live buffer" or "my Zalo
+    connection went up or down" (zalo_push.py). It carries no message; the read loop fetches those through the MCP
+    tool as always. Refused unless it comes straight from this machine (no tunnel, no proxy) with this server
+    process's bearer, so a page on the Internet or a naota-zalo of an earlier lifetime cannot make Naota do anything,
+    and all a valid call can do is make the loop read one account now."""
+    if not _direct_local_request(request):
+        return JSONResponse({"ok": False}, status_code=403)
+    if not zalo_push.token_ok(request.headers.get("authorization", "")):
+        return JSONResponse({"ok": False}, status_code=401)
+    raw = await request.body()
+    if len(raw) > ZALO_PUSH_MAX_BODY:
+        return JSONResponse({"ok": False}, status_code=413)
+    try:
+        body = json.loads(raw.decode("utf-8") or "{}")
+    except (ValueError, UnicodeDecodeError):
+        body = {}
+    return zalo_personal_channel.on_push(conn, body if isinstance(body, dict) else {})
 
 
 @app.get("/zalo-bot/status")
@@ -26796,7 +28841,7 @@ async def zalo_bot_test():
             for cid in ids:
                 try:
                     r = await c.post(url, json={"chat_id": cid,
-                                                "text": "Vanhanh Zalo đã kết nối. Nhắn câu hỏi bất kỳ nhé."})
+                                                "text": "Naota Zalo đã kết nối. Nhắn câu hỏi bất kỳ nhé."})
                     d = r.json() if r.content else {}
                     if d.get("ok"):
                         sent += 1
@@ -26887,8 +28932,8 @@ async def whatsapp_webhook_verify(request: Request):
 async def whatsapp_webhook(request: Request):
     """Inbound WhatsApp messages. Public URL, so nothing is trusted before the signature check;
     a request no known app secret signed is dropped with 401 and never parsed further."""
-    raw = await request.body()
-    if len(raw) > 2_000_000:
+    raw = await _read_capped_body(request)
+    if raw is None:
         return PlainTextResponse("too large", status_code=413)
     sig = request.headers.get("x-hub-signature-256", "")
     if not whatsapp_bot.verify_signature(raw, sig, owner_channels.whatsapp_app_secrets(_wa_account_secrets())):
@@ -26915,7 +28960,7 @@ async def chatbot_api_turn(request: Request):
         headers = {"Retry-After": "900"} if body.get("code") == "banned" else None
         return JSONResponse(body, status_code=status, headers=headers)
 
-    # Source and key first, body after: nobody outside, or without the key, makes Vanhanh buffer a body, and a
+    # Source and key first, body after: nobody outside, or without the key, makes Naota buffer a body, and a
     # body is read only up to the channel's cap.
     account, bad = api_channel.gate(auth, ip, hdrs)
     if bad:
@@ -26932,6 +28977,29 @@ async def chatbot_api_turn(request: Request):
 # Messenger: customer bots on a Facebook Page. Meta calls one webhook for every Page;
 # `messenger_bot.handle_webhook` routes by Page id. No owner control channel here.
 # ============================================================
+WEBHOOK_BODY_MAX = 2_000_000
+
+
+async def _read_capped_body(request: Request, limit: int = WEBHOOK_BODY_MAX):
+    """The request body, or None when it is larger than `limit`. Never holds more than `limit` bytes.
+
+    Security fix (2026-11-10): the channel webhooks are public routes and called `await request.body()` before their
+    size check, so the whole body was already in memory when the check ran. A few multi-gigabyte POSTs from anybody were
+    enough to exhaust a small VPS, with no login and no valid signature. The length the client declares is checked
+    first, then the stream is read up to the cap and dropped the moment it passes it."""
+    try:
+        if int(request.headers.get("content-length") or 0) > limit:
+            return None
+    except ValueError:
+        return None
+    raw = bytearray()
+    async for chunk in request.stream():
+        raw.extend(chunk)
+        if len(raw) > limit:
+            return None
+    return bytes(raw)
+
+
 def _ms_verify_token() -> str:
     """The handshake string Meta echoes when the Messenger webhook is set up. Generated once."""
     m = cfgmod.read_settings().get("messenger", {}) or {}
@@ -26958,13 +29026,22 @@ def _ms_account_secrets() -> list:
 @app.get("/channels/webhook-info")
 async def channels_webhook_info(request: Request, channel: str = ""):
     """Address and verify token to paste into the platform for a channel that receives messages
-    by webhook (Messenger, Zalo OA). Shown on the Add account form; the verify token is not a secret."""
+    by webhook (Messenger, Zalo OA, WeChat). Shown on the Add account form to the signed-in owner."""
     kenh = str(channel or "").strip().lower()
     if kenh == "zalo_oa":
         url = _zo_webhook_url(request)
         return {"ok": True, "webhook_url": url, "verify_token": "", "https": url.startswith("https://"),
                 "site_verify": True, "site_codes": _zo_site_codes(),
                 "oauth_redirect": url[: -len("/zalo-oa/webhook")] + zalo_oa_oauth.CALLBACK_PATH}
+    if kenh == "wechat":
+        url = _wc_webhook_url(request)
+        # WeChat takes http on port 80 as well as https, so plain http is a warning in words, not a refusal.
+        return {"ok": True, "webhook_url": url, "verify_token": _wc_webhook_token(), "https": True,
+                "warning": "" if url.startswith("https://") else localefmt.chu(
+                    "WeChat chỉ gọi được địa chỉ công khai ở cổng 443 (https) hoặc 80. Mở Naota bằng tên miền "
+                    "HTTPS rồi mở lại form này để lấy đúng địa chỉ.",
+                    "WeChat can only call a public address on port 443 (https) or 80. Open Naota through its "
+                    "HTTPS domain, then reopen this form to get the right address.")}
     if kenh != "messenger":
         return JSONResponse({"ok": False, "error": localefmt.chu("Kênh này không dùng webhook",
                                                                  "This channel does not use a webhook")},
@@ -26992,8 +29069,8 @@ async def messenger_webhook_verify(request: Request):
 async def messenger_webhook(request: Request):
     """Inbound Messenger events. Public URL, so nothing is trusted before the signature check;
     a request no known app secret signed is dropped with 401 and never parsed further."""
-    raw = await request.body()
-    if len(raw) > 2_000_000:
+    raw = await _read_capped_body(request)
+    if raw is None:
         return PlainTextResponse("too large", status_code=413)
     sig = request.headers.get("x-hub-signature-256", "")
     if not messenger_bot.verify_signature(raw, sig, _ms_account_secrets()):
@@ -27128,7 +29205,7 @@ async def messenger_oauth_start(request: Request):
     res = await messenger_oauth.start(body.get("app_id"), body.get("app_secret"),
                                       _ms_base(request) + messenger_oauth.CALLBACK_PATH,
                                       str(body.get("brain") or ""), str(body.get("label") or ""),
-                                      instagram=bool(body.get("instagram")))
+                                      instagram=bool(body.get("instagram")), insights=bool(body.get("insights")))
     if not res.get("ok"):
         return JSONResponse(res, status_code=400)
     return res
@@ -27140,15 +29217,15 @@ async def messenger_oauth_callback(state: str = Query(""), code: str = Query("")
     res = await messenger_oauth.callback(state, code, error, error_description)
     if res.get("ok"):
         title = localefmt.chu("✓ Đã đăng nhập Facebook", "✓ Signed in with Facebook")
-        body = localefmt.chu(f"Tìm thấy {len(res['pages'])} Fanpage. Quay lại tab Vanhanh để chọn Trang muốn nối, "
+        body = localefmt.chu(f"Tìm thấy {len(res['pages'])} Fanpage. Quay lại tab Naota để chọn Trang muốn nối, "
                              "tab này tự đóng.",
-                             f"Found {len(res['pages'])} Page(s). Go back to the Vanhanh tab to pick the Pages to "
+                             f"Found {len(res['pages'])} Page(s). Go back to the Naota tab to pick the Pages to "
                              "connect, this tab closes by itself.")
     else:
         title = localefmt.chu("⚠ Chưa đăng nhập được", "⚠ Sign-in did not finish")
         body = str(res.get("error", ""))
     html = ("<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, "
-            "initial-scale=1'><title>Vanhanh</title></head><body style='font-family:system-ui,sans-serif;font-size:18px;"
+            "initial-scale=1'><title>Naota</title></head><body style='font-family:system-ui,sans-serif;font-size:18px;"
             "background:#111;color:#eee;text-align:center;padding:72px 16px'>"
             f"<h2>{html_mod.escape(title)}</h2><p>{html_mod.escape(body)}</p>"
             + ("<script>setTimeout(function(){try{window.close()}catch(e){}},1500)</script>" if res.get("ok") else "")
@@ -27228,7 +29305,7 @@ async def _ms_link_instagram(c, page_id: str, page_token: str, app_id: str, app_
 
 @app.post("/messenger/instagram")
 async def messenger_instagram_toggle(request: Request):
-    """Turn a Page's Instagram on or off in Vanhanh. Off: its messages and comments are dropped."""
+    """Turn a Page's Instagram on or off in Naota. Off: its messages and comments are dropped."""
     try:
         body = await request.json()
     except Exception:
@@ -27274,9 +29351,9 @@ async def messenger_comments_mode(request: Request):
 async def messenger_privacy():
     """Privacy policy and data deletion page for the owner's Meta app (needed to go Live)."""
     try:
-        brand = str(cfgmod.read_settings().get("workspace_name") or "") or "VANHANH"
+        brand = str(cfgmod.read_settings().get("workspace_name") or "") or "NAOTA"
     except Exception:
-        brand = "VANHANH"
+        brand = "NAOTA"
     pages = []
     try:
         pages = [(a.get("meta") or {}).get("bot_name") or a.get("label") or ""
@@ -27385,8 +29462,8 @@ async def threads_webhook(request: Request):
     """New replies under the owner's Threads posts. Nothing is trusted before the signature check under the
     Threads app secret of a connected account."""
     import threads_bot
-    raw = await request.body()
-    if len(raw) > 2_000_000:
+    raw = await _read_capped_body(request)
+    if raw is None:
         return PlainTextResponse("too large", status_code=413)
     if not threads_bot.verify_signature(raw, request.headers.get("x-hub-signature-256", ""), _th_account_secrets()):
         return PlainTextResponse("bad signature", status_code=401)
@@ -27472,14 +29549,14 @@ async def threads_oauth_callback(state: str = Query(""), code: str = Query(""), 
             threads_oauth._set(state, status="saved", account_id=aid)
     if res.get("ok"):
         title = localefmt.chu("✓ Đã nối Threads", "✓ Threads connected")
-        body = localefmt.chu(f"Đã nối @{res['account'].get('username', '')}. Quay lại tab Vanhanh, tab này tự đóng.",
-                             f"@{res['account'].get('username', '')} is connected. Go back to the Vanhanh tab, "
+        body = localefmt.chu(f"Đã nối @{res['account'].get('username', '')}. Quay lại tab Naota, tab này tự đóng.",
+                             f"@{res['account'].get('username', '')} is connected. Go back to the Naota tab, "
                              "this tab closes by itself.")
     else:
         title = localefmt.chu("⚠ Chưa nối được Threads", "⚠ Threads did not connect")
         body = str(res.get("error", ""))
     html = ("<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, "
-            "initial-scale=1'><title>Vanhanh</title></head><body style='font-family:system-ui,sans-serif;font-size:18px;"
+            "initial-scale=1'><title>Naota</title></head><body style='font-family:system-ui,sans-serif;font-size:18px;"
             "background:#111;color:#eee;text-align:center;padding:72px 16px'>"
             f"<h2>{html_mod.escape(title)}</h2><p>{html_mod.escape(body)}</p>"
             + ("<script>setTimeout(function(){try{window.close()}catch(e){}},1500)</script>" if res.get("ok") else "")
@@ -27540,12 +29617,12 @@ async def threads_check(request: Request):
     exp = float(meta.get("token_expires") or 0)
     if exp:
         days = int((exp - time.time()) // 86400)
-        items.append(item("expiry", days > 7 or None, ("Token còn hạn, Vanhanh tự gia hạn", "The token is valid and renews itself"),
+        items.append(item("expiry", days > 7 or None, ("Token còn hạn, Naota tự gia hạn", "The token is valid and renews itself"),
                           localefmt.chu(f"còn {days} ngày", f"{days} days left"),
-                          ("Bật một bot cho kênh này để Vanhanh tự gia hạn, hoặc đăng nhập Threads lại.",
-                           "Turn on a bot for this channel so Vanhanh renews the token, or log in to Threads again.")))
+                          ("Bật một bot cho kênh này để Naota tự gia hạn, hoặc đăng nhập Threads lại.",
+                           "Turn on a bot for this channel so Naota renews the token, or log in to Threads again.")))
     last = float(meta.get("last_webhook") or 0)
-    items.append(item("webhook", True if last else None, ("Threads đã gửi bình luận về Vanhanh", "Threads has sent replies to Vanhanh"),
+    items.append(item("webhook", True if last else None, ("Threads đã gửi bình luận về Naota", "Threads has sent replies to Naota"),
                       localefmt.format_ts(last, "%Y-%m-%d %H:%M") if last else localefmt.chu("chưa nhận lần nào", "none received yet"),
                       ("Trong App Dashboard, Threads API, Webhooks: dán Địa chỉ webhook và Mã xác minh ở thẻ này, đăng ký "
                        "trường replies, rồi chuyển app sang Live. Thử bình luận một bài của bạn để kiểm tra.",
@@ -27569,7 +29646,7 @@ async def threads_uninstall(request: Request):
 
 @app.post("/threads/delete")
 async def threads_delete(request: Request):
-    """The data deletion callback the Threads use case requires. Vanhanh keeps no data about other Threads users
+    """The data deletion callback the Threads use case requires. Naota keeps no data about other Threads users
     beyond the replies in the owner's own inbox, which the owner deletes there."""
     return {"url": _ms_base(request) + "/messenger/privacy", "confirmation_code": secrets.token_hex(8)}
 
@@ -27607,8 +29684,8 @@ def _zo_account_secrets() -> list:
 async def zalo_oa_webhook(request: Request):
     """Inbound Zalo OA events. Public URL, so nothing is trusted before the signature check; a
     request no known OA secret key signed is dropped with 401 and never handed to a bot."""
-    raw = await request.body()
-    if len(raw) > 2_000_000:
+    raw = await _read_capped_body(request)
+    if raw is None:
         return PlainTextResponse("too large", status_code=413)
     sig = request.headers.get("x-zevent-signature", "") or request.headers.get("mac", "")
     if not zalo_oa_bot.verify_signature(raw, sig, _zo_account_secrets()):
@@ -27653,14 +29730,14 @@ async def zalo_oa_oauth_callback(state: str = Query(""), code: str = Query(""), 
     res = await zalo_oa_oauth.callback(state, code, oa_id, error, error_description)
     if res.get("ok"):
         title = localefmt.chu("✓ Đã cấp quyền Zalo OA", "✓ Zalo OA access granted")
-        body = localefmt.chu(f"OA {res.get('oa_name') or res.get('oa_id')}. Quay lại tab Vanhanh, tab này tự đóng.",
-                             f"OA {res.get('oa_name') or res.get('oa_id')}. Go back to the Vanhanh tab, this tab "
+        body = localefmt.chu(f"OA {res.get('oa_name') or res.get('oa_id')}. Quay lại tab Naota, tab này tự đóng.",
+                             f"OA {res.get('oa_name') or res.get('oa_id')}. Go back to the Naota tab, this tab "
                              "closes by itself.")
     else:
         title = localefmt.chu("⚠ Chưa cấp quyền được", "⚠ Access was not granted")
         body = str(res.get("error", ""))
     html = ("<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, "
-            "initial-scale=1'><title>Vanhanh</title></head><body style='font-family:system-ui,sans-serif;font-size:18px;"
+            "initial-scale=1'><title>Naota</title></head><body style='font-family:system-ui,sans-serif;font-size:18px;"
             "background:#111;color:#eee;text-align:center;padding:72px 16px'>"
             f"<h2>{html_mod.escape(title)}</h2><p>{html_mod.escape(body)}</p>"
             + ("<script>setTimeout(function(){try{window.close()}catch(e){}},1500)</script>" if res.get("ok") else "")
@@ -27748,6 +29825,50 @@ async def zalo_oa_verifier_file(code: str):
     if code not in _zo_site_codes():
         return PlainTextResponse("not found", status_code=404)
     return HTMLResponse(zalo_oa_bot.verifier_html(code))
+
+
+# ============================================================
+# WeChat Official Account: customer bots on a WeChat Official Account. WeChat calls one URL for every
+# account; `wechat_bot.handle_webhook` routes by account. No owner control channel here.
+# ============================================================
+def _wc_webhook_url(request: Request) -> str:
+    base = web_security.external_base(
+        request.url.scheme, request.url.netloc,
+        request.headers.get("x-forwarded-proto", ""), request.headers.get("x-forwarded-host", ""))
+    return base + "/wechat/webhook"
+
+
+def _wc_webhook_token() -> str:
+    """The `Token` the owner pastes into WeChat's server configuration. Generated once for the machine, because
+    WeChat checks the URL before any account exists here. Every webhook signature is made with it, so it is kept
+    encrypted (config._SECRET_PATHS). Letters and digits only, 32 long: what WeChat's Token field accepts."""
+    w = cfgmod.read_settings().get("wechat", {}) or {}
+    tok = str(w.get("webhook_token") or "").strip()
+    if not tok:
+        tok = secrets.token_hex(16)
+        cfgmod.update_settings({"wechat": {"webhook_token": tok}})
+    return tok
+
+
+@app.get("/wechat/webhook")
+async def wechat_webhook_verify(request: Request):
+    """WeChat's URL check when the server configuration is saved: echo `echostr` only when the signature matches."""
+    q = request.query_params
+    if wechat_bot.fresh_timestamp(q.get("timestamp")) and wechat_bot.check_signature(
+            _wc_webhook_token(), q.get("signature", ""), q.get("timestamp", ""), q.get("nonce", "")):
+        return PlainTextResponse(str(q.get("echostr") or ""))
+    return PlainTextResponse("forbidden", status_code=403)
+
+
+@app.post("/wechat/webhook")
+async def wechat_webhook(request: Request):
+    """Inbound WeChat messages. Public URL, so nothing is trusted before the signature check. WeChat wants an
+    answer within 5 seconds and retries otherwise: the route answers "success" at once and the turn runs as a task."""
+    raw = await _read_capped_body(request, wechat_bot.MAX_BODY)
+    if raw is None:
+        return PlainTextResponse("too large", status_code=413)
+    status, body = await wechat_bot.handle_webhook(raw, dict(request.query_params), _wc_webhook_token())
+    return PlainTextResponse(body, status_code=status)
 
 
 def restart_telegram():
@@ -27942,7 +30063,7 @@ async def chatbots_chats(account_ids: str = "", bot_id: str = "", q: str = "", l
 async def chatbots_zalo_labels(account_ids: str = "", bot_id: str = ""):
     """Zalo label names (tags the owner set in the Zalo app) of the personal Zalo accounts ticked in the bot form, for
     "Never answer chats tagged". Same account rules as `/chatbots/chats`; registered before `{bot_id}` routes.
-    `supported` is False when no ticked personal Zalo account could return labels (vanhanh-zalo older than 1.6.0, or
+    `supported` is False when no ticked personal Zalo account could return labels (naota-zalo older than 1.6.0, or
     signed out), so the form can say why the list is empty."""
     import zalo_personal_channel
     bot = chatbot_store.get_bot(bot_id) if bot_id else None
@@ -27961,30 +30082,34 @@ async def chatbots_zalo_labels(account_ids: str = "", bot_id: str = ""):
     return {"ok": True, "labels": names, "supported": supported}
 
 
-@app.post("/chatbots/{bot_id}/people")
-async def chatbots_people(bot_id: str, chat_id: str = Form(...), on: str = Form("1")):
-    """Cho phép (hoặc gỡ) MỘT người nhắn riêng cho bot, bằng đúng một cú bấm. Đôi của
-    `/chatbots/{bot_id}/groups` cho audience `chon`. Không khởi động lại poller: `_answer` đọc lại
-    bản ghi bot MỖI LƯỢT, nên người vừa cho phép ăn ngay từ tin kế tiếp."""
+def _chatbots_set_listed(bot_id: str, key: str, chat_id: str, chat_ids: str, on: str):
+    """Shared body of `/chatbots/{bot_id}/groups` and `/people`: allow (or remove) ONE chat (`chat_id`) or MANY at once
+    (`chat_ids`, a JSON list, from the ticked rows of the waiting list on the bot card). One write for the whole batch,
+    then every id leaves the approval queue. The poller is not restarted: `_answer` re-reads the bot record every turn,
+    so a chat allowed here is answered from its next message."""
     bot = chatbot_store.get_bot(bot_id)
     if not bot:
         return JSONResponse({"ok": False, "error": localefmt.chu("Không có bot nào id đó", "No bot with that id")},
                             status_code=404)
-    cid = str(chat_id or "").strip()
-    if not cid:
-        return JSONResponse({"ok": False, "error": localefmt.chu("Thiếu id người", "Missing person id")}, status_code=400)
+    ids, err = chatbot_store.parse_chat_ids(chat_id, chat_ids)
+    if err:
+        return JSONResponse({"ok": False, "error": err}, status_code=400)
     bat = str(on).strip() not in ("0", "false", "")
-    ds = [str(x) for x in (bot.get("people") or [])]
-    if bat:
-        if cid not in ds:
-            ds.append(cid)
-    else:
-        ds = [x for x in ds if x != cid]
-    ok, err = chatbot_store.update_bot(bot_id, {"people": ds})
+    ok, err = chatbot_store.set_listed(bot_id, key, ids, bat)
     if not ok:
         return JSONResponse({"ok": False, "error": err}, status_code=400)
-    chatbot_runtime.bo_nhom_cho(bot_id, cid)
-    return {"ok": True, "people": (chatbot_store.get_bot(bot_id) or {}).get("people") or []}
+    # Off the queue whatever the owner chose: allowed means no longer waiting, and ignoring is a decision too. A chat
+    # that was ignored comes back to the queue by itself the next time someone calls the bot there.
+    for cid in ids:
+        chatbot_runtime.bo_nhom_cho(bot_id, cid)
+    return {"ok": True, key: (chatbot_store.get_bot(bot_id) or {}).get(key) or [], "done": len(ids)}
+
+
+@app.post("/chatbots/{bot_id}/people")
+async def chatbots_people(bot_id: str, chat_id: str = Form(""), chat_ids: str = Form(""), on: str = Form("1")):
+    """Cho phép (hoặc gỡ) người nhắn riêng cho bot: một người (`chat_id`) hoặc nhiều người một lần (`chat_ids`, danh
+    sách JSON). Đôi của `/chatbots/{bot_id}/groups` cho audience `chon`."""
+    return _chatbots_set_listed(bot_id, "people", chat_id, chat_ids, on)
 
 
 @app.post("/chatbots")
@@ -28114,37 +30239,15 @@ async def chatbots_enable(bot_id: str, on: str = Form("1")):
 
 
 @app.post("/chatbots/{bot_id}/groups")
-async def chatbots_groups(bot_id: str, chat_id: str = Form(...), on: str = Form("1")):
-    """Cho phép (hoặc gỡ) MỘT nhóm cho bot, bằng đúng một cú bấm trên thẻ.
+async def chatbots_groups(bot_id: str, chat_id: str = Form(""), chat_ids: str = Form(""), on: str = Form("1")):
+    """Cho phép (hoặc gỡ) nhóm cho bot ngay trên thẻ: một nhóm (`chat_id`) hoặc nhiều nhóm một lần (`chat_ids`, danh
+    sách JSON, từ các dòng đã tích trong danh sách chờ).
 
     Đường này tồn tại vì đường cũ dài tới mức không ai đi hết: thả bot vào nhóm, gõ /id, chép
     id, mở dashboard, bấm Sửa, kéo xuống cuối form, dán vào ô textarea, Lưu. Bỏ sót một bước
     là bot im, và không có gì nói cho biết đã sót ở đâu.
-
-    Không khởi động lại poller: `_answer` đọc lại bản ghi bot MỖI LƯỢT, nên nhóm vừa cho phép
-    ăn ngay từ câu tiếp theo.
     """
-    bot = chatbot_store.get_bot(bot_id)
-    if not bot:
-        return JSONResponse({"ok": False, "error": localefmt.chu("Không có bot nào id đó", "No bot with that id")},
-                            status_code=404)
-    cid = str(chat_id or "").strip()
-    if not cid:
-        return JSONResponse({"ok": False, "error": localefmt.chu("Thiếu id nhóm", "Missing group id")}, status_code=400)
-    bat = str(on).strip() not in ("0", "false", "")
-    ds = [str(x) for x in (bot.get("groups") or [])]
-    if bat:
-        if cid not in ds:
-            ds.append(cid)
-    else:
-        ds = [x for x in ds if x != cid]
-    ok, err = chatbot_store.update_bot(bot_id, {"groups": ds})
-    if not ok:
-        return JSONResponse({"ok": False, "error": err}, status_code=400)
-    # Ra khỏi hàng đợi dù chủ chọn gì: cho phép rồi thì hết chờ, mà bấm bỏ qua cũng là đã
-    # quyết. Nhóm nào bị gỡ mà sau này lại có người gọi bot thì nó tự quay lại hàng đợi.
-    chatbot_runtime.bo_nhom_cho(bot_id, cid)
-    return {"ok": True, "groups": (chatbot_store.get_bot(bot_id) or {}).get("groups") or []}
+    return _chatbots_set_listed(bot_id, "groups", chat_id, chat_ids, on)
 
 
 @app.get("/chatbots/{bot_id}/log")
@@ -28284,7 +30387,7 @@ async def _github_team_fix(team: dict, text: str) -> bool:
 def _github_session_info(sid: str) -> dict:
     """Title, the person's latest request, and the engine/model a chat runs on, for the PR, the review and metrics.
 
-    `task` is the latest message the PERSON wrote (not a fix round Vanhanh opened): a chat can hold several jobs, and
+    `task` is the latest message the PERSON wrote (not a fix round Naota opened): a chat can hold several jobs, and
     the chat title only describes the first one."""
     store = get_store()
     row = store.get_session(sid) or {}
@@ -28294,7 +30397,7 @@ def _github_session_info(sid: str) -> dict:
             if m.get("role") != "user":
                 continue
             text = chat_recall.strip_block(str(m.get("content") or "")).strip()
-            if text and not text.startswith("[Vanhanh GitHub]"):
+            if text and not text.startswith("[Naota GitHub]"):
                 task = text
                 break
     except Exception:  # noqa: BLE001
@@ -28417,7 +30520,7 @@ async def telegram_test():
             for cid in ids:
                 try:
                     r = await c.post(f"https://api.telegram.org/bot{t['token']}/sendMessage",
-                                     json={"chat_id": cid, "text": "✅ Vanhanh Telegram đã kết nối. Nhắn câu hỏi bất kỳ nhé."})
+                                     json={"chat_id": cid, "text": "✅ Naota Telegram đã kết nối. Nhắn câu hỏi bất kỳ nhé."})
                     d = r.json()
                     if d.get("ok"):
                         sent += 1
@@ -28434,9 +30537,9 @@ async def telegram_test():
 # ============================================================
 # KÊNH CLI - chat qua HTTP (xem cli-spec)
 #
-# Trước bản này, muốn nói chuyện với Vanhanh chỉ có hai đường: WebSocket /ws (dashboard, cần
+# Trước bản này, muốn nói chuyện với Naota chỉ có hai đường: WebSocket /ws (dashboard, cần
 # cookie) và long-polling Telegram. Không có cách nào `curl` một câu hỏi vào, nên cũng không
-# có cách nào cắm Vanhanh vào cron, đường ống Unix hay một CLI.
+# có cách nào cắm Naota vào cron, đường ống Unix hay một CLI.
 #
 # Hai endpoint dưới đây KHÔNG có lõi riêng: chúng gọi thẳng `_tg_answer(..., channel="cli")`,
 # tức đúng cái vỏ mà Telegram chạy hằng ngày. Vỏ đó là chỗ duy nhất biết khớp phiên trong kho,
@@ -28542,7 +30645,7 @@ async def _cli_turn(message: str, brain: str, session: str, host: str, progress=
     API engines build the system prompt only when that session is new, and Claude Code / Codex
     resume its native thread), its own `_TG_SID_MAP` entry and its own stored conversation. Sharing
     the plain session made the first turn's prompt stick: a plain turn then `agent=x` ran with
-    Vanhanh's prompt, and `agent=x` then `agent=y` ran with x's. `@` never survives
+    Naota's prompt, and `agent=x` then `agent=y` ran with x's. `@` never survives
     `_cli_sess_key`, so no plain session can collide with an agent one. The reply still names the
     plain session the client sent.
 
@@ -28734,7 +30837,7 @@ async def telegram_send_file(payload: dict = Body(...)):
     (miễn đăng nhập qua _AUTH_LOCAL_EXACT - request từ ngoài vẫn bị chặn).
     Body: {"path": "<đường dẫn tuyệt đối>", "caption": "<mô tả ngắn>", "chat_id": "<id người hỏi>"}.
     ĐA PHIÊN: có chat_id (và trong whitelist) → gửi ĐÚNG người đang hỏi + dedupe theo phiên họ;
-    thiếu chat_id → gửi chủ bot (ID đầu whitelist) như cũ. Ảnh/tệp Vanhanh tạo trong lượt nay tự đính
+    thiếu chat_id → gửi chủ bot (ID đầu whitelist) như cũ. Ảnh/tệp Naota tạo trong lượt nay tự đính
     kèm về đúng người qua auto-attach (collect_turn_files), nên đường curl này ít khi cần cho chat."""
     path = str((payload or {}).get("path", "")).strip().strip('"')
     caption = str((payload or {}).get("caption", "")).strip()
@@ -28876,7 +30979,7 @@ async def slash_status(session_id: str = Query(""), brain: str = Query("brain"))
 def _doc_muc_luc_bo_nho(brain: str, toi_da: int = 20000) -> dict:
     """Mục lục bộ nhớ dài hạn của brain: `memory/MEMORY.md` + số file chi tiết trong `facts/`.
 
-    Chữ thường `memory/` là cố ý (Linux coi `Memory/` là thư mục khác mà Vanhanh không bao giờ
+    Chữ thường `memory/` là cố ý (Linux coi `Memory/` là thư mục khác mà Naota không bao giờ
     mở - xem CLAUDE.md, mục Long-term memory).
     """
     root = Path(_brain_root(brain))
@@ -29059,7 +31162,7 @@ async def _ve_si_claude_creds():
     """Vòng vệ sĩ ~/.claude/.credentials.json mỗi 5 phút: bản lành thì sao lưu, file hỏng/mất
     thì phục hồi + hô to. Chống vụ "thi thoảng Claude Code tự đăng xuất" - tiến trình
     claude bị watchdog giết đúng lúc đang ghi file token là file cụt, CLI coi như chưa đăng
-    nhập. Codex không bị vì token ChatGPT do chính Vanhanh giữ."""
+    nhập. Codex không bị vì token ChatGPT do chính Naota giữ."""
     async def _vong():
         while True:
             try:
@@ -29132,7 +31235,7 @@ async def _warm_mcp_hub():
     để tin nhắn/tool call đầu tiên không phải chờ.
 
     Bản đầu chỉ gọi thẳng `discover_all("full")`, và chính chỗ đó là bệnh (ca đã gặp:
-    "khi update rất hay bị mất kết nối với các MCP của Vanhanh, đặc biệt là Pancake POS").
+    "khi update rất hay bị mất kết nối với các MCP của Naota, đặc biệt là Pancake POS").
     `discover_all` đi qua vòng dò của LƯỢT CHAT, tức trần 20 giây mỗi nguồn - đúng con số
     sinh ra để bảo vệ người đang ngồi chờ, nhưng ở đây không có ai chờ cả. Sau một lần cập
     nhật thì pool rỗng, và với bản Docker cache npm/uv cũng mất theo ảnh cũ, nên nguồn nguội
@@ -29147,6 +31250,10 @@ async def _warm_mcp_hub():
     async def _w():
         try:
             await asyncio.to_thread(_EVIDENCE_STORE.cleanup)
+            # Stored tool results (tool_result_store) expire on their own clock; drop the ones that died while
+            # the server was down. During the day the store sweeps itself as it is written to.
+            import tool_result_store
+            await asyncio.to_thread(tool_result_store.sweep)
             # Phase 9 restart reconciliation: write còn RUNNING sau khi tiến trình chết
             # KHÔNG được chạy lại; chuyển UNKNOWN và giữ resource lock cho tới khi có
             # kết luận. Chạy trước khi nhận lượt chat đầu tiên.
@@ -29212,7 +31319,7 @@ async def _shutdown_mcp_pool():
     except Exception:
         pass
     # Shell của tab Code chạy trong process group RIÊNG (setsid), nên nó KHÔNG chết theo server
-    # - tắt Vanhanh mà bỏ quên là để lại một đàn shell mồ côi giữ cổng và file.
+    # - tắt Naota mà bỏ quên là để lại một đàn shell mồ côi giữ cổng và file.
     try:
         terminal.KHO.dong_het()
     except Exception:
@@ -29281,7 +31388,7 @@ TEAM_WORK_MODE = "full"
 
 
 def _codex_user_mcp_servers():
-    """MCP servers in the user's own Codex config besides Vanhanh's hub: Codex would call them without the gate."""
+    """MCP servers in the user's own Codex config besides Naota's hub: Codex would call them without the gate."""
     try:
         import tomllib
         p = claude_cli._codex_home() / "config.toml"
@@ -29293,7 +31400,7 @@ def _codex_user_mcp_servers():
     names = set((cfg.get("mcp_servers") or {}).keys())
     for prof in (cfg.get("profiles") or {}).values():
         names |= set(((prof or {}).get("mcp_servers") or {}).keys())
-    return sorted(n for n in names if n != "vanhanh")
+    return sorted(n for n in names if n != "naota")
 
 
 def _team_gate_support(provider):
@@ -29303,15 +31410,15 @@ def _team_gate_support(provider):
         from claude_sdk_engine import ClaudeSDK
         if not ClaudeSDK.pre_tool_hooks_supported():
             return {"ok": False, "approved_actions": False,
-                    "reason": "bản claude-agent-sdk đang cài chưa có móc PreToolUse nên Vanhanh không chặn được công cụ trước khi chạy"}
+                    "reason": "bản claude-agent-sdk đang cài chưa có móc PreToolUse nên Naota không chặn được công cụ trước khi chạy"}
     if prov == aux_engine.CODEX:
         if not _hub_enabled():
             return {"ok": False, "approved_actions": False,
-                    "reason": "MCP Hub đang tắt nên Codex gọi thẳng các kết nối, không qua cổng duyệt của Vanhanh"}
+                    "reason": "MCP Hub đang tắt nên Codex gọi thẳng các kết nối, không qua cổng duyệt của Naota"}
         extra = _codex_user_mcp_servers()
         if extra:
             return {"ok": False, "approved_actions": False,
-                    "reason": ("Codex trên máy này có MCP riêng ngoài Vanhanh (" + ", ".join(extra[:5]) + ") mà Vanhanh không "
+                    "reason": ("Codex trên máy này có MCP riêng ngoài Naota (" + ", ".join(extra[:5]) + ") mà Naota không "
                                "chặn được trước khi chạy")}
     deny = True
     if prov == aux_engine.GROK_CLI:
@@ -29366,6 +31473,255 @@ def _team_record_usage(provider: str, model: str, outcome, *, execution=None, st
         print(f"[team usage] {type(e).__name__}: {e}", file=sys.stderr)
 
 
+def _step_plan_account(eng, provider: str) -> str:
+    """Point the engine of a team turn or a workflow step at the plan account that should run now, as a chat turn and
+    background work do.
+
+    Team turns built their engine without this step until 10/11/2026, so they always ran on account 1 of the card: once
+    account 1 hit its weekly limit every member answered "You've hit your weekly limit" while the card's other account,
+    the one chat was already running on, still had quota (customer report, 10/11/2026). Workflow steps had the same
+    gap. An API engine or a card with one account is left as it is. Returns the account id; choosing an account never
+    stops a turn."""
+    try:
+        return plan_accounts.apply(eng, provider, cfgmod.read_settings().get("model") or {})
+    except Exception as e:  # noqa: BLE001
+        print(f"[plan accounts] step {provider}: {type(e).__name__}: {e}", file=sys.stderr)
+        return plan_accounts.MAIN
+
+
+def _step_limit_hit(provider: str, text: str):
+    """(True, reset epoch) when an engine's error text says the subscription plan ran out of quota, else (False, 0).
+    Same detector as a chat turn; only the four plan CLIs have a plan to run out of."""
+    hint = _NHA_SANG_ENGINE.get(str(provider or ""), "")
+    if not hint or not str(text or "").strip():
+        return False, 0.0
+    try:
+        hit = limit_learner.parse_subscription_limit(text, engine_hint=hint)
+        if hit is not None:
+            return True, float(getattr(hit, "reset_epoch", 0) or 0)
+        if hint == "grok-cli":   # Grok prints no fixed sentence for it, plain quota words count (as in chat)
+            import plan_limits
+            return bool(plan_limits.la_het_han_muc(text)), 0.0
+    except Exception as e:  # noqa: BLE001 - the detector must never turn one failure into two
+        print(f"[plan accounts] step limit {provider}: {type(e).__name__}: {e}", file=sys.stderr)
+    return False, 0.0
+
+
+def _step_quota_next(provider: str, eng, text: str) -> dict:
+    """The engine of a team turn or a workflow step failed with `text`. When it says the plan account ran out of quota,
+    that account rests (so chat, background work and the next steps skip it too) and the next account of the SAME card
+    that can run comes back as {"id", "status"}; {} when the error is something else or no other account can run.
+    Never another card: these turns run on the model chosen for them, with no fallback chain."""
+    prov = str(provider or "")
+    hit, reset = _step_limit_hit(prov, text)
+    if not hit:
+        return {}
+    ran = getattr(eng, "account_id", None)
+    ran = ran if isinstance(ran, str) and ran else plan_accounts.MAIN
+    _note_pin_limit(_NHA_SANG_ENGINE[prov], reset, account=ran)
+    try:
+        m = cfgmod.read_settings().get("model") or {}
+        if not (plan_accounts.in_use(prov) and plan_accounts.has_extra(m, prov)):
+            return {}
+        nxt = plan_accounts.pick(m, prov)
+        if not nxt or nxt["id"] == ran:
+            return {}
+        old_no, old_lab = _route_account_no(m, prov, ran)
+        new_no, new_lab = _route_account_no(m, prov, nxt["id"])
+        return {"id": nxt["id"], "status": localefmt.chu(
+            f"Đang dùng {_route_name(prov)} ({new_lab or f'tài khoản {new_no}'}) vì "
+            f"{old_lab or f'tài khoản {old_no}'} hết lượt.",
+            f"Using {_route_name(prov)} ({new_lab or f'account {new_no}'}) because "
+            f"{old_lab or f'account {old_no}'} is out of quota.")}
+    except Exception as e:  # noqa: BLE001 - the turn then reports the provider's own error, as before
+        print(f"[plan accounts] step next {prov}: {type(e).__name__}: {e}", file=sys.stderr)
+        return {}
+
+
+def _agent_spec_available(spec: dict, settings: dict = None) -> tuple:
+    """`aux_engine.availability` for an assistant's own model, plus the signed-out mark (2026-11-12): a plan card known
+    to have lost its sign-in is not usable, so `team_engine.choose_spec` runs the turn on the main model and says so
+    on the message, as it already does for a card with no key or no CLI. The reason is part of that Vietnamese note."""
+    prov = str((spec or {}).get("provider") or "")
+    if _signed_out_until(prov):
+        return False, f"{_route_name(prov)} mất đăng nhập, cần đăng nhập lại ở trang Models"
+    return aux_engine.availability(spec, settings)
+
+
+def _team_quota_next(provider: str, eng, error) -> dict:
+    """`_step_quota_next` for a failed team turn: only an error the ENGINE reported counts, never a tool call the
+    text-only contract refused or an empty answer.
+
+    2026-11-12: an error that says the plan lost its sign-in marks the card (`_note_signin_lost`). The turn itself is
+    not moved here (a team turn has no fallback chain); run again, by the runner's own retry or by the owner, it is
+    built on the main model while the mark stands (`_agent_spec_available`)."""
+    if not isinstance(error, team_runner.EngineOutcomeError) or error.kind not in ("final_error", "error_event"):
+        return {}
+    if _signin_lost_text(provider, error.detail):
+        acc = getattr(eng, "account_id", None)
+        _note_signin_lost(provider, account=acc if isinstance(acc, str) and acc else None)
+        return {}
+    return _step_quota_next(provider, eng, error.detail)
+
+
+# Text a workflow step's engine wrote is held back while it is shorter than this, or while it reads as the provider's
+# out-of-quota sentence: Claude Code prints that sentence as text first, then as the answer.
+PLAN_ROTATION_HOLD_CHARS = 80
+
+
+class _PlanRotation:
+    """The engine of ONE workflow step on a plan card that holds several accounts (10/11/2026).
+
+    Before, a step always ran on account 1 of the card and stopped the whole run with "the plan is out of quota" while
+    the card's next account still had quota. Now the account that ran out rests, and when the step had not written or
+    called anything yet it runs again at once on the next account of the same card. A step that already called a tool
+    or wrote real text is never run twice: its error comes out as before and the account still rests, so running the
+    workflow again lands on the next account. The provider never changes, so the limits of a gated run stay in place.
+
+    Reads and writes of attributes go to the wrapped engine, so callers use it as the engine it holds."""
+
+    def __init__(self, engine, provider: str):
+        object.__setattr__(self, "_engine", engine)
+        object.__setattr__(self, "_provider", str(provider or ""))
+
+    def __getattr__(self, name):
+        return getattr(object.__getattribute__(self, "_engine"), name)
+
+    def __setattr__(self, name, value):
+        setattr(object.__getattribute__(self, "_engine"), name, value)
+
+    def _is_limit(self, text: str, whole: bool = False) -> bool:
+        """`whole`: the text is the engine's own error; otherwise it must be nothing but the sentence."""
+        return (whole or _het_luot_ap_dao(text)) and _step_limit_hit(self._provider, text)[0]
+
+    async def query(self, prompt):
+        eng, prov = object.__getattribute__(self, "_engine"), self._provider
+        hops = 0
+        while True:
+            thread = getattr(eng, "session_id", None)
+            held, written, live, nxt = [], "", False, None
+            stream = eng.query(prompt)
+            async for ev in stream:
+                t = (ev or {}).get("type")
+                if t == "text" and not live:
+                    held.append(ev)
+                    written += str(ev.get("content") or "")
+                    if len(written.strip()) < PLAN_ROTATION_HOLD_CHARS or self._is_limit(written):
+                        continue
+                elif t in ("final", "error") and not ev.get("resume_failed"):
+                    raw = str(ev.get("content") or "")
+                    if self._is_limit(raw, whole=(t == "error" or bool(ev.get("is_error")))):
+                        nxt = await asyncio.to_thread(_step_quota_next, prov, eng, raw)
+                        if nxt and not live and hops < REROUTE_MAX_HOPS:
+                            break
+                        nxt = None
+                if not live:
+                    live = True
+                    for h in held:
+                        if h is not ev:
+                            yield h
+                    held = []
+                yield ev
+            if not nxt:
+                for h in held:      # the engine stopped with no answer: what it wrote is still shown
+                    yield h
+                return
+            try:
+                await stream.aclose()
+            except Exception:  # noqa: BLE001 - the refused run is over either way
+                pass
+            hops += 1
+            if hasattr(eng, "session_id"):
+                eng.session_id = thread      # the refused run's thread belongs to the account that ran out
+            await asyncio.to_thread(plan_accounts.use, eng, prov, nxt["id"])
+            print(f"[plan accounts] workflow step: {prov} account out of quota, running again on {nxt['id']}",
+                  file=sys.stderr)
+
+
+# Events of a step's engine that say nothing yet about whether it could run.
+_STEP_RUN_QUIET = ("session", "retry")
+
+
+async def _step_run(build, prompt):
+    """Events of ONE workflow step, whose engine `build()` returns (`_mk` of `_workflow_agent_helpers`).
+
+    2026-11-12 (owner's report: an agent set to ChatGPT failed every run after ChatGPT lost its sign-in). When the
+    engine's plan card refuses because the sign-in is gone, before the step wrote or called anything, the card is marked
+    (`_note_signin_lost`) and the step runs once more on the engine `build()` returns now: `_mk` sends an ungated step
+    to the route a chat turn would use, a gated ChatGPT step back to gated Claude Code, and a card with several
+    accounts to its next account. A step that already called a tool or wrote real text is never run twice (spec 2.7).
+    No other route: the refusal comes out as before. An engine that is not a plan card passes through untouched."""
+    eng = build()
+    prov = getattr(eng, "account_provider", None)
+    if not (isinstance(prov, str) and prov in _ROUTING_PLAN_PROVIDERS):
+        async for ev in eng.query(prompt):
+            yield ev
+        return
+    held, written, live, lost = [], "", False, False
+    stream = eng.query(prompt)
+    async for ev in stream:
+        if live:
+            yield ev
+            continue
+        t = (ev or {}).get("type")
+        raw = str((ev or {}).get("content") or "")
+        held.append(ev)
+        if ((t == "error" and not ev.get("resume_failed") and _signin_lost_text(prov, raw))
+                or (t == "final" and _signin_lost_text(prov, raw, answer=True))):
+            lost = True
+            break
+        if t == "text":
+            written += raw
+            if len(written.strip()) < PLAN_ROTATION_HOLD_CHARS:
+                continue
+        elif t in _STEP_RUN_QUIET:
+            continue
+        live = True
+        for h in held:
+            yield h
+        held = []
+    nxt = None
+    if lost:
+        try:
+            await stream.aclose()
+        except Exception:  # noqa: BLE001 - the refused run is over either way
+            pass
+        acc = getattr(eng, "account_id", None)
+        acc = acc if isinstance(acc, str) and acc else None
+        await asyncio.to_thread(_note_signin_lost, prov, acc)
+        try:
+            nxt = build()
+            nxt_acc = getattr(nxt, "account_id", None)
+            if getattr(nxt, "account_provider", None) == prov and (nxt_acc if isinstance(nxt_acc, str) else None) == acc:
+                nxt = None      # nowhere else to go: the same card on the same account
+        except Exception as e:  # noqa: BLE001 - then the refusal stands
+            print(f"[workflow] step after sign-in loss on {prov}: {type(e).__name__}: {e}", file=sys.stderr)
+            nxt = None
+    if nxt is None:
+        for h in held:      # the engine stopped with no answer (or has no other route): what it said is still shown
+            yield h
+        return
+    print(f"[workflow] step: {prov} lost its sign-in, running again on "
+          f"{getattr(nxt, 'account_provider', None) or getattr(nxt, 'provider', None) or type(nxt).__name__}",
+          file=sys.stderr)
+    async for ev in nxt.query(prompt):
+        yield ev
+
+
+def _step_engine(eng, provider: str):
+    """A workflow step's plan engine, started on the account that should run now. On a card with several accounts it
+    comes back wrapped (`_PlanRotation`); a card with one account, or Claude Code on an API key, gets the engine itself,
+    exactly as before."""
+    _step_plan_account(eng, provider)
+    try:
+        m = cfgmod.read_settings().get("model") or {}
+        if plan_accounts.in_use(provider) and plan_accounts.has_extra(m, provider):
+            return _PlanRotation(eng, provider)
+    except Exception as e:  # noqa: BLE001 - rotation must never cost the step
+        print(f"[plan accounts] step engine {provider}: {type(e).__name__}: {e}", file=sys.stderr)
+    return eng
+
+
 def _team_engine_for(team, agent_key, role):
     """Engine CHỈ CHỮ cho một lượt nhóm (phán quyết R3 của kế hoạch T1): thư mục trống, không MCP, cổng từ chối mọi công
     cụ. Model theo hợp đồng chat tương tác và giao việc (`team_engine`): model riêng của trợ lý, thiếu hay chưa
@@ -29377,26 +31733,26 @@ def _team_engine_for(team, agent_key, role):
       hỏng thì ném EngineUnavailable trước mốc, lượt được hoàn.
     - R1: kết cục đọc theo hợp đồng chỉ chữ (`team_runner.TextOnlyOutcome`): final lỗi, lỗi đăng nhập, lỗi sau final,
       gọi công cụ, thiếu final, câu trả lời rỗng đều là lượt lỗi, không bao giờ thành sản phẩm.
-    - R3: VANHANH_LESSON / VANHANH_RULE chỉ được BÓC ở đây (không ghi gì). Việc ghi vào bộ nhớ agent là `commit`, bộ chạy chỉ
+    - R3: NAOTA_LESSON / NAOTA_RULE chỉ được BÓC ở đây (không ghi gì). Việc ghi vào bộ nhớ agent là `commit`, bộ chạy chỉ
       gọi sau khi kiểm đầu ra còn hợp lệ; `commit` kiểm lại danh tính (mã bền còn trỏ đúng slug) ngay trước khi ghi."""
     root = team["brain_id"]
     info = _team_agent_info(root, agent_key) or {}
     settings = cfgmod.read_settings() or {}
     spec = team_engine.choose_spec(
         info.get("model") or "", info.get("model_provider") or "", _effective_main(settings),
-        _agent_model_provider, lambda sp: aux_engine.availability(sp, settings))
+        _agent_model_provider, lambda sp: _agent_spec_available(sp, settings))
     tool_spec = team_engine.choose_spec(
         info.get("model") or "", info.get("model_provider") or "", _effective_main(settings),
-        _agent_model_provider, lambda sp: aux_engine.availability(sp, settings), tools=True)
+        _agent_model_provider, lambda sp: _agent_spec_available(sp, settings), tools=True)
 
     def _build_tools(system, tag, gate_id=""):
         # a Work/Help step of a job runs like a private chat with this member: cwd is the team's working folder
-        # (or the brain), the hub is attached at the private chat's level, files of the brain go through `vanhanh_vault`.
+        # (or the brain), the hub is attached at the private chat's level, files of the brain go through `naota_vault`.
         # a gated team (`work_mode`) runs the step behind its tool gate (team_gate.py): hub level `gated`,
         # natives at `auto` (Codex sandbox, Grok deny), a PreToolUse hook on Claude. A provider that cannot stop its own
         # tools before they run is refused here, before the engine starts, with the reason.
-        if os.environ.get("VANHANH_NO_REAL_TEAM_ENGINE") == "1" and team_engine.build_tools is _TEAM_ENGINE_BUILD_TOOLS_REAL:
-            raise team_runner.EngineUnavailable("VANHANH_NO_REAL_TEAM_ENGINE: không dựng engine nhóm thật")
+        if os.environ.get("NAOTA_NO_REAL_TEAM_ENGINE") == "1" and team_engine.build_tools is _TEAM_ENGINE_BUILD_TOOLS_REAL:
+            raise team_runner.EngineUnavailable("NAOTA_NO_REAL_TEAM_ENGINE: không dựng engine nhóm thật")
         prov = str(tool_spec.get("provider") or aux_engine.CLAUDE)
         if gate_id:
             sup = _team_gate_support(prov)
@@ -29439,21 +31795,24 @@ def _team_engine_for(team, agent_key, role):
                 openai_oauth.write_codex_auth()
             except Exception:  # noqa: BLE001 - Codex reports its own sign-in error
                 pass
+        _step_plan_account(eng, prov)   # the plan account that should run now (rotation, as in chat)
         avail = getattr(eng, "is_available", None)
         if callable(avail) and not avail():
             raise team_runner.EngineUnavailable(f"engine {tool_spec['provider']} chưa sẵn sàng (kiểm tra trang Models)")
         return eng
 
     def _build(system, tag):
-        if os.environ.get("VANHANH_NO_REAL_TEAM_ENGINE") == "1" and team_engine.build is _TEAM_ENGINE_BUILD_REAL:
+        if os.environ.get("NAOTA_NO_REAL_TEAM_ENGINE") == "1" and team_engine.build is _TEAM_ENGINE_BUILD_REAL:
             # Chốt của bộ test (review T3 vòng 2 P3): test quên thay engine thì lượt nhóm (và lượt quét, lượt học, cùng
             # nhà máy này) dừng ở đây, không dựng CLI thật. Test thay `team_engine.build` bằng engine giả thì qua.
-            raise team_runner.EngineUnavailable("VANHANH_NO_REAL_TEAM_ENGINE: không dựng engine nhóm thật")
-        base = _reply_policy_sandbox_engine(system, tag, cwd_name="team_cwd")
+            raise team_runner.EngineUnavailable("NAOTA_NO_REAL_TEAM_ENGINE: không dựng engine nhóm thật")
+        # bare=False: a team member turn keeps the preset its sessions and gate hooks were qualified with.
+        base = _reply_policy_sandbox_engine(system, tag, cwd_name="team_cwd", bare=False)
         try:
             eng = team_engine.build(spec, base, tag, settings)
         except team_engine.TeamEngineUnavailable as ex:
             raise team_runner.EngineUnavailable(ex.reason)
+        _step_plan_account(eng, str(spec.get("provider") or aux_engine.CLAUDE))   # as in chat: the account with quota
         avail = getattr(eng, "is_available", None)
         if callable(avail) and not avail():
             raise team_runner.EngineUnavailable(f"engine {spec['provider']} chưa sẵn sàng (kiểm tra trang Models)")
@@ -29466,53 +31825,74 @@ def _team_engine_for(team, agent_key, role):
         tag = f"team-{str(req['team_id'])[-8:]}-{str(req.get('turn_id') or '')[-10:]}"
         tools_on = bool(req.get("tool_turn"))
         used = tool_spec if tools_on else spec
-        if tools_on:
-            eng = await asyncio.to_thread(_build_tools, req["system"], tag, str(req.get("team_gate") or ""))
-        else:
-            eng = await asyncio.to_thread(_build, req["system"], tag)
-        prompt = _team_reasoning(eng, info.get("reasoning") or AGENT_REASONING_DEFAULT, req["prompt"])
-        if tools_on:
-            # The tool spec can differ from the text one (Grok Build, Antigravity run tool turns): mark the real engine.
-            await req["engine_started"](used["provider"], used["model"])
-        else:
-            await req["engine_started"]()
-        outcome = team_runner.ToolTurnOutcome() if tools_on else team_runner.TextOnlyOutcome()
-        execution = dict((turn_context.current() or {}).get("execution") or {})
-        session_before = getattr(eng, "session_id", None)
-        stream = eng.query(prompt)
-        usage_status = "error"
-        try:
-            async for ev in stream:
-                outcome.note(ev)
-            res = outcome.result()
-            usage_status = "completed"
-        except Exception as ex:
-            # (team_retry): a failed turn tells the runner how many tools it called. Zero is the only count that
-            # lets a Work/Help step run again on its own; a text-only turn has no tools at all.
+        prov = str(used.get("provider") or aux_engine.CLAUDE)
+        # 10/11/2026: a plan account out of quota rests and the turn runs again at once on the card's next account, as
+        # a chat turn does (spec 6.4). `moved` is the line the message carries when that happened.
+        hops, moved = 0, ""
+        while True:
+            if tools_on:
+                eng = await asyncio.to_thread(_build_tools, req["system"], tag, str(req.get("team_gate") or ""))
+            else:
+                eng = await asyncio.to_thread(_build, req["system"], tag)
+            prompt = _team_reasoning(eng, info.get("reasoning") or AGENT_REASONING_DEFAULT, req["prompt"])
+            if tools_on:
+                # The tool spec can differ from the text one (Grok Build, Antigravity run tool turns): mark the real engine.
+                await req["engine_started"](used["provider"], used["model"])
+            else:
+                await req["engine_started"]()
+            outcome = team_runner.ToolTurnOutcome() if tools_on else team_runner.TextOnlyOutcome()
+            execution = dict((turn_context.current() or {}).get("execution") or {})
+            session_before = getattr(eng, "session_id", None)
+            stream = eng.query(prompt)
+            usage_status = "error"
+            failed = None
             try:
-                ex.team_tool_calls = int(getattr(outcome, "tool_calls", 0) or 0)
-            except Exception:  # noqa: BLE001 - some exception types refuse new attributes: then it stays unknown
-                pass
-            raise
-        except asyncio.CancelledError:
-            usage_status = "cancelled"
-            try:
-                await asyncio.to_thread(claude_cli.cancel_all, tag)
-            finally:
+                async for ev in stream:
+                    outcome.note(ev)
+                res = outcome.result()
+                # Claude Code sometimes prints the out-of-quota sentence as the ANSWER, not as an error (see the chat
+                # turn). Left alone it was posted as the member's reply and no other account ever got the turn.
+                if _het_luot_ap_dao(res["text"]) and _step_limit_hit(prov, res["text"])[0]:
+                    raise team_runner.EngineOutcomeError("final_error", res["text"].strip()[:200])
+                usage_status = "completed"
+            except Exception as ex:
+                # (team_retry): a failed turn tells the runner how many tools it called. Zero is the only count that
+                # lets a Work/Help step run again on its own; a text-only turn has no tools at all.
                 try:
-                    await stream.aclose()
-                except BaseException:  # noqa: BLE001 - generator đang bị huỷ
+                    ex.team_tool_calls = int(getattr(outcome, "tool_calls", 0) or 0)
+                except Exception:  # noqa: BLE001 - some exception types refuse new attributes: then it stays unknown
                     pass
-            raise
-        finally:
-            execution["cli_session_id"] = getattr(eng, "session_id", None)
-            execution["cli_session_new"] = not session_before
-            # Usage survives failure and cancellation; telemetry can never determine execution policy.
-            _team_record_usage(used["provider"], getattr(eng, "model", None) or used.get("model") or "", outcome,
-                               execution=execution, status=usage_status,
-                               expected_requests=getattr(eng, "usage_request_count", None))
+                failed = ex
+            except asyncio.CancelledError:
+                usage_status = "cancelled"
+                try:
+                    await asyncio.to_thread(claude_cli.cancel_all, tag)
+                finally:
+                    try:
+                        await stream.aclose()
+                    except BaseException:  # noqa: BLE001 - generator đang bị huỷ
+                        pass
+                raise
+            finally:
+                execution["cli_session_id"] = getattr(eng, "session_id", None)
+                execution["cli_session_new"] = not session_before
+                # Usage survives failure and cancellation; telemetry can never determine execution policy.
+                _team_record_usage(used["provider"], getattr(eng, "model", None) or used.get("model") or "", outcome,
+                                   execution=execution, status=usage_status,
+                                   expected_requests=getattr(eng, "usage_request_count", None))
+            if failed is None:
+                break
+            # The account that ran out rests whatever happens next. The turn itself runs again only when it called no
+            # tool (a refusal comes before any work; running a step twice could send or post something twice).
+            nxt = await asyncio.to_thread(_team_quota_next, prov, eng, failed)
+            if not nxt or hops >= REROUTE_MAX_HOPS or int(getattr(outcome, "tool_calls", 0) or 0):
+                raise failed
+            hops += 1
+            moved = nxt["status"]
+            print(f"[plan accounts] team {tag}: {prov} account out of quota, running again on {nxt['id']}",
+                  file=sys.stderr)
         slug = info.get("slug") or ""
-        # VANHANH_RULE trong lượt nhóm không có chủ nói trực tiếp với agent: hạ thành bài học (như bước workflow).
+        # NAOTA_RULE trong lượt nhóm không có chủ nói trực tiếp với agent: hạ thành bài học (như bước workflow).
         rules, text = agent_rules.extract_rules(res["text"])
         lessons, clean = _boc_bai_hoc(text)
         lessons = list(lessons) + list(rules)
@@ -29536,7 +31916,8 @@ def _team_engine_for(team, agent_key, role):
 
         return {"text": clean, "tokens_in": res["tokens_in"], "tokens_out": res["tokens_out"],
                 "cost_usd": res.get("cost_usd"),
-                "lessons": lessons, "commit": commit, "engine_note": used.get("note") or ""}
+                "lessons": lessons, "commit": commit,
+                "engine_note": " ".join(x for x in (used.get("note") or "", moved) if x)}
 
     async def run(req):
         # Bind before asyncio.to_thread: constructors and CLI correlation inherit the host execution.
@@ -29568,14 +31949,14 @@ class _TeamAdmin:
 
     def create_agent(self, root, name, role, prompt, model="", model_provider="", tags=None):
         """Tạo trợ lý MỚI, không bao giờ ghi đè: slug trùng thì thêm -2, -3. Gắn tag "Nhóm" (hay `tags` được đưa) để không
-        bị trống nhãn. `model`/`model_provider` (công cụ `vanhanh_team`): model riêng của trợ lý; provider lạ bị bỏ
+        bị trống nhãn. `model`/`model_provider` (công cụ `naota_team`): model riêng của trợ lý; provider lạ bị bỏ
         về "" để `_agent_model_provider` suy như trợ lý cũ."""
         base = _ascii_slug(name) or "tro-ly"
         with _AGENT_META_LOCK:
             d = _agents_dir(root)
             d.mkdir(parents=True, exist_ok=True)
             slug, n = base, 2
-            while (d / f"{slug}.md").exists() or vanhanh_core.is_core_slug(slug):
+            while (d / f"{slug}.md").exists() or naota_core.is_core_slug(slug):
                 slug, n = f"{base}-{n}", n + 1
             meta = {"type": "agent", "name": name, "slug": slug, "role": role, "skills": [],
                     "model": str(model or "").strip(), "updated": _today()}
@@ -29653,7 +32034,7 @@ async def _team_notify(session_id, text):
                           label=localefmt.chu("Team", "Team"), source="team",
                           group="question" if asks else "team", level="urgent" if asks else "important")
     # every team notice is a job blocked, failed, or waiting on the owner: it reaches their phone too, not the bell
-    # only, and as urgent (Vanhanh Core rings only urgent by default; the owner can still mute a team or the group)
+    # only, and as urgent (Naota Core rings only urgent by default; the owner can still mute a team or the group)
     try:
         await _alert_owner_telegram(str(text or ""), source="team", group="question" if asks else "team",
                                     level="urgent")
@@ -29701,7 +32082,7 @@ def _agent_judge_store(create=True):
 
 
 # ── Learned-knowledge mirror: what bots and agents learned also lives in the brain folder
-#    (`Vanhanh/learned/`), so a copied, moved or GitHub-restored brain keeps it. See server/learned_mirror.py. ──
+#    (`Naota/learned/`), so a copied, moved or GitHub-restored brain keeps it. See server/learned_mirror.py. ──
 import learned_mirror  # noqa: E402
 
 
@@ -29737,10 +32118,10 @@ async def _agent_judge_ask(prompt: str, purpose: str = "", started=None) -> str:
     """Lượt phán xử: model việc nền người dùng chọn (trang Models), CHỈ CHỮ, thư mục trống, không MCP, cổng từ chối mọi
     công cụ (prompt chứa chữ của chat). Không tự chọn model. Engine chưa sẵn sàng thì ném `EngineUnavailable` TRƯỚC khi gọi
     model (lượt được hoàn); `started()` ghi mốc engine ngay trước lời gọi model."""
-    if os.environ.get("VANHANH_NO_REAL_JUDGE_ENGINE") == "1":
+    if os.environ.get("NAOTA_NO_REAL_JUDGE_ENGINE") == "1":
         # Chốt của bộ test (tests/run.py, tests/python/_paths.py): không dựng model thật; lượt được hoàn, ứng viên im có
         # lý do. Cùng phép so `== "1"` với `agent_judge.real_engine_blocked` và `_learn_engine_for`.
-        raise agent_judge.EngineUnavailable("VANHANH_NO_REAL_JUDGE_ENGINE: không dựng engine phán xử thật")
+        raise agent_judge.EngineUnavailable("NAOTA_NO_REAL_JUDGE_ENGINE: không dựng engine phán xử thật")
     cli = _reply_policy_sandbox_engine("Bạn là bộ phán xử nói/chờ/im của một nhóm trợ lý. Chỉ trả về đúng khuôn JSON "
                                        "được yêu cầu, không thêm lời dẫn.", "agent-judge", cwd_name="agent_judge_cwd")
     base = cli
@@ -29877,8 +32258,8 @@ def _judge_send(decision, payload, mode):
 
 def _judge_clarify_template():
     """Câu cố định của host khi một tin chủ động ở chat riêng chờ quá 30 phút mà vẫn thiếu thông tin."""
-    return localefmt.chu("Mình có một tin định gửi nhưng còn thiếu thông tin nên đã chờ và chưa gửi. Khi bạn tiện, cứ "
-                         "nhắn mình để làm rõ.",
+    return localefmt.chu("Có một tin định gửi nhưng còn thiếu thông tin nên đã chờ và chưa gửi. Khi tiện, cứ nhắn "
+                         "để làm rõ.",
                          "I had a message ready but some information was missing, so I waited and did not send it. "
                          "Message me whenever you want to clarify.")
 
@@ -30005,6 +32386,25 @@ def _team_learning():
     return _TEAM_LEARNING[0]
 
 
+def _team_doc_adder(store, sid, team_dir_rel):
+    """`add(rel, name)` for a team's documents that makes room when the list is full (team_docs.rows_to_drop): the
+    oldest picture or picture description of the team leaves the list, then the new document goes in. Returns None
+    only when nothing may leave (the list is full of documents the owner attached)."""
+    import team_docs
+
+    def add(rel, name):
+        fid = store.add_session_file(sid, rel, name)
+        if fid:
+            return fid
+        gone = team_docs.rows_to_drop(store.list_session_files(sid), team_dir_rel, 1)
+        if not gone:
+            return None
+        for rid in gone:
+            store.remove_session_file(sid, rid)
+        return store.add_session_file(sid, rel, name)
+    return add
+
+
 def _team_attach(team, attachments):
     """Files attached in a team chat (composer or the team info panel) become the team's documents."""
     import doc_text
@@ -30015,10 +32415,22 @@ def _team_attach(team, attachments):
     store, sid = get_store(), team.get("session_id") or ""
     if not sid:
         return []
+    # 2026-11-12: a file picked from the brain (the create-team box, the Info tab's search) comes as `brain_path`, the
+    # path /files/search returns. It is resolved here, inside the brain's own fence; a path that escapes it is dropped.
+    picked = []
+    for a in list(attachments or []):
+        if isinstance(a, dict) and a.get("brain_path") and not a.get("path"):
+            try:
+                a = dict(a, path=str(_safe_path(brain, str(a.get("brain_path") or ""))))
+            except ValueError:
+                continue
+        picked.append(a)
+    attachments = picked
+    dest_dir = broot / "attachments" / "teams" / str(team.get("team_id") or "team")
     return team_docs.save(attachments, staging=STAGING, brain_root=broot,
-                          dest_dir=broot / "attachments" / "teams" / str(team.get("team_id") or "team"),
+                          dest_dir=dest_dir,
                           to_rel=lambda p: _files_rel(root, Path(p)),
-                          add=lambda rel, name: store.add_session_file(sid, rel, name),
+                          add=_team_doc_adder(store, sid, _files_rel(root, dest_dir)),
                           pin=lambda fid: store.set_session_file_pinned(sid, fid, True),
                           readable=PROJECT_GHIM_DUOI, extract=doc_text.extract, extract_suffixes=doc_text.SUFFIXES)
 
@@ -30045,11 +32457,12 @@ async def _team_describe(team, pics, caption):
     broot = Path(_brain_root(brain)).resolve()
     root = _files_root(brain)
     store = get_store()
+    dest_dir = broot / "attachments" / "teams" / str(team.get("team_id") or "team")
     await asyncio.to_thread(
         team_docs.save_description, [f.get("name") or "" for f in pics], mo_ta, who,
-        dest_dir=broot / "attachments" / "teams" / str(team.get("team_id") or "team"),
+        dest_dir=dest_dir,
         to_rel=lambda p: _files_rel(root, Path(p)),
-        add=lambda rel, name: store.add_session_file(sid, rel, name),
+        add=_team_doc_adder(store, sid, _files_rel(root, dest_dir)),
         pin=lambda fid: store.set_session_file_pinned(sid, fid, True))
 
 
@@ -30065,6 +32478,16 @@ def _team_docs_block(team, tools=False):
         files, links = store.list_session_files(sid), store.list_session_links(sid)
         listed, loaded = _liet_ke_tai_lieu(team.get("brain_id") or "brain", files, links) if (files or links) else ([], [])
         block = team_docs.block(listed, loaded, coding_store.cwd_cua_phien(sid), tools=bool(tools))
+        # 2026-11-13: what each team document holds, one line each (written by Naota or the owner).
+        notes = store.session_asset_notes(sid) if (files or links) else {}
+        if notes:
+            desc, hidden = project_context.asset_lines(
+                [dict(f, description=(notes.get(("file", f.get("path") or "")) or {}).get("description", "")) for f in files],
+                [dict(link, description=(notes.get(("link", link.get("url") or "")) or {}).get("description", ""))
+                 for link in links])
+            if desc:
+                block += ("\n\nWhich document holds what:\n" + "\n".join(desc)
+                          + (f"\n({hidden} more descriptions)" if hidden else ""))
     except Exception as e:  # noqa: BLE001 - a broken document must not stop the team from answering
         print(f"[team docs] {type(e).__name__}: {e}", file=sys.stderr)
         block = ""
@@ -30083,7 +32506,7 @@ def _team_docs_block(team, tools=False):
 
 # In a team the push happens once the whole JOB is done, not after each member's turn: several members can
 # work in the same worktree at once, and a half-done edit must not be committed. Prompt text stays Vietnamese.
-TEAM_GITHUB_NOTE = ("Trong nhóm: Vanhanh kiểm tra, commit và đẩy lên GitHub khi CẢ VIỆC NHÓM xong (không phải sau từng "
+TEAM_GITHUB_NOTE = ("Trong nhóm: Naota kiểm tra, commit và đẩy lên GitHub khi CẢ VIỆC NHÓM xong (không phải sau từng "
                     "lượt), nên mỗi thành viên để lại worktree ở trạng thái chạy được khi kết thúc phần của mình.")
 TEAM_SKILL_MAX_CHARS = 12000
 
@@ -30201,8 +32624,8 @@ TEAM_SHARE_PINS = 20
 
 @app.get("/teams/{team_id}/export")
 async def teams_export(team_id: str, brain: str = "brain"):
-    """One `.vanhanh.zip`: the members' partner files (model fields and Auto removed, secrets scrubbed), their skills, and
-    `vanhanh-team.json` (name, description, tags, leader, members, pinned team messages as instructions)."""
+    """One `.naota.zip`: the members' partner files (model fields and Auto removed, secrets scrubbed), their skills, and
+    `naota-team.json` (name, description, tags, leader, members, pinned team messages as instructions)."""
     ops = team_api.current()
     if ops is None:
         return JSONResponse({"ok": False, "error": localefmt.chu("Team chưa sẵn sàng", "Teams are not ready")}, status_code=503)
@@ -30222,7 +32645,7 @@ async def teams_export(team_id: str, brain: str = "brain"):
         if not data:
             raise team_api.OpError(400, "Team chưa có cộng sự nào để chia sẻ", "The team has no partners to share")
         manifest = team_bundle.team_manifest(team, slugs, leader, pins)
-        name = f"{share_bundle._safe_name(team.get('name') or 'team')}.team.vanhanh.zip"
+        name = f"{share_bundle._safe_name(team.get('name') or 'team')}.team.naota.zip"
         return team_bundle.add_team_entry(data, manifest), name
 
     try:
@@ -30243,8 +32666,8 @@ async def teams_import(file: UploadFile = File(...), brain: str = Form("brain"),
                             status_code=400)
     pv = team_bundle.preview(data)
     if not pv.get("ok"):
-        return JSONResponse({"ok": False, "error": localefmt.chu("Đây không phải file team của Vanhanh",
-                                                                 "This is not a Vanhanh team file")}, status_code=400)
+        return JSONResponse({"ok": False, "error": localefmt.chu("Đây không phải file team của Naota",
+                                                                 "This is not a Naota team file")}, status_code=400)
     if preview in ("1", "true"):
         return pv
     ops = team_api.current()
@@ -30272,7 +32695,7 @@ async def teams_import(file: UploadFile = File(...), brain: str = Form("brain"),
         leader = manifest.get("leader") if manifest.get("leader") in members else ""
         got = ops.create(brain, root, manifest["name"], members, leader, desc[:2000], "")
         try:
-            rebuild_vanhanh_index(_brain_root(brain))
+            rebuild_naota_index(_brain_root(brain))
         except Exception:
             pass
         return {"ok": True, "team": _TEAM_API.view(got["team"]), "imported": res.get("imported", []),
@@ -30313,7 +32736,7 @@ _register_judge_view_part()
 def _dm_reaction_author(sess: dict) -> tuple:
     """(agent_key, config_version) của tác giả câu trả lời trong phiên `sess`. Phiên kênh `agent:<slug>` là của trợ lý đó:
     mã do host tra (ghim của phiên, không thì cấp mã bền cho trợ lý mà KHÔNG bật Cộng hưởng rồi ghim phiên, như nhóm
-    chat cấp mã cho thành viên). Phiên Vanhanh chính: ("", 0). Không tra được (file trợ lý mất, phiên của mã cũ): ("", 0)."""
+    chat cấp mã cho thành viên). Phiên Naota chính: ("", 0). Không tra được (file trợ lý mất, phiên của mã cũ): ("", 0)."""
     persona = workflow_chat.persona_cua_phien(sess or {})
     if not persona or persona[0] != "agent":
         return "", 0
@@ -30386,9 +32809,9 @@ async def sessions_message_reaction(session_id: str, message_id: int, request: R
                                     agent_config_version=ver, goal_id=str(receipt.get("goal_id") or ""), **extra)
         if not got["replayed"] and not extra:
             _feedback_projector().project("dm", got["log_id"])
-        # A notice opened in Vanhanh Core is a chat message; the emoji the owner puts on it
-        # there is Vanhanh Core's feedback on that notice (`notify_policy.react`). The marker names the bell item.
-        if not got["replayed"] and vanhanh_core.is_core_channel(sess.get("channel")):
+        # A notice opened in Naota Core is a chat message; the emoji the owner puts on it
+        # there is Naota Core's feedback on that notice (`notify_policy.react`). The marker names the bell item.
+        if not got["replayed"] and naota_core.is_core_channel(sess.get("channel")):
             m = _CITE_INBOX_RE.search(str(msg.get("content") or ""))
             if m:
                 got = dict(got, notice=m.group(1), notice_value=n["value"] or "", notice_axis=n["axis"] or "")
@@ -30411,13 +32834,13 @@ async def sessions_message_reaction(session_id: str, message_id: int, request: R
 
 
 _FEEDBACK_PULSE_BUSY = [False]
-_CITE_INBOX_RE = re.compile(r"<!-- vanhanh-cite:inbox:([0-9a-f]{6,32}) -->")
+_CITE_INBOX_RE = re.compile(r"<!-- naota-cite:inbox:([0-9a-f]{6,32}) -->")
 # The chat's speak/silent axis on a notice means "should have rung" / "should have stayed quiet".
 _NOTICE_AXIS = {"should_speak": "needed", "should_silent": "not_needed"}
 
 
 async def _notice_feedback_from_chat(item_id: str, value: str, axis: str) -> None:
-    """An emoji (and the speak/silent axis) the owner put on a notice inside Vanhanh Core's chat, passed to Vanhanh Core's
+    """An emoji (and the speak/silent axis) the owner put on a notice inside Naota Core's chat, passed to Naota Core's
     judge like the bell's buttons. Taking a reaction back changes nothing. Never raises."""
     try:
         ax = _NOTICE_AXIS.get(axis, "")
@@ -30715,7 +33138,7 @@ async def agent_jobs_list(slug: str, brain: str = "brain", source: str = "all", 
     """Việc của một trợ lý, đọc thẳng bản ghi gốc (không sao chép): việc nhóm (kể cả bước con, hỗ trợ), việc từ chat
     riêng, mục tiêu Auto. Lọc theo nguồn và ngăn, phân trang bằng `cursor`. Chỉ đọc, không tạo gì."""
     root = _brain_key(brain)
-    # Vanhanh Core has its own file and Auto now, so its Jobs tab lists its work like any agent's.
+    # Naota Core has its own file and Auto now, so its Jobs tab lists its work like any agent's.
     if not _agent_md_path(root, slug):
         return JSONResponse({"ok": False, "error": localefmt.chu("Không tìm thấy trợ lý", "Assistant not found")},
                             status_code=404)
@@ -31022,7 +33445,20 @@ def _pulse_engine_for(key, ctx, purpose):
     provider, model, execute = _team_engine_for({"brain_id": _pulse_brain_of(key), "team_id": team_id}, key, purpose)
 
     async def run(req):
-        return await execute({**req, "team_id": team_id, "task_id": None, "purpose": purpose})
+        body = {**req, "team_id": team_id, "task_id": None, "purpose": purpose}
+        if not req.get("tool_turn"):
+            return await execute(body)
+        # Lượt có công cụ của Auto toàn quyền (2026-11-14): lượt nền chủ đã cho phép khi bật Auto, như nhắc hẹn hay việc
+        # Kanban. Việc nền nó tạo (naota_task, naota_schedule) báo về chat riêng của trợ lý; `job` cho sổ "làm đúng một lần"
+        # (once_ledger) để lần thử lại của cùng lượt không gửi, đăng hay đặt hàng lần hai.
+        sid, _slug = await asyncio.to_thread(_pulse_dm_session, key)
+        tok = turn_context.bind(turn_context.make(
+            "pulse", chat_id=f"{WEB_CHAT_PREFIX}{sid}" if sid else "", session_id=sid or "",
+            job=f"pulse:{req.get('turn_id') or ''}"))
+        try:
+            return await execute(body)
+        finally:
+            turn_context.reset(tok)
 
     run.marks_engine = True
     return provider, model, run
@@ -31096,9 +33532,116 @@ def _pulse_post(key, ctx, text, meta):
         if not sid:
             return None
         mid = ss.append_message(sid, "assistant", text)
-        _pulse_on_loop(_bo_vao_hom_thu(f"{WEB_CHAT_PREFIX}{sid}", text, kind="report", label=slug, source="pulse"))
+        kind = str((meta or {}).get("kind") or "")
+        if kind:
+            # Tin của lượt quét có công cụ (Auto toàn quyền) mang loại: giữ trên tin để lượt sau biết mình đã nói gì.
+            try:
+                ss.update_team_message_meta(sid, mid, {k: v for k, v in (meta or {}).items()
+                                                       if k in ("proactive", "pulse_source", "decision_id", "kind", "did")})
+            except Exception as _e:  # noqa: BLE001 - nhãn tin không được làm hỏng việc gửi
+                print(f"[pulse meta] {type(_e).__name__}: {_e}", file=sys.stderr)
+        group, level = _PULSE_KIND_GROUP.get(kind, ("", ""))
+        _pulse_on_loop(_bo_vao_hom_thu(f"{WEB_CHAT_PREFIX}{sid}", text, kind="report", label=slug, source="pulse",
+                                       group=group, level=level))
         return {"session_id": sid, "message_id": mid}
     return None
+
+
+# Auto toàn quyền (chủ repo 14/11/2026): "cái đó không phải là thông báo nữa, mà kiểu như gợi ý và nhắc nhở". Lời nhắc có giờ
+# giấc đi nhóm Nhắc lịch (khẩn, luôn rung như nhắc hẹn chủ tự đặt); gợi ý đi nhóm riêng "Gợi ý của trợ lý", mặc định rung từ
+# mức đáng chú ý (notify_policy.GROUP_DEFAULT_MODE). Chủ hạ hay tắt từng nhóm ở trang Thông báo.
+_PULSE_KIND_GROUP = {"reminder": ("reminder", "urgent"), "suggestion": ("suggest", "important")}
+
+
+def _pulse_tool_scan(key, ctx):
+    """Lượt quét của ngữ cảnh này chạy CÓ CÔNG CỤ, toàn quyền (MCP, web, file, tạo việc): chat riêng của trợ lý khi Auto
+    bật (nhịp chỉ chạy cho trợ lý đang bật Auto). Nhóm giữ lượt quét chỉ chữ: quyền trong nhóm do Toàn quyền của nhóm quyết.
+    NAOTA_PULSE_TOOLS=0 quay về lượt quét chỉ chữ cho mọi nơi."""
+    if os.getenv("NAOTA_PULSE_TOOLS", "1").strip() == "0":
+        return False
+    return str(ctx) == f"dm:{key}"
+
+
+_PULSE_WEEKDAYS = ("Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật")
+PULSE_CTX_MEMORY_MAX = 6000      # chỉ mục bộ nhớ của chủ trong lượt quét (lượt chat thường: 20.000)
+PULSE_CTX_TALK_MAX = 5000        # nhật ký hội thoại hôm nay và hôm qua, lấy phần cuối
+PULSE_CTX_DM_N = 12              # số tin gần nhất của chat riêng với trợ lý
+
+
+def _pulse_scan_context(key, ctx, now):
+    """Khối NGỮ CẢNH của lượt quét có công cụ: giờ của chủ, hồ sơ, bộ nhớ, chuyện chủ vừa kể (nhật ký hội thoại), các tin
+    gần đây của chat riêng (đánh dấu tin chủ động và phản hồi của chủ) và mốc trợ lý đã hẹn. Mọi phần có trần; phần nào
+    lỗi thì bỏ phần đó. Dữ liệu, không phải lệnh."""
+    from datetime import datetime, timedelta
+    brain = _pulse_brain_of(key)
+    tzinfo = localefmt.tz()
+    now_dt = datetime.fromtimestamp(float(now), tz=tzinfo)
+    parts = ["## Giờ hiện tại của chủ\n"
+             f"{_PULSE_WEEKDAYS[now_dt.weekday()]}, {now_dt.strftime('%d/%m/%Y %H:%M')} ({localefmt.ten_tz()})"]
+    try:
+        prof = memory_control.profile_block().strip()
+        if prof:
+            parts.append(prof)
+    except Exception as _e:  # noqa: BLE001
+        print(f"[pulse ctx profile] {type(_e).__name__}: {_e}", file=sys.stderr)
+    mem_dir = None
+    if brain:
+        try:
+            mem_dir = _brain_memory_dir(brain)
+            idx = mem_dir / "MEMORY.md"
+            mem = idx.read_text(encoding="utf-8") if idx.exists() else ""
+            if mem.strip():
+                parts.append("## Bộ nhớ về chủ (chỉ mục)\n" + _fit_memory_index(mem, PULSE_CTX_MEMORY_MAX))
+        except Exception as _e:  # noqa: BLE001
+            print(f"[pulse ctx memory] {type(_e).__name__}: {_e}", file=sys.stderr)
+    if mem_dir is not None:
+        try:
+            talk = ""
+            for d in (now_dt - timedelta(days=1), now_dt):
+                f = mem_dir / "conversations" / f"{d.strftime('%Y-%m-%d')}.md"
+                if f.exists():
+                    talk += f"\n# {d.strftime('%d/%m')}\n" + f.read_text(encoding="utf-8", errors="replace")
+            talk = talk.strip()
+            if talk:
+                parts.append("## Chủ vừa trao đổi với Naota (hôm qua và hôm nay, phần cuối)\n<chat_data>\n"
+                             + talk[-PULSE_CTX_TALK_MAX:] + "\n</chat_data>")
+        except Exception as _e:  # noqa: BLE001
+            print(f"[pulse ctx talk] {type(_e).__name__}: {_e}", file=sys.stderr)
+    try:
+        sid, _slug = _pulse_dm_session(key)
+        if sid:
+            ss = get_store()
+            msgs = (ss.get_messages_page(sid, PULSE_CTX_DM_N, with_tools=False) or {}).get("messages") or []
+            said = set()
+            st = _pulse_store()
+            if st is not None:
+                said = {int(r["message_id"]) for r in _pulse_sql(
+                    "SELECT message_id FROM pulse_proactive WHERE agent_key=? AND session_id=? ORDER BY id DESC LIMIT 50",
+                    (key, sid))}
+            reacts = ss.dm_reactions_for(sid, [int(m["id"]) for m in msgs]) if msgs else {}
+            lines = []
+            for m in msgs:
+                mid = int(m["id"])
+                when = localefmt.format_ts(float(m.get("ts") or 0), "%d/%m %H:%M") if m.get("ts") else ""
+                who = "Chủ" if m.get("role") == "user" else ("Bạn (tin chủ động)" if mid in said else "Bạn")
+                body = " ".join(str(m.get("content") or "").split())[:500]
+                r = reacts.get(mid) or {}
+                tail = f" [chủ phản hồi: {r.get('value')}]" if r.get("value") else ""
+                lines.append(f"[{when}] {who}: {body}{tail}")
+            if lines:
+                parts.append("## Chat riêng gần đây giữa bạn và chủ\n<chat_data>\n" + "\n".join(lines) + "\n</chat_data>")
+    except Exception as _e:  # noqa: BLE001
+        print(f"[pulse ctx dm] {type(_e).__name__}: {_e}", file=sys.stderr)
+    try:
+        st = _pulse_store()
+        rows = agent_pulse.pending_followups(st, key, ctx) if st is not None else []
+        if rows:
+            parts.append("## Mốc bạn đã hẹn (đang chờ)\n" + "\n".join(
+                f"- #{r['id']} {localefmt.format_ts(float(r['due_at']), '%d/%m %H:%M')}: {r.get('note') or ''}"
+                for r in rows))
+    except Exception as _e:  # noqa: BLE001
+        print(f"[pulse ctx followups] {type(_e).__name__}: {_e}", file=sys.stderr)
+    return "\n\n".join(parts)
 
 
 def _pulse_propose(key, ctx, item, src):
@@ -31155,8 +33698,12 @@ def _pulse_proposal_action(prop, decision):
 
 
 def _pulse_send(key, ctx, text, meta):
-    return _pulse_post(key, ctx, text, {"proactive": True, "pulse_source": meta.get("source_ref") or "",
-                                        "decision_id": meta.get("decision_id")})
+    out = {"proactive": True, "pulse_source": meta.get("source_ref") or "", "decision_id": meta.get("decision_id")}
+    if meta.get("kind"):
+        out["kind"] = meta["kind"]
+    if meta.get("did"):
+        out["did"] = list(meta["did"])
+    return _pulse_post(key, ctx, text, out)
 
 
 def _pulse_notify(key, ctx, text):
@@ -31188,7 +33735,8 @@ def _pulse_host():
             persona=_pulse_persona, engine_for=lambda k, c, p: _pulse_engine_for(k, c, p),
             can_enqueue=_pulse_can_enqueue, enqueue=_pulse_enqueue, propose=_pulse_propose, send=_pulse_send,
             notify=_pulse_notify, interacted=_pulse_interacted, project_pending=_feedback_pulse_tick,
-            brain_of=_pulse_brain_of, judge_payload=lambda c: _judge_team_payload(c)))
+            brain_of=_pulse_brain_of, judge_payload=lambda c: _judge_team_payload(c),
+            tool_scan=_pulse_tool_scan, scan_context=_pulse_scan_context, tz=localefmt.tz))
         # Dựng bộ phán xử cùng lúc (đăng ký hàm phục vụ lý do related_review/wait_unblocked và hàm gửi), để sau khởi động
         # lại các lý do còn chờ có người phục vụ ngay, không phải đợi tới tin nhóm đầu tiên.
         try:
@@ -31200,14 +33748,14 @@ def _pulse_host():
 
 async def _pulse_tick():
     """Nhịp 30 giây của lớp 3, coroutine RIÊNG trong `_scheduler_loop` (cờ bận riêng, không nằm trong `_resonance_tick`).
-    Luôn chiếu outbox phản hồi còn chờ; VANHANH_PULSE_TICK_PAUSED=1 hay VANHANH_RESONANCE_TICK_PAUSED=1 (sandbox, pilot)
+    Luôn chiếu outbox phản hồi còn chờ; NAOTA_PULSE_TICK_PAUSED=1 hay NAOTA_RESONANCE_TICK_PAUSED=1 (sandbox, pilot)
     thì không nhận lịch nào."""
     if _PULSE_TICK_BUSY[0]:
         return
     _PULSE_TICK_BUSY[0] = True
     try:
         _PULSE_LOOP[0] = asyncio.get_running_loop()
-        if "1" in (os.environ.get("VANHANH_PULSE_TICK_PAUSED"), os.environ.get("VANHANH_RESONANCE_TICK_PAUSED")):
+        if "1" in (os.environ.get("NAOTA_PULSE_TICK_PAUSED"), os.environ.get("NAOTA_RESONANCE_TICK_PAUSED")):
             await _feedback_pulse_tick()
             return
         await _learn_tick()
@@ -31254,7 +33802,7 @@ def _pulse_wake_dm_sync(brain, slug, why="owner_message"):
 
 
 def _pulse_seen_resolve(ctx, ids, session_id):
-    """Chỉ tin CỦA AGENT trong Vanhanh: tin nhóm do agent viết, câu trả lời trong phiên `agent:<slug>`. Trả (ngữ cảnh chuẩn,
+    """Chỉ tin CỦA AGENT trong Naota: tin nhóm do agent viết, câu trả lời trong phiên `agent:<slug>`. Trả (ngữ cảnh chuẩn,
     mã tin, agent_key, mã phiên)."""
     ss, out = get_store(), []
     ctx = str(ctx or "")
@@ -31446,9 +33994,9 @@ def _learn_legacy(key):
 
 def _learn_engine_for(key, ctx, purpose):
     """Engine của lượt xem xét reaction và tự rà soát: cùng hợp đồng chỉ chữ với lượt quét. Chốt an toàn cho test: khi
-    VANHANH_NO_REAL_JUDGE_ENGINE=1 (tests/python/_paths.py đặt cho MỌI test) hay VANHANH_NO_REAL_REVIEW_ENGINE=1 thì ném lỗi
+    NAOTA_NO_REAL_JUDGE_ENGINE=1 (tests/python/_paths.py đặt cho MỌI test) hay NAOTA_NO_REAL_REVIEW_ENGINE=1 thì ném lỗi
     TRƯỚC khi dựng engine (lượt được hoàn, không lời gọi model nào). Test cần lượt học tự tiêm engine giả vào ReviewHost."""
-    if "1" in (os.environ.get("VANHANH_NO_REAL_JUDGE_ENGINE"), os.environ.get("VANHANH_NO_REAL_REVIEW_ENGINE")):
+    if "1" in (os.environ.get("NAOTA_NO_REAL_JUDGE_ENGINE"), os.environ.get("NAOTA_NO_REAL_REVIEW_ENGINE")):
         raise RuntimeError("engine thật của lượt học bị chặn (môi trường test)")
     return _pulse_engine_for(key, ctx, purpose)
 
@@ -31462,10 +34010,23 @@ agent_review.wire(agent_review.ReviewHost(agent_review.ReviewDeps(
 agent_review.register_with_pulse()
 memory_chat.wire(memory_chat.Deps(
     memory_dir=lambda root: _brain_memory_dir(root),
-    agents=lambda root: [{"slug": a.get("slug"), "name": a.get("name")} for a in agents_index(root, kem_prompt=False)],
+    agents=lambda root: ([{"slug": a.get("slug"), "name": a.get("name")} for a in agents_index(root, kem_prompt=False)]
+                         + [{"slug": naota_core.SLUG, "name": naota_core.NAME}]),
     agent_key=lambda root, slug, reg: _agent_jobs_key(_brain_key(root), slug, register=reg),
     lesson_store=lambda: _pulse_store() or _resonance_store(),
     agent_memory_file=lambda root, slug: _brain_memory_dir(root) / "agents" / slug / "MEMORY.md"))
+project_context.wire(project_context.Deps(
+    store=lambda: get_store(),
+    brain_root=_project_brain_root,
+    attach_target=_project_attach_target,
+    turn_session=lambda: str((turn_context.current() or {}).get("session_id") or ""),
+    note_change=lambda root: memory_control.note_change(_brain_memory_dir(root)),
+    agent_find=_project_agent_find, agent_docs=_project_agent_docs, agent_edit=_project_agent_edit,
+    # The assistant of a private chat on the Partners page, set by the host on the dashboard turn.
+    turn_agent=lambda: str((turn_context.current() or {}).get("assistant") or ""),
+    team_find=_project_team_find, team_attach=_project_team_attach,
+    turn_team=lambda: (str((turn_context.current() or {}).get("chat_id") or "")
+                       if (turn_context.current() or {}).get("kenh") == "team" else "")))
 
 
 def _learn_register_sender():
@@ -31535,9 +34096,9 @@ async def client_errors_clear():
 if __name__ == "__main__":
     import uvicorn
     # 127.0.0.1: chỉ máy này truy cập được (an toàn - tránh người khác trong mạng LAN
-    # chạy Claude full quyền trên máy + vault của bạn). Đổi qua VANHANH_HOST nếu cần.
-    host = os.getenv("VANHANH_HOST", "127.0.0.1")
-    port = int(os.getenv("VANHANH_PORT", "7777"))
+    # chạy Claude full quyền trên máy + vault của bạn). Đổi qua NAOTA_HOST nếu cần.
+    host = os.getenv("NAOTA_HOST", "127.0.0.1")
+    port = int(os.getenv("NAOTA_PORT", "7777"))
     uvicorn.run("main:app", host=host, port=port, reload=False, ws_per_message_deflate=ws_compat.wanted())
 
 
@@ -31654,8 +34215,10 @@ async def _close_warm_engines():
 
 @app.get("/health/loop")
 async def health_loop():
-    """Recent event-loop freezes with the stack where the loop was stuck (loop_watch). Read only."""
-    return loop_watch.report()
+    """Recent event-loop freezes with the stack where the loop was stuck (loop_watch). Read only.
+
+    `disk` (2026-11-13): the disk reads the event loop no longer waits for (kept.py), with the ones that were slow."""
+    return {**loop_watch.report(), "disk": kept.report()}
 
 
 @app.post("/diag/ws-drops")
@@ -31779,7 +34342,7 @@ def _improvement_text_call(system, prompt, tag, spec=None):
     settings = cfgmod.read_settings() or {}
     spec = spec or team_engine.choose_spec("", "", _effective_main(settings), _agent_model_provider,
                                            lambda sp: aux_engine.availability(sp, settings))
-    base = _reply_policy_sandbox_engine(system, tag, cwd_name="improvement_loop_cwd")
+    base = _reply_policy_sandbox_engine(system, tag, cwd_name="improvement_loop_cwd", bare=False)
     eng = team_engine.build(spec, base, tag, settings)
     prompt = _team_reasoning(eng, (settings.get("model") or {}).get("reasoning") or AGENT_REASONING_DEFAULT, prompt)
 
@@ -31811,12 +34374,12 @@ def _improvement_loop_engines(root):
     except team_engine.TeamEngineUnavailable as error:
         raise PermissionError(f"engine_unavailable: {error.reason}") from None
     def solve(skill, prompt):
-        system = ("You are a Vanhanh assistant. Follow the skill below exactly.\n\n<skill>\n" + skill +
+        system = ("You are a Naota assistant. Follow the skill below exactly.\n\n<skill>\n" + skill +
                   "\n</skill>\n\nAnswer only in the format the skill asks for.")
         return _improvement_text_call(system, prompt, "improvement-loop-solve-" + __import__("secrets").token_hex(4))
 
     def improve(instructions):
-        return _improvement_text_call("You improve skills for the Vanhanh assistant. Keep the skill's language and "
+        return _improvement_text_call("You improve skills for the Naota assistant. Keep the skill's language and "
                                       "style.", instructions, "improvement-loop-improve-" + __import__("secrets").token_hex(4))
     return solve, improve
 
@@ -31874,7 +34437,7 @@ def _auto_learning_spec():
     main = _effective_main(settings)
     if team_engine.text_only_supported(main.get("provider")):
         return None  # _improvement_text_call's own choice: the main engine
-    background = aux_engine.read_spec(settings)
+    background = aux_engine.read_spec(settings, tag="auto-learning")
     if team_engine.text_only_supported(background.get("provider")) and aux_engine.availability(background, settings)[0]:
         return {"provider": background["provider"], "model": background.get("model") or "", "source": "aux", "note": ""}
     return None
@@ -31884,7 +34447,7 @@ def _auto_learning_background_spec():
     """Judging, writing cases, grading and writing revisions run on the background model ("Mô hình nền", the one
     the Models page sets for loops, Kanban and learning); when it cannot run text-only, on the learning engine."""
     settings = cfgmod.read_settings() or {}
-    background = aux_engine.read_spec(settings)
+    background = aux_engine.read_spec(settings, tag="auto-learning")
     if team_engine.text_only_supported(background.get("provider")) and aux_engine.availability(background, settings)[0]:
         return {"provider": background["provider"], "model": background.get("model") or "", "source": "aux", "note": ""}
     return _auto_learning_spec()
@@ -32058,7 +34621,9 @@ def _auto_learning_note_tool(brain, conv_sid, event):
 
 async def _auto_learning_tick():
     """Scheduler: one unit of learning work (judge a few turns, or one learning run) in a worker thread."""
-    if _AUTO_LEARNING_BUSY[0] or os.environ.get("VANHANH_AUTO_LEARNING_PAUSED") == "1":
+    if _AUTO_LEARNING_BUSY[0] or os.environ.get("NAOTA_AUTO_LEARNING_PAUSED") == "1":
+        return
+    if _side_work_paused():      # the plan allowance is nearly used up: this work waits for the reset
         return
     _AUTO_LEARNING_BUSY[0] = True
     try:
@@ -32285,19 +34850,19 @@ def _after_plugin_install(brain: str) -> None:
     """The refresh /plugins/toggle does: hub route cache, then the operations index."""
     mcp_hub.invalidate_cache()
     try:
-        rebuild_vanhanh_index(brain)
+        rebuild_naota_index(brain)
     except Exception as e:      # noqa: BLE001
         print(f"[plugin-zip] index rebuild: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 plugin_zip_routes.register(app, plugin_zip_routes.PluginZipDeps(
-    co_phien=lambda r: cfgmod.valid_session(r.cookies.get("vanhanh_session", "")),
+    co_phien=lambda r: cfgmod.valid_session(r.cookies.get("naota_session", "")),
     brain_root=lambda b: _brain_root(b),
     after_install=_after_plugin_install,
 ))
 
 
-# Invitation to star Vanhanh on GitHub, see server/star_nudge.py.
+# Invitation to star Naota on GitHub, see server/star_nudge.py.
 # Registered LAST so route_table.json only grows at the end.
 import routes.star_nudge as star_nudge_routes   # noqa: E402
 
@@ -32337,7 +34902,7 @@ async def plan_limits_get(goi: int = 0):
     Grok Build and Antigravity report no meter, so theirs only turns red once a turn was refused.
     `goi=1` (the popover opening) also names each plan: Claude by the name Anthropic gives it now
     (the profile copy Claude Code keeps in `.claude.json`, falling back to `claude auth status`), ChatGPT
-    from the sign-in Vanhanh holds, Grok from its own auth file. Antigravity keeps no plan name."""
+    from the sign-in Naota holds, Grok from its own auth file. Antigravity keeps no plan name."""
     import plan_limits
     await asyncio.to_thread(plan_limits.quet_codex)
     d = await asyncio.to_thread(plan_limits.doc)
@@ -32368,10 +34933,12 @@ def _office_build(brain: str, day: str) -> dict:
     import office
     import usage_store
     d = office.build(Path(_brain_root(brain)), time.time(), localefmt.tz(), day, lambda dd: _office_gather(brain, dd))
-    # what AI calls cost that day, for the whole server (usage.json keeps 30 days); plan engines count 0
+    # money AI calls really billed that day, for the whole server (usage.json keeps 30 days).
+    # A plan engine's API-equivalent price is left out: showing it read as a real charge.
     try:
-        row = next((x for x in usage_store.daily(30) if x.get("day") == d.get("day")), None)
-        d["ai"] = {"cost": round(float(row["cost"]), 4), "turns": int(row["turns"])} if row else None
+        import claude_auth
+        row = usage_store.billed_day(d.get("day") or "", claude_auth.che_do() == claude_auth.API_KEY)
+        d["ai"] = row
     except Exception:
         d["ai"] = None
     d["alert"] = _office_alert()
@@ -32438,7 +35005,7 @@ def _office_gather(brain: str, day: str):
 
 
 # What runs RIGHT NOW (the Office page asks every 5 seconds while it is open): the loop iteration,
-# the reminders firing, the task-board cards in progress, the shell work Vanhanh watches. Read only.
+# the reminders firing, the task-board cards in progress, the shell work Naota watches. Read only.
 @app.get("/office/live")
 async def office_live(brain: str = "brain"):
     # every read below touches disk, so the whole gathering runs off the event loop

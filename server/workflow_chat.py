@@ -24,7 +24,7 @@ import re
 import unicodedata
 from typing import Any, Awaitable, Callable, Dict, Optional, Tuple
 
-import vanhanh_core
+import naota_core
 import localefmt
 
 TRAN_KET_QUA_TRUOC = 8000
@@ -33,8 +33,8 @@ _LOAI = ("agent", "workflow")
 
 def persona_cua_phien(row: Optional[dict]) -> Optional[Tuple[str, str]]:
     ch = str((row or {}).get("channel") or "")
-    # Vanhanh Core is not a persona: its chat is a normal Vanhanh turn plus a role block.
-    if vanhanh_core.is_core_channel(ch):
+    # Naota Core is not a persona: its chat is a normal Naota turn plus a role block.
+    if naota_core.is_core_channel(ch):
         return None
     for loai in _LOAI:
         tien_to = loai + ":"
@@ -257,7 +257,7 @@ def tin_khong_chay(ten: str = "") -> str:
     """Dòng nói THẲNG là lần chạy đã không khởi động, và cách ép chạy nếu đoán sai."""
     cua = f' "{ten}"' if str(ten or "").strip() else ""
     return localefmt.chu(
-        "Tin này đang nói về chính quy trình" + cua + " nên mình trả lời thay vì chạy nó. "
+        "Tin này đang nói về chính quy trình" + cua + " nên được trả lời thay vì chạy. "
         "Muốn chạy thật với đúng câu này thì bấm nút Chạy ở cột phải, hoặc gửi lại với "
         "\"chạy:\" ở đầu tin.",
         "This message is about the workflow" + cua + " itself, so I answered instead of running it. "

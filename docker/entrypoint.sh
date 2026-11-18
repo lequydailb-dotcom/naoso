@@ -17,9 +17,9 @@
 # việc link và server VẪN LÊN, chỉ mất tính năng giữ-qua-update chứ không chết app.
 set -u
 
-PERSIST_ROOT="${VANHANH_HOME_PERSIST:-/data/home}"
+PERSIST_ROOT="${NAOTA_HOME_PERSIST:-/data/home}"
 
-# ~/.gemini: `agy` để cấu hình MCP (~/.gemini/config/mcp_config.json - chỗ Vanhanh đấu hub
+# ~/.gemini: `agy` để cấu hình MCP (~/.gemini/config/mcp_config.json - chỗ Naota đấu hub
 # vào) và token OAuth của MCP ở đó. Thiếu nó thì mỗi lần cập nhật là mất hết kết nối MCP
 # người dùng tự thêm, dù đăng nhập Google vẫn còn.
 #
@@ -31,7 +31,15 @@ PERSIST_ROOT="${VANHANH_HOME_PERSIST:-/data/home}"
 #
 # ~/.google_workspace_mcp: phiên đăng nhập Google Workspace của MCP cùng tên. Thiếu thì mỗi lần
 # dựng lại container là phải đăng nhập Google lại.
-for d in .local .antigravity .config .gemini .grok .google_workspace_mcp; do
+#
+# ~/.npm and ~/.cache (2026-11-13): where `npx` and `uvx` keep the packages of the MCP sources they
+# run (~/.npm/_npx, ~/.cache/uv). Outside a volume they were lost with every update, so right after
+# an update EVERY such source downloaded and installed its packages again, all at the same moment.
+# On a small VPS that filled the disk queue and the memory exactly while the server was starting:
+# pages froze, the health check failed and the container was taken out of service (owner report
+# 2026-11-13: "it happens right after an update"). Kept on the volume, a source starts after an
+# update the way it starts after a plain restart.
+for d in .local .antigravity .config .gemini .grok .google_workspace_mcp .npm .cache; do
     src="$HOME/$d"
     dst="$PERSIST_ROOT/$d"
     # Đã là symlink (boot thứ hai trở đi) → xong từ lâu.
@@ -45,6 +53,18 @@ for d in .local .antigravity .config .gemini .grok .google_workspace_mcp; do
     fi
     ln -sfn "$dst" "$src" 2>/dev/null || true
 done
+
+# Packages npx installed (~/.npm/_npx) may hold code built for ONE Node major version. When an update
+# brings another major, drop them so npx installs them again instead of failing to load them. The
+# download cache next to them stays, so that reinstall needs little or no network.
+NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
+NODE_STAMP="$PERSIST_ROOT/.npm/.naota-node-major"
+if [ -n "$NODE_MAJOR" ] && [ -d "$PERSIST_ROOT/.npm" ]; then
+    if [ -f "$NODE_STAMP" ] && [ "$(cat "$NODE_STAMP" 2>/dev/null)" != "$NODE_MAJOR" ]; then
+        rm -rf "$PERSIST_ROOT/.npm/_npx" 2>/dev/null || true
+    fi
+    echo "$NODE_MAJOR" > "$NODE_STAMP" 2>/dev/null || true
+fi
 
 # ~/.claude.json: cấu hình toàn cục của Claude Code (MCP cấp người dùng, trạng thái đã giới thiệu,
 # lựa chọn đã chốt). Là một FILE nằm cạnh volume ~/.claude chứ không ở trong nó, nên trước bản
@@ -85,7 +105,7 @@ fi
 #   vòng lặp trên nên SỐNG QUA mọi lần cập nhật image. Boot sau thấy có rồi thì không làm gì.
 # - HỎNG THÌ THÔI: mạng chặn, nhà cung cấp đổi URL... chỉ ghi lại để thẻ Models nói thật, lần
 #   khởi động sau thử lại. Không bao giờ cản server lên.
-# - Tắt hẳn: đặt VANHANH_AUTO_INSTALL_CLIS=0 (máy không ra Internet, hoặc không muốn có hai CLI này).
+# - Tắt hẳn: đặt NAOTA_AUTO_INSTALL_CLIS=0 (máy không ra Internet, hoặc không muốn có hai CLI này).
 CLI_STATE="$PERSIST_ROOT/.cli-auto-install"
 co_cli() {   # <tên binary> <đường dẫn cài mặc định>
     command -v "$1" >/dev/null 2>&1 || [ -x "$2" ] || [ -x "$HOME/.local/bin/$1" ]
@@ -102,7 +122,7 @@ tu_cai_cli() {   # <tên binary> <đường dẫn cài mặc định> <URL scrip
 }
 # Tách hai lớp: lớp ngoài thoát ngay nên lớp trong mồ côi và về tay tini (PID 1), tini dọn nó khi
 # xong. Chỉ một lớp thì sau `exec` nó là con của uvicorn, Python không dọn con lạ, để lại zombie.
-if [ "${VANHANH_AUTO_INSTALL_CLIS:-1}" != "0" ] && mkdir -p "$CLI_STATE" 2>/dev/null; then
+if [ "${NAOTA_AUTO_INSTALL_CLIS:-1}" != "0" ] && mkdir -p "$CLI_STATE" 2>/dev/null; then
     ( (
         tu_cai_cli agy "$HOME/.local/bin/agy" https://antigravity.google/cli/install.sh
         tu_cai_cli grok "$HOME/.grok/bin/grok" https://x.ai/cli/install.sh

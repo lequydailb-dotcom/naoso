@@ -19,7 +19,7 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-adv-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-adv-")
 
 import config as cfgmod  # noqa: E402
 import model_routing  # noqa: E402

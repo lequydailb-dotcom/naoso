@@ -1,8 +1,8 @@
-/* install-nudge.js - nhắc thêm Vanhanh vào Màn hình chính, MỖI NGÀY MỘT LẦN.
+/* install-nudge.js - nhắc thêm Naota vào Màn hình chính, MỖI NGÀY MỘT LẦN.
 
-   Vì sao cần: trên điện thoại, Vanhanh mở bằng tab trình duyệt và Vanhanh mở bằng app đã cài là
+   Vì sao cần: trên điện thoại, Naota mở bằng tab trình duyệt và Naota mở bằng app đã cài là
    hai trải nghiệm khác hẳn nhau - và cái khác lớn nhất không nhìn thấy được. iOS CHỈ cho
-   nhận thông báo đẩy khi trang đã được "Thêm vào MH chính" (iOS 16.4+). Ai dùng Vanhanh bằng
+   nhận thông báo đẩy khi trang đã được "Thêm vào MH chính" (iOS 16.4+). Ai dùng Naota bằng
    Safari thường sẽ không bao giờ nhận được kết quả việc nền, mà cũng không có gì nói cho họ
    biết vì sao. Nút "Mở như app" trên thanh trạng thái chỉ hiện ở trình duyệt có
    beforeinstallprompt (Chrome/Edge), tức là đúng iOS - nơi cần nhất - lại không có nút nào.
@@ -20,15 +20,15 @@
 
    Nút "Cài lên điện thoại" ở chân menu: lời nhắc mỗi ngày
    một lần thì ai đã bấm "Đừng nhắc nữa" hay lỡ đóng mất sẽ không còn đường nào mở lại hướng
-   dẫn. Nút này luôn có trên điện thoại khi Vanhanh CHƯA chạy dạng app, bấm là mở đúng popup ở
+   dẫn. Nút này luôn có trên điện thoại khi Naota CHƯA chạy dạng app, bấm là mở đúng popup ở
    trên. Đã cài (mở từ màn hình chính) thì nút không hiện, cài xong ngay trong phiên thì nút
    tự gỡ. Nút không đọc cờ "Đừng nhắc nữa": cờ đó tắt lời nhắc tự bung, không tắt việc người
    dùng tự đi tìm hướng dẫn.
 */
 (function () {
   "use strict";
-  var KEY_LUC = "vanhanh.install.nhac_luc";     // lần nhắc gần nhất (epoch ms)
-  var KEY_TAT = "vanhanh.install.tat_nhac";     // "1" = người dùng bảo đừng nhắc nữa
+  var KEY_LUC = "naota.install.nhac_luc";     // lần nhắc gần nhất (epoch ms)
+  var KEY_TAT = "naota.install.tat_nhac";     // "1" = người dùng bảo đừng nhắc nữa
   var MOT_NGAY = 24 * 60 * 60 * 1000;
   var CHO_TRUOC_KHI_HIEN = 12000;             // 12 giây - xem luật 2
 
@@ -65,7 +65,7 @@
 
   function ve(tuMenu) {
     var ios = laIOS();
-    var coNutCai = !!(window.VanhanhInstall && window.VanhanhInstall.coHopCai());
+    var coNutCai = !!(window.NaotaInstall && window.NaotaInstall.coHopCai());
     var than = ios
       ? '<ol class="inud-buoc">'
         + '<li>' + window.t("instl.ios1_a") + ' <b>' + window.t("instl.ios1_b") + '</b> ' + window.t("instl.ios1_c") + '</li>'
@@ -114,7 +114,7 @@
     if (tat) tat.onclick = function () { ghi(KEY_TAT, "1"); dong(el); };
     if (cai) cai.onclick = async function () {
       cai.disabled = true;
-      var xong = await window.VanhanhInstall.moHopCai();
+      var xong = await window.NaotaInstall.moHopCai();
       dong(el);
       // Cài xong thì thôi hẳn; từ chối thì mai nhắc lại như thường.
       if (xong) { ghi(KEY_TAT, "1"); goNutMenu(); }
@@ -171,7 +171,7 @@
 
   // Cài xong thì không bao giờ nhắc nữa, kể cả khi lần sau lỡ mở lại bằng tab trình duyệt.
   window.addEventListener("appinstalled", function () { ghi(KEY_TAT, "1"); goNutMenu(); });
-  window.addEventListener("vanhanh:i18n", function () {
+  window.addEventListener("naota:i18n", function () {
     var b = document.querySelector(".rail-foot .rf-install");
     if (b) veNutMenu(b);
   });
@@ -180,5 +180,5 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", batDau);
   else batDau();
 
-  window.VanhanhInstallNudge = { thu: thu, moHuongDan: moHuongDan, denHen: denHen, laIOS: laIOS, laDienThoai: laDienThoai };
+  window.NaotaInstallNudge = { thu: thu, moHuongDan: moHuongDan, denHen: denHen, laIOS: laIOS, laDienThoai: laDienThoai };
 })();

@@ -10,9 +10,9 @@
    - workspace.js: an open that hangs shows the error and its Retry after OPEN_WAIT_MS, and the box still unlocks (and
      the error goes) if the open finishes after all;
    - an open that is only slow does not show the error: it waits while fetch-gop.js is retrying reads (its reconnect
-     band is on screen), the Vanhanh Core POST is cut after CORE_SESSION_WAIT_MS instead of hanging for good, and app.js
+     band is on screen), the Naota Core POST is cut after CORE_SESSION_WAIT_MS instead of hanging for good, and app.js
      does not hand a load stuck in flight to the Retry that follows;
-   - freshness.js: the first page opened on a new version drops the batch lists ("vanhanh.batch.*") the previous
+   - freshness.js: the first page opened on a new version drops the batch lists ("naota.batch.*") the previous
      version recorded, which Ctrl+Shift+R does not clear, and nothing else. */
 const fs = require("fs");
 const path = require("path");
@@ -52,7 +52,7 @@ async function openGuard() {
       coTinChuaDoc: () => false, daDoc() {}, ganCongHuong() {}, t: (k) => k, fd: (o) => o,
       api: async (u) => (u.indexOf("/sessions?") === 0 ? { sessions: [{ id: "s1" }] } : {}),
       veLoi(msg) { const tag = "<err:" + msg + ">"; ident.innerHTML += tag; errEls.push(tag); },
-      window: { VanhanhSessions: { _cur: null, open: openSession, current() { return this._cur; }, new() {} } },
+      window: { NaotaSessions: { _cur: null, open: openSession, current() { return this._cur; }, new() {} } },
     };
     Object.assign(ctx, (extra && extra.ctx) || {});
     Object.assign(ctx.window, (extra && extra.window) || {});
@@ -87,7 +87,7 @@ async function openGuard() {
 
   // no error while reads are being retried; it shows once the retries are over.
   let retrying = true;
-  t = run(() => new Promise(() => {}), { window: { VanhanhFetchGop: { retrying: () => retrying } } });
+  t = run(() => new Promise(() => {}), { window: { NaotaFetchGop: { retrying: () => retrying } } });
   t.ctx.moPhien({ slug: "viet-email" }, false);
   await wait(150);
   check("while fetch-gop.js retries, the slow-open error waits", !t.ident.innerHTML.includes("ws.err_session_slow"),
@@ -97,20 +97,20 @@ async function openGuard() {
   check("once the retries end, the error and its Retry show", t.ident.innerHTML.includes("ws.err_session_slow"),
     t.ident.innerHTML);
 
-  // the Vanhanh Core POST that never answers is cut, and the open ends with the error instead of hanging.
+  // the Naota Core POST that never answers is cut, and the open ends with the error instead of hanging.
   let sawSignal = false;
   t = run(() => new Promise(() => {}), { ctx: {
     AbortController,
     api: (u, opt) => {
-      if (u !== "/vanhanh-core/session") return Promise.resolve({});
+      if (u !== "/naota-core/session") return Promise.resolve({});
       sawSignal = !!(opt && opt.signal);
       return new Promise((ok, no) => { if (opt && opt.signal) opt.signal.addEventListener("abort", () => no(new Error("aborted"))); });
     },
   } });
-  const ended = t.ctx.moPhien({ slug: "vanhanh-core", system: true }, false);
+  const ended = t.ctx.moPhien({ slug: "naota-core", system: true }, false);
   const res = await Promise.race([ended, wait(400).then(() => "hung")]);
-  check("the Vanhanh Core POST carries a time limit", sawSignal);
-  check("a Vanhanh Core POST that hangs ends the open with the error", res === false
+  check("the Naota Core POST carries a time limit", sawSignal);
+  check("a Naota Core POST that hangs ends the open with the error", res === false
     && t.ident.innerHTML.includes("ws.err_session") && t.ctx.ready === false, { res, html: t.ident.innerHTML });
 
   for (const f of ["dashboard/i18n/vi.json", "dashboard/i18n/en.json"]) {
@@ -151,7 +151,7 @@ function freshPage(version, store) {
   };
   const doc = {
     readyState: "loading", hidden: false,
-    getElementById: (id) => (id === "vanhanh-fresh" ? { textContent: JSON.stringify({ version, assets: {} }) } : null),
+    getElementById: (id) => (id === "naota-fresh" ? { textContent: JSON.stringify({ version, assets: {} }) } : null),
     addEventListener() {},
   };
   const win = {
@@ -166,17 +166,17 @@ function freshPage(version, store) {
 }
 
 function versionCaches() {
-  const store = { "vanhanh.batch.chat": "[\"/x\"]", "vanhanh.batch.boot": "[]", "vanhanh_last_page": "workspace", "vanhanh.theme": "dark" };
+  const store = { "naota.batch.chat": "[\"/x\"]", "naota.batch.boot": "[]", "naota_last_page": "workspace", "naota.theme": "dark" };
   freshPage("0.507.2", store);
   check("first ever page: nothing is dropped, the version is noted",
-    store["vanhanh.batch.chat"] && store["vanhanh-fresh-version"] === "0.507.2", store);
+    store["naota.batch.chat"] && store["naota-fresh-version"] === "0.507.2", store);
   freshPage("0.507.2", store);
-  check("same version again: the batch lists stay", !!store["vanhanh.batch.chat"] && !!store["vanhanh.batch.boot"]);
+  check("same version again: the batch lists stay", !!store["naota.batch.chat"] && !!store["naota.batch.boot"]);
   freshPage("0.508.1", store);
   check("a new version drops every batch list of the old one",
-    !("vanhanh.batch.chat" in store) && !("vanhanh.batch.boot" in store) && store["vanhanh-fresh-version"] === "0.508.1", store);
+    !("naota.batch.chat" in store) && !("naota.batch.boot" in store) && store["naota-fresh-version"] === "0.508.1", store);
   check("and nothing else: the owner's own choices stay",
-    store["vanhanh_last_page"] === "workspace" && store["vanhanh.theme"] === "dark");
+    store["naota_last_page"] === "workspace" && store["naota.theme"] === "dark");
 
   const idx = read("dashboard/index.html");
   check("freshness.js runs before fetch-gop.js reads the lists",

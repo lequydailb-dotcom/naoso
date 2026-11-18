@@ -24,7 +24,7 @@ from fastapi.testclient import TestClient
 import my_tasks  # noqa: E402
 
 fails = []
-roots = {"brain": Path(tempfile.mkdtemp(prefix="vanhanh-tag-a-")), "other": Path(tempfile.mkdtemp(prefix="vanhanh-tag-b-"))}
+roots = {"brain": Path(tempfile.mkdtemp(prefix="naota-tag-a-")), "other": Path(tempfile.mkdtemp(prefix="naota-tag-b-"))}
 
 
 def check(name, cond):
@@ -43,7 +43,7 @@ feat = my_tasks.MyTasks(my_tasks.MyTasksDeps(brain_root=lambda b: str(roots.get(
                                              atomic_write_text=atomic_write))
 
 # ---- an old store: one project, no tags ----
-store = roots["brain"] / "Vanhanh" / "my-tasks.json"
+store = roots["brain"] / "Naota" / "my-tasks.json"
 store.parent.mkdir(parents=True, exist_ok=True)
 store.write_text(json.dumps({"tasks": [{"id": "m_old", "title": "Old", "project": "p_a", "status": "open"},
                                        {"id": "m_none", "title": "No project", "status": "open"}],
@@ -59,7 +59,7 @@ full_old = {"id": "m_full", "kind": "task", "title": "Full", "notes": "see [[not
             "done_dates": {"2026-10-08": {"at": 1, "by": "me"}}, "subs": [{"t": "x", "done": True}], "remind": "auto",
             "location": "HN", "habit": None, "created_at": 1, "updated_at": 2}
 appt_old = {"id": "m_appt", "kind": "appt", "title": "Appt", "project": "p_gone", "status": "done", "done_at": 5}
-old_store = roots["other"] / "Vanhanh" / "my-tasks.json"
+old_store = roots["other"] / "Naota" / "my-tasks.json"
 old_store.parent.mkdir(parents=True, exist_ok=True)
 old_store.write_text(json.dumps({"tasks": [full_old, appt_old], "projects": [{"id": "p_a", "name": "A", "color": "#ef4444", "order": 0}],
                                  "rev": 7}), encoding="utf-8")

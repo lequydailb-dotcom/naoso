@@ -1,4 +1,4 @@
-"""PreToolUse hook that keeps every Claude Code turn away from Vanhanh's secret files.
+"""PreToolUse hook that keeps every Claude Code turn away from Naota's secret files.
 
 Lives in its own module on purpose: `claude_sdk_engine.py` is pinned byte for byte to the source the native trial path
 was qualified with (docs/superpowers/evidence/2026-10-25-m5-native-qualification-cli310.json), so, like
@@ -12,11 +12,11 @@ one is added next to it. A qualified trial profile (`trial_profile`) builds its 
 """
 from __future__ import annotations
 
-_MARK = "_vanhanh_secret_hook"
+_MARK = "_naota_secret_hook"
 
 
 async def secret_guard_hook(input_data, tool_use_id, context):
-    """PreToolUse: deny a call that reads or writes a secret file of Vanhanh. Fails open on an error inside the guard
+    """PreToolUse: deny a call that reads or writes a secret file of Naota. Fails open on an error inside the guard
     itself: it is a tripwire on top of the other rails, never the only one."""
     try:
         import secret_guard

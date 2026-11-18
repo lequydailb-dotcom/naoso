@@ -19,7 +19,7 @@ import os
 import tempfile
 from unittest.mock import patch
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-ollama-team-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-ollama-team-"))
 
 import aux_engine  # noqa: E402
 import engine  # noqa: E402
@@ -43,10 +43,10 @@ SPEC = {"provider": "ollama-local", "model": "qwen2.5-coder:14b"}
 class _Base:
     """The sandboxed Claude engine a Team turn builds before the swap: only what team_engine reads."""
     system_prompt = "Bạn là trợ lý nhóm."
-    allowed_tools = ["vanhanh_nothing"]
-    cwd = tempfile.mkdtemp(prefix="vanhanh-ollama-team-cwd-")
-    vanhanh_vault = None
-    vanhanh_mode = "suggest"
+    allowed_tools = ["naota_nothing"]
+    cwd = tempfile.mkdtemp(prefix="naota-ollama-team-cwd-")
+    naota_vault = None
+    naota_mode = "suggest"
     tag = "team-test"
 
 

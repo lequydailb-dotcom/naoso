@@ -11,7 +11,7 @@ from _paths import ROOT, SERVER  # noqa: F401
 import os
 import tempfile
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-ghrev-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-ghrev-"))
 
 import aux_engine  # noqa: E402
 import main  # noqa: E402

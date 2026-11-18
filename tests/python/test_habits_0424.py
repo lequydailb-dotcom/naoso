@@ -68,7 +68,7 @@ st = my_tasks.habit_state(swim, T.isoformat())
 check("a weekday habit rests on Friday, streak intact", st["rest"] and not st["frozen"] and st["cur"] > 20)
 
 # ---- reminder tick ----
-brain = Path(tempfile.mkdtemp(prefix="vanhanh-habits-"))
+brain = Path(tempfile.mkdtemp(prefix="naota-habits-"))
 sent = []
 
 
@@ -111,7 +111,7 @@ before = len(sent)
 asyncio.run(feat.tick())
 check("never twice in a day", len(sent) == before and len(nudges()) == 1)
 check("the day it was reminded is stored", next(t for t in feat.load("brain")["tasks"] if t["id"] == "m_due")["habit"].get("nudged") == today)
-check("Vanhanh reminds: half an hour after the usual time, earlier while frozen",
+check("Naota reminds: half an hour after the usual time, earlier while frozen",
       my_tasks.nudge_time({"habit": {"remind": "auto"}, "time": "21:00"}, {"frozen": False}) == "21:30"
       and my_tasks.nudge_time({"habit": {"remind": "auto"}, "time": "21:00"}, {"frozen": True}) == "20:30")
 

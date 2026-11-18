@@ -1,15 +1,15 @@
 """Sửa chữ NGHE NHẦM theo ngữ cảnh, trước khi câu nói đi vào bộ não.
 
 Vì sao có lớp này: người dùng nói lẫn tiếng Việt và tiếng Anh, và máy nghe (Web
-Speech của trình duyệt lẫn Whisper) chép tên lạ thành từ gần âm: "Vanhanh" thành "Vân Hạnh",
-"Văn Hạnh", "Van Hanh"; tên công cụ, tên dự án cũng cùng số phận. Câu đến bộ não mang
-từ sai đó, Vanhanh trả lời bám nghĩa đen ("Vân Hạnh là ai?") nghe rất buồn cười. Sửa ở tầng máy
+Speech của trình duyệt lẫn Whisper) chép tên lạ thành từ gần âm: "Naota" thành "Nauta",
+"Nota", "Nau ta"; tên công cụ, tên dự án cũng cùng số phận. Câu đến bộ não mang
+từ sai đó, Naota trả lời bám nghĩa đen ("Nauta là ai?") nghe rất buồn cười. Sửa ở tầng máy
 nghe thì không được: Web Speech không nhận từ điển riêng, còn Whisper chỉ nhận một gợi ý.
 
 Cách làm, ba lớp bổ trợ nhau:
   1. `goi_y_whisper` - đưa bộ từ vựng vào tham số `prompt` của Whisper để nó ưu tiên viết
      đúng những tên này (hotwords). Chỉ Groq Whisper có, Web Speech không.
-  2. `sua` - so khớp MỜ THEO ÂM: mỗi từ (hoặc cặp từ, vì "Vanhanh" hay bị tách thành "Van Hanh")
+  2. `sua` - so khớp MỜ THEO ÂM: mỗi từ (hoặc cặp từ, vì "Naota" hay bị tách thành "Nau ta")
      được rút về một khoá âm (bỏ dấu, gộp những âm máy nghe hay lẫn: j/gi/d/z, v/w, đuôi
      s/t/d) rồi so với khoá âm của từng từ trong bộ từ vựng. Trùng gần như hoàn toàn thì sửa ở
      mọi vị trí; trùng vừa phải thì CHỈ sửa khi từ đứng ở vị trí GỌI TÊN (đầu câu, trước "ơi",
@@ -38,7 +38,7 @@ import unicodedata
 
 # Tên trợ lý luôn có mặt, không cần người dùng khai. Bộ từ vựng người dùng thêm nằm ở
 # settings `voice.hotwords` (chuỗi, ngăn bằng dấu phẩy hoặc xuống dòng).
-BASE_VOCABULARY = ("Vanhanh",)
+BASE_VOCABULARY = ("Naota",)
 # Thuật ngữ AI và sản phẩm hay bị nghe nhầm, đưa vào LỚP SỬA luôn (không chỉ mồi Whisper). Mỗi tên
 # phải tự khác âm với các tên còn lại, nếu không lớp sửa sẽ đổi nhầm: "Groq" và "Grok" đều có,
 # nên nói "Groq" vẫn giữ nguyên, còn "Grox" mới được sửa thành "Grok".
@@ -70,11 +70,11 @@ NGUONG_GOI_TEN = 0.8
 # được 0,75, đủ để một câu lệnh bình thường mất chữ cuối.
 KHOA_MIN_MO = 4
 
-# Từ đứng TRƯỚC vị trí gọi tên: "hey Vanhanh", "ok Vanhanh", "này Vanhanh", "cảm ơn Vanhanh".
+# Từ đứng TRƯỚC vị trí gọi tên: "hey Naota", "ok Naota", "này Naota", "cảm ơn Naota".
 _MO_DAU = frozenset("""
 hey hi hello ok okay alo alô này ê ơi à ừ ờ ừm um rồi thôi nào chào ơn xin cám cảm thanks thank
 """.split())
-# Từ đứng SAU vị trí gọi tên: "Vanhanh ơi", "Vanhanh à", "Vanhanh này".
+# Từ đứng SAU vị trí gọi tên: "Naota ơi", "Naota à", "Naota này".
 _KET_GOI = frozenset("ơi à ạ nhé nha này ei ê hey".split())
 # Từ đứng trước cho biết đang nói về NGƯỜI THỨ BA, không phải gọi trợ lý.
 _NGOI_THU_BA = frozenset("""
@@ -92,11 +92,21 @@ một hai ba bốn tư năm sáu bảy tám chín mười mươi trăm nghìn ng
 no not never don't stop cancel enable disable open close delete send transfer
 one two three four five six seven eight nine ten hundred thousand million
 """.split())
+# Everyday Vietnamese function words, compared WITH their tone marks (2026-11-13). A group of two or three syllables
+# that holds one of them is ordinary speech far more often than a misheard name: "đã viết" has nearly the sound key of
+# "Naota" and "cần và" exactly that of "Canva", so "rồi đã viết xong" became "rồi Naota xong" and "anh cần và em" became
+# "anh Canva em". Such a group is only taken when it is already spelled like the term; the rewrite model, which reads
+# the whole sentence and its context, decides the rest. One syllable alone ("David") is never held back by this.
+COMMON_WORDS = frozenset("""
+đã sẽ đang vì và cần có là mà thì để khi nếu như nhưng hay hoặc cũng rất lại còn vẫn đều được bị phải nên muốn
+biết làm đi đến ra vào lên xuống về ở trong ngoài trên dưới đó kia ấy đây thế vậy gì sao ai tôi anh em mình chị
+bạn nó họ các những cái việc người
+""".split())
 # Khối ngữ cảnh dashboard chèn TRƯỚC lời nói: FILE ĐANG MỞ (đang mở file trong trình sửa) rồi
 # NGỮ CẢNH GIAO DIỆN. Cả hai không phải lời nói. Trước đây chỉ nhận khối sau, nên khi đang mở
-# file thì khối FILE bị tính là lời nói; dòng VANHANH_NGHE (chỉ có lời nói) bị coi là cắt chữ, và
+# file thì khối FILE bị tính là lời nói; dòng NAOTA_NGHE (chỉ có lời nói) bị coi là cắt chữ, và
 # cả lượt lặng lẽ rơi sang bộ não chính dù đã chọn bộ não trả lời nhanh.
-_UI_CONTEXT = re.compile(r"\A(?:\s*\[(?:FILE ĐANG MỞ trong trình sửa của Vanhanh:|NGỮ CẢNH GIAO DIỆN:)"
+_UI_CONTEXT = re.compile(r"\A(?:\s*\[(?:FILE ĐANG MỞ trong trình sửa của Naota:|NGỮ CẢNH GIAO DIỆN:)"
                          r"[^\]]*\]\s*)+")
 # Speech can contain literal identifiers. Do not rewrite pieces of paths, URLs or email.
 VERBATIM = re.compile(r"\S*(?:[/\\@:_]|\w\.\w)\S*")
@@ -128,7 +138,7 @@ def bo_dau(s: str) -> str:
 def khoa_am(tu: str) -> str:
     """Rút một từ (hay cụm đã ghép liền) về khoá âm để so mờ.
 
-    Ví dụ: Vanhanh, Vận Hành, Van Hanh -> cùng một khoá âm.
+    Ví dụ: Naota, Naôta, Na ô ta -> đều là "naota"; Nauta, Nau ta -> đều là "nauta".
     """
     s = re.sub(r"[^a-z]", "", bo_dau(tu))
     if not s:
@@ -148,6 +158,27 @@ def do_giong(a: str, b: str) -> float:
     if a == b:
         return 1.0
     return difflib.SequenceMatcher(None, a, b).ratio()
+
+
+def similar_from(a: str, b: str, floor: float) -> float:
+    """`do_giong(a, b)` when it reaches `floor`, else 0.0, without paying for the full comparison.
+
+    `sua` only ever asks "is this at least 0.8 alike", and nearly every pair it tries is nowhere near. The two cheap
+    upper bounds difflib offers (lengths, then shared letters) settle those, so the costly matcher runs for the few
+    pairs that can pass. Measured 2026-11-13 with 90 terms: an 80-word dictation took 3.5 s and now takes 0.01 s,
+    a 400-word one took 17.8 s and now takes 0.04 s. The old loop also froze every other request meanwhile."""
+    if not a or not b:
+        return 0.0
+    if a == b:
+        return 1.0
+    la, lb = len(a), len(b)
+    if 2.0 * min(la, lb) / (la + lb) < floor:
+        return 0.0
+    sm = difflib.SequenceMatcher(None, a, b)
+    if sm.quick_ratio() < floor:
+        return 0.0
+    r = sm.ratio()
+    return r if r >= floor else 0.0
 
 
 def split_vocabulary(chuoi) -> list:
@@ -197,7 +228,7 @@ def goi_y_whisper(tv, ky_thuat=TU_TIENG_ANH_MOI) -> str:
 
     Whisper coi prompt là "đoạn trước" của bản ghi và bắt chước cách viết trong đó, nên chỉ cần
     tên xuất hiện là nó ưu tiên chép đúng chính tả ấy. Cố ý KHÔNG viết thành câu ("Nói chuyện
-    với Vanhanh") vì gặp im lặng Whisper hay chép lại chính câu mồi.
+    với Naota") vì gặp im lặng Whisper hay chép lại chính câu mồi.
 
     `ky_thuat` (mặc định `TU_TIENG_ANH_MOI`) đứng TRƯỚC bộ từ vựng: Whisper chỉ giữ phần cuối
     prompt, nên từ người dùng khai phải ở sát audio nhất; cắt độ dài thì bỏ từ mồi chung trước.
@@ -259,9 +290,9 @@ def _ten_rieng_hai_chu(toks, i, n, s, term) -> bool:
     return w[:1].isupper() and w.lower() not in _KET_GOI
 
 
-# Ca nghe nhầm ĐÃ BIẾT, sửa theo đúng chính tả, không cần so âm. Tên VANHANH đọc cả cụm hay bị
+# Ca nghe nhầm ĐÃ BIẾT, sửa theo đúng chính tả, không cần so âm. Tên NAOTA đọc cả cụm hay bị
 # máy nghe thành "Nauta OS" hoặc "Nota OS".
-KNOWN_MISHEARINGS = (("Nauta OS", "VANHANH"), ("Nota OS", "VANHANH"))
+KNOWN_MISHEARINGS = (("Nauta OS", "NAOTA"), ("Nota OS", "NAOTA"))
 _KNOWN_MISHEARINGS_RE = [(re.compile(r"(?<!\w)" + re.escape(a) + r"(?!\w)", re.IGNORECASE), b)
                  for a, b in KNOWN_MISHEARINGS]
 
@@ -287,17 +318,29 @@ def sua(text, tv) -> str:
         return s
     dem = frozenset(bo_dau(x) for x in (_MO_DAU | _KET_GOI | _NGOI_THU_BA))
     verbatim = [(m.start(), m.end()) for m in VERBATIM.finditer(s)]
+    # Per syllable, worked out once: its sound key, its plain form, and whether a rule holds it back.
+    words = [t.group(0) for t in toks]
+    lower = [w.lower() for w in words]
+    is_filler = [bo_dau(w) in dem for w in words]
+    is_protected = [w in PROTECTED_WORDS for w in lower]
+    is_common = [unicodedata.normalize("NFC", w) in COMMON_WORDS for w in lower]
+    joined_terms = ["".join(t.lower().split()) for t, _, _ in ds]
+    solo = {}
 
     def _diem_don(j):
-        """Điểm cao nhất của RIÊNG tiếng thứ j so với cả bộ từ vựng."""
-        k = khoa_am(toks[j].group(0))
-        return max((do_giong(k, kt) for _, kt, _ in ds), default=0.0) if len(k) >= 3 else 0.0
+        """Điểm cao nhất của RIÊNG tiếng thứ j so với cả bộ từ vựng (0 khi dưới ngưỡng gọi tên: không ai cần số đó)."""
+        if j not in solo:
+            k = khoa_am(words[j])
+            solo[j] = (max((similar_from(k, kt, NGUONG_GOI_TEN) for _, kt, _ in ds), default=0.0)
+                       if len(k) >= 3 else 0.0)
+        return solo[j]
 
     ra, pos, i, doi = [], 0, 0, False
     while i < len(toks):
         # Xét mọi cách ghép n tiếng từ vị trí i, lấy cách TRÙNG NHẤT (hoà thì cụm ngắn hơn).
-        # Duyệt theo thứ tự "n dài trước" rồi lấy khớp đầu tiên là sai: "hey Van Hanh" ghép ba
-        # tiếng trùng 0,91 thắng "Van Hanh" hai tiếng trùng 1,0, và cả "hey" bị nuốt vào tên.
+        # Duyệt theo thứ tự "n dài trước" rồi lấy khớp đầu tiên là sai: "hey Nau ta" ghép ba
+        # tiếng trùng 0,91 thắng "Nau ta" hai tiếng trùng 1,0, và cả "hey" bị nuốt vào tên.
+        # A candidate under NGUONG_GOI_TEN can never be taken, so it is not scored at all (similar_from).
         best = None      # (d, n, term)
         for n in range(1, min(MAX_GHEP, len(toks) - i) + 1):
             uv = _ung_vien(toks, i, n, s)
@@ -308,25 +351,31 @@ def sua(text, tv) -> str:
             k = khoa_am(uv)
             if len(k) < 3:
                 continue
+            span = range(i, i + n)
             if n >= 2:
                 # Cụm ghép không được chứa tiếng đệm ("hey", "ơi", "cho"), và không tiếng nào
-                # trong cụm tự nó trùng tốt hơn cả cụm: "ơn Vân Hạnh" thua "Vân Hạnh".
-                if any(bo_dau(toks[j].group(0)) in dem for j in range(i, i + n)):
+                # trong cụm tự nó trùng tốt hơn cả cụm: "ơn Nauta" thua "Nauta".
+                if any(is_filler[j] for j in span):
                     continue
-            for term, kt, so_tieng in ds:
-                if (any(toks[j].group(0).lower() in PROTECTED_WORDS for j in range(i, i + n))
-                        and "".join(uv.lower().split()) != "".join(term.lower().split())):
+            uv_lower = uv.lower()
+            uv_joined = "".join(uv_lower.split())
+            # A command or number word, or (in a group) an everyday word: only a group already spelled like the term.
+            held = any(is_protected[j] for j in span) or (n >= 2 and any(is_common[j] for j in span))
+            for (term, kt, so_tieng), term_joined in zip(ds, joined_terms):
+                if held and uv_joined != term_joined:
                     continue
                 if n > so_tieng + 1:
                     continue           # không ghép quá số tiếng của từ vựng (+1 cho ca bị tách)
-                d = 1.0 if uv.lower() == term.lower() else do_giong(k, kt)
+                exact = uv_lower == term.lower()
+                d = 1.0 if exact else similar_from(k, kt, NGUONG_GOI_TEN)
+                if d < NGUONG_GOI_TEN:
+                    continue
                 if d < 1.0 and len(k) < KHOA_MIN_MO:
                     continue
-                if n >= 2 and any(_diem_don(j) >= d for j in range(i, i + n)):
+                if n >= 2 and any(_diem_don(j) >= d for j in span):
                     continue
                 # Hoà điểm (hai tên cùng khoá âm, như Groq và Grok): ưu tiên tên viết ĐÚNG như máy nghe.
-                exact = uv.lower() == term.lower()
-                if best is None or d > best[0] or (d == best[0] and exact and best[2].lower() != uv.lower()):
+                if best is None or d > best[0] or (d == best[0] and exact and best[2].lower() != uv_lower):
                     best = (d, n, term, uv)
         if best is None or best[0] < NGUONG_GOI_TEN:
             i += 1
@@ -336,10 +385,7 @@ def sua(text, tv) -> str:
             i += n                     # đã đúng sẵn: khoá cả cụm, khỏi sửa từng tiếng bên trong
             continue
         if (_ngoi_thu_ba(toks, i, s) or _ten_rieng_hai_chu(toks, i, n, s, term)
-                or ((d < NGUONG_MOI_NOI or bo_dau(uv) != uv.lower())
-                    and not _o_vi_tri_goi_ten(toks, i, n, s))):
-            # VANHANH: tên trợ lý đọc như "vận hành" (từ tiếng Việt rất thường gặp). Cụm có DẤU
-            # tiếng Việt là chữ thật, chỉ sửa khi đứng ở vị trí gọi tên, không sửa giữa câu.
+                or (d < NGUONG_MOI_NOI and not _o_vi_tri_goi_ten(toks, i, n, s))):
             i += 1
             continue
         dau, cuoi = toks[i].start(), toks[i + n - 1].end()

@@ -15,8 +15,8 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-goal-host-")
-BR = Path(tempfile.mkdtemp(prefix="vanhanh-team-goal-host-brain-"))
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-goal-host-")
+BR = Path(tempfile.mkdtemp(prefix="naota-team-goal-host-brain-"))
 (BR / "agents").mkdir()
 for slug, name in (("lan", "Lan"), ("minh", "Minh"), ("hoa", "Hoa")):
     (BR / "agents" / f"{slug}.md").write_text(f"---\nname: {name}\nrole: Thành viên\n---\nBạn là {name}.\n",
@@ -81,7 +81,7 @@ def drain():
 
 def directive(**op):
     import json
-    return f"\n<!-- VANHANH_TEAM: {json.dumps(op, ensure_ascii=False)} -->"
+    return f"\n<!-- NAOTA_TEAM: {json.dumps(op, ensure_ascii=False)} -->"
 
 
 c = TestClient(main.app, base_url="http://127.0.0.1:8080")
@@ -101,7 +101,7 @@ check("H5 chủ đặt Không giới hạn số lần mỗi ngày qua route: lư
       and r.json()["team"]["caps"]["daily_turns"] is None and r.json()["team"]["usage"]["cap"] is None, r.text)
 r = c.post(f"/teams/{TID}/caps{Q}", json={"caps": {"running_jobs": 2}})
 check("H5 trần máy chủ (việc chạy cùng lúc mỗi nhóm) không đặt được qua route", r.status_code in (400, 409)
-      and c.get(f"/teams/{TID}{Q}").json()["team"]["caps"]["running_jobs"] == 1, r.text)
+      and c.get(f"/teams/{TID}{Q}").json()["team"]["caps"]["running_jobs"] == 3, r.text)
 c.post(f"/teams/{TID}/caps{Q}", json={"caps": {"daily_turns": 100}})
 
 # ═════ H6: set_resonance của trưởng nhóm đánh thức mục tiêu; luật quản lý ═════

@@ -122,6 +122,8 @@ async def _delete(path, token):
 
 
 def _fmt(d):
+    from graph_output import sanitize_graph_output
+    d = sanitize_graph_output(d)
     if isinstance(d, dict) and d.get("error"):
         e = d["error"]
         msg = e.get("message") if isinstance(e, dict) else str(e)
@@ -423,7 +425,7 @@ async def _publish_album(args, cctx):
 
 async def _edit_post(args, cctx):
     """Sửa NỘI DUNG CHỮ của bài đã đăng. Meta chỉ cho đổi message - không đổi được
-    ảnh/video đã đính kèm (muốn đổi media thì xoá đăng lại, Vanhanh không tự xoá)."""
+    ảnh/video đã đính kèm (muốn đổi media thì xoá đăng lại, Naota không tự xoá)."""
     token = await _token()
     if not token:
         return "ERROR: " + (_check() or "chưa kết nối")

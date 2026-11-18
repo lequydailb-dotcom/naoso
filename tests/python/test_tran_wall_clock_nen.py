@@ -10,7 +10,7 @@ có thể chạy 30-60 phút.
 
 Trần này là LƯỚI ĐỠ chống fork treo vô hạn chứ không phải quản chi phí (fork đơ có
 idle-timeout riêng bắt sớm hơn), nên nó phải đặt theo việc dài nhất hợp lệ. Nay cả ba nơi
-dùng chung aux_engine.bg_max_wall_s(): mặc định 0 (không giới hạn), env VANHANH_BG_MAX_WALL_S đặt lại được.
+dùng chung aux_engine.bg_max_wall_s(): mặc định 0 (không giới hạn), env NAOTA_BG_MAX_WALL_S đặt lại được.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
 import os
@@ -30,21 +30,21 @@ import aux_engine  # noqa: E402
 
 # ---- 1. Helper: mặc định + env override + chống giá trị rác ----
 # the default is now 0 = no cap.
-os.environ.pop("VANHANH_BG_MAX_WALL_S", None)
+os.environ.pop("NAOTA_BG_MAX_WALL_S", None)
 check("default is 0 = no cap", aux_engine.bg_max_wall_s() == 0)
-os.environ["VANHANH_BG_MAX_WALL_S"] = "7200"
-check("env VANHANH_BG_MAX_WALL_S đổi được trần", aux_engine.bg_max_wall_s() == 7200)
+os.environ["NAOTA_BG_MAX_WALL_S"] = "7200"
+check("env NAOTA_BG_MAX_WALL_S đổi được trần", aux_engine.bg_max_wall_s() == 7200)
 for rac in ("abc", "-5", "0", ""):
-    os.environ["VANHANH_BG_MAX_WALL_S"] = rac
+    os.environ["NAOTA_BG_MAX_WALL_S"] = rac
     check(f"garbage {rac!r} falls back to the default (no cap)", aux_engine.bg_max_wall_s() == 0)
-os.environ.pop("VANHANH_BG_MAX_WALL_S", None)
+os.environ.pop("NAOTA_BG_MAX_WALL_S", None)
 
 # The Kanban worker timeout follows: no engine cap = no worker cap, a set cap = cap + 60 s (never below 900).
 import tasks  # noqa: E402
 check("no cap: the Kanban worker waits without a timeout", tasks.TasksFeature._tran_giay_viec() is None)
-os.environ["VANHANH_BG_MAX_WALL_S"] = "3600"
+os.environ["NAOTA_BG_MAX_WALL_S"] = "3600"
 check("a set cap: worker cap = cap + 60", tasks.TasksFeature._tran_giay_viec() == 3660.0)
-os.environ.pop("VANHANH_BG_MAX_WALL_S", None)
+os.environ.pop("NAOTA_BG_MAX_WALL_S", None)
 
 # ---- 2. Cả ba nơi chạy nền dùng CHUNG helper, không còn số cứng ----
 for f, mo_ta in (("reminders.py", "nhắc hẹn/cron"), ("tasks.py", "việc Kanban"),

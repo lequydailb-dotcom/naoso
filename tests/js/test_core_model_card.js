@@ -1,5 +1,5 @@
-/* Vanhanh Core's model on the chat model chip. Since 2026-11-05 its card is the ordinary agent editor, whose
- * Model field is the same Vanhanh Core pin; the separate card script (core-model.js) is gone.
+/* Naota Core's model on the chat model chip. Since 2026-11-05 its card is the ordinary agent editor, whose
+ * Model field is the same Naota Core pin; the separate card script (core-model.js) is gone.
  */
 const fs = require("fs");
 const path = require("path");
@@ -9,7 +9,7 @@ let fails = 0;
 function check(name, cond, extra) { console.log((cond ? "ok   " : "FAIL ") + name + (cond ? "" : "  [" + extra + "]")); if (!cond) fails++; }
 
 const mp = fs.readFileSync(path.join(ROOT, "dashboard", "model-picker.js"), "utf8");
-check("the chat model bar tells the page when Vanhanh Core's pin changes", mp.includes('"vanhanh:core-model"') && mp.includes("coreChanged()"), "");
+check("the chat model bar tells the page when Naota Core's pin changes", mp.includes('"naota:core-model"') && mp.includes("coreChanged()"), "");
 
 // "the Core pin does not hold, changing the main chat's model changes Core too". One cause: after a
 // message in an UNPINNED Core chat, noteStamped() drew the main model as this chat's pin (pin icon on the chip), as for
@@ -39,17 +39,17 @@ check("the chat model bar tells the page when Vanhanh Core's pin changes", mp.in
   sb.dispatchEvent = () => {};
   sb.matchMedia = () => ({ matches: false });
   let sid = "CORE1";
-  sb.VanhanhSessions = { current: () => sid, brain: () => "brain" };
+  sb.NaotaSessions = { current: () => sid, brain: () => "brain" };
   vm.createContext(sb);
   vm.runInContext(fs.readFileSync(path.join(ROOT, "dashboard", "model-picker.js"), "utf8"), sb);
-  meta = { id: "CORE1", channel: "agent:vanhanh-core", agent_slug: "vanhanh-core", agent_reasoning: "medium" };
+  meta = { id: "CORE1", channel: "agent:naota-core", agent_slug: "naota-core", agent_reasoning: "medium" };
   await sb.initModelBar();
-  sb.VanhanhModelBar.noteStamped("CORE1");
-  check("an unpinned Vanhanh Core chat is not drawn as pinned after a message", !els.mbOpen.has("is-pinned"), "is-pinned set");
+  sb.NaotaModelBar.noteStamped("CORE1");
+  check("an unpinned Naota Core chat is not drawn as pinned after a message", !els.mbOpen.has("is-pinned"), "is-pinned set");
   sid = "MAIN1";
   meta = { id: "MAIN1", channel: "web" };
   await sb.initModelBar();
-  sb.VanhanhModelBar.noteStamped("MAIN1");
+  sb.NaotaModelBar.noteStamped("MAIN1");
   check("a normal chat still shows the model it was stamped with", els.mbOpen.has("is-pinned"), "no pin on a normal chat");
   if (fails) { console.log("\nFAILED " + fails); process.exit(1); }
   console.log("\nOK - test_core_model_card");

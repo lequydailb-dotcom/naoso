@@ -1,5 +1,5 @@
 """
-plugins_host.py - Hệ PLUGIN của Vanhanh (port ý tưởng "plugin" của nousresearch/hermes-agent).
+plugins_host.py - Hệ PLUGIN của Naota (port ý tưởng "plugin" của nousresearch/hermes-agent).
 
 Plugin = THƯ MỤC Python thả vào, tự thêm TOOL (ra MỌI engine qua mcp_hub) + HOOK lifecycle,
 KHÔNG phải sửa lõi. Mỗi plugin gồm:
@@ -8,17 +8,17 @@ KHÔNG phải sửa lõi. Mỗi plugin gồm:
 
 NGUỒN plugin (giống bundled/user của Hermes):
     - BUNDLED  <project>/system/plugins/<slug>/    ship theo app, TIN CẬY
-    - VAULT    <vault>/plugins/<slug>/  (hoặc  <vault>/Vanhanh/plugins/<slug>/)   do user tạo
+    - VAULT    <vault>/plugins/<slug>/  (hoặc  <vault>/Naota/plugins/<slug>/)   do user tạo
 
 TOOL plugin đi qua mcp_hub.discover_all → Claude Code / Codex (HTTP /hub/mcp) + engine API
-(in-process). TÔN TRỌNG 3 mức quyền của Vanhanh qua `min_mode` (readonly/safe/full), enforce y hệt
+(in-process). TÔN TRỌNG 3 mức quyền của Naota qua `min_mode` (readonly/safe/full), enforce y hệt
 tool ghi file builtin. HOOK 'pre_tool_call'/'post_tool_call' được mcp_hub bắn quanh MỌI tool call
 khi có plugin đăng ký (0 overhead khi không plugin nào dùng hook).
 
 AN TOÀN (lớp CỨNG - plugin chạy code Python THẬT trong tiến trình server):
     - Bundled: tự nạp khi effective-enabled (mặc định theo manifest `enabled:`).
     - Vault:  loaded when the manifest says enabled:true. (owner decision) user and vault
-      plugins load by default; VANHANH_ENABLE_USER_PLUGINS=false opts out (it used to be opt-in, like
+      plugins load by default; NAOTA_ENABLE_USER_PLUGINS=false opts out (it used to be opt-in, like
       Hermes HERMES_ENABLE_PROJECT_PLUGINS).
     - Enable-state: bundled ở STATE_DIR/plugins.json (override, KHÔNG mutate file app);
       vault ở frontmatter plugin.yaml.
@@ -31,6 +31,7 @@ import copy
 import importlib.util
 import inspect
 import json
+import kept
 import os
 import re
 import sys
@@ -66,13 +67,13 @@ _HTTP_METHODS = frozenset({"GET", "POST", "PUT", "PATCH", "DELETE"})
 _HTTP_NGUON = frozenset({"bundled", "pack", "user"})
 
 # Tên tool builtin/lõi - plugin KHÔNG được trùng (mcp_hub cũng skip lúc merge, đây là lớp 2).
-_RESERVED_TOOLS = {"vanhanh_connections", "vanhanh_read_file", "vanhanh_list_dir",
-                   "vanhanh_write_file", "vanhanh_use_skill", "vanhanh_edit_file", "vanhanh_search_files",
-                   "vanhanh_run_command", "vanhanh_terminal", "vanhanh_process",
-                   "vanhanh_web_search", "vanhanh_web_fetch"}
+_RESERVED_TOOLS = {"naota_connections", "naota_read_file", "naota_list_dir",
+                   "naota_write_file", "naota_use_skill", "naota_edit_file", "naota_search_files",
+                   "naota_run_command", "naota_terminal", "naota_process",
+                   "naota_web_search", "naota_web_fetch"}
 
 # Name of the in-process plugin MCP server the Claude Agent SDK engine mounts (claude_sdk_engine).
-PLUGIN_SERVER = "vanhanh-plugins"
+PLUGIN_SERVER = "naota-plugins"
 
 
 def grant_patterns(names) -> List[str]:
@@ -80,16 +81,16 @@ def grant_patterns(names) -> List[str]:
 
     Background lanes below Full run with an allowlist (Read/Write/Edit...) and no MCP, which used
     to mean no plugin tool at all: a Kanban job or a workflow step that had to make an image could
-    never reach `vanhanh_generate_image` without opening Full access, which also opens posting and
+    never reach `naota_generate_image` without opening Full access, which also opens posting and
     messaging. Naming the tool here grants that one tool and nothing else. Both server names are
-    listed: the SDK engine serves plugins in-process as `vanhanh-plugins`, and when the hub is
-    attached the same tool is also reachable as `mcp__vanhanh__<name>`. The tool's own `min_mode`
+    listed: the SDK engine serves plugins in-process as `naota-plugins`, and when the hub is
+    attached the same tool is also reachable as `mcp__naota__<name>`. The tool's own `min_mode`
     is still checked at call time against the session mode, so this never lifts a level."""
     out: List[str] = []
     for n in names or ():
         n = str(n or "").strip()
         if _TOOL_RE.match(n):
-            out += [f"mcp__{PLUGIN_SERVER}__{n}", f"mcp__vanhanh__{n}"]
+            out += [f"mcp__{PLUGIN_SERVER}__{n}", f"mcp__naota__{n}"]
     return list(dict.fromkeys(out))
 
 
@@ -116,10 +117,10 @@ def _env_user_enabled() -> bool:
 
     Decision: YES BY DEFAULT. Each plugin still runs only when its own manifest says
     `enabled: true` (a plugin created from chat starts at `enabled: false`), and the permission level
-    of the caller still decides every tool call. Opt out with VANHANH_ENABLE_USER_PLUGINS=false (or
-    the old alias VANHANH_ENABLE_VAULT_PLUGINS=false) and a restart. The new name wins when both are
+    of the caller still decides every tool call. Opt out with NAOTA_ENABLE_USER_PLUGINS=false (or
+    the old alias NAOTA_ENABLE_VAULT_PLUGINS=false) and a restart. The new name wins when both are
     set; an empty value counts as not set. Bundled plugins never go through this gate."""
-    for k in ("VANHANH_ENABLE_USER_PLUGINS", "VANHANH_ENABLE_VAULT_PLUGINS"):
+    for k in ("NAOTA_ENABLE_USER_PLUGINS", "NAOTA_ENABLE_VAULT_PLUGINS"):
         v = str(os.getenv(k, "") or "").strip().lower()
         if v:
             return v not in _OFF_VALUES
@@ -131,7 +132,7 @@ _env_vault_enabled = _env_user_enabled
 
 
 def global_plugins_dir() -> Path:
-    """Thư mục plugin TOÀN CỤC (chung mọi brain) - VANHANH_STATE_DIR/plugins."""
+    """Thư mục plugin TOÀN CỤC (chung mọi brain) - NAOTA_STATE_DIR/plugins."""
     return GLOBAL_DIR
 
 
@@ -200,14 +201,14 @@ def _write_state(state: dict) -> None:
 # ============================================================
 def vault_plugins_dir(vault_root: Optional[str]) -> Optional[Path]:
     """Thư mục plugin của vault: ưu tiên <root>/plugins (cấu trúc phẳng mới),
-    fallback <root>/Vanhanh/plugins (cấu trúc cũ). Trả path mặc định (có thể chưa tồn tại)."""
+    fallback <root>/Naota/plugins (cấu trúc cũ). Trả path mặc định (có thể chưa tồn tại)."""
     if not vault_root:
         return None
     root = Path(vault_root)
     flat = root / "plugins"
     if flat.is_dir():
         return flat
-    nested = root / "Vanhanh" / "plugins"
+    nested = root / "Naota" / "plugins"
     if nested.is_dir():
         return nested
     return flat
@@ -255,8 +256,8 @@ def _iter_plugin_dirs(vault_root: Optional[str]):
 def _slug_bundled() -> set:
     """Slug của plugin ĐI KÈM APP. Trình cài từ chối gói mang plugin trùng một trong số này.
 
-    Vì sao chặn ở lúc CÀI chứ không lúc nạp: một gói lặng lẽ thay `vanhanh_task` hay
-    `vanhanh_schedule` dưới một màn hình xác nhận chỉ nói "gói này chạy mã" là đúng kiểu bất ngờ
+    Vì sao chặn ở lúc CÀI chứ không lúc nạp: một gói lặng lẽ thay `naota_task` hay
+    `naota_schedule` dưới một màn hình xác nhận chỉ nói "gói này chạy mã" là đúng kiểu bất ngờ
     không nên có. Chặn sớm thì người dùng thấy lý do trước khi có gì rơi xuống đĩa."""
     try:
         return {d.name for d in BUNDLED_DIR.iterdir()
@@ -447,8 +448,8 @@ class PluginContext:
     def on_unload(self, fn: Callable) -> None:
         """Đăng ký việc phải làm khi plugin bị TẮT hoặc GỠ. Chạy ngược thứ tự đăng ký.
 
-        Tool và hook thì Vanhanh tự thu hồi được: chúng chỉ nằm trong danh sách của
-        `LoadedPlugin` trong cache, và hub dựng lại bảng route mỗi lần cache hết hạn. Cái Vanhanh
+        Tool và hook thì Naota tự thu hồi được: chúng chỉ nằm trong danh sách của
+        `LoadedPlugin` trong cache, và hub dựng lại bảng route mỗi lần cache hết hạn. Cái Naota
         KHÔNG tự thu hồi được là thứ `register()` mở ra với thế giới bên ngoài - một thread,
         một socket, một watcher hệ tệp, một tiến trình con. Nếu plugin mở thứ như vậy thì phải
         tự đóng ở đây, nếu không nó sống tiếp sau khi người dùng đã bấm Tắt.
@@ -488,7 +489,7 @@ class PluginContext:
 
     # ---- đường HTTP ----
     #
-    # Sinh ra để "Vanhanh trong ChatGPT" rời lõi thành một gói trong kho: gói đó phải mở cửa OAuth
+    # Sinh ra để "Naota trong ChatGPT" rời lõi thành một gói trong kho: gói đó phải mở cửa OAuth
     # và một địa chỉ MCP cho máy chủ OpenAI gọi vào, mà plugin trước đây chỉ đăng ký được tool
     # và hook. Cố ý làm CHUNG chứ không may đo cho một gói: webhook của dịch vụ ngoài là cùng
     # một nhu cầu.
@@ -597,7 +598,16 @@ def _key(vault_root: Optional[str], scope_vault: bool = True) -> str:
 
 
 def _signature(vault_root: Optional[str], scope_vault: bool = True) -> tuple:
-    """Chữ ký để biết khi nào phải nạp lại: mtime state + mtime entry/manifest mọi plugin + env flag."""
+    """Chữ ký để biết khi nào phải nạp lại: mtime state + mtime entry/manifest mọi plugin + env flag.
+
+    2026-11-13: computing it walks every plugin folder (bundled, packs, user, vault) and stats four files per
+    plugin, a few hundred disk calls with a dozen packs installed, and `_load_all` asks for it on every tool list,
+    every tool call that has hooks and every bot turn. On the event loop it now comes from memory (kept.py);
+    `invalidate()` drops it, so a plugin changed through Naota is seen at once."""
+    return _SIGS.get((vault_root, bool(scope_vault)))
+
+
+def _signature_now(vault_root: Optional[str], scope_vault: bool = True) -> tuple:
     sig: List[Any] = [_env_user_enabled()]
     try:
         sig.append(_STATE_PATH.stat().st_mtime)
@@ -623,6 +633,9 @@ def _signature(vault_root: Optional[str], scope_vault: bool = True) -> tuple:
     return tuple(sig)
 
 
+_SIGS = kept.Keyed(lambda a: _signature_now(a[0], a[1]), name="plugins signature")
+
+
 def shared_signature() -> tuple:
     """Signature of the plugin sources every brain shares (bundled, packs, global user plugins, plugins.json).
     Stat calls only; ops_index_watch takes it once per sweep instead of once per brain."""
@@ -631,7 +644,7 @@ def shared_signature() -> tuple:
 
 def _import_entry(slug: str, source: str, entry: Path):
     """Nạp entry file thành module riêng. Chèn tạm dir vào sys.path để import phụ (nếu có)."""
-    mod_name = f"vanhanh_plugin_{source}_{re.sub(r'[^a-z0-9_]', '_', slug.lower())}"
+    mod_name = f"naota_plugin_{source}_{re.sub(r'[^a-z0-9_]', '_', slug.lower())}"
     spec = importlib.util.spec_from_file_location(mod_name, str(entry))
     if not spec or not spec.loader:
         raise ImportError(f"không tạo được spec cho {entry}")
@@ -688,7 +701,7 @@ def _pack_duoc_nap(pdir: Path) -> Tuple[bool, str]:
        cài, vì ai ghi được `plugin.py` thì cũng ghi được `packs.json` - một chốt chỉ nằm ở
        trình cài thì chỉ gác được trình cài, không gác được lần nạp sau.
 
-    Cổng `VANHANH_ENABLE_USER_PLUGINS` KHÔNG áp ở đây, có chủ ý. Cổng đó bịt lỗ "thư mục ghi
+    Cổng `NAOTA_ENABLE_USER_PLUGINS` KHÔNG áp ở đây, có chủ ý. Cổng đó bịt lỗ "thư mục ghi
     được nên mã chạy mà không ai bấm gì" - đúng với `<brain>/plugins/` vì model ghi được vào
     vault. Trình cài phá bỏ đúng điều kiện đó: có người bấm, có màn hình liệt kê từng tệp .py,
     và có chữ ký ghi lại để đối chiếu. Cùng loại bảo đảm, chỉ theo TỪNG gói thay vì bật tắt
@@ -740,7 +753,7 @@ def _load_all(vault_root: Optional[str], scope_vault: bool = True) -> dict:
                 continue
             if source in ("user", "vault"):
                 if not env_ok:
-                    continue   # opted out on this machine: VANHANH_ENABLE_USER_PLUGINS=false
+                    continue   # opted out on this machine: NAOTA_ENABLE_USER_PLUGINS=false
                 if not valid_slug(slug):
                     errors[slug] = "slug không hợp lệ"
                     continue
@@ -914,6 +927,7 @@ def invalidate() -> None:
     """
     with _lock:
         _cache.clear()
+    _SIGS.drop()
     _STATE_CACHE["sig"] = None
     _STATE_CACHE["data"] = None
     _MANIFEST_CACHE.clear()
@@ -956,8 +970,55 @@ async def _maybe_await(v):
 # Tools that queue work which runs LATER, and the argument holding that work's level (security fix, 2026-11-05 audit).
 # Both are `safe`, so an "auto" run (a customer bot, a loop reading untrusted text) could call them, and the work they
 # queued ran at Full access by default: shell, every connection. The level a run hands on is now capped at its own.
-_JOB_LEVEL_ARG = {"vanhanh_schedule": "muc_quyen", "vanhanh_task": "mode"}
+_JOB_LEVEL_ARG = {"naota_schedule": "muc_quyen", "naota_task": "mode"}
 _JOB_LEVEL_RANK = {"suggest": 0, "auto": 1, "full": 2}
+
+
+# Tools through which a turn leaves work for LATER (security fix, 2026-11-10).
+_QUEUE_TOOLS = frozenset({"naota_schedule", "naota_task", "naota_job"})
+
+
+def _chatbot_turn() -> bool:
+    """True when the turn being served belongs to a dedicated chatbot, i.e. somebody who is not the owner is steering
+    the model. The host stamps `bot_id` on the turn (main.py), the model never does."""
+    try:
+        import turn_context
+        return bool(str((turn_context.current() or {}).get("bot_id") or "").strip())
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _chatbot_queue_refusal(name: str, args: dict, mode: str) -> str:
+    """Refusal text when a chatbot below Full access tries to leave AI-run work for later, "" otherwise.
+
+    Capping the level of that work (`_cap_job_level`) was not enough. The job a customer queued through a "can write"
+    bot ran later as one of the OWNER's background jobs: Claude Code's own Read / Write / Edit (not confined to the
+    bot's brain), and every tool a bot never sees (the login vault, web fetch, memory). One message was a way out of the
+    bot's sandbox. A bot below Full access now leaves exactly one kind of thing for later: a reminder that only SAYS
+    its text at the set time (`notify_only`), with no model and no tool behind it. A bot the owner raised to Full access
+    keeps queueing work as before, and so does every turn of the owner."""
+    if name not in _QUEUE_TOOLS or not _chatbot_turn():
+        return ""
+    m = str(mode or "").strip().lower()
+    if m == "gated":
+        return ""
+    try:
+        import mcp_catalog
+        if mcp_catalog.effective_perm("full", m) == "full":
+            return ""
+    except Exception:  # noqa: BLE001
+        if m in ("", "full"):
+            return ""
+    a = args or {}
+    op = str(a.get("op") or ("create" if name == "naota_schedule" else "")).strip().lower()
+    if op == "list":
+        return ""
+    if name == "naota_schedule" and op == "create" and a.get("notify_only") in (True, "true", "True", 1, "1"):
+        return ""
+    return ("ERROR: chatbot trả lời khách ở mức dưới Toàn quyền không được giao việc cho AI chạy sau (việc nền, loop, "
+            "nhắc hẹn có AI làm hộ) và không được sửa, huỷ hay trả lời việc đã có. Đây là rào bảo mật: việc đó sẽ chạy "
+            "bằng quyền của chủ, ngoài phạm vi của bot. Vẫn làm được: tạo lời nhắc CHỈ NHẮC bằng naota_schedule với "
+            "notify_only=true. Việc cần AI làm thì ghi lại để chủ tự giao, hoặc chủ nâng bot này lên Toàn quyền.")
 
 
 def _cap_job_level(name: str, args: dict, mode: str):
@@ -965,7 +1026,10 @@ def _cap_job_level(name: str, args: dict, mode: str):
 
     Full-access runs and gated Team steps (they go through the owner's approval) pass unchanged. Below Full, the level
     argument is set to the weaker of what was asked (missing = the tool's default, Full) and the run's own level, and
-    `vanhanh_schedule op=update` is refused: it would rewrite the prompt of a job the owner may have made at Full."""
+    `naota_schedule op=update` is refused: it would rewrite the prompt of a job the owner may have made at Full."""
+    why = _chatbot_queue_refusal(name, args, mode)
+    if why:
+        return args, why
     field = _JOB_LEVEL_ARG.get(name)
     m = str(mode or "").strip().lower()
     if not field or m == "gated":
@@ -979,11 +1043,11 @@ def _cap_job_level(name: str, args: dict, mode: str):
         return args, ""
     tran = "auto" if eff == "safe" else "suggest"
     a = dict(args or {})
-    op = str(a.get("op") or ("create" if name == "vanhanh_schedule" else "")).strip().lower()
-    if name == "vanhanh_schedule" and op == "update":
+    op = str(a.get("op") or ("create" if name == "naota_schedule" else "")).strip().lower()
+    if name == "naota_schedule" and op == "update":
         return a, ("ERROR: việc chạy dưới mức Toàn quyền không được sửa việc đã lên lịch (việc đó có thể đang chạy "
                    "toàn quyền). Nhờ chủ sửa ở trang Việc, hoặc tạo việc mới.")
-    if name == "vanhanh_task" and op != "add":
+    if name == "naota_task" and op != "add":
         return a, ""
     xin = str(a.get(field) or "full").strip().lower()
     if _JOB_LEVEL_RANK.get(xin, 2) > _JOB_LEVEL_RANK[tran]:
@@ -1000,7 +1064,7 @@ def _make_call(tool: dict, ctx: PluginContext, mode: str):
     async def _call(args):
         min_mode = _required_mode(tool, args)
         if str(mode or "").strip().lower() == "gated" and min_mode != "readonly":
-            # a gated Team step. A plugin that writes or acts (review: `vanhanh_task` and `vanhanh_schedule` are
+            # a gated Team step. A plugin that writes or acts (review: `naota_task` and `naota_schedule` are
             # `safe` yet queue work that runs at full later) needs the owner's approval of this exact call
             # (team_gate.py). Read-only plugin tools run.
             import asyncio
@@ -1074,7 +1138,7 @@ def unload(slug: str) -> dict:
                 ent["sig"] = None      # buộc dựng lại ở lần gọi sau
         an = f"_{re.sub(r'[^a-z0-9_]', '_', slug.lower())}"
         for mod in [m for m in list(sys.modules)
-                    if m.startswith("vanhanh_plugin_") and m.endswith(an)]:
+                    if m.startswith("naota_plugin_") and m.endswith(an)]:
             sys.modules.pop(mod, None)
             ra["modules"] += 1
     return ra
@@ -1102,7 +1166,7 @@ def set_removed(slug: str, removed: bool) -> dict:
 def plugin_tools(mode: str = "full", vault_root: Optional[str] = None, *,
                  scope_vault: bool = True) -> Tuple[List[dict], Dict[str, dict]]:
     """(tools_spec, route) từ MỌI plugin đã nạp. mcp_hub merge vào discover_all.
-    tools_spec: [{fn, server:'vanhanh', name, description, schema}]. route: {fn: {'call': async fn}}.
+    tools_spec: [{fn, server:'naota', name, description, schema}]. route: {fn: {'call': async fn}}.
 
     mode: mức quyền lượt chạy. vault_root: brain để ctx của plugin biết đang ở đâu.
     scope_vault=False: KHÔNG nạp plugin riêng-của-vault (chỉ bundled + global) nhưng ctx VẪN
@@ -1130,15 +1194,15 @@ def plugin_tools(mode: str = "full", vault_root: Optional[str] = None, *,
             if lp.source == "vault":
                 desc = f"[plugin {lp.slug}] {desc}"
             # `namespace` + `label` + `group_desc`: để hub xếp tool của MỖI plugin thành một
-            # nhóm RIÊNG trong thực đơn tool lười, thay vì gộp chung vào "vanhanh".
+            # nhóm RIÊNG trong thực đơn tool lười, thay vì gộp chung vào "naota".
             #
             # Vì sao đây không phải chuyện thẩm mỹ: khi lazy bật, thực đơn là thứ DUY NHẤT
             # model đọc được về những gì nó với tới. Thiếu ba trường này thì 20 tool của gói
-            # TTS Dropship nằm lẫn trong dòng "vanhanh (vanhanh, 45 tool): skill của brain, danh
+            # TTS Dropship nằm lẫn trong dòng "naota (naota, 45 tool): skill của brain, danh
             # sách nguồn đang đấu, tiện ích nội bộ" - không một chữ nào nhắc tới sàn, đơn hàng
             # hay dropship. Model không có lý do gì để đoán là nên tìm, nên nó kết luận thẳng
-            # rằng gói chưa kết nối, dù tool vẫn gọi được qua vanhanh_run_tool. Đúng vụ từng gặp: người dùng báo "không lên đơn được" trong khi hub vẫn phục vụ đủ.
-            tools.append({"fn": fn, "server": "vanhanh", "name": fn,
+            # rằng gói chưa kết nối, dù tool vẫn gọi được qua naota_run_tool. Đúng vụ từng gặp: người dùng báo "không lên đơn được" trong khi hub vẫn phục vụ đủ.
+            tools.append({"fn": fn, "server": "naota", "name": fn,
                           "description": desc, "schema": t["schema"],
                           "namespace": lp.slug, "label": lp.name,
                           "group_desc": lp.description})
@@ -1199,7 +1263,7 @@ async def _fire_pre(vault_root: Optional[str], payload: dict) -> dict:
       - trả None / bất cứ gì khác -> không ảnh hưởng, y như trước
 
     **FAIL-OPEN là cố ý.** Hook ném lỗi thì tool VẪN CHẠY, chỉ ghi một dòng stderr. Hook là
-    thứ người dùng tự cài; để một plugin hỏng khoá được mọi tool của Vanhanh là đổi một lỗi nhỏ
+    thứ người dùng tự cài; để một plugin hỏng khoá được mọi tool của Naota là đổi một lỗi nhỏ
     lấy một hệ thống chết. Ai cần fail-closed thì tự bắt lỗi trong hook rồi trả `deny`.
 
     Nhiều hook cùng đăng ký thì hook ĐẦU TIÊN nói `deny` thắng và dừng luôn vòng lặp: đã có
@@ -1423,7 +1487,7 @@ def set_enabled(slug: str, enabled: bool, vault_root: Optional[str] = None) -> d
     gated = bool(enabled and not _env_user_enabled())
     note = localefmt.chu(
         "Đã bật trong manifest NHƯNG máy này đang tắt plugin do người dùng cài bằng "
-        "VANHANH_ENABLE_USER_PLUGINS=false. Bỏ biến đó (hoặc đặt true) rồi khởi động lại để chạy.",
+        "NAOTA_ENABLE_USER_PLUGINS=false. Bỏ biến đó (hoặc đặt true) rồi khởi động lại để chạy.",
         "Enabled in the manifest, BUT this machine turns user-installed plugins off with "
-        "VANHANH_ENABLE_USER_PLUGINS=false. Remove it (or set it to true) and restart to run it.") if gated else ""
+        "NAOTA_ENABLE_USER_PLUGINS=false. Remove it (or set it to true) and restart to run it.") if gated else ""
     return {"ok": True, "source": source, "gated": gated, "note": note}

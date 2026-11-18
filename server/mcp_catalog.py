@@ -10,9 +10,9 @@ Tool đa hành động kiểu Pancake (1 tool, tham số action=list|create|...)
 THAM SỐ qua arg_rules - enforcement thật diễn ra lúc tools/call (có args).
 """
 import json
+import kept
 import re
 import sys
-import time
 from fnmatch import fnmatch
 from pathlib import Path
 
@@ -38,20 +38,20 @@ PERM_RANK = {"readonly": 0, "safe": 1, "full": 2}
 # anything that does not know the gate fails closed; the hub lists the step's tools like full and asks the gate.
 _MODE_CAP = {"suggest": "readonly", "auto": "safe", "full": "full", "gated": "safe"}
 
-_cache = {"sig": None, "by_id": {}, "checked": 0.0, "path": None}
+_cache = {"sig": None, "by_id": {}, "path": None}
 
 # How long a checked catalog is trusted without looking at the disk again. `load()` runs for every
 # connection of every tool list (mcp_hub.discover_all), for every Zalo message and every bot list, and each run used to
 # stat the catalog, the removed list and every pack folder. On the owner's VPS the disk sometimes took seconds per stat,
 # and all of that ran on the event loop: `packs.signature` under `load()` was the top freeze, 53 s in 15 minutes.
-# Changes made through Vanhanh (installing or removing a pack, removing a connector) call `invalidate()` and show at once;
+# Changes made through Naota (installing or removing a pack, removing a connector) call `invalidate()` and show at once;
 # a hand edit of the files shows within this many seconds.
 CHECK_S = 2.0
 
 
 def invalidate() -> None:
     """Make the next `load()` look at the disk again (a pack or a removed connector just changed)."""
-    _cache["checked"] = 0.0
+    _LOADED.drop()
 
 
 def _da_go():
@@ -59,7 +59,7 @@ def _da_go():
 
     Import lazy và bọc try/except có chủ ý: `mcp_catalog` là module nền mà nửa server phụ
     thuộc vào, nên một file JSON lạ trong STATE_DIR không được phép làm nó ngừng nạp. Suy biến
-    nghiêng về "thấy đủ năng lực" chứ không phải "Vanhanh trống rỗng"."""
+    nghiêng về "thấy đủ năng lực" chứ không phải "Naota trống rỗng"."""
     try:
         import core_off
         return core_off.da_go("connectors")
@@ -98,11 +98,17 @@ def load():
     nhất lọc được một lần cho tất cả.
 
     Cache theo (chữ ký file catalog, chữ ký danh sách đã gỡ). Thiếu vế thứ hai thì gỡ một
-    connector sẽ không có hiệu lực cho tới khi ai đó sửa file catalog, tức là không bao giờ."""
-    now = time.monotonic()
-    if (_cache["sig"] is not None and _cache["path"] == str(CATALOG_PATH)
-            and 0 <= now - _cache["checked"] < CHECK_S):
-        return _cache["by_id"]
+    connector sẽ không có hiệu lực cho tới khi ai đó sửa file catalog, tức là không bao giờ.
+
+    A checked catalog is trusted for CHECK_S; past that the event loop still gets it from memory while a helper
+    thread does the check (`_LOADED`, kept.py), so no caller on the loop waits for the disk."""
+    if _cache["sig"] is None:
+        _LOADED.drop()            # never loaded, or the cache was emptied by hand: look at the disk now
+    return _LOADED.get()
+
+
+def _load_now():
+    """The check itself: three signatures from the disk, and a re-read only when one of them changed."""
     try:
         st = CATALOG_PATH.stat()
         sig_file = (st.st_mtime_ns, st.st_size)
@@ -111,7 +117,6 @@ def load():
     go = _da_go()
     sig = (sig_file, tuple(sorted(go)), _sig_goi())
     if _cache["sig"] == sig and _cache["path"] == str(CATALOG_PATH):
-        _cache["checked"] = now
         return _cache["by_id"]
     try:
         data = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
@@ -125,8 +130,12 @@ def load():
     # bẻ hướng được kết nối đang đăng nhập thật - xem `packs._kiem_connector`.
     for cid, con in (_lop_goi() or {}).items():
         by_id.setdefault(cid, con)
-    _cache.update(sig=sig, by_id=by_id, checked=now, path=str(CATALOG_PATH))
+    _cache.update(sig=sig, by_id=by_id, path=str(CATALOG_PATH))
     return by_id
+
+
+_LOADED = kept.Value(lambda: _load_now(), fresh_s=lambda: CHECK_S, key=lambda: str(CATALOG_PATH),
+                     name="mcp_catalog.load")
 
 
 def tat_ca():
@@ -193,7 +202,7 @@ def public_catalog():
                           if not c.get("_pack") or str(auth.get("guide_url", "")).startswith(
                               ("http://", "https://")) else ""),
             "setup": auth.get("setup") or {},
-            # Store pack holding this service's extra tools (Zalo -> vanhanh.zalo): the QR flow offers it right after sign-in.
+            # Store pack holding this service's extra tools (Zalo -> naota.zalo): the QR flow offers it right after sign-in.
             "companion_pack": str(c.get("companion_pack") or ""),
             # Nhóm hiển thị (vd mọi dịch vụ Google gom về MỘT card) + wizard từng bước
             # thay guide tường chữ. steps: [{text, link?, link_label?, copy?}] -
@@ -204,7 +213,7 @@ def public_catalog():
                        "link_label": s.get("link_label", ""), "copy": s.get("copy", "")}
                       for s in (auth.get("steps") or [])],
             "risk": c.get("risk", ""), "default_perm": c.get("default_perm", "readonly"),
-            # Có kho token riêng ngoài Vanhanh → UI hiện nút "Đăng nhập lại Google (xoá quyền cũ)".
+            # Có kho token riêng ngoài Naota → UI hiện nút "Đăng nhập lại Google (xoá quyền cũ)".
             # Chỉ trả CÓ hay KHÔNG (bool), không lộ tên biến môi trường ra frontend.
             "cred_dir": bool(c.get("cred_dir")),
             # Nguồn: connector do GÓI cấp không bao giờ được trông y hệt hàng chính chủ.
@@ -384,7 +393,7 @@ def build_env(connector, secrets):
     Thứ hạng: ô đăng nhập user gõ > env tĩnh catalog; và env user tự đặt ở connection
     thắng cả hai (mcp_store.resolved đặt env connection trước rồi mới setdefault).
     Có khối này để KHỎI đẻ thêm ô nhập bắt user gõ URL kỹ thuật, cũng khỏi bắt user chạy
-    lệnh login ngoài Vanhanh."""
+    lệnh login ngoài Naota."""
     env = {}
     for k, v in ((connector or {}).get("env") or {}).items():
         if k and v not in (None, ""):
@@ -525,7 +534,7 @@ def classify(connector, tool, args=None):
 
     # TOOL CỔNG (vd COMPOSIO_MULTI_EXECUTE_TOOL): một tool chạy HÀNG LOẠT hành động con, mỗi cái
     # một tên riêng nằm trong args (tools[].tool_slug). Phân loại theo tên tool cổng thì chỉ có
-    # hai lựa chọn tệ: coi là nguy hiểm (mức Chỉ đọc không đọc được gì, vụ từng gặp: Vanhanh chỉ còn
+    # hai lựa chọn tệ: coi là nguy hiểm (mức Chỉ đọc không đọc được gì, vụ từng gặp: Naota chỉ còn
     # công cụ tìm kiếm của Composio nên không đọc nổi lịch dù đã nối) hoặc coi là đọc (lọt lệnh
     # gửi mail). Luật `call_rules` phân loại TỪNG hành động con rồi lấy mức nặng nhất.
     cr = call_rule(c, tool)

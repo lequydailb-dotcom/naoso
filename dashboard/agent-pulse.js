@@ -6,7 +6,7 @@
 
    Đọc GET /agents/{slug}/pulse; nút Đánh thức, Tạm dừng/Tiếp, Đặt lại nhịp, Quay lại thay đổi, Nhịp nhanh nhất gọi
    POST /agents/{slug}/pulse/<hành động>. Chỉ hiện "Đã lưu" và vẽ lại SAU khi máy chủ trả 200 (không hiện thành công
-   trước). Phần J (phán xử) và L (bài học) góp mục riêng qua sổ đăng ký `window.VanhanhPulseParts` (mảng {name, render(view)}):
+   trước). Phần J (phán xử) và L (bài học) góp mục riêng qua sổ đăng ký `window.NaotaPulseParts` (mảng {name, render(view)}):
    file này không biết gì về chúng.
 
    `panelHtml`, `contextLabel`, `changeLine`, `partsHtml` thuần (không DOM, không mạng) để test chạy dưới node. */
@@ -29,9 +29,9 @@
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
   // Nút "i" (info-tip.js): có thì lời giải thích ẩn sau nút cạnh tiêu đề; không có (test Node) thì vẽ thẳng ra.
-  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(tw("info.more")) : ""; }
+  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(tw("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.VanhanhInfo;
+    var J = typeof window !== "undefined" && window.NaotaInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
 
@@ -126,7 +126,7 @@
   }
 
   function emojiOf(v) {
-    var JR = (typeof window !== "undefined" && window.VanhanhReactions) || null;
+    var JR = (typeof window !== "undefined" && window.NaotaReactions) || null;
     if (!JR) { try { JR = require("./reactions.js"); } catch (e) { JR = null; } }
     var r = JR && JR.emojiOf ? JR.emojiOf(v) : null;
     return r ? (r.emoji || "") : "";
@@ -182,9 +182,20 @@
       }).join("") + "</ul>";
   }
 
+  /* 2026-11-14 (Auto toàn quyền): the times the assistant set itself to check back, with what it will check. Shown on
+     the full panel and the compact column so the owner sees what is coming before it lands. */
+  function followupsHtml(list, o) {
+    var items = (list || []).filter(function (f) { return !o.only || f.context_ref === o.only; });
+    if (!items.length) return "";
+    return '<div class="pulse-sub">' + esc(tw("pulse.followups_title")) + '</div><ul class="pulse-list pulse-followups">' +
+      items.slice(0, 8).map(function (f) {
+        return "<li>" + esc(tw("pulse.followup_line", { t: when(f.due_at), note: f.note || "" })) + "</li>";
+      }).join("") + "</ul>";
+  }
+
   /* Mục của phần J/L (sổ đăng ký). Mỗi mục tự escape; lỗi của một mục không làm hỏng bảng. */
   function partsHtml(view, registry, ctx) {
-    var list = registry || (typeof window !== "undefined" ? window.VanhanhPulseParts : null) || [];
+    var list = registry || (typeof window !== "undefined" ? window.NaotaPulseParts : null) || [];
     return list.map(function (p) {
       try {
         // `render(view, null, {slug})`: mục nào cần slug (nút sửa của phán xử, nút thu hồi bài học) lấy từ ngữ cảnh.
@@ -242,6 +253,7 @@
         fb.slice(0, 8).map(function (f) { return "<li>" + esc(feedbackLine(f)) + "</li>"; }).join("") + "</ul>";
     }
     html += proposalsHtml(v.proposals, o);
+    html += followupsHtml(v.followups, o);
     // Hàng thành viên của MỘT nhóm (`only`): các mục chỉ vẽ phần của ngữ cảnh đó; tên nhóm thay cho mã.
     html += partsHtml(v, o.registry, { slug: o.slug || v.slug || "", only: o.only || "", teamNames: o.teamNames || {} });
     if (o.err) html += '<div class="pulse-line pulse-err" role="alert">' + esc(tw("pulse.error", { e: o.err })) + "</div>";
@@ -254,11 +266,12 @@
      đang chờ chủ quyết, nếu có. Bảng đầy đủ vẫn ở hàng thành viên của ngăn Nhóm. */
   function compactHtml(view, opts) {
     var o = opts || {}, v = view || {};
-    var list = o.registry || (typeof window !== "undefined" ? window.VanhanhPulseParts : null) || [];
+    var list = o.registry || (typeof window !== "undefined" ? window.NaotaPulseParts : null) || [];
     var html = list.map(function (p) {
       try { return p && typeof p.compact === "function" ? p.compact(v) : ""; } catch (e) { return ""; }
     }).join("");
     html += proposalsHtml((v.proposals || []).filter(function (p) { return p.status === "pending"; }), o);
+    html += followupsHtml(v.followups, o);
     if (o.err) html += '<div class="pulse-line pulse-err" role="alert">' + esc(tw("pulse.error", { e: o.err })) + "</div>";
     else if (o.msg) html += '<div class="pulse-line pulse-ok" role="status">' + esc(o.msg) + "</div>";
     return html;
@@ -279,7 +292,7 @@
 
   function brainOf(o) {
     if (o && o.brain) return o.brain;
-    try { return (window.VanhanhSessions && window.VanhanhSessions.brain()) || "brain"; } catch (e) { return "brain"; }
+    try { return (window.NaotaSessions && window.NaotaSessions.brain()) || "brain"; } catch (e) { return "brain"; }
   }
 
   /* Gắn bảng vào `host`. Trả {reload}. Mọi hành động chỉ báo thành công sau khi máy chủ trả 200. */
@@ -335,9 +348,9 @@
     return { reload: load };
   }
 
-  if (typeof window !== "undefined" && !window.VanhanhPulseParts) window.VanhanhPulseParts = [];
+  if (typeof window !== "undefined" && !window.NaotaPulseParts) window.NaotaPulseParts = [];
   var apiOut = { panelHtml: panelHtml, contextLabel: contextLabel, changeLine: changeLine, feedbackLine: feedbackLine,
-    partsHtml: partsHtml, compactHtml: compactHtml, proposalsHtml: proposalsHtml, policyHtml: policyHtml, tierLabel: tierLabel, stateLabel: stateLabel, mount: mount };
-  if (typeof window !== "undefined") window.VanhanhPulse = apiOut;
+    partsHtml: partsHtml, followupsHtml: followupsHtml, compactHtml: compactHtml, proposalsHtml: proposalsHtml, policyHtml: policyHtml, tierLabel: tierLabel, stateLabel: stateLabel, mount: mount };
+  if (typeof window !== "undefined") window.NaotaPulse = apiOut;
   if (typeof module !== "undefined" && module.exports) module.exports = apiOut;
 })();

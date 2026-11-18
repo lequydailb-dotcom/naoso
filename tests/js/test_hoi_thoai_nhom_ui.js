@@ -155,16 +155,22 @@ check("cache phân biệt theo cả KÊNH đang lọc", /cached\.kenh === kenhLo
 // ============================================================
 // 6. Chat mới rơi vào project đang mở
 // ============================================================
-check("sessions-ui phơi cầu nối VanhanhProjects", SESS.indexOf("window.VanhanhProjects = {") !== -1);
+check("sessions-ui phơi cầu nối NaotaProjects", SESS.indexOf("window.NaotaProjects = {") !== -1);
 check("claim gửi kèm brain (để server tạo được hàng chưa tồn tại)",
   /claim: function \(sid\)[\s\S]{0,320}brain: brain\(\)/.test(SESS));
 check("không claim khi đang xem 'Tất cả' hay 'Chưa xếp nhóm'",
   /if \(!sid \|\| !p \|\| p === "none"\) return;/.test(SESS));
 // Phải gọi NGAY tại chỗ mint id: đó là nơi duy nhất biết "id này vừa sinh ra".
 check("CANARY: app.js gọi claim ngay khi mint id hội thoại mới",
-  /savedSessionId = newSid\(\);[\s\S]{0,400}VanhanhProjects\.claim\(savedSessionId\)/.test(APP));
+  /savedSessionId = newSid\(\);[\s\S]{0,400}NaotaProjects\.claim\(savedSessionId\)/.test(APP));
 check("claim bọc try/catch (thiếu module không được làm hỏng đường gửi tin)",
-  /try \{ if \(window\.VanhanhProjects\) window\.VanhanhProjects\.claim/.test(APP));
+  /try \{ if \(window\.NaotaProjects\) (_projClaim = )?window\.NaotaProjects\.claim/.test(APP));
+// 2026-11-15: the first message waits for the claim, so the project's GitHub repos (and instructions) reach the very
+// first turn: the server reads the chat's project when the turn starts (main._seed_chat_repos).
+check("claim trả về lời gọi để tin đầu tiên chờ nó",
+  /claim: function \(sid\)[\s\S]{0,200}return post\(/.test(SESS));
+check("tin đầu tiên chờ claim cùng lúc với ghim thư mục và repo",
+  /_pinWait = Promise\.all\(\[_before\.catch\(\(\) => \{\}\), _projClaim\.catch\(\(\) => \{\}\)\]\)/.test(APP));
 
 // ============================================================
 // 7. Đổi brain thì project đi theo

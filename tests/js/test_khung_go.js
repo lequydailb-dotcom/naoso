@@ -41,9 +41,10 @@ check("CHAT_NODE_IDS drops attachBar (it lives inside the card)",
   consoleJs.indexOf('const CHAT_NODE_IDS = ["callBar", "chatArea", "bgStrip", "goalBar", "modelBar", "hudVoice"];') !== -1);
 check("Chat page cp-css uses 24px corners", consoleJs.indexOf(".chatpage-slot .hud-voice{ background:var(--bg2); border:1px solid var(--border); border-radius:24px; }") !== -1);
 
-check("phone to desktop: the model chip goes back into #cpChips before #effBtn",
-  mobile.indexOf('chipHost.insertBefore(mbOpen, document.getElementById("effBtn"))') !== -1
-  && mobile.indexOf("mbPopHome.appendChild(mbPop)") !== -1);
+// The model chip stays in #cpChips right before #effBtn on every width; a phone no longer moves it.
+check("the model chip sits in #cpChips right before #effBtn, and the phone script leaves it there",
+  /<div class="cp-chips" id="cpChips">\s*<button type="button" class="mb-chip" id="mbOpen"[\s\S]*?<\/button>\s*<button type="button" class="cp-eff" id="effBtn"/.test(card)
+  && !/getElementById\("mb(Open|Pop)"\)|insertBefore\(mb(Open|Pop)/.test(mobile));
 check("app.js no longer calls #attachBtn directly", app.indexOf('document.getElementById("attachBtn").addEventListener') === -1);
 check("Sources come from the first attachment that has sources (brain files have none)",
   app.indexOf("(atts.find(a => a.sources) || {}).sources") !== -1);
@@ -61,7 +62,7 @@ check("workspace locks send through a flag that app.js honours, so a turn update
   /dataset\.wsLock/.test(ws) && // during a turn the button unlocks for an add-on message (coTheGuiBoSung); the workspace flag still wins.
   /sendBtn\.disabled = \(isProcessing && !coTheGuiBoSung\(\)\) \|\| sendBtn\.dataset\.wsLock === "1"/.test(app)
   && /function setProcessing\(s\) \{[^}]*sendBtn\.dataset\.wsLock === "1"/.test(app));
-check("leaving the page mid-turn does not re-enable send (workspace asks app.js to resync)", /VanhanhSyncActiveUI/.test(ws) && /window\.VanhanhSyncActiveUI = syncActiveUI/.test(app));
+check("leaving the page mid-turn does not re-enable send (workspace asks app.js to resync)", /NaotaSyncActiveUI/.test(ws) && /window\.NaotaSyncActiveUI = syncActiveUI/.test(app));
 check("no CSS left for the old Effort row and separator", !/\.mb-eff-row|\.mb-eff-btn|\.mb-sep|\.mb-eff \{/.test(css));
 check("mobile-chat.js has no unused modelBar variable", !/var modelBar = /.test(mobile));
 if (fails.length) { console.log("\nFAIL - test_khung_go: " + fails.length); process.exit(1); }

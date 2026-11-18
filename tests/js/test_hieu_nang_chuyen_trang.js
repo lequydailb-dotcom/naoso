@@ -43,7 +43,7 @@ async function napCham() {
   const win = { addEventListener() {}, requestIdleCallback: null };
   const ctx = vm.createContext({ window: win, document: doc, setTimeout, Promise, JSON, Array });
   vm.runInContext(read("dashboard/nap-cham.js"), ctx);
-  const done = win.VanhanhNapCham.cho("a");
+  const done = win.NaotaNapCham.cho("a");
   await tick();
   check("every file of the group is requested before the first one has loaded", appended.length === 3);
   check("CSS first, then the scripts in the declared order",
@@ -53,10 +53,10 @@ async function napCham() {
   done.then(() => { finished = true; });
   pending[0].onload(); pending[1].onload();
   await tick();
-  check("the group is not done while one file is still loading", !finished && !win.VanhanhNapCham.daXong("a"));
+  check("the group is not done while one file is still loading", !finished && !win.NaotaNapCham.daXong("a"));
   pending[2].onload();
   await done;
-  check("the group is done once every file has loaded", win.VanhanhNapCham.daXong("a"));
+  check("the group is done once every file has loaded", win.NaotaNapCham.daXong("a"));
   const src = read("dashboard/nap-cham.js");
   check("the Tasks page is among the first groups of the background load", /UU_TIEN = \["congviec", "teams", "nhiemvu"/.test(src));
   const con = read("dashboard/console.js");
@@ -130,12 +130,12 @@ async function chatCache() {
   ctx.prefetchSession("C");
   await ctx.openStoredSession("C");
   check("a hover prefetch and the click after it make one request", fetches === 1);
-  check("VanhanhSessions exposes prefetch", /prefetch: prefetchSession/.test(APP));
+  check("NaotaSessions exposes prefetch", /prefetch: prefetchSession/.test(APP));
   // A chat made a moment ago: drawn empty at once, nothing asked.
   fetches = 0; drawn.length = 0;
   await ctx.openStoredSession("NEW", null, { empty: true });
   check("a just-created chat opens empty without a request", fetches === 0 && drawn.length === 1 && drawn[0].id === "NEW" && drawn[0].n === 0);
-  check("VanhanhSessions exposes blank (clear the view at the click)", /blank: blankChat/.test(APP) && /function blankChat\(\)/.test(APP));
+  check("NaotaSessions exposes blank (clear the view at the click)", /blank: blankChat/.test(APP) && /function blankChat\(\)/.test(APP));
   check("a switch tells listeners its reason", /notifySessions\("open"\)/.test(APP) && /detail: \{ reason: reason \|\| "" \}/.test(APP));
 }
 
@@ -154,7 +154,7 @@ async function workspace() {
     brain: () => "b", kenh: (x) => "agent:" + x.slug, fd: (x) => x, t: (k) => k,
     conDangXem: () => true, dangChon: () => ({ slug: "a" }), tienDoHienTai: () => ({}), veLoi() {},
     api: (url) => { order.push("api"); return new Promise((r) => reqs.push(r)); },
-    window: { VanhanhSessions: { current: () => current, new: () => { current = null; }, blank: () => { order.push("blank"); },
+    window: { NaotaSessions: { current: () => current, new: () => { current = null; }, blank: () => { order.push("blank"); },
       open: async (id, still, opts) => { order.push("open:" + id + (opts && opts.empty ? ":empty" : "")); current = id; } } },
   };
   vm.createContext(ctx); vm.runInContext(section, ctx);

@@ -1,7 +1,7 @@
 """Plan usage limits: how much of the subscription's 5-hour and weekly allowance is used.
 
 The composer ring shows these two meters for the brains that run on a plan the user already pays
-for: Claude Code signed in to Pro/Max, and ChatGPT through Codex. Vanhanh never reads either login
+for: Claude Code signed in to Pro/Max, and ChatGPT through Codex. Naota never reads either login
 token, so the numbers come from what the two CLIs report on their own:
 
 - Claude Code sends a `rate_limit_event` in its stream after each request (hooked by `cai_vao_claude_sdk`). `rate_limit_info.raw`
@@ -127,8 +127,28 @@ def tu_codex(snap: dict) -> dict:
     return out
 
 
+def _usable_again(snap: dict, merged: dict, now: float) -> bool:
+    """Does this report say the plan takes requests again? Claude Code states it in `status`.
+
+    Codex sends no status, so its numbers decide: every window still running must read below the red mark (SAT).
+    Usage inside a window only grows, so a low number after a refusal means the plan was reset. Merely "below
+    100%" is not enough: the last report before the refusal reads just under it, and a rollout file can carry
+    that report with a later timestamp."""
+    status = str(snap.get("status") or "")
+    if status:
+        return status in ("allowed", "allowed_warning")
+    live = [w for w in (merged.get(k) for k in (NAM_GIO, TUAN))
+            if isinstance(w, dict) and not (w.get("resets_at") and w["resets_at"] <= now)]
+    return bool(live) and all(float(w.get("pct") or 0) < SAT for w in live)
+
+
 def ghi(brain: str, snap: dict, now: float = None):
-    """Store one brain's snapshot. A window the report leaves out keeps its last value."""
+    """Store one brain's snapshot. A window the report leaves out keeps its last value.
+
+    A report measured AFTER a refusal that shows the plan usable again lifts that refusal (`het`): the owner
+    reset the plan on the provider's site, or the window reopened early. Otherwise the ring stayed red and
+    Naota's own work stayed paused until the reset time the old refusal named. A report measured before the
+    refusal, or in the same second, never lifts it."""
     if not any(k in snap for k in (NAM_GIO, TUAN)):
         return
     now = time.time() if now is None else now
@@ -138,6 +158,9 @@ def ghi(brain: str, snap: dict, now: float = None):
         moi = dict(cu)
         moi.update({k: v for k, v in snap.items() if v not in (None, "")})
         moi["at"] = int(now)
+        h = moi.get("het")
+        if isinstance(h, dict) and int(now) > int(h.get("at") or 0) and _usable_again(snap, moi, now):
+            moi.pop("het", None)
         d[brain] = moi
         _ghi_file(d)
 
@@ -199,7 +222,7 @@ def ghi_codex(snap: dict, now: float = None):
 
 
 def _codex_dir() -> str:
-    return os.getenv("VANHANH_CODEX_SESSIONS_DIR") or os.path.expanduser("~/.codex/sessions")
+    return os.getenv("NAOTA_CODEX_SESSIONS_DIR") or os.path.expanduser("~/.codex/sessions")
 
 
 def _ngay_moi_nhat(goc: str, n: int) -> list:
@@ -246,7 +269,7 @@ def _doc_rollout(path: str) -> Optional[dict]:
 
 
 def quet_codex(now: float = None) -> Optional[dict]:
-    """Newest Codex rollout files (Codex used inside or outside Vanhanh) -> the latest snapshot, if newer
+    """Newest Codex rollout files (Codex used inside or outside Naota) -> the latest snapshot, if newer
     than what is stored. Only the 3 newest files are opened, and an unchanged file is not reread."""
     now = time.time() if now is None else now
     try:
@@ -274,6 +297,28 @@ def quet_codex(now: float = None) -> Optional[dict]:
 
 def muc(pct: float) -> str:
     return "bad" if pct >= SAT else ("warn" if pct >= CANH_BAO else "ok")
+
+
+# Provider ids of the Models page -> brain keys here.
+BRAIN_THEO_PROVIDER = {"anthropic-cli": "claude", "openai-oauth": "codex", "grok-cli": "grok",
+                       "antigravity-cli": "agy"}
+
+
+def side_pause(provider: str, now: float = None) -> dict:
+    """Should the work Naota starts on its own (self-learning, suggestions, judges) wait on this plan?
+
+    {"paused": bool, "pct": int, "resets_at": epoch or 0}. Paused while the 5-hour window is at SAT percent or
+    more, or while the plan has refused a turn; it lifts by itself when the window resets. That work is the
+    first thing to give up when the allowance runs low: the owner's own chat needs what is left (10/11/2026).
+    A provider with no meter (an API key, a plan that reports none) is never paused here.
+    """
+    brain = BRAIN_THEO_PROVIDER.get(str(provider or ""))
+    r = (doc(now).get(brain) if brain else None) or {}
+    w = r.get(NAM_GIO) or {}
+    pct = int(w.get("pct") or 0)
+    if "het" in r:
+        return {"paused": True, "pct": 100, "resets_at": int((r["het"] or {}).get("reset") or 0)}
+    return {"paused": pct >= SAT, "pct": pct, "resets_at": int(w.get("resets_at") or 0)}
 
 
 def doc(now: float = None) -> dict:
@@ -317,10 +362,10 @@ def doc(now: float = None) -> dict:
 def ten_goi(raw: str, nha: str = "") -> str:
     """Name a plan CODE the provider sent ("max" -> "Max", "chatgpt_plus" -> "Plus", "SuperGrok" stays).
 
-    No name table in Vanhanh's code: vendors rename plans (Anthropic's Max 20x became
+    No name table in Naota's code: vendors rename plans (Anthropic's Max 20x became
     Ultra on 2026-10-30 under the same code "max"; OpenAI sells the code "prolite" as Pro), so a table
     here goes stale the day they do. Order: the vendor's own name (callers try `ten_goi_claude` first),
-    then vanhanh-store's catalog for provider `nha` (`plan_names`, refreshed without a release), then the
+    then naota-store's catalog for provider `nha` (`plan_names`, refreshed without a release), then the
     code itself, tidied. Empty stays empty: never a guess."""
     v = str(raw or "").strip()
     if not v:
@@ -366,7 +411,7 @@ def ten_goi_claude(config_dir=None, email: str = "") -> str:
 
     Claude Code fetches the account profile itself and stores `organization.plan_display_name` as
     `oauthAccount.planDisplayName` in its config file `.claude.json`. That file holds no token (the
-    login lives in `.credentials.json` or the OS keyring), so Vanhanh reads only that one field and never
+    login lives in `.credentials.json` or the OS keyring), so Naota reads only that one field and never
     touches a credential. `email`: the account `claude auth status` reports; a config written by a
     different account is ignored instead of naming someone else's plan."""
     for f in _file_claude_json(config_dir):

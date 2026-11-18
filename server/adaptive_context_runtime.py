@@ -100,6 +100,9 @@ class AdaptiveContextPlan:
     compiler_report: dict = field(default_factory=dict)
     # Câu nói cho người dùng khi action == "reject". Rỗng ở mọi action khác.
     rejection_message: str = ""
+    # #1329: per-turn context (conversation state, retrieved memory, the selected skill) of a plan prepared with
+    # `stable_system=True`. It is NOT in `system_prompt` then; the caller puts it at the head of the user message.
+    turn_context: str = ""
 
 
 class AdaptiveContextCanary:
@@ -181,7 +184,7 @@ class AdaptiveContextCanary:
 
     @staticmethod
     def _learned_quota(settings: dict, provider: str, model: str) -> dict | None:
-        """Ngân sách dựng từ hạn mức Vanhanh TỰ HỌC được từ lỗi nhà cung cấp.
+        """Ngân sách dựng từ hạn mức Naota TỰ HỌC được từ lỗi nhà cung cấp.
 
         Đây không phải suy đoán hạn mức thương mại - điều mà module này vẫn từ chối làm. Đây
         là con số chính nhà cung cấp vừa nói ra cho ĐÚNG tài khoản này, đáng tin hơn mọi bảng
@@ -288,19 +291,26 @@ class AdaptiveContextCanary:
     def prepare(self, trace: context_runtime.TurnTrace | None, objective: str,
                 brain: str | Path, session_id: str, messages: list[dict], channel: str,
                 provider: str, model: str, provider_kind: str,
-                base_prompt_builder: Callable[[bool, bool], str]) -> AdaptiveContextPlan:
+                base_prompt_builder: Callable[[bool, bool], str],
+                stable_system: bool = False, lang: str = "") -> AdaptiveContextPlan:
+        """`stable_system` (#1329): the lane appends the system prompt as one cached block, so the plan's
+        `system_prompt` must not change between new chats; what does change comes back in `turn_context`.
+
+        `lang` (2026-11-15): a PINNED reply language, "" = follow the person. The API lane's small base has no
+        language block, so before this a language set in Settings never reached a compiled capsule."""
         # Ranh giới fallback cuối: bất kỳ lỗi nào ngoài các block per-source (compile,
         # settings, event ghi trace...) đều phải trả legacy, không được phá lượt chat.
         try:
             return self._prepare(trace, objective, brain, session_id, messages, channel,
-                                 provider, model, provider_kind, base_prompt_builder)
+                                 provider, model, provider_kind, base_prompt_builder, stable_system, lang)
         except Exception as exc:  # noqa: BLE001 - fallback-per-turn invariant
             return AdaptiveContextPlan("legacy", f"prepare_error:{type(exc).__name__}")
 
     def _prepare(self, trace: context_runtime.TurnTrace | None, objective: str,
                  brain: str | Path, session_id: str, messages: list[dict], channel: str,
                  provider: str, model: str, provider_kind: str,
-                 base_prompt_builder: Callable[[bool, bool], str]) -> AdaptiveContextPlan:
+                 base_prompt_builder: Callable[[bool, bool], str],
+                 stable_system: bool = False, lang: str = "") -> AdaptiveContextPlan:
         try:
             settings = self.settings_reader() or {}
         except Exception:  # noqa: BLE001 - settings failure must fail closed to legacy
@@ -424,7 +434,7 @@ class AdaptiveContextCanary:
         base_tokenizer = HeuristicTokenizer(provider, model)
         base_item = ContextItem(
             id="source_fallback_contract", kind="source_fallback_contract", content=base_prompt,
-            source_ref=("vanhanh:legacy-base:memory=" + str(not memory_applied).lower() +
+            source_ref=("naota:legacy-base:memory=" + str(not memory_applied).lower() +
                         ":skills=" + str(not skill_applied).lower()),
             token_cost=base_tokenizer.count_text(base_prompt), relevance=1.0, confidence=1.0,
             authority=1.0, freshness=1.0, required=True, trust="system",
@@ -439,6 +449,8 @@ class AdaptiveContextCanary:
                 hard_max_input_tokens=quota["hard_input"],
                 reserved_output_tokens=quota["reserved"], execution_mode="canary",
                 context_items=tuple([base_item] + items),
+                stable_system=bool(stable_system), stable_context_ids=(base_item.id,),
+                lang=str(lang or ""),
             ),
             {"selected": [], "selected_count": 0, "candidate_count": 0, "miss_class": ""},
         )
@@ -454,7 +466,7 @@ class AdaptiveContextCanary:
             # MEMORY.md, tức là lớn hơn hẳn cái vừa bị từ chối vì quá lớn. Provider sẽ trả
             # lỗi hạn mức, và người dùng chỉ thấy một lỗi khó hiểu từ nhà cung cấp.
             #
-            # Đây đúng là ca đã chặn Vanhanh: gói Groq 12.000 TPM, một lượt cần 21.446 token.
+            # Đây đúng là ca đã chặn Naota: gói Groq 12.000 TPM, một lượt cần 21.446 token.
             quota_reason = context_compiler.quota_block_reason(report)
             # Ngân sách SOFT = con số của CHÍNH TA (trần thuê bao, trần ngữ cảnh API mặc
             # định), không phải lời nhà cung cấp. Vượt nó thì lui về đường cũ, tuyệt đối
@@ -478,8 +490,8 @@ class AdaptiveContextCanary:
                 return AdaptiveContextPlan(
                     "reject", quota_reason, feature_status=status, compiler_report=report,
                     rejection_message=(
-                        localefmt.chu("Vanhanh chưa gửi request vì biết trước là sẽ vượt hạn mức. ",
-                                      "Vanhanh did not send the request because it would exceed the limit. ")
+                        localefmt.chu("Naota chưa gửi request vì biết trước là sẽ vượt hạn mức. ",
+                                      "Naota did not send the request because it would exceed the limit. ")
                         + model_limits.blocked_hint(provider, model, needed,
                                                     self._configured_providers())
                     ),
@@ -496,6 +508,11 @@ class AdaptiveContextCanary:
         if not system_prompt:
             return AdaptiveContextPlan("legacy", "compiled_system_missing", feature_status=status,
                                        compiler_report=report)
+        turn_context = ""
+        if stable_system and compiled.capsule.stable_system:
+            # #1329: hand out the part that stays the same between new chats; the rest rides with the message.
+            system_prompt = compiled.capsule.stable_system
+            turn_context = compiled.capsule.turn_context
         if trace:
             # Ghim TÊN đường chạy. Không ghim thì lượt này vẫn bị đếm là "legacy", nên trang
             # Tiết kiệm token không phân biệt nổi lượt đã tiết kiệm với lượt gửi nguyên
@@ -515,5 +532,5 @@ class AdaptiveContextCanary:
             })
         return AdaptiveContextPlan(
             "use", "compiled", system_prompt, state_applied, memory_applied, skill_applied,
-            status, report,
+            status, report, turn_context=turn_context,
         )

@@ -20,7 +20,7 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-gitsetup-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-gitsetup-"))
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")

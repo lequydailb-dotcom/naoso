@@ -10,7 +10,7 @@
 (function () {
   "use strict";
 
-  var KEY = "vanhanh.inbox.filters";
+  var KEY = "naota.inbox.filters";
   // "waiting" is "need reply" sorted waiting-longest first ("đợi phản hồi
   // lâu nhất"), one more choice in the status dropdown. "The customer left a phone number or email" is its own on/off
   // filter (`contact`), so it combines with a status such as "need reply".
@@ -110,7 +110,7 @@
     if (s.tagsAny.length) q += "&tags_any=" + s.tagsAny.join(",");
     if (s.tagsNone.length) q += "&tags_none=" + s.tagsNone.join(",");
     // A quick range is turned into days at every request, so "last 7 days" moves with the calendar.
-    var DR = window.VanhanhDateRange, d = s.when && (DR ? DR.dates(s.when) : s.when.from ? s.when : null);
+    var DR = window.NaotaDateRange, d = s.when && (DR ? DR.dates(s.when) : s.when.from ? s.when : null);
     if (d && d.from && d.to) q += "&from=" + d.from + "&to=" + d.to;
     if (s.lastBy) q += "&last_by=" + s.lastBy;
     if (s.pinned) q += "&pinned=1";
@@ -138,7 +138,7 @@
   // What the menu offers for one conversation, in order. Pure data so node can test it; conversations.js draws it and
   // runs the actions. Item: {act, icon, key (i18n), sub (second line), on (true/false = a checkable row), more (opens a
   // second view)}; {sep: true, key} is a divider with an optional small heading.
-  // What the conversation's platform lets Vanhanh do (like Messenger's own
+  // What the conversation's platform lets Naota do (like Messenger's own
   // menu). Same table as server/conversation_actions.py `_CAN`: Messenger blocks and shows a profile, Instagram shows a
   // profile, a comment thread is deleted on Facebook or Instagram, a Zalo personal chat does all three.
   function chatKind(c) {
@@ -181,7 +181,7 @@
     var can = platformActs(x);
     if (can.indexOf("profile") >= 0) items.push({ act: "profile", icon: "circle-user", key: "ht.rm_profile" });
     if (can.indexOf("block") >= 0 && !(x.metadata && x.metadata.blocked)) items.push({ act: "block", icon: "ban", key: "ht.rm_block" });
-    // Delete is always there: where the platform allows it the chat (or the comment) goes there too, else only in Vanhanh.
+    // Delete is always there: where the platform allows it the chat (or the comment) goes there too, else only in Naota.
     var k = chatKind(x);
     items.push({ act: "delete", icon: "trash-2", key: "ht.rm_delete", danger: true,
                  sub: tt(k === "fb_comment" || k === "ig_comment" ? "ht.rm_delete_sub_cmt" : k === "threads_comment" ? "ht.rm_delete_sub_th" :
@@ -228,7 +228,7 @@
         '<span class="ht-rm-t"><span>' + esc(tt("ht.rm_tag_new")) + '</span></span></button>';
   }
 
-  window.VanhanhConvFilters = {
+  window.NaotaConvFilters = {
     emptyState: emptyState, sanitize: sanitize, load: load, save: save, activeCount: activeCount, query: query,
     tagChips: tagChips, tagChip: tagChip, tagColor: tagColor,
     TAG_COLORS: TAG_COLORS, rowMenuItems: rowMenuItems, rowMenuHtml: rowMenuHtml, chatKind: chatKind, platformActs: platformActs, tagMenuHtml: tagMenuHtml, WHOS: WHOS,

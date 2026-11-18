@@ -139,7 +139,7 @@ async function run(items, opts) {
   const win = {
     confirm: opts.confirm || (() => true),
     isSecureContext: false,
-    VanhanhPager: (box, arr, per, draw, empty, o) => realPager(box, arr, per, draw, empty, o, win),
+    NaotaPager: (box, arr, per, draw, empty, o) => realPager(box, arr, per, draw, empty, o, win),
     t: t,
   };
   const doc = {
@@ -318,7 +318,7 @@ const tokensOf = (h) => (h.match(/data-token="([^"]*)"/g) || []).map((x) => x.sl
     f.el.querySelectorAll('[data-share-filter="unseen"]')[0].onclick();
     check("Never viewed shows only links with zero views", tokensOf(f.list._html).sort().join() === "t1,t3");
     check("a filter shows the match count", f.el._count && f.el._count.textContent === t("share.count", { so: 2, tong: 4 }));
-    check("the chosen filter is remembered for next time", JSON.parse(f.store["vanhanh.share.view"]).filter === "unseen");
+    check("the chosen filter is remembered for next time", JSON.parse(f.store["naota.share.view"]).filter === "unseen");
     f.el.querySelectorAll('[data-share-filter="all"]')[0].onclick();
     f.sort.value = "views"; f.sort.onchange();
     check("Most viewed puts the busiest link first", tokensOf(f.list._html)[0] === "t2" && tokensOf(f.list._html)[1] === "t0");
@@ -326,7 +326,7 @@ const tokensOf = (h) => (h.match(/data-token="([^"]*)"/g) || []).map((x) => x.sl
     check("Recently viewed orders by last view", tokensOf(f.list._html).slice(0, 2).join() === "t0,t2");
     f.sort.value = "new"; f.sort.onchange();
     check("Newest orders by creation", tokensOf(f.list._html)[0] === "t3");
-    const again = await run(mix.map((x) => Object.assign({}, x)), { store: { "vanhanh.share.view": JSON.stringify({ filter: "chat", sort: "views" }) } });
+    const again = await run(mix.map((x) => Object.assign({}, x)), { store: { "naota.share.view": JSON.stringify({ filter: "chat", sort: "views" }) } });
     check("a remembered filter and sort are applied on open", tokensOf(again.list._html).join() === "t3"
       && again.el._html.includes('<option value="views" selected>'));
   }

@@ -44,7 +44,7 @@ global.document = {
 global.window = {
   addEventListener() {},
   matchMedia: () => ({ matches: false }),
-  VanhanhDictate: {
+  NaotaDictate: {
     joinText: D.joinText, isPhoneUA: D.isPhoneUA, recentMessages: D.recentMessages, ear: () => "", isIOS: () => false,
     create(opts) {
       engine = { opts, started: 0, stopped: 0, cancelled: 0,
@@ -112,10 +112,10 @@ els.hudVoice.dispatchEvent({ type: "click", target: { closest: () => els.sendBtn
   preventDefault() {}, stopPropagation() {} });
 check("send while recording stops first, nothing sent yet", engine.stopped === 1 && sent === 0);
 engine.opts.onState("transcribing");
-engine.opts.onText("Gửi luôn nhé Vanhanh.", true);
+engine.opts.onText("Gửi luôn nhé Naota.", true);
 check("send: still not sent while the sentence is rewritten", sent === 0);
 engine.opts.onState("idle");
-check("send: the REWRITTEN sentence is what is sent", sent === 1 && sentValue === "Gửi luôn nhé Vanhanh.");
+check("send: the REWRITTEN sentence is what is sent", sent === 1 && sentValue === "Gửi luôn nhé Naota.");
 
 // Phones keep the words for the end.
 [["iPhone", IPHONE], ["Android phone", ANDROID]].forEach(([name, ua]) => {

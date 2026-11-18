@@ -7,7 +7,7 @@ No network.
   7. A pack declaring `replaces:` inherits the old pack's "on" state only when it is the official store's release of
      that id (sha256 listed in the default store index), never for a zip from elsewhere.
   8. The Origin check tells localhost ports apart (a page on localhost:3000 cannot POST or open a WebSocket to
-     localhost:7777), and the "any localhost origin may read the API" CORS opening is off unless VANHANH_DEV_CORS=1.
+     localhost:7777), and the "any localhost origin may read the API" CORS opening is off unless NAOTA_DEV_CORS=1.
   9. docker-publish.yml run by hand only publishes from main.
  12. A share link of a note at the brain root no longer serves media from inbox/, memory/ or dot folders.
  13. Custom connector tools named forward_*, share_*, trash_*, transfer_* ... count as writes, not reads.
@@ -16,11 +16,11 @@ import os
 import sys
 import tempfile
 
-_STATE = tempfile.mkdtemp(prefix="vanhanh-audit-mid-")
-_BRAINS = tempfile.mkdtemp(prefix="vanhanh-audit-mid-brains-")
-os.environ["VANHANH_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="naota-audit-mid-")
+_BRAINS = tempfile.mkdtemp(prefix="naota-audit-mid-brains-")
+os.environ["NAOTA_STATE_DIR"] = _STATE
 os.environ["BRAINS_DIR"] = _BRAINS
-os.environ.pop("VANHANH_DEV_CORS", None)
+os.environ.pop("NAOTA_DEV_CORS", None)
 
 from _paths import ROOT, SERVER  # noqa: E402,F401
 from pathlib import Path  # noqa: E402
@@ -41,21 +41,21 @@ import pack_install  # noqa: E402
 import packs_store  # noqa: E402
 
 SHA = "ab" * 32
-_cache = {"packs": [{"id": "vanhanh.gate", "download": {"sha256": SHA}}]}
+_cache = {"packs": [{"id": "naota.gate", "download": {"sha256": SHA}}]}
 packs_store._doc_cache = lambda: _cache
 packs_store.url_kho = lambda: packs_store.STORE_MAC_DINH
 bat = pack_install._bat_sau_cai
 check("7. the owner's own switch always wins", bat(True, {"enabled": False}, "x.y", "00") is True)
 check("7. official release of the id inherits the old pack's 'on'",
-      bat(False, {"enabled": True}, "vanhanh.gate", SHA) is True)
+      bat(False, {"enabled": True}, "naota.gate", SHA) is True)
 check("7. same id but another zip (hash not in the index) stays off",
-      bat(False, {"enabled": True}, "vanhanh.gate", "cd" * 32) is False)
-check("7. an id the store does not list (third-party 'replaces: vanhanh.zalo') stays off",
+      bat(False, {"enabled": True}, "naota.gate", "cd" * 32) is False)
+check("7. an id the store does not list (third-party 'replaces: naota.zalo') stays off",
       bat(False, {"enabled": True}, "evil.zalo", SHA) is False)
-check("7. nothing to inherit stays off", bat(False, {"enabled": False}, "vanhanh.gate", SHA) is False)
+check("7. nothing to inherit stays off", bat(False, {"enabled": False}, "naota.gate", SHA) is False)
 packs_store.url_kho = lambda: "https://example.com/index.json"
 check("7. a custom store URL does not count as official",
-      bat(False, {"enabled": True}, "vanhanh.gate", SHA) is False)
+      bat(False, {"enabled": True}, "naota.gate", SHA) is False)
 packs_store.url_kho = lambda: packs_store.STORE_MAC_DINH
 src_pi = Path(SERVER, "pack_install.py").read_text(encoding="utf-8")
 check("7. both the ledger and the reply use the new rule",
@@ -85,7 +85,7 @@ check("8. a WebSocket from another localhost port is refused",
 check("8. a WebSocket from the dashboard itself passes", w.ws_decision("localhost:7777", "http://localhost:7777", False)
       is None)
 check("8. a public domain behind a proxy is unaffected",
-      w.csrf_decision("POST", "vanhanh.example.com", "https://vanhanh.example.com", True) is None)
+      w.csrf_decision("POST", "naota.example.com", "https://naota.example.com", True) is None)
 
 import main  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

@@ -115,7 +115,7 @@ def test_pack_signature_is_reused_briefly_and_dropped_by_invalidate(monkeypatch)
     assert packs.signature() == a and n["v"] == 1
     packs.invalidate()          # what pack_install calls after any install, removal or consent
     assert packs.signature() != a
-    monkeypatch.setenv("VANHANH_DISABLE_PACKS", "1")
+    monkeypatch.setenv("NAOTA_DISABLE_PACKS", "1")
     assert packs.signature() == "off"            # the kill switch is read live, never from the memo
 
 
@@ -159,7 +159,7 @@ def test_connections_set_wal_only_when_the_file_is_not_in_wal(tmp_path):
 
 
 def test_goal_plugin_uses_the_shared_store():
-    src = (ROOT / "system" / "plugins" / "vanhanh-goal" / "plugin.py").read_text(encoding="utf-8")
+    src = (ROOT / "system" / "plugins" / "naota-goal" / "plugin.py").read_text(encoding="utf-8")
     assert "RS.GoalStore()" not in src and src.count("RS.shared()") == 3
 
 

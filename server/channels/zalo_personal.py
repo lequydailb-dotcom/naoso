@@ -1,4 +1,4 @@
-"""Kênh Zalo CÁ NHÂN: tài khoản đã quét QR ở trang Kết nối (MCP `vanhanh-zalo`). Đọc tin bằng
+"""Kênh Zalo CÁ NHÂN: tài khoản đã quét QR ở trang Kết nối (MCP `naota-zalo`). Đọc tin bằng
 vòng cursor ở `zalo_personal_channel`, gửi tin bằng tool `zalo_send_message` của chính MCP đó.
 
 Gửi từ kênh này là gửi DƯỚI DANH TÍNH CHỦ (không phải bot), nên Hộp thư nói rõ điều đó ở ô
@@ -31,7 +31,7 @@ SPEC = KenhSpec(
 def cau_vao_nhom(ev: dict) -> str:
     """What the Agent reads when someone joins a group. Written for the model, so Vietnamese like the
     rest of the bot prompts. It says plainly this is an event and not a message, gives the join time Zalo
-    reported, and tells the Agent to stay silent unless its own instructions cover newcomers: Vanhanh has no
+    reported, and tells the Agent to stay silent unless its own instructions cover newcomers: Naota has no
     greeting of its own, so a bot whose owner never asked for one must not start greeting people."""
     from datetime import datetime
     md = (ev.get("metadata") or {}).get("member_join") or {}
@@ -64,7 +64,7 @@ def bat(account_id: str, on: bool) -> dict:
 
 
 async def nhap_lich_su(account_id: str) -> dict:
-    """Nhập tin cũ (khoảng 2 tuần vanhanh-zalo giữ được) vào Hộp thư, xem `zalo_personal_channel.nhap_lich_su`."""
+    """Nhập tin cũ (khoảng 2 tuần naota-zalo giữ được) vào Hộp thư, xem `zalo_personal_channel.nhap_lich_su`."""
     import zalo_personal_channel
     return await zalo_personal_channel.nhap_lich_su(account_id)
 
@@ -89,7 +89,7 @@ NGHI_GIUA_DOAN = 1.2        # giây nghỉ giữa hai đoạn của một câu t
 _CHO_CAT = (re.compile(r"\n\s*\n"), re.compile(r"\n"), re.compile(r"[.!?…:;](?=\s)"), re.compile(r"\s"))
 _TAG_STATE: dict = {}       # conn_id -> {"fails": số lần hỏng liên tiếp, "until": giờ hết nghỉ}
 # "Đang soạn tin" while the bot writes a private reply (customers should not be able to tell
-# the bot from a person). Needs the MCP tool `zalo_send_typing` (vanhanh-zalo >= 1.9.0); an older MCP answers "tool not
+# the bot from a person). Needs the MCP tool `zalo_send_typing` (naota-zalo >= 1.9.0); an older MCP answers "tool not
 # found" and the indicator is simply skipped for TYPING_OFF seconds, the reply itself never waits on it.
 TYPING_TOOL = "zalo_send_typing"
 TYPING_DELAY = 1.5          # seconds: a turn that ends quickly (silence, takeover) never shows the indicator
@@ -229,14 +229,14 @@ def _tag_result(conn_id: str, ok: bool) -> None:
 
 
 def _style_args(styles) -> list:
-    """`--style` arguments of `vanhanh-zalo msg send` for `zalo_markup.to_zalo` styles (positions in UTF-16 units)."""
+    """`--style` arguments of `naota-zalo msg send` for `zalo_markup.to_zalo` styles (positions in UTF-16 units)."""
     specs = [f"{int(a)}:{int(n)}:{name}" for a, n, name in styles or () if int(n) > 0 and name in zalo_markup.STYLE_NAMES]
     return ["--style"] + specs if specs else []
 
 
 async def _send_styled(conn: dict, chat_id: str, text: str, loai: int, styles) -> Optional[tuple]:
-    """Send one message WITH text styles (bold, colours...) through `vanhanh-zalo msg send --style`: the MCP
-    send tool took plain text only before vanhanh-zalo 1.9.0. Returns `(ok, error)` once there is an outcome, or None when
+    """Send one message WITH text styles (bold, colours...) through `naota-zalo msg send --style`: the MCP
+    send tool took plain text only before naota-zalo 1.9.0. Returns `(ok, error)` once there is an outcome, or None when
     nothing was sent and the caller should send the plain text through the MCP. A timeout is an outcome (the CLI may
     have sent it already), like `_send_tagged`."""
     import zalo_cli
@@ -333,7 +333,7 @@ async def gui(tk: dict, chat_id: str, text: str, chat_type: str = "private", men
 
     `mention={"uid", "name"}` (chỉ có nghĩa trong nhóm): tag người đó, xem `_send_tagged`.
 
-    Khoá kiểu cuộc chat mà MCP vanhanh-zalo (và zalo-agent-cli 1.6.2 trước nó) THẬT SỰ đọc là `threadType` (mcp-tools.js), không
+    Khoá kiểu cuộc chat mà MCP naota-zalo (và zalo-agent-cli 1.6.2 trước nó) THẬT SỰ đọc là `threadType` (mcp-tools.js), không
     phải `type` như tài liệu mcp-guide ghi. MCP bỏ qua khoá lạ mà không báo lỗi, nên gửi `type` một
     mình thì tin nhóm đi như chat riêng và Zalo không giao được (bot trả lời trong Hộp thư
     mà nhóm im). Gửi cả hai: `threadType` cho bản đang ghim, `type` cho bản khác
@@ -377,6 +377,21 @@ async def gui(tk: dict, chat_id: str, text: str, chat_type: str = "private", men
     return True, ""
 
 
+# What `gui` says when it cannot tell whether Zalo took the message: a call that ran out of time, or a styled or
+# tagged send whose answer never came back. Matched in both languages: `gui` answers in the machine's language.
+_UNCERTAIN_SEND = ("không rõ", "timeout", "timed out", "hết giờ")
+# A long reply that stopped at part 2 or later: the earlier parts did arrive ("đoạn 2/3: ...", "part 2/3: ...").
+_PART_SENT = re.compile(r"^(?:đoạn|part) (\d+)/\d+:")
+
+
+def send_uncertain(err) -> bool:
+    """True when a failed send may still have reached the customer, wholly or in part, so the inbox must not call
+    it "not sent"."""
+    low = str(err or "").strip().lower()
+    m = _PART_SENT.match(low)
+    return bool(m and int(m.group(1)) > 1) or any(x in low for x in _UNCERTAIN_SEND)
+
+
 async def _gui_mot(conn: dict, chat_id: str, text: str, chat_type: str, mention=None):
     """Gửi MỘT tin (đã vừa trần `TIN_TOI_DA`). `(ok, lỗi)`.
 
@@ -402,7 +417,7 @@ async def _gui_mot(conn: dict, chat_id: str, text: str, chat_type: str, mention=
         return False, str(e)[:300]
     if isinstance(d, dict) and d.get("success") is False:
         return False, str(d.get("error") or d.get("message") or localefmt.chu("Zalo từ chối", "Zalo refused"))[:300]
-    # vanhanh-zalo returns the id Zalo gave the message. "success" without one means Zalo never confirmed it (replies in the bot history that never reached the customer):
+    # naota-zalo returns the id Zalo gave the message. "success" without one means Zalo never confirmed it (replies in the bot history that never reached the customer):
     # report a failure, so the inbox marks the
     # reply as not sent instead of showing it as delivered.
     if isinstance(d, dict) and d.get("success") is True and "messageId" in d and not d.get("messageId"):
@@ -412,7 +427,7 @@ async def _gui_mot(conn: dict, chat_id: str, text: str, chat_type: str, mention=
 
 
 async def send_typing(conn_id: str, chat_id: str, chat_type: str = "private") -> bool:
-    """Show "đang soạn tin" in one chat (`zalo_send_typing` of vanhanh-zalo >= 1.9.0). True when Zalo took it.
+    """Show "đang soạn tin" in one chat (`zalo_send_typing` of naota-zalo >= 1.9.0). True when Zalo took it.
 
     Never raises: the indicator is a nicety. Only an MCP WITHOUT the tool mutes the whole connection for TYPING_OFF
     seconds. Any other failure (Zalo refused this one chat, the MCP was restarting, a timeout) only ends the indicator
@@ -430,7 +445,7 @@ async def send_typing(conn_id: str, chat_id: str, chat_type: str = "private") ->
             "threadId": str(chat_id), "threadType": 1 if str(chat_type or "") == "group" else 0})
     except asyncio.CancelledError:
         raise
-    except Exception as e:      # noqa: BLE001 - older vanhanh-zalo: "Tool zalo_send_typing not found"
+    except Exception as e:      # noqa: BLE001 - older naota-zalo: "Tool zalo_send_typing not found"
         msg = str(e)
         if any(k in msg.lower() for k in _TOOL_MISSING):
             _TYPING_OFF_UNTIL[cid] = time.time() + TYPING_OFF
@@ -475,7 +490,7 @@ class TypingHandle:
 
 async def send_reaction(tk: dict, chat_id: str, msg_id: str, name: str, chat_type: str = "private",
                       cli_msg_id: str = ""):
-    """Put an emoji reaction on one message (vanhanh-zalo >= 1.7.0 `zalo_add_reaction`). `(ok, error)`.
+    """Put an emoji reaction on one message (naota-zalo >= 1.7.0 `zalo_add_reaction`). `(ok, error)`.
 
     `cli_msg_id` is optional: the MCP looks it up from its buffer or history when it is missing."""
     import zalo_personal_channel
@@ -606,9 +621,9 @@ class Transport:
                     self.status = "error"
                     self.last_error = localefmt.chu(
                         "Một phiên khác của cùng nick đang giành kết nối Zalo, bot lỡ phần lớn tin. Đóng Zalo Web của "
-                        "nick này và các Vanhanh hay Claude khác dùng cùng nick.",
+                        "nick này và các Naota hay Claude khác dùng cùng nick.",
                         "Another session of this account keeps taking the Zalo connection, so the bot misses most "
-                        "messages. Close Zalo Web for this account and any other Vanhanh or Claude client using it.")
+                        "messages. Close Zalo Web for this account and any other Naota or Claude client using it.")
                 elif tt.get("lan_cuoi"):
                     self.status = "polling"
                     self.last_error = ""
@@ -766,7 +781,7 @@ class Transport:
                       else [md0["audio_url"]] if kieu == "audio" and md0.get("audio_url") else [])
         if vao_nhom:
             # someone joined the group. The newcomer is the "sender", so a reply tags them (`_gui`).
-            # Vanhanh writes no greeting of its own: the bot's Agent decides, and stays silent when its
+            # Naota writes no greeting of its own: the bot's Agent decides, and stays silent when its
             # instructions say nothing about newcomers.
             text = cau_vao_nhom(ev)
         else:
@@ -845,7 +860,7 @@ class Transport:
         }
         if is_reaction:
             meta["reaction"] = True
-        # Labels the owner put on this chat in the Zalo app (vanhanh-zalo 1.6.0): the bot can skip chats tagged
+        # Labels the owner put on this chat in the Zalo app (naota-zalo 1.6.0): the bot can skip chats tagged
         # e.g. "Gia đình" (`chatbot_runtime._ly_do_im`) and sees the tags in its prompt. Cached per connection, so this
         # await costs nothing on most messages; any failure leaves the list empty and the turn runs as before.
         try:
@@ -965,7 +980,7 @@ class Transport:
                     cu = zc.lay_bo_do(self.conn_id, thread)
                     meta["bo_do_n"] = int(cu.get("n") or 0)
                     if cu:
-                        meta["ghi_chu_dau"] = ("[Ghi chú của Vanhanh, không phải lời khách: câu trả lời trước của bạn CHƯA được gửi "
+                        meta["ghi_chu_dau"] = ("[Ghi chú của Naota, không phải lời khách: câu trả lời trước của bạn CHƯA được gửi "
                                                "vì khách nhắn thêm trong lúc bạn soạn. Các tin khách chưa được đáp, theo thứ tự: "
                                                + " / ".join(cu["texts"]) + ". Hãy trả lời MỘT lần cho các tin này cùng tin mới "
                                                "bên dưới, đừng hỏi lại điều khách đã nói. Việc lượt trước đã làm bằng công cụ (ghi file, gửi tin, "
@@ -989,16 +1004,19 @@ class Transport:
                             zc.bo_do_gui(self.conn_id, thread, cu["texts"], int(cu.get("n") or 0))
                         raise
                     anh = []
+                    receipt_row = int(out.get("_zalo_delivery_row_id") or 0) if isinstance(out, dict) else 0
                     if isinstance(out, dict):
                         if out.get("khach_nhan_them"):
                             # Soạn xong mà khách đã nhắn thêm: không gửi câu cũ, giữ chữ khách cho lượt kế tiếp (đang chờ khoá).
                             for f in da_tai:
                                 f.unlink(missing_ok=True)
                             zc.bo_do_gui(self.conn_id, thread, list(cu.get("texts") or []) + [chu_khach], int(cu.get("n") or 0) + 1)
+                            self._set_delivery(receipt_row, "cancelled", reason="superseded")
                             return
                         if out.get("reaction") and zc._BOTS.get(self.conn_id) is self:
                             await self._react(thread, loai, meta, str(out["reaction"]))
                         if out.get("im_lang"):
+                            self._set_delivery(receipt_row, "cancelled", reason="silent")
                             return
                         cau = str(out.get("text") or "").strip()
                         # images the Agent asked to send, already checked by `bot_images.pick`.
@@ -1007,12 +1025,19 @@ class Transport:
                     else:
                         cau = str(out or "").strip()
                     if (cau or anh) and zc._BOTS.get(self.conn_id) is self:
+                        sent = None
                         if cau:
-                            await self._gui(thread, cau, loai, meta)
+                            sent = await self._gui(thread, cau, loai, meta, receipt_row=receipt_row)
                         if anh:
-                            await self._gui_anh(thread, anh, loai)
-                        if cau and nhom and self.policy is not None:
+                            image_sent = await self._gui_anh(thread, anh, loai)
+                            if not cau and image_sent:
+                                self._set_delivery(receipt_row, "accepted")
+                            elif not cau:
+                                self._set_delivery(receipt_row, "unknown", reason="image_unconfirmed")
+                        if cau and nhom and self.policy is not None and sent is not False:
                             self.policy.replied(meta, cau)
+                    elif receipt_row:
+                        self._set_delivery(receipt_row, "cancelled", reason="bot_stopped")
                 finally:
                     # Kept until the reply (and its images) has gone out, so the group never sees a gap between the
                     # indicator and the message.
@@ -1041,17 +1066,40 @@ class Transport:
             self.last_error = localefmt.chu(f"Thả cảm xúc Zalo lỗi: {err}", f"Zalo reaction failed: {err}")[:300]
             print(f"[zalo-personal bot {self.conn_id}] {self.last_error}", file=sys.stderr)
 
-    async def _gui(self, thread: str, cau: str, chat_type: str = "private", meta: Optional[dict] = None):
+    @staticmethod
+    def _set_delivery(receipt_row: int, state: str, error: str = "", reason: str = "") -> None:
+        """Settle one inbox reply. `error`: the gateway's own words. `reason`: a code of
+        `conversations.ZALO_DELIVERY_REASONS` the inbox translates, for an outcome decided here."""
+        if not receipt_row:
+            return
+        try:
+            import conversations
+            conversations.set_zalo_delivery(receipt_row, state, error, reason)
+        except Exception as e:  # noqa: BLE001 - a receipt failure must not resend a message
+            print(f"[zalo-personal] storing delivery receipt failed: {type(e).__name__}: {e}", file=sys.stderr)
+
+    async def _gui(self, thread: str, cau: str, chat_type: str = "private",
+                   meta: Optional[dict] = None, receipt_row: int = 0):
         import zalo_personal_channel as zc
-        # Nhớ TRƯỚC khi gửi: tiếng vọng có thể về vòng đọc ngay trong nhịp kế tiếp.
+        # Remember BEFORE sending, so a Zalo echo isn't misread as the owner typing.
         zc.ghi_da_gui(self.conn_id, thread, cau)
-        # Trong nhóm, bot trả lời ai thì tag đúng người đó. Chat riêng không cần tag.
         tag = {"uid": (meta or {}).get("user_id"), "name": (meta or {}).get("user_name")} if chat_type == "group" else None
-        ok, loi = await gui({"id": self.conn_id}, thread, cau, chat_type, tag)
-        if not ok:
+        try:
+            ok, loi = await gui({"id": self.conn_id}, thread, cau, chat_type, tag)
+        except asyncio.CancelledError:
+            self._set_delivery(receipt_row, "unknown", reason="interrupted")
+            raise
+        except Exception as e:  # noqa: BLE001 - a clear exception is a failed attempt, never auto-retry
+            ok, loi = False, f"{type(e).__name__}: {e}"
+        if ok:
+            # Provider/adapter accepted the send; does NOT prove recipient display or read.
+            self._set_delivery(receipt_row, "accepted")
+        else:
+            self._set_delivery(receipt_row, "unknown" if send_uncertain(loi) else "failed", str(loi or ""))
             self.last_error = localefmt.chu(f"Gửi Zalo lỗi: {loi}", f"Zalo send failed: {loi}")[:300]
             print(f"[zalo-personal bot {self.conn_id}] {self.last_error}", file=sys.stderr)
             self._ghi_loi_gui(thread, cau, loi, chat_type)
+        return bool(ok)
 
     async def _gui_anh(self, thread: str, anh: list, chat_type: str = "private"):
         import zalo_personal_channel as zc
@@ -1062,6 +1110,7 @@ class Transport:
             self.last_error = localefmt.chu(f"Gửi ảnh Zalo lỗi: {loi}", f"Zalo image send failed: {loi}")[:300]
             print(f"[zalo-personal bot {self.conn_id}] {self.last_error}", file=sys.stderr)
             self._ghi_loi_gui(thread, localefmt.chu(f"({len(anh)} ảnh)", f"({len(anh)} image(s))"), loi, chat_type)
+        return bool(ok)
 
     def _ghi_loi_gui(self, thread: str, cau: str, loi: str, chat_type: str):
         """Để lại dấu ở nhật ký bot khi gửi lỗi.

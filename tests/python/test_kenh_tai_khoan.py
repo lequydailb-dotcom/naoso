@@ -1,11 +1,11 @@
-"""Sổ đăng ký kênh + tài khoản kênh + trả lời khách từ Vanhanh (Chatbot V2).
+"""Sổ đăng ký kênh + tài khoản kênh + trả lời khách từ Naota (Chatbot V2).
 
     python tests/run.py kenh_tai_khoan      (KHÔNG mạng)
 
 Bốn thứ file này canh, đều là loại hỏng lặng lẽ:
 
 1. **Sổ đăng ký kênh** (`server/channels`): kho bot, kho hội thoại và bộ giám sát đều đọc từ
-   MỘT sổ; năng lực suy từ chính module (có hàm `gui` mới có "trả lời từ Vanhanh").
+   MỘT sổ; năng lực suy từ chính module (có hàm `gui` mới có "trả lời từ Naota").
 2. **Di trú**: bot cũ giữ token TRONG bản ghi -> tài khoản kênh id = id bot, token còn nguyên,
    hội thoại cũ vẫn khớp khoá `kenh:bot_id`, và token KHÔNG còn nằm trong chatbots.json.
 3. **Một bot nhiều tài khoản**: mỗi tài khoản một poller, lượt qua tài khoản nào thì ghi vào
@@ -21,8 +21,8 @@ import os
 import sys
 import tempfile
 
-_STATE = tempfile.mkdtemp(prefix="vanhanh-kenh-")
-os.environ["VANHANH_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="naota-kenh-")
+os.environ["NAOTA_STATE_DIR"] = _STATE
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -60,25 +60,25 @@ def check(name, cond):
 # thêm Slack và WhatsApp (cả hai kind=bot, tài khoản là token).
 check("sổ có mười kênh: Zalo Bot, Zalo cá nhân, Zalo OA, Messenger, Threads, Telegram, Slack, WhatsApp, Lark, "
       "API nội bộ",
-      set(channels.ids()) == {"zalo", "zalo_personal", "zalo_oa", "messenger", "threads", "telegram", "slack", "whatsapp", "lark",
+      set(channels.ids()) == {"zalo", "zalo_personal", "zalo_oa", "messenger", "threads", "telegram", "slack", "whatsapp", "wechat", "lark",
                               "api"})
 # Zalo cá nhân có Transport (bot tự trả lời) nhưng không có token, nên `bot_ids` có ba
 # kênh còn `bot_token_ids` (kênh tạo tài khoản bằng token) vẫn hai.
 check("kênh gắn được bot = kênh có Transport",
-      set(channels.bot_ids()) == {"zalo", "zalo_personal", "zalo_oa", "messenger", "threads", "telegram", "slack", "whatsapp", "lark",
+      set(channels.bot_ids()) == {"zalo", "zalo_personal", "zalo_oa", "messenger", "threads", "telegram", "slack", "whatsapp", "wechat", "lark",
                                   "api"})
 check("kênh tạo tài khoản bằng token: mọi kênh trừ Zalo cá nhân",
-      set(channels.bot_token_ids()) == {"zalo", "zalo_oa", "messenger", "threads", "telegram", "slack", "whatsapp", "lark", "api"})
+      set(channels.bot_token_ids()) == {"zalo", "zalo_oa", "messenger", "threads", "telegram", "slack", "whatsapp", "wechat", "lark", "api"})
 check("kho bot, kho hội thoại đọc CÙNG sổ",
       set(chatbot_store.KENH) == set(channels.bot_ids()) and set(conversations.KENH) == set(channels.ids()))
 check("mặc định kênh bot vẫn là Telegram (bản ghi cũ không có channel là bot Telegram)",
       chatbot_store.KENH_DEFAULT == "telegram")
 zp = channels.spec("zalo_personal")
-check("Zalo cá nhân là kênh kind=account, có công tắc ghi, có trả lời từ Vanhanh",
-      zp and zp.kind == "account" and zp.nl("ghi_theo_cong_tac") and zp.nl("tra_loi_tu_vanhanh"))
+check("Zalo cá nhân là kênh kind=account, có công tắc ghi, có trả lời từ Naota",
+      zp and zp.kind == "account" and zp.nl("ghi_theo_cong_tac") and zp.nl("tra_loi_tu_naota"))
 tg = channels.spec("telegram")
-check("Telegram: kind=bot, có nhóm, gửi file, trả lời từ Vanhanh",
-      tg and tg.kind == "bot" and tg.nl("nhom") and tg.nl("gui_file") and tg.nl("tra_loi_tu_vanhanh"))
+check("Telegram: kind=bot, có nhóm, gửi file, trả lời từ Naota",
+      tg and tg.kind == "bot" and tg.nl("nhom") and tg.nl("gui_file") and tg.nl("tra_loi_tu_naota"))
 ui = channels.cho_giao_dien()
 check("bản cho giao diện có logo, nhãn, năng lực, cách lấy token (giao diện không đoán theo id)",
       all(k in ui[0] for k in ("id", "nhan", "logo", "kind", "nang_luc", "lay_token", "tom_tat")))

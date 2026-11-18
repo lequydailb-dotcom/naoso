@@ -1,9 +1,9 @@
 """Durable state of GitHub work per conversation and repo (spec github-trong-chat-spec, section 14).
 
-One row per (conversation, repo): its branch, the commit Vanhanh last pushed, the PR, and three SEPARATE state fields
+One row per (conversation, repo): its branch, the commit Naota last pushed, the PR, and three SEPARATE state fields
 (section 12.1) from which the status icons are computed:
 
-    exec   idle | running | done | stuck            what Vanhanh is doing on it right now
+    exec   idle | running | done | stuck            what Naota is doing on it right now
     ci     none | pending | running | green | red | no_ci | cancelled    for the pushed commit ONLY
     integ  no_pr | pr_open | ready | merged | conflict | merge_failed
     post_merge  "" | pending | green | red      checks of the merge commit on the base branch
@@ -328,7 +328,7 @@ def store() -> Store:
 
 def waits_on_ci(r: Dict[str, Any]) -> bool:
     """The row's commit still waits for a CI result. A merged PR waits for nothing: when it was merged while
-    Vanhanh could not reach GitHub, its CI mark stays the "pending" it had, and that must not read as work going on."""
+    Naota could not reach GitHub, its CI mark stays the "pending" it had, and that must not read as work going on."""
     return r.get("ci") in ("pending", "running") and r.get("integ") != "merged"
 
 

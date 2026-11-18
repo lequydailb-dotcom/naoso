@@ -1,6 +1,6 @@
 // ============================================================
-// Vanhanh - Trang Chatbot: quản lý các Bot chuyên trách (mỗi bot một Agent, một brain,
-// một token Telegram riêng). console.js gọi window.VanhanhChatbots.render(el).
+// Naota - Trang Chatbot: quản lý các Bot chuyên trách (mỗi bot một Agent, một brain,
+// một token Telegram riêng). console.js gọi window.NaotaChatbots.render(el).
 //
 // UX dựng theo hướng NHIỀU BOT ngay từ đầu dù lần đầu chỉ chạy một con: lưới thẻ, ô tìm,
 // thêm/sửa/xoá, bật/tắt tại chỗ. Thêm bot thứ hai không phải sửa lại giao diện.
@@ -13,15 +13,15 @@
   // Locale để định dạng số/ngày. Lấy từ i18n chứ KHÔNG khoá "vi-VN": người dùng đổi
   // ngôn ngữ giao diện thì ngày giờ phải đổi theo, nếu không thì nửa màn hình tiếng Anh
   // mà ngày vẫn dd/mm/yyyy kiểu Việt.
-  const LOC = () => (window.VanhanhI18n && VanhanhI18n.locale()) || "vi-VN";
+  const LOC = () => (window.NaotaI18n && NaotaI18n.locale()) || "vi-VN";
   function esc(s) {
     return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
       .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
   // (i) button (info-tip.js): explanations sit behind it; without the helper (Node tests) they draw open.
-  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(window.t("info.more")) : ""; }
+  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(window.t("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.VanhanhInfo;
+    var J = typeof window !== "undefined" && window.NaotaInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
   function el(html) { var d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstChild; }
@@ -179,7 +179,6 @@
       var d = await api("/chatbots?brain=" + encodeURIComponent(brain()));
       _bots = d.bots || [];
       _mucDS = d.muc_quyen || [];
-      _langDS = d.lang_list || [];
       _kenhDS = d.kenh || [];
       _tkRanh = d.tai_khoan || [];
       _tkBan = d.tai_khoan_ban || [];
@@ -292,25 +291,9 @@
         ' <b>' + esc(mucCua(mq).nhan) + '</b>' +
       '</span>';
     // Nhóm có người gọi bot mà chủ chưa cho phép. Đây là chỗ sửa cho lỗi "thả bot vào nhóm,
-    // tag tên nó, không thấy gì": hành vi từ chối vẫn đúng, nhưng nay nó nổi lên đây kèm đúng
-    // một nút bấm, thay vì bắt chủ đoán rằng mình phải đi khai id nhóm ở đáy form Sửa.
-    var cho = (b.nhom_cho || []).map(function (g) {
-      // Hàng chờ có cả NGƯỜI chưa được chọn (bot trả lời "chỉ người và nhóm tôi chọn").
-      var nguoi = g.loai === "private";
-      return '<div class="cb-nhomcho" data-cid="' + esc(g.chat_id) + '" data-loai="' + (nguoi ? "private" : "group") + '">' +
-        '<div class="cb-nhomcho-t">' + ic(nguoi ? "user" : "message-circle") + ' <b>' +
-          esc(g.ten || ((nguoi ? window.t("cb2.pk_nguoi") : window.t("cb.nhom")) + " " + g.chat_id)) +
-          '</b> <span class="cb-nhomcho-id">' + esc(g.chat_id) + '</span></div>' +
-        '<div class="cb-nhomcho-d">' + esc(nguoi
-          ? window.t(g.lan ? "cb2.nguoicho_goi" : "cb2.nguoicho_moi", { count: g.lan })
-          : (g.lan ? window.t("cb.nhomcho_goi", { count: g.lan }) : window.t("cb.nhomcho_chua_bat"))) + '</div>' +
-        '<div class="cb-nhomcho-a">' +
-          '<button class="s-btn cb-ok-nhom" type="button">' + ic("check") + ' ' +
-            esc(window.t(nguoi ? "cb2.cho_nguoi" : "cb.cho_phep_nhom")) + '</button>' +
-          '<button class="s-btn-ghost cb-bo-nhom" type="button">' +
-            esc(window.t("cb.bo_qua")) + '</button>' +
-        '</div></div>';
-    }).join("");
+    // tag tên nó, không thấy gì": hành vi từ chối vẫn đúng, nhưng nay nó nổi lên đây, thay vì
+    // bắt chủ đoán rằng mình phải đi khai id nhóm ở đáy form Sửa.
+    var cho = pendingRows(b.nhom_cho || []);
     // getMe hỏng: bot vẫn trả lời tin nhắn riêng hoàn hảo nhưng ĐIẾC trong mọi nhóm, vì không
     // biết @username của chính mình thì không nhận ra ai đang gọi tên. Chấm vẫn xanh, lượt vẫn
     // chạy, không có gì đỏ - nên nếu không có dòng này thì không ai đoán ra được.
@@ -320,7 +303,7 @@
     // trong khi thẻ vẫn xanh và bot vẫn trả lời bình thường.
     if (st.loi_menu_lenh)
       loiTen += '<div class="cb-err">' + ic("triangle-alert") + ' ' + esc(st.loi_menu_lenh) + '</div>';
-    // Chế độ riêng tư của Telegram chặn Ở PHÍA TELEGRAM, trước khi Vanhanh nhìn thấy tin nào.
+    // Chế độ riêng tư của Telegram chặn Ở PHÍA TELEGRAM, trước khi Naota nhìn thấy tin nào.
     // Hiện cho MỌI bot có dùng nhóm, không riêng bot đặt "trả lời mọi tin": nó là nguyên nhân
     // số một của "nhắn riêng thì được, trong nhóm tag tên thì im re", và người dùng không có
     // cách nào đoán ra vì mọi dấu hiệu trên trang này đều xanh.
@@ -372,8 +355,8 @@
         '<div class="cb-meta cb-tt">' +
           '<span class="cb-tt-t">' + ic("users") + ' <b>' + esc(window.t("cb2.tra_loi")) + '</b> ' +
             esc(tomTatDoiTuong(b)) +
-            (window.VanhanhReplyPolicy && window.VanhanhReplyPolicy.summary(b) && !(b.audience === "all" && b.reply_when === "auto")
-              ? ' · ' + esc(window.VanhanhReplyPolicy.summary(b)) : '') + '</span>' +
+            (window.NaotaReplyPolicy && window.NaotaReplyPolicy.summary(b) && !(b.audience === "all" && b.reply_when === "auto")
+              ? ' · ' + esc(window.NaotaReplyPolicy.summary(b)) : '') + '</span>' +
         '</div>' +
         '<div class="cb-meta">' +
           '<span>' + esc(b.nguon_tra_loi === "tai_lieu" ? window.t("cb.nguon_tl_ngan")
@@ -411,7 +394,9 @@
                     esc(window.t("ht.nhap_cu")) + (ds.length > 1 ? ' (' + esc(a.label || a.external_id || a.id) + ')' : '') +
                     '</button>';
                 }).join("") +
-              (b.reply_when === "auto"
+              // Always listed (owner, 12/11/2026): it used to appear only in Auto-judge mode, so people kept asking where
+              // it was. A bot in another mode opens the same panel with a line saying the judge is idle and how to turn it on.
+              (window.NaotaReplyPolicy
                 ? '<button class="cb-rp" type="button">' + ic("brain") + ' ' + esc(window.t("rp.menu")) + '</button>' : '') +
               '<button class="cb-hoi-thoai" type="button">' + ic("messages-square") + ' ' +
                 esc(window.t("cb.xem_hoi_thoai")) + '</button>' +
@@ -431,34 +416,36 @@
     c.querySelector(".cb-toggle").onclick = function () { bat(b, !b.enabled); };
     c.querySelector(".cb-log").onclick = function () { moNhatKy(b); };
     var nutRp = c.querySelector(".cb-rp");
-    if (nutRp) nutRp.onclick = function () { window.VanhanhReplyPolicy.openPanel(b); };
+    if (nutRp) nutRp.onclick = function () {
+      window.NaotaReplyPolicy.openPanel(b, { idle: b.reply_when !== "auto", onEdit: function () { moForm(b); } });
+    };
     c.querySelector(".cb-hoi-thoai").onclick = function () {
-      if (window.VanhanhConversations) window.VanhanhConversations.mo({ bot_id: b.id });
+      if (window.NaotaConversations) window.NaotaConversations.mo({ bot_id: b.id });
     };
     c.querySelector(".cb-edit").onclick = function () { moForm(b); };
     // Thử bot: chạy một tin giả, không gửi gì ra ngoài. Xem chatbots-try.js.
     c.querySelector(".cb-try").onclick = function () {
       // Bot chưa gắn kênh nào vẫn thử được "Trong nhóm": chỉnh bot cho ổn rồi mới gắn kênh.
-      if (window.VanhanhTryBot) window.VanhanhTryBot.open(b, { groups: coNhom(b) || !(b.accounts || []).length });
+      if (window.NaotaTryBot) window.NaotaTryBot.open(b, { groups: coNhom(b) || !(b.accounts || []).length });
     };
     c.querySelector(".cb-kenh-them").onclick = function () { moForm(b, { buoc: 1 }); };
     c.querySelectorAll(".cb-kenh-nhap-cu, .cb-nhap-cu").forEach(function (n) {
       n.onclick = function () {
-        var fn = window.VanhanhConversations && window.VanhanhConversations.nhapTinCu;
+        var fn = window.NaotaConversations && window.NaotaConversations.nhapTinCu;
         var a = (b.accounts || []).filter(function (x) { return x.id === n.dataset.tk; })[0];
         if (fn && a) fn(a, n);
       };
     });
     c.querySelectorAll(".cb-kenh-sua").forEach(function (n) {
       n.onclick = function () {
-        var fn = window.VanhanhConversations && window.VanhanhConversations.suaKenh;
+        var fn = window.NaotaConversations && window.NaotaConversations.suaKenh;
         if (fn) fn(n.dataset.tk);
       };
     });
     c.querySelector(".cb-del").onclick = function () { xoa(b); };
     var stBtn = c.querySelector(".cb-st");
-    var stHtml = cho + loiTen + riengTu + mat + lluot + cbao + loi;
-    if (stBtn) stBtn.onclick = function () { openStatus(b, stHtml); };
+    var stRest = loiTen + riengTu + mat + lluot + cbao + loi;
+    if (stBtn) stBtn.onclick = function () { openStatus(b, cho, stRest); };
     return c;
   }
 
@@ -483,34 +470,127 @@
     '</button>';
   }
 
-  function openStatus(b, html) {
+  // One row per chat waiting for the owner's decision (a group the bot sits in, or since 0.64.85 a person the bot was
+  // not chosen for). Owner, 13/11/2026: a bot with nine waiting groups took nine rounds of "open the popup, press
+  // Allow, the popup closes", so a row is now a tick box and the two buttons moved to ONE bar under the list
+  // (`openStatus`). `class="cb-nhomcho"` stays spelled exactly like this: `statusRow` counts the rows by it.
+  function pendingRows(list) {
+    return list.map(function (g) {
+      var person = g.loai === "private";
+      var called = g.lan
+        ? window.t(person ? "cb.pd_wrote" : "cb.pd_called", { count: g.lan })
+        : (person ? window.t("cb.pd_new") : "");
+      return '<label class="cb-nhomcho" data-cid="' + esc(g.chat_id) + '" data-loai="' + (person ? "private" : "group") + '">' +
+        '<input type="checkbox" class="cb-pd-c">' +
+        '<span class="cb-pd-m">' +
+          '<span class="cb-nhomcho-t">' + ic(person ? "user" : "message-circle") + ' <b>' +
+            esc(g.ten || ((person ? window.t("cb2.pk_nguoi") : window.t("cb.nhom")) + " " + g.chat_id)) + '</b></span>' +
+          (called ? '<span class="cb-nhomcho-d">' + esc(called) + '</span>' : "") +
+          '<span class="cb-nhomcho-id">' + esc(g.chat_id) + '</span>' +
+        '</span></label>';
+    }).join("");
+  }
+
+  // The status popup: the waiting list first (tick boxes, "select all", one Allow / Ignore bar that stays in view),
+  // then the errors and warnings in full. Settling the ticked rows keeps the popup open with the rows that are left;
+  // it closes by itself only when nothing at all is left to read.
+  function openStatus(b, pending, rest) {
+    var total = pending.split('class="cb-nhomcho"').length - 1;
     var box = el('<div class="cb-modal"><div class="cb-form cb-st-form" role="dialog" aria-modal="true">' +
       '<h3>' + esc(window.t("cb.st_title")) + ' - ' + esc(b.name) + '</h3>' +
-      '<div class="cb-st-body">' + html + '</div>' +
-      '<div class="cb-form-acts"><button class="s-btn" type="button" data-close>' +
+      '<div class="cb-st-body">' +
+        (total
+          ? '<div class="cb-pd">' +
+              '<div class="cb-pd-h"><b class="cb-pd-title"></b>' + infoBtn() + '</div>' +
+              infoBody(esc(window.t("cb.pd_info"))) +
+              '<div class="cb-pd-pick"><label class="cb-pd-all"><input type="checkbox"> ' +
+                esc(window.t("cb.pd_all")) + '</label><span class="cb-pd-n"></span></div>' +
+              '<div class="cb-pd-list">' + pending + '</div>' +
+              '<div class="cb-pd-bar">' +
+                '<button class="s-btn cb-pd-ok" type="button"></button>' +
+                '<button class="s-btn-ghost cb-pd-skip" type="button"></button>' +
+                '<span class="cb-pd-msg" role="status"></span>' +
+              '</div>' +
+            '</div>'
+          : "") +
+        rest +
+      '</div>' +
+      '<div class="cb-form-acts"><button class="s-btn-ghost" type="button" data-close>' +
         esc(window.t("common.close")) + '</button></div>' +
       '</div></div>');
     document.body.appendChild(box);
     var close = function () { if (box.parentNode) box.parentNode.removeChild(box); };
     box.onmousedown = function (e) { if (e.target === box) close(); };
     box.querySelector("[data-close]").onclick = close;
-    box.querySelectorAll(".cb-nhomcho").forEach(function (n) {
-      var cid = n.dataset.cid, loai = n.dataset.loai;
-      n.querySelector(".cb-ok-nhom").onclick = function () { close(); choNhom(b, cid, true, loai); };
-      n.querySelector(".cb-bo-nhom").onclick = function () { close(); choNhom(b, cid, false, loai); };
-    });
+    var sec = box.querySelector(".cb-pd");
+    if (!sec) return;
+
+    var all = sec.querySelector(".cb-pd-all input"), ok = sec.querySelector(".cb-pd-ok"),
+        skip = sec.querySelector(".cb-pd-skip"), msg = sec.querySelector(".cb-pd-msg"), busy = false;
+    var rows = function () { return Array.prototype.slice.call(sec.querySelectorAll(".cb-nhomcho")); };
+    var picked = function () { return rows().filter(function (r) { return r.querySelector(".cb-pd-c").checked; }); };
+    function sync() {
+      var rs = rows(), n = picked().length;
+      rs.forEach(function (r) { r.classList.toggle("on", r.querySelector(".cb-pd-c").checked); });
+      sec.querySelector(".cb-pd-title").textContent = window.t("cb.st_wait", { count: rs.length });
+      // One row left: nothing to pick between, so no "select all" line.
+      sec.querySelector(".cb-pd-pick").hidden = rs.length < 2;
+      all.checked = n > 0 && n === rs.length;
+      all.indeterminate = n > 0 && n < rs.length;
+      sec.querySelector(".cb-pd-n").textContent = window.t("cb.pd_count", { n: n, total: rs.length });
+      // The number on the button is the confirmation: it says how many chats one press opens the bot to.
+      ok.innerHTML = ic("check") + " " + esc(window.t("cb.pd_allow")) + (n ? " (" + n + ")" : "");
+      skip.textContent = window.t("cb.bo_qua") + (n ? " (" + n + ")" : "");
+      ok.disabled = skip.disabled = busy || !n;
+    }
+    rows().forEach(function (r) { r.querySelector(".cb-pd-c").onchange = function () { msg.textContent = ""; sync(); }; });
+    all.onchange = function () {
+      rows().forEach(function (r) { r.querySelector(".cb-pd-c").checked = all.checked; });
+      msg.textContent = "";
+      sync();
+    };
+    // Nothing is ticked on opening: allowing lets the bot speak in that chat, on personal Zalo with a real person's
+    // account, so it must be a choice. The one exception is a single waiting row, where the tick is the only choice.
+    if (total === 1) rows()[0].querySelector(".cb-pd-c").checked = true;
+
+    async function settle(on) {
+      var chosen = picked();
+      if (busy || !chosen.length) return;
+      busy = true; msg.className = "cb-pd-msg"; msg.textContent = ""; sync();
+      var done = 0, err = "";
+      // Groups and people live on two lists, so at most two requests, one after the other.
+      for (var kind of ["group", "private"]) {
+        var part = chosen.filter(function (r) { return (r.dataset.loai === "private") === (kind === "private"); });
+        if (!part.length) continue;
+        try {
+          await settlePending(b, kind, part.map(function (r) { return r.dataset.cid; }), on);
+          part.forEach(function (r) { r.parentNode.removeChild(r); });
+          done += part.length;
+        } catch (e) { err = e.message; }
+      }
+      busy = false;
+      tai(true);
+      if (!rows().length) {
+        sec.parentNode.removeChild(sec);
+        if (!box.querySelector(".cb-st-body").children.length) { close(); return; }
+      } else {
+        sync();
+      }
+      if (!document.body.contains(msg)) return;
+      msg.className = "cb-pd-msg" + (err ? " err" : "");
+      msg.textContent = err ? window.t("cb.loi_cap_nhat_nhom") + " " + err
+                            : window.t(on ? "cb.pd_done_allow" : "cb.pd_done_skip", { count: done });
+    }
+    ok.onclick = function () { settle(true); };
+    skip.onclick = function () { settle(false); };
+    sync();
   }
 
-  // Một cú bấm thay cho: gõ /id trong nhóm, chép id, mở Sửa, kéo xuống đáy form, dán, Lưu.
-  async function choNhom(b, cid, on, loai) {
-    try {
-      // Người (audience `chon`) đi đường /people, nhóm đi đường /groups.
-      await api("/chatbots/" + encodeURIComponent(b.id) + (loai === "private" ? "/people" : "/groups"),
-                { method: "POST", body: fd({ chat_id: cid, on: on ? "1" : "0" }) });
-    } catch (e) {
-      alert(window.t("cb.loi_cap_nhat_nhom") + " " + e.message);
-    }
-    tai();
+  // One request per kind for the whole batch, replacing: type /id in the group, copy the id, open Edit, scroll to the
+  // bottom of the form, paste, Save. People (audience `chon`) go to /people, groups to /groups.
+  function settlePending(b, kind, ids, on) {
+    return api("/chatbots/" + encodeURIComponent(b.id) + (kind === "private" ? "/people" : "/groups"),
+               { method: "POST", body: fd({ chat_ids: JSON.stringify(ids), on: on ? "1" : "0" }) });
   }
 
   // ---------------------------------------------------------------- nhật ký + lỗ hổng
@@ -656,31 +736,6 @@
                      : '<option value="">' + esc(window.t("cb.khong_agent")) + '</option>';
   }
 
-  // Danh sách ngôn ngữ lấy từ /settings (sổ đăng ký phía server), KHÔNG khai lại ở đây.
-
-  // Khai hai nơi thì thêm ngôn ngữ mới phải nhớ sửa cả hai chỗ.
-
-  var _langDS = [];
-
-  function htmlNgonNgu(cur) {
-
-    var ra = '<option value="auto"' + (cur === "auto" || !cur ? " selected" : "") +
-
-             '>' + esc(window.t("cb.lang_auto")) + '</option>';
-
-    _langDS.forEach(function (l) {
-
-      ra += '<option value="' + esc(l.ma) + '"' + (l.ma === cur ? " selected" : "") +
-
-            '>' + esc(l.ten) + '</option>';
-
-    });
-
-    return ra;
-
-  }
-
-
   // ===== Thành phần dùng chung của form và thẻ =====================================
   // Form đi theo bốn phần: Bot là ai, Bot trả lời ai, Bot dựa vào đâu để trả lời, Bot được làm gì.
   // Mỗi phần một tiêu đề có icon, mỗi lựa chọn ngắn là một nút bấm chọn một thay cho ô xổ xuống kèm
@@ -794,7 +849,7 @@
     // Kênh đang do bot KHÁC trực: hiện mờ, không tick được, ghi rõ bot nào (và brain nào nếu khác brain đang mở).
     var khoa = _tkBan.filter(function (a) { return !da[a.id]; }).map(function (a) {
       var k = kenhCua(a.channel);
-      var tb = window.VanhanhConversations && window.VanhanhConversations.tenBrain;
+      var tb = window.NaotaConversations && window.NaotaConversations.tenBrain;
       var khac = a.bot_brain && a.bot_brain !== brain();
       return '<div class="cb-tk cb-tk-khoa" aria-disabled="true">' +
         '<span class="cb-tk-logo">' + logoKenh(a.channel, "18px") + '</span>' +
@@ -829,7 +884,7 @@
   // và tích sẵn con vừa nối - đường đi tự nhiên là nối kênh xong dùng luôn, không phải tự tìm
   // lại nó trong danh sách.
   function noiKenhMoi(xong) {
-    var fn = window.VanhanhConversations && window.VanhanhConversations.themTaiKhoan;
+    var fn = window.NaotaConversations && window.NaotaConversations.themTaiKhoan;
     if (!fn) return alert(window.t("cb.chua_mo_duoc_kenh"));
     fn({ onXong: async function (tk) {
       try {
@@ -872,7 +927,7 @@
     // "Tự động hóa tất cả" không phải một giá trị lưu riêng: nó là "mọi cuộc chat" cộng "tự đánh giá" gộp làm MỘT cú chọn
     // (lưu xuống vẫn là audience=all, reply_when=auto), nên bot đã cài như vậy từ trước tự hiện đúng thẻ này.
     var card0 = (aud0 === "all" && rw0 === "auto") ? "auto" : aud0;
-    var RP = window.VanhanhReplyPolicy;      // bộ phán xử hội thoại nhóm, file chatbots-reply-policy.js
+    var RP = window.NaotaReplyPolicy;      // bộ phán xử hội thoại nhóm, file chatbots-reply-policy.js
     // Người/nhóm ĐANG được chọn (sự thật của form). Danh sách cuộc chat từ server chỉ là nguồn để
     // chọn; tick hay bỏ tick sửa ở đây, và lúc Lưu mới đổ ra hai danh sách groups/people.
     var chon = { group: {}, private: {} };
@@ -1029,15 +1084,8 @@
             infoBody(esc(window.t("cb.hint_ngoai_le"))) +
           '</div>' +
 
-          // Nâng cao: chỉ ngôn ngữ trả lời. Ngôn ngữ của bot ĐỘC LẬP với ngôn ngữ của chủ: bot nói
-          // chuyện với NGƯỜI NGOÀI, và chủ dùng Vanhanh bằng tiếng Việt mà người nhắn tới nói tiếng khác
-          // là chuyện bình thường, nên suy ngôn ngữ của bot từ ngôn ngữ của chủ là suy sai.
-          '<details class="cb-nangcao">' +
-            '<summary>' + ic("settings") + ' ' + esc(window.t("cb.nang_cao")) + '</summary>' +
-            '<label for="cbNgonNgu">' + esc(window.t("cb.lb_ngon_ngu")) + infoBtn() + '</label>' +
-            '<select id="cbNgonNgu">' + htmlNgonNgu((b && b.ngon_ngu) || "auto") + '</select>' +
-            infoBody(esc(window.t("cb.hint_ngon_ngu"))) +
-          '</details>' +
+          // No language picker since 2026-11-15 (owner): the bot answers each customer in the language they write.
+          // That "Advanced" section held only this picker, so it went with it.
         '</div>' +
 
         '<div class="cb-form-acts">' +
@@ -1054,14 +1102,14 @@
     box.onmousedown = function (e) { if (e.target === box) dong(); };
 
     // Searchable agent picker instead of the native list of "name - truncated role" lines.
-    if (window.VanhanhAgentPicker) {
-      window.VanhanhAgentPicker.enhance(box.querySelector("#cbAgent"), { title: window.t("ap.title") });
+    if (window.NaotaAgentPicker) {
+      window.NaotaAgentPicker.enhance(box.querySelector("#cbAgent"), { title: window.t("ap.title") });
     }
 
     // Sang thẳng trang Cộng sự. Đóng form trước để quay lại không bị hai lớp modal chồng nhau.
     box.querySelector("#cbNewAgent").onclick = function () {
       dong();
-      try { window.VanhanhNav.go("workspace"); } catch (e) {}
+      try { window.NaotaNav.go("workspace"); } catch (e) {}
     };
     // The same editor as the Assistants page. It sits below this form in the stacking order, so the form steps aside
     // while the editor is open and comes back as it was, with everything typed still there.
@@ -1070,7 +1118,7 @@
     oAgent.addEventListener("change", dongBoNutSua);
     dongBoNutSua();
     nutSuaAgent.onclick = function () {
-      var St = window.VanhanhStudio, slug = oAgent.value, ed = document.getElementById("studioEditor");
+      var St = window.NaotaStudio, slug = oAgent.value, ed = document.getElementById("studioEditor");
       if (!slug || !St || !St.editAgent || !ed) return;
       var daMo = false;
       var theoDoi = new MutationObserver(function () {
@@ -1518,7 +1566,6 @@
       // sách nhóm không bao giờ dùng tới là một lời hứa suông nằm lại trong dữ liệu.
       var chung = { name: ten, agent_slug: ag, agent_brain: br, brain: br,
                     nguon_tra_loi: "agent", muc_quyen: muc, xac_nhan_rui_ro: "1",
-                    ngon_ngu: (document.getElementById("cbNgonNgu") || {}).value || "auto",
                     audience: aud, people: ds("private").join("\n"),
                     groups: co ? ds("group").join("\n") : "",
                     reply_when: co ? (the === "auto" ? "auto" : (giaTri("cbRw") || "mention")) : "mention",
@@ -1543,14 +1590,14 @@
 
   // Tab Kênh bấm "Tạo bot trực" trên một tài khoản: mở form với tài khoản đó tích sẵn. Đợi
   // trang nạp xong danh sách kênh (tai) rồi mới mở, để ô chọn có đủ dữ liệu.
-  document.addEventListener("vanhanh:chatbot-new", function (e) {
+  document.addEventListener("naota:chatbot-new", function (e) {
     var aid = (e.detail || {}).account_id;
     doiNap(function () { moForm(null, { account_id: aid }); });
   });
 
   // Chatbot v5: "Open the settings of bot X" in a chat's Info panel. The bot of a chat may belong to another
   // brain than the one open (this page only loads the open brain's bots); then say so instead of opening nothing.
-  document.addEventListener("vanhanh:chatbot-open", function (e) {
+  document.addEventListener("naota:chatbot-open", function (e) {
     var id = (e.detail || {}).bot_id;
     if (!id) return;
     var lan = 0;
@@ -1562,7 +1609,7 @@
     })();
   });
 
-  // (Đã bỏ tay bắt "vanhanh:chatbot-edit" ở đây. Tab Kênh từng bấm Xoá là nhảy sang đây
+  // (Đã bỏ tay bắt "naota:chatbot-edit" ở đây. Tab Kênh từng bấm Xoá là nhảy sang đây
   // mở form Sửa của con bot đang giữ tài khoản, nhưng trang này chỉ nạp bot của BRAIN ĐANG MỞ
   // còn tài khoản kênh thì toàn cục - nên với con bot ở brain khác, đường đó luôn kết thúc
   // bằng câu "đổi brain rồi thử lại" mà không nói đổi sang brain nào. Nay tab Tài khoản bot tự gỡ tài
@@ -1578,5 +1625,5 @@
     })();
   }
 
-  window.VanhanhChatbots = { render: render };
+  window.NaotaChatbots = { render: render };
 })();

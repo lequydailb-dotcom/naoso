@@ -35,7 +35,7 @@ DEFAULT_CAPS = {
     "no_progress": 2,          # lượt không tiến triển liên tiếp của một bước
     "mentions": 3,             # @ mỗi tin
     "daily_turns": 100,        # lượt mỗi nhóm mỗi ngày
-    "running_jobs": 1,         # việc chạy cùng lúc mỗi nhóm
+    "running_jobs": 3,         # việc chạy cùng lúc mỗi nhóm (2026-11-12: 3, was 1; see FIXED_CAPS)
     "busy_wait_s": 1800,       # chờ khoá bận trước khi báo chặn
     # T3 phần J (thiết kế mục 9): lượt phán xử theo lô mỗi nhóm mỗi ngày (tách khỏi daily_turns), số người tự lên
     # tiếng mỗi tin (`K`, 0 = tắt), chế độ phán xử khi Cộng hưởng của agent tắt (1 = lọc code + lô, 0 = chỉ lọc code).
@@ -61,7 +61,11 @@ OWNER_CAPS = ("task_turns", "task_steps", "help_depth", "daily_turns", "mentions
 UNLIMITED_CAPS = ("task_turns", "task_steps", "help_depth", "daily_turns", "judge_daily")
 # Giá trị lớn nhất của các ô không phải trần lượt (T3 J): K tối đa 5 người, chế độ phán xử là 0 hay 1.
 CAP_MAX = {"volunteer_k": 5, "judge_off_batch": 1, "reply_parallel": 1, "auto_jobs": 50}
-FIXED_CAPS = {"running_jobs": 1, "no_progress": 2}
+# 2026-11-12 (a customer: two assistants with two different jobs ran one after the other): a team now runs up to three
+# jobs at once, each with a different assistant in charge (team_runner._next_job). It stays a SERVER limit, not one more
+# number for the owner to set: who may run together is decided by who the jobs belong to. NAOTA_TEAM_JOBS=1 gives the
+# old one-job-at-a-time team back.
+FIXED_CAPS = {"running_jobs": 3, "no_progress": 2}
 TEAM_STATUS = ("active", "paused", "archived")
 STEP_KINDS = ("plan", "work", "help", "synthesize", "reply")
 # A step that waits for every step before it (a sequential plan), see `TeamStore.add_step(held=...)`.
@@ -264,7 +268,7 @@ class TeamStore:
                 c.execute("ALTER TABLE teams ADD COLUMN pinned_at REAL")
             tcols = {r[1] for r in c.execute("PRAGMA table_info(teams)").fetchall()}
             if "created_by" not in tcols:
-                # Người tạo nhóm: người thật, lấy từ phiên xác thực của server, không từ client. Vanhanh hiện chỉ
+                # Người tạo nhóm: người thật, lấy từ phiên xác thực của server, không từ client. Naota hiện chỉ
                 # có một tài khoản chủ máy nên nhóm cũ nhận đúng chủ đó ("owner"), không giả lập đa người dùng.
                 c.execute("ALTER TABLE teams ADD COLUMN created_by TEXT NOT NULL DEFAULT 'owner'")
             if "avatar_image" not in tcols:
@@ -633,7 +637,7 @@ class TeamStore:
             return self._drop_member(c, team_id, agent_key, "removed", by, time.time())
 
     def mark_agent_gone(self, brain_id: str, agent_key: str) -> list:
-        """Agent bị xoá khỏi Vanhanh (mã nghỉ): mọi nhóm của brain đánh dấu `agent_gone`. Trả danh sách nhóm bị ảnh hưởng."""
+        """Agent bị xoá khỏi Naota (mã nghỉ): mọi nhóm của brain đánh dấu `agent_gone`. Trả danh sách nhóm bị ảnh hưởng."""
         out = []
         now = time.time()
         with self._Tx(self) as c:

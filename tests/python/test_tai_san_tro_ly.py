@@ -27,7 +27,7 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-tsag-state-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-tsag-state-"))
 
 from fastapi.testclient import TestClient  # noqa: E402
 import agent_assets  # noqa: E402
@@ -84,9 +84,9 @@ check("và hàng thiếu id vẫn được cấp id để gỡ được", bool(d
 # ============================================================
 # 1. Route: brain riêng trong thư mục tạm
 # ============================================================
-BRAIN = tempfile.mkdtemp(prefix="vanhanh-brain-tsag-")
+BRAIN = tempfile.mkdtemp(prefix="naota-brain-tsag-")
 broot = Path(BRAIN)
-os.environ["VANHANH_FILES_ROOT"] = BRAIN     # khoá trần duyệt vào đúng brain này
+os.environ["NAOTA_FILES_ROOT"] = BRAIN     # khoá trần duyệt vào đúng brain này
 (broot / "sources").mkdir(parents=True, exist_ok=True)
 (broot / "sources" / "bang-gia.md").write_text("Nước mắm 500ml: 120k", encoding="utf-8")
 (broot / "sources" / "anh.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 16)
@@ -109,8 +109,13 @@ check("file không có trong brain thì từ chối",
 # cửa ghi chứ không để lỗi nổ lúc dựng prompt.
 check("đường dẫn trèo ra ngoài trần bị chặn",
       c.post(API + "/files", data={"path": "../../etc/passwd", "brain": BRAIN}).status_code == 400)
-check("thư mục cũng bị từ chối",
-      c.post(API + "/files", data={"path": "sources", "brain": BRAIN}).status_code == 404)
+# 2026-11-12 (owner: "chọn được cả thư mục"): a real folder is accepted, as ONE row whose path ends in "/". The full
+# behaviour is measured in test_folder_documents.py; here it is added and removed so the counts below stay as they were.
+_dir = c.post(API + "/files", data={"path": "sources", "brain": BRAIN})
+check("a folder is accepted and stored with a trailing slash",
+      _dir.status_code == 200 and _dir.json().get("dir") is True
+      and "sources/" in [f["path"] for f in c.get(API, params={"brain": BRAIN}).json()["files"]], _dir.text)
+c.post(API + "/files/" + str(_dir.json().get("id")) + "/delete", data={"brain": BRAIN})
 check("trợ lý không tồn tại trả 404",
       c.post("/agents/khong-co-that/assets/files",
              data={"path": "sources/bang-gia.md", "brain": BRAIN}).status_code == 404)
@@ -168,7 +173,7 @@ check("dùng chung trần token với project",
 r = c.post(API + "/files", data={"path": "sources/anh.png", "brain": BRAIN})
 c.post(API + f"/files/{r.json()['id']}/pin", data={"pinned": "1", "brain": BRAIN})
 sp = main._agent_chat_prompt(BRAIN, SLUG)
-check("file nhị phân ghim vào thì nói rõ không nạp được", "nhị phân" in sp, sp[-800:])
+check("file nhị phân ghim vào thì nói rõ không nạp được", "binary" in sp, sp[-800:])
 
 # Trợ lý chưa gắn gì thì KHÔNG được có khối rỗng trong prompt - mỗi dòng thừa lặp lại ở mọi lượt.
 r2 = c.post("/agents", data={"name": "Trong tron", "role": "x", "prompt": "y", "brain": BRAIN})

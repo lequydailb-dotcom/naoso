@@ -12,7 +12,7 @@ import os
 import re
 import tempfile
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-petmenu-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-petmenu-")
 
 import main  # noqa: E402
 import pet_menu  # noqa: E402
@@ -42,7 +42,7 @@ def post(items, rev):
 
 # ═════ never customised ═════
 m = get()
-check("a Vanhanh that never saved a menu shows the default six", m["state"] == "default" and m["items"] == D and m["rev"] == 0, m)
+check("a Naota that never saved a menu shows the default six", m["state"] == "default" and m["items"] == D and m["rev"] == 0, m)
 check("the default is the menu the pet always had, in that order", D == ["chat", "agent", "workflow", "mic", "pet", "teams"])
 
 # ═════ add + reorder ═════
@@ -103,12 +103,12 @@ cfg[pet_menu.SETTINGS_KEY]["items"][0].pop("hidden")
 main.cfgmod.write_settings(cfg)
 check("and fixing it brings the menu back", get()["state"] == "custom")
 
-# ═════ an id a later Vanhanh removed ═════
+# ═════ an id a later Naota removed ═════
 cfg = main.cfgmod.read_settings()
 cfg[pet_menu.SETTINGS_KEY]["items"].insert(1, {"actionId": "old-feature"})
 main.cfgmod.write_settings(cfg)
 m = get()
-check("an id this Vanhanh no longer knows is kept, not lost", "old-feature" in m["items"] and m["state"] == "custom", m)
+check("an id this Naota no longer knows is kept, not lost", "old-feature" in m["items"] and m["state"] == "custom", m)
 r = post(m["items"] + ["models"], m["rev"])
 check("and a later save may keep it in place", r.status_code == 200 and get()["items"][1] == "old-feature", r.text)
 r = post([x for x in get()["items"] if x != "old-feature"], get()["rev"])

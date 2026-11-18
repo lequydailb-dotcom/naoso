@@ -4,7 +4,7 @@
 
 Bệnh thật đo được trên mã trước khi có tầng này:
 
-    "tóm tắt đơn hàng"    -> bị chặn đúng, đi đường đầy đủ, Vanhanh gọi tool lấy số thật
+    "tóm tắt đơn hàng"    -> bị chặn đúng, đi đường đầy đủ, Naota gọi tool lấy số thật
     "summarize my orders" -> LỌT qua đường tắt tiết kiệm token. Đường tắt cố ý KHÔNG phát
                              tool nào, nên model không có cách nào biết số đơn hàng, và nó
                              làm cái tệ nhất: bịa ra một con số nghe hợp lý.
@@ -117,14 +117,15 @@ check("việc nền không cấu hình gì thì về mặc định",
 # Khối prompt phải nói ĐÚNG một trong hai chuyện, không được nói cả hai.
 _khoi_bam = lang_mod.khoi_ngon_ngu(lang_mod.resolve(turn_text="show me the revenue by channel"))
 _khoi_ghim = lang_mod.khoi_ngon_ngu(lang_mod.resolve(turn_text="cho anh xem", reply_pref="en"))
+# 2026-11-15: the block speaks English (the kernel did already), see lang.khoi_ngon_ngu.
 check("khối BÁM bảo model theo người dùng, không nêu tên ngôn ngữ nào",
-      "thứ tiếng người dùng vừa viết" in _khoi_bam
-      and "Ngôn ngữ trả lời:" not in _khoi_bam)
+      "language of the user's latest message" in _khoi_bam
+      and "Reply language:" not in _khoi_bam)
 check("khối GHIM nêu đúng tên ngôn ngữ",
-      "Ngôn ngữ trả lời: English (en)." in _khoi_ghim
-      and "thứ tiếng người dùng vừa viết" not in _khoi_ghim)
+      "Reply language: English (en), set in Settings." in _khoi_ghim
+      and "language of the user's latest message" not in _khoi_ghim)
 check("khối BÁM vẫn dặn giữ nguyên tên riêng, đường dẫn, khối mã",
-      "KHÔNG dịch" in _khoi_bam)
+      "Do not translate" in _khoi_bam)
 
 
 # ============================================================
@@ -163,7 +164,7 @@ check("chưa rõ ngôn ngữ thì không đi tắt, dù câu có chữ hợp l�
       not _gate.classify("translate zbcd qwerty mnop vlkx").eligible)
 
 # Tiếng Việt CÓ DẤU và tiếng Âu có dấu phải tách được nhau ra: một chữ "de" trong câu tiếng
-# Pháp từng đủ để cả câu bị chấm thành tiếng Việt, rồi Vanhanh trả lời người Pháp bằng tiếng Việt.
+# Pháp từng đủ để cả câu bị chấm thành tiếng Việt, rồi Naota trả lời người Pháp bằng tiếng Việt.
 check("tiếng Pháp KHÔNG bị nhận thành tiếng Việt",
       lang_mod.detect("Peux-tu me résumer les ventes du mois de juin ?")[0] != "vi")
 check("tiếng Tây Ban Nha cũng vậy",
@@ -180,7 +181,7 @@ check("dò được từ chính lượt thì cổng dùng luôn",
                                                   lang=_dq.lang_cau_hoi).eligible)
 check("câu quá ngắn thì cổng KHÔNG có ngôn ngữ, và phải suy biến an toàn",
       lang_mod.resolve(turn_text="cho anh xem").lang_cau_hoi == "")
-# Ngôn ngữ GHIM tuyệt đối không rò xuống cổng: nó nói Vanhanh trả lời tiếng gì, không nói người
+# Ngôn ngữ GHIM tuyệt đối không rò xuống cổng: nó nói Naota trả lời tiếng gì, không nói người
 # dùng đang viết tiếng gì.
 check("ngôn ngữ ghim KHÔNG rò xuống cổng",
       lang_mod.resolve(turn_text="cho anh xem", reply_pref="en").lang_cau_hoi == "")
@@ -190,7 +191,7 @@ check("và ghim cũng không che mất ngôn ngữ THẬT của câu hỏi",
 
 
 # ============================================================
-# 4. Luật suy biến: thiếu bộ từ vựng làm Vanhanh TỐN HƠN, không làm Vanhanh LỎNG HƠN
+# 4. Luật suy biến: thiếu bộ từ vựng làm Naota TỐN HƠN, không làm Naota LỎNG HƠN
 # ============================================================
 _th = _gate.classify("สรุปยอดขายวันนี้ให้หน่อยครับ")
 check("ngôn ngữ chưa có lexicon thì KHÔNG được đi tắt", not _th.eligible)
@@ -229,8 +230,9 @@ check("mã hợp lệ giữ nguyên", chatbot_store._clean_ngon_ngu("EN_us") == 
 _p_auto = chatbot_runtime.build_bot_prompt({"name": "Trợ lý", "ngon_ngu": "auto"})
 _p_en = chatbot_runtime.build_bot_prompt({"name": "Trợ lý", "ngon_ngu": "en"})
 check("bot auto được dạy bám theo ngôn ngữ khách", "ngôn ngữ khách đang nhắn" in _p_auto)
-check("bot ghim en được dạy luôn trả lời tiếng Anh",
-      "English" in _p_en and "Answer in English." in _p_en)
+# 2026-11-15 (owner): no per-bot language pin any more; a value saved on an older bot record is not read.
+check("bot có ngon_ngu cũ vẫn bám theo ngôn ngữ khách",
+      "ngôn ngữ khách đang nhắn" in _p_en and "Answer in English." not in _p_en)
 check("prompt bot LUÔN có một dòng ngôn ngữ, kể cả khi không khai gì",
       "NGÔN NGỮ" in chatbot_runtime.build_bot_prompt({"name": "Trợ lý"}))
 

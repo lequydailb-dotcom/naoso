@@ -17,7 +17,7 @@ const settle = async () => { for (let i = 0; i < 12; i++) await tick(); };
 
 const PC = { userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36" };
 
-let runs = [], ear = "", calls = [], fixMode = "ok", sttText = "VANHANH đã nghe được rồi.";
+let runs = [], ear = "", calls = [], fixMode = "ok", sttText = "NAOTA đã nghe được rồi.";
 class SR {
   constructor() { runs.push(this); }
   start() {}
@@ -45,7 +45,7 @@ global.fetch = (url, init) => {
     calls.push(body);
     if (fixMode === "fail") return Promise.reject(new Error("down"));
     if (fixMode === "hang") return new Promise(() => {});
-    return json({ ok: true, text: "Bạn kiểm tra giúp anh VANHANH đã nghe đúng chưa." });
+    return json({ ok: true, text: "Bạn kiểm tra giúp anh NAOTA đã nghe đúng chưa." });
   }
   if (url.indexOf("/stt") !== -1) { calls.push({ stt: true }); return json({ ok: true, text: sttText }); }
   return json({});
@@ -72,7 +72,7 @@ const ctx = () => ["Anh vừa thêm Groq", "Dạ, em đã thấy khoá Groq."];
     && calls[0].context.length === 2 && calls[0].context[0] === "Anh vừa thêm Groq");
   check("the run waits in transcribing while the sentence is rewritten", states.indexOf("transcribing") !== -1);
   const last = texts[texts.length - 1];
-  check("onText gets the rewritten sentence, marked final", last[0] === "Bạn kiểm tra giúp anh VANHANH đã nghe đúng chưa." && last[1]);
+  check("onText gets the rewritten sentence, marked final", last[0] === "Bạn kiểm tra giúp anh NAOTA đã nghe đúng chưa." && last[1]);
   check("then idle, after the rewrite", states[states.length - 1] === "idle"
     && states.lastIndexOf("transcribing") < states.lastIndexOf("idle"));
 
@@ -87,7 +87,7 @@ const ctx = () => ["Anh vừa thêm Groq", "Dạ, em đã thấy khoá Groq."];
   const fix = calls.filter(c => c.final);
   check("ear: /stt runs first, then the rewrite", calls[0] && calls[0].stt && fix.length === 1);
   check("ear: the rewrite gets the ear's text, not the browser draft", fix[0] && fix[0].text === sttText);
-  check("ear: the rewritten sentence is the final text", texts[texts.length - 1][0] === "Bạn kiểm tra giúp anh VANHANH đã nghe đúng chưa.");
+  check("ear: the rewritten sentence is the final text", texts[texts.length - 1][0] === "Bạn kiểm tra giúp anh NAOTA đã nghe đúng chưa.");
 
   // 3. Server down: the words as heard, never lost.
   ear = ""; runs = []; calls = []; fixMode = "fail";

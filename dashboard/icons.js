@@ -24,8 +24,8 @@
   var RAW = window.LucideIcons || {};
   var FALLBACK = "circle-help";
 
-  // ---- Icon RIÊNG của Vanhanh (không có trong Lucide) ----------------------------------
-  // "vanhanh-pet" là chính khuôn mặt linh vật: thân tròn cam, vành quỹ đạo mảnh, và đôi mắt
+  // ---- Icon RIÊNG của Naota (không có trong Lucide) ----------------------------------
+  // "naota-pet" là chính khuôn mặt linh vật: thân tròn cam, vành quỹ đạo mảnh, và đôi mắt
   // LIẾC chéo lên phải - đúng dáng của con pet ở mép màn hình và của dấu ấn trên thanh bên.
   // Trước đây trang Linh vật mượn mặt cười chung của Lucide, nên cái tab dẫn tới con pet lại
   // là thứ duy nhất trong app không giống con pet.
@@ -35,7 +35,7 @@
   // Toạ độ quy từ bản gốc 320x320 của pet.js (thân bán kính 78, mắt lệch +16/-12) về khung
   // 24x24, nên đổi dáng liếc bên đó thì đổi cả ở đây.
   var RIENG = {
-    "vanhanh-pet":
+    "naota-pet":
       '<circle cx="12" cy="12" r="11" fill="none" stroke="#F28C28" stroke-width="1.3" opacity=".55"/>' +
       '<circle cx="12" cy="12" r="8.2" fill="#F28C28" stroke="none"/>' +
       '<ellipse cx="12.1" cy="10.74" rx=".76" ry="1.84" fill="#201E1E" stroke="none"/>' +
@@ -191,6 +191,18 @@
         '-.14-.62.14-.18.27-.71.89-.87 1.07-.16.18-.32.21-.6.07-.27-.14-1.15-.42-2.19-1.35-.81-.72' +
         '-1.36-1.62-1.52-1.89-.16-.27-.02-.42.12-.56.12-.12.27-.32.41-.48.14-.16.18-.27.27-.46.09' +
         '-.18.05-.34-.02-.48-.07-.14-.6-1.5-.84-2.04z"/>',
+    },
+    // WeChat: two green speech bubbles, the large one behind and the small one in front, each with two eyes.
+    wechat: {
+      nhan: "WeChat",
+      mau: "#07C160",
+      than:
+        '<path fill="#07C160" d="M9.2 3.6c-3.9 0-7 2.6-7 5.9 0 1.9 1.05 3.55 2.7 4.65l-.7 2.1 2.5-1.25c.8.22 ' +
+        '1.63.35 2.5.35 3.9 0 7-2.6 7-5.85s-3.1-5.9-7-5.9z"/>' +
+        '<circle cx="6.9" cy="8.3" r="1" fill="#fff"/><circle cx="11.5" cy="8.3" r="1" fill="#fff"/>' +
+        '<path fill="#07C160" stroke="#fff" stroke-width="1" d="M16 10.4c-3.2 0-5.8 2.15-5.8 4.85s2.6 4.85 5.8 ' +
+        '4.85c.68 0 1.33-.1 1.94-.27l2.06 1.07-.57-1.75c1.42-.9 2.37-2.3 2.37-3.9 0-2.7-2.6-4.85-5.8-4.85z"/>' +
+        '<circle cx="14.1" cy="14.5" r=".85" fill="#fff"/><circle cx="17.9" cy="14.5" r=".85" fill="#fff"/>',
     },
     // Messenger: blue speech bubble with the lightning zigzag.
     messenger: {

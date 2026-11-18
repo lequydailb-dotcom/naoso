@@ -1,5 +1,5 @@
 // an assistant card on the Partners page carries a second line under the name, beside the avatar:
-// the System badge (Vanhanh Core) and the assistant's tags. The line ends where the time / Auto corner starts, so
+// the System badge (Naota Core) and the assistant's tags. The line ends where the time / Auto corner starts, so
 // fitCardTags keeps as many WHOLE chips as fit and folds the rest into "+n".
 //
 //     node tests/js/test_agent_card_tags.js
@@ -19,7 +19,7 @@ function check(name, cond, extra) {
 // The chip, sub line and fit helpers, run as they are in the page.
 const part = src.slice(src.indexOf("  var CHIP_TOI_DA = 3;"), src.indexOf("  // HTML của MỘT hàng."));
 const agents = [{ slug: "w", name: "Writer", tags: ["Marketing", "Content writing", "Email"] },
-                { slug: "core", name: "Vanhanh Core", system: true, tags: [] }];
+                { slug: "core", name: "Naota Core", system: true, tags: [] }];
 const ctx = vm.createContext({ t: (k, o) => (k === "ws.tag_more" ? "+" + o.n : k), esc: (s) => String(s),
   tagsCua: (x) => x.tags || [], danhSach: () => agents, S: {} });
 vm.runInContext(part + "\nglobalThis.api = { cardSubHtml, fitCardTags };", ctx);
@@ -29,7 +29,7 @@ check("an assistant with tags: one sub line with two chips and +1",
   cardSubHtml(agents[0], false) === '<span class="ws-item-sub"><span class="ws-tags" aria-label="ws.tags_aria">' +
     '<span class="ws-tag" title="Marketing">Marketing</span><span class="ws-tag" title="Content writing">Content writing</span>' +
     '<span class="ws-tag ws-tag-more" title="Email">+1</span></span></span>', cardSubHtml(agents[0], false));
-check("Vanhanh Core without tags: the System badge alone on the line",
+check("Naota Core without tags: the System badge alone on the line",
   cardSubHtml(agents[1], true) === '<span class="ws-item-sub"><span class="ws-sys">ws.system_badge</span></span>');
 check("no badge and no tags: no line at all", cardSubHtml({ slug: "z", name: "Z" }, false) === "");
 
@@ -88,11 +88,13 @@ const core = fakeRow("core", 300);
 core.innerHTML = cardSubHtml(agents[1], true);
 const coreBefore = core.innerHTML;
 fitCardTags({ querySelectorAll: () => [core] });
-check("Vanhanh Core without tags: the badge line is not touched", core.innerHTML === coreBefore);
+check("Naota Core without tags: the badge line is not touched", core.innerHTML === coreBefore);
 
+// 2026-11-13: "each draw" is each draw that replaced the rows (the same list again keeps its fitted rows), and the
+// observer's first report, which only repeats the width the fitting was just done for, no longer fits a second time.
 check("the list refits after each draw and when the column is resized (ResizeObserver)",
   /noiDanhSach\(host\);\s*if \(laTag\) watchCardTags\(host\);/.test(src)
-  && /S\.tagRo = new ResizeObserver\(function \(\) \{ fitCardTags\(host\); \}\);/.test(src));
+  && /S\.tagRo = new ResizeObserver\(function \(\) \{\s*var w = host\.clientWidth;\s*if \(typeof w === "number" && w > 0 && w === S\.tagFitW\) return;\s*fitCardTags\(host\);\s*\}\);/.test(src));
 
 if (fails) { console.log("\nFAIL " + fails); process.exit(1); }
 console.log("\nOK test_agent_card_tags");

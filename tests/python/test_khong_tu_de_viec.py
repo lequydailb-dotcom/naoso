@@ -1,21 +1,21 @@
-"""Vanhanh không được TỰ đẻ việc nền từ kế hoạch của chính mình.
+"""Naota không được TỰ đẻ việc nền từ kế hoạch của chính mình.
 
     python tests/run.py khong_tu_de_viec
 
 Lỗi đã gặp: đang bàn kế hoạch trong khung chat thì
-Vanhanh tự giao một loạt việc Kanban ("Áp dụng kế hoạch ramp ... vào Funnel Tripwire",
+Naota tự giao một loạt việc Kanban ("Áp dụng kế hoạch ramp ... vào Funnel Tripwire",
 "Cập nhật timeline dự án ..."), rồi mỗi việc xong hoặc kẹt lại bắn một thông báo về chuông
 và về đúng khung chat đang nói chuyện. Việc thì không ai yêu cầu, mà tiếng ồn thì thật.
 
 Vì sao model làm vậy: prompt kênh dạy nó chỉ có HAI lối đúng khi không làm xong trong lượt
 ("làm luôn" hoặc "giao việc nền"), cộng bộ dò lời hứa dán đính chính khi hứa mà không tạo
 việc. Hai thứ đó đúng cho một YÊU CẦU CỦA NGƯỜI DÙNG, nhưng chúng không hề nói rằng một kế
-hoạch do chính Vanhanh vừa nghĩ ra thì KHÔNG phải là yêu cầu. Thiếu vế đó, đường an toàn nhất
+hoạch do chính Naota vừa nghĩ ra thì KHÔNG phải là yêu cầu. Thiếu vế đó, đường an toàn nhất
 với model là cứ giao việc cho chắc.
 
 Test canh cái vế vừa thêm, ở cả BA nơi model thật sự đọc:
   1. Khối prompt kênh (`channel_context`) - mọi lượt chat đều được chèn.
-  2. Mô tả tool `vanhanh_task` - thứ engine API đọc ngay lúc quyết định gọi hay không.
+  2. Mô tả tool `naota_task` - thứ engine API đọc ngay lúc quyết định gọi hay không.
   3. `CLAUDE.md` - system prompt gốc.
 Thiếu một trong ba thì luật hở đúng ở engine đi qua đường đó.
 """
@@ -40,22 +40,22 @@ def check(ten, dieu_kien, chi_tiet=""):
 khoi = channel_context.build_channel_block("dashboard", {"session_id": "s-test"}, port=8765)
 check("khối kênh dựng được", bool(khoi), repr(khoi)[:80])
 check("có cổng 'chỉ giao việc khi người dùng bảo làm'",
-      "CHỈ GIAO VIỆC NỀN KHI NGƯỜI DÙNG BẢO LÀM" in khoi)
-check("nói rõ kế hoạch của chính Vanhanh chưa được user gật thì vẫn là đề xuất",
-      "vẫn là đề xuất" in khoi)
+      "QUEUE BACKGROUND WORK ONLY WHEN THE USER ASKS FOR IT" in khoi)
+check("nói rõ kế hoạch của chính Naota chưa được user gật thì vẫn là đề xuất",
+      "they are still proposals" in khoi)
 check("nêu đúng mấy cái tên việc tự đẻ hay gặp",
-      "áp dụng kế hoạch" in khoi and "cập nhật lại timeline" in khoi)
+      "apply the plan above" in khoi and "update the timeline" in khoi)
 check("nói thẳng một lượt bàn bạc bình thường tạo KHÔNG việc nào",
-      "KHÔNG việc nào" in khoi)
+      "creates NO new job" in khoi)
 check("giải thích HẬU QUẢ (mỗi việc bắn thông báo về chuông và khung chat)",
-      "chuông" in khoi and "thông báo" in khoi)
-check("không chắc thì HỎI trước khi tạo", "HỎI MỘT CÂU" in khoi)
+      "bell" in khoi and "notification" in khoi)
+check("không chắc thì HỎI trước khi tạo", "ASK ONE QUESTION" in khoi)
 
 # Vế cũ phải còn nguyên: bỏ nó đi là quay lại lỗi hứa suông (0.9.x), tệ hơn lỗi đang sửa.
 check("VẪN cấm hứa suông (luật cũ không bị cuốn theo)",
-      "KHÔNG HỨA THỨ MÌNH KHÔNG LÀM ĐƯỢC" in khoi)
+      "DO NOT PROMISE WHAT YOU CANNOT DO" in khoi)
 check("VẪN còn lối giao việc nền cho yêu cầu thật của user",
-      "vanhanh_task" in khoi)
+      "naota_task" in khoi)
 
 # ============================================================
 # 2. Mô tả tool - đường mà engine API đọc lúc quyết định
@@ -71,17 +71,17 @@ class _Ctx:
         mo_ta[ten] = desc
 
 
-sys.path.insert(0, str(ROOT / "system" / "plugins" / "vanhanh-task"))
-import plugin as vanhanh_task_plugin  # noqa: E402
+sys.path.insert(0, str(ROOT / "system" / "plugins" / "naota-task"))
+import plugin as naota_task_plugin  # noqa: E402
 
 try:
-    vanhanh_task_plugin.register(_Ctx())
+    naota_task_plugin.register(_Ctx())
 except TypeError:
     # Chữ ký register_tool đổi: đọc thẳng file nguồn để test không mù theo.
-    mo_ta["vanhanh_task"] = (ROOT / "system" / "plugins" / "vanhanh-task" / "plugin.py").read_text(encoding="utf-8")
+    mo_ta["naota_task"] = (ROOT / "system" / "plugins" / "naota-task" / "plugin.py").read_text(encoding="utf-8")
 
-desc = mo_ta.get("vanhanh_task", "")
-check("tool vanhanh_task có mô tả", bool(desc))
+desc = mo_ta.get("naota_task", "")
+check("tool naota_task có mô tả", bool(desc))
 check("mô tả tool nêu cổng 'chỉ khi NGƯỜI DÙNG bảo làm'",
       "CHỈ op=add khi NGƯỜI DÙNG bảo làm" in desc)
 check("mô tả tool cấm giao việc cho 'bước tiếp theo' tự nghĩ ra",
@@ -97,7 +97,7 @@ claude_md = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
 # NGẮN: CLAUDE.md giữ điều luật, còn ví dụ và lý do nằm ở khối kênh (mục 1) vốn không bị trần này.
 check("CLAUDE.md: việc nền chỉ cho việc USER yêu cầu",
       "a ONE-OFF job THE USER ASKED FOR" in claude_md)
-check("CLAUDE.md: kế hoạch do Vanhanh đề xuất KHÔNG phải mệnh lệnh",
+check("CLAUDE.md: kế hoạch do Naota đề xuất KHÔNG phải mệnh lệnh",
       "is not an order" in claude_md and "never queue it" in claude_md)
 check("CLAUDE.md nói rõ hội thoại lập kế hoạch tạo ZERO việc",
       "ZERO tasks" in claude_md)

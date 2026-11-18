@@ -3,7 +3,7 @@
     python tests/run.py luu_tru_hoi_thoai      (KHÔNG mạng)
 
 Owner (design approved as an HTML mock-up): the four icons on each row fold into one "..." menu; it adds share, export
-as .md, mark as unread and archive. An archived chat leaves the list but keeps every message (Vanhanh still remembers it,
+as .md, mark as unread and archive. An archived chat leaves the list but keeps every message (Naota still remembers it,
 search still finds it); the "Archived" row at the bottom of the column lists them; a new message from a person brings
 one back. "Xem thêm" is gone: the list loads more by itself.
 """
@@ -15,10 +15,10 @@ import tempfile
 import time
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="vanhanh-luutru-")
-os.environ["VANHANH_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="naota-luutru-")
+os.environ["NAOTA_STATE_DIR"] = _STATE
 os.environ["BRAINS_DIR"] = str(Path(_STATE) / "brains")
-os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
+os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -76,10 +76,10 @@ check("meta của hội thoại báo archived (thanh tiêu đề hiện nhãn)",
 r = cl.post(f"/sessions/{ids[1]}/archive", data={"archived": "0"}).json()
 check("đưa trở lại danh sách", r.get("ok") and ids[1] in listed()[0] and listed()[1] == 0)
 
-# ---- 2. A new message from a person brings an archived chat back; a reply from Vanhanh does not ----
+# ---- 2. A new message from a person brings an archived chat back; a reply from Naota does not ----
 cl.post(f"/sessions/{ids[2]}/archive", data={"archived": "1"})
 st.append_message(ids[2], "assistant", "báo cáo nền")
-check("tin của Vanhanh không kéo hội thoại đã lưu trữ ra lại", ids[2] not in listed()[0])
+check("tin của Naota không kéo hội thoại đã lưu trữ ra lại", ids[2] not in listed()[0])
 st.append_message(ids[2], "user", "nhắn tiếp")
 check("người nhắn tiếp thì hội thoại tự trở lại danh sách", ids[2] in listed()[0])
 
@@ -102,7 +102,7 @@ check("menu của hàng có đủ mục", all(f'"{a}"' in js for a in ("pin", "p
 check("xoá hỏi lại ngay trong menu, không dùng confirm()", 'if (act === "delete") { _sm.view = "del"; return veMenuDong(true); }' in js
       and "confirm(window.t(\"sess.del_q\"" not in js)
 check("đổi tên ngay tại hàng", "function doiTenTaiDong(s)" in js and 'class="ci-ren-in"' in js)
-check("xuất .md dùng chung với lệnh /export", "window.VanhanhLenh.xuatHoiThoai(s.id)" in js
+check("xuất .md dùng chung với lệnh /export", "window.NaotaLenh.xuatHoiThoai(s.id)" in js
       and "xuatHoiThoai: xuatHoiThoai" in (ROOT / "dashboard" / "chat-lenh.js").read_text(encoding="utf-8"))
 check("chia sẻ link mở đúng hội thoại của hàng", "moChiaSeHoiThoai(nut || document.body, s.id)" in js)
 check("mục Đã lưu trữ ghim ở đáy cột, có số đếm", "function ganChanLuuTru()" in js and '"&archived=1"' in js

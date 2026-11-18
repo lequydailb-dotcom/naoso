@@ -18,7 +18,7 @@
  * máy chủ có.
  *
  * ĐIỂM TỰA: index.html được trả kèm `no-store` nên nó LUÔN mới, kể cả khi mọi file JS
- * quanh nó đã cũ. Khối <script id="vanhanh-fresh"> nằm trong đó vì vậy luôn nói thật.
+ * quanh nó đã cũ. Khối <script id="naota-fresh"> nằm trong đó vì vậy luôn nói thật.
  * Chính file này cũng nạp KHÔNG kèm `?v=` và được đóng dấu `no-cache` (xem middleware
  * _static_cache_headers) - người gác cổng mà cũ theo thì nó gác cái gì.
  */
@@ -26,21 +26,21 @@
   "use strict";
 
   var CHU_KY_MS = 5 * 60 * 1000;     // nhịp hỏi lại máy chủ xem đã có bản mới chưa
-  var KHOA_DA_TAI = "vanhanh-fresh-reloaded";   // chống vòng lặp tải lại vô tận
+  var KHOA_DA_TAI = "naota-fresh-reloaded";   // chống vòng lặp tải lại vô tận
   // vân tay của bộ file đã đo là KHỚP trên máy này. Bộ file không đổi thì lần mở sau khỏi đo lại: đo là tải lại
   // từ cache và băm từng file (hơn trăm file, gần 4 MB) ngay sau lúc mở trang, việc nặng nhất của một chiếc điện thoại
   // vào đúng lúc nó đang bận dựng giao diện. Lệch chỉ xảy ra khi bộ file vừa đổi (bản cập nhật), và lúc đó vân tay đổi
   // theo nên vẫn đo như cũ.
-  var KHOA_DA_DO = "vanhanh-fresh-checked";
+  var KHOA_DA_DO = "naota-fresh-checked";
 
   function moc() {
-    var el = document.getElementById("vanhanh-fresh");
+    var el = document.getElementById("naota-fresh");
     if (!el) return null;
     try { return JSON.parse(el.textContent || "{}"); } catch (e) { return null; }
   }
 
   /* crc32 khớp từng bit với zlib.crc32 bên Python (server dùng chính hàm đó).
-   * Không dùng crypto.subtle: nó chỉ có trong ngữ cảnh bảo mật, mà Vanhanh rất hay chạy
+   * Không dùng crypto.subtle: nó chỉ có trong ngữ cảnh bảo mật, mà Naota rất hay chạy
    * trên http:// theo IP của VPS - dùng nó là người gác cổng chết lặng đúng lúc cần nhất. */
   var BANG = null;
   function bangCrc() {
@@ -93,29 +93,29 @@
 
   // ── Dải báo ───────────────────────────────────────────────────────────────────
   function veDai(tieuDe, chiTiet, nhanNut, khiBam) {
-    if (document.getElementById("vanhanh-fresh-bar")) return;
+    if (document.getElementById("naota-fresh-bar")) return;
     var css = document.createElement("style");
     css.textContent =
-      "#vanhanh-fresh-bar{position:fixed;left:50%;transform:translateX(-50%);top:14px;z-index:99999;" +
+      "#naota-fresh-bar{position:fixed;left:50%;transform:translateX(-50%);top:14px;z-index:99999;" +
       "display:flex;align-items:center;gap:12px;width:min(92vw,720px);box-sizing:border-box;padding:12px 16px;" +
       "border-radius:12px;border:1px solid var(--yellow,#e0a800);background:var(--bg2,#1b1f2a);" +
       "color:var(--text,#e8eaf0);font-size:16px;line-height:1.5;box-shadow:0 10px 30px rgba(0,0,0,.4)}" +
-      "#vanhanh-fresh-bar .jf-txt{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}" +
-      "#vanhanh-fresh-bar .jf-sub{display:block;margin-top:3px;font-size:14px;opacity:.8}" +
+      "#naota-fresh-bar .jf-txt{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}" +
+      "#naota-fresh-bar .jf-sub{display:block;margin-top:3px;font-size:14px;opacity:.8}" +
       // "Tải lại" was near-black on the light theme's dark amber (3.1:1) and
       // cramped, "Để sau" was grey text with a border at 1.3:1, barely there. Ink now flips with the theme
       // (--on-accent: white on paper, near-black on dark), and both buttons share one height and padding.
-      "#vanhanh-fresh-bar button{flex:none;cursor:pointer;border-radius:8px;font-size:16px;line-height:1.25;" +
+      "#naota-fresh-bar button{flex:none;cursor:pointer;border-radius:8px;font-size:16px;line-height:1.25;" +
       "padding:8px 16px;min-height:40px;font-family:inherit;font-weight:600;" +
       "border:1px solid var(--btn-line,rgba(140,140,160,.5))}" +
-      "#vanhanh-fresh-bar .jf-ok{background:var(--yellow,#e0a800);border-color:var(--yellow,#e0a800);" +
+      "#naota-fresh-bar .jf-ok{background:var(--yellow,#e0a800);border-color:var(--yellow,#e0a800);" +
       "color:var(--on-accent,#1a1a1a);font-weight:700}" +
-      "#vanhanh-fresh-bar .jf-x{background:var(--btn-fill,transparent);color:var(--text,#e8eaf0)}" +
-      "#vanhanh-fresh-bar .jf-x:hover{background:var(--btn-fill-hover,transparent)}" +
-      "@media(max-width:600px){#vanhanh-fresh-bar{flex-wrap:wrap;gap:10px;top:max(12px,env(safe-area-inset-top))}" +
-      "#vanhanh-fresh-bar .jf-txt{flex:1 0 100%}#vanhanh-fresh-bar button{white-space:nowrap}}";
+      "#naota-fresh-bar .jf-x{background:var(--btn-fill,transparent);color:var(--text,#e8eaf0)}" +
+      "#naota-fresh-bar .jf-x:hover{background:var(--btn-fill-hover,transparent)}" +
+      "@media(max-width:600px){#naota-fresh-bar{flex-wrap:wrap;gap:10px;top:max(12px,env(safe-area-inset-top))}" +
+      "#naota-fresh-bar .jf-txt{flex:1 0 100%}#naota-fresh-bar button{white-space:nowrap}}";
     var bar = document.createElement("div");
-    bar.id = "vanhanh-fresh-bar";
+    bar.id = "naota-fresh-bar";
     bar.setAttribute("role", "status");
     var txt = document.createElement("div");
     txt.className = "jf-txt";
@@ -184,7 +184,7 @@
     }
     thu();
   }
-  window.VanhanhReloadWhenReady = choSanRoiTaiLai;
+  window.NaotaReloadWhenReady = choSanRoiTaiLai;
 
   // ── Chạy ──────────────────────────────────────────────────────────────────────
   var m = moc();
@@ -192,16 +192,16 @@
 
   /* Code and styles already
    * refresh by themselves: every .js/.css URL carries its own content hash, and this page itself is never cached. What
-   * a reload did NOT renew is what Vanhanh keeps in localStorage, which Ctrl+Shift+R does not touch either: the list of
-   * reads each moment batches (fetch-gop.js, keys "vanhanh.batch.*"), recorded by the previous version's code. So the
+   * a reload did NOT renew is what Naota keeps in localStorage, which Ctrl+Shift+R does not touch either: the list of
+   * reads each moment batches (fetch-gop.js, keys "naota.batch.*"), recorded by the previous version's code. So the
    * first page opened on a new version drops them and they are recorded again from this version. This file runs before
    * fetch-gop.js reads them. */
-  var LAST_VERSION_KEY = "vanhanh-fresh-version";
+  var LAST_VERSION_KEY = "naota-fresh-version";
   function clearVersionCaches() {
     try {
       for (var i = localStorage.length - 1; i >= 0; i--) {
         var k = localStorage.key(i);
-        if (k && k.indexOf("vanhanh.batch.") === 0) localStorage.removeItem(k);
+        if (k && k.indexOf("naota.batch.") === 0) localStorage.removeItem(k);
       }
     } catch (e) { /* noop */ }
   }
@@ -235,7 +235,7 @@
         try { sessionStorage.removeItem(KHOA_DA_TAI); } catch (e) { /* noop */ }
         return;
       }
-      console.warn("[vanhanh fresh] running a stale copy of:", ds.join(", "));
+      console.warn("[naota fresh] running a stale copy of:", ds.join(", "));
       baoChayBanCu(ds, daThu);
     });
   }
@@ -257,7 +257,7 @@
         daBao = true;
         // Đang chờ ở nút Cập nhật ngay: bản mới đã lên đúng như người dùng vừa bấm, tải lại luôn
         // chứ đừng hỏi thêm một lần nữa.
-        if (window.__vanhanhUpdating) { choSanRoiTaiLai(); return; }
+        if (window.__naotaUpdating) { choSanRoiTaiLai(); return; }
         baoCoBanMoi(d.version);
       })
       .catch(function () { /* mất mạng một nhịp không phải chuyện để làm phiền người dùng */ });
@@ -268,7 +268,7 @@
   /* hỏi phiên bản NGAY sau khi mở, thử lại tới khi máy chủ trả lời. Khi máy chủ không với tới được, sw.js đưa ra
    * khung trang đã giữ lần trước; khung đó có thể là bản trước một lần cập nhật. Lệch số phiên bản thì: trang vừa mở
    * (dưới 2 phút), ô chat còn trống và chưa tự tải lại trong 30 giây qua: tải lại luôn; còn lại hiện thanh mời tải lại. */
-  var batDau = Date.now(), KHOA_TU_TAI = "vanhanh-fresh-autoreload";
+  var batDau = Date.now(), KHOA_TU_TAI = "naota-fresh-autoreload";
   function kiemSom(lan) {
     fetch("/app-version", { credentials: "same-origin", cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : null; })

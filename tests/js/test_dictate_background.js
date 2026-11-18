@@ -101,11 +101,11 @@ function fresh() {
   setHidden(false);
   await tick();
   check("visible again: a new run starts by itself", runs.length === 2);
-  runs[1].say("Vanhanh");
-  check("visible again: the words heard before are kept", texts[texts.length - 1][0] === "xin chào Vanhanh");
+  runs[1].say("Naota");
+  check("visible again: the words heard before are kept", texts[texts.length - 1][0] === "xin chào Naota");
   d.stop(); await tick(5);
   check("stop after the round trip gives the whole sentence",
-    states[states.length - 1] === "idle" && texts[texts.length - 1][0] === "xin chào Vanhanh" && texts[texts.length - 1][1] === true);
+    states[states.length - 1] === "idle" && texts[texts.length - 1][0] === "xin chào Naota" && texts[texts.length - 1][1] === true);
 
   // 3. A normal end while hidden (the browser keeps listening there) restarts straight away.
   runs = []; states = []; texts = [];

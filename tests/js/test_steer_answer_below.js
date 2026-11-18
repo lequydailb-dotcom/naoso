@@ -1,4 +1,4 @@
-// A message sent while Vanhanh works and read by the running turn (steer_read) gets its answer BELOW it.
+// A message sent while Naota works and read by the running turn (steer_read) gets its answer BELOW it.
 // Before, the step block and answer bubble of that turn had been drawn above the message and stayed there, so the
 // owner thought the add-on had not been done. The server stores the answer after the message, so a reload agrees.
 const fs = require("fs");

@@ -12,8 +12,8 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-autojob-")
-TEMP = Path(tempfile.mkdtemp(prefix="vanhanh-team-autojob-w-"))
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-autojob-")
+TEMP = Path(tempfile.mkdtemp(prefix="naota-team-autojob-w-"))
 
 import sessions  # noqa: E402
 import task_store  # noqa: E402
@@ -30,7 +30,7 @@ def check(name, cond, extra=""):
 
 
 def directive(**op):
-    return f"\n<!-- VANHANH_TEAM: {json.dumps(op, ensure_ascii=False)} -->"
+    return f"\n<!-- NAOTA_TEAM: {json.dumps(op, ensure_ascii=False)} -->"
 
 
 AGENTS = {"lan": "Lan", "minh": "Minh"}

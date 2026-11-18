@@ -1,8 +1,8 @@
-"""A voice call from a partner's chat speaks as that partner, not as plain Vanhanh.
+"""A voice call from a partner's chat speaks as that partner, not as plain Naota.
 
     python tests/run.py voice_persona
 
-in a voice call with a partner (Partners page) the call model had neither the Vanhanh context
+in a voice call with a partner (Partners page) the call model had neither the Naota context
 nor the partner's prompt, and asked who it was it answered "em là ChatGPT". No engine runs here: the pure prompt
 builders, the session -> partner lookup in main.py, and (by reading the code) that every call path uses them.
 """
@@ -10,8 +10,8 @@ from _paths import ROOT, SERVER  # noqa: E402,F401
 import os
 import tempfile
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-vpersona-")
-os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="vanhanh-vpersona-brains-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-vpersona-")
+os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="naota-vpersona-brains-")
 
 import main  # noqa: E402
 import voice_brain  # noqa: E402
@@ -35,12 +35,12 @@ for label, base in (("voice_live.SYSTEM_PROMPT", voice_live.SYSTEM_PROMPT),
     check(f"{label} opens with the clause voice_persona swaps", base.startswith(voice_persona.OPENING))
     out = voice_persona.apply(base, "Người viết", "BLOCK")
     check(f"{label} front-loads partner identity before the generic voice prompt",
-          out.startswith("BLOCK\n\nBạn là Người viết, một cộng sự của chủ trong Vanhanh,")
+          out.startswith("BLOCK\n\nBạn là Người viết, một cộng sự của chủ trong Naota,")
           and voice_persona.OPENING not in out)
 
 block = voice_persona.identity_block("Người viết", "viết bài", "Viết súc tích.", "## Luật chủ dặn\n- không emoji")
-check("identity block: name, role, Vanhanh context",
-      "**Người viết**" in block and "Vai trò: viết bài." in block and "VANHANH" in block)
+check("identity block: name, role, Naota context",
+      "**Người viết**" in block and "Vai trò: viết bài." in block and "NAOTA" in block)
 check("identity block: never claims to be ChatGPT", "KHÔNG tự nhận là ChatGPT" in block)
 check("identity block: explicit English identification",
       'When asked in English "Who are you?"' in block and "I\'m Người viết" in block)
@@ -68,14 +68,14 @@ check("opt-in voice rules survive clipping without duplicate markers",
 check("incomplete voice marker preserves original body",
       voice_persona._priority_body("text " + voice_persona.VOICE_RULES_START) == "text " + voice_persona.VOICE_RULES_START)
 from unittest.mock import patch
-with patch.dict(os.environ, {"VANHANH_VOICE_AGENT_BODY_CHARS": "18000",
-                              "VANHANH_VOICE_AGENT_MEMORY_CHARS": "999999"}):
+with patch.dict(os.environ, {"NAOTA_VOICE_AGENT_BODY_CHARS": "18000",
+                              "NAOTA_VOICE_AGENT_MEMORY_CHARS": "999999"}):
     check("voice budgets support bounded environment overrides",
-          voice_persona._env_budget("VANHANH_VOICE_AGENT_BODY_CHARS", 12000, 24000) == 18000
-          and voice_persona._env_budget("VANHANH_VOICE_AGENT_MEMORY_CHARS", 6000, 12000) == 12000)
-with patch.dict(os.environ, {"VANHANH_VOICE_AGENT_BODY_CHARS": "invalid"}):
+          voice_persona._env_budget("NAOTA_VOICE_AGENT_BODY_CHARS", 12000, 24000) == 18000
+          and voice_persona._env_budget("NAOTA_VOICE_AGENT_MEMORY_CHARS", 6000, 12000) == 12000)
+with patch.dict(os.environ, {"NAOTA_VOICE_AGENT_BODY_CHARS": "invalid"}):
     check("bad override falls back to default",
-          voice_persona._env_budget("VANHANH_VOICE_AGENT_BODY_CHARS", 12000, 24000) == 12000)
+          voice_persona._env_budget("NAOTA_VOICE_AGENT_BODY_CHARS", 12000, 24000) == 12000)
 check("custom prompt without the opening gets the block in front",
       voice_persona.apply("Một prompt khác.", "A", "BLOCK") == "BLOCK\n\nMột prompt khác.")
 
@@ -88,7 +88,7 @@ class _Fake(voice_live.LiveProvider):
 prov = _Fake("key")
 prov.system = voice_persona.apply(prov.system, "Người viết", block)
 check("Live provider prompt speaks as the partner, identity first",
-      prov.system.startswith(block + "\n\n") and "Bạn là Người viết, một cộng sự của chủ trong Vanhanh," in prov.system
+      prov.system.startswith(block + "\n\n") and "Bạn là Người viết, một cộng sự của chủ trong Naota," in prov.system
       and voice_persona.OPENING not in prov.system)
 
 conf = {"provider": "openai", "model": "m", "api_key": "k", "system": "PROMPT RIÊNG"}
@@ -96,7 +96,7 @@ b = voice_brain._make(conf)
 check("fast lane brain takes the partner prompt", b.system == "PROMPT RIÊNG")
 check("fast lane builds its messages from that prompt",
       voice_brain.build_messages([], "chào", b.system)[0]["content"] == "PROMPT RIÊNG")
-check("fast lane without a partner keeps the Vanhanh prompt",
+check("fast lane without a partner keeps the Naota prompt",
       voice_brain._make({"provider": "openai", "model": "m", "api_key": "k"}).system == voice_brain.SYSTEM_PROMPT)
 check("seed text carries the partner prompt for brains without a system flag",
       "PROMPT RIÊNG" in voice_brain.seed_text([], "chào", with_prompt=True, system="PROMPT RIÊNG"))
@@ -115,8 +115,8 @@ agent = main._voice_agent(sid_agent, "brain")
 check("a call in a partner's chat finds the partner",
       agent is not None and agent["slug"] == "nguoi-viet" and agent["brain"] == main._brain_root("brain"))
 check("a plain chat call has no partner", main._voice_agent(sid_plain, "brain") is None)
-check("a partner whose file is gone: plain Vanhanh call", main._voice_agent(sid_gone, "brain") is None)
-check("no session: plain Vanhanh call", main._voice_agent("", "brain") is None)
+check("a partner whose file is gone: plain Naota call", main._voice_agent(sid_gone, "brain") is None)
+check("no session: plain Naota call", main._voice_agent("", "brain") is None)
 
 persona = main._voice_persona(sid_agent, "brain")
 check("persona carries the partner's name and file",
@@ -124,7 +124,7 @@ check("persona carries the partner's name and file",
 fast = main._voice_brain_conf({"provider": "openai"}, sid_agent, "brain")
 check("fast lane conf of a partner chat speaks as the partner",
       fast.get("system", "").startswith(persona[1] + "\n\n")
-      and "Bạn là Người viết, một cộng sự của chủ trong Vanhanh," in fast.get("system", "")
+      and "Bạn là Người viết, một cộng sự của chủ trong Naota," in fast.get("system", "")
       and fast["provider"] == "openai")
 check("fast lane conf of a plain chat is unchanged",
       main._voice_brain_conf({"provider": "openai"}, sid_plain, "brain") == {"provider": "openai"})
@@ -132,13 +132,13 @@ check("fast lane conf of a plain chat is unchanged",
 # The work a call hands off runs as the partner too, with the voice channel line.
 p = main._agent_chat_prompt("brain", "nguoi-viet", channel="voice", conv_sid=sid_agent)
 check("handed-off work: partner prompt with the call channel", "cuộc gọi thoại" in p and f"web:{sid_agent}" in p)
-check("partner chat prompt says who it is inside Vanhanh",
-      "cộng sự (trợ lý chuyên trách) trong VANHANH" in p and "KHÔNG tự nhận là" in p)
+check("partner chat prompt says who it is inside Naota",
+      "cộng sự (trợ lý chuyên trách) trong NAOTA" in p and "KHÔNG tự nhận là" in p)
 
 # --- every call path reads it (code reading: these paths run engines) ---
 src = (SERVER / "main.py").read_text(encoding="utf-8")
-ask = src[src.index("async def _voice_ask_vanhanh("):src.index("def _live_call_lang(")]
-check("_voice_ask_vanhanh runs the turn as the partner", "agent = _voice_agent(conv_sid, brain)" in ask
+ask = src[src.index("async def _voice_ask_naota("):src.index("def _live_call_lang(")]
+check("_voice_ask_naota runs the turn as the partner", "agent = _voice_agent(conv_sid, brain)" in ask
       and "agent=agent" in ask and '"call_lang": call_lang' in ask)
 check("the agent turn of a call gets the voice channel line", 'else "voice" if "call_lang" in (meta or {})' in src)
 route = src[src.index("async def voice_live_ws("):]

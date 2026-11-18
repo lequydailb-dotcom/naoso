@@ -12,7 +12,7 @@ A) Device-code (mặc định, hợp VPS headless): spec pin từ source chính 
 
 B) Browser OAuth (Authorization Code + PKCE) - CHO WORKSPACE CHẶN device-code. Đúng luồng
    `codex login` mặc định: mở /oauth/authorize trên trình duyệt, đăng nhập, OpenAI redirect
-   kèm ?code=...&state=... về http://localhost:1455/auth/callback. Vì Vanhanh có thể chạy trên
+   kèm ?code=...&state=... về http://localhost:1455/auth/callback. Vì Naota có thể chạy trên
    VPS (trình duyệt ở máy user, không tới được server), ta dùng kiểu "dán lại URL callback":
    user copy URL redirect (dù trang localhost không tải được) rồi dán vào, server tách code +
    đổi token. Không cần server tự bind cổng localhost nên chạy được cả local lẫn headless.
@@ -24,14 +24,14 @@ có thể vỡ khi OpenAI đổi. Token lưu trong settings.json (gitignored).
 
 LUẬT MỘT NGUỒN SỰ THẬT. `~/.codex/auth.json` do CHÍNH Codex CLI giữ, và Codex tự
 xoay refresh_token khi cần. OpenAI HUỶ refresh_token cũ ngay khi nó được dùng, nên hai bên
-cùng ôm một mã là bên xoay sau cầm mã đã chết. Bản trước để Vanhanh ghi đè file đó vô điều
+cùng ôm một mã là bên xoay sau cầm mã đã chết. Bản trước để Naota ghi đè file đó vô điều
 kiện ở MỖI lượt chat và tự refresh bằng bản sao trong settings.json, nên phân kỳ là chuyện
-sớm muộn: Vanhanh refresh hỏng, `valid_creds` trả lại token hết hạn, rồi cặp token chết đó
+sớm muộn: Naota refresh hỏng, `valid_creds` trả lại token hết hạn, rồi cặp token chết đó
 được ghi đè lên bộ đang tốt của Codex - cả hai bên cùng phải đăng nhập lại. Đúng câu lỗi
 "your refresh token was already used" của vụ từng gặp (xem test_connect_health).
 
 Nay: ĐỌC đĩa trước khi ghi. Mã trên đĩa mới hơn thì KÉO VỀ chứ không đè; đĩa là tài khoản
-khác (máy tự `codex login`) thì KHÔNG đụng vào; refresh hỏng thì KHÔNG ghi gì cả. Vanhanh vẫn
+khác (máy tự `codex login`) thì KHÔNG đụng vào; refresh hỏng thì KHÔNG ghi gì cả. Naota vẫn
 tự refresh khi nó là bên duy nhất giữ mã, vì tạo ảnh và giọng nói cũng ăn token này và
 không đi qua Codex CLI.
 """
@@ -41,6 +41,7 @@ import json
 import base64
 import hashlib
 import secrets
+import threading
 import httpx
 from pathlib import Path
 from urllib.parse import urlencode, urlparse, parse_qs
@@ -61,7 +62,7 @@ REDIRECT_URI = AUTH_BASE + "/deviceauth/callback"
 BROWSER_REDIRECT_URI = "http://localhost:1455/auth/callback"
 BROWSER_SCOPE = "openid profile email offline_access"
 VERIFY_URL = AUTH_BASE + "/codex/device"
-UA = "vanhanh/0.3 (+device-auth)"
+UA = "naota/0.3 (+device-auth)"
 
 # Phiên device đang chờ (1 admin nên giữ in-memory là đủ).
 _pending = {}
@@ -103,7 +104,7 @@ def doc_codex_auth():
 def _han_cua(access_token):
     """Mốc hết hạn của một access token nhặt từ đĩa: đọc claim `exp` của chính JWT đó.
 
-    Không đọc được thì tin DÈ DẶT (5 phút). Đoán dài quá là lượt sau Vanhanh gọi API bằng token
+    Không đọc được thì tin DÈ DẶT (5 phút). Đoán dài quá là lượt sau Naota gọi API bằng token
     đã chết rồi tưởng mình bị mất phiên; đoán ngắn chỉ tốn thêm một lần refresh.
     """
     try:
@@ -116,19 +117,19 @@ def _han_cua(access_token):
 
 
 def _cung_tai_khoan(dtok, o):
-    """Bộ token trên đĩa có cùng tài khoản với bộ Vanhanh đang giữ không?
+    """Bộ token trên đĩa có cùng tài khoản với bộ Naota đang giữ không?
 
-    Máy có thể đã tự `codex login` bằng tài khoản KHÁC. Bộ đó không phải của Vanhanh: không kéo
+    Máy có thể đã tự `codex login` bằng tài khoản KHÁC. Bộ đó không phải của Naota: không kéo
     về, và tuyệt đối không ghi đè lên. Bên nào không khai tài khoản thì coi như khớp, giữ
-    nguyên hành vi cũ cho đường thường (file do chính Vanhanh ghi luôn có account_id).
+    nguyên hành vi cũ cho đường thường (file do chính Naota ghi luôn có account_id).
     """
     a = (dtok.get("account_id") or "").strip()
     b = (o.get("account_id") or "").strip()
     return not a or not b or a == b
 
 
-def _la_token_cua_vanhanh(dtok, o):
-    """File trên đĩa có đúng là bộ token Vanhanh đã bắc cầu sang không?
+def _la_token_cua_naota(dtok, o):
+    """File trên đĩa có đúng là bộ token Naota đã bắc cầu sang không?
 
     Phải khớp DƯƠNG ít nhất một trường. Chưa từng kết nối (o rỗng) thì không trường nào khớp
     nên trả False - đó là điều ta muốn, vì lúc ấy file kia là phiên người dùng tự tạo.
@@ -416,7 +417,7 @@ def valid_creds():
 
     Kèm cờ ``stale=True`` khi refresh HỎNG và ta đành trả lại token cũ. Nơi gọi dùng cờ đó để
     KHÔNG ghi bộ token đã chết đè lên ~/.codex/auth.json. Thiếu cờ này thì một lần refresh
-    trượt là Vanhanh tự tay bẻ luôn phiên Codex CLI đang tốt trên máy.
+    trượt là Naota tự tay bẻ luôn phiên Codex CLI đang tốt trên máy.
     """
     o = cfgmod.read_settings()["model"].get("openai_oauth") or {}
     if not o.get("access_token") and not o.get("refresh_token"):
@@ -449,6 +450,111 @@ def valid_creds():
     return None
 
 
+
+# Bot Responses API uses tokens directly; unlike Codex CLI it does not
+# automatically choose CODEX_HOME or refresh an extra account's auth.json.
+# Keep extra-account tokens in their own Codex login, never in model settings.
+_EXTRA_CREDS_LOCK = threading.Lock()
+
+
+def valid_creds_for(account_key: str):
+    """Valid ChatGPT OAuth credentials for ONE account in the Models list.
+
+    Extra logins are stored in STATE_DIR/accounts/<id>/codex/auth.json.
+    The owner may reorder them without changing account 1's settings.json.
+    Refresh is serialized inside Naota and written atomically, preserving the
+    same Codex auth file; do not swap accounts when a refresh fails.
+    """
+    import plan_accounts
+
+    if not account_key or account_key == plan_accounts.MAIN:
+        return valid_creds()
+    folder = plan_accounts.home("openai-oauth", account_key, create=False)
+    if not folder:
+        return None
+    path = Path(folder) / "auth.json"
+    if path.is_symlink():  # an auth file must never redirect outside its own login folder
+        return None
+
+    def read_auth():
+        try:
+            blob = json.loads(path.read_text(encoding="utf-8"))
+            tok = blob.get("tokens")
+            if isinstance(blob, dict) and isinstance(tok, dict):
+                return blob, tok
+        except (OSError, ValueError, AttributeError):
+            pass
+        return {}, {}
+
+    def fresh(tok):
+        access = str(tok.get("access_token") or "")
+        if not access:
+            return None
+        exp = _decode_jwt_claims(access).get("exp")
+        if exp:
+            try:
+                if float(exp) <= time.time() + 75:
+                    return None
+            except (TypeError, ValueError):
+                return None
+        return {"access_token": access, "account_id": str(tok.get("account_id") or "")}
+
+    with _EXTRA_CREDS_LOCK:
+        blob, tok = read_auth()
+        ready = fresh(tok)
+        if ready:
+            return ready
+        rt = str(tok.get("refresh_token") or "")
+        if not rt:
+            return None
+        try:
+            r = httpx.post(OAUTH_TOKEN_URL, data={
+                "grant_type": "refresh_token", "client_id": CLIENT_ID, "refresh_token": rt,
+            }, headers={"Content-Type": "application/x-www-form-urlencoded", "User-Agent": UA}, timeout=30)
+            r.raise_for_status()
+            updated = r.json()
+            at = str(updated.get("access_token") or "")
+            if not at:
+                return None
+
+            # Codex CLI can also refresh its token. Never replace its newer
+            # login with a token derived from an already-replaced refresh key.
+            latest, latest_tok = read_auth()
+            if str(latest_tok.get("refresh_token") or "") != rt:
+                return fresh(latest_tok)
+            old_account = str(tok.get("account_id") or "")
+            claims = _decode_jwt_claims(str(updated.get("id_token") or "")).get(
+                "https://api.openai.com/auth") or {}
+            new_account = str(claims.get("chatgpt_account_id") or old_account)
+            if old_account and new_account and old_account != new_account:
+                return None
+
+            latest_tok.update({
+                "access_token": at,
+                "refresh_token": str(updated.get("refresh_token") or rt),
+                "id_token": str(updated.get("id_token") or latest_tok.get("id_token") or ""),
+                "account_id": new_account,
+            })
+            latest["tokens"] = latest_tok
+            latest["last_refresh"] = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())
+            tmp = path.with_name("auth.json.tmp-" + secrets.token_hex(8))
+            try:
+                fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                    json.dump(latest, fh, ensure_ascii=False)
+                    fh.flush()
+                    os.fsync(fh.fileno())
+                os.replace(tmp, path)
+            finally:
+                try:
+                    tmp.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            return {"access_token": at, "account_id": new_account}
+        except Exception:
+            # Never expose access/refresh tokens in logs or mutate account 1.
+            return None
+
 def write_codex_auth():
     """Đồng bộ token ChatGPT giữa settings.json và ~/.codex/auth.json. Gọi mỗi lượt chat.
 
@@ -465,7 +571,7 @@ def write_codex_auth():
     """
     o = cfgmod.read_settings()["model"].get("openai_oauth") or {}
     if not (o.get("access_token") or o.get("refresh_token")):
-        return False          # Vanhanh chưa kết nối: phiên trên đĩa là của máy, không đụng vào
+        return False          # Naota chưa kết nối: phiên trên đĩa là của máy, không đụng vào
     dtok = doc_codex_auth()
     drt = (dtok.get("refresh_token") or "").strip()
     if drt:
@@ -543,7 +649,7 @@ def _list_models_backend(creds):
 
 
 def list_models(creds):
-    """Lấy model LIVE từ chính Codex, không ghim version model trong Vanhanh.
+    """Lấy model LIVE từ chính Codex, không ghim version model trong Naota.
 
     Nguồn chính là ``codex app-server`` / ``model/list``: cùng catalog và cùng
     quyền account mà model picker chính thức của Codex dùng. Endpoint backend
@@ -551,7 +657,7 @@ def list_models(creds):
     """
     if not creds or not creds.get("access_token"):
         return None
-    # Vanhanh có luồng OAuth riêng; bắc cầu token sang kho Codex trước để
+    # Naota có luồng OAuth riêng; bắc cầu token sang kho Codex trước để
     # app-server nhìn đúng account ngay cả khi user chưa từng chạy `codex login`.
     write_codex_auth()
     live = codex_models.list_models()
@@ -566,9 +672,9 @@ def disconnect():
     # Dọn luôn bộ token đã bắc cầu sang Codex, không thì "Ngắt kết nối" chỉ xoá nửa trong
     # settings còn file trên đĩa vẫn đăng nhập - `codex exec` chạy tiếp bằng tài khoản người
     # dùng tưởng đã ngắt. CHỈ xoá khi file đúng là của phiên này: máy có thể đã `codex login`
-    # riêng, và xoá nhầm là người dùng mất phiên họ tự tạo mà Vanhanh không dựng lại được.
+    # riêng, và xoá nhầm là người dùng mất phiên họ tự tạo mà Naota không dựng lại được.
     dtok = doc_codex_auth()
-    if dtok and _la_token_cua_vanhanh(dtok, o):
+    if dtok and _la_token_cua_naota(dtok, o):
         try:
             _codex_auth_path().unlink()
         except Exception:

@@ -29,7 +29,7 @@ global.performance = { now: () => _gio };
 const troi = (ms) => { _gio += ms; };
 
 require("../../dashboard/graph.js");
-const VanhanhGraph = window.VanhanhGraph;
+const NaotaGraph = window.NaotaGraph;
 
 let fails = 0;
 const check = (ten, ok) => { console.log((ok ? "ok   " : "FAIL ") + ten); if (!ok) fails++; };
@@ -51,7 +51,7 @@ function doThiGia(log) {
 
 const log = [];
 const cont = khungGia();
-const g = new VanhanhGraph(cont, {});
+const g = new NaotaGraph(cont, {});
 g.graph = doThiGia(log);
 g.container = cont;
 g._ngheChuot();
@@ -82,7 +82,7 @@ for (let i = 0; i < 200; i++) g.setLevel(0);
 check("mức âm đã về 0 nhưng còn ân hạn: vẫn vẽ", g._veLienTuc === true);
 
 // ---- 5. Hết ân hạn thì đóng băng ----
-troi(VanhanhGraph.AN_HAN_MS + 50);
+troi(NaotaGraph.AN_HAN_MS + 50);
 g.setLevel(0);
 check("hết ân hạn: đóng băng lại", g._veLienTuc === false);
 check("và đã bảo thư viện tự bỏ khung", log[log.length - 1] === true);
@@ -92,7 +92,7 @@ g.setThinking(true);
 check("đang nghĩ: vẽ liên tục", g._veLienTuc === true);
 g.setThinking(false);
 for (let i = 0; i < 200; i++) g.setLevel(0);
-troi(VanhanhGraph.AN_HAN_MS + 50);
+troi(NaotaGraph.AN_HAN_MS + 50);
 g.setLevel(0);
 check("nghĩ xong, hết ân hạn: đóng băng", g._veLienTuc === false);
 
@@ -106,9 +106,34 @@ cont.ban("pointermove");
 check("rê tiếp vẫn giữ vẽ", g._veLienTuc === true);
 cont.ban("pointerleave");
 for (let i = 0; i < 200; i++) g.setLevel(0);
-troi(VanhanhGraph.AN_HAN_MS + 50);
+troi(NaotaGraph.AN_HAN_MS + 50);
 g.setLevel(0);
 check("chuột rời ra, hết ân hạn: đóng băng lại", g._veLienTuc === false);
+
+// ---- 7b. It freezes BY ITSELF when the grace period ends (2026-11-12) ----
+// The steps above call setLevel(0) after the wait, as the voice pump did on every frame when this file was written.
+// The pump has since stopped calling it in silence, so nothing looked again after the last event and the graph kept
+// drawing every frame for good once the pointer had crossed it (measured: 88% of a slow main thread, idle).
+{
+  const timers = [];
+  const realSet = global.setTimeout, realClear = global.clearTimeout;
+  global.setTimeout = (fn, ms) => { const t = { fn, at: _gio + ms, off: false }; timers.push(t); return t; };
+  global.clearTimeout = (t) => { if (t) t.off = true; };
+  const runDue = () => { timers.filter((t) => !t.off && t.at <= _gio).forEach((t) => { t.off = true; t.fn(); }); };
+  cont.ban("pointerenter");
+  check("pointer over the graph: drawing", g._veLienTuc === true);
+  cont.ban("pointerleave");
+  check("just left: still drawing (grace)", g._veLienTuc === true);
+  troi(NaotaGraph.AN_HAN_MS - 100); runDue();
+  check("grace not over yet: still drawing", g._veLienTuc === true);
+  troi(200); runDue();
+  check("grace over and NOBODY called setLevel: it froze by itself", g._veLienTuc === false && log[log.length - 1] === true);
+  check("no timer is left running while frozen", timers.every((t) => t.off));
+  g.setThinking(true); g.setThinking(false);
+  troi(NaotaGraph.AN_HAN_MS + 50); runDue();
+  check("the end of a thought freezes by itself too", g._veLienTuc === false);
+  global.setTimeout = realSet; global.clearTimeout = realClear;
+}
 
 // ---- 8. Không gọi thư viện thừa ----
 const truoc = log.length;

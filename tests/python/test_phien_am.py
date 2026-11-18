@@ -15,7 +15,7 @@ import sys
 import tempfile
 import types
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-phien-am-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-phien-am-"))
 
 import phien_am as P  # noqa: E402
 
@@ -69,7 +69,7 @@ E = "Open the Hội thoại page to see your chats."
 check("an English answer naming a Vietnamese page is English", P.is_english_text(E))
 check("a long English answer is English",
       P.is_english_text("Sure, here is the summary of today's sales. Revenue went up ten percent."))
-for v in ("Bật Dark Mode trong Settings nhé anh.", C, "Vanhanh hỗ trợ Claude Code, ChatGPT, OpenRouter.",
+for v in ("Bật Dark Mode trong Settings nhé anh.", C, "Naota hỗ trợ Claude Code, ChatGPT, OpenRouter.",
           'Câu "The quick brown fox jumps over the lazy dog" nghĩa là gì?',
           "Anh cứ nói to lên, em in hoá đơn rồi so sánh nhé, do đó ai cũng được."):
     check(f"Vietnamese stays Vietnamese: {v[:30]!r}", not P.is_english_text(v))
@@ -86,7 +86,7 @@ check("Vietnamese answer with a male English voice picked: Nam Minh",
 check("English answer with Nam Minh picked: a male English voice",
       P.speech_plan(E, "vi-VN-NamMinhNeural", True)[1] == "en-US-AndrewMultilingualNeural")
 check("no hint: a Vietnamese chunk gets the Vietnamese voice",
-      P.speech_plan("Chào anh, em là Vanhanh nhé.", EMMA)[1] == HOAIMY)
+      P.speech_plan("Chào anh, em là Naota nhé.", EMMA)[1] == HOAIMY)
 check("no hint: French or Japanese is left alone (text and voice)",
       P.speech_plan("Ça va très bien, merci.", EMMA) == ("Ça va très bien, merci.", EMMA)
       and P.speech_plan("今日は晴れです。", EMMA) == ("今日は晴れです。", EMMA))
@@ -114,7 +114,7 @@ NHAN = [("vẫn không nhận ra huyết áp Action luôn", "vẫn không nhận
         ("anh hỏi về khít half action", "anh hỏi về GitHub Actions"),
         ("Cho anh hỏi về phía SH Action thì", "Cho anh hỏi về GitHub Actions thì"),
         ("mở trang mên", "mở trang main"),
-        ("xin chào Naôta", "xin chào Vanhanh")]
+        ("xin chào Naôta", "xin chào Naota")]
 for cu, moi in NHAN:
     check(f"nhận câu sửa đúng: {cu!r}", vb.safe_transcript_rewrite(cu, moi) == moi)
 CHAN = [("trả lời khách đi", "trở thành khách đi"), ("gửi email cho sếp", "gửi Zalo cho sếp"),

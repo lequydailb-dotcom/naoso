@@ -10,7 +10,7 @@
    1600px wide (was 680px).
 
    Owner rule a chat frame change covers every chat screen in the same PR. Chat, Coding and Cộng sự share
-   the .msg-vanhanh rules in style.css; Teams has its own bubble caps in console.css. The customer inbox (Hội thoại) is a
+   the .msg-naota rules in style.css; Teams has its own bubble caps in console.css. The customer inbox (Hội thoại) is a
    two-sided messenger of short customer messages and keeps its narrow bubbles on purpose. */
 const fs = require("fs");
 const path = require("path");
@@ -26,14 +26,14 @@ function check(name, cond) {
 }
 
 check("an answer bubble may grow to its column, up to 100ch",
-  CSS.includes(".msg-vanhanh .bubble { max-width: min(100ch, 100%); }"));
+  CSS.includes(".msg-naota .bubble { max-width: min(100ch, 100%); }"));
 check("the base answer rule carries the same 100ch cap",
-  /\.msg-vanhanh \.bubble \{[^}]*max-width: 100ch;[^}]*\}/.test(CSS));
+  /\.msg-naota \.bubble \{[^}]*max-width: 100ch;[^}]*\}/.test(CSS));
 check("the reaction row under an answer is exactly as wide as the answer (its corner sits on the bubble edge)",
-  /\.msg-vanhanh > \.jr-chat \{ display: block; max-width: min\(100ch, 100%\);/.test(CSS));
+  /\.msg-naota > \.jr-chat \{ display: block; max-width: min\(100ch, 100%\);/.test(CSS));
 check("the background-work line under an answer uses the same measure",
-  /\.msg-vanhanh \.viec-giao \{[^}]*max-width: 100ch;/.test(CSS));
-const answerRules = (css) => (css.replace(/\/\*[\s\S]*?\*\//g, "").match(/[^{}]*\.msg-vanhanh[^{}]*\{[^}]*\}/g) || []);
+  /\.msg-naota \.viec-giao \{[^}]*max-width: 100ch;/.test(CSS));
+const answerRules = (css) => (css.replace(/\/\*[\s\S]*?\*\//g, "").match(/[^{}]*\.msg-naota[^{}]*\{[^}]*\}/g) || []);
 check("no answer rule clamps back to the old 72ch",
   answerRules(CSS).concat(answerRules(CCSS)).every((r) => !/72ch/.test(r)) && answerRules(CSS).length > 10);
 
@@ -41,7 +41,7 @@ check("no answer rule clamps back to the old 72ch",
 // every answer reaches the column now, and that clamp would have made table answers narrower to read than the others.
 check("no wide-table special case left on the Chat page", !CSS.includes(".bubble:has(.md-table tr > :nth-child(4))"));
 check("no page-only widening of answers on the Chat page or the Cộng sự page",
-  !/#chatPage \.msg-vanhanh[^{]*\{[^}]*max-width/.test(CSS) && !/\.(wspage|ws-slot|ws-main)[^{,]*\.msg-vanhanh[^{]*\{[^}]*max-width/.test(CCSS));
+  !/#chatPage \.msg-naota[^{]*\{[^}]*max-width/.test(CSS) && !/\.(wspage|ws-slot|ws-main)[^{,]*\.msg-naota[^{]*\{[^}]*max-width/.test(CCSS));
 
 // A full-width answer must not lose its reaction corner (right: -6px) to the chat's overflow-x: hidden.
 check("the reaction corner still hangs 6px outside the answer on a computer", /\.jr-rx \{ position: absolute; right: -6px;/.test(CSS));
@@ -54,7 +54,7 @@ check("phones keep the corner inside the bubble", /@media \(max-width: 860px\) \
 // Teams page: agent answers follow the same cap (their column inherits the 16px chat font, so 100ch is the same width).
 check("Teams: an agent's answer column grows to 100ch", CCSS.includes(".tm-msg-agent .tm-col { align-items: flex-start; max-width: min(100ch, calc(100% - 40px)); }"));
 check("Teams: an agent's bubble grows to 100ch", CCSS.includes(".tm-msg-agent .tm-bubble { border-bottom-left-radius: 6px; max-width: min(100ch, calc(100% - 86px)); }"));
-check("Teams: the inner markdown bubble does not add a cap of its own", /\.tm-mdwrap\.msg-vanhanh \.bubble \{[^}]*max-width: none;/.test(CCSS));
+check("Teams: the inner markdown bubble does not add a cap of its own", /\.tm-mdwrap\.msg-naota \.bubble \{[^}]*max-width: none;/.test(CCSS));
 
 const dash = String.fromCharCode(0x2014), en = String.fromCharCode(0x2013);
 check("no em or en dash in this test", !fs.readFileSync(__filename, "utf8").includes(dash) && !fs.readFileSync(__filename, "utf8").includes(en));

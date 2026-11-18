@@ -76,7 +76,7 @@ check("removing a plan account names it, a stale page never drops one",
 check("removing the last key warns that the provider leaves the order", /models\.acct_rm_last_q/.test(B));
 check("the background picker lists signed-in providers only", /openModelPicker\(c\.connList,/.test(B) && /connectedOnly: true/.test(B));
 check("the background picker is the composer-style list in a sheet on every screen",
-  /if \(!window\.VanhanhModelList\) \{/.test(B) && /VanhanhModelList\.render\(o\)/.test(B) && !/matchMedia\("\(max-width: 600px\)"\)\.matches \|\| !window\.VanhanhModelList/.test(B));
+  /if \(!window\.NaotaModelList\) \{/.test(B) && /NaotaModelList\.render\(o\)/.test(B) && !/matchMedia\("\(max-width: 600px\)"\)\.matches \|\| !window\.NaotaModelList/.test(B));
 check("Escape and a tap outside close the popover", /e\.key === "Escape"/.test(B) && /closest\("\.ord-chips"\)/.test(B));
 
 // ---- 2b. pickers ("pull up, not drop down" on every screen) ----
@@ -103,7 +103,7 @@ check("remove and Disconnect ask in a sheet, not the browser's confirm box",
   /const confirmSheet = /.test(B) && !/window\.confirm/.test(B.slice(0, B.indexOf("async function disconnectCard"))) && /disconnectCard\(el, pid, btn, p\.label, true\)/.test(B));
 // ---- 2e. approved design: logos, the button row, background work, Fast mode, the connect sheet ----
 check("each card shows its provider's own logo (provider-logos.js, loaded before console.js)",
-  /const logoTile = /.test(CL) && /VanhanhProviderLogos/.test(CL)
+  /const logoTile = /.test(CL) && /NaotaProviderLogos/.test(CL)
   && HTML.indexOf("/static/provider-logos.js") > 0 && HTML.indexOf("/static/provider-logos.js") < HTML.indexOf("/static/console.js"));
 check("a card in the order has the button row: background work, check, add, Disconnect",
   /const ordActs = /.test(CL) && /data-setbg=/.test(CL) && /data-disccard=/.test(CL) && /data-addacc=/.test(CL) && /data-addkey=/.test(CL));
@@ -111,7 +111,7 @@ check("Use for background work saves the card as the background model",
   /const setBg = \(pid\) => save\(\{ auxiliary: \{ provider: pid/.test(B));
 check("the Effort sheet carries the composer's Fast mode bolt, one app-wide setting",
   /fast: \{ supported: fn\.supported, on: c\.fast/.test(B) && /saveSetting\("model", \{ fast: on \}\)/.test(B)
-  && /vanhanh:fast-changed/.test(B) && /vanhanh:fast-changed/.test(D("model-picker.js")));
+  && /naota:fast-changed/.test(B) && /naota:fast-changed/.test(D("model-picker.js")));
 // "no popup there, a click should just open all the connections".
 check("Connect another provider unfolds every card in place, no sheet",
   !/menuSheet\(more/.test(B) && /more\.onclick = \(\) => \{\s*const box = showOff\(el\.querySelector\("#ordOff"\)\.hidden\);/.test(B)
@@ -132,8 +132,10 @@ check("the sign-in waits for the name and saves it as account 1's label before t
   && /label: a\.id === "main" \? name :/.test(JS));
 check("an API card's first key is saved under the typed name",
   /\{ \[KEYFIELD\[pid\]\]: val, key_label: name \}/.test(JS));
-check("the card's status line carries account 1's name",
-  (CL.match(/esc\(acctNameTag\(p\.id\)\)/g) || []).length === 3 && /acctNameTag\("anthropic-cli"\)/.test(RC));
+check("the card's status line carries the name of the account in use (account 1's while it runs)",
+  (CL.match(/esc\(acctLine\(p\.id, /g) || []).length === 2 && (CL.match(/esc\(acctNameTag\(p\.id\)\)/g) || []).length === 1
+  && /acctLine\("anthropic-cli", \[d\.email, d\.plan\]\)/.test(RC)
+  && /if \(!cur\) return acctNameTag\(pid\)/.test(JS));
 check("adding another plan account needs its name; every plan account can be renamed, account 1 too",
   /if \(!box\.dataset\.re && !needLabel\(box\)\) return;/.test(B)
   && (B.match(/!needLabel\(box\)/g) || []).length === 2
@@ -147,7 +149,7 @@ check("OpenAI Compatible (advanced keys) and Claude Compatible: two cards, each 
   && /const GW_CARDS = \["openai-compat", "anthropic-compat"\]/.test(JS)
   && /adv_keys: \{ provider: ADV,/.test(B) && /\/v1/.test(VI["models.adv_add_note"]) && !!VI["models.ac_add_note"]);
 check("an extra Antigravity account signs in through a command for the Terminal page",
-  /const agySheet = /.test(B) && /r\.terminal/.test(B) && /VanhanhNav\.go\("terminal"\)/.test(B));
+  /const agySheet = /.test(B) && /r\.terminal/.test(B) && /NaotaNav\.go\("terminal"\)/.test(B));
 // ---- 2d. a card's ⋯ and Disconnect for every card ----
 check("every card in the order has a ⋯ button", /data-cmenu="\$\{esc\(p\.id\)\}"/.test(CL) && (CL.match(/\$\{cardMenuBtn\(p, ord\)\}/g) || []).length === 2);
 check("the card sheet holds model, effort, MAIN, move, add, check and Disconnect",

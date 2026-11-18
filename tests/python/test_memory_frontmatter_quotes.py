@@ -22,7 +22,7 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-mem-fm-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-mem-fm-"))
 
 import fastyaml  # noqa: E402
 import memory_control as mc  # noqa: E402
@@ -44,7 +44,7 @@ def meta_of(path):
         return f"YAML error: {type(e).__name__}"
 
 
-mem = Path(tempfile.mkdtemp(prefix="vanhanh-mem-fm-dir-")) / "memory"
+mem = Path(tempfile.mkdtemp(prefix="naota-mem-fm-dir-")) / "memory"
 facts = mem / "facts"
 facts.mkdir(parents=True)
 

@@ -28,10 +28,10 @@ check("the chat on screen shows no dot and is reported read",
 
 // ---- the events ----
 check("every chat change marks the chat on screen read",
-  /window\.addEventListener\("vanhanh:sessions-changed", function \(e\) \{[^}]*?markCurrentRead\(\);/.test(SRC));
+  /window\.addEventListener\("naota:sessions-changed", function \(e\) \{[^}]*?markCurrentRead\(\);/.test(SRC));
 check("coming back to the tab marks it read", SRC.includes('document.addEventListener("visibilitychange", markCurrentRead);'));
-check("a read in another tab clears the dot here", /window\.addEventListener\("vanhanh:session-read", function \(e\) \{[\s\S]{0,120}clearDot\(sid\)/.test(SRC));
-check("app.js relays the session_read socket event", /data\.type === "session_read"[\s\S]{0,200}new CustomEvent\("vanhanh:session-read", \{ detail: data \}\)/.test(APP));
+check("a read in another tab clears the dot here", /window\.addEventListener\("naota:session-read", function \(e\) \{[\s\S]{0,120}clearDot\(sid\)/.test(SRC));
+check("app.js relays the session_read socket event", /data\.type === "session_read"[\s\S]{0,200}new CustomEvent\("naota:session-read", \{ detail: data \}\)/.test(APP));
 
 // ---- the helpers, run for real ----
 const start = SRC.indexOf("  function chatOnScreen() {");

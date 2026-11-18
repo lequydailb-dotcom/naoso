@@ -27,6 +27,7 @@ from typing import Any, Callable, Optional
 
 import config
 import quota_scheduler        # sổ cái TPM dùng chung cho MỌI nguồn gọi model
+import sqlite_tune
 
 
 RUNTIME_VERSION = "adaptive-v7"
@@ -36,7 +37,7 @@ REGISTRY_REVISION = "legacy-live"
 MODEL_PROFILE_REVISION = "settings-live"
 
 _CURRENT: contextvars.ContextVar[Optional["TurnTrace"]] = contextvars.ContextVar(
-    "vanhanh_context_runtime_trace", default=None
+    "naota_context_runtime_trace", default=None
 )
 
 
@@ -110,7 +111,7 @@ def _content_chars(content: Any) -> int:
 _SYSTEM_MARKERS = (
     ("memory_index_chars", "# === BỘ NHỚ DÀI HẠN"),
     ("agentic_contract_chars", "# === LỚP AGENTIC"),
-    ("capability_summary_chars", "# === NĂNG LỰC VANHANH"),
+    ("capability_summary_chars", "# === NĂNG LỰC NAOTA"),
     ("skill_router_chars", "# === SKILL KHẢ DỤNG"),
     ("usage_hint_chars", "# === MỨC DÙNG HÔM NAY"),
     ("channel_contract_chars", "# === KÊNH HỘI THOẠI HIỆN TẠI"),
@@ -266,6 +267,7 @@ class ObserveRuntime:
             db = sqlite3.connect(str(self.path), check_same_thread=False, timeout=10)
             db.row_factory = sqlite3.Row
             db.execute("PRAGMA journal_mode=WAL")
+            sqlite_tune.normal_if_wal(db)   # 2026-11-10: no fsync per commit, see sqlite_tune.py
             db.execute("PRAGMA foreign_keys=ON")
             db.executescript(
                 """
@@ -1737,11 +1739,11 @@ class ObserveRuntime:
     def _he_so_hieu_chinh(self, db, provider: str) -> float:
         """Thực tế gấp mấy lần ước lượng, học từ chính các lượt đã chạy của provider này.
 
-        Vì sao cần. `payload_attribution` đếm ĐÚNG những gì Vanhanh gói lại và gửi đi: một
+        Vì sao cần. `payload_attribution` đếm ĐÚNG những gì Naota gói lại và gửi đi: một
         system prompt cộng một câu hỏi. Với engine API thì đó là toàn bộ request, ước lượng
         sát. Với engine gói thuê bao thì không: Claude Code và Codex nhận prompt đó rồi tự
         chạy cả một vòng lặp - đọc file, gọi tool, suy nghĩ, gọi lại model - và mỗi vòng gửi
-        lại toàn bộ ngữ cảnh đã tích luỹ. Vanhanh không nhìn thấy các vòng đó, chỉ nhận tổng
+        lại toàn bộ ngữ cảnh đã tích luỹ. Naota không nhìn thấy các vòng đó, chỉ nhận tổng
         token ở cuối.
 
         Số đo thật: lệch âm 86% trên bảng tổng, có lượt âm 96%. Nghĩa là bộ đoán

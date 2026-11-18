@@ -1,8 +1,8 @@
-"""Cloudflare là kết nối dựng sẵn của Vanhanh, đi đôi với GitHub.
+"""Cloudflare là kết nối dựng sẵn của Naota, đi đôi với GitHub.
 
     python tests/run.py cloudflare_mac_dinh
 
-Trước đây Cloudflare chỉ có trong Vanhanh Store (gói `vanhanh.cloudflare`, rồi `vanhanh.cloudflare-oauth`
+Trước đây Cloudflare chỉ có trong Naota Store (gói `naota.cloudflare`, rồi `naota.cloudflare-oauth`
 cho đường đăng nhập web). Giờ cả hai cách nằm trong `system/mcp-catalog.json`, gom một thẻ nhóm.
 
 Test canh ba điều:
@@ -32,7 +32,7 @@ def check(name, cond):
         _fails.append(name)
 
 
-MANIFEST = """format: vanhanh-pack
+MANIFEST = """format: naota-pack
 spec: 1
 id: {pid}
 version: 1.0.1
@@ -50,7 +50,7 @@ CONNECTOR = """{{"id": "{cid}", "name": "Cloudflare", "transport": "http", "url"
 def lam_goi(goc, pid, cid):
     d = goc / pid
     (d / "connectors").mkdir(parents=True, exist_ok=True)
-    (d / "vanhanh-pack.yaml").write_text(MANIFEST.format(pid=pid), encoding="utf-8")
+    (d / "naota-pack.yaml").write_text(MANIFEST.format(pid=pid), encoding="utf-8")
     (d / "connectors" / "c.json").write_text(CONNECTOR.format(cid=cid), encoding="utf-8")
 
 
@@ -76,22 +76,22 @@ for c in (tk, oa):
     check(f"{cid}: có group_line", bool(c.get("group_line")))
     check(f"{cid}: logo nằm trong app", c.get("icon") == "/static/logos/cloudflare.jpg"
           and (ROOT / "dashboard" / "logos" / "cloudflare.jpg").is_file())
-check("lõi khai đúng gói mình thay", tk.get("thay_goi") == ["vanhanh.cloudflare"]
-      and oa.get("thay_goi") == ["vanhanh.cloudflare-oauth"])
+check("lõi khai đúng gói mình thay", tk.get("thay_goi") == ["naota.cloudflare"]
+      and oa.get("thay_goi") == ["naota.cloudflare-oauth"])
 
 # ─────────────── 2 và 3. Gói cũ đã cài, gói lạ ───────────────
 with tempfile.TemporaryDirectory() as td:
     kho = Path(td) / "packs"
     kho.mkdir()
     goc_dir, packs.PACKS_DIR = packs.PACKS_DIR, kho
-    goc_env = os.environ.pop("VANHANH_DISABLE_PACKS", None)
+    goc_env = os.environ.pop("NAOTA_DISABLE_PACKS", None)
     try:
-        lam_goi(kho, "vanhanh.cloudflare", "cloudflare")
-        lam_goi(kho, "vanhanh.cloudflare-oauth", "cloudflare-oauth")
+        lam_goi(kho, "naota.cloudflare", "cloudflare")
+        lam_goi(kho, "naota.cloudflare-oauth", "cloudflare-oauth")
         lam_goi(kho, "acme.gian", "cloudflare")
         lam_moi()
         ds = {p["id"]: p for p in packs.installed()}
-        for pid, cid in (("vanhanh.cloudflare", "cloudflare"), ("vanhanh.cloudflare-oauth", "cloudflare-oauth")):
+        for pid, cid in (("naota.cloudflare", "cloudflare"), ("naota.cloudflare-oauth", "cloudflare-oauth")):
             p = ds.get(pid) or {}
             check(f"{pid} đã cài từ trước: không báo lỗi đỏ", p.get("ok") and not p.get("error"))
             check(f"{pid}: không góp connector trùng", p.get("connectors") == [])
@@ -107,7 +107,7 @@ with tempfile.TemporaryDirectory() as td:
     finally:
         packs.PACKS_DIR = goc_dir
         if goc_env is not None:
-            os.environ["VANHANH_DISABLE_PACKS"] = goc_env
+            os.environ["NAOTA_DISABLE_PACKS"] = goc_env
         lam_moi()
 
 if _fails:

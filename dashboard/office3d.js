@@ -772,6 +772,6 @@
   }
 
   var api_ = { supported: supported, create: create, layout: layout, zoneDesks: zoneDesks, replaySteps: replaySteps, stats: stats };
-  if (typeof window !== "undefined") window.VanhanhOffice3D = api_;
+  if (typeof window !== "undefined") window.NaotaOffice3D = api_;
   if (typeof module !== "undefined" && module.exports) module.exports = api_;
 })();

@@ -1,6 +1,6 @@
-"""Each vendor's best speech-to-text model, found by asking the vendor instead of a name written in Vanhanh.
+"""Each vendor's best speech-to-text model, found by asking the vendor instead of a name written in Naota.
 
-Owner: "pick the vendor's best Whisper by itself when they upgrade their models, not a hand update in Vanhanh, so it
+Owner: "pick the vendor's best Whisper by itself when they upgrade their models, not a hand update in Naota, so it
 scales and we never chase the vendors". The model names used to be constants (`whisper-large-v3`, `gpt-4o-transcribe`,
 `gemini-2.5-flash`), so a vendor's new model reached nobody until someone edited the code. The chat model pickers
 already list live models (main._fetch_provider_models); this does the same for the ears.
@@ -13,7 +13,7 @@ How a model is chosen, per vendor, from its own model list (refreshed once a day
 The ChatGPT plan's ear needs nothing: its endpoint picks the model server side and upgrades with the plan.
 
 Rails, because "newest" is not always "works":
-  - SCORED BEFORE THE SWITCH (stt_gate): a model Vanhanh has not judged yet hears the same short set of sentences as the
+  - SCORED BEFORE THE SWITCH (stt_gate): a model Naota has not judged yet hears the same short set of sentences as the
     model in use (Vietnamese, English, and Vietnamese with English terms) and is taken only when it is not worse. The
     verdict is kept in <STATE_DIR>/stt_models.json, so a restart does not score again, and a model that lost is not
     scored again for a month. When nothing can be measured (no Edge voice reachable) the model in use stays, unless
@@ -22,7 +22,7 @@ Rails, because "newest" is not always "works":
   - a discovered model the vendor refuses is retried once with the default; when the default then hears, the new model
     is set aside for a day (`mark_bad`) and the log says so;
   - the owner's own pin (`voice.stt_model` for Groq) always wins;
-  - `VANHANH_NO_STT_MODEL_DISCOVERY=1` turns discovery off (the test runner sets it, so no test calls a vendor).
+  - `NAOTA_NO_STT_MODEL_DISCOVERY=1` turns discovery off (the test runner sets it, so no test calls a vendor).
 Ranking is by the vendor's own naming (version numbers, mini/turbo/preview words), which vendors have kept for years;
 whether the newest one hears Vietnamese mixed with English at least as well is measured by stt_gate, not guessed.
 """
@@ -45,7 +45,7 @@ BAD_TTL = 24 * 3600          # a discovered model the vendor refused is left asi
 REJECT_TTL = 30 * 24 * 3600  # a model that scored worse than the one in use is not scored again this long
 GATE_RETRY = 3600            # nothing could be measured: try the score again in an hour
 LIST_TIMEOUT = 15.0
-OFF_ENV = "VANHANH_NO_STT_MODEL_DISCOVERY"
+OFF_ENV = "NAOTA_NO_STT_MODEL_DISCOVERY"
 
 _CACHE: dict = {}            # (vendor, key fingerprint) -> {"model": str, "next": epoch}
 _BAD: dict = {}              # (vendor, model) -> epoch until which it is not used

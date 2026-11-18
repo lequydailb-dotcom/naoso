@@ -19,7 +19,7 @@ import inspect
 import os
 import tempfile
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-doitroly-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-doitroly-"))
 
 import antigravity_cli  # noqa: E402
 import aux_engine  # noqa: E402

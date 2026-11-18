@@ -11,8 +11,8 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-reorder-")
-BR = Path(tempfile.mkdtemp(prefix="vanhanh-reorder-brain-"))
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-reorder-")
+BR = Path(tempfile.mkdtemp(prefix="naota-reorder-brain-"))
 
 import main  # noqa: E402
 import ui_order  # noqa: E402
@@ -46,7 +46,7 @@ store.create_project("Delta", brain=b)
 lst = [p["name"] for p in store.list_projects(brain=b)]
 check("a project never ordered comes after the ordered ones", lst[-1] == "Delta", lst)
 check("a bad order is refused", client.post("/projects/order", data={"brain": b, "order": "{not json"}).status_code == 400)
-other = str(Path(tempfile.mkdtemp(prefix="vanhanh-reorder-b2-")))
+other = str(Path(tempfile.mkdtemp(prefix="naota-reorder-b2-")))
 o1, o2 = store.create_project("Một", brain=other), store.create_project("Hai", brain=other)
 client.post("/projects/order", data={"brain": other, "order": json.dumps([o2, o1])})
 client.post("/projects/order", data={"brain": b, "order": json.dumps(want[::-1])})

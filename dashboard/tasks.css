@@ -631,7 +631,7 @@ input.nv-subt:focus { box-shadow: 0 2px 0 var(--accent); }
    one left edge for title, meta and icons; icons flush right at the title's first line; bold only for what matters;
    each task a card; on the phone the card corner and the round tick are concentric (radius 10 + gap 6 = 16px). */
 
-/* the four tiles + Vanhanh's line */
+/* the four tiles + Naota's line */
 .nv-pu { margin: 6px 0 4px; }
 .nv-pus { margin: 4px 0 12px; }
 button.nv-hs-t { width: 100%; min-width: 0; font: inherit; color: var(--text); text-align: left; cursor: pointer; transition: transform .12s, border-color .15s, background .15s; }
@@ -674,6 +674,12 @@ button.nv-hs-t:active { transform: scale(.97); }
 .nv-item, .nv-rrow { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 12px; margin-bottom: 6px; }
 :root[data-theme="light"] .nv-item, :root[data-theme="light"] .nv-rrow { background: #fff; box-shadow: 0 1px 2px rgba(76, 58, 38, .05); }
 .nv-item .nv-row { border-radius: 11px; }
+/* 2026-11-13: a card outside the screen is not styled, laid out or painted until it comes near it. A list of 170
+   tasks shows about a dozen at a time; the browser used to work out all of them on every draw. The size it assumes for
+   a card it has not drawn yet is a typical one-line card, then the real size once seen (auto), so the scrollbar does
+   not jump. Paint is clipped to the card, so the keyboard focus ring of the row is drawn inside it. */
+.nv-item { content-visibility: auto; contain-intrinsic-size: auto 60px; }
+.nv-item .nv-row:focus-visible { outline-offset: -2px; }
 .nv-item .nv-row:hover, .nv-item .nv-row.sel { background: var(--surface-1); }
 .nv-item.done { background: transparent; box-shadow: none; }
 .nv-item.imp { border-color: var(--accent-line); }
@@ -849,7 +855,7 @@ button.nv-hs-t:active { transform: scale(.97); }
 .nv-toastx:hover { opacity: 1; background: color-mix(in srgb, var(--bg) 14%, transparent); }
 .nv-toastx .ic { width: 18px; height: 18px; }
 
-/* segmented choices (add form: Me / Vanhanh, kind): icon and label spaced, centred */
+/* segmented choices (add form: Me / Naota, kind): icon and label spaced, centred */
 .nv-seg button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .nv-seg button .ic { width: 18px; height: 18px; flex: none; }
 

@@ -1,6 +1,6 @@
 // The dashboard starts on the brain the owner picked, even when the brain list cannot be loaded at once.
 //
-// Seen in use: create team A, update Vanhanh, team A is gone from the Teams page (Vanhanh Core still knows it);
+// Seen in use: create team A, update Naota, team A is gone from the Teams page (Naota Core still knows it);
 // create team B, update again, team B is gone and team A is back. The page had opened while the server restarted
 // after the update: app.js could not select the saved brain (its option only comes with GET /brains), fell back to
 // Brain Default, and brains-ui.js never retried the failed /brains, so the whole visit (Teams page included) ran on
@@ -115,17 +115,17 @@ const badGateway = () => ({ ok: false, status: 502, json: async () => { throw ne
 
 // ---- 1. app.js selects the saved brain at once, before /brains answers ----
 {
-  const store = { "vanhanh.graphSource": "path:" + DIR + "/Shop" };
+  const store = { "naota.graphSource": "path:" + DIR + "/Shop" };
   const { sel, ctx } = bootApp(store);
   const pending = sel.options.find((o) => o.dataset.pending);
   check("app.js: the saved brain is selected at startup, not Brain Default", sel.value === "path:" + DIR + "/Shop");
   check("app.js: under a provisional option named after its folder",
     !!pending && pending.dataset.brain === "1" && pending.textContent === "Shop" && pending.dataset.brainName === "Shop");
   check("app.js: the chat starts from the brain really in use", ctx._lastBrain === DIR + "/Shop");
-  check("app.js: nothing is written back to the saved choice", store["vanhanh.graphSource"] === "path:" + DIR + "/Shop");
+  check("app.js: nothing is written back to the saved choice", store["naota.graphSource"] === "path:" + DIR + "/Shop");
 }
 {
-  const { sel, ctx } = bootApp({ "vanhanh.graphSource": "brain" });
+  const { sel, ctx } = bootApp({ "naota.graphSource": "brain" });
   check("app.js: a saved Brain Default stays Brain Default, no extra option",
     sel.value === "brain" && sel.options.length === 1 && ctx._lastBrain === "brain");
 }
@@ -136,7 +136,7 @@ const badGateway = () => ({ ok: false, status: 502, json: async () => { throw ne
 
 // ---- 2. /brains fails while the server restarts, then answers: the saved brain is kept the whole time ----
 {
-  const store = { "vanhanh.graphSource": "path:" + DIR + "/Shop" };
+  const store = { "naota.graphSource": "path:" + DIR + "/Shop" };
   const { sel } = bootApp(store);
   let calls = 0;
   bootBrainsUi(sel, store, async () => {
@@ -154,29 +154,29 @@ const badGateway = () => ({ ok: false, status: 502, json: async () => { throw ne
     !sel.options.some((o) => o.dataset.pending) && !!real && real.textContent.includes("40"));
   check("brains-ui: the saved brain is still selected", sel.value === "path:" + DIR + "/Shop");
   check("brains-ui: no brain switch is announced (same brain, no page redraw)", sel.changes.length === 0);
-  check("brains-ui: the saved choice is untouched", store["vanhanh.graphSource"] === "path:" + DIR + "/Shop");
+  check("brains-ui: the saved choice is untouched", store["naota.graphSource"] === "path:" + DIR + "/Shop");
 }
 
 // ---- 3. The saved brain no longer exists: Brain Default, announced once ----
 {
-  const store = { "vanhanh.graphSource": "path:" + DIR + "/Deleted" };
+  const store = { "naota.graphSource": "path:" + DIR + "/Deleted" };
   const { sel } = bootApp(store);
   bootBrainsUi(sel, store, async () => ok(REAL));
   await settle(40);
   check("brains-ui: a saved brain that is gone falls back to Brain Default", sel.value === "brain");
   check("brains-ui: every page is told (one change event)", sel.changes.length === 1 && sel.changes[0] === "brain");
-  check("brains-ui: the stale choice is forgotten", store["vanhanh.graphSource"] === "brain");
+  check("brains-ui: the stale choice is forgotten", store["naota.graphSource"] === "brain");
   check("brains-ui: no provisional option is left", !sel.options.some((o) => o.dataset.pending));
 }
 
 // ---- 4. A later redraw of the list (rename, reload) is not a brain switch ----
 {
-  const store = { "vanhanh.graphSource": "path:" + DIR + "/Shop" };
+  const store = { "naota.graphSource": "path:" + DIR + "/Shop" };
   const { sel } = bootApp(store);
   bootBrainsUi(sel, store, async () => ok(REAL));
   await settle(40);
   sel.changes.length = 0;
-  await global.window.VanhanhBrains.reload();
+  await global.window.NaotaBrains.reload();
   check("brains-ui: reloading the list keeps the selection and fires nothing",
     sel.value === "path:" + DIR + "/Shop" && sel.changes.length === 0);
 }

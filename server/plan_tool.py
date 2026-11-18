@@ -1,12 +1,12 @@
-"""`vanhanh_plan`: a task checklist for the API brains, drawn as the plan card in the chat.
+"""`naota_plan`: a task checklist for the API brains, drawn as the plan card in the chat.
 
 Claude Code (TodoWrite), Codex (update_plan) and Grok Build (todo_write) keep a checklist for a long
 job and the chat shows it as a "Plan 2/5" card (turn_plan.py, chat-steps.js). The seven API brains (OpenRouter, OpenAI,
 Anthropic API, Gemini, Groq, DeepSeek, Ollama) had no such tool, so the card never showed for them. This is that tool.
 
 It does nothing but answer "saved": the list reaches the dashboard through the `tool_call` event the engine already
-sends (turn_plan reads `vanhanh_plan` like TodoWrite). Cost: the name, description and schema are 545 characters, about
-180-200 tokens per request at the 3 characters per token Vanhanh estimates with (cached by most providers), plus one short
+sends (turn_plan reads `naota_plan` like TodoWrite). Cost: the name, description and schema are 545 characters, about
+180-200 tokens per request at the 3 characters per token Naota estimates with (cached by most providers), plus one short
 tool round each time the model updates the list, which it is told to do only for jobs of three steps or more. The
 owner can switch it off in the composer "+" menu (`settings.chat.plan_tool`).
 
@@ -14,7 +14,7 @@ Only the OWNER's chat turns get it (main._api_stream_mcp): a customer bot or a b
 """
 from __future__ import annotations
 
-NAME = "vanhanh_plan"
+NAME = "naota_plan"
 MAX_ITEMS = 30
 STATUSES = ("pending", "in_progress", "completed")
 
@@ -78,6 +78,6 @@ def add_to(tools: list, route: dict) -> None:
     """Append the tool to an API engine's (tools, route) from mcp_hub.discover_all. No-op when already there."""
     if NAME in route:
         return
-    tools.append({"fn": NAME, "server": "vanhanh", "name": NAME, "description": DESCRIPTION, "schema": SCHEMA})
-    route[NAME] = {"call": _call, "source_type": "builtin", "source_id": "vanhanh-core", "effect": "none",
+    tools.append({"fn": NAME, "server": "naota", "name": NAME, "description": DESCRIPTION, "schema": SCHEMA})
+    route[NAME] = {"call": _call, "source_type": "builtin", "source_id": "naota-core", "effect": "none",
                    "required_mode": "readonly", "health": "healthy"}

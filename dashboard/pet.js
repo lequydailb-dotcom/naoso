@@ -1,11 +1,11 @@
-/* pet.js - LINH VẬT của Vanhanh: một khuôn mặt nhỏ nép ở mép màn hình, lấp ló nửa người.
+/* pet.js - LINH VẬT của Naota: một khuôn mặt nhỏ nép ở mép màn hình, lấp ló nửa người.
 
-   Đây KHÔNG phải đồ trang trí. Nó là "sự hiện diện" của Vanhanh ở mọi trang: nhìn theo con trỏ,
+   Đây KHÔNG phải đồ trang trí. Nó là "sự hiện diện" của Naota ở mọi trang: nhìn theo con trỏ,
    chớp mắt, và đổi biểu cảm theo đúng trạng thái thật của lượt trả lời (nghe / nghĩ / nói /
-   lỗi). Trạng thái không tự bịa: app.js gọi VanhanhPet.setState() ngay trong setOrbState(), tức
+   lỗi). Trạng thái không tự bịa: app.js gọi NaotaPet.setState() ngay trong setOrbState(), tức
    là pet và chữ trên orb luôn nói cùng một điều.
 
-   Hình học và bảng màu lấy nguyên từ bản mẫu vanhanh-avatar-v3.html, rút gọn
+   Hình học và bảng màu lấy nguyên từ bản mẫu naota-avatar-v3.html, rút gọn
    cho cỡ nhỏ: vành quỹ đạo ở đây là MỘT path có dash xoay, không phải 144 mảnh như bản mẫu.
    Ở 56px thì vệt mờ dần của bản mẫu không ai nhìn thấy, mà 576 lượt ghi style mỗi khung hình
    thì máy nào cũng thấy.
@@ -18,7 +18,7 @@
 (function () {
   "use strict";
 
-  var KHOA = "vanhanh.pet";
+  var KHOA = "naota.pet";
   var NGUONG_KEO = 16;   // px di chuyển tối thiểu mới coi là KÉO chứ không phải bấm
 
   // ---- Hình dáng (path trong viewBox 320x320, tâm 160/160) ----
@@ -43,7 +43,7 @@
   };
 
   // Mỗi bảng màu tự mang cả hai tông: [thân, vành quỹ đạo, dự phòng]. Tông theo giao diện đang bật
-  // (vanhanhTheme), nên pet không bao giờ chói lên giữa nền tối.
+  // (naotaTheme), nên pet không bao giờ chói lên giữa nền tối.
   //
   // TÔNG TỐI SUY TỪ TÔNG SÁNG, GIỮ NGUYÊN SẮC. Bản cũ đặt tay từng cặp, và tay thì
   // trôi: tông tối của `amber` rơi từ 30 độ (cam) sang 43 độ (vàng), nên chọn "Hổ phách" ở
@@ -142,7 +142,7 @@
   // dùng màu có sẵn, để bấm lại ô tự chọn là ra đúng màu lần trước chứ không về một màu lạ.
   // Mặc định là LINH VẬT CHÍNH THỨC: ngôi sao màu cam, trùng logo.
   // `image`: the owner's own picture (a name from the /avatars store, "" = the drawn face). `favicon`: also use that
-  // picture as the browser tab icon, so several Vanhanh open side by side tell apart at a glance.
+  // picture as the browser tab icon, so several Naota open side by side tell apart at a glance.
   var MAC_DINH = { enabled: true, shape: "star", palette: "nang", side: "right", pos: 0.62, size: 72, eye: "den", eyeSize: 1, color: "#f5d014", eyeColor: "#2a62b0", image: "", favicon: true };
   // Same name rule as server/avatar_upload.py: 20 hex characters of a content hash plus the real image type.
   var ANH_TEN = /^[0-9a-f]{20}\.(png|jpg|webp|gif)$/;
@@ -359,7 +359,7 @@
     return (MAU_MAT[eye] || {}).mau || "";
   }
   function noiSuy(a, b, k) { return a + (b - a) * k; }
-  function sang() { try { return !!(window.vanhanhTheme && window.vanhanhTheme.isLight()); } catch (e) { return false; } }
+  function sang() { try { return !!(window.naotaTheme && window.naotaTheme.isLight()); } catch (e) { return false; } }
   // Mắt phải tương phản với THÂN, không với nền trang: thân sáng thì mắt than chì, thân tối
   // thì mắt trắng. Tính bằng độ chói tương đối (WCAG) chứ không đoán bằng mắt.
   // Đây là đường TỰ ĐỘNG, nay chỉ còn dùng cho avatar trợ lý; con pet đi theo cfg.eye.
@@ -445,20 +445,20 @@
   function dung() {
     if (el) return;
     el = document.createElement("div");
-    el.id = "vanhanhPet";
+    el.id = "naotaPet";
     el.className = "pet";
     el.dataset.out = "0";
     el.dataset.menu = "0";
     el.innerHTML =
-      '<button type="button" class="pet-body" aria-label="Vanhanh">' +
+      '<button type="button" class="pet-body" aria-label="Naota">' +
         '<svg viewBox="0 0 320 320" aria-hidden="true">' +
-          '<defs><clipPath id="vanhanhPetClip"><path class="pet-clip"></path></clipPath></defs>' +
+          '<defs><clipPath id="naotaPetClip"><path class="pet-clip"></path></clipPath></defs>' +
           '<g class="pet-rig">' +
             '<path class="pet-ring" pathLength="360"></path>' +
             '<path class="pet-face"></path>' +
             // The owner's own picture, cut to the chosen shape. Hidden while there is none.
             '<image class="pet-photo" x="54" y="54" width="212" height="212" preserveAspectRatio="xMidYMid slice" ' +
-              'clip-path="url(#vanhanhPetClip)" display="none"></image>' +
+              'clip-path="url(#naotaPetClip)" display="none"></image>' +
             '<g class="pet-eyes"></g>' +
           '</g>' +
         '</svg>' +
@@ -501,13 +501,13 @@
       { id: "mic", ic: icon("mic"), nhan: mic ? t("pet.menu.mic_off", "Turn mic off") : t("pet.menu.mic_on", "Turn mic on") },
       { id: "pet", ic: icon("settings"), nhan: t("pet.menu.settings", "Mascot settings") },
       // Team chat sits on the last row. "teams" is a page id, so the default
-      // VanhanhNav.go branch of the click handler opens it with no extra case.
+      // NaotaNav.go branch of the click handler opens it with no extra case.
       { id: "teams", ic: icon("users"), nhan: t("pet.menu.teams", "Team chat") },
     ];
     // The owner's own menu (pet-menu.js, Settings > Mascot > Mascot menu): their order, plus the features they
     // added. The list above stays as the fallback when pet-menu.js did not load (an old cached index.html).
     // A feature that cannot run right now stays in its place, greyed out, with the reason under its name.
-    var PM = window.VanhanhPetMenu;
+    var PM = window.NaotaPetMenu;
     if (PM && PM.menuEntries) {
       try {
         // May be EMPTY: the owner can remove every item, and then the pet opens no menu at all.
@@ -534,7 +534,7 @@
     pFace.setAttribute("d", d);
     pRing.setAttribute("d", d);
     // Own picture: it fills the shape and the drawn eyes step aside (eyes painted over a photo look like stickers).
-    // The orbit ring and the body moves (hop, squish, shake) still show what Vanhanh is doing.
+    // The orbit ring and the body moves (hop, squish, shake) still show what Naota is doing.
     if (pClip) pClip.setAttribute("d", d);
     if (pPhoto) {
       pPhoto.setAttribute("href", cfg.image ? "/avatars/" + cfg.image : "");
@@ -738,9 +738,9 @@
   // Đo trên điện thoại giả lập (trang Cộng sự, app để yên): vòng vẽ JS 30 khung/giây của pet giữ luồng chính bận khoảng
   // 26% thời gian và bắt trình duyệt tính lại bố cục mỗi khung; không có pet là 13%. Lúc pet ngồi yên (rảnh, không ai rê
   // chuột hay chạm, không phản ứng gì) chỉ còn vành quay chậm, mắt thỉnh thoảng liếc, chớp mắt và ngủ gật. Khi đó vòng JS
-  // dừng hẳn: vành quay bằng hoạt ảnh CSS 10 nhịp mỗi giây (steps, petVanh trong style.css), mắt liếc bằng transition CSS,
-  // chớp mắt và ngủ gật hẹn bằng setTimeout. Đo lại: 16%. Có động tĩnh gì (rê chuột, chạm, đổi trạng thái, phản ứng, chữ
-  // mới) là chay() gọi raNghi() và vòng JS chạy lại đủ nhịp như cũ.
+  // dừng hẳn: vành quay bằng một bộ hẹn giờ chậm (spinRingRest; trước 2026-11-12 là hoạt ảnh CSS petVanh), mắt liếc bằng
+  // transition CSS, chớp mắt và ngủ gật hẹn bằng setTimeout. Đo lại: 16%. Có động tĩnh gì (rê chuột, chạm, đổi trạng
+  // thái, phản ứng, chữ mới) là chay() gọi raNghi() và vòng JS chạy lại đủ nhịp như cũ.
   var nghiYen = false, nghiHen = [];
 
   function coTheNghi(now) {
@@ -757,10 +757,32 @@
     gRig.style.transform = "translate(" + (nhinX * 3.4).toFixed(2) + "px," + (nhinY * 2.4).toFixed(2) + "px)";
     gEyes.style.transform = "translate(" + (nhinX * TAM_X * ghim).toFixed(2) + "px," + (nhinY * TAM_Y * ghim).toFixed(2) + "px)";
   }
-  function quayVanhCss() {
-    var tg = 360 / Math.max(tocDoDich, 0.5);
-    pRing.style.setProperty("--vanh0", String((-gocRing).toFixed(2)));
-    pRing.style.animation = "petVanh " + tg.toFixed(1) + "s steps(" + Math.max(1, Math.round(tg * 10)) + ") infinite";
+  // The resting ring moves on a timer (2026-11-12), no longer on a CSS animation. Measured on a simulated phone, Chat
+  // page left alone: the browser ticks a running CSS animation on EVERY frame, whatever its steps() say, so the petVanh
+  // animation alone cost 60 style recalculations a second (main thread 12% busy with it, 3.7% without). A timer writes
+  // the dash offset only when the ring has moved about half a pixel: 8 times a second at idle speed, 4 when dozing.
+  var RING_REST_MIN_MS = 100, RING_REST_MAX_MS = 250, ringRestTimer = 0;
+  function ringRestMs() {
+    return Math.min(RING_REST_MAX_MS, Math.max(RING_REST_MIN_MS, Math.round(900 / Math.max(tocDoDich, 0.5))));
+  }
+  function clockMs() { return typeof performance !== "undefined" ? performance.now() : Date.now(); }
+  function spinRingRest() {
+    clearTimeout(ringRestTimer);
+    pRing.style.animation = "";
+    var last = clockMs();
+    (function step() {
+      ringRestTimer = setTimeout(function () {
+        if (!nghiYen) return;
+        var t = clockMs(), dt = Math.min(1, Math.max(0, (t - last) / 1000));
+        last = t;
+        // A tab in the background keeps the ring where it is: nobody sees it, and timers there run once a second.
+        if (!(typeof document !== "undefined" && document.hidden)) {
+          gocRing = (gocRing + tocDoDich * dt) % 360;
+          pRing.style.strokeDashoffset = (-gocRing).toFixed(2);
+        }
+        step();
+      }, ringRestMs());
+    })();
   }
   function hen(fn, ms) { nghiHen.push(setTimeout(fn, ms)); }
 
@@ -768,7 +790,7 @@
     nghiYen = true;
     raf = 0;
     el.classList.add("pet-nghi");
-    quayVanhCss();
+    spinRingRest();
     datDangNghi();
     (function liec() {
       hen(function () {
@@ -796,7 +818,7 @@
         nguGat = true; mood = "sleepy"; if (!dangChop) veMat(mood);
         tocDoDich = 2; tocDo = 2; pRing.style.opacity = "0.3";
         el.dataset.ngu = "1";
-        quayVanhCss();
+        spinRingRest();
       }, Math.max(0, hoatDongLuc + NGU_SAU - now));
     }
   }
@@ -805,10 +827,9 @@
     nghiYen = false;
     nghiHen.forEach(clearTimeout);
     nghiHen = [];
-    // Vành quay tiếp từ đúng chỗ CSS đang dừng, không giật về chỗ cũ.
-    var o = NaN;
-    try { o = parseFloat(getComputedStyle(pRing).strokeDashoffset); } catch (e) { /* không có trình duyệt (test) */ }
-    if (!isNaN(o)) gocRing = ((-o % 360) + 360) % 360;
+    // The ring goes on from where the rest timer left it (gocRing), so it does not jump.
+    clearTimeout(ringRestTimer);
+    ringRestTimer = 0;
     pRing.style.animation = "";
     pRing.style.strokeDashoffset = (-gocRing).toFixed(2);
     el.classList.remove("pet-nghi");
@@ -976,13 +997,13 @@
         return;
       }
       // Trợ lý và Quy trình là HAI TAB của cùng trang Cộng sự, không phải hai trang: đi qua
-      // openTab() để mở đúng tab, chứ VanhanhNav.go("workspace") thì rơi vào tab đang nhớ dở
+      // openTab() để mở đúng tab, chứ NaotaNav.go("workspace") thì rơi vào tab đang nhớ dở
       // từ lần trước và cú bấm "Quy trình" có khi mở ra danh sách trợ lý.
       if (id === "agent" || id === "workflow") {
-        try { if (window.VanhanhWorkspace) { window.VanhanhWorkspace.openTab(id); return; } } catch (err) {}
+        try { if (window.NaotaWorkspace) { window.NaotaWorkspace.openTab(id); return; } } catch (err) {}
         id = "workspace";
       }
-      try { window.VanhanhNav && window.VanhanhNav.go(id); } catch (err) {}
+      try { window.NaotaNav && window.NaotaNav.go(id); } catch (err) {}
     });
 
     // Bấm ra chỗ khác thì ĐÓNG MENU, và chỉ đóng menu. Pet đứng nguyên chỗ nó đang đứng.
@@ -1080,7 +1101,7 @@
     if (el) { apDung(); chay(); }
     veDauAn();
     apFavicon();
-    try { window.dispatchEvent(new CustomEvent("vanhanh:pet", { detail: Object.assign({}, cfg) })); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("naota:pet", { detail: Object.assign({}, cfg) })); } catch (e) {}
   }
   function setEnabled(on) { setCfg({ enabled: !!on }); }
 
@@ -1098,11 +1119,11 @@
     chay();
     veDauAn();
     apFavicon();
-    try { window.vanhanhTheme && window.vanhanhTheme.on(function () { apDung(); veDauAn(); }); } catch (e) {}
-    window.addEventListener("vanhanh:i18n", function () { veMenu(); });
+    try { window.naotaTheme && window.naotaTheme.on(function () { apDung(); veDauAn(); }); } catch (e) {}
+    window.addEventListener("naota:i18n", function () { veMenu(); });
     // The mascot menu was saved (here or in another window): close it if open, so no row moves under the pointer.
     // moMenu(true) builds it again from the new list the next time.
-    window.addEventListener("vanhanh:pet-menu", function () { if (el && el.dataset.menu === "1") moMenu(false); });
+    window.addEventListener("naota:pet-menu", function () { if (el && el.dataset.menu === "1") moMenu(false); });
     // Logo riêng của người dùng thắng linh vật, nên phải hỏi máy chủ một lượt. Hỏi SAU khi
     // đã vẽ bằng localStorage: chờ mạng xong mới vẽ thì thanh bên nháy một nhịp lúc mở trang.
     fetch("/settings").then(function (r) { return r.json(); }).then(function (j) {
@@ -1272,8 +1293,8 @@
     return h;
   }
   // ---- OWN PICTURE (mascot page only, opts.image) ----
-  // Upload goes through the same store as partner avatars (VanhanhAvatar.uploadImage: cropped square, 256px, EXIF
-  // dropped in the browser). The drawn face stays underneath, so "Use the Vanhanh face" brings it straight back.
+  // Upload goes through the same store as partner avatars (NaotaAvatar.uploadImage: cropped square, 256px, EXIF
+  // dropped in the browser). The drawn face stays underneath, so "Use the Naota face" brings it straight back.
   // The tab-icon switch shows only while a picture is in use: with none there is nothing to put on the tab.
   function anhHtml(v) {
     var coAnh = !!v.image;
@@ -1282,7 +1303,7 @@
       '<div class="aa-upload pet-upload"><button type="button" class="gcard-btn ghost" data-pet-upload>' +
       (typeof window.ic === "function" ? window.ic("image") : "") + " " +
       esc(t(coAnh ? "settings.pet_image_change" : "settings.pet_image_upload", "Upload a picture")) + '</button>' +
-      (coAnh ? '<button type="button" class="gcard-btn ghost" data-pet-unimg>' + esc(t("settings.pet_image_remove", "Use the Vanhanh face")) + '</button>' : "") +
+      (coAnh ? '<button type="button" class="gcard-btn ghost" data-pet-unimg>' + esc(t("settings.pet_image_remove", "Use the Naota face")) + '</button>' : "") +
       '<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-pet-file hidden></div>' +
       '<div class="aa-upload-msg pet-upload-msg" role="status" aria-live="polite"></div>';
     if (coAnh) {
@@ -1379,7 +1400,7 @@
       inp.value = "";
       if (!f) return;
       var nut = host.querySelector("[data-pet-upload]"), msg = host.querySelector(".pet-upload-msg");
-      var A = window.VanhanhAvatar;
+      var A = window.NaotaAvatar;
       var bao = function (k, loi) { if (msg) { msg.textContent = k; msg.classList.toggle("loi", !!loi); } };
       if (!A || !A.uploadImage) { bao(t("settings.pet_image_fail", "Could not upload the picture."), true); return; }
       if (nut) nut.disabled = true;
@@ -1407,13 +1428,13 @@
   // Bật linh vật thì chỗ logo hiện chính khuôn mặt ấy, để cả app nói cùng một nhân dạng.
   // TẮT linh vật, HOẶC người dùng đã tải logo riêng lên, thì trả lại thẻ <img src="/brand-logo">
   // nguyên bản: logo của người ta thì người ta quyết, một con vật không được đè lên.
-  // Chỉ thay RUỘT của ô dấu ấn, không thay cả khối thương hiệu: chữ "VANHANH" nằm cạnh đó
+  // Chỉ thay RUỘT của ô dấu ấn, không thay cả khối thương hiệu: chữ "NAOTA" nằm cạnh đó
   // trong cùng khối, thay cả khối là mỗi lần đổi hình dáng hay bảng màu lại xoá mất chữ.
   var LO_DAU_AN = ".rail-brand .brand-mark, .brand .brand-icon";
   var _logoRieng = false;      // người dùng đã tải logo riêng lên chưa
   // Tuỳ chọn chân dung khớp đúng con pet đang sống: màu thân tự chọn, màu mắt, cỡ mắt.
   function optsCfg() { return { mau: cfg.color, mat: cfg.eye, mauMat: cfg.eyeColor, coMat: cfg.eyeSize, anh: cfg.image }; }
-  // VANHANH 1.0.0 (anh Vương chốt 31/10/2026): chỗ logo luôn là logo chữ VANHANH, linh vật không
+  // NAOTA 1.0.0 (anh Vương chốt 31/10/2026): chỗ logo luôn là logo chữ NAOTA, linh vật không
   // thay vào đó nữa. Giữ hàm và đường trả lại <img> để bật lại chỉ cần sửa một dòng này.
   function dungDauAn() { return false && !!cfg.enabled && !_logoRieng; }
   function veDauAn() {
@@ -1460,7 +1481,7 @@
     } catch (e) {}
   }
 
-  window.VanhanhPet = {
+  window.NaotaPet = {
     setState: setState,
     react: react,
     setCfg: setCfg,

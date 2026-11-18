@@ -3,10 +3,10 @@
 Vì sao tự viết thay vì cài `pywebpush`
 ======================================
 `pywebpush` kéo theo `http-ece`, mà gói đó chỉ phát hành dạng mã nguồn và phải BIÊN DỊCH
-lúc cài. Vanhanh là app tự cài trên máy người dùng và trên VPS bằng một dòng
+lúc cài. Naota là app tự cài trên máy người dùng và trên VPS bằng một dòng
 `pip install -r requirements.txt`; thêm một gói có thể gãy lúc build nghĩa là có máy cài
-Vanhanh không lên được nữa - trả giá quá đắt cho một tính năng phụ. Toàn bộ phép mã hoá dưới
-đây chỉ cần `cryptography`, thứ Vanhanh vốn đã có sẵn trong requirements.
+Naota không lên được nữa - trả giá quá đắt cho một tính năng phụ. Toàn bộ phép mã hoá dưới
+đây chỉ cần `cryptography`, thứ Naota vốn đã có sẵn trong requirements.
 
 Chuẩn áp dụng
 =============
@@ -14,7 +14,7 @@ Chuẩn áp dụng
 - RFC 8188 (khung dữ liệu aes128gcm: salt | rs | idlen | keyid | ciphertext).
 - RFC 8292 (VAPID): tự giới thiệu với dịch vụ đẩy bằng JWT ES256 ký bằng khoá riêng của
   chính máy này. Khoá sinh MỘT LẦN rồi giữ ở STATE_DIR - đổi khoá là mọi đăng ký cũ chết,
-  nên nó phải sống qua các lần cập nhật Vanhanh.
+  nên nó phải sống qua các lần cập nhật Naota.
 
 Bước dẫn khoá (đã đối chiếu với thư viện tham chiếu `http_ece`):
     ecdh   = ECDH(khoá_riêng_tạm, p256dh_của_trình_duyệt)
@@ -23,7 +23,7 @@ Bước dẫn khoá (đã đối chiếu với thư viện tham chiếu `http_ec
     nonce  = HKDF(salt=salt, info=b"Content-Encoding: nonce\\x00",      len=12)(ikm)
 
 Giới hạn thật, nói trước cho khỏi mất công dò:
-- Web Push CHỈ chạy trong secure context: https, hoặc localhost. Vanhanh chạy trần bằng IP
+- Web Push CHỈ chạy trong secure context: https, hoặc localhost. Naota chạy trần bằng IP
   qua http trong mạng LAN thì trình duyệt không cho đăng ký, không có cách nào lách.
 - iOS chỉ đẩy được khi người dùng đã "Thêm vào MH chính" (PWA đã cài), từ iOS 16.4.
 """
@@ -120,13 +120,13 @@ def lien_he() -> str:
     máy tính (Chrome/FCM) nhận thông báo bình thường còn iPhone thì im lặng tuyệt đối. Đúng
     lỗi đã gặp: bấm Gửi thử trên điện thoại thì máy tính hiện, điện thoại không.
 
-    Đổi được bằng biến môi trường VANHANH_PUSH_CONTACT (mailto:... hoặc https://...) cho ai
+    Đổi được bằng biến môi trường NAOTA_PUSH_CONTACT (mailto:... hoặc https://...) cho ai
     muốn để địa chỉ thật của mình.
     """
-    v = str(os.getenv("VANHANH_PUSH_CONTACT") or "").strip()
+    v = str(os.getenv("NAOTA_PUSH_CONTACT") or "").strip()
     if v.startswith("mailto:") or v.startswith("https://"):
         return v
-    return "mailto:vanhanh@users.noreply.github.com"
+    return "mailto:naota@users.noreply.github.com"
 
 
 def _jwt_vapid(endpoint: str, sub_lien_he: str = None) -> str:
@@ -341,7 +341,7 @@ def huy_theo_phien(phien: str) -> int:
         return truoc - len(d["subs"])
 
 
-async def gui_het(tieu_de: str, than: str, url: str = "/", tag: str = "vanhanh", phien_hop_le=None,
+async def gui_het(tieu_de: str, than: str, url: str = "/", tag: str = "naota", phien_hop_le=None,
                   quiet_if_visible: bool = False) -> tuple:
     """Đẩy MỘT thông báo tới MỌI trình duyệt đã đăng ký. Trả (số_gửi_được, số_bị_dọn, chi_tiết).
 
@@ -362,7 +362,7 @@ async def gui_het(tieu_de: str, than: str, url: str = "/", tag: str = "vanhanh",
     msg = {"title": tieu_de, "body": than, "url": url, "tag": tag}
     if quiet_if_visible:
         # A notice about something the owner may be watching already (a long chat turn that just ended): the device
-        # where Vanhanh is open and in front of them shows no notification (dashboard/sw.js).
+        # where Naota is open and in front of them shows no notification (dashboard/sw.js).
         msg["quiet_if_visible"] = True
     payload = json.dumps(msg, ensure_ascii=False).encode("utf-8")
     import httpx

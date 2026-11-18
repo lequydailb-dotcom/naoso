@@ -33,7 +33,7 @@ CODEX_BOOTSTRAP_MAX_CHARS = 300_000
 # lượt vừa tốn hạn mức gói Google, vừa là cái file ngữ cảnh mà model phải tự mở ra đọc trên
 # Windows (dòng lệnh chặn 32k), và file càng dài thì tool đọc file càng dễ cắt cụt trước khi tới
 # câu hỏi ở cuối - model đọc được nửa đầu rồi trả lời một câu hỏi cũ.
-# Ghi đè bằng env VANHANH_AGY_BOOTSTRAP_MAX_CHARS nếu máy nào cần khác.
+# Ghi đè bằng env NAOTA_AGY_BOOTSTRAP_MAX_CHARS nếu máy nào cần khác.
 #
 # VÌ SAO 45.000 CHỨ KHÔNG PHẢI 100.000 (đã đo). Con số này KHÔNG đứng một mình: nó
 # phải cộng với system prompt rồi lọt qua `antigravity_cli._tran_argv()`, mà trần đó đếm theo
@@ -68,7 +68,7 @@ CODEX_BOOTSTRAP_MAX_CHARS = 300_000
 # tiên sẵn. Đừng đi tối ưu nhầm hướng.
 try:
     AGY_BOOTSTRAP_MAX_CHARS = max(
-        20_000, int(__import__("os").environ.get("VANHANH_AGY_BOOTSTRAP_MAX_CHARS") or 45_000))
+        20_000, int(__import__("os").environ.get("NAOTA_AGY_BOOTSTRAP_MAX_CHARS") or 45_000))
 except (TypeError, ValueError):
     AGY_BOOTSTRAP_MAX_CHARS = 45_000
 # Dòng đánh dấu ranh giới giữa lịch sử đã gói và câu hỏi hiện tại trong bootstrap_prompt. Engine
@@ -82,14 +82,14 @@ SYNC_COMPACT_TAIL = 24
 
 # ── Mạch hội thoại của engine gói thuê bao (Claude Code, Codex) ──────────────────────────
 #
-# Hai engine này tự quản mạch: Vanhanh chỉ đưa `--resume <id>` rồi chúng gửi lại toàn bộ
+# Hai engine này tự quản mạch: Naota chỉ đưa `--resume <id>` rồi chúng gửi lại toàn bộ
 # transcript ở phía chúng. Nghĩa là phần TO NHẤT của mỗi lượt nằm ngoài tầm với của mọi cơ
 # chế tiết kiệm ngữ cảnh - Phase 8 gọt bộ luật xuống còn vài trăm token thì mạch cũ vẫn kéo
 # theo hàng trăm nghìn. Số đo thật: lượt đầu hội thoại 36k, cùng hội thoại đó
 # vài lượt sau đã 191k, có lượt chạm 412k. Bộ luật + bộ nhớ + mô tả tool của brain đó chỉ khoảng
-# 10.6k, tức phần Vanhanh gọt được chưa tới 3% của lượt nặng nhất.
+# 10.6k, tức phần Naota gọt được chưa tới 3% của lượt nặng nhất.
 #
-# Vanhanh không chèn được vào giữa mạch của chúng, nhưng làm được một việc: khi mạch đã phình
+# Naota không chèn được vào giữa mạch của chúng, nhưng làm được một việc: khi mạch đã phình
 # quá ngưỡng thì THÔI resume, mở mạch MỚI và mồi lại bằng transcript đã nén trong SQLite
 # (codex_bootstrap_prompt ở dưới). Đổi lại là mất phần ngữ cảnh ngầm mà engine tự giữ, nên
 # ngưỡng phải đủ cao để chỉ chạm tới khi mạch thật sự đã quá dài.
@@ -110,7 +110,7 @@ SUBSCRIPTION_THREAD_MAX_TOKENS = 1_000_000
 # model nhiều vòng, mỗi vòng gửi lại toàn bộ ngữ cảnh đã tích. Số đo thật cho
 # thấy đúng điều đó - model chỉ viết ra 266 tới 1.496 token trong khi đọc vào 35k tới 412k.
 # Nghĩa là một lượt NẶNG có thể nặng vì công việc, không phải vì mạch dài. Xoay mạch trong ca
-# đó không giúp gì cả: lượt sau vẫn nặng, lại xoay tiếp, và mỗi lần xoay là một lần Vanhanh
+# đó không giúp gì cả: lượt sau vẫn nặng, lại xoay tiếp, và mỗi lần xoay là một lần Naota
 # quên mất phần ngữ cảnh ngầm mà engine đang giữ. Mốc này bắt buộc phải có tiến triển thật
 # (thêm hai lượt hỏi-đáp) mới cho xoay lần nữa.
 SUBSCRIPTION_ROTATE_MIN_MSGS = 4
@@ -162,7 +162,7 @@ def bootstrap_prompt(raw_msgs, current_prompt: str,
     """Gói transcript trong SQLite thành MỘT prompt để mồi lại một mạch hội thoại mới.
 
     Dùng cho mọi engine tự quản mạch (Codex, Claude Code), ở ba tình huống: phiên cũ chưa có
-    thread id, rollout cũ bị mất trên máy, và mạch đã phình quá ngưỡng nên Vanhanh chủ động mở
+    thread id, rollout cũ bị mất trên máy, và mạch đã phình quá ngưỡng nên Naota chủ động mở
     mạch mới. Sau khi engine phát thread mới thì các lượt kế tiếp resume native, không resend
     transcript này nữa.
 
@@ -180,11 +180,13 @@ def bootstrap_prompt(raw_msgs, current_prompt: str,
     if not usable:
         return current_prompt
 
+    # The bracketed markers stay as they are: usage_index.CHAT_RESUME_MARKER and antigravity_cli look for them,
+    # and SUMMARY_HEADER is how a stored summary is told apart. Only the sentence for the model is English (2026-11-15).
     header = (
         "[KHÔI PHỤC NGỮ CẢNH HỘI THOẠI]\n"
-        "Các đoạn dưới đây là lịch sử thật của cùng cuộc trò chuyện Vanhanh. "
-        "Hãy tiếp tục đúng mạch, không coi chúng là yêu cầu mới cần làm lại. Mọi câu hỏi trong "
-        "lịch sử ĐÃ được trả lời rồi; chỉ trả lời phần " + CURRENT_REQUEST_MARKER + " ở cuối.\n"
+        "The parts below are the real history of this same Naota conversation. "
+        "Continue the thread; do not treat them as new requests to redo. Every question in the "
+        "history HAS already been answered; answer only the " + CURRENT_REQUEST_MARKER + " part at the end.\n"
     )
     if tom_tat:
         header += SUMMARY_HEADER + tom_tat + "\n"
@@ -193,7 +195,7 @@ def bootstrap_prompt(raw_msgs, current_prompt: str,
     blocks = []
     truncated = False
     for m in reversed(usable):
-        who = "User" if m.get("role") == "user" else "Vanhanh"
+        who = "User" if m.get("role") == "user" else "Naota"
         block = f"\n<{who}>\n{m.get('content') or ''}\n</{who}>\n"
         if len(block) <= budget:
             blocks.append(block)
@@ -202,10 +204,10 @@ def bootstrap_prompt(raw_msgs, current_prompt: str,
         truncated = True
         if not blocks and budget > 300:
             # Một message gần nhất quá dài: giữ phần cuối vì thường chứa kết luận/trạng thái mới nhất.
-            blocks.append("\n[...đầu message đã lược bớt...]\n" + block[-budget:])
+            blocks.append("\n[...start of the message left out...]\n" + block[-budget:])
         break
     blocks.reverse()
-    note = "\n[...phần lịch sử cũ hơn đã lược bớt...]\n" if truncated else ""
+    note = "\n[...older history left out...]\n" if truncated else ""
     return header + note + "".join(blocks) + footer + current_prompt
 
 
@@ -276,9 +278,9 @@ async def _summarize(old, chunk, prov, api_key, model, api_stream):
         c = m.get("content") or ""
         if len(c) > _MSG_CLIP:
             c = c[:_MSG_CLIP] + " (...)"
-        lines.append(("User: " if m.get("role") == "user" else "Vanhanh: ") + c)
+        lines.append(("User: " if m.get("role") == "user" else "Naota: ") + c)
     prompt = (
-        "Bạn đang nén lịch sử hội thoại giữa User và trợ lý Vanhanh để tiết kiệm context.\n\n"
+        "Bạn đang nén lịch sử hội thoại giữa User và trợ lý Naota để tiết kiệm context.\n\n"
         f"TÓM TẮT HIỆN CÓ (các phần trước đó nữa):\n{old or '(chưa có)'}\n\n"
         "ĐOẠN HỘI THOẠI MỚI CẦN GỘP THÊM:\n" + "\n\n".join(lines) + "\n\n"
         "Viết TÓM TẮT MỚI gộp cả hai (tối đa ~350 từ), giữ lại: chủ đề chính, quyết định đã chốt, "

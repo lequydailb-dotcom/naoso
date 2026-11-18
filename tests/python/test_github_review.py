@@ -16,7 +16,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-ghr-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-ghr-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -25,7 +25,7 @@ except Exception:
 from _fake_github import FakeGitHub, GOOD_TOKEN  # noqa: E402
 
 fake = FakeGitHub()
-os.environ["VANHANH_GITHUB_API"] = fake.url
+os.environ["NAOTA_GITHUB_API"] = fake.url
 
 import github_repos  # noqa: E402
 import github_store  # noqa: E402
@@ -316,7 +316,7 @@ lessons = w.read_lessons(BRAIN, "acme/learn")
 check("13.1: a CI failure fixed later becomes a lesson", any("unit-tests" in x for x in lessons))
 check("13.1: lessons live in the brain, not in the repo",
       w.lessons_path(BRAIN, "acme/learn").is_file() and str(w.lessons_path(BRAIN, "acme/learn")).startswith(BRAIN)
-      and not (wl / "Vanhanh").exists())
+      and not (wl / "Naota").exists())
 check("13.1: the next turn's prompt carries the lesson", "unit-tests" in github_repos.prompt_block("cc5", BRAIN))
 for i in range(40):
     w.add_lesson(BRAIN, "acme/learn", f"bài học {i}")
@@ -360,10 +360,10 @@ git_before = {k: v for k, v in env_before.items() if k.startswith("GIT_")}
 check("criterion 11: no credential or identity leaks into the process environment",
       git_now == git_before and GOOD_TOKEN not in "".join(os.environ.values()))
 
-# ---- the vanhanh_github tool: "review this PR" and "skip them" from the chat ----
+# ---- the naota_github tool: "review this PR" and "skip them" from the chat ----
 import importlib.util  # noqa: E402
 
-_spec = importlib.util.spec_from_file_location("vanhanh_github_plugin", ROOT / "system/plugins/vanhanh-github/plugin.py")
+_spec = importlib.util.spec_from_file_location("naota_github_plugin", ROOT / "system/plugins/naota-github/plugin.py")
 plug = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(plug)
 

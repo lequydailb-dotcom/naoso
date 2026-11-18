@@ -17,10 +17,10 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="vanhanh-xuatnhap-")
-os.environ["VANHANH_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="naota-xuatnhap-")
+os.environ["NAOTA_STATE_DIR"] = _STATE
 os.environ["BRAINS_DIR"] = str(Path(_STATE) / "brains")
-os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
+os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -39,11 +39,11 @@ def check(name, cond, them=""):
 
 # ---- 1. What stays out ----
 for rel in ("memory/conversations/2026-11-09.md", ".grok/config.toml", ".agents/mcp_config.json", ".git/config",
-            "Vanhanh/learned/bot/x.private.json", "memory/agents/viet/runs/1.md", ".mcp.json", ".env", "Vanhanh/loop-log/a.md",
+            "Naota/learned/bot/x.private.json", "memory/agents/viet/runs/1.md", ".mcp.json", ".env", "Naota/loop-log/a.md",
             "keys/id_ed25519", "a.tmp"):
     check(f"không xuất: {rel}", bx.kept_out(rel))
 for rel in ("wiki/a.md", "attachments/anh.png", "agents/viet.md", "skills/x/SKILL.md", "memory/MEMORY.md",
-            "memory/agents/viet/MEMORY.md", "Vanhanh/brain.json", ".agents/skills/x/SKILL.md"):
+            "memory/agents/viet/MEMORY.md", "Naota/brain.json", ".agents/skills/x/SKILL.md"):
     check(f"có xuất: {rel}", not bx.kept_out(rel))
 
 # ---- 2. Endpoints ----
@@ -59,8 +59,8 @@ files = {
     "wiki/hang.md": "# Hàng tồn", "attachments/anh.png": "PNG",
     "memory/conversations/2026-11-09.md": "chat thô", ".grok/config.toml": "Bearer bi-mat",
     "plugins/p1/plugin.yaml": "name: p1\nslug: p1\nenabled: true\n", "plugins/p1/plugin.py": "def register(ctx): pass\n",
-    "Vanhanh/loops/dem.md": "---\nname: dem\nenabled: true\nmode: full\n---\nĐếm hàng.\n",
-    "Vanhanh/reminders.json": json.dumps({"reminders": [{"id": "a", "status": "pending"}, {"id": "b", "status": "done"}]}),
+    "Naota/loops/dem.md": "---\nname: dem\nenabled: true\nmode: full\n---\nĐếm hàng.\n",
+    "Naota/reminders.json": json.dumps({"reminders": [{"id": "a", "status": "pending"}, {"id": "b", "status": "done"}]}),
 }
 for rel, txt in files.items():
     p = src / rel
@@ -114,7 +114,7 @@ check("xuất ra file zip, tên theo tên bộ não", r.status_code == 200 and r
 zdata = r.content
 names = zipfile.ZipFile(io.BytesIO(zdata)).namelist()
 check("zip có ghi chú, ảnh và manifest", "Kho Hang/wiki/hang.md" in names and "Kho Hang/attachments/anh.png" in names
-      and "Kho Hang/vanhanh-brain.json" in names, names)
+      and "Kho Hang/naota-brain.json" in names, names)
 check("zip KHÔNG có chat thô và token", not any("conversations" in n or ".grok" in n for n in names), names)
 r = cl.post("/brains/export/start", data={"brain": "path:" + tempfile.gettempdir()})
 check("thư mục ngoài BRAINS_DIR: không xuất", r.status_code == 404)
@@ -128,15 +128,15 @@ check("báo đã tắt 1 plugin, 1 vòng lặp, 1 nhắc việc", r.get("paused"
 dst = Path(r["path"])
 check("ghi chú về đủ", (dst / "wiki" / "hang.md").read_text(encoding="utf-8") == "# Hàng tồn")
 check("plugin về ở trạng thái tắt", "enabled: false" in (dst / "plugins/p1/plugin.yaml").read_text(encoding="utf-8"))
-check("vòng lặp về ở trạng thái tắt", "enabled: false" in (dst / "Vanhanh/loops/dem.md").read_text(encoding="utf-8"))
-rem = json.loads((dst / "Vanhanh/reminders.json").read_text(encoding="utf-8"))["reminders"]
+check("vòng lặp về ở trạng thái tắt", "enabled: false" in (dst / "Naota/loops/dem.md").read_text(encoding="utf-8"))
+rem = json.loads((dst / "Naota/reminders.json").read_text(encoding="utf-8"))["reminders"]
 check("nhắc việc đang chờ thành tạm dừng, việc đã xong giữ nguyên", [x["status"] for x in rem] == ["paused", "done"], rem)
 check("bộ não gốc không bị đụng", "enabled: true" in (src / "plugins/p1/plugin.yaml").read_text(encoding="utf-8"))
-check("dựng sẵn cấu trúc chuẩn cho bộ não mới", (dst / "Vanhanh" / "README.md").is_file())
+check("dựng sẵn cấu trúc chuẩn cho bộ não mới", (dst / "Naota" / "README.md").is_file())
 names = [b["name"] for b in cl.get("/brains").json()["brains"]]
 check("bộ não mới hiện trong danh sách", "Kho Hang (2)" in names, names)
 work = Path(_STATE) / "brain-import"
-check("dọn sạch mảnh tải lên và thư mục tạm", not list(work.glob("*.part")) and not list(work.glob(".vanhanh-import-*")),
+check("dọn sạch mảnh tải lên và thư mục tạm", not list(work.glob("*.part")) and not list(work.glob(".naota-import-*")),
       list(work.iterdir()))
 
 r = upload(zdata, label="Tên riêng")
@@ -182,6 +182,68 @@ for lang in ("vi", "en"):
     dd = json.loads((ROOT / "dashboard" / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
     need = [k for k in set(__import__("re").findall(r't\("(bpick\.[a-z_]+)"', bp)) if not dd.get(k)]
     check(f"{lang}: đủ chữ cho khung chọn não", not need, need)
+
+# ---- 2026-11-10: a brain file from somebody else arrives with nothing armed, however it is spelled ----
+import fastyaml  # noqa: E402
+
+_LOOPS = {
+    "exact": "---\nname: a\nenabled: true\nmode: full\n---\nx\n",
+    "comment": "---\nname: a\nenabled: true # on\nmode: full\n---\nx\n",
+    "one": "---\nname: a\nenabled: 1\nmode: full\n---\nx\n",
+    "quoted-value": "---\nname: a\nenabled: \"true\"\nmode: full\n---\nx\n",
+    "quoted-key": "---\nname: a\n\"enabled\": true\nmode: full\n---\nx\n",
+    "upper": "---\nname: a\nEnabled: True\nenabled: yes\nmode: full\n---\nx\n",
+    "flow": "---\n{name: a, enabled: true, mode: full}\n---\nx\n",
+    "off-already": "---\nname: a\nenabled: false\nmode: full\n---\nx\n",
+}
+buf = io.BytesIO()
+with zipfile.ZipFile(buf, "w") as zf:
+    zf.writestr("goc/wiki/a.md", "note")
+    for k, v in _LOOPS.items():
+        zf.writestr(f"goc/Naota/loops/{k}.md", v)
+    zf.writestr("goc/plugins/p2/plugin.yaml", "name: p2\nslug: p2\nenabled: true\n")
+    zf.writestr("goc/plugins/p2/plugin.py", "def register(ctx): pass\n")
+    zf.writestr("goc/.claude/settings.json", '{"hooks": {"PreToolUse": [{"hooks": [{"type": "command", "command": "id"}]}]}}')
+    zf.writestr("goc/.claude/settings.local.json", "{}")
+    zf.writestr("goc/.claude/hooks/run.sh", "id")
+    zf.writestr("goc/.claude/skills/s1/SKILL.md", "---\nname: s1\n---\nhow to")
+    zf.writestr("goc/.codex/config.toml", "x = 1")
+    zf.writestr("goc/.agents/hooks.json", "{}")
+    zf.writestr("goc/.agents/skills/s2/SKILL.md", "---\nname: s2\n---\nhow to")
+    zf.writestr("goc/.gemini/settings.json", "{}")
+    zf.writestr("goc/sub/.grok/config.toml", "x = 1")
+r = bx.import_zip(io.BytesIO(buf.getvalue()), Path(os.environ["BRAINS_DIR"]), filename="la.zip",
+                  work_dir=Path(_STATE) / "brain-import")
+dst2 = Path(r["path"])
+still_on = []
+for f in sorted((dst2 / "Naota" / "loops").iterdir()):
+    if f.suffix != ".md":
+        continue
+    m = __import__("self_improve")._FM_RE.match(f.read_text(encoding="utf-8"))
+    fm = fastyaml.safe_load(m.group(1)) if m else None
+    if isinstance(fm, dict) and bool(fm.get("enabled", False)):
+        still_on.append(f.name)
+check("no imported loop is on when read the way the loop loader reads it", not still_on, still_on)
+check("seven of the eight loops were on and are reported as switched off", r["paused"]["loops"] == 7, r["paused"])
+check("a loop that could not be edited safely is set aside, not deleted",
+      (dst2 / "Naota/loops/flow.md.off").is_file() and not (dst2 / "Naota/loops/flow.md").exists())
+check("a loop already off is left as it was",
+      (dst2 / "Naota/loops/off-already.md").read_text(encoding="utf-8") == _LOOPS["off-already"])
+check("the body and the other keys of a loop survive",
+      "mode: full" in (dst2 / "Naota/loops/comment.md").read_text(encoding="utf-8")
+      and (dst2 / "Naota/loops/comment.md").read_text(encoding="utf-8").endswith("---\nx\n"))
+check("the plugin comes in switched off", "enabled: false" in (dst2 / "plugins/p2/plugin.yaml").read_text(encoding="utf-8"))
+check("Claude Code settings and hooks do not come in",
+      not (dst2 / ".claude/settings.json").exists() and not (dst2 / ".claude/settings.local.json").exists()
+      and not (dst2 / ".claude/hooks").exists())
+check("skills kept under .claude do come in", (dst2 / ".claude/skills/s1/SKILL.md").is_file())
+check("other engines' config folders do not come in",
+      not any((dst2 / d).exists() for d in (".codex", ".agents/hooks.json", ".gemini", "sub/.grok")))
+check("skills kept under .agents do come in", (dst2 / ".agents/skills/s2/SKILL.md").is_file())
+check("import_kept_out: spellings of the same folders", bx.import_kept_out(".Codex/config.toml")
+      and bx.import_kept_out(".CLAUDE/Settings.json") and not bx.import_kept_out("wiki/.claude-notes.md")
+      and not bx.import_kept_out(".claude/skills/a/SKILL.md") and not bx.import_kept_out(".agents/skills/a/SKILL.md")
+      and bx.import_kept_out(".agents/skills") and bx.import_kept_out(".claude/hooks/x.sh"))
 
 if _fails:
     print(f"\nFAIL {len(_fails)}: " + ", ".join(_fails))

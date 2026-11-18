@@ -1,11 +1,11 @@
-"""Plan-name catalog: the name a vendor sells a plan under today, kept in vanhanh-store.
+"""Plan-name catalog: the name a vendor sells a plan under today, kept in naota-store.
 
 Why
 ---
 Only Claude Code sends the plan's selling name (`planDisplayName`, see `plan_limits.ten_goi_claude`).
 Codex sends a CODE that no longer matches the name: `prolite` is the $100 tier, `pro` the renamed
-$200 one. Grok and Antigravity send little or nothing. A table in Vanhanh's code would need a new
-release every time a vendor renames a plan, so the table lives in vanhanh-store
+$200 one. Grok and Antigravity send little or nothing. A table in Naota's code would need a new
+release every time a vendor renames a plan, so the table lives in naota-store
 (`plan-names.json`, next to `index.json`). The store owner edits that file when a vendor renames
 something, and every machine picks it up here.
 
@@ -30,7 +30,7 @@ from config import STATE_DIR
 CACHE = STATE_DIR / "plan-names-cache.json"
 TTL = 6 * 3600
 RETRY = 30 * 60
-FORMAT = "vanhanh-plan-names"
+FORMAT = "naota-plan-names"
 FORMAT_VERSION = 1
 NHA = ("claude", "codex", "grok", "agy")
 MAX_BYTES = 64 * 1024
@@ -41,7 +41,7 @@ _STATE = {"mem": None, "running": False, "fail_at": 0.0}
 
 def ten_hop_le(v) -> bool:
     """1-40 characters of letters, digits, spaces and `.+-`, starting and ending on a letter or digit
-    (`+` may end it). The rule Claude Code applies to `plan_display_name`, and vanhanh-store's checker."""
+    (`+` may end it). The rule Claude Code applies to `plan_display_name`, and naota-store's checker."""
     if not isinstance(v, str) or not 1 <= len(v) <= 40 or not v[0].isalnum():
         return False
     if len(v) > 1 and not (v[-1].isalnum() or v[-1] == "+"):
@@ -74,9 +74,9 @@ def lam_sach(d) -> dict:
 
 
 def url_danh_ba() -> str:
-    """`plan-names.json` next to the pack catalog the machine uses. `VANHANH_PLAN_NAMES_URL` overrides it;
+    """`plan-names.json` next to the pack catalog the machine uses. `NAOTA_PLAN_NAMES_URL` overrides it;
     an empty value turns the catalog off."""
-    env = os.environ.get("VANHANH_PLAN_NAMES_URL")
+    env = os.environ.get("NAOTA_PLAN_NAMES_URL")
     if env is not None:
         return env.strip()
     try:

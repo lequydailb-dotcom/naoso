@@ -18,7 +18,7 @@ import tempfile
 import threading
 import time
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-sharedwatch-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-sharedwatch-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -39,7 +39,7 @@ from starlette.testclient import TestClient  # noqa: E402
 import watchfiles  # noqa: E402
 
 # ---- nested roots are watched once ----
-base = tempfile.mkdtemp(prefix="vanhanh-sharedwatch-roots-")
+base = tempfile.mkdtemp(prefix="naota-sharedwatch-roots-")
 inner = os.path.join(base, "inner")
 sibling = base + " b"
 os.makedirs(inner)
@@ -49,7 +49,7 @@ check("a root inside another root is dropped, a sibling with the same prefix is 
       got == [os.path.normpath(base), os.path.normpath(sibling)], got)
 
 # ---- sockets share one watcher ----
-root = tempfile.mkdtemp(prefix="vanhanh-sharedwatch-vault-")
+root = tempfile.mkdtemp(prefix="naota-sharedwatch-vault-")
 builds = []
 events = queue.Queue()
 stopped = threading.Event()

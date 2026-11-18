@@ -48,7 +48,7 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var tw = function (k, v) { return window.t ? window.t(k, v) : k; };
-  var LOC = function () { return (window.VanhanhI18n && window.VanhanhI18n.locale()) || "vi-VN"; };
+  var LOC = function () { return (window.NaotaI18n && window.NaotaI18n.locale()) || "vi-VN"; };
   var data = null, provider = "", busy = null, lastFetch = 0, names = {};
 
   function cur() {
@@ -71,6 +71,9 @@
     if (!btn) return;
     var c = cur();
     btn.hidden = !c.brain;
+    // Phone (2026-11-11): the ring is the left end of the one pill it forms with the model and Effort chips; the row
+    // needs to know whether it is there to round the right corners.
+    if (btn.parentElement) btn.parentElement.classList.toggle("has-ring", !!c.brain);
     if (!c.brain) { closePop(); return; }
     var n = data && data.nguong, d = c.d;
     var pct = d ? d.max : 0;
@@ -123,9 +126,14 @@
     var rows = pop.querySelectorAll(".lim-row"), ws = [], labels = [];
     if (d.five_hour) { ws.push(d.five_hour); labels.push(tw("lim.session")); }
     if (d.seven_day) { ws.push(d.seven_day); labels.push(tw("lim.week")); }
+    // In the phone sheet a meter is one line (name, reset time, percent), so the percent stands alone there; the
+    // full "used" wording stays as its tooltip and for screen readers.
+    var inSheet = !!(pop.closest && pop.closest(".cp-sheet.is-open"));
     rows.forEach(function (r, i) {
       r.querySelector(".lim-name").textContent = labels[i];
-      r.querySelector(".lim-pct").textContent = tw("lim.used", { n: ws[i].pct });
+      var pctEl = r.querySelector(".lim-pct"), used = tw("lim.used", { n: ws[i].pct });
+      pctEl.textContent = inSheet ? ws[i].pct + "%" : used;
+      if (inSheet) { pctEl.title = used; pctEl.setAttribute("aria-label", used); }
       var rs = r.querySelector(".lim-reset");
       if (rs) rs.textContent = resetText(ws[i]);
     });
@@ -143,7 +151,7 @@
   function openPop() {
     var p = $("limitPop"), b = $("limitBtn");
     if (!p || !b) return;
-    try { if (window.VanhanhModelBar && window.VanhanhModelBar.closeAll) window.VanhanhModelBar.closeAll(); } catch (e) {}
+    try { if (window.NaotaModelBar && window.NaotaModelBar.closeAll) window.NaotaModelBar.closeAll(); } catch (e) {}
     p.hidden = false;
     b.setAttribute("aria-expanded", "true");
     paintPop();
@@ -151,6 +159,22 @@
     var maxLeft = card ? Math.max(8, card.clientWidth - p.offsetWidth - 8) : 8;
     p.style.left = Math.min(b.offsetLeft, maxLeft) + "px";
     refresh(true, true);
+  }
+
+  // Phone sheet (model-picker.js): the two meters as one panel of the sheet. No placing, and nothing else is closed.
+  function showInSheet() {
+    var p = $("limitPop"), b = $("limitBtn");
+    if (!p || !cur().brain) return false;
+    p.hidden = false;
+    p.style.left = "";
+    if (b) b.setAttribute("aria-expanded", "true");
+    paintPop();
+    refresh(true, true);
+    return true;
+  }
+  // True while model-picker.js owns the three chips (a phone, or its sheet still open): it opens and closes this panel.
+  function sheetOwns() {
+    try { return !!(window.NaotaModelBar && window.NaotaModelBar.sheetOwns && window.NaotaModelBar.sheetOwns()); } catch (e) { return false; }
   }
 
   // withNames: the popover opening also asks the server to name each plan (it may run `claude auth status`).
@@ -174,17 +198,19 @@
   }
 
   document.addEventListener("click", function (e) {
+    if (sheetOwns()) return;
     if (e.target.closest && e.target.closest("#limitBtn")) { popOpen() ? closePop() : openPop(); return; }
     if (popOpen() && !(e.target.closest && e.target.closest("#limitPop"))) closePop();
   });
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && popOpen()) { closePop(); var b = $("limitBtn"); if (b) b.focus(); }
+    if (e.key === "Escape" && popOpen() && !sheetOwns()) { closePop(); var b = $("limitBtn"); if (b) b.focus(); }
   });
 
-  window.addEventListener("vanhanh:i18n", paintRing);
+  window.addEventListener("naota:i18n", paintRing);
 
   api.setProvider = setProvider;
   api.refresh = function () { return refresh(true); };
   api.close = closePop;
-  window.VanhanhPlanLimit = api;
+  api.showInSheet = showInSheet;
+  window.NaotaPlanLimit = api;
 })();

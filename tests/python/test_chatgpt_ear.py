@@ -4,7 +4,7 @@
 
 "if the subscription has a Whisper, use it", then "no setting, it sorts itself by the main model in
 use: on ChatGPT use that plan's Whisper, the same for Claude, Antigravity and Grok". Of the four plans only ChatGPT gives
-Vanhanh an ear (the dictation endpoint of the ChatGPT and Codex Desktop apps, on the login Vanhanh already holds). Locks:
+Naota an ear (the dictation endpoint of the ChatGPT and Codex Desktop apps, on the login Naota already holds). Locks:
   - the ChatGPT ear is available as soon as ChatGPT is connected on the Models page, no key;
   - auto puts the main brain's own vendor first (ChatGPT plan, Groq, OpenAI), then Groq, ChatGPT, OpenAI;
   - Claude, Antigravity and Grok brains get the best ear the machine has;
@@ -18,7 +18,7 @@ import asyncio
 import os
 import tempfile
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-gpt-ear-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-gpt-ear-"))
 
 import main  # noqa: E402
 import stt  # noqa: E402
@@ -197,7 +197,7 @@ try:
     run(stt.listen_any(b"x", "a.ogg", {"groq": "g", "chatgpt": {"access_token": "tok"}}))
     check("no order given: Groq first, as before", CALLS == ["groq"])
     CALLS.clear()
-    ANSWERS["chatgpt"] = {"ok": False, "ly_do": "loi", "noi_voi_vanhanh": "x"}
+    ANSWERS["chatgpt"] = {"ok": False, "ly_do": "loi", "noi_voi_naota": "x"}
     res = run(stt.listen_any(b"x", "a.ogg", keys, order=["chatgpt"]))
     check("ChatGPT ear down -> the next ear hears the voice message",
           CALLS == ["chatgpt", "groq"] and res["ear"] == "groq", CALLS)
@@ -211,7 +211,7 @@ try:
     check("dashboard mic: ChatGPT ear down -> Groq hears the sentence",
           CALLS == ["chatgpt", "groq"] and res["ok"] and res["text"] == "nghe bằng groq", (CALLS, res))
     CALLS.clear()
-    ANSWERS["chatgpt"] = {"ok": False, "ly_do": "khong_nghe_ro", "noi_voi_vanhanh": "x"}
+    ANSWERS["chatgpt"] = {"ok": False, "ly_do": "khong_nghe_ro", "noi_voi_naota": "x"}
     res = run(voice_ear.transcribe_upload(cfg(GPT, GROQ), b"x", "v.webm", "auto", "", provider="chatgpt",
                                           fallbacks=["groq"]))
     check("silence is silence: no second ear, the browser keeps its text",
@@ -271,7 +271,7 @@ try:
               CALLS[:1] == ["chatgpt"], CALLS)
         CALLS.clear()
         run(main._stt_nghe(b"OggS", "voice.oga"))
-        check("the same voice message to Vanhanh itself -> Groq, the main model's vendor", CALLS[:1] == ["groq"], CALLS)
+        check("the same voice message to Naota itself -> Groq, the main model's vendor", CALLS[:1] == ["groq"], CALLS)
 
         SESSIONS["s-agent"] = {"channel": "agent:seller", "brain": "brain"}
         SESSIONS["s-pinned"] = {"channel": "web", "pinned_provider": "groq", "pinned_model": "llama"}

@@ -15,7 +15,7 @@ import tempfile
 
 from _paths import ROOT, SERVER  # noqa: E402,F401
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-wf-main-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-wf-main-"))
 
 import aux_engine  # noqa: E402
 import main  # noqa: E402

@@ -29,7 +29,7 @@ def check(name, cond):
         _fails.append(name)
 
 
-with tempfile.TemporaryDirectory(prefix="vanhanh-codex-context-") as tmp:
+with tempfile.TemporaryDirectory(prefix="naota-codex-context-") as tmp:
     tmp_path = Path(tmp)
 
     # 1) DB cũ tự thêm cột riêng của Codex, không đụng cli_session_id của Claude.
@@ -63,9 +63,9 @@ with tempfile.TemporaryDirectory(prefix="vanhanh-codex-context-") as tmp:
     store._conn.close()
 
     # 2) Lượt mới và lượt resume dựng đúng argv theo CLI chính thức.
-    cli = CodexCLI(cwd=tmp, model="gpt-test", instructions="Bạn là Vanhanh.")
+    cli = CodexCLI(cwd=tmp, model="gpt-test", instructions="Bạn là Naota.")
     cli.cli_path = "codex"
-    cli.profile = "vanhanh"
+    cli.profile = "naota"
     fresh_args = cli._build_args()
     check("argv: lượt mới không có resume", "resume" not in fresh_args and fresh_args[-1] == "-")
     cli.session_id = "0199a213-81c0-7800-8aa1-bbab2a035a53"
@@ -108,14 +108,14 @@ with tempfile.TemporaryDirectory(prefix="vanhanh-codex-context-") as tmp:
         {"role": "assistant", "content": "Tôi đã ghi nhớ tên Sao Mai."},
     ]
     prompt = compaction.codex_bootstrap_prompt(history, "Tên dự án là gì?", max_chars=4000)
-    check("bootstrap: có lịch sử hai vai", "<User>" in prompt and "<Vanhanh>" in prompt)
+    check("bootstrap: có lịch sử hai vai", "<User>" in prompt and "<Naota>" in prompt)
     check("bootstrap: giữ yêu cầu hiện tại", prompt.endswith("Tên dự án là gì?"))
     check("bootstrap: không vượt trần khi current ngắn", len(prompt) <= 4000)
 
     huge = [{"role": "user", "content": "cũ-" + ("x" * 5000)},
             {"role": "assistant", "content": "mới-" + ("y" * 1200)}]
     clipped = compaction.codex_bootstrap_prompt(huge, "tiếp tục", max_chars=2200)
-    check("bootstrap: cắt phần cũ, giữ phần mới", "mới-" in clipped and "phần lịch sử cũ hơn" in clipped)
+    check("bootstrap: cắt phần cũ, giữ phần mới", "mới-" in clipped and "older history left out" in clipped)
 
     # 5) Chỉ fallback khi đúng lỗi mất thread; lỗi auth/model không tự chạy lại.
     check("fallback: nhận diện thread không tồn tại",

@@ -145,7 +145,7 @@ def rename(token: str, nhan: str):
 # ---------------------------------------------------------------- custom address (slug)
 #
 # "ngoài đổi tên thì có thể đổi được đường dẫn phía sau". A link can carry a readable address,
-# /s/vibecode-vanhanh, next to its random token. Three rules:
+# /s/vibecode-naota, next to its random token. Three rules:
 #
 # 1. The random token KEEPS working. Links already sent out must not break, and the token is the unguessable one, so
 #    keeping it opens nothing new. Revoking kills both at once.
@@ -157,7 +157,7 @@ SLUG_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$")
 
 
 def slugify(text: str) -> str:
-    """'Vibecode Vanhanh GitHub!' -> 'vibecode-vanhanh-github'. Strips Vietnamese marks (đ -> d)."""
+    """'Vibecode Naota GitHub!' -> 'vibecode-naota-github'. Strips Vietnamese marks (đ -> d)."""
     t = unicodedata.normalize("NFD", str(text or "")).replace("đ", "d").replace("Đ", "D")
     t = "".join(c for c in t if unicodedata.category(c) != "Mn").lower()
     t = re.sub(r"[^a-z0-9]+", "-", t).strip("-")

@@ -28,11 +28,11 @@ prompt = voice_persona.apply(voice_live.CHATGPT_LIVE_PROMPT, name, block)
 
 check("partner identity is at the very start of the voice prompt",
       prompt.startswith("# Bạn là ai trong cuộc gọi này\n"))
-check("agent is identified before the generic Vanhanh instructions",
+check("agent is identified before the generic Naota instructions",
       prompt.index("Bạn là **Milo**") < prompt.index("Bạn là Milo, một cộng sự"))
 check("English self-identification survives prompt construction",
       'When asked in English "Who are you?"' in prompt
-      and "I'm Milo, an AI assistant working within VANHANH." in prompt)
+      and "I'm Milo, an AI assistant working within NAOTA." in prompt)
 check("fictional academy role survives prompt construction",
       "ABC Company" in prompt)
 
@@ -45,7 +45,7 @@ check("realtime/start sends the exact agent prompt to the provider",
       params["prompt"].startswith(prompt + "\n\n") and params["version"] == "v3")
 check("a second handshake preserves identity rather than falling back to ChatGPT",
       provider.start_params("reconnect-offer")["prompt"] == params["prompt"])
-check("ordinary Vanhanh call keeps the normal prompt",
+check("ordinary Naota call keeps the normal prompt",
       voice_live.ChatGPTLive(
           app_server_getter=lambda *args, **kwargs: None
       ).start_params("plain-offer")["prompt"].startswith(voice_live.CHATGPT_LIVE_PROMPT + "\n\n"))
@@ -68,9 +68,9 @@ try:
     voice_live.make_provider({}, memory_index="Unrelated main Brain context",
                              persona=(name, block))
     check("partner call excludes unrelated global Brain memory", seen[-1] == "")
-    voice_live.make_provider({}, memory_index="Normal Vanhanh memory")
-    check("ordinary Vanhanh call retains its global memory index",
-          seen[-1] == "Normal Vanhanh memory")
+    voice_live.make_provider({}, memory_index="Normal Naota memory")
+    check("ordinary Naota call retains its global memory index",
+          seen[-1] == "Normal Naota memory")
 finally:
     voice_live._make_provider = original_factory
 

@@ -1,6 +1,6 @@
-"""Keeps a Vanhanh whose address leaked out of search results and away from AI crawlers.
+"""Keeps a Naota whose address leaked out of search results and away from AI crawlers.
 
-Purpose: block indexing and keep AI bots away from Vanhanh when the admin link leaks out. A
+Purpose: block indexing and keep AI bots away from Naota when the admin link leaks out. A
 dashboard reachable from the Internet (VPS, Cloudflare Tunnel, Tailscale Funnel) does get found: its domain shows up in
 certificate transparency logs, a link pasted into a group chat gets crawled, and device search engines (Shodan, Censys)
 scan every address. The login gate already keeps the data behind a password; this module keeps the address itself out
@@ -22,16 +22,16 @@ answering it 403 plus noindex is what removes a leaked link for good. Do not "fi
 into the Disallow group.
 
 Never blocked:
-- requests made on this machine itself (loopback, no forwarding header): Vanhanh's own tools and engines;
+- requests made on this machine itself (loopback, no forwarding header): Naota's own tools and engines;
 - machine endpoints that outside services must reach (webhooks, OAuth callbacks, the MCP hub, plugin routes under
-  /ext/ and /.well-known/ such as Vanhanh Gate for ChatGPT and Claude), see `exempt()`;
+  /ext/ and /.well-known/ such as Naota Gate for ChatGPT and Claude), see `exempt()`;
 - share links under /s/: a link the owner hands out stays readable by whatever the receiver opens it with,
   an AI assistant included (it still carries noindex, so it never lands in search results);
 - link previews (facebookexternalhit, TelegramBot, Zalo, Slackbot, Discordbot, Twitterbot...): they are on no list, so a
   share link pasted into a chat still shows its card;
-- ordinary HTTP clients (curl, python-requests, httpx, the claude CLI): the Vanhanh CLI and scripts use them.
+- ordinary HTTP clients (curl, python-requests, httpx, the claude CLI): the Naota CLI and scripts use them.
 
-`VANHANH_BLOCK_BOTS=0` turns the 403 off, an escape hatch for an integration whose User-Agent happens to match. The noindex
+`NAOTA_BLOCK_BOTS=0` turns the 403 off, an escape hatch for an integration whose User-Agent happens to match. The noindex
 header and robots.txt stay: on a private dashboard they cost nothing.
 """
 from __future__ import annotations
@@ -104,7 +104,7 @@ _GROUPS = (("ai", _AI_UA), ("search", SEARCH_ENGINES_UA), ("seo", SEO_TOOLS_UA),
 MACHINE_PREFIXES = ("/hooks/", "/ext/", "/.well-known/", "/chatbot-api/", "/s/")
 MACHINE_EXACT = frozenset({
     "/robots.txt", "/health", "/tls-check", "/hub/mcp",
-    "/whatsapp/webhook", "/messenger/webhook", "/threads/webhook", "/zalo-oa/webhook",
+    "/whatsapp/webhook", "/messenger/webhook", "/threads/webhook", "/zalo-oa/webhook", "/wechat/webhook",
     "/connect/oauth/callback", "/messenger/oauth/callback", "/threads/oauth/callback", "/zalo-oa/oauth/callback",
     "/threads/uninstall", "/threads/delete", "/messenger/privacy",
 })
@@ -114,13 +114,13 @@ MACHINE_EXACT = frozenset({
 FORWARD_HEADERS = ("x-forwarded-for", "x-real-ip", "forwarded", "cf-connecting-ip")
 
 _OFF = ("0", "false", "no", "off")
-_BLOCK_BODY = b"Vanhanh is private. Automated access is not allowed.\n"
+_BLOCK_BODY = b"Naota is private. Automated access is not allowed.\n"
 
 
 def block_enabled() -> bool:
-    """The 403 layer is on unless VANHANH_BLOCK_BOTS says off. Read per request so a test or a restart-free env change
+    """The 403 layer is on unless NAOTA_BLOCK_BOTS says off. Read per request so a test or a restart-free env change
     takes effect."""
-    return (os.getenv("VANHANH_BLOCK_BOTS", "") or "").strip().lower() not in _OFF
+    return (os.getenv("NAOTA_BLOCK_BOTS", "") or "").strip().lower() not in _OFF
 
 
 def classify(user_agent: str, signature_agent: str = "") -> str:
@@ -150,7 +150,7 @@ def exempt(path: str) -> bool:
 def robots_txt() -> str:
     """The /robots.txt body. Built from the lists above so robots.txt and the 403 never disagree."""
     lines = [
-        "# Vanhanh is a private dashboard. Nothing here may be indexed or used to train or feed AI.",
+        "# Naota is a private dashboard. Nothing here may be indexed or used to train or feed AI.",
         "",
         "# AI crawlers and assistants: fetch nothing.",
     ]

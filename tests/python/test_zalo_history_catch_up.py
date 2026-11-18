@@ -1,10 +1,10 @@
-"""Private Zalo messages that never reached the live feed are caught up from the vanhanh-zalo history file.
+"""Private Zalo messages that never reached the live feed are caught up from the naota-zalo history file.
 
     python tests/run.py zalo_history_catch_up      (no network, no MCP)
 
 Field report the inbox stopped a private chat at 09:28 while the phone went on until 09:53, messages
 both ways, and `zalo_get_history` had all of them. Owner, same day: no schedule, only work where there is a signal.
-So `zalo_personal_channel` watches vanhanh-zalo's `history.jsonl`: an unchanged file costs one stat call, new lines are
+So `zalo_personal_channel` watches naota-zalo's `history.jsonl`: an unchanged file costs one stat call, new lines are
 queued, and `catch_up` writes the ones the inbox is missing. This file guards (see the comment block in the module):
   the signal (nothing done while the file does not grow, only new lines read, a half-written line waits, a rewrite is
   survived), 1. private chats only, 2. a new line waits RECONCILE_MIN_AGE and a drained read,
@@ -20,7 +20,7 @@ import sys
 import tempfile
 import time
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-zcatch-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-zcatch-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -39,7 +39,7 @@ def check(name, cond, extra=""):
 
 
 NOW = time.time()
-CONN = {"id": "zalo-1", "label": "Minh Quy", "connector_id": "zalo"}
+CONN = {"id": "zalo-1", "label": "Lan Anh", "connector_id": "zalo"}
 
 
 def hist(mid, thread, text, minutes_ago, self_=False, ttype="dm", sender="u-xa", name="Xuan Anh", kind="text"):
@@ -49,7 +49,7 @@ def hist(mid, thread, text, minutes_ago, self_=False, ttype="dm", sender="u-xa",
 
 
 def live(mid, thread, text, minutes_ago, sender_type="customer"):
-    return {"channel": "zalo_personal", "account_id": "zalo-1", "account_name": "Minh Quy",
+    return {"channel": "zalo_personal", "account_id": "zalo-1", "account_name": "Lan Anh",
             "external_chat_id": thread, "chat_type": "private", "sender_type": sender_type,
             "sender_id": "u-xa" if sender_type == "customer" else "", "sender_name": "Xuan Anh",
             "message_type": "text", "text": text, "external_message_id": mid,
@@ -76,7 +76,7 @@ HISTORY = [
     hist(11, "new", "old chat before the first read", 50, sender="u-n", name="Khach N"),   # rule 6
     hist(12, "new", "new chat after the first read", 5, sender="u-n", name="Khach N"),
 ]
-HOME = tempfile.mkdtemp(prefix="vanhanh-zhome-")
+HOME = tempfile.mkdtemp(prefix="naota-zhome-")
 CONN = dict(CONN, env={"HOME": HOME})
 PATH = zc.history_path(CONN)
 os.makedirs(os.path.dirname(PATH), exist_ok=True)
@@ -166,7 +166,7 @@ check("rule 6: an unknown chat only takes messages from after the first read",
       new_texts == ["new chat after the first read"], new_texts)
 check("the queue is empty once released", not tt.get("history_pending"), tt.get("history_pending"))
 
-# ---- The same lines again (vanhanh-zalo rewrote the file): nothing written twice
+# ---- The same lines again (naota-zalo rewrote the file): nothing written twice
 before = int(xa["message_count"])
 with real_open(PATH, "rb") as f:
     content = f.read()

@@ -15,7 +15,7 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-ghpr-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-ghpr-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -24,7 +24,7 @@ except Exception:
 from _fake_github import FakeGitHub, GOOD_TOKEN  # noqa: E402
 
 fake = FakeGitHub()
-os.environ["VANHANH_GITHUB_API"] = fake.url
+os.environ["NAOTA_GITHUB_API"] = fake.url
 
 import github_repos  # noqa: E402
 import github_store  # noqa: E402

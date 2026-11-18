@@ -69,8 +69,8 @@
     return n ? n[0].toUpperCase() + n.slice(1) : n;
   }
   const $ = (id) => document.getElementById(id);
-  const curSid = () => { try { return (window.VanhanhSessions && window.VanhanhSessions.current()) || null; } catch (e) { return null; } };
-  const curBrain = () => { try { return (window.VanhanhSessions && window.VanhanhSessions.brain()) || ""; } catch (e) { return ""; } };
+  const curSid = () => { try { return (window.NaotaSessions && window.NaotaSessions.current()) || null; } catch (e) { return null; } };
+  const curBrain = () => { try { return (window.NaotaSessions && window.NaotaSessions.brain()) || ""; } catch (e) { return ""; } };
   // Model ĐANG HIỆU LỰC cho khung chat trước mặt: ghim của phiên thắng mặc định chung.
   const effective = () => sessionPin || state.main;
   // What the composer SHOWS ("khung chat bị chuyển thì phải chuyển luôn model ở khung đang chat"): the
@@ -94,7 +94,7 @@
     fd.append("level", level);
     fd.append("brain", curBrain() || "brain");
     try { await fetch(`/agents/${encodeURIComponent(slug)}/reasoning`, { method: "POST", body: fd }); } catch (e) {}
-    try { window.dispatchEvent(new CustomEvent("vanhanh:agent-reasoning", { detail: { slug: slug, level: level } })); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("naota:agent-reasoning", { detail: { slug: slug, level: level } })); } catch (e) {}
   }
 
   async function pinToSession(sid, prov, model) {
@@ -105,11 +105,11 @@
     try { await fetch(`/sessions/${encodeURIComponent(sid)}/model`, { method: "POST", body: fd }); } catch (e) {}
   }
 
-  // a Vanhanh Core chat's pin is Vanhanh Core's pin, also shown and set as the Model of its card on the Partners
+  // a Naota Core chat's pin is Naota Core's pin, also shown and set as the Model of its card on the Partners
   // page (the agent editor). The chip tells the page through one event.
-  const CORE_EVENT = "vanhanh:core-model";
+  const CORE_EVENT = "naota:core-model";
   function coreChanged() {
-    if (!(agentEff && agentEff.slug === "vanhanh-core")) return;
+    if (!(agentEff && agentEff.slug === "naota-core")) return;
     try { window.dispatchEvent(new CustomEvent(CORE_EVENT, { detail: { from: "chat" } })); } catch (e) {}
   }
 
@@ -187,7 +187,7 @@
   function fallbackTitle(r, selP, runP) {
     const why = r.reason === "quota"
       ? (r.until ? window.t("mpick.route_quota_until", { time: hhmm(r.until) }) : window.t("mpick.route_quota"))
-      : window.t("mpick.route_unavailable");
+      : r.reason === "signin" ? window.t("mpick.route_signin") : window.t("mpick.route_unavailable");
     const sel = (selP ? selP.label : r.selected_name || r.selected_provider) + " · "
       + (r.selected_model || defText(r.selected_provider));
     const run = (runP ? runP.label : r.name || r.provider) + " · " + (r.model || defText(r.provider));
@@ -202,12 +202,18 @@
     if (d.fallback) return prev && prev.fallback && prev.provider === d.provider ? "" : (d.content || "");
     return prev && prev.fallback ? window.t("mpick.route_back", { nha: d.name || d.provider }) : "";
   }
-  // Tags in the picker: a card resting out of quota, and the card a fallback turn really runs on.
+  // Tags in the picker: a card resting out of quota, a card that lost its sign-in, and the card a fallback turn
+  // really runs on.
   function routeTags(pid) {
     let h = "";
     if (route && route.limited && route.limited[pid]) {
       h += ' <span class="mb-tag is-limited" title="' + escAttr(route.limited[pid] ? window.t("mpick.route_quota_until",
         { time: hhmm(route.limited[pid]) }) : "") + '">' + escAttr(window.t("mpick.tag_limited")) + "</span>";
+    }
+    // A card that lost its sign-in needs the owner, not a wait: its own tag, never "out of quota until".
+    if (route && Array.isArray(route.signed_out) && route.signed_out.indexOf(pid) >= 0) {
+      h += ' <span class="mb-tag is-limited" title="' + escAttr(window.t("mpick.tag_signed_out_tip")) + '">'
+        + escAttr(window.t("mpick.tag_signed_out")) + "</span>";
     }
     if (route && route.fallback && route.provider === pid) {
       h += ' <span class="mb-tag is-running">' + escAttr(window.t("mpick.tag_running")) + "</span>";
@@ -231,7 +237,7 @@
       mt.textContent = fb ? chipLabel({ provider: fb.provider, model: fb.model }, runP) : chipLabel(eff, p);
       mt.title = fb ? fallbackTitle(fb, state.providers.find((x) => x.id === fb.selected_provider), runP)
         : (p ? p.label + " · " + (eff.model || defText(eff.provider)) + "\n" : "") + (sessionPin
-        ? window.t(agentEff && agentEff.slug === "vanhanh-core" ? "mpick.core_pin_title" : "mpick.pin_title")
+        ? window.t(agentEff && agentEff.slug === "naota-core" ? "mpick.core_pin_title" : "mpick.pin_title")
         : pinBroken
           ? window.t(pinLimited ? "mpick.pin_limited_title" : "mpick.pin_broken_title")
           : window.t("mpick.follow_default"));
@@ -260,8 +266,8 @@
     if (eb) {
       // A locked Antigravity model runs at the level in its name, so the chip shows that level.
       const effM = shown();
-      const own = window.VanhanhEffortSlider && window.VanhanhEffortSlider.isLocked(effM.provider, effM.model)
-        ? window.VanhanhEffortSlider.lockedLevel(effM.model) : "";
+      const own = window.NaotaEffortSlider && window.NaotaEffortSlider.isLocked(effM.provider, effM.model)
+        ? window.NaotaEffortSlider.lockedLevel(effM.model) : "";
       const lvl = shownEffort();
       eb.textContent = window.t(EFF_KEY[own || (EFFORT.find((e) => e[0] === lvl) || EFFORT[0])[0]]);
       const effB = $("effBtn");
@@ -287,7 +293,7 @@
     const fi = $("effFast");
     if (fi) fi.hidden = !on;
     if (effSlider && effSlider.refreshFast) effSlider.refreshFast();
-    try { if (window.VanhanhPlanLimit) window.VanhanhPlanLimit.setProvider(eff.provider); } catch (e) {}
+    try { if (window.NaotaPlanLimit) window.NaotaPlanLimit.setProvider(eff.provider); } catch (e) {}
   }
   // FAST_STATE_BEGIN
   // Tooltip line for the last Fast mode state a brain reported (server: fast_mode.states()).
@@ -334,7 +340,7 @@
       noWait: true,
       connectedOnly: true,   // providers not connected are not listed in the chat picker
     };
-    let html = await window.VanhanhModelList.render(o);
+    let html = await window.NaotaModelList.render(o);
     if (luot !== luotVe || pop.hidden) return;
     // An assistant's chat with its own model: one row to go back to following the main chat's model.
     if (agentEff && (sessionPin || pinBroken)) {
@@ -357,18 +363,24 @@
     }
   }
 
+  // Đang gõ trong ô chat mà bấm chip model: hạ bàn phím xuống trước, kẻo bàn phím che bảng.
+  function dropKeyboard() {
+    if (!camUng()) return;
+    const a = document.activeElement;
+    if (a && a !== document.body && typeof a.blur === "function") a.blur();
+  }
   function open() {
     const pop = $("mbPop");
     if (!pop) return;
+    if (sheetMode()) { sheetOpen(); return; }
     effClose(); closePlus(); closeLimit();
-    // Đang gõ trong ô chat mà bấm chip model: hạ bàn phím xuống trước, kẻo bàn phím che bảng.
-    if (camUng()) {
-      const a = document.activeElement;
-      if (a && a !== document.body && typeof a.blur === "function") a.blur();
-    }
+    dropKeyboard();
     pop.hidden = false; renderPop();
   }
-  function close() { const pop = $("mbPop"); if (pop) pop.hidden = true; }
+  function close() {
+    if (sheetIsOpen()) { sheetClose(); return; }
+    const pop = $("mbPop"); if (pop) pop.hidden = true;
+  }
   function isOpen() { const pop = $("mbPop"); return pop && !pop.hidden; }
 
   // Where the slider's level goes: the assistant's own level, the fallback card's own effort while one answers (its card
@@ -387,16 +399,18 @@
 
   // Effort chip: split from the model picker, opens a small popover with a slider.
   let effSlider = null;
-  function effOpen() {
+  // Draws the slider into #effPop. Shared by the popover of a computer and the sheet of a phone.
+  function effMount() {
     const pop = $("effPop"), btn = $("effBtn");
-    if (!pop || !window.VanhanhEffortSlider) return;
-    close(); closePlus(); closeLimit();
+    if (!pop || !window.NaotaEffortSlider) return false;
+    if (effSlider) { effSlider.destroy(); effSlider = null; }
     const eff = shown();
     pop.hidden = false;
-    const locked = window.VanhanhEffortSlider.isLocked(eff.provider, eff.model);
+    pop.style.left = "";
+    const locked = window.NaotaEffortSlider.isLocked(eff.provider, eff.model);
     if (btn) btn.setAttribute("aria-expanded", "true");
     const fn = fastNote(eff.provider, eff.model);
-    effSlider = window.VanhanhEffortSlider.mount(pop, {
+    effSlider = window.NaotaEffortSlider.mount(pop, {
       value: shownEffort(),
       fast: {
         supported: fn.supported, on: state.fast, title: fastTitle,
@@ -404,9 +418,16 @@
         onToggle: async (on) => { state.fast = on; renderFast(); await saveModel({ fast: state.fast }); },
       },
       locked: locked,
-      lockedValue: locked ? window.VanhanhEffortSlider.lockedLevel(eff.model) : "",
+      lockedValue: locked ? window.NaotaEffortSlider.lockedLevel(eff.model) : "",
       onChange: saveEffort,
     });
+    return true;
+  }
+  function effOpen() {
+    const pop = $("effPop"), btn = $("effBtn");
+    if (sheetMode()) { sheetOpen(); return; }
+    close(); closePlus(); closeLimit();
+    if (!effMount()) return;
     // Keep the popover inside the card: on a narrow phone the chip sits far enough right that a
     // popover opened at its left edge would spill past the screen.
     const card = pop.offsetParent;
@@ -414,21 +435,149 @@
     pop.style.left = (btn ? Math.min(btn.offsetLeft, maxLeft) : 8) + "px";
     if (effSlider.focus) effSlider.focus();
   }
-  function effClose() {
+  function effUnmount() {
     const pop = $("effPop"), btn = $("effBtn");
     if (effSlider) { effSlider.destroy(); effSlider = null; }
     if (pop) pop.hidden = true;
     if (btn) btn.setAttribute("aria-expanded", "false");
   }
+  function effClose() {
+    if (sheetIsOpen()) { sheetClose(); return; }
+    effUnmount();
+  }
   function effIsOpen() { const pop = $("effPop"); return pop && !pop.hidden; }
-  function closeLimit() { try { if (window.VanhanhPlanLimit) window.VanhanhPlanLimit.close(); } catch (e) {} }
-  function closePlus() { try { if (window.VanhanhComposerMenu) window.VanhanhComposerMenu.close(); } catch (e) {} }
+
+  // SHEET_BEGIN
+  // Phone sheet: up to 860px the ring, the model chip and the Effort chip read as ONE pill (style.css), and a tap on any
+  // of them opens ONE sheet from the bottom with the three panels stacked: plan usage, Effort, model list. The panels
+  // are the same elements a computer opens one by one (#limitPop, #effPop, #mbPop), so both widths share every rule.
+  const sheetMq = (() => { try { return window.matchMedia("(max-width: 860px)"); } catch (e) { return null; } })();
+  const sheetMode = () => !!(sheetMq && sheetMq.matches && $("cpSheet"));
+  const sheetIsOpen = () => { const s = $("cpSheet"); return !!(s && s.classList.contains("is-open")); };
+  const SHEET_CHIPS = ["mbOpen", "effBtn", "limitBtn"];
+  let sheetHome = null;   // where #cpSheet lives in the card, to put it back on close
+  function sheetOpen() {
+    const s = $("cpSheet"), pop = $("mbPop"), card = $("cpSheetCard");
+    if (!s || !pop || sheetIsOpen()) return;
+    closePlus();
+    dropKeyboard();
+    // The sheet covers the whole screen, so it leaves the card for <body> while open: an ancestor that clips or
+    // transforms (the Chat page slot, a sliding page) cannot cut it or drag it along.
+    sheetHome = { parent: s.parentNode, next: s.nextSibling };
+    document.body.appendChild(s);
+    s.classList.add("is-open");
+    if (card) {
+      card.setAttribute("role", "dialog");
+      card.setAttribute("aria-modal", "true");
+      card.setAttribute("aria-labelledby", "cpSheetTitle");
+      card.style.transform = "";
+    }
+    pop.hidden = false;
+    // The list scrolls inside its panel: bring the model in use into view, it is rarely among the first rows.
+    renderPop().then(() => {
+      const cur = sheetIsOpen() && pop.querySelector(".mb-item.cur");
+      if (cur) pop.scrollTop = Math.max(0, cur.offsetTop - pop.offsetTop - (pop.clientHeight - cur.offsetHeight) / 2);
+    }).catch(() => {});
+    effMount();
+    try { if (window.NaotaPlanLimit && window.NaotaPlanLimit.showInSheet) window.NaotaPlanLimit.showInSheet(); } catch (e) {}
+    SHEET_CHIPS.forEach((id) => { const b = $(id); if (b) b.setAttribute("aria-expanded", "true"); });
+    const x = $("cpSheetClose");
+    if (x && !camUng()) { try { x.focus({ preventScroll: true }); } catch (e) {} }
+  }
+  function sheetClose() {
+    const s = $("cpSheet"), pop = $("mbPop"), card = $("cpSheetCard");
+    if (!s || !sheetIsOpen()) return;
+    s.classList.remove("is-open");
+    if (pop) pop.hidden = true;
+    effUnmount();
+    closeLimit();
+    if (card) { ["role", "aria-modal", "aria-labelledby"].forEach((a) => card.removeAttribute(a)); card.style.transform = ""; }
+    SHEET_CHIPS.forEach((id) => { const b = $(id); if (b) b.setAttribute("aria-expanded", "false"); });
+    if (sheetHome && sheetHome.parent) {
+      const next = sheetHome.next && sheetHome.next.parentNode === sheetHome.parent ? sheetHome.next : null;
+      sheetHome.parent.insertBefore(s, next);
+    }
+    sheetHome = null;
+    filter = "";
+  }
+  // A phone turned sideways past 860px, or a window dragged wider: the sheet goes away, the popovers take over.
+  if (sheetMq) {
+    const onMq = () => { if (sheetIsOpen() && !sheetMq.matches) sheetClose(); };
+    if (sheetMq.addEventListener) sheetMq.addEventListener("change", onMq); else if (sheetMq.addListener) sheetMq.addListener(onMq);
+  }
+  // Pull the sheet down by its head to close it (the grabber says so). A short pull springs back.
+  (function () {
+    let y0 = null, dy = 0;
+    const end = (shut) => {
+      const card = $("cpSheetCard");
+      y0 = null;
+      if (card) { card.classList.remove("is-dragging"); card.style.transform = ""; }
+      if (shut) sheetClose();
+    };
+    document.addEventListener("pointerdown", (e) => {
+      if (!sheetIsOpen() || !e.target.closest || !e.target.closest("#cpSheetHead") || e.target.closest("#cpSheetClose")) return;
+      y0 = e.clientY; dy = 0;
+      const card = $("cpSheetCard"); if (card) card.classList.add("is-dragging");
+    });
+    document.addEventListener("pointermove", (e) => {
+      if (y0 == null) return;
+      dy = Math.max(0, e.clientY - y0);
+      const card = $("cpSheetCard"); if (card) card.style.transform = "translateY(" + dy + "px)";
+    });
+    document.addEventListener("pointerup", () => { if (y0 != null) end(dy > 70); });
+    document.addEventListener("pointercancel", () => { if (y0 != null) end(false); });
+  })();
+  // SHEET_END
+
+  // POP_ANCHOR_BEGIN
+  // Owner, 14/11/2026: "ấn vào model trong khung cộng sự popup bị nhảy lên trên khá xa với khung khiến cho việc lựa
+  // chọn model bị khó khăn". The composer's popovers (model list, Effort, plan usage, the + menu) opened above the WHOLE
+  // card, so a tall card (a file attached, a few lines typed) left them far above the chip, and a long model list then
+  // ran past the top of the chat column, which cut its first rows off. They now open just above the row of chips and
+  // stop at the top of the part of the screen in view (style.css reads the two values). A phone's sheet is not in the
+  // card, so it is not affected.
+  const ANCHORED_POPS = ["mbPop", "effPop", "limitPop", "plusMenu"];
+  const POP_GAP = 6;     // between the popover and the row, as it was between the popover and the card
+  const POP_MIN = 160;   // a few rows at least, even in a very short window
+  function placePops() {
+    const card = $("hudVoice"), row = $("cpRow");
+    if (!card || !row || row.offsetParent !== card) return;
+    card.style.setProperty("--cp-pop-bottom", Math.max(POP_GAP, card.clientHeight - row.offsetTop + POP_GAP) + "px");
+    // The highest point a popover may reach: under the global header, and inside every box that clips its overflow
+    // (the console view, a page body), or its top rows are cut off.
+    let top = 0;
+    const head = document.querySelector(".hud-top");
+    if (head) { const r = head.getBoundingClientRect(); if (r.height) top = r.bottom; }
+    for (let el = card.parentElement; el && el !== document.body; el = el.parentElement) {
+      const cs = getComputedStyle(el);
+      if (cs.overflowX !== "visible" || cs.overflowY !== "visible") top = Math.max(top, el.getBoundingClientRect().top);
+    }
+    const room = Math.floor(row.getBoundingClientRect().top - POP_GAP - top - 8);
+    card.style.setProperty("--cp-pop-room", Math.max(POP_MIN, room) + "px");
+  }
+  const anyPopOpen = () => ANCHORED_POPS.some((id) => { const p = $(id); return !!(p && !p.hidden); });
+  function watchPops() {
+    const card = $("hudVoice");
+    if (!card) return;
+    // Placed the moment one opens, whoever opens it (this file, plan-limit.js, composer-plus.js), before it is painted.
+    const mo = new MutationObserver(() => { if (anyPopOpen()) placePops(); });
+    ANCHORED_POPS.forEach((id) => { const p = $(id); if (p) mo.observe(p, { attributes: true, attributeFilter: ["hidden"] }); });
+    // And again when the card changes size while one is open (a file dropped in, the text wraps) or the window does.
+    if (window.ResizeObserver) new ResizeObserver(() => { if (anyPopOpen()) placePops(); }).observe(card);
+    window.addEventListener("resize", () => { if (anyPopOpen()) placePops(); });
+  }
+  if (document.readyState !== "loading") watchPops();
+  else document.addEventListener("DOMContentLoaded", watchPops);
+  // POP_ANCHOR_END
+
+  function closeLimit() { try { if (window.NaotaPlanLimit) window.NaotaPlanLimit.close(); } catch (e) {} }
+  function closePlus() { try { if (window.NaotaComposerMenu) window.NaotaComposerMenu.close(); } catch (e) {} }
 
   // Chọn một model: ghi mặc định chung (chat mới sau này theo cái vừa chọn) + GHIM cho phiên
   // đang mở (phiên này giữ đúng model kể cả khi mặc định chung bị đổi ở chỗ khác). Dùng chung
   // cho cú bấm trong bảng chọn và lệnh `/model <tên>` của khung chat.
   async function chonModel(prov, model) {
-    // In an assistant's chat (any partner, Vanhanh Core) the choice pins THAT chat only. It
+    // In an assistant's chat (any partner, Naota Core) the choice pins THAT chat only. It
     // used to also rewrite the main chat's model. An assistant chat with no pin follows the main chat's model.
     if (!agentEff) await saveModel({ main: { provider: prov, model: model } });
     const sid = curSid();
@@ -445,7 +594,9 @@
       sessionPin = null;
     }
     await loadState(); await refreshRoute(); renderBar();   // the route too: picking a card lifts its out-of-quota mark
-    if (effIsOpen()) { effClose(); effOpen(); }   // the new model may lock or unlock the slider
+    // The new model may lock or unlock the slider.
+    if (sheetIsOpen()) effMount();
+    else if (effIsOpen()) { effClose(); effOpen(); }
   }
 
   // `/model <tên>`: tìm trong model của các nhà ĐÃ KẾT NỐI. Khớp NGUYÊN id thì thắng ngay; nếu
@@ -457,7 +608,7 @@
     const nhaOk = state.providers.filter((p) => p.configured);
     const dem = await Promise.all(nhaOk.map(async (p) => {
       let ids = [];
-      try { ids = (window.VanhanhModelList ? await window.VanhanhModelList.models(p.id) : p.models) || []; }
+      try { ids = (window.NaotaModelList ? await window.NaotaModelList.models(p.id) : p.models) || []; }
       catch (e) { ids = p.models || []; }
       return { p, ids: ids.map((m) => (typeof m === "string" ? m : (m && (m.id || m.name)) || "")).filter(Boolean) };
     }));
@@ -474,10 +625,19 @@
   }
 
   document.addEventListener("click", async (e) => {
-    if (e.target.closest("#mbOpen")) { isOpen() ? close() : open(); return; }
-    if (e.target.closest("#effBtn")) { effIsOpen() ? effClose() : effOpen(); return; }
-    if (!e.target.closest("#effPop") && effIsOpen()) effClose();
-    if (!e.target.closest("#mbPop") && !e.target.closest("#mbOpen")) { if (isOpen()) close(); return; }
+    if (sheetMode() || sheetIsOpen()) {
+      // Phone: the three chips are one pill and one sheet. Only a tap on the dim part or on X closes it.
+      const up = sheetIsOpen();
+      if (e.target.closest("#mbOpen, #effBtn, #limitBtn")) { up ? sheetClose() : sheetOpen(); return; }
+      if (!up) return;
+      if (e.target.closest("#cpSheetClose") || !e.target.closest("#cpSheetCard")) { sheetClose(); return; }
+      if (!e.target.closest("#mbPop")) return;
+    } else {
+      if (e.target.closest("#mbOpen")) { isOpen() ? close() : open(); return; }
+      if (e.target.closest("#effBtn")) { effIsOpen() ? effClose() : effOpen(); return; }
+      if (!e.target.closest("#effPop") && effIsOpen()) effClose();
+      if (!e.target.closest("#mbPop") && !e.target.closest("#mbOpen")) { if (isOpen()) close(); return; }
+    }
 
     const goto = e.target.closest("[data-goto]");
     if (goto) {
@@ -510,6 +670,7 @@
 
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
+    if (sheetIsOpen()) { sheetClose(); const m = $("mbOpen"); if (m) m.focus(); return; }
     if (isOpen()) close();
     if (effIsOpen()) { effClose(); const b = $("effBtn"); if (b) b.focus(); }
   });
@@ -517,12 +678,12 @@
   window.initModelBar = async function () {
     await loadState(); await loadSessionPin(); renderBar();
     // Tải sẵn danh sách của nhà đang dùng lúc rảnh, để lần bấm chip đầu tiên mở ra có ngay.
-    try { const pid = state.main.provider; if (pid && window.VanhanhModelList) window.VanhanhModelList.models(pid); } catch (e) {}
+    try { const pid = state.main.provider; if (pid && window.NaotaModelList) window.NaotaModelList.models(pid); } catch (e) {}
   };
 
   // Phiên mới mint id xong (app.js gọi ngay lúc gửi tin đầu): model đã chọn khi khung
   // còn trống đi theo phiên vừa sinh, không bị phiên khác đổi mặc định chung đè mất.
-  window.VanhanhModelBar = {
+  window.NaotaModelBar = {
     claimPending: function (sid) {
       if (!pendingPin || !sid) return;
       sessionPin = pendingPin; pinSid = sid;
@@ -549,6 +710,8 @@
       return line;
     },
     closeAll: function () { close(); effClose(); closePlus(); },
+    // plan-limit.js asks: true while the three chips open the phone sheet, so the ring does not open its own popover.
+    sheetOwns: function () { return sheetMode() || sheetIsOpen(); },
     hienTai: function () {
       const eff = shown();
       const p = state.providers.find((x) => x.id === eff.provider);
@@ -559,10 +722,10 @@
     // vẽ lại, kẻo trong lúc đó đổi mặc định chung ở trang Models là bar nói sai.
     noteStamped: function (sid) {
       if (!sid || (sessionPin && pinSid === sid)) return;
-      // A Vanhanh Core chat has no stamp of its own: it runs on Vanhanh Core's pin, or on the main model while there is none
+      // A Naota Core chat has no stamp of its own: it runs on Naota Core's pin, or on the main model while there is none
       // (server `_chat_provider_for_session`). Showing the main model as pinned here made an unpinned Core chat look
       // pinned, and then "change" when the main model changed.
-      if (agentEff && agentEff.slug === "vanhanh-core" && pinSid === sid) return;
+      if (agentEff && agentEff.slug === "naota-core" && pinSid === sid) return;
       sessionPin = { provider: state.main.provider, model: state.main.model };
       pinBroken = false; pinSid = sid;
       renderBar();
@@ -570,18 +733,18 @@
   };
 
   // Đổi phiên (mở phiên cũ, chat mới, xoá phiên) → hỏi lại ghim của phiên rồi vẽ lại.
-  window.addEventListener("vanhanh:sessions-changed", async () => { await loadSessionPin(); renderBar(); });
+  window.addEventListener("naota:sessions-changed", async () => { await loadSessionPin(); renderBar(); });
   // The Models page turned Fast mode on or off from a card's Effort sheet: the composer's bolt follows at once.
-  window.addEventListener("vanhanh:fast-changed", (e) => { state.fast = !!(e.detail && e.detail.on); renderFast(); });
-  // The Core card pinned or unpinned Vanhanh Core: an open Core chat redraws its chip.
+  window.addEventListener("naota:fast-changed", (e) => { state.fast = !!(e.detail && e.detail.on); renderFast(); });
+  // The Core card pinned or unpinned Naota Core: an open Core chat redraws its chip.
   window.addEventListener(CORE_EVENT, async (e) => {
-    if ((e.detail || {}).from === "chat" || !(agentEff && agentEff.slug === "vanhanh-core")) return;
+    if ((e.detail || {}).from === "chat" || !(agentEff && agentEff.slug === "naota-core")) return;
     await loadSessionPin(); renderBar();
   });
 
   // Từ điển về (fetch bất đồng bộ, thường SAU khi chip model đã vẽ) hoặc người dùng đổi
   // ngôn ngữ giao diện: vẽ lại chip, và vẽ lại cả bảng chọn nếu nó đang mở.
-  window.addEventListener("vanhanh:i18n", () => {
+  window.addEventListener("naota:i18n", () => {
     renderBar();
     if (isOpen()) renderPop();
   });

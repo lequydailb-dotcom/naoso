@@ -6,7 +6,7 @@ Yêu cầu: trong khung mở file cần một nút Chia sẻ, cho ra đường l
 họ cũng xem được, và xem được BẢN HOÀN THIỆN - .html chạy thật, .md hiện đậm nghiêng với ảnh.
 Mục đích là làm vài ứng dụng nhỏ rồi gửi cho người khác xem ngay.
 
-Đây là mặt tiền CÔNG KHAI đầu tiên của Vanhanh chạm vào file trong brain, nên phần lớn test này
+Đây là mặt tiền CÔNG KHAI đầu tiên của Naota chạm vào file trong brain, nên phần lớn test này
 là test an toàn chứ không phải test tính năng:
 
   1. "/s/" trong danh sách đường công khai PHẢI có gạch chéo cuối. Hàng rào so bằng
@@ -21,9 +21,9 @@ import os
 import sys
 import tempfile
 
-_STATE = tempfile.mkdtemp(prefix="vanhanh-share-")
-_BRAINS = tempfile.mkdtemp(prefix="vanhanh-share-brains-")
-os.environ["VANHANH_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="naota-share-")
+_BRAINS = tempfile.mkdtemp(prefix="naota-share-brains-")
+os.environ["NAOTA_STATE_DIR"] = _STATE
 os.environ["BRAINS_DIR"] = _BRAINS
 
 BRAIN = os.path.join(_BRAINS, "brain")
@@ -43,7 +43,7 @@ with open(os.path.join(BRAIN, "rieng", "kin.md"), "w", encoding="utf-8") as f:
 with open(os.path.join(BRAIN, "hang-xom.md"), "w", encoding="utf-8") as f:
     f.write("ghi chu khac, cung thu muc")
 # Ghi chú nằm trong THƯ MỤC CON, ảnh nằm ngay cạnh nó. Đây là cách người ta viết note thật
-# (và là chỗ Vanhanh từng hỏng: mọi đường dẫn tương đối bị tính theo GỐC BRAIN).
+# (và là chỗ Naota từng hỏng: mọi đường dẫn tương đối bị tính theo GỐC BRAIN).
 os.makedirs(os.path.join(BRAIN, "06 - Sources", "hinh"), exist_ok=True)
 with open(os.path.join(BRAIN, "06 - Sources", "bai-viet.md"), "w", encoding="utf-8") as f:
     f.write("# Bài\n\n![cạnh note](anh-canh-note.png)\n\n![thư mục con](hinh/trong-hinh.png)\n")
@@ -168,6 +168,12 @@ check("và tài nguyên của nó cũng chết theo",
 md = share_render.md_to_html
 check("HTML thô trong .md bị escape, không cho chạy",
       "&lt;script&gt;" in md("<script>alert(1)</script>", "/s/T/asset"))
+# 2026-11-10: \x00 and \x01 are the renderer's own placeholder marks. Written literally in a note they used to pull a
+# stored fragment into the middle of an attribute value (`alt="a<a href="#/onerror=...`).
+_forged = md("![a\x001\x00b](x.png) [t](#/onerror=alert(1))", "/s/T/asset")
+check("a note cannot forge the renderer's placeholder marks",
+      'alt="a1b"' in _forged and "<a href" not in _forged.split('loading="lazy"')[0], _forged)
+check("no placeholder mark is left in the page", "\x00" not in _forged and "\x01" not in md("\x010\x01\n\n```\na\n```"))
 check("link javascript: bị bỏ, chỉ còn lại chữ",
       "javascript:" not in md("[bấm](javascript:alert(1))", "/s/T/asset"))
 check("link ngoài vẫn đi được và mang rel an toàn",
@@ -219,7 +225,7 @@ if _tok_sub:
     check("ghi chú ở thư mục khác vẫn không đọc được", _d.status_code == 404, _d.status_code)
     _e = cl.get(f"/s/{_tok_sub}/asset", params={"p": "../../../etc/passwd"})
     check("không vượt được ra ngoài brain", _e.status_code == 404, _e.status_code)
-    # Đường lui về attachments vẫn còn: note ở thư mục con trỏ tới ảnh Vanhanh tự cất.
+    # Đường lui về attachments vẫn còn: note ở thư mục con trỏ tới ảnh Naota tự cất.
     _f = cl.get(f"/s/{_tok_sub}/asset", params={"p": "a.png"})
     check("vẫn lui được về attachments/ khi ảnh không nằm cạnh note",
           _f.status_code == 200, _f.status_code)
@@ -291,6 +297,16 @@ if _tg:
     check("CANARY: app ở gốc brain KHÔNG đọc được .json/.txt ở gốc",
           cl.get(f"/s/{_tg}/ghi.txt").status_code == 404)
     check("và không đọc được thư mục riêng tư", cl.get(f"/s/{_tg}/rieng/kin.md").status_code == 404)
+    # 2026-11-10: the sibling route had been left without the private-zone rule of /asset. A page shared from the
+    # brain root has the whole brain as its folder, so its token served inbox/ photos (named by message id) and memory/.
+    for _d, _n in (("inbox", "1234.jpg"), ("memory", "anh.png"), ("inbox/telegram", "a.mp3")):
+        os.makedirs(os.path.join(BRAIN, _d), exist_ok=True)
+        with open(os.path.join(BRAIN, _d, _n), "wb") as _f:
+            _f.write(b"\x89PNG\r\n\x1a\n" + b"0" * 20)
+        check(f"app at the brain root does NOT serve {_d}/{_n}", cl.get(f"/s/{_tg}/{_d}/{_n}").status_code == 404)
+        check(f"and /asset keeps refusing {_d}/{_n}",
+              cl.get(f"/s/{_tg}/asset", params={"p": f"{_d}/{_n}"}).status_code == 404)
+    check("an image in attachments/ is still served to it", cl.get(f"/s/{_tg}/attachments/a.png").status_code == 200)
 # Link chia sẻ của .md KHÔNG mở đường này: ghi chú lấy ảnh qua /asset với luật riêng.
 _tm = cl.post("/share/create", json={"brain": BRAIN, "path": "06 - Sources/bai-viet.md"}).json().get("token")
 if _tm:

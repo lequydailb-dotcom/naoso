@@ -16,7 +16,7 @@
    phần sau nó (Docker /brains/<brain>/..., cài tay /home/x/brains/<brain>/..., Windows
    C:/.../<brain>/...). Không thấy tên brain → coi cả chuỗi là tương đối (model hay viết
    file:///wiki/x.md). Trỏ sang brain KHÁC → vẫn là link vault để cú bấm ra khung "không thấy
-   file" có gợi ý, thay vì tab mới 404. console.js gỡ lại lần nữa ở openVaultPath/VanhanhOpenNote
+   file" có gợi ý, thay vì tab mới 404. console.js gỡ lại lần nữa ở openVaultPath/NaotaOpenNote
    cho đường deep-link và chip file đang mở. */
 const fs = require("fs");
 const path = require("path");
@@ -51,7 +51,7 @@ check("khoảng trắng trần trong file:// cũng ra đúng",
 check("file://localhost/... cũng gỡ được",
   vaultPath("[x](file://localhost/brains/Brain%20Default/wiki/a.md)") === "wiki/a.md");
 check("cài tay: /home/x/brains/<brain>/... → lấy phần sau tên brain",
-  vaultPath("[x](file:///home/u/vanhanh/brains/Brain%20Default/wiki/a.md)") === "wiki/a.md");
+  vaultPath("[x](file:///home/u/naota/brains/Brain%20Default/wiki/a.md)") === "wiki/a.md");
 check("Windows: file:///C:/.../<brain>/... → lấy phần sau tên brain",
   vaultPath("[x](file:///C:/Users/q/brains/Brain%20Default/wiki/a.md)") === "wiki/a.md");
 check("file:///wiki/x.md (không có tên brain) → coi là tương đối",
@@ -86,13 +86,73 @@ check("isVaultRel loại file:", /isVaultRel[\s\S]{0,200}file:\|/.test(CR));
 // ============================================================
 // 4. console.js: deep-link và chip file đang mở cũng gỡ file://
 // ============================================================
-check("chat-render xuất VanhanhFileRef cho console.js gọi lại", /window\.VanhanhFileRef = appFileRef/.test(CR));
+check("chat-render xuất NaotaFileRef cho console.js gọi lại", /window\.NaotaFileRef = appFileRef/.test(CR));
 check("openVaultPath gỡ file:// trước khi ghép tiền tố trần",
   /function openVaultPath\(fullPath\) \{\s*fullPath = _goFileUri\(fullPath\);/.test(CONSOLE));
-check("VanhanhOpenNote gỡ file:// trước khi ghép tiền tố trần",
-  /window\.VanhanhOpenNote = function \(brainRel\) \{\s*brainRel = _goFileUri\(brainRel\);/.test(CONSOLE));
-check("_goFileUri gọi VanhanhFileRef, có đường lui khi chat-render chưa nạp",
-  /function _goFileUri\(p\)[\s\S]{0,400}window\.VanhanhFileRef[\s\S]{0,300}replace\(\/\^file:/.test(CONSOLE));
+check("NaotaOpenNote gỡ file:// trước khi ghép tiền tố trần",
+  /window\.NaotaOpenNote = function \(brainRel\) \{\s*brainRel = _goFileUri\(brainRel\);/.test(CONSOLE));
+check("_goFileUri gọi NaotaFileRef, có đường lui khi chat-render chưa nạp",
+  /function _goFileUri\(p\)[\s\S]{0,400}window\.NaotaFileRef[\s\S]{0,300}replace\(\/\^file:/.test(CONSOLE));
+
+// ============================================================
+// 5. IDE line suffix on a file link: `agents/x.md#L66-L75` opens agents/x.md
+// ============================================================
+const { splitLineSuffix } = require(path.join(ROOT, "dashboard", "chat-render.js"));
+const vm = require("vm");
+check("CANARY: [x](agents/x.md#L66-L75) opens agents/x.md, not a file named with the suffix",
+  vaultPath("[x.md](agents/x.md#L66-L75)") === "agents/x.md", vaultPath("[x.md](agents/x.md#L66-L75)"));
+check("the #open= deep link of that link carries the bare path too",
+  /href="#open=agents%2Fx\.md"/.test(mdToHtml("[x.md](agents/x.md#L66-L75)")));
+check("the cut suffix stays on the link for the editor's save",
+  /data-vault-line="#L66-L75"/.test(mdToHtml("[x.md](agents/x.md#L66-L75)")));
+for (const [inp, want] of [["a.md#L66", "a.md"], ["a.md#l66-l75", "a.md"], ["a.md#L66-75", "a.md"],
+  ["a.md#L66C3", "a.md"], ["a.md#L66C3-L70C1", "a.md"], ["a.md#lien-he", "a.md#lien-he"],
+  ["a.md#L5-intro", "a.md#L5-intro"], ["a.md#Lab", "a.md#Lab"], ["a#L5/b.md", "a#L5/b.md"]]) {
+  check("splitLineSuffix(" + inp + ") -> " + want, splitLineSuffix(inp).path === want, splitLineSuffix(inp).path);
+}
+check("a heading anchor keeps the old link exactly (no data-vault-line)",
+  vaultPath("[x](wiki/a.md#lien-he)") === "wiki/a.md#lien-he" && !/data-vault-line/.test(mdToHtml("[x](wiki/a.md#lien-he)")));
+check("a line suffix on a download file (pdf) does not end up in the download URL",
+  !/%23L/i.test(mdToHtml("[x](exports/a.pdf#L3)")) && vaultPath("[x](exports/a.pdf#L3)") === "exports/a.pdf");
+
+// console.js openVaultPath: the deep link and the click both go through it. Run it for real.
+const grabFn = (src, sig) => {
+  const i = src.indexOf(sig);
+  return i < 0 ? "" : src.slice(i, src.indexOf("\n  }\n", i) + 4);
+};
+const lineRe = (/\n  const LINE_SUFFIX_RE = [^\n]+/.exec(CONSOLE) || [""])[0];
+const exts = ["VT_IMG_EXTS", "VT_TEXT_EXTS"].map((n) => (new RegExp("\\n  const " + n + " = \\[[^\\]]*\\];").exec(CONSOLE) || [""])[0]);
+const ovp = grabFn(CONSOLE, "  function openVaultPath(fullPath) {");
+check("console.js has LINE_SUFFIX_RE, the editor extension lists and openVaultPath", !!(lineRe && exts[0] && exts[1] && ovp));
+const opened = [];
+const vctx = {
+  window: { NaotaOpenNote: (p) => opened.push("note:" + p), NaotaEditFile: (p) => opened.push("edit:" + p) },
+  // _neCanDock (2026-11-15): true = the page shows the docked editor; test_team_file_link.js covers the false side.
+  _goFileUri: (p) => p, isNarrow: () => false, _vtRaw: (p) => p, _neCanDock: () => true,
+  openFilesAt: (p) => opened.push("files:" + p),
+};
+vm.createContext(vctx);
+vm.runInContext(lineRe + exts.join("") + "\n" + ovp + "\nthis.openVaultPath = openVaultPath;", vctx);
+vctx.openVaultPath("agents/x.md#L66-L75");
+check("CANARY: openVaultPath opens agents/x.md#L66-L75 in the editor as agents/x.md",
+  opened[0] === "note:agents/x.md", opened);
+opened.length = 0;
+vctx.openVaultPath("Naota/loops#L5");
+check("a folder with a stray suffix opens the folder on the Files page", opened[0] === "files:Naota/loops", opened);
+opened.length = 0;
+vctx.openVaultPath("wiki/a.md#lien-he");
+check("openVaultPath leaves a heading anchor alone", /#lien-he$/.test(opened[0] || ""), opened);
+
+// Saving a note from the editor's rendered view (turndown): the link is written back with its suffix.
+const ruleSrc = (/_td\.addRule\("wikilink", (\{[\s\S]*?\n {8}\} \})\);/.exec(CONSOLE) || [])[1];
+check("found the turndown rule for vault links", !!ruleSrc);
+const rule = ruleSrc ? vm.runInNewContext("(" + ruleSrc + ")") : null;
+const fakeA = (attrs) => ({ nodeName: "A", getAttribute: (k) => (k in attrs ? attrs[k] : null), querySelector: () => null });
+check("CANARY: round trip keeps [x.md](agents/x.md#L66-L75)",
+  rule && rule.replacement("x.md", fakeA({ "data-vault-path": "agents/x.md", "class": "nt-floc", "data-vault-line": "#L66-L75" }))
+    === "[x.md](agents/x.md#L66-L75)");
+check("a link without a suffix saves as before",
+  rule && rule.replacement("x", fakeA({ "data-vault-path": "wiki/a.md", "class": "nt-floc" })) === "[x](wiki/a.md)");
 
 console.log("");
 // The default brain is a choice: "brain" is the folder the picker's default entry names, not always

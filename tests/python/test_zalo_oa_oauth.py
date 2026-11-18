@@ -24,7 +24,7 @@ import sys
 import tempfile
 from urllib.parse import parse_qs, urlparse
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-zalo-oa-oauth-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-zalo-oa-oauth-")
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -53,7 +53,7 @@ APP_ID = "4321987654321098765"
 APP_SECRET = "AbCdEfGhIjKlMnOpQrSt"
 OA_SECRET = "ZyXwVuTsRqPoNmLkJiHg"
 OA_ID = "579745863508352884"
-REDIRECT = "https://vanhanh.example.com/zalo-oa/oauth/callback"
+REDIRECT = "https://naota.example.com/zalo-oa/oauth/callback"
 ACCESS = "acc_" + "a" * 80
 REFRESH = "ref_" + "r" * 120
 
@@ -176,7 +176,7 @@ import main  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 http = TestClient(main.app, base_url="http://localhost",
-                  headers={"x-forwarded-proto": "https", "x-forwarded-host": "vanhanh.example.com"})
+                  headers={"x-forwarded-proto": "https", "x-forwarded-host": "naota.example.com"})
 check("the callback is a public path", "/zalo-oa/oauth/callback" in main._AUTH_PUBLIC_EXACT)
 d = http.get("/channels/webhook-info?channel=zalo_oa").json()
 check("the form gets the Callback URL to paste into the Zalo app", d.get("oauth_redirect") == REDIRECT, d)

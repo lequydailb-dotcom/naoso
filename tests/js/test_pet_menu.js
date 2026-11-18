@@ -64,8 +64,8 @@ const win = {
   addEventListener(k, fn) { (winListeners[k] = winListeners[k] || []).push(fn); },
   removeEventListener(k, fn) { winListeners[k] = (winListeners[k] || []).filter((f) => f !== fn); },
   dispatchEvent(ev) { fired.push(ev); (winListeners[ev.type] || []).slice().forEach((f) => f(ev)); return true; },
-  VanhanhNav: { iconName: (id) => ({ tasks: "list-checks", files: "folder-tree" })[id] || "", has: (id) => id !== "account" },
-  VanhanhLeaveGuard: { fn: null, set(f) { this.fn = f; }, clear(f) { if (!f || this.fn === f) this.fn = null; } },
+  NaotaNav: { iconName: (id) => ({ tasks: "list-checks", files: "folder-tree" })[id] || "", has: (id) => id !== "account" },
+  NaotaLeaveGuard: { fn: null, set(f) { this.fn = f; }, clear(f) { if (!f || this.fn === f) this.fn = null; } },
 };
 const doc = {
   body: stub("body"), voice: true,
@@ -85,8 +85,8 @@ const say = (status, body) => ({ status, body });
 
 fetchPlan.push(say(200, { ok: true, menu: { state: "default", rev: 0, items: H.DEFAULT_ITEMS } }));   // load() at start
 new Function("window", "document", "module", read("dashboard/pet-menu.js"))(win, doc, undefined);
-const PM = win.VanhanhPetMenu;
-check("the module exposes VanhanhPetMenu", !!(PM && PM.renderSettings && PM.menuEntries && PM.current));
+const PM = win.NaotaPetMenu;
+check("the module exposes NaotaPetMenu", !!(PM && PM.renderSettings && PM.menuEntries && PM.current));
 
 (async () => {
   await tick();
@@ -99,7 +99,7 @@ check("the module exposes VanhanhPetMenu", !!(PM && PM.renderSettings && PM.menu
   win.navigator.mediaDevices = undefined;
   check("mic without browser permission is unavailable, with the reason", PM.entry("mic").why === vi["petmenu.why_mic"]);
   win.navigator.mediaDevices = { getUserMedia() {} };
-  check("a page this Vanhanh lacks is unavailable, with the reason", PM.entry("account").why === vi["petmenu.why_page"]);
+  check("a page this NAOSO lacks is unavailable, with the reason", PM.entry("account").why === vi["petmenu.why_page"]);
   check("a page takes the icon of its rail item", PM.entry("tasks").icon.indexOf("list-checks") >= 0);
   check("an unknown id is shown as no longer available", PM.entry("old-thing").gone && PM.entry("old-thing").why === vi["petmenu.why_gone"]);
 
@@ -121,7 +121,7 @@ check("the module exposes VanhanhPetMenu", !!(PM && PM.renderSettings && PM.menu
   check("every row, the defaults included, has an X", (h.match(/data-pm-remove/g) || []).length === 7);
   check("nothing to save yet: Save and Discard are disabled", /data-pm-save disabled/.test(h) && /data-pm-cancel disabled/.test(h));
   check("no rename, icon or restore-defaults control", !/data-pm-(rename|icon|delete|reset)/.test(h) && !/type="text"/.test(h));
-  check("leaving now asks nothing", win.VanhanhLeaveGuard.fn && win.VanhanhLeaveGuard.fn() === "");
+  check("leaving now asks nothing", win.NaotaLeaveGuard.fn && win.NaotaLeaveGuard.fn() === "");
 
   const btn = (attrs, row) => ({
     disabled: false, dataset: attrs.move ? { move: attrs.move } : {},
@@ -136,9 +136,9 @@ check("the module exposes VanhanhPetMenu", !!(PM && PM.renderSettings && PM.menu
   h = host.innerHTML;
   check("keyboard: Down arrow on the handle moves the row one place", /data-i="0"[\s\S]*?Trò chuyện/.test(h.slice(0, h.indexOf('data-i="1"'))));
   check("a change enables Save and Discard", !/data-pm-save disabled/.test(h) && !/data-pm-cancel disabled/.test(h));
-  check("leaving with unsaved changes asks first", win.VanhanhLeaveGuard.fn() === vi["petmenu.leave"]);
+  check("leaving with unsaved changes asks first", win.NaotaLeaveGuard.fn() === vi["petmenu.leave"]);
   click(btn({ "data-pm-cancel": true }));
-  check("Discard returns to the saved order", /data-pm-save disabled/.test(host.innerHTML) && win.VanhanhLeaveGuard.fn() === "");
+  check("Discard returns to the saved order", /data-pm-save disabled/.test(host.innerHTML) && win.NaotaLeaveGuard.fn() === "");
   key("ArrowUp", 0);
   check("keyboard: Up on the first row does nothing", /data-pm-save disabled/.test(host.innerHTML));
 
@@ -146,7 +146,7 @@ check("the module exposes VanhanhPetMenu", !!(PM && PM.renderSettings && PM.menu
   click(btn({ "data-pm-remove": true }, 1));
   h = host.innerHTML;
   check("the X removes a DEFAULT item too (row 1 is Chat)", order() === 6 && h.indexOf("Trò chuyện") < 0 && h.indexOf(vi["page.workspace.label"]) >= 0);
-  check("removing is a change to save", !/data-pm-save disabled/.test(h) && win.VanhanhLeaveGuard.fn() === vi["petmenu.leave"]);
+  check("removing is a change to save", !/data-pm-save disabled/.test(h) && win.NaotaLeaveGuard.fn() === vi["petmenu.leave"]);
   for (let i = 0; i < 6; i++) click(btn({ "data-pm-remove": true }, 0));
   h = host.innerHTML;
   check("every item can go: the list is empty and says so", order() === 0 && h.indexOf(vi["petmenu.empty"]) >= 0 && h.indexOf("0 mục") >= 0);
@@ -195,15 +195,15 @@ check("the module exposes VanhanhPetMenu", !!(PM && PM.renderSettings && PM.menu
   await tick(); await tick();
   check("a good save says the menu is updated", host.innerHTML.indexOf(vi["petmenu.saved"]) >= 0);
   check("the pet menu uses the new order at once", PM.current().join() === saved.join());
-  check("the pet is told (it closes an open menu and rebuilds on the next open)", fired.some((e) => e.type === "vanhanh:pet-menu"));
-  check("other windows hear of it through the cache", JSON.parse(ls["vanhanh.pet.menu"]).rev === 5);
+  check("the pet is told (it closes an open menu and rebuilds on the next open)", fired.some((e) => e.type === "naota:pet-menu"));
+  check("other windows hear of it through the cache", JSON.parse(ls["naota.pet.menu"]).rev === 5);
   check("the pet menu leaves the unknown id out", PM.menuEntries({}).every((r) => r.id !== "old-thing") && PM.menuEntries({}).length === 7);
   // An item an older save hid reads as removed; a custom menu may be empty and stays empty.
   check("an item an older save hid reads as removed", H.normalize({ state: "custom", rev: 1, items: ["a", "b"], hidden: ["a"] }).items.join() === "b");
   check("an empty custom menu stays empty (no fallback to the defaults)", H.normalize({ state: "custom", rev: 1, items: [] }).items.length === 0);
 
   // Another window saves while this card is clean: it follows.
-  winListeners.storage.forEach((f) => f({ key: "vanhanh.pet.menu", newValue: JSON.stringify({ state: "custom", rev: 6, items: saved.concat("files") }) }));
+  winListeners.storage.forEach((f) => f({ key: "naota.pet.menu", newValue: JSON.stringify({ state: "custom", rev: 6, items: saved.concat("files") }) }));
   check("a save in another window shows here when nothing is pending", order() === 9);
 
   // Damaged saved menu
@@ -227,10 +227,10 @@ check("the module exposes VanhanhPetMenu", !!(PM && PM.renderSettings && PM.menu
   check("pet.js does not run a disabled row", /if \(!b \|\| b\.disabled\) return;/.test(pet));
   check("pet.js opens no box when the menu is empty, and no longer falls back to the six then",
     /if \(mo && menu\.children\.length === 0\) mo = false;/.test(pet) && !/if \(tuChon\.length\)/.test(pet));
-  check("pet.js closes an open menu when the menu is saved", /"vanhanh:pet-menu"[\s\S]{0,120}moMenu\(false\)/.test(pet));
-  check("Settings > Mascot shows the Mascot menu card", /VanhanhPetMenu\.renderSettings\(el\.querySelector\("#petMenuBody"\)\)/.test(con));
-  check("leaving a page with unsaved changes asks first", /if \(window\.VanhanhLeaveGuard && !window\.VanhanhLeaveGuard\.ok\(\)\) return;/.test(con) && /window\.VanhanhLeaveGuard = \{/.test(con) && /"beforeunload"/.test(con));
-  check("VanhanhNav tells the icon and whether a page exists", /iconName\(id\) \{ return VIEW_ICON\[id\]/.test(con) && /has\(id\) \{/.test(con));
+  check("pet.js closes an open menu when the menu is saved", /"naota:pet-menu"[\s\S]{0,120}moMenu\(false\)/.test(pet));
+  check("Settings > Mascot shows the Mascot menu card", /NaotaPetMenu\.renderSettings\(el\.querySelector\("#petMenuBody"\)\)/.test(con));
+  check("leaving a page with unsaved changes asks first", /if \(window\.NaotaLeaveGuard && !window\.NaotaLeaveGuard\.ok\(\)\) return;/.test(con) && /window\.NaotaLeaveGuard = \{/.test(con) && /"beforeunload"/.test(con));
+  check("NaotaNav tells the icon and whether a page exists", /iconName\(id\) \{ return VIEW_ICON\[id\]/.test(con) && /has\(id\) \{/.test(con));
   check("pet-menu.js loads before pet.js", napTruoc("pet-menu.js", ["pet.js"], html));
   ["petmenu.title", "petmenu.desc", "petmenu.count", "petmenu.add", "petmenu.cancel", "petmenu.save", "petmenu.saving",
     "petmenu.saved", "petmenu.save_err", "petmenu.conflict", "petmenu.reload", "petmenu.invalid", "petmenu.load_err",

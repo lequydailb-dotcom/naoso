@@ -20,9 +20,9 @@ import os
 import tempfile
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="vanhanh-gh-alias-")
-os.environ["VANHANH_STATE_DIR"] = _STATE
-_BRAINS = Path(tempfile.mkdtemp(prefix="vanhanh-gh-alias-brains-"))
+_STATE = tempfile.mkdtemp(prefix="naota-gh-alias-")
+os.environ["NAOTA_STATE_DIR"] = _STATE
+_BRAINS = Path(tempfile.mkdtemp(prefix="naota-gh-alias-brains-"))
 os.environ["BRAINS_DIR"] = str(_BRAINS)
 
 import brain_ident  # noqa: E402
@@ -82,7 +82,7 @@ def fake_run_gate(wt, base, checks=None, **kw):
 
 github_gate.run_gate = fake_run_gate
 try:
-    wt = tempfile.mkdtemp(prefix="vanhanh-gh-alias-wt-")
+    wt = tempfile.mkdtemp(prefix="naota-gh-alias-wt-")
     github_work.gate_repo("sid-1", "brain", {"full_name": "owner/app", "worktree": wt, "repo_id": "r1"}, force=True)
 finally:
     github_work.fingerprint, github_work._has_work, github_gate.run_gate = real

@@ -13,13 +13,13 @@ const fails = [];
 const check = (name, cond) => { console.log((cond ? "ok   " : "FAIL ") + name); if (!cond) fails.push(name); };
 
 const REAL = [
-  { name: "Brain Default", path: "D:\\Project\\vanhanh\\brains\\Brain Default", notes: 90, is_default: true },
-  { name: "My Second Brain", path: "D:\\Project\\vanhanh\\brains\\My Second Brain", notes: 576 },
-  { name: "Lan Trần", path: "D:\\Project\\vanhanh\\brains\\Lan Trần", notes: 111 },
+  { name: "Brain Default", path: "D:\\Project\\naota\\brains\\Brain Default", notes: 90, is_default: true },
+  { name: "My Second Brain", path: "D:\\Project\\naota\\brains\\My Second Brain", notes: 576 },
+  { name: "Lan Trần", path: "D:\\Project\\naota\\brains\\Lan Trần", notes: 111 },
 ];
 // Server: path nào còn là thư mục.
 const EXISTS = {
-  "D:\\Project\\vanhanh\\brain": { exists: false, is_dir: false },          // 📁 brain: đã xoá
+  "D:\\Project\\naota\\brain": { exists: false, is_dir: false },          // 📁 brain: đã xoá
   "D:\\My Second Brain": { exists: true, is_dir: true },                    // 📁 ngoài hợp lệ
 };
 
@@ -72,18 +72,18 @@ class Select {
 const sel = new Select();
 // Trạng thái khởi đầu: default + 2 option 📁 (như app.js đã render từ localStorage).
 const def = new Opt("brain", "🧠 Brain Default"); sel.appendChild(def);
-const c1 = new Opt("path:D:\\Project\\vanhanh\\brain", "📁 brain"); c1.dataset.custom = "1"; sel.appendChild(c1);
+const c1 = new Opt("path:D:\\Project\\naota\\brain", "📁 brain"); c1.dataset.custom = "1"; sel.appendChild(c1);
 const c2 = new Opt("path:D:\\My Second Brain", "📁 My Second Brain"); c2.dataset.custom = "1"; sel.appendChild(c2);
-const c3 = new Opt("path:D:\\Project\\vanhanh\\brains\\My Second Brain", "📁 My Second Brain"); c3.dataset.custom = "1"; sel.appendChild(c3); // TRÙNG não thật
+const c3 = new Opt("path:D:\\Project\\naota\\brains\\My Second Brain", "📁 My Second Brain"); c3.dataset.custom = "1"; sel.appendChild(c3); // TRÙNG não thật
 
 // localStorage khởi đầu (3 entry, có 1 trùng não thật)
 const store = {
-  "vanhanh.brains": JSON.stringify([
-    { name: "brain", path: "D:\\Project\\vanhanh\\brain" },
+  "naota.brains": JSON.stringify([
+    { name: "brain", path: "D:\\Project\\naota\\brain" },
     { name: "My Second Brain", path: "D:\\My Second Brain" },
-    { name: "My Second Brain", path: "D:\\Project\\vanhanh\\brains\\My Second Brain" },
+    { name: "My Second Brain", path: "D:\\Project\\naota\\brains\\My Second Brain" },
   ]),
-  "vanhanh.graphSource": "brain",
+  "naota.graphSource": "brain",
 };
 
 // ---- Globals ----
@@ -115,10 +115,10 @@ await new Promise((r) => setTimeout(r, 50));
 // ---- Assert ----
 const customVals = sel.querySelectorAll("option[data-custom]").map((o) => o.value);
 const brainNames = sel.querySelectorAll("option[data-brain]").map((o) => o.dataset.brainName);
-const stored = JSON.parse(store["vanhanh.brains"]);
+const stored = JSON.parse(store["naota.brains"]);
 
-check("📁 'brain' (đã xoá) bị gỡ khỏi menu", !customVals.includes("path:D:\\Project\\vanhanh\\brain"));
-check("📁 trùng não thật bị gỡ khỏi menu", !customVals.includes("path:D:\\Project\\vanhanh\\brains\\My Second Brain"));
+check("📁 'brain' (đã xoá) bị gỡ khỏi menu", !customVals.includes("path:D:\\Project\\naota\\brain"));
+check("📁 trùng não thật bị gỡ khỏi menu", !customVals.includes("path:D:\\Project\\naota\\brains\\My Second Brain"));
 check("📁 folder ngoài hợp lệ được GIỮ", customVals.includes("path:D:\\My Second Brain"));
 check("chỉ còn ĐÚNG 1 option 📁", customVals.length === 1);
 check("localStorage còn ĐÚNG 1 entry", stored.length === 1 && stored[0].path === "D:\\My Second Brain");
@@ -129,7 +129,7 @@ check("option default cập nhật nhãn kèm note", def.textContent.includes("B
 const sel2 = new Select();
 sel2.appendChild(new Opt("brain", "🧠 Brain Default"));
 const d1 = new Opt("path:D:\\mot\\folder", "📁 folder"); d1.dataset.custom = "1"; sel2.appendChild(d1);
-const store2 = { "vanhanh.brains": JSON.stringify([{ name: "folder", path: "D:\\mot\\folder" }]), "vanhanh.graphSource": "brain" };
+const store2 = { "naota.brains": JSON.stringify([{ name: "folder", path: "D:\\mot\\folder" }]), "naota.graphSource": "brain" };
 global.document.getElementById = (id) => id === "graphSource" ? sel2 : (btns[id] || (btns[id] = { addEventListener() {} }));
 global.localStorage = { getItem: (k) => (k in store2 ? store2[k] : null), setItem: (k, v) => { store2[k] = String(v); } };
 global.fetch = async (url) => {
@@ -139,7 +139,7 @@ global.fetch = async (url) => {
 };
 eval(SRC);
 await new Promise((r) => setTimeout(r, 50));
-const stored2 = JSON.parse(store2["vanhanh.brains"]);
+const stored2 = JSON.parse(store2["naota.brains"]);
 check("fail-safe: endpoint 404 → GIỮ nguyên entry (không xoá nhầm)", stored2.length === 1 && sel2.querySelectorAll("option[data-custom]").length === 1);
 
 // ---- Test 3: make another brain the default. Someone looking at the old default keeps looking at it ----
@@ -155,7 +155,7 @@ const sel3 = new Select();
 sel3.appendChild(new Opt("brain", "Brain Default"));
 let changes3 = 0;
 sel3.dispatchEvent = () => { changes3 += 1; return true; };
-const store3 = { "vanhanh.brains": "[]", "vanhanh.graphSource": "brain" };
+const store3 = { "naota.brains": "[]", "naota.graphSource": "brain" };
 const posted = [];
 global.document.getElementById = (id) => id === "graphSource" ? sel3 : (btns[id] || (btns[id] = { addEventListener() {} }));
 global.localStorage = { getItem: (k) => (k in store3 ? store3[k] : null), setItem: (k, v) => { store3[k] = String(v); } };
@@ -174,14 +174,14 @@ eval(SRC);
 await new Promise((r) => setTimeout(r, 50));
 check("set default: the old default carries its folder path", sel3.querySelector('option[value="brain"]').dataset.brainPath === P_OLD);
 changes3 = 0;
-const r3 = await global.window.VanhanhBrains.setDefault("path:" + P_SHOP);
+const r3 = await global.window.NaotaBrains.setDefault("path:" + P_SHOP);
 check("set default: posts the chosen brain", r3.ok === true && posted[0] === "path:" + P_SHOP);
 check("set default: the 'brain' entry now carries Shop", sel3.querySelector('option[value="brain"]').dataset.brainName === "Shop");
 check("set default: the old default is listed by its path", sel3.options.some((o) => o.value === "path:" + P_OLD));
-check("set default: the screen stays on the old default", sel3.value === "path:" + P_OLD && store3["vanhanh.graphSource"] === "path:" + P_OLD);
+check("set default: the screen stays on the old default", sel3.value === "path:" + P_OLD && store3["naota.graphSource"] === "path:" + P_OLD);
 check("set default: pages are told once", changes3 === 1);
 check("set default: refuses an entry that is not a listed brain",
-  (await global.window.VanhanhBrains.setDefault("brain")).ok === false && posted.length === 1);
+  (await global.window.NaotaBrains.setDefault("brain")).ok === false && posted.length === 1);
 
 console.log();
 if (fails.length) { console.log(`${fails.length} FAIL: ${fails.join(", ")}`); process.exit(1); }

@@ -1,4 +1,4 @@
-# VANHANH architecture
+# NAOTA architecture
 
 This is the entry point for contributors. Read it before touching code. It describes how the
 pieces fit together today (version in [VERSION](VERSION)); every claim here was checked against
@@ -8,13 +8,13 @@ The code base was written in Vietnamese: comments, docstrings and most identifie
 Vietnamese without diacritics (`bat` = start, `nhac_hen` = reminder, `viec_nen` = background
 job). Keep GLOSSARY open while reading the code.
 
-## What Vanhanh is
+## What Naota is
 
-Vanhanh is a self-hosted personal AI assistant for "business and life". It runs as one Python
+Naota is a self-hosted personal AI assistant for "business and life". It runs as one Python
 FastAPI server with a plain-JavaScript dashboard, and keeps everything it knows in a folder of
 markdown files (the "Second Brain", Obsidian-compatible). The model behind it is swappable: the
 user picks a "brain" (a subscription CLI such as Claude Code, or an API provider such as
-OpenRouter) and every brain gets the same tools through Vanhanh's own MCP Hub. Vanhanh is an
+OpenRouter) and every brain gets the same tools through Naota's own MCP Hub. Naota is an
 orchestration layer, not an inference layer: when an answer is wrong, look first at the prompt
 it built, the tools it allowed and the brain folder it pointed at.
 
@@ -25,7 +25,7 @@ flowchart LR
   subgraph IN["Ways in"]
     D["Dashboard (browser)<br/>WebSocket /ws"]
     TG["Owner channels<br/>Telegram, Zalo Bot"]
-    CLI["vanhanh CLI<br/>POST /chat, /chat/stream"]
+    CLI["naota CLI<br/>POST /chat, /chat/stream"]
     BOT["Dedicated chatbots<br/>talking to customers"]
   end
   D --> M
@@ -36,13 +36,13 @@ flowchart LR
   P --> R{"Engine router<br/>_chat_provider_for_session"}
   R -->|"kind cli / oauth"| S["Subscription CLIs<br/>Claude Agent SDK, Codex,<br/>Grok Build, Antigravity"]
   R -->|"kind api"| A["API engines<br/>server/engine.py"]
-  S -->|"one MCP server named vanhanh<br/>HTTP /hub/mcp"| H["MCP Hub<br/>server/mcp_hub.py"]
+  S -->|"one MCP server named naota<br/>HTTP /hub/mcp"| H["MCP Hub<br/>server/mcp_hub.py"]
   A -->|"in process, discover_all()"| H
   H --> X["External MCP connections<br/>POS, ads, calendar, Zalo..."]
   H --> PL["Plugins<br/>system/plugins + user plugins"]
   H --> VT["Vault file tools + skills"]
   M --> V[("Brain vaults<br/>BRAINS_DIR")]
-  M --> ST[("Runtime state<br/>VANHANH_STATE_DIR")]
+  M --> ST[("Runtime state<br/>NAOTA_STATE_DIR")]
   BG["Background work<br/>Kanban, loops, reminders,<br/>self-learning"] --> R
 ```
 
@@ -80,11 +80,11 @@ vendor:
 |------|------------------|-------|----------------|
 | `cli` | `anthropic-cli` (Claude Code), `grok-cli`, `antigravity-cli` | `claude_sdk_engine.py` via `claude_cli.claude_engine()`, `grok_cli.py`, `antigravity_cli.py` | Runs the vendor's own agent binary on the user's subscription: native MCP, shell, web fetch, sub-agents |
 | `oauth` | `openai-oauth` (ChatGPT via Codex) | `CodexCLI` in `claude_cli.py` (spawns `codex exec`) | Same as `cli` |
-| `api` | `openrouter`, `anthropic-api`, `openai`, `gemini`, `groq`, `ollama` (Cloud), `ollama-local`, `openai-compat` | `engine.py` (`*_chat_with_mcp`), driven by `main._api_stream_mcp()` | Tool loop over the hub, vault file tools, at most `VANHANH_MAX_TOOL_ROUNDS_CODING` (default 500, max 2000, 0 = none) tool rounds per turn for the owner's work including background work, `VANHANH_MAX_TOOL_ROUNDS` (default 30) for customer bots; older tool results are trimmed past `VANHANH_TOOL_LOOP_BUDGET_CHARS` |
+| `api` | `openrouter`, `anthropic-api`, `openai`, `gemini`, `groq`, `ollama` (Cloud), `ollama-local`, `openai-compat` | `engine.py` (`*_chat_with_mcp`), driven by `main._api_stream_mcp()` | Tool loop over the hub, vault file tools, at most `NAOTA_MAX_TOOL_ROUNDS_CODING` (default 500, max 2000, 0 = none) tool rounds per turn for the owner's work including background work, `NAOTA_MAX_TOOL_ROUNDS` (default 30) for customer bots; older tool results are trimmed past `NAOTA_TOOL_LOOP_BUDGET_CHARS` |
 
 Things worth knowing:
 
-- Vanhanh never reads the user's Claude login token; it runs the real `claude` binary through the
+- Naota never reads the user's Claude login token; it runs the real `claude` binary through the
   official `claude-agent-sdk` (see `claude_auth.py` for why). Codex, Grok and Antigravity also
   keep their own credentials.
 - Gemini CLI was removed (Google cut personal tiers); Antigravity CLI replaced it.
@@ -98,7 +98,8 @@ User docs: [docs/en/10-models-and-engines.md](docs/en/10-models-and-engines.md).
 ## The MCP Hub and permissions
 
 `server/mcp_hub.py` is the single tool gateway. CLI engines see it as one MCP server named
-`vanhanh` (`POST /hub/mcp`, authenticated by `STATE_DIR/.hub_token`); API engines call
+`naota` (`POST /hub/mcp`, answered only for a caller on this machine and authenticated by
+`STATE_DIR/.hub_token`); API engines call
 `discover_all()` in process. Either way the same rules apply:
 
 - **Connector vs connection.** `system/mcp-catalog.json` (read by `mcp_catalog.py`) holds
@@ -109,13 +110,15 @@ User docs: [docs/en/10-models-and-engines.md](docs/en/10-models-and-engines.md).
   The hub applies the stricter of the two in `mcp_catalog.allowed()`, regardless of what the
   prompt says.
 - **Transports.** `mcp_client.py` keeps a long-lived session pool over HTTP/SSE, stdio (local
-  servers such as `vanhanh-zalo`) and "internal" Python bridges (`botcake_mcp.py`,
+  servers such as `naota-zalo`) and "internal" Python bridges (`botcake_mcp.py`,
   `substack_mcp.py`). `oauth_mcp.py` does MCP OAuth 2.1 so no engine needs a terminal login.
+- **Result shaping.** A connection result read by a model is shaped by `tool_result_shaper.py`
+  (see the module map); `naota_query` reads the stored full copy back or computes over it.
 - **Plugins.** `plugins_host.py` loads Python plugin folders (`plugin.yaml` + `plugin.py`) from,
   in order: `system/plugins/` (bundled), installed packs, `STATE_DIR/plugins/` (global user
   plugins) and `<brain>/plugins/`. User plugins load by default when their manifest is enabled;
-  `VANHANH_ENABLE_USER_PLUGINS=false` turns them off.
-  Vanhanh's own tools (`vanhanh_task`, `vanhanh_schedule`, `vanhanh_ui`, ...) are bundled plugins.
+  `NAOTA_ENABLE_USER_PLUGINS=false` turns them off.
+  Naota's own tools (`naota_task`, `naota_schedule`, `naota_ui`, ...) are bundled plugins.
 - **Packs.** `packs.py` loads extension packs from `STATE_DIR/packs/` so connectors and plugins
   can ship without a new release; `pack_install.py`, `packs_fetch.py` (HTTPS only, SSRF
   guarded), `packs_store.py` and `pack_vault.py` handle install, download, the store index and
@@ -129,11 +132,11 @@ operations index and media cleanup; Kanban has its own dispatcher.
 
 | What | Module | Stored in | Notes |
 |------|--------|-----------|-------|
-| Kanban tasks | `tasks.py`, `task_store.py` | `STATE_DIR/kanban.sqlite3` (+ JSON snapshot in `<brain>/Vanhanh/kanban.json`) | Dispatcher claims tasks atomically and runs them as asyncio tasks |
-| Loops | `self_improve.py` | `<brain>/Vanhanh/loops/<slug>.md`, state in `Vanhanh/loop-state.json` | "Every X minutes find one unit of work"; run one at a time |
-| Reminders and cron jobs | `reminders.py`, `cron_util.py` | `<brain>/Vanhanh/reminders.json` | Dependency-free 5-field cron parser |
+| Kanban tasks | `tasks.py`, `task_store.py` | `STATE_DIR/kanban.sqlite3` (+ JSON snapshot in `<brain>/Naota/kanban.json`) | Dispatcher claims tasks atomically and runs them as asyncio tasks |
+| Loops | `self_improve.py` | `<brain>/Naota/loops/<slug>.md`, state in `Naota/loop-state.json` | "Every X minutes find one unit of work"; run one at a time |
+| Reminders and cron jobs | `reminders.py`, `cron_util.py` | `<brain>/Naota/reminders.json` | Dependency-free 5-field cron parser |
 | Webhook triggers | `webhook_triggers.py` | `STATE_DIR/webhooks.json` (token hashes only) | `POST /hooks/<id>` runs a workflow or job from an outside event |
-| Incidents | `incident_desk.py` | `STATE_DIR/incidents.json` | A broken background run reaches Vanhanh Core: retried once or the owner is told what to fix |
+| Incidents | `incident_desk.py` | `STATE_DIR/incidents.json` | A broken background run reaches Naota Core: retried once or the owner is told what to fix |
 | Health scan | `sentinel.py`, `tools/sentinel.py` | (read only) | Groups failures from every store by cause; runs without the server |
 | Workflows | `execute_workflow()` in `main.py`, `workflow_runtime.py`, `workflow_runs.py` | `<brain>/workflows/<slug>.md`, run history in SQLite | A chain of agent steps with checkpoints |
 | Self-learning | `learn.py`, `git_brain.py` | `<brain>/memory/` | The learning fork is read-only; only trusted Python writes, and only when the brain is a git checkout |
@@ -162,9 +165,15 @@ line each, grouped by area.
 - `share_store.py`, `share_render.py`: public share links (`/s/<token>/`) rendered server side.
 - `updater.py`, `update_state.py`, `deploy_info.py`, `claude_update.py`: self-update with
   rollback, deploy detection, keeping the `claude` binary current.
+- `sdk_update.py`: the same daily tick moves the `claude-agent-sdk` package to newer releases of
+  its series (cooled down, checked in a fresh process, rolled back when the check fails).
+- `secret_guard.py`, `claude_secret_hook.py`, `claude_write_scope_hook.py`: keep engines away from
+  Naota's secret files at every level, and keep Claude Code's own Write/Edit inside the brain on
+  a run below Full access.
 - `purge.py`, `core_off.py`: delete a connection cleanly; make default capabilities removable.
 - `fastyaml.py`, `winproc.py`, `bench_hotpath.py`: C YAML loader, silent Windows subprocesses,
   hot-path benchmarks.
+- `sqlite_tune.py`: the durability level shared by the SQLite stores (WAL + `synchronous=NORMAL`).
 
 **Engines**
 - `claude_sdk_engine.py`: the only Claude engine (official Agent SDK); defines the event contract.
@@ -186,13 +195,26 @@ line each, grouped by area.
   `oauth_mcp.py`, `cred_exchange.py`, `connect_health.py`: described above.
 - `plugins_host.py`, `optional_tools.py`: plugins; optional heavy tools (a browser for UI tests).
 - `botcake_mcp.py`, `substack_mcp.py`, `youtube_read.py`, `zalo_cli.py`: built-in bridges.
-- `run_command.py`: `vanhanh_run_command`, one fenced shell command for engines without a shell.
+- `run_command.py`: `naota_run_command`, one fenced shell command for engines without a shell.
 - `tool_label.py`: short human labels for tool calls in the progress panel.
+- `tool_result_shaper.py`, `tool_result_store.py`: what a connection tool's result looks like when a
+  MODEL reads it. Errors and small results pass word for word, JSON that fits loses only its
+  indentation, a large result is stored whole (encrypted, 24 h, scoped to its brain) and replaced by a
+  view of whole records with a reference. Applied as the outermost layer of a route
+  (`mcp_hub._shaped_call`), outside the permission guard and plugin hooks; internal callers of a
+  route get the untouched text.
+- `tool_result_query.py`, `tool_result_tools.py`: the `naota_query` tool. Reads a stored result
+  back by fields and pages, or runs one read-only SQL query over all its records in an in-memory
+  SQLite database; with `tool` + `pages` it pages a READ-ONLY connection tool itself.
+- `tool_result_view.py`: the older explicit `result_view` of `naota_run_tool`.
+- `scout.py`: the `naota_scout` tool, a read-only run on the background model that returns only
+  its findings (the runner is `main._scout_run`).
 
 **Background work**: `tasks.py`, `task_store.py`, `self_improve.py`, `reminders.py`,
 `cron_util.py`, `inbox.py`, `webpush.py`, `background_status.py`, `tien_trinh_nen.py`,
 `luot_dang_chay.py`, `workflow_runs.py`, `workflow_chat.py` (chatting with an agent or a
-workflow on the Collaborators page), `chat_runtime.py`.
+workflow on the Collaborators page), `chat_runtime.py`, `job_recipes.py` (a recurring reminder
+replays its own read chain before the model starts, once two runs on different days agree).
 
 **Memory, brain and learning**
 - `learn.py`, `git_brain.py`: self-learning and the git safety net it relies on.
@@ -213,8 +235,8 @@ workflow on the Collaborators page), `chat_runtime.py`.
   coding toolkit API brains get through the hub (paged reads, fuzzy section edits, file search, a
   real bash terminal with background processes at Full access, automatic restore points in a
   shadow git store with selective Undo). `secret_redact.py` masks secrets for logs and terminal output.
-- `web_tools.py`: `vanhanh_web_search` (DuckDuckGo keyless, Tavily, Brave, SearXNG with
-  failover) and `vanhanh_web_fetch` (HTML to markdown, PDF, paging cache, private-network guard shared
+- `web_tools.py`: `naota_web_search` (DuckDuckGo keyless, Tavily, Brave, SearXNG with
+  failover) and `naota_web_fetch` (HTML to markdown, PDF, paging cache, private-network guard shared
   with `web_watch.check_url`) for API brains in owner chats.
 
 **Adaptive Context Runtime** (phased, mostly shadow or canary paths behind settings):
@@ -260,7 +282,7 @@ voice-call-spec.
 (`# ====...` followed by a title line); search for `# ===` to jump between them. In order:
 
 - **Top (lines 1 to ~1270):** imports, `app = FastAPI(...)`, middleware (CSRF guard, auth
-  guard, static caching, gzip, the `vanhanh_lang` cookie), `/static` mount, `CLAUDE_MD_PATH` and the prompt
+  guard, static caching, gzip, the `naota_lang` cookie), `/static` mount, `CLAUDE_MD_PATH` and the prompt
   kernel cap, memory seeding, `build_system_prompt()`, `BRAINS_DIR`, the `/` route that rewrites
   asset URLs.
 - **Auth**, **Providers** (`PROVIDER_DEFS`, `_effective_main`, engine helpers,
@@ -268,7 +290,7 @@ voice-call-spec.
 - **Connector catalog + MCP Hub** (`/hub/mcp`, `/connect/*`), **GitHub sync of brains**.
 - **Studio** (agents, skills, workflows), **File manager**, **Dataview lite**.
 - **Self-improving loops**, **Self-learning**, **Kanban task queue**, **Reminders**,
-  **Background jobs of one chat**, **Vanhanh index**, **Plugins**.
+  **Background jobs of one chat**, **Naota index**, **Plugins**.
 - **Version and updates**, **Autostart**, **Inbox and push**, **Branding**, **TTS**, **Voice
   V2**.
 - **Workflow sessions**, `_persist_turn()`, then **WebSocket `/ws`** (the main chat turn).
@@ -314,15 +336,16 @@ There are three separate places. Mixing them up is a classic mistake.
 | Place | Default | Holds | Owner |
 |-------|---------|-------|-------|
 | Code tree | the repo | `server/`, `dashboard/`, `system/`, `.claude/skills/`, `CLAUDE.md` | The repo. Not writable by the app inside Docker |
-| `VANHANH_STATE_DIR` | `server/` locally, `/data/state` in Docker | Runtime state, gitignored | Vanhanh |
+| `NAOTA_STATE_DIR` | `server/` locally, `/data/state` in Docker | Runtime state, gitignored | Naota |
 | `BRAINS_DIR` | `<repo>/brains`, `/brains` in Docker | One folder per brain | The user (can be pushed to a private GitHub repo) |
 
-**`VANHANH_STATE_DIR`** contains, among others: `settings.json` (secret fields stored `enc:`),
+**`NAOTA_STATE_DIR`** contains, among others: `settings.json` (secret fields stored `enc:`),
 `.secret_key`, `.sessions.json` (login sessions), `.hub_token`, `conversations.db` (chat
 history), `kanban.sqlite3`, `customer_conversations.sqlite3`, `mcp_servers.json`,
-`mcp_audit.jsonl`, `.oauth_mcp.json`, `chatbots.json`, `channel_accounts.json`, `inbox.json`,
-`usage*.json*`, `runtime.db`, `plugins/`, `plugins.json`, `packs/`, `branding/`, `vanhanh.log`.
-Anything Vanhanh writes at runtime goes here, never into the code tree.
+`mcp_audit.jsonl`, `tool_results.sqlite3` (full tool results, encrypted, short-lived),
+`tool_result_sizes.jsonl` (how large results were and how much a model read), `.oauth_mcp.json`, `chatbots.json`, `channel_accounts.json`, `inbox.json`,
+`usage*.json*`, `runtime.db`, `plugins/`, `plugins.json`, `packs/`, `branding/`, `naota.log`.
+Anything Naota writes at runtime goes here, never into the code tree.
 
 **A brain** (default `BRAINS_DIR/Brain Default`, scaffolded by `_ensure_brain_scaffold()` from
 `STANDARD_STRUCTURE`):
@@ -335,14 +358,14 @@ Anything Vanhanh writes at runtime goes here, never into the code tree.
   memory/conversations/    raw daily chat logs, input for learning
   sources/                 raw notes (source of truth); "06 - Sources" also accepted
   wiki/                    distilled knowledge with [[wikilinks]]; "07 - Wiki" also accepted
-  agents/<slug>.md         agents (flat; Vanhanh/agents is a legacy read fallback only)
+  agents/<slug>.md         agents (flat; Naota/agents is a legacy read fallback only)
   workflows/<slug>.md      workflows (flat)
   skills/<slug>/SKILL.md   skills, mirrored into .claude/skills for Claude Code
   attachments/, inbox/     media cache, cleaned by media_gc.py
   00 - Dashboard/ ... 04 - Future Log/   bullet-journal notes with dataview blocks
-  Vanhanh/                   operations layer: README.md, index.md (auto-built), loops/,
+  Naota/                   operations layer: README.md, index.md (auto-built), loops/,
                            loop-state.json, reminders.json, kanban.json, skill-usage.json
-  .vanhanh/system-manifest.json   hashes of installed system files (system_sync.py)
+  .naota/system-manifest.json   hashes of installed system files (system_sync.py)
 ```
 
 **Repo-root `CLAUDE.md`** is the system prompt kernel every engine receives, whatever the
@@ -361,16 +384,16 @@ Developer conventions therefore live in `docs/quy-uoc-dev.md`, not in `CLAUDE.md
    - Dashboard: `dashboard/i18n/vi.json` and `en.json` (same keys, ASCII hierarchical keys like
      `nav.group.bo_nao`), loaded by `dashboard/i18n/index.js`, used via `t("key")`. Fallback is
      chosen language, then `en`, then `vi`, then the key. The choice is per device
-     (`localStorage` key `vanhanh.ui_lang`) and is copied into the `vanhanh_lang` cookie.
+     (`localStorage` key `naota.ui_lang`) and is copied into the `naota_lang` cookie.
    - Server: `localefmt.chu("Vietnamese", "English")` returns the right string for the device
-     making the request (a middleware reads `vanhanh_lang` into a context variable); without a
+     making the request (a middleware reads `naota_lang` into a context variable); without a
      request it uses the machine's `ui_lang` setting.
    - Connector catalog: `system/mcp-catalog.json` is the Vietnamese source;
      `system/mcp-catalog.<code>.json` overlays display text by connector id
      (`catalog_i18n.py`).
    - New-brain seed files: `HAT_GIONG` in `server/brain_seed_i18n.py`.
 3. **Logic gates** (fast paths, "claimed but did not do it" detectors, ...) read per-language
-   word lists in `server/lexicon/` (`vi.py`, `en.py`). A language without a lexicon makes Vanhanh
+   word lists in `server/lexicon/` (`vi.py`, `en.py`). A language without a lexicon makes Naota
    more expensive, never less safe; a half-written lexicon is dangerous.
 4. **Locale** (time zone, currency, number format) is independent of language and lives in
    `localefmt.py`. `lang_registry.py` is the single registry that knows everything about a
@@ -397,7 +420,7 @@ pip install -r requirements.txt
 cd server && python main.py        # http://127.0.0.1:7777
 ```
 
-`VANHANH_HOST` and `VANHANH_PORT` change the bind address. `install.sh`, `setup.bat` and the
+`NAOTA_HOST` and `NAOTA_PORT` change the bind address. `install.sh`, `setup.bat` and the
 Docker files do the same with more care; see [QUICKSTART.en.md](QUICKSTART.en.md),
 [DEPLOY.en.md](DEPLOY.en.md) and every variable in
 [docs/en/16-env-configuration.md](docs/en/16-env-configuration.md). Auth (`_auth_guard` in

@@ -22,7 +22,7 @@ import tempfile
 
 from _paths import ROOT, SERVER  # noqa: E402,F401  - nạp server/ vào sys.path
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-agentmodel-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-agentmodel-"))
 
 import aux_engine  # noqa: E402
 import main  # noqa: E402
@@ -151,7 +151,9 @@ check("mọi chỗ bóc tuple đều lấy cả provider",
       src.count("agent_model, agent_prov = ") + src.count("v_model, v_prov = ") == 4)
 check("mọi chỗ dựng engine đều truyền provider xuống",
       # the step engine also gets the step's own `tools:` as a 4th argument.
-      src.count("mk(sysprompt, agent_model, agent_prov, step_extra)") + src.count("mk(v_sys, v_model, v_prov)") == 4)
+      # #1302: each call continues with the assistant's own reasoning level (`**_step_reasoning_kw(...)`), so the
+      # argument list no longer closes right after the provider.
+      src.count("mk(sysprompt, agent_model, agent_prov, step_extra,") + src.count("mk(v_sys, v_model, v_prov,") == 4)
 check("router đổi model thì bỏ nhà cũ (không ép model Claude qua nhà khác)",
       'agent_prov = ""' in src)
 

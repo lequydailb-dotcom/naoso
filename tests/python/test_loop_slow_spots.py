@@ -5,7 +5,7 @@ Measured on a test server: the Kanban dispatcher (every 5 s and on every wake) w
 whole server froze 0.3-1.2 s whenever another writer held the Kanban file; a 7 ms request took 1.2 s. The model list
 of Claude Code (a scan of the 200 MB binary) froze it 3 s. loop_watch only reported freezes of 2 s or more.
 
-  1. loop_watch counts a 0.5 s freeze as a slow spot, named after the Vanhanh function it was stuck in, without
+  1. loop_watch counts a 0.5 s freeze as a slow spot, named after the Naota function it was stuck in, without
      turning it into a 2 s incident; GET /health/loop shows it.
   2. One dispatcher pass, the 30-second tick and the nudge route do their Kanban reads and writes off the loop thread.
   3. Claude Code's model list is read in a worker thread by the updater and by /voice/options.
@@ -21,7 +21,7 @@ import threading
 import time
 from pathlib import Path
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-slowspots-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-slowspots-"))
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -67,7 +67,7 @@ check("the latest freezes are listed newest first", len(rep.get("slow_recent") o
       and rep["slow_recent"][0]["at"] >= rep["slow_recent"][1]["at"], rep.get("slow_recent"))
 
 # ---- 2. the Kanban dispatcher works off the loop ----------------------------------------------------------------------
-TMP = Path(tempfile.mkdtemp(prefix="vanhanh-slowspots-brain-"))
+TMP = Path(tempfile.mkdtemp(prefix="naota-slowspots-brain-"))
 BRAIN = TMP / "Brain X"
 BRAIN.mkdir(parents=True, exist_ok=True)
 

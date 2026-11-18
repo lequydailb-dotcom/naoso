@@ -2,11 +2,11 @@
 image_gen.py - Tạo ảnh bằng GÓI ChatGPT (OAuth device-code) - KHÔNG cần OpenAI API key.
 
 Cơ chế (port từ plugin image_gen/openai-codex của nousresearch/hermes-agent): gọi Codex Responses
-API (https://chatgpt.com/backend-api/codex/responses - CÙNG endpoint Vanhanh đã dùng cho chat ChatGPT)
+API (https://chatgpt.com/backend-api/codex/responses - CÙNG endpoint Naota đã dùng cho chat ChatGPT)
 với builtin tool 'image_generation' (model gpt-image-2) + tool_choice=required, stream SSE, lấy ảnh
 base64 trong 'image_generation_call.result'. Token OAuth lấy từ openai_oauth.valid_creds() (tự refresh).
 
-Vì sao Vanhanh trước đây KHÔNG tạo ảnh trực tiếp: đường chat ChatGPT (engine.responses_with_mcp) chỉ
+Vì sao Naota trước đây KHÔNG tạo ảnh trực tiếp: đường chat ChatGPT (engine.responses_with_mcp) chỉ
 gửi function tool, chưa từng gửi builtin tool 'image_generation'. Module này bổ sung đúng chỗ đó.
 
 Ảnh lưu vào <vault>/attachments/ để nhúng thẳng vào chat: ![](attachments/<tên>.png)
@@ -34,17 +34,17 @@ CODEX_RESPONSES_URL = "https://chatgpt.com/backend-api/codex/responses"
 # (không thử model nào khác). Không đặt thì HOST_MODEL chỉ là lựa chọn đầu tiên, xem
 # host_model_candidates(): gói ChatGPT nào không có model này (ví dụ lỗi thật:
 # "The 'gpt-5.5' model is not supported when using Codex with a ChatGPT account") thì
-# Vanhanh chuyển sang model khác trong danh mục thật của tài khoản thay vì chết ở đó.
-_HOST_ENV = os.getenv("VANHANH_IMAGE_HOST_MODEL", "").strip()
+# Naota chuyển sang model khác trong danh mục thật của tài khoản thay vì chết ở đó.
+_HOST_ENV = os.getenv("NAOTA_IMAGE_HOST_MODEL", "").strip()
 HOST_MODEL = _HOST_ENV or "gpt-5.5"
 MAX_HOST_TRIES = 4
 # Model vừa tạo ảnh thành công gần nhất: lượt sau thử nó trước, khỏi đốt một lượt 400.
 _host_ok: list = [""]
-# Model đã gỡ khỏi Vanhanh (main._MODEL_DA_GO) mà danh mục cũ có thể còn giữ.
+# Model đã gỡ khỏi Naota (main._MODEL_DA_GO) mà danh mục cũ có thể còn giữ.
 _KHONG_PHAI_MODEL = frozenset({"chatgpt-web"})
 _TU_CHOI_MODEL = ("not supported", "unsupported", "does not exist", "not found", "not available",
                   "do not have access", "don't have access", "no access", "invalid model")
-IMAGE_MODEL = os.getenv("VANHANH_IMAGE_MODEL", "gpt-image-2")
+IMAGE_MODEL = os.getenv("NAOTA_IMAGE_MODEL", "gpt-image-2")
 INSTRUCTIONS = ("You are an assistant that must fulfill image generation and image editing "
                 "requests by using the image_generation tool when provided.")
 
@@ -236,8 +236,8 @@ def _attachments_dir(vault: Path) -> Path:
     return d
 
 
-BRAND_SOFTWARE = "VANHANH"
-BRAND_SOURCE = "https://lequydai.com"
+BRAND_SOFTWARE = "NAOTA"
+BRAND_SOURCE = "https://vuong.ai"
 
 
 def _strip_c2pa_on() -> bool:
@@ -300,7 +300,7 @@ def strip_c2pa_png(raw: bytes) -> bytes:
 
 
 def brand_png(raw: bytes) -> bytes:
-    """Gắn thông tin tác giả (VANHANH / lequydai.com) vào PNG, chèn ngay sau IHDR.
+    """Gắn thông tin tác giả (NAOTA / vuong.ai) vào PNG, chèn ngay sau IHDR.
 
     CHỈ THÊM, không gỡ chunk nào - phần Content Credentials (C2PA) mà nhà cung cấp
     ảnh nhúng sẵn vẫn nằm nguyên trong file. Lưu ý: vì thêm chunk làm đổi byte của
@@ -324,7 +324,7 @@ def brand_png(raw: bytes) -> bytes:
         return raw                                    # gắn nhãn hỏng thì thà mất nhãn còn hơn mất ảnh
 
 
-def save_png_b64(b64: str, vault_root: Optional[str], prefix: str = "vanhanh-img") -> dict:
+def save_png_b64(b64: str, vault_root: Optional[str], prefix: str = "naota-img") -> dict:
     """Giải mã b64 → lưu PNG vào <vault>/attachments. Trả {ok, rel_path, abs_path, file}."""
     try:
         raw = base64.b64decode(b64)
@@ -353,13 +353,48 @@ def _headers(token: str, account_id: str) -> dict:
         "Authorization": f"Bearer {token}", "chatgpt-account-id": account_id or "",
         "OpenAI-Beta": "responses=experimental", "originator": "codex_cli_rs",
         "session_id": str(uuid.uuid4()), "Content-Type": "application/json",
-        "Accept": "text/event-stream", "User-Agent": "vanhanh/0.3 (codex)",
+        "Accept": "text/event-stream", "User-Agent": "naota/0.3 (codex)",
     }
 
 
 # ---------------------------------------------------------------------------
 # Gọi thật
 # ---------------------------------------------------------------------------
+def _image_account_order() -> list:
+    """Enabled, signed-in ChatGPT accounts, preserving the Models card order.
+
+    Image generation is an HTTP-only Codex call, so the normal CLI account
+    rotation does not cover it. Keep single-account behaviour unchanged.
+    """
+    try:
+        import config
+        import plan_accounts
+        m = (config.read_settings().get("model") or {})
+        if plan_accounts.has_extra(m, "openai-oauth"):
+            ids = [a["id"] for a in plan_accounts.usable(m, "openai-oauth")]
+            if not ids:
+                # Every account is resting, usually after a chat quota notice. Ask the first switched-on,
+                # signed-in one anyway, as chat does (`plan_accounts.fallback`): before account rotation the
+                # image call always reached account 1, and the provider's own answer beats "no account".
+                resting = plan_accounts.fallback(m, "openai-oauth")
+                ids = [resting["id"]] if resting else []
+            return ids
+        # On one-account installations keep the original credential path, but
+        # honour an explicit owner choice to disable that sole account.
+        if not any(a["id"] == "main" and a["enabled"]
+                   for a in plan_accounts.accounts(m, "openai-oauth")):
+            return []
+    except Exception:
+        pass
+    return ["main"]
+
+
+def _image_quota_error(status: int, error: Optional[str]) -> bool:
+    """Only rotate for definite quota failures, never arbitrary image errors."""
+    text = str(error or "").lower()
+    return status == 429 or "usage_limit_reached" in text or "quota_exceeded" in text
+
+
 async def generate_chatgpt(prompt: str, aspect_ratio: str = "square", quality: str = "medium",
                            vault_root: Optional[str] = None, timeout_s: float = 300.0,
                            images: Optional[list] = None) -> dict:
@@ -379,10 +414,10 @@ async def generate_chatgpt(prompt: str, aspect_ratio: str = "square", quality: s
     if quality not in _QUALITIES:
         quality = "medium"
 
-    creds = openai_oauth.valid_creds()
-    if not creds or not creds.get("access_token"):
-        return {"ok": False, "error": localefmt.chu("Chưa kết nối ChatGPT (OAuth). Vào trang Model đăng nhập ChatGPT rồi thử lại.",
-                                                "ChatGPT (OAuth) is not connected. Sign in to ChatGPT on the Models page and try again.")}
+    accounts = _image_account_order()
+    if not accounts:
+        return {"ok": False, "error": localefmt.chu("Không có tài khoản ChatGPT nào sẵn sàng.",
+                                                "No signed-in ChatGPT account is available.")}
 
     # Đọc ảnh mẫu TRƯỚC khi gọi mạng: ảnh sai đường dẫn thì báo ngay và nói rõ ảnh nào,
     # thay vì đốt một lượt gọi rồi trả về một tấm vẽ từ mô tả suông mà người dùng tưởng là
@@ -399,48 +434,77 @@ async def generate_chatgpt(prompt: str, aspect_ratio: str = "square", quality: s
         data_urls.append(r["data_url"])
 
     size = resolve_size(aspect)
-    headers = _headers(creds["access_token"], creds.get("account_id") or "")
-
     b64: Optional[str] = None
     err: Optional[str] = None
     da_thu: list = []
-    hang_doi = host_model_candidates()
-    da_hoi_live = False
-    while True:
-        if not hang_doi and not da_hoi_live and err and model_rejected(0, err) and not _HOST_ENV:
-            # Mọi model trong danh mục đã lưu đều bị từ chối: danh mục có thể đã cũ (gói vừa đổi).
-            # Hỏi lại danh sách LIVE của tài khoản đúng một lần rồi thử các model chưa thử.
-            da_hoi_live = True
-            live = await _live_models(creds)
-            hang_doi = [m for m in host_model_candidates(live) if m not in da_thu]
-        if not hang_doi or len(da_thu) >= MAX_HOST_TRIES + 2:
-            break
-        model = hang_doi.pop(0)
-        da_thu.append(model)
-        payload = build_payload(prompt, size, quality, data_urls, model=model)
-        b64, err, status = await _mot_luot(payload, headers, timeout_s)
+    creds = None
+    had_credential = False
+    for account_key in accounts:
+        try:
+            creds = (openai_oauth.valid_creds() if account_key == "main"
+                     else openai_oauth.valid_creds_for(account_key))
+        except Exception:
+            creds = None
+        if not creds or not creds.get("access_token") or creds.get("stale"):
+            continue
+        had_credential = True
+        headers = _headers(creds["access_token"], creds.get("account_id") or "")
+        da_thu = []
+        hang_doi = host_model_candidates()
+        da_hoi_live = False
+        status = 0
+        while True:
+            if not hang_doi and not da_hoi_live and err and model_rejected(0, err) and not _HOST_ENV:
+                # All known host models were denied. Refresh the supported list once.
+                da_hoi_live = True
+                live = await _live_models(creds)
+                hang_doi = [m for m in host_model_candidates(live) if m not in da_thu]
+            if not hang_doi or len(da_thu) >= MAX_HOST_TRIES + 2:
+                break
+            model = hang_doi.pop(0)
+            da_thu.append(model)
+            payload = build_payload(prompt, size, quality, data_urls, model=model)
+            b64, err, status = await _mot_luot(payload, headers, timeout_s)
+            if b64:
+                _host_ok[0] = model
+                break
+            if not (err and model_rejected(status, err)):
+                break
+            if _host_ok[0] == model:
+                _host_ok[0] = ""
         if b64:
-            _host_ok[0] = model
             break
-        if not (err and model_rejected(status, err)):
-            break                     # lỗi khác (mạng, token, nội dung...): đổi model cũng vô ích
-        if _host_ok[0] == model:
-            _host_ok[0] = ""
+        if _image_quota_error(status, err):
+            # An exhausted account must not strand other signed-in plans.
+            # No image was returned, so retrying on the next account is safe.
+            try:
+                import model_routing
+                model_routing.mark_rest("openai-oauth", account_key, seconds=300)
+            except Exception:
+                pass
+            continue
+        # Authentication, invalid prompt, model support and transport errors
+        # are not evidence that another account would solve the problem.
+        break
+
+    if not had_credential:
+        return {"ok": False, "error": localefmt.chu("Chưa kết nối ChatGPT (OAuth). Vào trang Model đăng nhập ChatGPT rồi thử lại.",
+                                                "ChatGPT (OAuth) is not connected. Sign in to ChatGPT on the Models page and try again.")}
 
     if not b64 and err and model_rejected(0, err) and len(da_thu) > 0:
         ds = ", ".join(da_thu)
         err = err + localefmt.chu(
             f" (đã thử model: {ds}). Gói ChatGPT này không cho dùng các model đó để tạo ảnh. Mở trang "
-            "Models để Vanhanh tải lại danh sách model của ChatGPT rồi thử lại.",
+            "Models để Naota tải lại danh sách model của ChatGPT rồi thử lại.",
             f" (models tried: {ds}). This ChatGPT plan does not allow those models for image generation. "
-            "Open the Models page so Vanhanh reloads the ChatGPT model list, then try again.")
+            "Open the Models page so Naota reloads the ChatGPT model list, then try again.")
 
     if err or not b64:
         return {"ok": False, "error": err or localefmt.chu(
             "ChatGPT không trả ảnh (gói ChatGPT có thể chưa hỗ trợ tạo ảnh qua Codex).",
             "ChatGPT returned no image (the ChatGPT plan may not support image generation through Codex yet).")}
 
-    saved = save_png_b64(b64, vault_root, prefix="vanhanh-img")
+    saved = save_png_b64(b64, vault_root, prefix="naota-img")
     if not saved.get("ok"):
         return saved
     return {"ok": True, "rel_path": saved["rel_path"], "abs_path": saved["abs_path"],

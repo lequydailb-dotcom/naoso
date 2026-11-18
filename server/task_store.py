@@ -1,8 +1,8 @@
-"""Durable SQLite store for the autonomous Vanhanh task queue.
+"""Durable SQLite store for the autonomous Naota task queue.
 
-The queue is runtime state, so SQLite lives in VANHANH_STATE_DIR instead of inside a
+The queue is runtime state, so SQLite lives in NAOTA_STATE_DIR instead of inside a
 brain that may be synchronized by Git. A JSON snapshot is still exported by
-``tasks.py`` for portability and backwards compatibility with older Vanhanh builds.
+``tasks.py`` for portability and backwards compatibility with older Naota builds.
 """
 from __future__ import annotations
 
@@ -86,7 +86,7 @@ def agent_prefix(idempotency_key: Any) -> str:
     """`agent:<mã>:` của việc giao trực tiếp cho một trợ lý (khoá `agent:<mã>:<slug>:...`), rỗng nếu không phải.
 
     Một trợ lý chạy MỘT việc giao trực tiếp một lúc: giao nhiều việc không tự mở nhiều lượt model đồng thời cho cùng
-    trợ lý. Việc của trợ lý khác, việc Kanban thường vẫn chạy song song tới trần VANHANH_KANBAN_MAX_WORKERS."""
+    trợ lý. Việc của trợ lý khác, việc Kanban thường vẫn chạy song song tới trần NAOTA_KANBAN_MAX_WORKERS."""
     k = str(idempotency_key or "")
     if not k.startswith("agent:"):
         return ""
@@ -694,7 +694,7 @@ class TaskStore:
 
         Khác archive_old_terminal (chỉ ẩn khỏi bảng, vẫn tra được): đây là dọn thật, dùng
         khi bảng đầy việc rác không còn giá trị tra cứu. Mặc định giữ 'done' vì đó là lịch
-        sử việc Vanhanh làm được; muốn dọn cả thì truyền statuses vào."""
+        sử việc Naota làm được; muốn dọn cả thì truyền statuses vào."""
         allowed = tuple(s for s in statuses if s in self._PURGEABLE)
         if not allowed:
             return 0
@@ -750,7 +750,7 @@ class TaskStore:
                 raise
 
     # a stopped job only the owner can move on (a question, a permission, a result to approve), as opposed
-    # to one Vanhanh handles itself (technical hitch, usage limit). The Work page and the notices split on this.
+    # to one Naota handles itself (technical hitch, usage limit). The Work page and the notices split on this.
     OWNER_BLOCK_KINDS = ("needs_input", "capability", ACCEPTANCE_FAILED)
 
     @classmethod
@@ -759,8 +759,8 @@ class TaskStore:
         return st == "review" or (st == "blocked" and str(task.get("block_kind") or "") in cls.OWNER_BLOCK_KINDS)
 
     def archive_attention(self, brain_root: str, owner: bool) -> int:
-        """Wipe one of the two stopped-job areas: `owner=True` the "Vanhanh is asking you" area (review + owner
-        kinds), False the "Vanhanh is handling it" area (every other blocked job). Same rules as archive_by_status."""
+        """Wipe one of the two stopped-job areas: `owner=True` the "Naota is asking you" area (review + owner
+        kinds), False the "Naota is handling it" area (every other blocked job). Same rules as archive_by_status."""
         with self._lock:
             rows = self._db.execute(
                 """SELECT id, status, block_kind FROM tasks WHERE brain_root=? AND lane<>'team'
@@ -1240,6 +1240,17 @@ class TaskStore:
     # through `answer`). Finished jobs included: "make paragraph 2 shorter" on a done job is the common case.
     FOLLOWUP_STATUS = ("blocked", "review", "done", "cancelled", "triage", "todo", "ready")
 
+    @staticmethod
+    def _followup_entry(text: str, by: str, progress: str) -> dict:
+        """One owner follow-up in the Q&A log. `TasksFeature._hoi_dap` hands it to the next run as the newest
+        instruction, which wins over the original goal where the two differ."""
+        return {
+            "q": "Chủ nhắn thêm cho việc này",
+            "a": text[:QA_TEXT_MAX], "kind": "followup", "by": by,
+            "asked_at": now(), "answered_at": now(),
+            "progress": progress.strip()[:QA_PROGRESS_MAX],
+        }
+
     def followup(self, task_id: str, text: str, by: str = "owner") -> tuple[Optional[dict], str]:
         """The owner's extra instruction for a job, then back to the queue.
 
@@ -1271,12 +1282,7 @@ class TaskStore:
                     return None, "not_found"
                 meta = _loads(row["metadata_json"], {})
                 qa = [x for x in (meta.get("qa") or []) if isinstance(x, dict)]
-                qa.append({
-                    "q": "Chủ nhắn thêm cho việc này",
-                    "a": text[:QA_TEXT_MAX], "kind": "followup", "by": by,
-                    "asked_at": now(), "answered_at": now(),
-                    "progress": str(row["result"] or "").strip()[:QA_PROGRESS_MAX],
-                })
+                qa.append(self._followup_entry(text, by, str(row["result"] or "")))
                 meta["qa"] = qa[-QA_KEEP:]
                 meta.pop("once_pending", None)
                 if meta.get("acceptance_check") in ("unverified", "checking", "failed"):
@@ -1331,13 +1337,19 @@ class TaskStore:
             block_reason=reason, metadata=meta, artifacts=artifacts, event_type="acceptance_failed",
         )
 
-    def resolve_acceptance(self, task_id: str, decision: str, by: str = "owner") -> tuple[Optional[dict], str]:
+    def resolve_acceptance(self, task_id: str, decision: str, by: str = "owner",
+                           note: str = "") -> tuple[Optional[dict], str]:
         """The owner's pick on an `acceptance_failed` job: "fix" sends it back to the worker with the checker's
         reason and fresh attempts, "accept" closes it as done (or back to review when it was waiting for approval)
         with `acceptance_check: accepted`. Returns (task, "") or (None, "bad_decision" | "not_found" |
-        "not_waiting")."""
+        "not_waiting").
+
+        `note` (fix only): the owner's extra instruction for the redo, stored as a follow-up entry right after the
+        checker's reason, in the same transaction. A separate `followup` call after this one would race the
+        dispatcher, which can claim the job the moment it is ready and run it without the note."""
         if decision not in ("fix", "accept"):
             return None, "bad_decision"
+        note = (note or "").strip()
         with self._lock:
             self._tx()
             try:
@@ -1357,6 +1369,8 @@ class TaskStore:
                     qa.append({"kind": "acceptance_fix", "q": reason, "a": reason, "by": by,
                                "asked_at": now(), "answered_at": now(),
                                "progress": str(row["result"] or "").strip()[:QA_PROGRESS_MAX]})
+                    if note:
+                        qa.append(self._followup_entry(note, by, str(row["result"] or "")))
                     meta["qa"] = qa[-QA_KEEP:]
                     meta.pop("acceptance_check", None)
                     meta.pop("acceptance_from", None)
@@ -1367,6 +1381,8 @@ class TaskStore:
                         (_json(meta), now(), task_id),
                     )
                     self._event(task_id, "acceptance_fix", reason[:500], metadata={"by": by})
+                    if note:
+                        self._event(task_id, "followup", note[:500], metadata={"by": by, "from": row["status"]})
                 else:
                     status = "review" if meta.pop("acceptance_from", "") == "review" else "done"
                     meta["acceptance_check"] = "accepted"
@@ -1490,7 +1506,7 @@ class TaskStore:
                     self._db.rollback()
                     return False
                 # Người dùng tự kéo việc: bỏ luôn mốc hoãn (họ muốn chạy NGAY, kể cả khi
-                # Vanhanh đang đợi gói thuê bao mở lại).
+                # Naota đang đợi gói thuê bao mở lại).
                 self._db.execute(
                     """UPDATE tasks SET status=?, block_kind='', block_reason='',
                        claimed_by='', claim_expires_at=0, not_before=0, current_run_id='',
@@ -1772,12 +1788,16 @@ class TaskStore:
             self._db.commit()
 
     def claim_team_next(
-        self, team_id: str, worker_id: str, lease_s: int = 90, max_running: int = 1,
+        self, team_id: str, worker_id: str, lease_s: int = 90, max_running: int = 1, task_id: Optional[str] = None,
     ) -> Optional[dict]:
         """Nhận việc đầu hàng của nhóm nếu nhóm còn chỗ chạy (mặc định một việc mỗi nhóm).
 
         Kiểm chỗ chạy, chọn việc, đặt `team_running`, ghi `task_runs` và tăng version trong MỘT
-        giao dịch `BEGIN IMMEDIATE`: không bao giờ có hai việc cùng chạy trong một nhóm."""
+        giao dịch `BEGIN IMMEDIATE`: không bao giờ có hai việc cùng chạy trong một nhóm.
+
+        2026-11-12: `task_id` names the waiting job to take instead of the head of the queue. The team runner picks it
+        when a team may run several jobs at once (`max_running` > 1) and the head belongs to an assistant that is
+        already working. A job that is no longer waiting, or of another team, gives None."""
         team_id = str(team_id)
         # Cross-store preparation deliberately precedes the claim transaction. A crash leaves the task unready.
         if self.quality_prepare:
@@ -1794,11 +1814,17 @@ class TaskStore:
                 if int(running) >= max(1, int(max_running)):
                     self._db.rollback()
                     return None
-                row = self._db.execute(
-                    f"""SELECT * FROM tasks WHERE lane='team' AND team_id=? AND status='team_queued'
-                        ORDER BY {_TEAM_ORDER} LIMIT 1""",
-                    (team_id,),
-                ).fetchone()
+                if task_id:
+                    row = self._db.execute(
+                        "SELECT * FROM tasks WHERE id=? AND lane='team' AND team_id=? AND status='team_queued'",
+                        (str(task_id), team_id),
+                    ).fetchone()
+                else:
+                    row = self._db.execute(
+                        f"""SELECT * FROM tasks WHERE lane='team' AND team_id=? AND status='team_queued'
+                            ORDER BY {_TEAM_ORDER} LIMIT 1""",
+                        (team_id,),
+                    ).fetchone()
                 if not row:
                     self._db.rollback()
                     return None
@@ -1925,7 +1951,7 @@ class TaskStore:
         return self._team_move(task_id, TEAM_OPEN_STATUS, "cancelled", "team_cancelled", reason,
                                block_kind="cancelled", block_reason=reason, run_status="cancelled")
 
-    # ───── Vanhanh Core giao việc cho nhóm ─────
+    # ───── Naota Core giao việc cho nhóm ─────
     # Việc nhóm không dùng `metadata_json` ở đâu khác, nên nơi giao việc nằm ở đó: `core` (mã đối chiếu, nơi báo kết
     # quả, kênh), `core_said` (trạng thái đã báo gần nhất), `core_closed` (đã báo lần cuối, thôi theo dõi).
 

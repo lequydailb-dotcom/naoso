@@ -1,6 +1,6 @@
 """Facebook Messenger gateway over the official Messenger Platform (Meta).
 
-Same shape as `whatsapp_bot` because the platform works the same way: Vanhanh cannot pull
+Same shape as `whatsapp_bot` because the platform works the same way: Naota cannot pull
 messages, Meta POSTs every inbound message to a webhook. Two halves:
 
   - `MessengerBot`: the transport, same contract as `TelegramBot` (start/stop/status/send_text/
@@ -27,7 +27,7 @@ Rules of the platform that shape the code:
 
 Page comments, handled the way Pancake shows them: every top-level comment under a Page
 post is its own conversation in the inbox, every reply under it joins that conversation, and
-whatever Vanhanh sends there goes out as a reply under that top-level comment. The conversation id
+whatever Naota sends there goes out as a reply under that top-level comment. The conversation id
 is `cmt:<top-level comment id>`, so a reply needs no stored state and still works after a
 restart. They arrive as `feed` changes on the same webhook. Each account picks a mode in its
 meta (`comments`): "off", "inbox" (shown in the inbox, the owner answers; the default) or
@@ -62,7 +62,7 @@ import stt
 from bot_gateway import HangLuot, dong_vet, parse_chat_ids, ten_tool
 from whatsapp_bot import verify_signature  # noqa: F401  - same Meta signature scheme, re-exported
 
-GRAPH_VERSION = os.getenv("VANHANH_MESSENGER_GRAPH_VERSION", os.getenv("VANHANH_WHATSAPP_GRAPH_VERSION", "v23.0"))
+GRAPH_VERSION = os.getenv("NAOTA_MESSENGER_GRAPH_VERSION", os.getenv("NAOTA_WHATSAPP_GRAPH_VERSION", "v23.0"))
 GRAPH = f"https://graph.facebook.com/{GRAPH_VERSION}"
 
 MAX_MSG = 1900               # Messenger allows 2000; keep a margin for multi-byte counting
@@ -80,13 +80,8 @@ IG_WEBHOOK_FIELDS = "messages,messaging_postbacks,comments"
 COMMENT_MODES = ("off", "inbox", "reply")
 COMMENT_MODE_DEFAULT = "inbox"
 MAX_COMMENT = 7900            # a comment takes 8000 characters
-QUA_RIENG = "[QUA_RIENG]"     # part of a comment answer sent privately to the commenter (Private Replies), never public
-QUA_RIENG_END = "[/QUA_RIENG]"
-_QUA_RIENG_RE = re.compile(r"\[\s*qua_rieng\s*\](.*?)(?:\[\s*/\s*qua_rieng\s*\]|$)", re.I | re.S)
-# Reaction names the bot may pick (bot_reaction.NAMES) -> what Messenger shows. Messenger takes the emoji itself.
-REACT_EMOJI = {"heart": "\u2764\ufe0f", "like": "\U0001f44d", "haha": "\U0001f606", "wow": "\U0001f62e",
-               "cry": "\U0001f622", "angry": "\U0001f620", "love": "\u2764\ufe0f"}
-REACT_DEFAULT = "heart"       # put on every message the bot answers, before the answer (account meta react="off" stops it)
+NAME_RETRY_S = 600            # a sender whose name lookup failed is looked up again after 10 minutes, not per message
+MAX_NAMES = 2000
 
 # page_id -> MessengerBot currently running for it.
 _REGISTRY: dict = {}
@@ -146,6 +141,22 @@ def _chunks(text: str, size: int = MAX_MSG) -> list:
     return out
 
 
+def profile_name(d: dict) -> str:
+    """The name in a User Profile API answer: `name`, else `@username` (Instagram), else first and last name."""
+    d = d if isinstance(d, dict) else {}
+    return str(d.get("name") or (d.get("username") and "@" + str(d.get("username")))
+               or " ".join(str(x) for x in (d.get("first_name"), d.get("last_name")) if x) or "").strip()
+
+
+def participant_name(conversations: dict, psid: str) -> str:
+    """The name of participant `psid` in a `/<page>/conversations?fields=participants` answer, or ""."""
+    for conv in (conversations if isinstance(conversations, dict) else {}).get("data") or []:
+        for p in ((conv or {}).get("participants") or {}).get("data") or []:
+            if str((p or {}).get("id") or "") == str(psid):
+                return str(p.get("name") or "").strip()
+    return ""
+
+
 def registered() -> dict:
     return dict(_REGISTRY)
 
@@ -173,7 +184,7 @@ def raw_chat_id(chat) -> str:
 def ig_comment_event(value: dict, ig_id: str):
     """One Instagram `comments` change -> the new comment it carries, or None.
 
-    The account's own comments (every reply Vanhanh sends) are skipped. A reply under a comment joins the
+    The account's own comments (every reply Naota sends) are skipped. A reply under a comment joins the
     top-level comment's thread (`parent_id`)."""
     v = value or {}
     cid = str(v.get("id") or "")
@@ -194,7 +205,7 @@ def comment_event(value: dict, page_id: str):
     """One `feed` change -> the new comment it carries, or None.
 
     Only new comments count (`item` comment, `verb` add); edits, removals, reactions and posts are
-    skipped, and so are the Page's own comments, which include every reply Vanhanh sends. A reply
+    skipped, and so are the Page's own comments, which include every reply Naota sends. A reply
     under a reply still belongs to the top-level comment: `parent_id` is the post id for a
     top-level comment and the parent comment id otherwise."""
     v = value or {}
@@ -223,60 +234,7 @@ def comment_note(post: str = "", instagram: bool = False) -> str:
             + (f' (bài viết: "{post[:300]}")' if post else "")
             + ". Câu trả lời của bạn hiện công khai ngay dưới bình luận này, ai cũng đọc được: trả lời ngắn gọn, "
               "lịch sự, không nêu số điện thoại, địa chỉ hay thông tin riêng của khách; cần trao đổi riêng thì mời "
-              "khách nhắn tin cho " + ("tài khoản Instagram" if instagram else "Page") + ". Khi cần gửi link, quà tặng hay thông tin riêng cho người bình luận, đặt phần đó giữa "
-              f"{QUA_RIENG} và {QUA_RIENG_END}: phần này được nhắn riêng vào Messenger của họ, không hiện công khai; "
-              "phần còn lại là câu trả lời công khai, ví dụ báo đã gửi quà vào tin nhắn. Không bao giờ để link quà ngoài "
-              "cặp dấu này.]")
-
-
-def split_private(text):
-    """(public part, private part) of an answer. The private part is everything between [QUA_RIENG] and
-    [/QUA_RIENG] (or the end of the text when the closing marker is missing); every marker leaves both parts, so a
-    gift link never ends up in a public comment by mistake."""
-    s = str(text or "")
-    priv = [m.group(1).strip() for m in _QUA_RIENG_RE.finditer(s)]
-    pub = _QUA_RIENG_RE.sub("", s)
-    pub = re.sub(r"\[\s*/\s*qua_rieng\s*\]", "", pub, flags=re.I)
-    pub = re.sub(r"[ \t]+\n", "\n", pub)
-    pub = re.sub(r"\n{3,}", "\n\n", pub).strip()
-    return pub, "\n\n".join(x for x in priv if x).strip()
-
-
-def gift_public_line(name: str = "") -> str:
-    """The public reply when the bot sent something privately and wrote nothing public itself. Customer text: Vietnamese."""
-    return "Dạ em đã gửi quà vào tin nhắn riêng cho anh/chị rồi ạ, anh/chị mở Messenger kiểm tra giúp em nha \u2764\ufe0f"
-
-
-def react_on(account_id: str) -> bool:
-    """Heart/like before answering: on unless the account's meta says react="off"."""
-    try:
-        import channel_accounts
-        a = channel_accounts.get_account(str(account_id or "")) or {}
-        return str((a.get("meta") or {}).get("react") or "").strip().lower() != "off"
-    except Exception:
-        return True
-
-
-_URL_RE = re.compile(r"(?:https?://|www\.)\S+|\b(?:zalo\.me|drive\.google\.com|docs\.google\.com|bit\.ly)/\S+", re.I)
-
-
-def links_to_private(pub: str, priv: str):
-    """A comment is public: any link the bot left outside the markers goes private as well (gift links are never
-    posted under a post, even when the model forgets the markers)."""
-    links = [m.group(0).rstrip(".,;:!?)\"'") for m in _URL_RE.finditer(pub or "")]
-    if not links:
-        return pub, priv
-    pub = _URL_RE.sub("", pub)
-    pub = re.sub(r"[ \t]{2,}", " ", pub)
-    pub = re.sub(r"[ \t]*[:\-–]\s*$", "", pub, flags=re.M).strip()
-    extra = "\n".join(x for x in links if x not in (priv or ""))
-    return pub, "\n".join(x for x in (priv, extra) if x).strip()
-
-
-def unwrap_private(text) -> str:
-    """A private chat is private already: the gift markers just go, their content stays."""
-    s = re.sub(r"\[\s*/?\s*qua_rieng\s*\]", "", str(text or ""), flags=re.I)
-    return re.sub(r"\n{3,}", "\n\n", s).strip()
+              "khách nhắn tin cho " + ("tài khoản Instagram" if instagram else "Page") + ".]")
 
 
 def comment_mode(account_id: str) -> str:
@@ -399,6 +357,7 @@ class MessengerBot(HangLuot):
         self._seen = set()
         self._seen_order = deque()
         self._names: dict = {}
+        self._name_retry: dict = {}     # PSID -> time before which a failed name lookup is not tried again
         self._posts: dict = {}
         self._client = None
         self.account_id = ""
@@ -461,7 +420,6 @@ class MessengerBot(HangLuot):
                 self.last_error = d.get("error", "")
                 print(f"[messenger send] {d.get('error')}", file=sys.stderr)
                 break
-            self.last_error = ""     # a reply went out: an older failure no longer describes this Page
 
     async def send_text(self, chat, text):
         text = md_to_plain(str(text or "").strip())
@@ -471,18 +429,6 @@ class MessengerBot(HangLuot):
             return False, localefmt.chu("thiếu Page id hoặc Page access token Messenger",
                                         "missing the Messenger Page id or Page access token")
         async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
-            if is_comment_chat(chat):
-                pub, priv = links_to_private(*split_private(text))
-                if priv:
-                    d = await self._private_reply(client, str(chat)[len(COMMENT_PREFIX):], priv)
-                    if not d.get("ok"):
-                        return False, d.get("error", "")
-                    pub = pub or gift_public_line()
-                text = pub
-                if not text:
-                    return True, ""
-            else:
-                text = unwrap_private(text)
             for chunk in _chunks(text, MAX_COMMENT if is_comment_chat(chat) else MAX_MSG):
                 d = await self._send_one(client, chat, chunk)
                 if not d.get("ok"):
@@ -577,114 +523,67 @@ class MessengerBot(HangLuot):
         await self._post_json(client, f"{self.page_id}/messages",
                               {"recipient": {"id": raw_chat_id(chat)}, "sender_action": action})
 
-    async def _react(self, client, chat, target, name=None):
-        """Heart on a Messenger message, like on a comment, before the answer. Best effort: a failure only logs.
-        A comment can only be liked (the Graph API has no other reaction for a Page)."""
-        if not target:
-            return {"ok": False, "error": "no target"}
-        if is_comment_chat(chat):
-            d = await self._post_json(client, f"{target}/likes", {})
-        else:
-            emoji = REACT_EMOJI.get(str(name or REACT_DEFAULT).lower(), REACT_EMOJI[REACT_DEFAULT])
-            payload = {"recipient": {"id": str(chat)}, "sender_action": "react",
-                       "payload": {"message_id": str(target), "reaction": emoji}}
-            d = await self._post_json(client, f"{self.page_id}/messages", payload)
-            if not d.get("ok") and not d.get("net_error"):
-                payload["payload"]["reaction"] = "love"   # older API versions want the name
-                d = await self._post_json(client, f"{self.page_id}/messages", payload)
-        if not d.get("ok"):
-            print(f"[messenger react] {d.get('error')}", file=sys.stderr)
-        return d
+    def _read_params(self, extra: dict) -> dict:
+        """Query of a Graph read with the Page token, plus `appsecret_proof` when the app secret is known (as `whoami`)."""
+        p = dict(extra, access_token=self.token)
+        if self.app_secret:
+            p["appsecret_proof"] = appsecret_proof(self.token, self.app_secret)
+        return p
 
-    async def _private_reply(self, client, comment_id, text):
-        """Private Replies: one message into the commenter's Messenger, tied to their comment. Facebook allows a
-        single private reply per comment (within 7 days); a longer text continues to the person it reached."""
-        text = unwrap_private(md_to_plain(text))
-        parts = _chunks(text, MAX_MSG) or [text]
-        d = await self._post_json(client, f"{self.page_id}/messages", {
-            "recipient": {"comment_id": str(comment_id)}, "message": {"text": parts[0]}})
-        if not d.get("ok"):
-            if str(d.get("code")) in ("10", "200", "230", "551"):
-                d["error"] = localefmt.chu(
-                    f"không nhắn riêng được cho người bình luận ({d.get('code')}): cần quyền pages_messaging, "
-                    "và mỗi bình luận chỉ được nhắn riêng một lần trong 7 ngày",
-                    f"could not message the commenter privately ({d.get('code')}): pages_messaging is needed, and "
-                    "each comment takes one private reply within 7 days")
-            print(f"[messenger private reply] {d.get('error')}", file=sys.stderr)
-            return d
-        psid = str(d.get("recipient_id") or "")
-        for more in parts[1:]:
-            if psid:
-                await self._send_one(client, psid, more)
-        return d
-
-    async def _psid_of_comment(self, client, comment_id) -> str:
-        """The commenter's Page-scoped id, from the conversation the comment's private reply opened. "" if unknown."""
+    async def _graph_read(self, client, path: str, params: dict) -> tuple:
+        """GET one Graph path with the Page token. (data, "") or ({}, "<code>: <message>") for the log line.
+        The reason never carries the token: an exception is reduced to its type, whose text may quote the URL."""
         try:
-            r = await client.get(f"{GRAPH}/{comment_id}", params={
-                "fields": "private_reply_conversation{participants}", "access_token": self.token})
-            parts = (((r.json() or {}).get("private_reply_conversation") or {}).get("participants") or {}).get("data") or []
-            for p in parts:
-                if str(p.get("id") or "") and str(p.get("id")) != str(self.page_id):
-                    return str(p["id"])
+            r = await client.get(f"{GRAPH}/{path}", params=self._read_params(params))
+        except Exception as e:
+            return {}, type(e).__name__
+        try:
+            d = r.json() or {}
         except Exception:
-            pass
-        return ""
-
-    async def _comment_answer(self, client, chat, text, meta):
-        """Public reply under a comment, with the gift part sent privately first. If the private message fails the
-        link stays private anyway: the public reply asks the person to message the Page."""
-        meta = meta or {}
-        pub, priv = links_to_private(*split_private(text))
-        if priv and meta.get("instagram"):
-            # Instagram: the gift is never public either; the commenter is asked to write to the account.
-            priv = ""
-            pub = pub or "Dạ anh/chị nhắn tin trực tiếp cho tài khoản để em gửi quà riêng cho anh/chị nha \u2764\ufe0f"
-        if priv:
-            cid = str(meta.get("comment_id") or str(chat)[len(COMMENT_PREFIX):])
-            d = await self._private_reply(client, cid, priv)
-            if not d.get("ok") and str(d.get("code")) == "10900" and meta.get("user_id"):
-                # The comment already got its one private reply (another tool, or Meta's own automation): the
-                # person has a conversation with the Page now, so the gift goes there as a normal message.
-                psid = await self._psid_of_comment(client, cid)
-                if psid:
-                    d = await self._send_one(client, psid, unwrap_private(md_to_plain(priv))[:MAX_MSG])
-            if d.get("ok"):
-                pub = pub or gift_public_line(meta.get("user_name", ""))
-                uid = str(meta.get("user_id") or "")
-                if uid and not is_comment_chat(uid):
-                    # @mention the commenter; the Page Mentioning feature may be off, then plain text goes.
-                    tagged = f"@[{uid}] {pub}"
-                    t = await self._send_one(client, chat, md_to_plain(tagged)[:MAX_COMMENT])
-                    if t.get("ok"):
-                        return
-                    name = str(meta.get("user_name") or "").strip()
-                    pub = (f"Dạ {name} ơi, " + pub[:1].lower() + pub[1:]) if name else pub
-            else:
-                if str(d.get("code")) != "10900":     # already replied privately elsewhere: not a fault of this Page
-                    self.last_error = d.get("error", "")
-                pub = pub or ("Dạ anh/chị nhắn tin trực tiếp cho Page để em gửi quà riêng cho anh/chị nha \u2764\ufe0f")
-        if pub.strip():
-            await self._send(client, chat, pub)
+            d = {}
+        if not isinstance(d, dict):
+            d = {}
+        if d.get("error") or r.status_code >= 300:
+            e = d.get("error") if isinstance(d.get("error"), dict) else {}
+            code = str(e.get("code") or r.status_code) + (f"/{e['error_subcode']}" if e.get("error_subcode") else "")
+            return {}, f"{code}: {str(e.get('message') or 'HTTP ' + str(r.status_code))[:200]}"
+        return d, ""
 
     async def _name_of(self, client, psid, instagram: bool = False) -> str:
-        """Display name of a person (User Profile API). Empty when the app may not read it. On Instagram the
-        name, else the @username."""
+        """Display name of a person. On Instagram the name, else the @username.
+
+        The User Profile API first. On Messenger, when it fails or gives no name (Meta refuses it to many apps), the
+        participants of the Page's conversation with that person, which only needs the Page's own permissions. A name
+        found is kept; a miss is tried again after NAME_RETRY_S, so one refused call no longer leaves the person shown
+        as a bare id until a restart, and Graph is not asked on every message."""
+        psid = str(psid or "")
+        if not psid:
+            return ""
         if psid in self._names:
             return self._names[psid]
-        name = ""
-        try:
-            fields = "name,username" if instagram else "first_name,last_name,name"
-            r = await client.get(f"{GRAPH}/{psid}", params={"fields": fields, "access_token": self.token})
-            d = r.json() or {}
-            name = str(d.get("name") or (d.get("username") and "@" + str(d.get("username")))
-                       or " ".join(x for x in (d.get("first_name"), d.get("last_name")) if x) or "").strip()
-        except Exception:
-            name = ""
-        if len(self._names) > 2000:
-            self._names.clear()
-        self._names[psid] = name
-        return name
+        now = time.time()
+        if self._name_retry.get(psid, 0) > now:
+            return ""
+        fields = "name,username" if instagram else "first_name,last_name,name"
+        d, err = await self._graph_read(client, psid, {"fields": fields})
+        name = profile_name(d)
+        conv_err = ""
+        if not name and not instagram and self.page_id:
+            c, conv_err = await self._graph_read(client, f"{self.page_id}/conversations",
+                                                 {"user_id": psid, "fields": "participants"})
+            name = participant_name(c, psid)
+        for cache in (self._names, self._name_retry):
+            if len(cache) > MAX_NAMES:
+                cache.clear()
+        if name:
+            self._names[psid] = name
+            self._name_retry.pop(psid, None)
+            return name
+        self._name_retry[psid] = now + NAME_RETRY_S
+        print(f"[messenger] no display name for {psid} on Page {self.page_id}: profile {err or 'no name'}"
+              + ("" if instagram else f"; conversations {conv_err or 'no participant'}")
+              + f"; next try in {NAME_RETRY_S // 60} min", file=sys.stderr)
+        return ""
 
     # ---- Inbound ----------------------------------------------------------------------
     def _seen_before(self, mid) -> bool:
@@ -727,9 +626,9 @@ class MessengerBot(HangLuot):
             try:
                 kq = await self.stt_fn(data, f"messenger_{int(time.time())}.mp4")
             except Exception as e:
-                kq = {"ok": False, "noi_voi_vanhanh": stt.loi_thanh_dong("loi", f"{type(e).__name__}: {e}")}
+                kq = {"ok": False, "noi_voi_naota": stt.loi_thanh_dong("loi", f"{type(e).__name__}: {e}")}
             if not (kq or {}).get("ok"):
-                return (kq or {}).get("noi_voi_vanhanh") or stt.loi_thanh_dong("loi")
+                return (kq or {}).get("noi_voi_naota") or stt.loi_thanh_dong("loi")
             return stt.khoi_thoai(kq.get("text"), "Messenger")
         ddir = self.download_dir(chat) if callable(self.download_dir) else self.download_dir
         d = Path(ddir) if ddir else Path("messenger-inbox")
@@ -796,7 +695,7 @@ class MessengerBot(HangLuot):
             meta["instagram"] = True
         if self.chat_ids and chat not in self.chat_ids:
             await self._send(client, chat, localefmt.chu(
-                "Bạn không có quyền dùng bot Vanhanh này.", "You are not allowed to use this Vanhanh bot."))
+                "Bạn không có quyền dùng bot Naota này.", "You are not allowed to use this Naota bot."))
             return
         text = await self._event_text(client, ev, chat)
         if not text:
@@ -904,29 +803,17 @@ class MessengerBot(HangLuot):
                 from telegram_bot import CAU_LOI_NGUOI_THAT
                 reply = (CAU_LOI_NGUOI_THAT if self.giau_trang_thai else f"⚠ {type(e).__name__}: {e}")
             silent = False
-            reaction = None
             if isinstance(reply, dict):
                 files = reply.get("files") or []
                 silent = bool(reply.get("im_lang"))
-                reaction = reply.get("reaction")
                 reply = reply.get("text") or ""
-            speaks = bool(str(reply or "").strip() or files)
-            # Heart (Messenger) or like (comment) before answering. A silent turn ([IM_LANG], [BAO_CHU], a
-            # personal message left for the owner) gets nothing, unless the Agent chose a reaction itself.
-            m = meta or {}
-            if ((reaction or (speaks and not silent)) and react_on(getattr(self, "account_id", ""))
-                    and not (m.get("instagram") and is_comment_chat(chat))):   # an Instagram comment cannot be liked by the Page
-                target = m.get("comment_id") if is_comment_chat(chat) else m.get("message_id")
-                await self._react(client, chat, target, reaction or REACT_DEFAULT)
             if silent and not str(reply or "").strip() and not files:
                 return
             if not self.giau_trang_thai:
                 trail = dong_vet(tools, time.monotonic() - t0)
                 reply = ((str(reply or "").rstrip() + "\n\n") if str(reply or "").strip() else "") + trail
-            if is_comment_chat(chat) and str(reply or "").strip():
-                await self._comment_answer(client, chat, reply, meta)
-            elif str(reply or "").strip() or not files:
-                await self._send(client, chat, unwrap_private(reply) if str(reply or "").strip() else reply)
+            if str(reply or "").strip() or not files:
+                await self._send(client, chat, reply)
             for f in files:
                 fpath, fcap = (f.get("path"), f.get("caption", "")) if isinstance(f, dict) else (f, "")
                 ok, err = await self.send_file(fpath, fcap, chat=chat)
@@ -963,9 +850,9 @@ class MessengerBot(HangLuot):
         # Subscribing needs pages_manage_metadata, which many Page tokens lack. A Page subscribed by
         # hand in the Meta app still delivers, so a failed subscribe is a warning, not a dead bot.
         self.loi_danh_tinh = "" if sub.get("ok") else localefmt.chu(
-            "Vanhanh chưa tự gắn được Page vào webhook (" + sub.get("error", "") + "). Nếu Page đã được gắn tay "
+            "Naota chưa tự gắn được Page vào webhook (" + sub.get("error", "") + "). Nếu Page đã được gắn tay "
             "trong app Meta (Messenger, Webhooks, Add Subscriptions) thì bot vẫn nghe; chưa thì gắn tay ở đó.",
-            "Vanhanh could not subscribe the Page to the webhook (" + sub.get("error", "") + "). If the Page was "
+            "Naota could not subscribe the Page to the webhook (" + sub.get("error", "") + "). If the Page was "
             "subscribed by hand in the Meta app (Messenger, Webhooks, Add Subscriptions) the bot still hears; "
             "otherwise subscribe it there.")
         self.bot_username = info.get("username", "")
@@ -1086,7 +973,7 @@ async def subscribe_page(client, page_id, token) -> dict:
 
 async def unsubscribe_page(client, page_id, token) -> dict:
     """Stop the Page calling this app's webhook (Disconnect). Best effort: a token that no longer
-    works cannot unsubscribe, and the Page is removed from Vanhanh either way."""
+    works cannot unsubscribe, and the Page is removed from Naota either way."""
     try:
         r = await client.delete(f"{GRAPH}/{page_id}/subscribed_apps", params={"access_token": token})
         d = r.json() or {}

@@ -1,66 +1,66 @@
 # ============================================================================
-# VANHANH - docker compose (PRODUCTION: pull image dựng sẵn từ GHCR)
+# NAOTA - docker compose (PRODUCTION: pull image dựng sẵn từ GHCR)
 #
 # CÀI TRÊN HOSTINGER: dùng file RIÊNG cho Hostinger (1 container, deploy là chạy, không kén hạ tầng):
-#   https://raw.githubusercontent.com/lequydailb-dotcom/vanhanh/main/docker-compose.hostinger.yml
+#   https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.yml
 #   (Docker Manager → Compose → URL. Cách gắn TÊN MIỀN + HTTPS ghi trong chú thích cuối file đó / DEPLOY.md.)
 #   File NÀY cũng chạy trên Hostinger được, nhưng file kia gọn hơn và có sẵn nhãn Traefik.
 #
 # CÀI TRÊN VPS BẤT KỲ (DigitalOcean/Vultr... - HTTPS bằng Caddy, xem DEPLOY.md):
-#   1) docker compose run --rm vanhanh claude auth login --claudeai   # ĐĂNG NHẬP CLAUDE 1 LẦN
+#   1) docker compose run --rm naota claude auth login --claudeai   # ĐĂNG NHẬP CLAUDE 1 LẦN
 #   2) docker compose up -d
 #
-# ⚠️ BẢO MẬT: chạy public (0.0.0.0) tự BẬT VANHANH_REQUIRE_LOGIN → mở app ra là màn TẠO TÀI KHOẢN
+# ⚠️ BẢO MẬT: chạy public (0.0.0.0) tự BẬT NAOTA_REQUIRE_LOGIN → mở app ra là màn TẠO TÀI KHOẢN
 #    / ĐĂNG NHẬP, không ai vào điều khiển Claude được khi chưa có mật khẩu.
 #
 # Muốn build từ source thay vì pull image:  docker compose -f docker-compose.build.yml up -d --build
 #
-# NHIỀU BẢN VANHANH TRÊN CÙNG MỘT VPS (mỗi bản một tên miền riêng): xem
+# NHIỀU BẢN NAOTA TRÊN CÙNG MỘT VPS (mỗi bản một tên miền riêng): xem
 #   docker-compose.multi.yml + docker-compose.proxy.yml (và mục "Nhiều bản" trong DEPLOY.md).
-#   Tóm tắt: mỗi bản chạy ở THƯ MỤC RIÊNG với .env riêng đặt VANHANH_NAME + VANHANH_HOST_PORT khác nhau.
+#   Tóm tắt: mỗi bản chạy ở THƯ MỤC RIÊNG với .env riêng đặt NAOTA_NAME + NAOTA_HOST_PORT khác nhau.
 # ============================================================================
 services:
-  vanhanh:
-    image: ghcr.io/lequydailb-dotcom/vanhanh:latest
-    # Tên container LẤY TỪ BIẾN, không đóng cứng: hai bản Vanhanh trên cùng một VPS mà cùng tên
+  naota:
+    image: ghcr.io/vuongtex/naota:latest
+    # Tên container LẤY TỪ BIẾN, không đóng cứng: hai bản Naota trên cùng một VPS mà cùng tên
     # container là con thứ hai chết ngay lúc `up` ("name is already in use"), kể cả khi đã chạy ở
     # thư mục khác - Docker đặt tên container theo phạm vi TOÀN MÁY chứ không theo project.
-    container_name: ${VANHANH_NAME:-vanhanh}
+    container_name: ${NAOTA_NAME:-naota}
     restart: unless-stopped
     pull_policy: always
     environment:
       # Các mặc định cổng/state/brain đã nằm trong Docker image; compose chỉ giữ
       # token thật sự cần chia sẻ giữa app và Watchtower.
-      WATCHTOWER_TOKEN: ${WATCHTOWER_TOKEN:-vanhanh-update}   # để nút "Cập nhật" gọi được Watchtower
+      WATCHTOWER_TOKEN: ${WATCHTOWER_TOKEN:-naota-update}   # để nút "Cập nhật" gọi được Watchtower
       # Tài khoản quản trị đặt SẴN lúc deploy. Điền hai dòng này vào file `.env` nằm cạnh
       # compose là xong: server boot lên đã có admin, không còn khoảng trống nào.
       # Bỏ trống thì lần đầu mở app sẽ ra màn tạo tài khoản, và trên server public ai mở link
       # trước sẽ tạo được admin - phải tạo ngay sau khi deploy. Vào được rồi nên bật 2FA.
-      VANHANH_ADMIN_USER: ${VANHANH_ADMIN_USER:-}
-      VANHANH_ADMIN_PASSWORD: ${VANHANH_ADMIN_PASSWORD:-}
+      NAOTA_ADMIN_USER: ${NAOTA_ADMIN_USER:-}
+      NAOTA_ADMIN_PASSWORD: ${NAOTA_ADMIN_PASSWORD:-}
     ports:
       # Cổng MÁY CHỦ lấy từ biến (trong container vẫn luôn là 7777). Bản thứ hai đặt
-      # VANHANH_HOST_PORT=7778 là hết đụng cổng.
+      # NAOTA_HOST_PORT=7778 là hết đụng cổng.
       #
-      # VANHANH_BIND = địa chỉ nghe trên máy chủ. Mặc định 0.0.0.0 (y như trước: mở ra Internet, vào
-      # được bằng http://<ip>:<cổng>). Chạy sau proxy chung thì đặt VANHANH_BIND=127.0.0.1 để chỉ
+      # NAOTA_BIND = địa chỉ nghe trên máy chủ. Mặc định 0.0.0.0 (y như trước: mở ra Internet, vào
+      # được bằng http://<ip>:<cổng>). Chạy sau proxy chung thì đặt NAOTA_BIND=127.0.0.1 để chỉ
       # proxy vào được, còn cổng này thành lối gỡ rối qua SSH tunnel.
       #
       # Vì sao là BIẾN chứ không phải một dòng ports trong file override: compose NỐI CHỒNG danh
       # sách ports của các file -f chứ không thay thế, nên khai lại ở override là ra hai binding
       # cùng một cổng và Docker báo "port is already allocated".
-      - "${VANHANH_BIND:-0.0.0.0}:${VANHANH_HOST_PORT:-7777}:7777"
+      - "${NAOTA_BIND:-0.0.0.0}:${NAOTA_HOST_PORT:-7777}:7777"
     volumes:
-      - vanhanh-data:/data                       # state: settings/mật khẩu/sessions/loop (có secret → KHÔNG git)
-      - vanhanh-brains:/brains                   # MỌI second brain (kiến thức của bạn) - bền qua mọi update
+      - naota-data:/data                       # state: settings/mật khẩu/sessions/loop (có secret → KHÔNG git)
+      - naota-brains:/brains                   # MỌI second brain (kiến thức của bạn) - bền qua mọi update
       # ↑ Muốn BACKUP brain lên GitHub: đổi dòng trên thành bind-mount thư mục thật trên VPS, vd:
       #     - ./brains:/brains
       #   rồi 1 lần cấp quyền cho user non-root của container:  sudo chown -R 10001:10001 ./brains
       #   Sau đó: cd brains && git init && git add -A && git commit -m backup && git push
-      - claude-auth:/home/vanhanh/.claude        # token đăng nhập Claude (giữ qua mọi update!)
-      - codex-auth:/home/vanhanh/.codex          # token đăng nhập ChatGPT/Codex (codex login - giữ qua update)
+      - claude-auth:/home/naota/.claude        # token đăng nhập Claude (giữ qua mọi update!)
+      - codex-auth:/home/naota/.codex          # token đăng nhập ChatGPT/Codex (codex login - giữ qua update)
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,os,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:'+os.getenv('VANHANH_PORT','7777')+'/health',timeout=4).status==200 else 1)"]
+      test: ["CMD", "python", "-c", "import urllib.request,os,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:'+os.getenv('NAOTA_PORT','7777')+'/health',timeout=4).status==200 else 1)"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -70,14 +70,14 @@ services:
   #   docker compose --profile tunnel up -d  &&  docker compose logs tunnel | grep trycloudflare
   tunnel:
     image: cloudflare/cloudflared:latest
-    container_name: ${VANHANH_NAME:-vanhanh}-tunnel
+    container_name: ${NAOTA_NAME:-naota}-tunnel
     restart: unless-stopped
     profiles: ["tunnel"]
     depends_on:
-      - vanhanh
-    # `vanhanh` ở đây là TÊN SERVICE trong compose, không phải tên container - mỗi project có mạng
+      - naota
+    # `naota` ở đây là TÊN SERVICE trong compose, không phải tên container - mỗi project có mạng
     # riêng nên tên này không đụng nhau giữa các bản, giữ nguyên là đúng.
-    command: tunnel --no-autoupdate --url http://vanhanh:7777
+    command: tunnel --no-autoupdate --url http://naota:7777
     # URL cố định: tạo named tunnel ở Cloudflare Zero Trust → TUNNEL_TOKEN env → đổi command thành:
     #   command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
 
@@ -89,7 +89,7 @@ services:
   # coi như không có. Nay mặc định BẬT: cài mới là cập nhật được ngay, khỏi nhớ thêm lệnh nào.
   #
   # Đổi lại, Watchtower cần quyền Docker (socket). Host nào không cho là nó khởi động lại liên
-  # tục và Docker Manager báo stack "Partially running" - CONTAINER VANHANH VẪN CHẠY BÌNH THƯỜNG,
+  # tục và Docker Manager báo stack "Partially running" - CONTAINER NAOTA VẪN CHẠY BÌNH THƯỜNG,
   # chỉ mất cái nút, và trang Cập nhật sẽ nói thẳng là phải cập nhật tay. Không muốn có nó:
   #   docker compose up -d --scale watchtower=0
   #
@@ -99,26 +99,271 @@ services:
   # tự thương lượng phiên bản API. Ghim major `:1`, xem giải thích trong docker-compose.hostinger.yml.
   watchtower:
     image: ghcr.io/nicholas-fedor/watchtower:1
-    container_name: ${VANHANH_NAME:-vanhanh}-watchtower
+    container_name: ${NAOTA_NAME:-naota}-watchtower
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       WATCHTOWER_HTTP_API_ENDPOINTS: update                 # nhận lệnh cập nhật từ nút bấm
-      WATCHTOWER_HTTP_API_TOKEN: ${WATCHTOWER_TOKEN:-vanhanh-update}
+      WATCHTOWER_HTTP_API_TOKEN: ${WATCHTOWER_TOKEN:-naota-update}
       # TỰ đi tìm bản mới theo chu kỳ, KHÔNG chờ ai bấm nút. Mặc định TẮT có chủ ý: bật lên là
-      # Vanhanh tự khởi động lại bất cứ lúc nào có image mới, cắt ngang việc nền và phiên chat
-      # đang chạy. Muốn hoàn toàn tự động thì đặt trong .env:  VANHANH_AUTO_UPDATE=true
-      # (chu kỳ mặc định 24h, đổi bằng VANHANH_AUTO_UPDATE_INTERVAL tính bằng GIÂY).
-      WATCHTOWER_HTTP_API_PERIODIC_POLLS: ${VANHANH_AUTO_UPDATE:-false}
-      WATCHTOWER_POLL_INTERVAL: ${VANHANH_AUTO_UPDATE_INTERVAL:-86400}
+      # Naota tự khởi động lại bất cứ lúc nào có image mới, cắt ngang việc nền và phiên chat
+      # đang chạy. Muốn hoàn toàn tự động thì đặt trong .env:  NAOTA_AUTO_UPDATE=true
+      # (chu kỳ mặc định 24h, đổi bằng NAOTA_AUTO_UPDATE_INTERVAL tính bằng GIÂY).
+      WATCHTOWER_HTTP_API_PERIODIC_POLLS: ${NAOTA_AUTO_UPDATE:-false}
+      WATCHTOWER_POLL_INTERVAL: ${NAOTA_AUTO_UPDATE_INTERVAL:-86400}
       WATCHTOWER_CLEANUP: "true"                            # dọn image cũ sau khi update
-    # Theo dõi ĐÚNG container của bản này. Để trống hay ghi cứng "vanhanh" thì trên VPS nhiều bản,
+      # One update from the button may take this long: pulling the image AND removing the old
+      # container. Watchtower's default is 10 minutes; on a VPS with a slow disk it ran out while
+      # Docker was still deleting the old container, Watchtower gave up without creating the new
+      # one, and Naota was gone (404) until a Redeploy (owner report 2026-11-13). See `guard`.
+      WATCHTOWER_HTTP_API_UPDATE_TIMEOUT: 30m
+    # Theo dõi ĐÚNG container của bản này. Để trống hay ghi cứng "naota" thì trên VPS nhiều bản,
     # Watchtower của bản này sẽ đi cập nhật (và restart) container của bản khác.
-    command: ${VANHANH_NAME:-vanhanh}
+    command: ${NAOTA_NAME:-naota}
+
+  # Brings Naota back when an update leaves it gone or stopped (owner report 2026-11-13).
+  #
+  # Watchtower replaces Naota by stopping it, removing it, then creating the new one. If the stop or
+  # the removal returns an error (a timeout on a slow disk), it gives up and never creates the new
+  # one, while Docker often finishes the removal anyway: no Naota container at all, the domain answers
+  # 404. The guard keeps a copy of how Naota was created and, after 2 minutes of that state, creates
+  # it again (on the new image Watchtower already pulled) or starts it again. A Naota you stop by hand
+  # is left alone. Logs: docker logs naota-guard
+  #
+  # Same Docker socket as Watchtower, but no network at all (network_mode: none). The code is
+  # docker/guard.py, copied in below by tools/sync_guard.py: edit that file, not this block.
+  # Do not want it: docker compose up -d --scale guard=0
+  guard:
+    image: python:3.12-alpine
+    container_name: ${NAOTA_NAME:-naota}-guard
+    restart: unless-stopped
+    network_mode: none
+    depends_on:
+      - naota          # `docker compose down` stops the guard first, so it never sees Naota "vanish"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - guard-data:/guard
+    environment:
+      NAOTA_NAME: ${NAOTA_NAME:-naota}
+    entrypoint: ["python", "-u", "-c"]
+    command:
+      - |
+        import http.client
+        import json
+        import os
+        import signal
+        import socket
+        import sys
+        import time
+        import urllib.parse
+        NAME = os.environ.get("NAOTA_NAME") or "naota"
+        SOCKET = os.environ.get("NAOTA_GUARD_SOCKET") or "/var/run/docker.sock"
+        STORE = os.environ.get("NAOTA_GUARD_DIR") or "/guard"
+        EVERY = float(os.environ.get("NAOTA_GUARD_EVERY") or 15)
+        GRACE = float(os.environ.get("NAOTA_GUARD_GRACE") or 120)
+        def log(msg):
+          print(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "[guard]", msg, flush=True)
+        class DockerConnection(http.client.HTTPConnection):
+          def __init__(self, timeout):
+            super().__init__("localhost", timeout=timeout)
+          def connect(self):
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.settimeout(self.timeout)
+            sock.connect(SOCKET)
+            self.sock = sock
+        def api(method, path, body=None, timeout=60):
+          conn = DockerConnection(timeout)
+          try:
+            data = None if body is None else json.dumps(body).encode()
+            conn.request(method, path, body=data, headers={"Content-Type": "application/json"} if data else {})
+            resp = conn.getresponse()
+            raw = resp.read()
+          finally:
+            conn.close()
+          try:
+            return resp.status, json.loads(raw) if raw else None
+          except ValueError:
+            return resp.status, raw.decode("utf-8", "replace")
+        def quote(value):
+          return urllib.parse.quote(value, safe="")
+        def tag_image_id(ref):
+          status, body = api("GET", "/images/" + ref + "/json")
+          return body.get("Id") if status == 200 and isinstance(body, dict) else None
+        def endpoint(ep, cid, network):
+          out = {}
+          aliases = [a for a in ep.get("Aliases") or [] if a not in (cid, cid[:12])]
+          if aliases and network != "bridge":
+            out["Aliases"] = aliases
+          for key in ("IPAMConfig", "Links", "DriverOpts"):
+            if ep.get(key):
+              out[key] = ep[key]
+          return out
+        def create_spec(snap):
+          c, img = snap["container"], snap.get("image") or {}
+          cid = c["Id"]
+          cfg = json.loads(json.dumps(c["Config"]))
+          host = json.loads(json.dumps(c["HostConfig"]))
+          for key, empty in (("WorkingDir", ""), ("User", ""), ("Cmd", None), ("Entrypoint", None),
+                   ("Healthcheck", None), ("StopSignal", "")):
+            if key in cfg and cfg.get(key) == img.get(key):
+              cfg[key] = empty
+          cfg["Env"] = [e for e in cfg.get("Env") or [] if e not in (img.get("Env") or [])]
+          old_labels = img.get("Labels") or {}
+          cfg["Labels"] = {k: v for k, v in (cfg.get("Labels") or {}).items() if old_labels.get(k) != v}
+          for key in ("Volumes", "ExposedPorts"):
+            cfg[key] = {k: v for k, v in (cfg.get(key) or {}).items() if k not in (img.get(key) or {})} or None
+          if cfg.get("Hostname") == cid[:12]:
+            cfg["Hostname"] = ""
+          cfg.pop("MacAddress", None)
+          taken = {m.get("Target") for m in host.get("Mounts") or []}
+          taken |= {b.split(":")[1] for b in host.get("Binds") or [] if ":" in b}
+          for m in c.get("Mounts") or []:
+            if m.get("Type") == "volume" and m.get("Name") and m.get("Destination") not in taken:
+              bind = m["Name"] + ":" + m["Destination"] + ("" if m.get("RW", True) else ":ro")
+              host["Binds"] = (host.get("Binds") or []) + [bind]
+          networks = (c.get("NetworkSettings") or {}).get("Networks") or {}
+          mode = host.get("NetworkMode") or ""
+          extra = {}
+          cfg["HostConfig"] = host
+          if mode in ("host", "none") or mode.startswith("container:") or not networks:
+            return cfg, extra
+          primary = mode if mode in networks else next(iter(networks))
+          cfg["NetworkingConfig"] = {"EndpointsConfig": {primary: endpoint(networks[primary], cid, primary)}}
+          for net, ep in networks.items():
+            if net != primary:
+              extra[net] = endpoint(ep, cid, net)
+          return cfg, extra
+        def pull(ref):
+          image, _, tag = ref.rpartition(":")
+          if not image or "/" in tag or "@" in ref:
+            image, tag = ref, ""
+          query = "fromImage=" + quote(image) + ("&tag=" + quote(tag) if tag else "")
+          status, _ = api("POST", "/images/create?" + query, timeout=1800)
+          log("pull " + ref + ": HTTP " + str(status))
+        def create(snap, body):
+          new_image = tag_image_id(body.get("Image") or "")
+          if new_image and body["Labels"].get("com.docker.compose.image") == snap["container"].get("Image"):
+            body["Labels"]["com.docker.compose.image"] = new_image
+          return api("POST", "/containers/create?name=" + quote(NAME), body, timeout=300)
+        def recreate(snap):
+          body, extra = create_spec(snap)
+          status, resp = create(snap, body)
+          if status == 404:
+            pull(body.get("Image") or "")
+            status, resp = create(snap, body)
+          if status == 409:
+            log("the name " + NAME + " is taken again (Watchtower may have made it meanwhile): leaving it")
+            return False
+          if status != 201:
+            log("create failed: HTTP " + str(status) + " " + str(resp))
+            return False
+          new_id = resp["Id"]
+          for net, ep in extra.items():
+            s, r = api("POST", "/networks/" + net + "/connect", {"Container": new_id, "EndpointConfig": ep})
+            if s != 200:
+              log("connect to network " + net + " failed: HTTP " + str(s) + " " + str(r))
+          return start(new_id)
+        def start(ref):
+          status, resp = api("POST", "/containers/" + ref + "/start", timeout=300)
+          if status in (204, 304):
+            log("started " + NAME)
+            return True
+          log("start failed: HTTP " + str(status) + " " + str(resp))
+          return False
+        def snapshot_path():
+          return os.path.join(STORE, NAME + ".json")
+        def load_snapshot():
+          try:
+            with open(snapshot_path(), encoding="utf-8") as f:
+              return json.load(f)
+          except (OSError, ValueError):
+            return None
+        def save_snapshot(snap):
+          try:
+            os.makedirs(STORE, exist_ok=True)
+            tmp = snapshot_path() + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+              json.dump(snap, f)
+            os.replace(tmp, snapshot_path())
+          except OSError as e:
+            log("could not save the snapshot (kept in memory only): " + str(e))
+        class Guard:
+          def __init__(self, now=time.monotonic):
+            self.now = now
+            self.snap = load_snapshot()
+            self.since = None
+          def check(self):
+            status, c = api("GET", "/containers/" + NAME + "/json")
+            if status == 404:
+              return self.missing()
+            if status != 200 or not isinstance(c, dict):
+              return "unknown"
+            state = (c.get("State") or {}).get("Status") or ""
+            if state in ("running", "restarting", "paused", "removing"):
+              self.since = None
+              snap = self.snap or {}
+              if state == "running" and (snap.get("container", {}).get("Id") != c["Id"] or snap.get("owner_stopped")):
+                s, img = api("GET", "/images/" + c["Image"] + "/json")
+                self.snap = {"container": c, "image": (img or {}).get("Config") if s == 200 else None}
+                save_snapshot(self.snap)
+                log("watching " + NAME + " (" + c["Id"][:12] + ")")
+              return "ok"
+            return self.not_running(c, state)
+          def waited(self):
+            if self.since is None:
+              self.since = self.now()
+            return self.now() - self.since >= GRACE
+          def missing(self):
+            if not self.snap or not self.waited():
+              return "waiting" if self.snap else "no-snapshot"
+            log(NAME + " has been gone for " + str(int(GRACE)) + "s (an update stopped halfway?): creating it again")
+            self.since = None
+            return "recreated" if recreate(self.snap) else "failed"
+          def not_running(self, c, state):
+            if c["Id"] == (self.snap or {}).get("owner_stopped"):
+              return "owner-stopped"
+            seen = (self.snap or {}).get("container", {}).get("Id")
+            if state == "dead":
+              if not self.snap or not self.waited():
+                return "waiting"
+              log(NAME + " is dead (a removal broke halfway): removing it and creating it again")
+              api("DELETE", "/containers/" + c["Id"] + "?force=1", timeout=300)
+              self.since = None
+              return "recreated" if recreate(self.snap) else "failed"
+            if c["Id"] == seen and state == "exited":
+              ref = (c.get("Config") or {}).get("Image") or ""
+              if self.since is None and tag_image_id(ref) == c.get("Image"):
+                self.snap["owner_stopped"] = c["Id"]
+                save_snapshot(self.snap)
+                return "owner-stopped"
+              if not self.waited():
+                return "waiting"
+              log(NAME + " was stopped by an update that never finished: starting it again")
+            elif state == "created" and c["Id"] != seen:
+              if not self.waited():
+                return "waiting"
+              log(NAME + " was created but never started: starting it")
+            else:
+              return "left-alone"
+            self.since = None
+            return "started" if start(c["Id"]) else "failed"
+        def main():
+          signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+          log("guarding container " + NAME + " (checks every " + str(int(EVERY)) + "s, acts after " + str(int(GRACE)) + "s)")
+          guard = Guard()
+          while True:
+            try:
+              guard.check()
+            except Exception as e:
+              log("check failed: " + type(e).__name__ + ": " + str(e))
+            time.sleep(EVERY)
+        if __name__ == "__main__":
+          main()
 
 volumes:
-  vanhanh-data:
-  vanhanh-brains:
+  naota-data:
+  naota-brains:
   claude-auth:
   codex-auth:
+  guard-data:

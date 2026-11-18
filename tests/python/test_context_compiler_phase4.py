@@ -38,7 +38,7 @@ def _registry(tmp_path, extra=0):
     route = {
         "calendar_list": {"source_type": "mcp", "source_id": "calendar", "effect": "read",
                           "required_mode": "readonly", "health": "healthy"},
-        "vault_write": {"source_type": "builtin", "source_id": "vanhanh", "effect": "write",
+        "vault_write": {"source_type": "builtin", "source_id": "naota", "effect": "write",
                         "required_mode": "safe", "health": "healthy"},
     }
     for i in range(extra):
@@ -189,7 +189,7 @@ def test_quality_gate_baselines_legacy_output_without_changing_it():
     gate = DeterministicQualityGate()
     assert gate.evaluate("q", "Câu trả lời bình thường", "dashboard").status == "pass"
     assert gate.evaluate("q", "", "dashboard").status == "fail"
-    leaked = gate.evaluate("q", "[VANHANH_ASK] raw control", "dashboard")
+    leaked = gate.evaluate("q", "[NAOTA_ASK] raw control", "dashboard")
     assert leaked.status == "revise" and "control_block_leak" in leaked.reasons
     denied = gate.evaluate(
         "q", "Em không có tool để đọc lịch", "dashboard",
@@ -284,7 +284,7 @@ def test_unresolved_conflicts_are_surfaced_not_silently_merged(tmp_path):
     # Cả hai vẫn vào prompt...
     assert "100k" in system and "120k" in system
     # ...và model được BÁO là chúng mâu thuẫn.
-    assert "MÂU THUẪN" in system
+    assert "CONTRADICT" in system
     assert result.trace_report["unresolved_conflicts"] == [["mem_a", "mem_b"]]
 
 

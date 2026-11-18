@@ -2,9 +2,9 @@
 
     python tests/run.py windows_npx_link      (no network; the /C:/ part simulates a drive on Linux, run it in CI)
 
-Item 2: an npx MCP connector whose argument has a space (`--user-data-dir "C:\\My Vanhanh\\x"`) died with
+Item 2: an npx MCP connector whose argument has a space (`--user-data-dir "C:\\My Naota\\x"`) died with
 "'C:\\Program' is not recognized". npx is npx.cmd, run as `cmd.exe /c "C:\\Program Files\\nodejs\\npx.cmd" ...`,
-and cmd strips the first and last quote of that line. Vanhanh now runs `node npx-cli.js` of the same Node
+and cmd strips the first and last quote of that line. Naota now runs `node npx-cli.js` of the same Node
 install directly (as zalo_cli already did), so cmd.exe never parses the arguments.
 
 Item 3: models write Windows paths URL style, `/C:/Users/...`. Neither pathlib reads that as drive C, so a
@@ -19,9 +19,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-SCRATCH = Path(tempfile.mkdtemp(prefix="vanhanh-winnpx-"))
-for key, relative in {"VANHANH_STATE_DIR": "state", "BRAINS_DIR": "brains", "OBSIDIAN_VAULT_PATH": "vault",
-                      "BRAIN_PATH": "brain", "SOURCES_PATH": "sources", "VANHANH_SESSIONS_DB": "sessions.sqlite3"}.items():
+SCRATCH = Path(tempfile.mkdtemp(prefix="naota-winnpx-"))
+for key, relative in {"NAOTA_STATE_DIR": "state", "BRAINS_DIR": "brains", "OBSIDIAN_VAULT_PATH": "vault",
+                      "BRAIN_PATH": "brain", "SOURCES_PATH": "sources", "NAOTA_SESSIONS_DB": "sessions.sqlite3"}.items():
     os.environ[key] = str(SCRATCH / relative)
 
 try:
@@ -53,7 +53,7 @@ NODEJS = SCRATCH / "Program Files" / "nodejs"
 touch(NODEJS / "npx.cmd", exe=True)
 touch(NODEJS / "node.exe", exe=True)
 touch(NODEJS / "node_modules" / "npm" / "bin" / "npx-cli.js")
-ARGS = ["-y", "@playwright/mcp@latest", "--user-data-dir", r"C:\My Vanhanh\profile"]
+ARGS = ["-y", "@playwright/mcp@latest", "--user-data-dir", r"C:\My Naota\profile"]
 
 direct = mcp_client.npx_node_argv(str(NODEJS / "npx.cmd"))
 check("npx.cmd maps to node.exe + npx-cli.js of the same install",

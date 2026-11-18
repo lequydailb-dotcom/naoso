@@ -1,4 +1,4 @@
-/* pet-menu.js - the owner's own MASCOT MENU: which Vanhanh features the pet opens, in which order.
+/* pet-menu.js - the owner's own MASCOT MENU: which Naota features the pet opens, in which order.
 
    "Chỉ cần thêm và sắp xếp vị trí thôi là ok rồi. Và cho phần này vào trong phần cài đặt linh vật."
    So this file only lets the owner ADD a feature and REORDER the list. No renaming, no icon or action change, no
@@ -18,7 +18,7 @@
        why it cannot run right now. Ids are what is saved, never the shown name (names change with language and,
        for the mic, with its state).
      - the store: GET / POST /pet/menu, cached in localStorage so the menu is right before the server answers, kept
-       in step across windows by the `storage` event. Every change fires "vanhanh:pet-menu"; pet.js closes an open
+       in step across windows by the `storage` event. Every change fires "naota:pet-menu"; pet.js closes an open
        menu on it, and builds the new one the next time it opens.
      - the "Mascot menu" card of Settings > Mascot (renderSettings): a draft list, Add feature, Discard, Save.
 
@@ -28,10 +28,10 @@
   "use strict";
 
   var DEFAULT_ITEMS = ["chat", "agent", "workflow", "mic", "pet", "teams"];
-  var CACHE_KEY = "vanhanh.pet.menu";
+  var CACHE_KEY = "naota.pet.menu";
 
   // label/sub: i18n keys written out in full (the i18n scanner only sees whole keys). icon: Lucide name; a page takes
-  // the icon of its rail item from VanhanhNav.iconName first, so the two can never drift apart.
+  // the icon of its rail item from NaotaNav.iconName first, so the two can never drift apart.
   // Must list the same ids as KNOWN_ACTIONS in server/pet_menu.py (tests/js/test_pet_menu.js checks).
   var CATALOG = [
     { id: "chat", label: "pet.menu.chat", fb: "Chat", icon: "message-circle", sub: "page.chat.sub" },
@@ -50,7 +50,7 @@
     { id: "tasks", label: "page.tasks.label", fb: "Tasks", page: true, sub: "page.tasks.sub" },
     { id: "webhooks", label: "page.webhooks.label", fb: "Webhooks", page: true, sub: "page.webhooks.sub" },
     { id: "mcp", label: "page.mcp.label", fb: "Connections", page: true, sub: "page.mcp.sub" },
-    { id: "packs", label: "page.packs.label", fb: "Vanhanh Store", page: true, sub: "page.packs.sub" },
+    { id: "packs", label: "page.packs.label", fb: "Naota Store", page: true, sub: "page.packs.sub" },
     { id: "channels", label: "page.channels.label", fb: "Admin channels", page: true, sub: "page.channels.sub" },
     { id: "logins", label: "page.logins.label", fb: "Cookies", page: true, sub: "page.logins.sub" },
     { id: "models", label: "page.models.label", fb: "Models", page: true, sub: "page.models.sub" },
@@ -113,7 +113,7 @@
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (!root || typeof document === "undefined") return;
-  root.VanhanhPetMenu = api;
+  root.NaotaPetMenu = api;
 
   function t(key, vars, fb) {
     try {
@@ -131,13 +131,13 @@
   // ---- what one item looks like and whether it can run ----
   function iconName(c) {
     var n = "";
-    try { if (c.page && root.VanhanhNav && root.VanhanhNav.iconName) n = root.VanhanhNav.iconName(c.id) || ""; } catch (e) {}
+    try { if (c.page && root.NaotaNav && root.NaotaNav.iconName) n = root.NaotaNav.iconName(c.id) || ""; } catch (e) {}
     return n || c.icon || "circle";
   }
   // "" when the feature can run now, else the reason in the owner's language.
   function why(id) {
     var c = BY_ID[id];
-    if (!c) return t("petmenu.why_gone", null, "This feature is no longer in Vanhanh");
+    if (!c) return t("petmenu.why_gone", null, "This feature is no longer in Naota");
     if (id === "mic") {
       var md = root.navigator && root.navigator.mediaDevices;
       if (!md || typeof md.getUserMedia !== "function" || !document.getElementById("voiceBtn")) {
@@ -146,7 +146,7 @@
     }
     if (c.page) {
       try {
-        if (root.VanhanhNav && root.VanhanhNav.has && !root.VanhanhNav.has(id)) return t("petmenu.why_page", null, "This Vanhanh has no such page");
+        if (root.NaotaNav && root.NaotaNav.has && !root.NaotaNav.has(id)) return t("petmenu.why_page", null, "This Naota has no such page");
       } catch (e) {}
     }
     return "";
@@ -173,7 +173,7 @@
     if (cached) menu = normalize(cached);
   } catch (e) {}
   function announce(remote) {
-    try { root.dispatchEvent(new CustomEvent("vanhanh:pet-menu", { detail: { menu: snapshot(), remote: !!remote } })); } catch (e) {}
+    try { root.dispatchEvent(new CustomEvent("naota:pet-menu", { detail: { menu: snapshot(), remote: !!remote } })); } catch (e) {}
   }
   function snapshot() { return { state: menu.state, rev: menu.rev, items: menu.items.slice(), hidden: menu.hidden.slice() }; }
   function adopt(m, remote) {
@@ -239,8 +239,8 @@
       if (!host.isConnected) { clearGuard(); return ""; }
       return dirty() ? t("petmenu.leave", null, "The mascot menu has unsaved changes.") : "";
     }
-    function clearGuard() { try { root.VanhanhLeaveGuard && root.VanhanhLeaveGuard.clear(guard); } catch (e) {} }
-    try { root.VanhanhLeaveGuard && root.VanhanhLeaveGuard.set(guard); } catch (e) {}
+    function clearGuard() { try { root.NaotaLeaveGuard && root.NaotaLeaveGuard.clear(guard); } catch (e) {} }
+    try { root.NaotaLeaveGuard && root.NaotaLeaveGuard.set(guard); } catch (e) {}
 
     function row(id, i) {
       var m = entry(id), lock = locked() || saving;
@@ -318,10 +318,10 @@
       if (el.hasAttribute("data-pm-save")) doSave();
     };
     host.onpointerdown = function (e) {
-      if (locked() || saving || !root.VanhanhReorder || !root.VanhanhReorder.dragRow) return;
+      if (locked() || saving || !root.NaotaReorder || !root.NaotaReorder.dragRow) return;
       var list = host.querySelector(".pm-list");
       if (!list) return;
-      root.VanhanhReorder.dragRow(e, list, function (from, to) { draft = moveItem(draft, from, to); note = null; }, function () { draw(); });
+      root.NaotaReorder.dragRow(e, list, function (from, to) { draft = moveItem(draft, from, to); note = null; }, function () { draw(); });
     };
     // PHONE: press and hold anywhere on a row (owner: "làm chức năng nhấn giữ ở điện thoại"), then drag. A quick swipe
     // stays a page scroll: only a finger that holds still for LONG_PRESS ms picks the row up. The handle still drags
@@ -420,13 +420,13 @@
 
     // Another window saved a newer menu while this card is open.
     function onRemote(e) {
-      if (!host.isConnected) { root.removeEventListener("vanhanh:pet-menu", onRemote); return; }
+      if (!host.isConnected) { root.removeEventListener("naota:pet-menu", onRemote); return; }
       if (!e.detail || !e.detail.remote || saving) return;
       if (!dirty()) { saved = snapshot(); reset(); note = null; draw(); return; }
       note = { kind: "err", text: t("petmenu.conflict", null, "The mascot menu was changed in another window."), reload: true };
       draw();
     }
-    root.addEventListener("vanhanh:pet-menu", onRemote);
+    root.addEventListener("naota:pet-menu", onRemote);
 
     // ---- Add feature: the catalog with a search box. Added ones say so; unavailable ones say why. ----
     function openPicker() {

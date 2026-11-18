@@ -3,8 +3,8 @@
 The memory list left the settings column; memory is handled in chat. Two things keep that honest:
 
 - **A receipt.** A turn that saved, changed or forgot a memory gets one small line under the answer: "Đã nhớ: ... ·
-  Hoàn tác". People see what Vanhanh keeps at the moment it keeps it, and undo it with one tap. The line is a hidden
-  block (`<!-- VANHANH_NHO: {...} -->`) in a message stored through `push_to_chat`, so a refresh draws it again
+  Hoàn tác". People see what Naota keeps at the moment it keeps it, and undo it with one tap. The line is a hidden
+  block (`<!-- NAOTA_NHO: {...} -->`) in a message stored through `push_to_chat`, so a refresh draws it again
   (dashboard/chat-nho.js).
 - **No empty claims.** An answer that says "đã nhớ", "đã quên", "đã thu hồi" while nothing changed in the brain's
   memory and no memory tool wrote anything gets one line of fact under it, the same way an empty "xong em báo" does
@@ -119,7 +119,7 @@ def receipt_block(items: List[dict], brain_key: str) -> str:
     gon = [{"slug": str(i.get("slug") or "")[:120], "title": str(i.get("title") or "")[:120],
             "act": i.get("act") if i.get("act") in ("new", "updated", "forgot") else "updated"} for i in items]
     data = {"brain": str(brain_key or ""), "items": gon}
-    return "<!-- VANHANH_NHO: " + json.dumps(data, ensure_ascii=False).replace("-->", "- ->") + " -->"
+    return "<!-- NAOTA_NHO: " + json.dumps(data, ensure_ascii=False).replace("-->", "- ->") + " -->"
 
 
 def receipt_text(items: List[dict]) -> str:
@@ -164,7 +164,7 @@ def detect_claim(text: str) -> str:
 
 def claim_note() -> str:
     return localefmt.chu(
-        "⚠ Mình vừa nói đã nhớ hoặc đã quên, nhưng trí nhớ của brain này không đổi gì. Nhắn lại \"nhớ giúp: ...\" "
-        "hoặc \"quên ...\" để mình làm thật.",
+        "⚠ Câu trả lời trên nói đã nhớ hoặc đã quên, nhưng trí nhớ của brain này không đổi gì. Nhắn lại "
+        "\"nhớ giúp: ...\" hoặc \"quên ...\" để làm thật.",
         "⚠ I just said I remembered or forgot something, but this brain's memory did not change. Say \"remember: ...\" "
         "or \"forget ...\" again and I will really do it.")

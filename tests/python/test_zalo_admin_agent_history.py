@@ -2,12 +2,12 @@
 
     python tests/python/test_zalo_admin_agent_history.py        (no network, scratch brains)
 
-Owner report: "khi giao bot Zalo làm kênh admin ... nó không hiện lịch sử chat lên trên Vanhanh, nhất là nối với một
+Owner report: "khi giao bot Zalo làm kênh admin ... nó không hiện lịch sử chat lên trên Naota, nhất là nối với một
 agent. Khi mà nối agent với cả bot Zalo đấy thì nó không hiện kênh admin lên trên chat." Pinned here through the real
 Zalo admin functions and the real shell (`_tg_answer`), with only the model engine faked:
   1. `@<agent> ...` and /agent on the Zalo admin bot reach that agent, like Telegram.
   2. Zalo commands act on the session its turns use (`zalo:<id>`): /reset, /stop, /agent.
-  3. Where the chats are stored and listed: Vanhanh Core's history holds the plain admin chats, an agent's history
+  3. Where the chats are stored and listed: Naota Core's history holds the plain admin chats, an agent's history
      holds the admin chats routed to it (`<channel>@<slug>`), an older agent chat is relabelled on its next turn.
   4. A dedicated bot can neither verify nor poll the admin bot's token.
 """
@@ -19,9 +19,9 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-zalo-admin-")
-os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="vanhanh-zalo-admin-brains-")
-os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"       # TestClient host (see test_workflow_runs_api.py)
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-zalo-admin-")
+os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="naota-zalo-admin-brains-")
+os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"       # TestClient host (see test_workflow_runs_api.py)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -30,7 +30,7 @@ except Exception:
 
 import main  # noqa: E402
 import chatbot_runtime  # noqa: E402
-import vanhanh_core  # noqa: E402
+import naota_core  # noqa: E402
 from routes import channels as channels_routes  # noqa: E402
 
 _fails = []
@@ -88,7 +88,7 @@ main._get_adaptive_context = lambda: Recorder()
 main.claude_engine = lambda **kw: FakeClaude(**kw)
 main._apply_mcp = lambda *a, **k: None
 main._chat_provider = lambda mcfg: ("anthropic-cli", "cli", "", "opus")
-main.build_system_prompt = lambda *a, **k: "VANHANH MAIN PROMPT"
+main.build_system_prompt = lambda *a, **k: "NAOTA MAIN PROMPT"
 main.usage_store.record = lambda *a, **k: None
 main.channel_context.collect_turn_files = lambda *a, **k: []
 main._schedule_cancel_action = _none
@@ -124,7 +124,7 @@ check("@<agent> on Zalo: a turn of that agent, the reply names it",
 check("@<agent> on Zalo: the agent's own conversation, stored as zalo@writer",
       channel_of("zalo:" + OWNER + "@writer") == "zalo@writer", channel_of("zalo:" + OWNER + "@writer"))
 out = zalo("plain question")
-check("no mention: Vanhanh answers, stored as plain zalo", "VANHANH MAIN PROMPT" in FakeClaude.runs[-1]["system_prompt"]
+check("no mention: Naota answers, stored as plain zalo", "NAOTA MAIN PROMPT" in FakeClaude.runs[-1]["system_prompt"]
       and channel_of("zalo:" + OWNER) == "zalo", channel_of("zalo:" + OWNER))
 pre = main._zalo_precheck("@Nobody hi", {"chat_id": OWNER})
 check("unknown mention from the owner: the agent list before a turn", isinstance(pre, dict)
@@ -134,7 +134,7 @@ pre = main._zalo_precheck("@Nobody hi", {"chat_id": STRANGER})
 check("a stranger gets the pairing code, never the agent list", isinstance(pre, dict)
       and "Writer" not in pre.get("reply", "") and pre.get("reply"), pre)
 zalo("@Writer hi", chat=STRANGER)
-check("a stranger's mention never reaches an agent", "VANHANH MAIN PROMPT" in FakeClaude.runs[-1]["system_prompt"])
+check("a stranger's mention never reaches an agent", "NAOTA MAIN PROMPT" in FakeClaude.runs[-1]["system_prompt"])
 
 # ================================================================
 # 2. Commands act on the session Zalo turns use
@@ -168,7 +168,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 cl = TestClient(main.app)
 bkey = main._brain_key(BRAIN)
-web_core = store.create_session(brain=bkey, engine="cli", title="core web", channel=vanhanh_core.CHANNEL)
+web_core = store.create_session(brain=bkey, engine="cli", title="core web", channel=naota_core.CHANNEL)
 web_writer = store.create_session(brain=bkey, engine="cli", title="writer web", channel="agent:writer")
 zalo("@Writer second post")
 zalo("plain again")
@@ -182,11 +182,11 @@ def listed(channel, **extra):
     return {x["id"] for x in r}
 
 
-core_hist = listed(vanhanh_core.CHANNEL, bots=1)
-check("Vanhanh Core's history holds the plain admin chats (Zalo, Telegram) and its own web chat",
+core_hist = listed(naota_core.CHANNEL, bots=1)
+check("Naota Core's history holds the plain admin chats (Zalo, Telegram) and its own web chat",
       {web_core, z_plain, tg_plain} <= core_hist and z_agent not in core_hist, core_hist)
 w_hist = listed("agent:writer", bots=1)
-check("the agent's history holds the Zalo chat routed to it, not Vanhanh's",
+check("the agent's history holds the Zalo chat routed to it, not Naota's",
       {web_writer, z_agent} <= w_hist and z_plain not in w_hist and tg_plain not in w_hist, w_hist)
 check("opening the agent (limit=1, no bots) still picks its own web chat, never the Zalo one",
       [x["id"] for x in cl.get("/sessions", params={"brain": "brain", "channel": "agent:writer", "limit": 1})

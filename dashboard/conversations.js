@@ -14,9 +14,9 @@
  * Luật sống còn của file này: KHÔNG đoán gì theo id kênh. Logo, nhãn, năng lực đều do server
  * trả trong danh sách kênh (`channels`); thêm kênh ở server là trang này vẽ được ngay.
  *
- * Trang này KHÔNG phải cái chuông (notifications.js / VanhanhInbox): chuông là hòm thư của CHỦ
+ * Trang này KHÔNG phải cái chuông (notifications.js / NaotaInbox): chuông là hòm thư của CHỦ
  * (kết quả việc nền), còn đây là hội thoại giữa KHÁCH và cửa hàng. Tiền tố riêng: .ht-*, ht.*,
- * window.VanhanhConversations. Ghi chú: KHÔNG dùng ký tự em dash. */
+ * window.NaotaConversations. Ghi chú: KHÔNG dùng ký tự em dash. */
 (function () {
   "use strict";
 
@@ -64,22 +64,22 @@
   var _items = [], _stats = {}, _dauVet = "";
   var _kenhLoc = "", _botLoc = "", _q = "";
   var _privFor = 0;                     // id of the comment thread whose composer is set to "Message privately"
-  var _statusLoc = "", _typeLoc = "";   // bộ lọc, lưu ở trình duyệt qua VanhanhConvFilters
+  var _statusLoc = "", _typeLoc = "";   // bộ lọc, lưu ở trình duyệt qua NaotaConvFilters
   var _contactLoc = "";     // "1" = only chats where the customer left a phone number or email
   // Chatbot v5 (chatbot-v5-spec): who is handling the chat (the quick filters), the ticked
   // The mic of the reply box ("thêm nút chép lời để nói bằng giọng nói rồi chép lại, khỏi phải gõ").
   // dictate.js does the listening; the state lives here because the 5-second redraw rebuilds the box.
   var _dict = null, _dictState = "idle", _dictBase = "", _dictHeard = "", _dictConv = 0, _dictSend = false;
-  var _statusLoc = "", _typeLoc = "";   // bộ lọc, lưu ở trình duyệt qua VanhanhConvFilters
+  var _statusLoc = "", _typeLoc = "";   // bộ lọc, lưu ở trình duyệt qua NaotaConvFilters
   var _contactLoc = "";     // "1" = only chats where the customer left a phone number or email
   // Chatbot v5 (docs/dev/2026-10-chatbot-v5-spec.md): who is handling the chat (the quick filters), the ticked
-  // channel accounts (the channel picker) and tags any/none (the Filter menu). Saved with the rest by VanhanhConvFilters.
+  // channel accounts (the channel picker) and tags any/none (the Filter menu). Saved with the rest by NaotaConvFilters.
   var _who = "you", _accs = [], _tagsAny = [], _tagsNone = [], _whoCounts = null;
   var _when = null, _lastBy = "", _pinned = "";   // when the last message came, who wrote it, pinned only (Filter menu)
   var _pick = false, _pickQ = "", _fm = false, _fmCat = "time";   // channel picker / Filter menu open, picker search, menu category
   var _wm = false;          // the "who" dropdown of the list is open
   // Info panel: closed until the owner opens it (the chat gets the room), and remembered in this browser.
-  var INFO_KEY = "vanhanh_ib_info";
+  var INFO_KEY = "naota_ib_info";
   var _info = (function () { try { return localStorage.getItem(INFO_KEY) === "1"; } catch (e) { return false; } })();
   var _msheet = false;      // the phone's "who replies" sheet is open
   var _aiBusy = "";         // "ask" | "redo" | "send" | "now" while the A.I. writes or a draft goes out
@@ -107,7 +107,7 @@
   var _dangGui = false;
 
   var ic = function (n) { return window.ic ? window.ic(n) : ""; };
-  var LOC = function () { return (window.VanhanhI18n && VanhanhI18n.locale()) || "vi-VN"; };
+  var LOC = function () { return (window.NaotaI18n && NaotaI18n.locale()) || "vi-VN"; };
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -116,9 +116,9 @@
   }
   function el(html) { var d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstChild; }
   // (i) button (info-tip.js): explanations sit behind it; without the helper (Node tests) they draw open.
-  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(window.t("info.more")) : ""; }
+  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(window.t("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.VanhanhInfo;
+    var J = typeof window !== "undefined" && window.NaotaInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
   async function api(url, opts) {
@@ -174,6 +174,9 @@
     return x.indexOf("cmt:") === 0 ? "fbc" : x.indexOf("igc:") === 0 ? "igc" : x.indexOf("ig:") === 0 ? "ig" : "";
   }
   function isComment(c) { var k = chatKind(c); return k === "fbc" || k === "igc" || k === "thc"; }
+  // Only a private direct-message chat has one customer, so only it has a customer profile. The server says which
+  // (`profile_chat`, see conversations.is_profile_chat): a group and a comment thread do not.
+  function hasProfile(c) { return !!(c && c.profile_chat); }
   // Only Facebook and Instagram comments can be answered privately (Meta's Private Replies); Threads cannot.
   function canPrivate(c) { var k = chatKind(c); return k === "fbc" || k === "igc"; }
   function isInstagram(c) { var k = chatKind(c); return k === "ig" || k === "igc"; }
@@ -225,7 +228,7 @@
       // The Conversations tab counts the chats that need you (Chatbot v5), not unread ones: unread is what the A.I. already handles.
       var canBan = t === "inbox" && _whoCounts ? (_whoCounts.you_total != null ? _whoCounts.you_total : _whoCounts.you) : 0;
       // The Channels tab counts the nicks and Pages that need something (an error, or no bot and none was declined).
-      if (t === "kenh" && window.VanhanhInboxChannels) canBan = window.VanhanhInboxChannels.jobs(_tk);
+      if (t === "kenh" && window.NaotaInboxChannels) canBan = window.NaotaInboxChannels.jobs(_tk);
       var chuaDoc = canBan ? '<span class="ht-badge" title="' + esc(window.t(t === "kenh" ? "ib.kn_jobs" : "ib.who_you")) + '">' + canBan + '</span>' : "";
       // Phones show the icon only, so the name is also the button's tooltip and its spoken label.
       var ten = window.t(NHAN[t][0]);
@@ -255,8 +258,8 @@
     closeRowMenu(false);
     body.innerHTML = "";
     if (_tab === "bot") return renderBot(body);
-    if (_tab === "kenh") return renderSub(body, window.VanhanhInboxChannels, "inbox-channels.js");
-    if (_tab === "thongke") return renderSub(body, window.VanhanhInboxStats, "inbox-stats.js");
+    if (_tab === "kenh") return renderSub(body, window.NaotaInboxChannels, "inbox-channels.js");
+    if (_tab === "thongke") return renderSub(body, window.NaotaInboxStats, "inbox-stats.js");
     return renderInbox(body);
   }
 
@@ -279,7 +282,7 @@
   function renderBot(body) {
     body.innerHTML = '<div class="ht-tab-bot"><div class="ht-bot-ds"></div></div>';
     var ds = body.querySelector(".ht-bot-ds");
-    var fn = window.VanhanhChatbots && window.VanhanhChatbots.render;
+    var fn = window.NaotaChatbots && window.NaotaChatbots.render;
     if (fn) { try { fn(ds); } catch (e) { ds.innerHTML = '<div class="ht-empty">' + esc(e.message) + '</div>'; } }
     else ds.innerHTML = '<div class="ht-empty">' + esc(window.t("cs.mod_not_ready", { ten: "chatbots.js" })) + '</div>';
   }
@@ -304,7 +307,7 @@
       addAccount: function () { moThemTK(); },
       openBot: function (id) {
         chonTab("bot");
-        try { document.dispatchEvent(new CustomEvent("vanhanh:chatbot-open", { detail: { bot_id: id } })); } catch (e) { /* old browser */ }
+        try { document.dispatchEvent(new CustomEvent("naota:chatbot-open", { detail: { bot_id: id } })); } catch (e) { /* old browser */ }
       },
       // Open one chat on the Conversations tab, every filter put aside so it is surely in the list.
       openChat: function (id) { _cho = {}; _chon = id; _msgs = []; _conv = null; _dauVetTin = ""; _vetMeta = ""; chonTab("inbox"); },
@@ -334,7 +337,7 @@
       if (!im) throw e;
       return false;
     }
-    if (_tab === "kenh" && window.VanhanhInboxChannels) window.VanhanhInboxChannels.paint();
+    if (_tab === "kenh" && window.NaotaInboxChannels) window.NaotaInboxChannels.paint();
     veTabs();
     return true;
   }
@@ -344,7 +347,7 @@
   // search box with the two-level Filter menu, the quick "who is handling it" filters and the active filters as chips.
   // The pure HTML builders live in inbox-v5.js; the drawing and the events are here.
   function renderInbox(body) {
-    var F = window.VanhanhConvFilters;
+    var F = window.NaotaConvFilters;
     if (_cho) {
       // Opened from elsewhere (a bot card, an account card): show exactly what was pointed at, whoever handles it. The
       // saved filters are put aside so they cannot hide the chat the owner wants to see.
@@ -435,7 +438,7 @@
     return { bot: _botLoc, status: _statusLoc, type: _typeLoc, channel: _kenhLoc, contact: _contactLoc,
              who: _who, accs: _accs, tagsAny: _tagsAny, tagsNone: _tagsNone, when: _when, lastBy: _lastBy, pinned: _pinned };
   }
-  function saveFilters() { if (window.VanhanhConvFilters) window.VanhanhConvFilters.save(filterState()); }
+  function saveFilters() { if (window.NaotaConvFilters) window.NaotaConvFilters.save(filterState()); }
   function onFilterChange() { saveFilters(); paintHead(); tai(); }
 
   // The list is the open brain's, like the Channels tab: chats of a Page moved to another brain leave it. The
@@ -444,7 +447,7 @@
   function urlDanhSach(limit, offset) {
     return "/conversations?limit=" + limit + (offset ? "&offset=" + offset : "") +
       "&q=" + encodeURIComponent(_q) + brainParam() +
-      (window.VanhanhConvFilters ? window.VanhanhConvFilters.query(filterState()) : "");
+      (window.NaotaConvFilters ? window.NaotaConvFilters.query(filterState()) : "");
   }
 
   // The channel accounts the picker offers: the ones of the open brain (`/channels/accounts`), each with its key.
@@ -454,7 +457,7 @@
 
   // The head of the list: picker summary, quick filters with counts, chips for the active filters, the Filter count.
   function paintHead() {
-    var V = window.VanhanhInboxV5, F = window.VanhanhConvFilters;
+    var V = window.NaotaInboxV5, F = window.NaotaConvFilters;
     if (!_host || !V) return;
     var accs = accList();
     var sum = V.pickerSummary(accs, _accs);
@@ -518,7 +521,7 @@
   }
 
   function paintPops() {
-    var V = window.VanhanhInboxV5, F = window.VanhanhConvFilters;
+    var V = window.NaotaInboxV5, F = window.NaotaConvFilters;
     if (!_host || !V) return;
     var pk = _host.querySelector(".ib-pk"), fm = _host.querySelector(".ib-fm"), wm = _host.querySelector(".ib-wm");
     var pb = _host.querySelector(".ib-picker"), fb = _host.querySelector(".ib-fbtn"), wb = _host.querySelector(".ib-whobtn");
@@ -610,7 +613,7 @@
       if (on) on.focus();
     } else if (b.classList.contains("ib-fm-cal")) {
       // Any days on the calendar (date-range.js); the Filter menu stays open under it.
-      if (window.VanhanhDateRange) window.VanhanhDateRange.open(b, _when, function (r) { _when = r; onFilterChange(); paintPops(); }, { all: true });
+      if (window.NaotaDateRange) window.NaotaDateRange.open(b, _when, function (r) { _when = r; onFilterChange(); paintPops(); }, { all: true });
     } else if (b.classList.contains("ib-fm-clear")) {
       clearMenuFilters();
       paintPops();
@@ -787,7 +790,7 @@
         return;
       }
       // The Filter menu emptied the list: one tap clears it, rather than pointing at channels.
-      var menuLoc = window.VanhanhConvFilters.activeCount(Object.assign(filterState(), { channel: "" })) > 0;
+      var menuLoc = window.NaotaConvFilters.activeCount(Object.assign(filterState(), { channel: "" })) > 0;
       box.innerHTML = '<div class="ht-empty">' + ic("messages-square") +
         '<b>' + esc(loc || _who ? window.t("ht.khong_khop") : window.t("ht.chua_co")) +
           (!coNguon && !menuLoc ? infoBtn() : "") + '</b>' +
@@ -802,7 +805,7 @@
       if (bo) bo.onclick = clearMenuFilters;
       return;
     }
-    var F = window.VanhanhConvFilters;
+    var F = window.NaotaConvFilters;
     // The redraw (5-second refresh, a menu action) must not drop the keyboard focus: note which row and which control
     // held it, put it back afterwards.
     var ae = document.activeElement, keep = null;
@@ -810,7 +813,7 @@
       var fr = ae.closest(".ht-item");
       if (fr) keep = { id: fr.dataset.id, sel: ae.classList.contains("ht-rmore") ? ".ht-rmore" : ae.classList.contains("ht-pin") ? ".ht-pin" : "" };
     }
-    var V = window.VanhanhInboxV5;
+    var V = window.NaotaInboxV5;
     var many = _accs.length !== 1;      // several nicks or Pages in view: each row names the one it came through
     var rows = _items.map(function (c) {
       var ten = c.title || c.customer_name || c.external_chat_id;
@@ -843,7 +846,7 @@
               ic("ellipsis") + '</span></span>' +
           '<span class="ht-item-sub">' +
             '<small>' + (pre ? '<span class="ib-pre">' + esc(pre) + ' </span>' : "") +
-              esc(window.VanhanhHtMedia ? window.VanhanhHtMedia.tomTat(c.last_message || "", window.t) : (c.last_message || "")) + '</small>' +
+              esc(window.NaotaHtMedia ? window.NaotaHtMedia.tomTat(c.last_message || "", window.t) : (c.last_message || "")) + '</small>' +
             // Messages in the whole conversation, grey; the red number is only the UNREAD ones (v5 dropped it, but it shows how far a chat has gone).
             (c.message_count ? '<span class="ht-count" title="' + esc(window.t("ht.so_tin_title", { count: c.message_count })) + '">' +
               esc(window.t("sess.msgs", { count: c.message_count })) + '</span>' : "") +
@@ -981,7 +984,7 @@
   }
 
   function paintRowMenu(focusFirst) {
-    var F = window.VanhanhConvFilters, c = _rm && rmItem(_rm.id);
+    var F = window.NaotaConvFilters, c = _rm && rmItem(_rm.id);
     if (!F || !c) return closeRowMenu(false);
     var phone = isPhone();
     var m = rmEl();
@@ -1166,7 +1169,7 @@
     var c = rmItem(id);
     if (!c) return closeRowMenu(false);
     closeRowMenu(false);
-    if (!confirm(window.t(window.VanhanhConvFilters.chatKind(c) === "zalo_private" ? "ht.block_q_zalo" : "ht.block_q_fb", { ten: convName(c) }))) return;
+    if (!confirm(window.t(window.NaotaConvFilters.chatKind(c) === "zalo_private" ? "ht.block_q_zalo" : "ht.block_q_fb", { ten: convName(c) }))) return;
     try {
       await api("/conversations/" + id + "/block", { method: "POST" });
       c.metadata = Object.assign({}, c.metadata || {}, { blocked: true });
@@ -1181,7 +1184,7 @@
     var c = rmItem(id);
     if (!c) return closeRowMenu(false);
     closeRowMenu(false);
-    var F = window.VanhanhConvFilters, k = F.chatKind(c), remote = F.platformActs(c).indexOf("delete_remote") >= 0;
+    var F = window.NaotaConvFilters, k = F.chatKind(c), remote = F.platformActs(c).indexOf("delete_remote") >= 0;
     var q = k === "fb_comment" ? "ht.del_q_fbc" : k === "ig_comment" ? "ht.del_q_igc" : k === "threads_comment" ? "ht.del_q_thc" :
       remote ? "ht.del_q_zalo" :
       (k === "messenger_dm" || k === "ig_dm") ? "ht.del_q_meta" : "ht.del_q_local";
@@ -1351,6 +1354,30 @@
         var cuoi = _msgs.length ? _msgs[_msgs.length - 1].id : 0;
         moi = (d.messages || []).filter(function (m) { return m.id > cuoi; });
         _msgs = _msgs.concat(moi);
+        // Metadata on an existing AI message changes after the Zalo send.
+        // An "after=id" poll returns no such edits; refresh only while pending,
+        // and repaint once the transport has reported an outcome. Only the last 30 are asked for, so an older one
+        // must not keep this second request going on every beat.
+        if (_msgs.slice(-30).some(function (m) {
+          return m.metadata && m.metadata.zalo_delivery && m.metadata.zalo_delivery.state === "sending";
+        })) {
+          var receiptData = await api("/conversations/" + id + "/messages?limit=30");
+          if (_chon !== id) return;
+          var byId = {};
+          (receiptData.messages || []).forEach(function (m) { byId[m.id] = m; });
+          var updatedReceipt = false;
+          _msgs = _msgs.map(function (m) {
+            var fresh = byId[m.id];
+            var oldState = m.metadata && m.metadata.zalo_delivery && m.metadata.zalo_delivery.state;
+            var newState = fresh && fresh.metadata && fresh.metadata.zalo_delivery && fresh.metadata.zalo_delivery.state;
+            if (oldState === "sending" && newState && newState !== oldState) {
+              updatedReceipt = true;
+              return fresh;
+            }
+            return m;
+          });
+          if (updatedReceipt) _dauVetTin = "";
+        }
       }
     } catch (e) {
       // A chat shown from the cache that no longer answers (deleted elsewhere): forget it, so the next open asks afresh.
@@ -1373,7 +1400,7 @@
   function metaSig() {
     var c = _conv || {}, u = _msgs[_msgs.length - 1] || {};
     return JSON.stringify([c.id, c.mode, c.bot_id, c.bot_name, c.title, c.customer_name, c.channel, c.chat_type, c.account_name,
-      c.tags || [], c.contact || "", c.note || "", c.who, c.who_code, c.ai_allowed, c.ai_pending, c.draft || null, c.reply_when,
+      c.tags || [], c.contact || "", c.note || "", c.profile_at || 0, c.who, c.who_code, c.ai_allowed, c.ai_pending, c.draft || null, c.reply_when,
       c.yield_min, _silence, _running, u.sender_type]);
   }
 
@@ -1442,10 +1469,10 @@
   function veThread() {
     var box = _host.querySelector(".ht-thread");
     if (!box) return;
-    var V = window.VanhanhInboxV5;
+    var V = window.NaotaInboxV5;
     var c = _conv || {};
     var ten = c.title || c.customer_name || c.external_chat_id;
-    var guiDuoc = nangLuc(c.channel, "tra_loi_tu_vanhanh");
+    var guiDuoc = nangLuc(c.channel, "tra_loi_tu_naota");
     var cuon = box.querySelector(".ht-msgs");
     var oDay = !cuon || (cuon.scrollHeight - cuon.scrollTop - cuon.clientHeight < 80);
     var tuDay = cuon ? cuon.scrollHeight - cuon.scrollTop : 0;      // đang đọc giữa chừng thì vẽ lại xong phải đứng đúng chỗ cũ (đo theo đáy)
@@ -1461,7 +1488,7 @@
     // on a narrow column) and the coloured bar under it only shows when the chat needs the owner. Otherwise the bar
     // carries what can be done (Allow, Let the A.I. answer here, Create an A.I.) as before.
     var calm = threeModes && who !== "you";
-    var F = window.VanhanhConvFilters;
+    var F = window.NaotaConvFilters;
     var tags = F && c.tags && c.tags.length ? F.tagChips(c.tags, 3) : "";
     var item = _items.filter(function (k) { return k.id === c.id; })[0] || {};
     var soTin = Number(c.message_count || item.message_count) || 0;
@@ -1511,7 +1538,7 @@
     if (mk) mk.onclick = function () { makeBot(c); };
     var why = box.querySelector(".ht-silent-why");
     if (why) why.onclick = function () {
-      if (window.VanhanhReplyPolicy) window.VanhanhReplyPolicy.openPanel({ id: c.bot_id, name: c.bot_name || "" });
+      if (window.NaotaReplyPolicy) window.NaotaReplyPolicy.openPanel({ id: c.bot_id, name: c.bot_name || "" });
     };
     var now = box.querySelector(".ib-silent-ask");
     if (now) now.onclick = function () { askNow(c); };
@@ -1535,9 +1562,9 @@
     if (ta) {
       ta.value = nhapDo;
       if (goDo) { ta.focus(); try { ta.setSelectionRange(nhapDo.length, nhapDo.length); } catch (e) { /* ignore */ } }
-      // Same Enter rule as the main chat (VanhanhActs.enterSends): on a phone Enter is a new line and the
+      // Same Enter rule as the main chat (NaotaActs.enterSends): on a phone Enter is a new line and the
       // Send button sends; on a computer Enter sends and Shift+Enter is a new line; an IME composition never sends.
-      var A = window.VanhanhActs, soan = A ? A.trackComposition(ta) : function () { return false; };
+      var A = window.NaotaActs, soan = A ? A.trackComposition(ta) : function () { return false; };
       ta.onkeydown = function (e) {
         var send = A ? A.enterSends(e, soan()) : e.key === "Enter" && !e.shiftKey && !e.isComposing;
         if (send) { e.preventDefault(); gui(c); }
@@ -1570,7 +1597,7 @@
   // The phone's "who replies" sheet: drawn inside the chat column, so the 5-second redraw keeps it as it is.
   function setSheet(on) {
     _msheet = !!on;
-    var V = window.VanhanhInboxV5, sh = _host && _host.querySelector(".ht-thread .ib-msheet");
+    var V = window.NaotaInboxV5, sh = _host && _host.querySelector(".ht-thread .ib-msheet");
     if (!sh || !V) return;
     sh.hidden = !_msheet;
     sh.innerHTML = _msheet ? V.modeSheetHtml(_conv || {}, ic) : "";
@@ -1638,6 +1665,17 @@
         '<button type="button" class="s-btn ib-make-bot">' + ic("plus") + ' ' + esc(t("ib.make_bot")) + '</button></div>';
     }
     var mail = c.contact && String(c.contact).indexOf("@") > 0;
+    // A private chat: the note box IS the customer profile (owner, 2026-11-12: nobody types notes by hand). The background
+    // model rewrites it after the chat goes quiet and the bot reads it on later turns; the owner can still fix or empty
+    // it here. A group and a public comment thread have no one customer (the server decides, `profile_chat`): they keep
+    // a plain note of their own, and never show the profile of whoever wrote first there (owner, 2026-11-13).
+    var prof = hasProfile(c), JI = window.NaotaInfo, grp = c.chat_type === "group";
+    var noteBox = '<textarea class="ib-notebox"' + (prof ? ' data-profile="1" rows="8"' : ' rows="3"') + ' maxlength="4000" placeholder="' +
+      esc(t(prof ? "ib.i_profile_ph" : grp ? "ib.i_note_group_ph" : "ib.i_note_ph")) + '" aria-label="' +
+      esc(t(prof ? "ib.i_profile" : grp ? "ib.i_note_group" : "ib.i_note")) + '"></textarea>';
+    var profSec = !prof ? "" : '<div class="ib-sec ib-prof"><h4>' + ic("brain") + ' <span>' + esc(t("ib.i_profile")) + '</span>' +
+      (JI ? JI.btn(t("info.more")) : "") + '</h4>' + (JI ? JI.body(esc(t("ib.i_profile_info"))) : "") + noteBox +
+      (c.profile_at ? '<p class="ib-hint ib-prof-at">' + esc(t("ib.i_profile_at", { time: gio(c.profile_at) })) + '</p>' : "") + '</div>';
     p.innerHTML =
       '<div class="ib-ih">' + ic("user-round") + ' <span>' + esc(t("ib.info")) + '</span>' +
         '<button type="button" class="s-btn-ghost ib-x" aria-label="' + esc(t("common.close")) + '">' + ic("x") + '</button></div>' +
@@ -1646,10 +1684,8 @@
         // A group has no one customer to call back: the contact line is for private chats (or a group that left one).
         (c.chat_type !== "group" || c.contact ? '<div class="ib-line">' + ic(mail ? "mail" : "phone") + (c.contact ? '<span>' + esc(c.contact) + '</span>'
           : '<span class="ib-muted">' + esc(t("ib.i_no_contact")) + '</span>') + '</div>' : "") +
-        '<div class="ht-tagrow"></div>' +
-        '<textarea class="ib-notebox" rows="3" maxlength="4000" placeholder="' + esc(t("ib.i_note_ph")) + '" aria-label="' +
-          esc(t("ib.i_note")) + '"></textarea></div>' +
-      ai +
+        '<div class="ht-tagrow"></div>' + (prof ? "" : noteBox) + '</div>' +
+      profSec + ai +
       '<div class="ib-sec"><h4>' + ic("plug") + ' ' + esc(t("ib.i_channel")) + '</h4><div class="ib-line">' + logoKenh(c.channel) + ' <span>' +
         esc(k.nhan) + (accLabel(c) ? ' · ' + esc(accLabel(c)) : "") + '</span></div></div>';
     veTagRow();
@@ -1665,7 +1701,7 @@
     var ob = p.querySelector(".ib-open-bot");
     if (ob) ob.onclick = function () {
       chonTab("bot");
-      try { document.dispatchEvent(new CustomEvent("vanhanh:chatbot-open", { detail: { bot_id: c.bot_id } })); } catch (e) { /* old browser */ }
+      try { document.dispatchEvent(new CustomEvent("naota:chatbot-open", { detail: { bot_id: c.bot_id } })); } catch (e) { /* old browser */ }
     };
     var mk = p.querySelector(".ib-make-bot");
     if (mk) mk.onclick = function () { makeBot(c); };
@@ -1680,7 +1716,7 @@
       if (_noteEdit && _noteEdit.id === id && _noteEdit.text === text) _noteEdit = null;
       if (_conv && _conv.id === id && d.conversation) _conv.note = d.conversation.note;
       _vetMeta = metaSig();
-      toast(window.t("ib.t_note"));
+      toast(window.t(_conv && _conv.id === id && hasProfile(_conv) ? "ib.t_profile" : "ib.t_note"));
     } catch (e) { toast(window.t("ht.act_fail", { err: e.message })); }
   }
 
@@ -1732,7 +1768,7 @@
   function makeBot(c) {
     var a = _tk.filter(function (x) { return x.account_key === c.channel_account_id; })[0];
     chonTab("bot");
-    try { document.dispatchEvent(new CustomEvent("vanhanh:chatbot-new", { detail: { account_id: a ? a.id : "" } })); } catch (e) { /* old browser */ }
+    try { document.dispatchEvent(new CustomEvent("naota:chatbot-new", { detail: { account_id: a ? a.id : "" } })); } catch (e) { /* old browser */ }
   }
 
   // A line under the composer about the last action (an error, "the A.I. chose to stay silent").
@@ -1770,7 +1806,7 @@
   // tags on or off, makes a new one (name + colour from the fixed palette) and renames, recolours or deletes one. The
   // row redraws on its own, so ticking several tags keeps the picker open.
   function palette(cur) {
-    var F = window.VanhanhConvFilters;
+    var F = window.NaotaConvFilters;
     return '<span class="ht-sws" role="group" aria-label="' + esc(window.t("ht.tag_colors")) + '">' + (F ? F.TAG_COLORS : []).map(function (k, i) {
       return '<button type="button" class="ht-sw' + (k === cur ? " on" : "") + '" data-c="' + k + '" aria-pressed="' + (k === cur) +
         '" aria-label="' + esc(window.t("ht.tag_color", { n: i + 1 })) + '"></button>';
@@ -1778,7 +1814,7 @@
   }
 
   function tagPopHtml(on) {
-    var F = window.VanhanhConvFilters;
+    var F = window.NaotaConvFilters;
     var rows = _tags.map(function (g) {
       if (_tagEdit === g.id) {
         return '<div class="ht-tagpop-edit" data-id="' + g.id + '">' +
@@ -1813,7 +1849,7 @@
   var _tagEditColor = "", _tagNewText = "", _tagEditText = null;   // picker colour being edited, and what is typed (kept across redraws)
   // The tag chips beside the name in the chat head follow every change made in the Info panel (no thread redraw).
   function paintHeadTags() {
-    var h = _host && _host.querySelector(".ht-thread .ib-htags"), F = window.VanhanhConvFilters;
+    var h = _host && _host.querySelector(".ht-thread .ib-htags"), F = window.NaotaConvFilters;
     if (!h || !_conv || !F) return;
     var add = h.querySelector(".ib-htag-add");
     h.querySelectorAll(".ht-tag, .ht-tag-more").forEach(function (x) { x.remove(); });
@@ -1823,7 +1859,7 @@
   function veTagRow() {
     paintHeadTags();
     var row = _host && _host.querySelector(".ht-info .ht-tagrow");
-    var F = window.VanhanhConvFilters;
+    var F = window.NaotaConvFilters;
     if (!row || !_conv || !F) return;
     var c = _conv, on = {};
     (c.tags || []).forEach(function (g) { on[g.id] = true; });
@@ -1974,10 +2010,10 @@
   // (console.css hides the handle and ignores the width below 901px).
   var LIST_MIN_W = 260, LIST_MINI_W = 72;
   function attachListResize(body) {
-    var CR = window.VanhanhColResize, wrap = body.querySelector(".ht-wrap"), col = body.querySelector(".ht-listcol");
+    var CR = window.NaotaColResize, wrap = body.querySelector(".ht-wrap"), col = body.querySelector(".ht-listcol");
     if (!CR || !wrap || !col) return;
     var inner = wrap.querySelector(".ht-body");
-    var o = { host: wrap, varName: "--ht-list-w", key: "vanhanh_ht_list_w", min: LIST_MIN_W, max: 560, edge: "right",
+    var o = { host: wrap, varName: "--ht-list-w", key: "naota_ht_list_w", min: LIST_MIN_W, max: 560, edge: "right",
       label: "ht.resize_list", keep: 420, total: function () { return inner ? inner.clientWidth : 0; },
       snap: { below: CR.FOLD_AT(LIST_MIN_W), to: LIST_MINI_W, onSnap: function (on) {
         wrap.classList.toggle("ht-mini", !!on);
@@ -2079,7 +2115,7 @@
   function renderSilenceLine(c) {
     var s = _silence;
     if (!s || !c.bot_id) return "";
-    var RP = window.VanhanhReplyPolicy;
+    var RP = window.NaotaReplyPolicy;
     var lyDo = s.code ? (RP ? RP.codeLabel(s.code) : s.code) : (s.reason || "");
     if (!lyDo) return "";
     var diem = (s.score == null) ? "" : " (" + Number(s.score).toFixed(2) +
@@ -2105,7 +2141,7 @@
     _dictKeys = true;
     document.addEventListener("keydown", function (e) {
       if (!_conv || !dictOn(_conv) || _chon !== _dictConv) return;
-      var A = window.VanhanhActs;
+      var A = window.NaotaActs;
       var send = A ? A.enterSends(e, false) : e.key === "Enter" && !e.shiftKey && !e.isComposing;
       if (!send) return;
       var tg = e.target, tag = String((tg && tg.tagName) || "").toUpperCase();
@@ -2143,13 +2179,13 @@
 
   // The last messages of the open chat, for the rewrite at the end of a dictation (dictate.js polish).
   function dictContext() {
-    var D = window.VanhanhDictate;
+    var D = window.NaotaDictate;
     var m = _host && _host.querySelector(".ht-thread .ht-msgs");
     return D && D.recentMessages ? D.recentMessages(m, ".ht-msg:not(.ht-react) .ht-bubble", 4) : [];
   }
 
   function toggleMic(c) {
-    var D = window.VanhanhDictate;
+    var D = window.NaotaDictate;
     if (!D) { setNote(window.t("dict.unsupported"), true); return; }
     if (_dict && _dictState === "listening") { _dict.stop(); return; }
     if (_dict && _dictState !== "idle") return;
@@ -2223,7 +2259,7 @@
   // Ô trả lời khách: Gửi (gửi nguyên văn) và A.I. trả lời (chữ trong ô là lệnh cho A.I.). Nói rõ trước khi bấm gửi: gửi từ đây
   // là TIẾP QUẢN (bot đang trực sẽ im ở cuộc này), và với kênh tài khoản cá nhân thì tin đi dưới tên chính bạn.
   function veCompose(c) {
-    var V = window.VanhanhInboxV5, k = kenhCua(c.channel), t = window.t;
+    var V = window.NaotaInboxV5, k = kenhCua(c.channel), t = window.t;
     var laBot = !!c.bot_id;
     var draft = c.draft && String(c.draft.text || "").trim() ? c.draft : null;
     // On a personal account the message goes out under the owner's own name: the box says so in its placeholder
@@ -2231,7 +2267,7 @@
     // notes went (a good UI needs no notes).
     var ten = k.kind === "account" ? accLabel(c) || k.nhan : "";
     // "Enter to send" in the placeholder is a computer's hint only: a phone's Enter is a new line.
-    var cham = !!(window.VanhanhActs && window.VanhanhActs.touchMain && window.VanhanhActs.touchMain());
+    var cham = !!(window.NaotaActs && window.NaotaActs.touchMain && window.NaotaActs.touchMain());
     var ph = ten ? t(laBot ? "ib.cin_ph_as_ai" : "ib.cin_ph_as", { ten: ten }) :
       t(laBot ? "ib.cin_ph_ai" : cham ? "ib.cin_ph_touch" : "ht.gui_ph");
     var busy = _aiBusy === "redo" || _aiBusy === "send" ? _aiBusy : "";
@@ -2296,6 +2332,14 @@
     if (ta2) ta2.focus();
   }
 
+  // Zalo send receipt of a bot reply (`conversations.set_zalo_delivery`). "accepted" is absent on purpose: a sent
+  // reply shows no line. The reasons are the codes of `conversations.ZALO_DELIVERY_REASONS`, plus "stale".
+  var ZALO_RECEIPT = { sending: "ht.zalo_sending", failed: "ht.zalo_failed", unknown: "ht.zalo_unknown",
+    cancelled: "ht.zalo_cancelled" };
+  var ZALO_WHY = { superseded: "ht.zalo_why.superseded", silent: "ht.zalo_why.silent",
+    image_unconfirmed: "ht.zalo_why.image_unconfirmed", bot_stopped: "ht.zalo_why.bot_stopped",
+    interrupted: "ht.zalo_why.interrupted", stale: "ht.zalo_why.stale" };
+
   function veTin(t) {
     var lop = t.sender_type === "customer" ? "khach" : t.sender_type === "ai" ? "bot"
             : t.sender_type === "human" ? "nguoi" : "hethong";
@@ -2309,10 +2353,10 @@
     // A photo the owner (or the bot) sends must show as a photo too, so they can check what went out;
     // it used to read "image https://...zdn.vn/....jpg". Any non-text message goes through the same parser.
     var wantMedia = t.sender_type === "customer" || (t.message_type && t.message_type !== "text");
-    var media = (wantMedia && window.VanhanhHtMedia) ? window.VanhanhHtMedia.phanTich(t, t.conversation_id) : null;
+    var media = (wantMedia && window.NaotaHtMedia) ? window.NaotaHtMedia.phanTich(t, t.conversation_id) : null;
     var coMedia = !!(media && (media.anh || media.file));
     if (coMedia) {
-      than = window.VanhanhHtMedia.html(media, esc, ic, window.t) + (media.chu ? '<div class="ht-chu-thich">' + esc(media.chu) + '</div>' : "");
+      than = window.NaotaHtMedia.html(media, esc, ic, window.t) + (media.chu ? '<div class="ht-chu-thich">' + esc(media.chu) + '</div>' : "");
     } else if (t.sender_type === "ai" && window.mdToHtml) {
       try { than = window.mdToHtml(t.text || "", ""); } catch (e) { than = esc(t.text || ""); }
     } else {
@@ -2323,6 +2367,17 @@
         ' ' + esc(t.message_type) + '</span>' : "";
     var loi = t.metadata && t.metadata.loi
       ? '<div class="ht-msg-loi">' + ic("triangle-alert") + ' ' + esc(t.metadata.loi) + '</div>' : "";
+    // A bot answer in the inbox is not proof of successful Zalo transmission: the receipt comes from the transport's
+    // result, not the model output. A reply that went out shows nothing (the normal case needs no line); only one
+    // still going out, not sent, or of unknown outcome says so, with the reason.
+    var dl = t.sender_type === "ai" && t.metadata && t.metadata.zalo_delivery;
+    var deliveryHtml = "";
+    if (dl && ZALO_RECEIPT[dl.state]) {
+      var why = ZALO_WHY[dl.reason] ? window.t(ZALO_WHY[dl.reason]) : (dl.error || "");
+      var bad = dl.state === "failed" || dl.state === "unknown";
+      deliveryHtml = '<div class="' + (bad ? "ht-msg-loi" : "ht-msg-h") + '">' + (bad ? ic("triangle-alert") + ' ' : '') +
+        esc(window.t(ZALO_RECEIPT[dl.state])) + (why ? ' · ' + esc(why) : '') + '</div>';
+    }
     if (t.metadata && t.metadata.private_reply_to) {
       var ig = isInstagram(_conv);
       loai = '<span class="ht-loai ht-priv-tag">' + (ig ? badgeOf({ channel: "messenger", external_chat_id: "ig:" }, "13px") :
@@ -2332,7 +2387,7 @@
     // group shows who wrote each message.
     if (lop === "khach" && _conv && _conv.chat_type !== "group") ai = "";
     return '<div class="ht-msg ' + lop + '">' +
-      '<div class="ht-bubble">' + loai + than + '</div>' + loi +
+      '<div class="ht-bubble">' + loai + than + '</div>' + loi + deliveryHtml +
       '<div class="ht-msg-h">' + esc(ai) + (ai ? ' · ' : '') + esc(gio(t.created_at)) + '</div>' +
     '</div>';
   }
@@ -2388,7 +2443,7 @@
     var chips = [];
     if (nl.nhom) chips.push(ic("users") + " " + esc(window.t("ht.nl_nhom")));
     if (nl.gui_file) chips.push(ic("paperclip") + " " + esc(window.t("ht.nl_file")));
-    if (nl.tra_loi_tu_vanhanh) chips.push(ic("send") + " " + esc(window.t("ht.nl_tra_loi")));
+    if (nl.tra_loi_tu_naota) chips.push(ic("send") + " " + esc(window.t("ht.nl_tra_loi")));
     var ten = a.external_id ? (a.tien_to_ten || "") + a.external_id : "";
     // BRAIN hiện khi nó là thông tin MỚI, không phải lúc nào cũng hiện:
     //   - đang xem "mọi brain": mỗi thẻ phải tự nói nó thuộc về đâu;
@@ -2461,7 +2516,7 @@
     if (tb) tb.onclick = function () {
       // Đã đứng ở tab Bot rồi: không dựng lại tab (mất nhịp), chỉ mở form với kênh này tích sẵn.
       if (_tab !== "bot") chonTab("bot");
-      try { document.dispatchEvent(new CustomEvent("vanhanh:chatbot-new", { detail: { account_id: a.id } })); } catch (e) {}
+      try { document.dispatchEvent(new CustomEvent("naota:chatbot-new", { detail: { account_id: a.id } })); } catch (e) {}
     };
     var cb = c.querySelector(".ht-watch");
     if (cb) cb.onchange = async function () {
@@ -2479,7 +2534,7 @@
     var sua = c.querySelector(".ht-acc-sua");
     if (sua) sua.onclick = function () { moSuaTK(a); };
     var kn = c.querySelector(".ht-acc-ket-noi");
-    if (kn) kn.onclick = function () { try { window.VanhanhNav.go("mcp"); } catch (e) {} };
+    if (kn) kn.onclick = function () { try { window.NaotaNav.go("mcp"); } catch (e) {} };
     var xoa = c.querySelector(".ht-acc-xoa");
     if (xoa) xoa.onclick = function () { xoaTK(a); };
     return c;
@@ -2516,7 +2571,7 @@
   // để người dùng thấy đủ và biết kênh đó nối ở đâu), bước 2 dán token, kiểm, đặt tên.
   //
   // Hàm này là chỗ DUY NHẤT trong dashboard biết cách nối một tài khoản kênh. Form tạo bot
-  // (chatbots.js) gọi lại chính nó qua `VanhanhConversations.themTaiKhoan` thay vì chép một bản
+  // (chatbots.js) gọi lại chính nó qua `NaotaConversations.themTaiKhoan` thay vì chép một bản
   // thứ hai: trước đây có hai form dán token song song, nên hướng dẫn riêng của từng kênh
   // bị nhân đôi và thêm một kênh mới là phải sửa cả hai nơi.
   //
@@ -2564,15 +2619,15 @@
     box.onmousedown = function (e) { if (e.target === box) dong(); };
     box.querySelector(".ht-close").onclick = dong;
     box.querySelectorAll(".ht-di-ket-noi").forEach(function (n) {
-      n.onclick = function () { dong(); try { window.VanhanhNav.go("mcp"); } catch (e) {} };
+      n.onclick = function () { dong(); try { window.NaotaNav.go("mcp"); } catch (e) {} };
     });
     // Vietnamese interface opens docs/, every other language docs/en/ (same rule as the owner channel guides).
     function guideUrl(k) {
       var h = (k && k.huong_dan) || {};
-      var vi = window.VanhanhI18n && window.VanhanhI18n.lang() === "vi";
+      var vi = window.NaotaI18n && window.NaotaI18n.lang() === "vi";
       var f = vi ? (h.vi || h.en) : (h.en || h.vi);
       if (!f) return "";
-      return "https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/" + (vi && h.vi ? "" : "en/") + f;
+      return "https://github.com/vuongtex/naota/blob/main/docs/" + (vi && h.vi ? "" : "en/") + f;
     }
     function apKenh(id) {
       chon = id; uname = ""; meta = {};
@@ -2584,7 +2639,7 @@
       var g = guideUrl(k);
       if (g) lab.insertAdjacentHTML("beforeend", ' · <a class="ht-guide" href="' + esc(g) + '" target="_blank" rel="noopener">'
         + esc(window.t("ht.huong_dan")) + " ↗</a>");
-      // Internal API: Vanhanh generates the key on Save, so there is no token to paste or check.
+      // Internal API: Naota generates the key on Save, so there is no token to paste or check.
       box.querySelector("#htTokenRow").hidden = !!k.khoa_tu_sinh;
       if (k.khoa_tu_sinh) lab.textContent = window.t("ht.khoa_lb");
       box.querySelector("#htLabel").placeholder = window.t(k.khoa_tu_sinh ? "ht.ph_nhan_api" : "ht.ph_nhan_tk");
@@ -2602,10 +2657,10 @@
       var mo = hint.querySelector(".ht-mo-the");
       if (mo) mo.onclick = function () {
         dong();
-        try { window.VanhanhNav.go("mcp"); } catch (e) {}
+        try { window.NaotaNav.go("mcp"); } catch (e) {}
         setTimeout(function () {
           try {
-            var M = window.VanhanhMessenger;
+            var M = window.NaotaMessenger;
             if (M) { if (k.id === "threads") M.openThreadsForm(); else M.openForm(null); }
           } catch (e) {}
         }, 400);
@@ -2628,6 +2683,8 @@
         o.innerHTML = '<b>' + esc(window.t("ht.wh_url")) + '</b> <code>' + esc(r.webhook_url || "") + '</code>' +
           (r.verify_token ? '<br><b>' + esc(window.t("ht.wh_token")) + '</b> <code>' + esc(r.verify_token) + '</code>' : "") +
           (r.https ? "" : '<br><span class="cb-warn">' + esc(window.t(r.site_verify ? "ht.zo_can_https" : "ht.wh_can_https")) + '</span>') +
+          // A warning the server words itself, for a channel whose rule is not "HTTPS only" (WeChat: port 443 or 80).
+          (r.warning ? '<br><span class="cb-warn">' + esc(r.warning) + '</span>' : "") +
           (r.site_verify ? veMaXacThuc(r.site_codes || []) : "") +
           (r.oauth_redirect ? veCapQuyen(r.oauth_redirect) : "");
         o.hidden = false;
@@ -2774,7 +2831,7 @@
     if (note.isConnected) note.textContent = window.t("ht.zo_oauth_het");
   }
 
-  // The key of a generated-key channel (internal API), shown ONCE: Vanhanh keeps only its hash.
+  // The key of a generated-key channel (internal API), shown ONCE: Naota keeps only its hash.
   function hienKhoa(khoa) {
     var box = el('<div class="ht-modal"><div class="ht-form">' +
       '<h3>' + esc(window.t("ht.khoa_moi")) + '</h3>' +
@@ -2935,6 +2992,6 @@
     try { var s = window.Alpine && Alpine.store("nav"); if (s && s.go) s.go("conversations"); } catch (e) {}
   }
 
-  window.VanhanhConversations = { render: render, mo: moTu, chonTab: chonTab,
+  window.NaotaConversations = { render: render, mo: moTu, chonTab: chonTab,
                                themTaiKhoan: moThemTK, suaKenh: suaKenh, tenBrain: tenBrain, nhapTinCu: nhapTinCu };
 })();

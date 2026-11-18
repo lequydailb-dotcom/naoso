@@ -9,7 +9,7 @@
      input event call poke().
    - Keeps a copy of the unsaved text in this browser (localStorage) a moment after each change, so a tab closed or
      crashed before the write landed still has the words. Opening the same file again puts them back when the file
-     on disk is still the one the copy was made from; a file changed since (Vanhanh edited it) wins and the copy is
+     on disk is still the one the copy was made from; a file changed since (Naota edited it) wins and the copy is
      dropped.
    - Writes once more with fetch keepalive when the page is hidden or unloaded, and asks the browser to confirm
      leaving while something is still unsaved.
@@ -24,7 +24,7 @@
   var DELAY_MS = 1200;        // pause in typing before the file is written
   var DRAFT_DELAY_MS = 500;   // pause before the local copy is refreshed
   var RETRY_MS = 5000;        // a failed write is tried again after this long
-  var DRAFT_PREFIX = "vanhanh.draft.";
+  var DRAFT_PREFIX = "naota.draft.";
   var DRAFT_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
   var KEEPALIVE_MAX_BYTES = 60000;   // browsers refuse a keepalive body above 64 KB
 
@@ -227,6 +227,6 @@
   }
 
   var api = { attach: attach, hash: hash, pickDraft: pickDraft, DELAY_MS: DELAY_MS, DRAFT_PREFIX: DRAFT_PREFIX };
-  if (typeof window !== "undefined") window.VanhanhAutosave = api;
+  if (typeof window !== "undefined") window.NaotaAutosave = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })();

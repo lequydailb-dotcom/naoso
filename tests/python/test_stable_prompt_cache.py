@@ -3,7 +3,7 @@
     python tests/run.py stable_prompt_cache      (no network)
 
 Seen in use: each new Claude Code chat read ~9k tokens from the prompt cache
-and WROTE 48-57k, about 30% of a day's usage. Claude Code gets Vanhanh's prompt through
+and WROTE 48-57k, about 30% of a day's usage. Claude Code gets Naota's prompt through
 `--append-system-prompt-file`, cached as ONE block, so a single changed character rewrites all of it.
 Before this fix that block held the clock (to the minute), today's token usage, the dashboard
 session id and the latest workflow run.
@@ -22,9 +22,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-SCRATCH = Path(tempfile.mkdtemp(prefix="vanhanh-stable-prompt-"))
-for key, relative in {"VANHANH_STATE_DIR": "state", "BRAINS_DIR": "brains", "OBSIDIAN_VAULT_PATH": "vault",
-                      "BRAIN_PATH": "brain", "SOURCES_PATH": "sources", "VANHANH_SESSIONS_DB": "sessions.sqlite3"}.items():
+SCRATCH = Path(tempfile.mkdtemp(prefix="naota-stable-prompt-"))
+for key, relative in {"NAOTA_STATE_DIR": "state", "BRAINS_DIR": "brains", "OBSIDIAN_VAULT_PATH": "vault",
+                      "BRAIN_PATH": "brain", "SOURCES_PATH": "sources", "NAOTA_SESSIONS_DB": "sessions.sqlite3"}.items():
     os.environ[key] = str(SCRATCH / relative)
 
 try:
@@ -72,7 +72,7 @@ check("no latest workflow run in the stable prompt", "Lần chạy quy trình g�
 check("the clock heading stays and points at the message header",
       "# === BÂY GIỜ ===" in a and "[Giờ gửi tin này: ...]" in a)
 check("the chat_id rule now points at the session line",
-      "[Phiên chat: web:<mã>]" in a and '"chat_id":"web:<mã>"' in a and 'owner_chat: "web:<mã>"' in a)
+      "[Phiên chat: web:<id>]" in a and '"chat_id":"web:<id>"' in a and 'owner_chat: "web:<id>"' in a)
 check("the clock block still comes before the channel block",
       a.index("# === BÂY GIỜ ===") < a.index("# === KÊNH HỘI THOẠI HIỆN TẠI"))
 
@@ -95,7 +95,7 @@ check("default prompt still has the clock", STATE["clock"] in c)
 check("default prompt still has the usage block", "MỨC DÙNG HÔM NAY" in c)
 check("default prompt still has the latest workflow run", "Lần chạy quy trình gần nhất: B" in c)
 check("default channel block still names the session id",
-      "Mã phiên chat hiện tại: `sess-ccc333`" in c and 'web:sess-ccc333' in c)
+      "Current chat session id: `sess-ccc333`" in c and 'web:sess-ccc333' in c)
 
 # ---- 4. the Claude Code lane uses it ----
 SRC = (Path(SERVER) / "main.py").read_text(encoding="utf-8")

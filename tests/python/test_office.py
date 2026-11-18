@@ -40,13 +40,13 @@ with tempfile.TemporaryDirectory() as tmp:
     write(b / "agents" / "ke-toan.md", "---\nname: Kế toán\ntags:\n  - tài chính\n---\n")
     write(b / "agents" / "tro-ly.md", "---\nname: Trợ lý chung\n---\n")
     write(b / "agents" / "seo.md", "---\nname: SEO\ntags: [SEO]\n---\n")
-    write(b / "Vanhanh" / "loops" / "dang-theo-lich.md",
+    write(b / "Naota" / "loops" / "dang-theo-lich.md",
           "---\nname: Đăng theo lịch\nenabled: true\ninterval_min: 60\n---\nĐăng bài lên fanpage")
-    write(b / "Vanhanh" / "loops" / "don-rac.md", "---\nname: Dọn file tạm\nenabled: false\ninterval_min: 1440\n---\n")
-    write(b / "Vanhanh" / "loop-state.json", {
+    write(b / "Naota" / "loops" / "don-rac.md", "---\nname: Dọn file tạm\nenabled: false\ninterval_min: 1440\n---\n")
+    write(b / "Naota" / "loop-state.json", {
         "dang-theo-lich": {"last_run": ts("2026-11-07 20:00"), "last_status": "✗ lỗi đăng",
                            "fail_streak": 3,
-                           "auto_paused_reason": "3 lần liền không đạt: token=EAAGabcdefghijklmnopqrstuvwxyz0123 hết hạn ở /opt/vanhanh/x.py"},
+                           "auto_paused_reason": "3 lần liền không đạt: token=EAAGabcdefghijklmnopqrstuvwxyz0123 hết hạn ở /opt/naota/x.py"},
         "da-go": {"last_run": ts("2026-11-01 08:00"), "last_status": "✓"},
     })
     log = []
@@ -54,21 +54,21 @@ with tempfile.TemporaryDirectory() as tmp:
                                   ("13:00", 1), ("18:00", 0), ("19:00", 1), ("20:00", 0)]):
         log.append(f"## [2026-11-07 {hm}] dang-theo-lich lượt {i + 1}\nĐã đăng bài số {i + 1}\n"
                    f"**Kiểm chứng:** {'✓' if ok else '✗'} {'ok' if ok else 'bài không hiện, sk-ABCDEFGHIJKLMNOPQRSTUV'}\n")
-    write(b / "Vanhanh" / "loop-log" / "2026-11-07.md", "\n".join(log))
-    write(b / "Vanhanh" / "reminders.json", {"reminders": [
+    write(b / "Naota" / "loop-log" / "2026-11-07.md", "\n".join(log))
+    write(b / "Naota" / "reminders.json", {"reminders": [
         {"id": "r1", "label": "Đăng theo lịch Threads", "cron": "0 9 * * *", "status": "pending", "error": ""},
         {"id": "r2", "label": "Gia hạn token Threads", "repeat_min": 1440, "status": "pending", "error": ""},
         {"id": "r3", "label": "Nhắc gọi khách", "due_at": ts("2026-11-07 10:00"), "status": "done"},
         {"id": "r4", "label": "Báo cáo doanh thu", "cron": "0 7 * * 1", "status": "cancelled"},
     ]})
-    write(b / "Vanhanh" / "work-log.jsonl", "\n".join(json.dumps(x) for x in [
+    write(b / "Naota" / "work-log.jsonl", "\n".join(json.dumps(x) for x in [
         {"ts": ts("2026-11-07 09:00"), "kind": "reminder", "ref": "r1", "title": "Đăng theo lịch Threads", "status": "ok"},
         {"ts": ts("2026-11-07 09:30"), "kind": "reminder", "ref": "r2", "title": "Gia hạn token", "status": "fail"},
         {"ts": ts("2026-11-07 10:00"), "kind": "reminder", "ref": "r3", "title": "Nhắc gọi khách", "status": "ok"},
     ]) + "\nnot json\n")
-    write(b / "Vanhanh" / "kanban.json", {"tasks": [{"id": "t1", "title": "Duyệt bài mới", "status": "review"},
+    write(b / "Naota" / "kanban.json", {"tasks": [{"id": "t1", "title": "Duyệt bài mới", "status": "review"},
                                                   {"id": "t2", "title": "Viết email", "status": "done"}]})
-    write(b / "Vanhanh" / "office.json", {"targets": {"r1": 2}})
+    write(b / "Naota" / "office.json", {"targets": {"r1": 2}})
     write(b / "secrets" / "token.txt", "SHOULD-NEVER-SHOW")
 
     now = ts("2026-11-07 21:00")
@@ -106,10 +106,10 @@ with tempfile.TemporaryDirectory() as tmp:
     check("pause time shown from the last run", L["last_at"] == "20:00")
     check("footer time in the owner's zone", d["now_at"] == "21:00:00")
     check("no token value leaks", "EAAGabcdef" not in blob and "sk-ABCDEF" not in blob)
-    check("no server path leaks", "/opt/vanhanh" not in blob)
+    check("no server path leaks", "/opt/naota" not in blob)
     check("nothing from secrets/ is read", "SHOULD-NEVER-SHOW" not in blob)
-    check("the page wrote nothing into the brain", not (b / "Vanhanh" / "office-cache.json").exists()
-          and sorted(p.name for p in (b / "Vanhanh").iterdir()) == ["kanban.json", "loop-log", "loop-state.json", "loops",
+    check("the page wrote nothing into the brain", not (b / "Naota" / "office-cache.json").exists()
+          and sorted(p.name for p in (b / "Naota").iterdir()) == ["kanban.json", "loop-log", "loop-state.json", "loops",
                                                                     "office.json", "reminders.json", "work-log.jsonl"])
 
     df = d["day_feed"]
@@ -132,8 +132,8 @@ with tempfile.TemporaryDirectory() as tmp:
 # running right now: ids match the desks, times in the owner's zone, no secret, oldest first
 with tempfile.TemporaryDirectory() as tmp:
     b = Path(tmp)
-    write(b / "Vanhanh" / "loops" / "dang.md", "---\nname: Đăng bài\n---\n")
-    write(b / "Vanhanh" / "reminders.json", {"reminders": [{"id": "r1", "label": "Báo cáo sáng"}]})
+    write(b / "Naota" / "loops" / "dang.md", "---\nname: Đăng bài\n---\n")
+    write(b / "Naota" / "reminders.json", {"reminders": [{"id": "r1", "label": "Báo cáo sáng"}]})
     now = ts("2026-11-07 21:00")
     lv = office.live(b, now, TZ, {"slug": "dang", "since": now - 125}, {"r1": now - 30, "gone": now - 5},
                      [{"id": "t1", "title": "Gửi token=sk-ABCDEF123456", "status": "running", "updated_at": now - 600},

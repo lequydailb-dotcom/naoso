@@ -1,7 +1,7 @@
 """
-reminders.py - Nhắc hẹn từ chat cho Vanhanh: "30 phút nữa nhắc anh...", "8h30 sáng mai...".
+reminders.py - Nhắc hẹn từ chat cho Naota: "30 phút nữa nhắc anh...", "8h30 sáng mai...".
 
-Vá đúng lỗ hổng người dùng nêu: Vanhanh GỬI được Telegram ngay lúc chat, nhưng CHƯA tự
+Vá đúng lỗ hổng người dùng nêu: Naota GỬI được Telegram ngay lúc chat, nhưng CHƯA tự
 hẹn giờ để thức dậy gửi SAU. Module này thêm hàng đợi nhắc hẹn BỀN (JSON trong vault,
 git-backed) + để scheduler nền (main._scheduler_loop, tick 30s) đánh thức đúng giờ:
   - mode "notify" (mặc định): tới giờ bắn thẳng tin nhắc qua Telegram cho ĐÚNG người đã đặt.
@@ -9,20 +9,20 @@ git-backed) + để scheduler nền (main._scheduler_loop, tick 30s) đánh th�
                              Quyền theo `muc_quyen` (suggest | auto | full, mặc định full).
                              Kết quả MỞ ĐẦU hoặc KẾT THÚC bằng [SILENT] → im lặng, vẫn lưu vào bản ghi.
   - mode "script"          : job KHÔNG cần LLM (rẻ, để giám sát) - chạy script có sẵn trong
-                             <brain>/Vanhanh/scripts, đẩy stdout về Telegram; exit≠0 → cảnh báo lỗi,
+                             <brain>/Naota/scripts, đẩy stdout về Telegram; exit≠0 → cảnh báo lỗi,
                              stdout rỗng hoặc có cờ [SILENT] → im lặng (port ý no_agent của Hermes).
 
 Lịch: hẹn 1-lần (delay_min|at|due_at) HOẶC định kỳ bằng biểu thức CRON 5 trường (cron_util.py,
 tự viết, không phụ thuộc lib). Có cron thì mỗi lần fire xong tự tính due_at kế tiếp.
 
-Tạo nhắc: engine (Vanhanh) tự gọi POST /reminders qua Bash curl từ localhost khi user nói
+Tạo nhắc: engine (Naota) tự gọi POST /reminders qua Bash curl từ localhost khi user nói
 "nhắc anh ..." (endpoint được khai báo trong channel_context). Dashboard tạo/sửa/huỷ/xoá được
 qua /reminders, /reminders/update, /reminders/cancel (giữ lịch sử), /reminders/delete (mất hẳn).
 
 ĐỦ ĐIỀU KIỆN MỚI TẠO: notify/task tồn tại chỉ để BÁO cho người, mà kênh báo duy nhất là
 Telegram. Chưa đấu Telegram thì _create ném NotifyNotReady kèm lý do, endpoint trả thêm cờ
 can_force để chỗ gọi hỏi lại người dùng (allow_no_channel=true mới tạo tiếp). Trước đây job cứ
-tạo, cứ chạy đúng giờ, rồi kết quả rơi vào hư không - người dùng tưởng Vanhanh quên việc.
+tạo, cứ chạy đúng giờ, rồi kết quả rơi vào hư không - người dùng tưởng Naota quên việc.
 Thời gian do SERVER tính (giờ VN, UTC+7) từ delay_min | at | due_at → engine chỉ cần map câu
 nói của user, KHỎI cần biết "bây giờ" trong prompt (giữ prompt-cache ổn định).
 
@@ -41,6 +41,7 @@ import localefmt
 import asyncio
 import contextvars
 import json
+import kept
 import os
 import re
 import shutil
@@ -56,7 +57,7 @@ from typing import Any, Callable, List, Optional
 from fastapi import APIRouter, Body, Form, Query
 
 import cron_util
-import channel_context   # bóc khối VANHANH_* trước khi gửi Telegram - kênh chữ, không phải web
+import channel_context   # bóc khối NAOTA_* trước khi gửi Telegram - kênh chữ, không phải web
 import once_ledger       # outside actions of one firing run once, across retries
 import work_log          # one line per finished run, for the Tasks page stats
 import turn_context
@@ -74,6 +75,8 @@ def _nhan_kw(fn, ten: str) -> bool:
     return any(p.name == ten or p.kind is p.VAR_KEYWORD for p in ps)
 from claude_cli import claude_engine, cancel_all, _empty_mcp_file
 import aux_engine   # engine viec nen theo model phu nguoi dung chon
+import job_recipes   # a recurring job replays its own read chain before the model starts
+import job_scorecard
 
 # Múi giờ để tính giờ nhắc hẹn. Đọc từ cấu hình, KHÔNG còn ghim Việt Nam.
 #
@@ -86,6 +89,9 @@ import aux_engine   # engine viec nen theo model phu nguoi dung chon
 def VN_TZ():
     return localefmt.tz()
 VALID_MODE = {"notify", "task", "script"}
+PREFETCH_TIMEOUT_S = 120      # a recipe's read calls, all together, before the model starts (job_recipes.py)
+# The recurring job whose recipe `_run_task` may replay; "" for a one-off reminder and for every other caller.
+_RECIPE_JOB: contextvars.ContextVar = contextvars.ContextVar("naota_reminder_recipe_job", default="")
 
 # Mức quyền của nhắc hẹn kiểu "task". Cùng bộ từ với loop để người dùng chỉ phải học một lần.
 VALID_MUC_QUYEN = {"suggest", "auto", "full"}
@@ -95,7 +101,7 @@ VALID_MUC_QUYEN = {"suggest", "auto", "full"}
 # Nhắc hẹn khác loop ở chỗ căn bản: loop tự nghĩ ra việc để làm mỗi vòng, còn nhắc hẹn làm ĐÚNG
 # một việc người dùng đã viết ra và hẹn giờ từ trước. Nó là một câu lệnh trong chat được dời
 # sang giờ khác, nên trói nó chặt hơn lúc chat là tự mâu thuẫn: người dùng gõ "10h mai gửi
-# link vào nhóm" rồi tới giờ Vanhanh báo về là nó không được phép gửi.
+# link vào nhóm" rồi tới giờ Naota báo về là nó không được phép gửi.
 #
 # Trước đây mức quyền bị ghim cứng ở chỉ-đọc, nên MỌI nhắc hẹn yêu cầu một hành động ra
 # ngoài (gửi tin, đăng bài, đặt lịch, tạo đơn) đều thức dậy đúng giờ, chạy, rồi báo về là không
@@ -133,6 +139,10 @@ MAX_KEEP = 500                 # trần số bản ghi giữ lại mỗi brain
 SCRIPT_TIMEOUT_S = 120         # trần thời gian chạy 1 job script
 SCRIPT_OUT_CAP = 3500          # trần ký tự stdout đẩy về Telegram
 # "Remember the last run" (idea from OpenMausBot routines): a task-mode reminder can start from
+# Pictures a `task` run made, sent to the asking chat on channels that need the file itself.
+RUN_IMAGES_MAX = 4
+RUN_IMAGE_MAX_BYTES = 10 * 1024 * 1024
+RUN_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif")
 # its previous result, so a watcher knows what it already reported. Capped so one long report
 # cannot eat the next run's context.
 PREVIOUS_RESULT_CAP = 2000
@@ -181,7 +191,7 @@ def ledger_job(rid: str, slot) -> str:
         slot_txt = str(slot or "")
     return f"reminder:{rid}:{slot_txt}"
 
-# Đuôi file script → trình chạy. Chỉ chạy script CÓ SẴN trong <brain>/Vanhanh/scripts (chủ tự viết),
+# Đuôi file script → trình chạy. Chỉ chạy script CÓ SẴN trong <brain>/Naota/scripts (chủ tự viết),
 # KHÔNG nhận lệnh tuỳ ý từ chat → chặn prompt-injection tạo job phá hoại.
 _SCRIPT_RUNNERS = {
     ".py": [sys.executable],
@@ -198,7 +208,7 @@ class NotifyNotReady(ValueError):
     """Chưa có đường gửi kết quả (bot Telegram chưa bật / chưa có Chat ID).
 
     Tách riêng khỏi ValueError thường để endpoint trả thêm cờ can_force: đây KHÔNG phải lỗi cú
-    pháp mà là THIẾU ĐIỀU KIỆN, và người dùng có quyền chọn tạo tiếp (kết quả chỉ lưu trong Vanhanh).
+    pháp mà là THIẾU ĐIỀU KIỆN, và người dùng có quyền chọn tạo tiếp (kết quả chỉ lưu trong Naota).
     """
 
     def __init__(self, reason: str):
@@ -332,7 +342,7 @@ class RemindersDeps:
     safe_tools: List[str]
     readonly_tools: List[str]
     scheduler_brains: Callable[[], List[str]]  # () -> danh sách brain scheduler quét
-    apply_mcp: Optional[Callable] = None       # apply_mcp(cli, mode): gắn MCP Vanhanh-quản-lý (đọc thật)
+    apply_mcp: Optional[Callable] = None       # apply_mcp(cli, mode): gắn MCP Naota-quản-lý (đọc thật)
     mcp_allow_patterns: Optional[Callable] = None  # () -> ["mcp__<server>", ...] cho allowlist
     # Đổi engine việc nền theo model phụ người dùng chọn (Claude / Codex / API rẻ).
     # None = giữ nguyên Claude như trước (test dựng deps tối giản không cần tiêm).
@@ -340,13 +350,13 @@ class RemindersDeps:
     # () -> (sẵn_sàng, lý_do): có đường gửi kết quả cho người dùng chưa (bot Telegram bật +
     # token + Chat ID). None = bỏ qua kiểm tra (test dựng deps tối giản).
     notify_ready: Optional[Callable[[], tuple]] = None
-    # (source, ref, brain=, title=, error=, request=) -> report a broken run to Vanhanh Core (incident_desk.py).
+    # (source, ref, brain=, title=, error=, request=) -> report a broken run to Naota Core (incident_desk.py).
     # also chat= (the reminder's chat_id), so the incident is told where the job came from.
     incident_hook: Optional[Callable] = None
     # (brain, agent slug) -> that Partners-page assistant's system prompt for a background run; raises when the
-    # assistant is gone. None = every task reminder runs on the brain's plain Vanhanh prompt, as before.
+    # assistant is gone. None = every task reminder runs on the brain's plain Naota prompt, as before.
     build_agent_prompt: Optional[Callable[[str, str], str]] = None
-    # (brain, agent slug, task, output) -> output without the VANHANH_LESSON lines, written to that assistant's
+    # (brain, agent slug, task, output) -> output without the NAOTA_LESSON lines, written to that assistant's
     # memory and run log like a workflow step. None = the output is posted as is.
     finish_agent_run: Optional[Callable[[str, str, str, str], str]] = None
     # async make_voice(brain, text) -> vault-relative mp3 path ("" on failure), and
@@ -380,7 +390,7 @@ class RemindersFeature:
 
     # ── store (JSON trong brain) ──
     def _path(self, brain: str) -> Path:
-        return Path(self.deps.brain_root(brain)) / "Vanhanh" / "reminders.json"
+        return Path(self.deps.brain_root(brain)) / "Naota" / "reminders.json"
 
     def _load(self, brain: str) -> dict:
         data = {"reminders": [], "updated": 0.0}
@@ -399,18 +409,18 @@ class RemindersFeature:
         self.deps.atomic_write_text(self._path(brain), json.dumps(data, ensure_ascii=False, indent=2))
 
     def _scripts_dir(self, brain: str) -> Path:
-        return Path(self.deps.brain_root(brain)) / "Vanhanh" / "scripts"
+        return Path(self.deps.brain_root(brain)) / "Naota" / "scripts"
 
     def _resolve_script(self, brain: str, script: str) -> Path:
-        """script CHỈ nhận TÊN FILE nằm trong <brain>/Vanhanh/scripts (không path, không '..').
+        """script CHỈ nhận TÊN FILE nằm trong <brain>/Naota/scripts (không path, không '..').
         Trả path thật đã kiểm tra tồn tại. Ném ValueError nếu không hợp lệ."""
         name = str(script or "").strip().replace("\\", "/")
         if not name:
-            raise ValueError(localefmt.chu("mode 'script' cần tên file trong Vanhanh/scripts",
-                                           "mode 'script' needs a file name in Vanhanh/scripts"))
+            raise ValueError(localefmt.chu("mode 'script' cần tên file trong Naota/scripts",
+                                           "mode 'script' needs a file name in Naota/scripts"))
         if "/" in name or name.startswith("."):
-            raise ValueError(localefmt.chu("script chỉ nhận TÊN FILE trong Vanhanh/scripts (không đường dẫn)",
-                                           "script only takes a FILE NAME in Vanhanh/scripts (no path)"))
+            raise ValueError(localefmt.chu("script chỉ nhận TÊN FILE trong Naota/scripts (không đường dẫn)",
+                                           "script only takes a FILE NAME in Naota/scripts (no path)"))
         base = self._scripts_dir(brain)
         p = base / name
         try:
@@ -418,8 +428,8 @@ class RemindersFeature:
         except Exception:
             raise ValueError(localefmt.chu("đường dẫn script không hợp lệ", "invalid script path"))
         if rp.parent != rbase or not rp.is_file():
-            raise ValueError(localefmt.chu(f"không thấy script '{name}' trong Vanhanh/scripts",
-                                           f"script '{name}' not found in Vanhanh/scripts"))
+            raise ValueError(localefmt.chu(f"không thấy script '{name}' trong Naota/scripts",
+                                           f"script '{name}' not found in Naota/scripts"))
         if rp.suffix.lower() not in _SCRIPT_RUNNERS and not os.access(rp, os.X_OK):
             raise ValueError(localefmt.chu(f"đuôi '{rp.suffix}' chưa hỗ trợ (dùng .py/.sh/.ps1/.js/.bat)",
                                            f"extension '{rp.suffix}' is not supported (use .py/.sh/.ps1/.js/.bat)"))
@@ -446,7 +456,7 @@ class RemindersFeature:
         mq = str(muc_quyen or "").strip().lower()
         mq = mq if mq in VALID_MUC_QUYEN else MUC_QUYEN_MAC_DINH
         # ĐỦ ĐIỀU KIỆN MỚI TẠO. notify/task tồn tại chỉ để BÁO cho người - chưa đấu Telegram thì
-        # tới giờ nó chạy xong rồi ném kết quả vào hư không, người dùng tưởng Vanhanh quên việc.
+        # tới giờ nó chạy xong rồi ném kết quả vào hư không, người dùng tưởng Naota quên việc.
         # Thà chặn ngay lúc tạo và nói thiếu gì. (script = job giám sát, im lặng là bình thường.)
         if mode in ("notify", "task") and not allow_no_channel:
             ready, why = self.notify_status()
@@ -523,9 +533,9 @@ class RemindersFeature:
                 "remember_last": bool(r.get("remember_last")),
                 "speak": bool(r.get("speak")),
                 "call": bool(r.get("call")),
-                # who made it. bot_id names the chatbot whose turn created it ("" = the owner or Vanhanh Core).
+                # who made it. bot_id names the chatbot whose turn created it ("" = the owner or Naota Core).
                 "created_by": r.get("created_by", ""), "bot_id": r.get("bot_id", ""),
-                # the Partners-page assistant it runs as ("" = Vanhanh).
+                # the Partners-page assistant it runs as ("" = Naota).
                 "agent": r.get("agent", ""),
                 "next_runs": next_runs(cron) if cron and r.get("status") == "pending" else [],
                 "result": (r.get("result") or "")[:500], "error": r.get("error", ""),
@@ -749,7 +759,7 @@ class RemindersFeature:
         out, seen = [], set()
         for b in cands:
             try:
-                root = str(Path(self.deps.brain_root(b)).resolve())
+                root = kept.resolved(self.deps.brain_root(b))   # from memory on the event loop (kept.py)
             except Exception:
                 continue
             if root in seen:
@@ -854,8 +864,40 @@ class RemindersFeature:
                     rid_tok = _RUN_RID.set(str(rem.get("id") or ""))
                     try:
                         # memories this reminder writes are not stamped with a chat open at the same time.
-                        with memory_control.background_writer(self.deps.brain_root(brain), muc_quyen_cua(rem)):
-                            body, err = await self._run_task(brain, text, muc_quyen_cua(rem), **extra)
+                        # The scorecard (job_scorecard.py): this reminder finds, from its own runs, the lightest
+                        # model that gets it done. "Ran and returned nothing" counts against the model; an engine or
+                        # connection error does not; a run the owner stopped says nothing either way.
+                        with memory_control.background_writer(self.deps.brain_root(brain), muc_quyen_cua(rem)), \
+                                job_scorecard.run(f"reminder:{rem.get('id') or ''}", "reminder",
+                                                  " ".join(str(text or "").split())[:80]) as _score:
+                            # A RECURRING job learns its read chain and replays it before the model starts
+                            # (job_recipes.py). A one-off reminder has nothing to learn from.
+                            recurring = bool(rem.get("cron") or float(rem.get("repeat_min") or 0) > 0)
+                            # Passed through the context, not as an argument: `_run_task` has other callers and
+                            # stand-ins with the old signature, and none of them must learn a new keyword.
+                            recipe_tok = _RECIPE_JOB.set(job if recurring else "")
+                            try:
+                                body, err = await self._run_task(brain, text, muc_quyen_cua(rem), **extra)
+                            finally:
+                                _RECIPE_JOB.reset(recipe_tok)
+                            if recurring:
+                                try:
+                                    learned = await asyncio.to_thread(
+                                        job_recipes.finish, self.deps.brain_root(brain), job,
+                                        ok=bool((body or "").strip()) and rem.get("id") not in self._stopped,
+                                        task=text, mode=muc_quyen_cua(rem))
+                                    if learned:
+                                        print(f"[recipes] {job_recipes.base_job(job)}: {learned}", file=sys.stderr)
+                                except Exception as e:  # noqa: BLE001 - a recipe is an optimisation, never a failure
+                                    print(f"[recipes] finish failed: {type(e).__name__}: {e}", file=sys.stderr)
+                            if rem.get("id") in self._stopped:
+                                pass
+                            elif (body or "").strip():
+                                _score.ok()
+                            elif err:
+                                _score.fail(job_scorecard.CAUSE_OTHER, str(err)[:120])
+                            else:
+                                _score.fail(job_scorecard.CAUSE_MODEL, "chạy xong mà không trả gì")
                     finally:
                         _RUN_RID.reset(rid_tok)
                 finally:
@@ -888,9 +930,9 @@ class RemindersFeature:
                     luc = _fmt_vn(retry_at)[:5]
                     msg = (localefmt.chu("⚠ Nhắc hẹn chưa chạy được nhiệm vụ: ", "⚠ The reminder could not run its task: ")
                            + err[:300] + "\n\n"
-                           + localefmt.chu(f"Có vẻ là lỗi mạng. Vanhanh tự thử lại lúc {luc} "
+                           + localefmt.chu(f"Có vẻ là lỗi mạng. Naota tự thử lại lúc {luc} "
                                            f"(lần 1/{len(RETRY_DELAYS_S)}), việc đã gửi đi rồi thì không gửi lại.",
-                                           f"This looks like a network error. Vanhanh will try again at {luc} "
+                                           f"This looks like a network error. Naota will try again at {luc} "
                                            f"(attempt 1 of {len(RETRY_DELAYS_S)}); anything already sent is not sent again."))
                 else:
                     deliver = False
@@ -956,13 +998,13 @@ class RemindersFeature:
                 web = msg[2:]
             try:
                 # Telegram là kênh chữ thuần: mode "task" chạy chung system prompt/CLAUDE.md với
-                # chat nên body có thể mang khối VANHANH_METRICS/VANHANH_ASK - lọc trước khi gửi, kẻo
-                # lộ nguyên cụm "<!-- VANHANH_...: ... -->".
+                # chat nên body có thể mang khối NAOTA_METRICS/NAOTA_ASK - lọc trước khi gửi, kẻo
+                # lộ nguyên cụm "<!-- NAOTA_...: ... -->".
                 kw = {}
                 if _nhan_kw(self.deps.send_telegram, "viec"):
                     kw = {"viec": viec, "web": channel_context.strip_control_blocks(web)}
                 if _nhan_kw(self.deps.send_telegram, "brain"):
-                    # the reminder's own brain (an empty chat_id lands in its Vanhanh Core) and one key per
+                    # the reminder's own brain (an empty chat_id lands in its Naota Core) and one key per
                     # firing, so a send repeated after a crash is filed once.
                     kw["brain"] = brain
                     # A network retry is a new message about the same firing: its own key, or the
@@ -978,6 +1020,8 @@ class RemindersFeature:
                                               str(Path(self.deps.brain_root(brain)) / voice_rel), brain)
                 except Exception as e:
                     print(f"[reminders] voice note not sent: {type(e).__name__}: {e}", file=sys.stderr)
+            if mode == "task" and ok and not loi and self.deps.send_file:
+                await self._send_run_images(brain, rem, body, t0)
 
         work_log.append(str(self.deps.brain_root(brain)), "reminder", str(rem.get("id") or ""), head,
                         "stopped" if stopped else "retry" if retry_at else "fail" if (run_failed or not ok) else "ok",
@@ -994,7 +1038,7 @@ class RemindersFeature:
                 cur["result"] = (body or "")[:2000]
                 cur["error"] = (err or ("" if ok else send_err) or "")[:400]
                 if cur.get("status") == "failed" and rem.get("retry_of") and ok and not run_failed:
-                    cur["status"] = "done"   # a retry of the failed firing (Vanhanh Core) worked
+                    cur["status"] = "done"   # a retry of the failed firing (Naota Core) worked
             elif cur is not None:
                 cur["fired_at"] = _now()
                 cur["result"] = (body or "")[:2000]
@@ -1082,7 +1126,7 @@ class RemindersFeature:
         return at, ""
 
     async def _run_script(self, brain: str, script: str):
-        """Job không-LLM: chạy script CÓ SẴN trong Vanhanh/scripts, trả (stdout, stderr, exit_code).
+        """Job không-LLM: chạy script CÓ SẴN trong Naota/scripts, trả (stdout, stderr, exit_code).
         exit_code=-1 nếu không chạy được (thiếu trình chạy / timeout / lỗi khởi tạo)."""
         try:
             rp = self._resolve_script(brain, script)
@@ -1098,7 +1142,7 @@ class RemindersFeature:
         else:
             argv = [str(rp)]   # file thực thi có shebang (đã kiểm tra os.X_OK lúc tạo)
         env = dict(os.environ)
-        env["VANHANH_BRAIN_ROOT"] = str(self.deps.brain_root(brain))
+        env["NAOTA_BRAIN_ROOT"] = str(self.deps.brain_root(brain))
         try:
             proc = await asyncio.create_subprocess_exec(
                 *argv, cwd=self.deps.brain_root(brain), env=env,
@@ -1120,6 +1164,61 @@ class RemindersFeature:
         err = (err_b or b"").decode("utf-8", "replace")
         return out, err, (proc.returncode if proc.returncode is not None else -1)
 
+    async def _send_run_images(self, brain: str, rem: dict, body: str, t0: float) -> int:
+        """Send the pictures a `task` run made to the chat that asked, where the channel needs the file itself
+        (a scheduled ads report drawn as an image reached Zalo as text only, the picture stayed in the brain).
+
+        Only images the answer itself names and that were written during THIS run, so an old picture mentioned in
+        passing is not sent again; at most RUN_IMAGES_MAX of them, each under RUN_IMAGE_MAX_BYTES. The web chat shows
+        the embedded image already and `send_file` answers "no file channel" for it. A failed image never fails the
+        reminder: the text has gone out, the reason goes to the log. Returns how many were sent."""
+        try:
+            root = str(self.deps.brain_root(brain))
+            files = channel_context.collect_turn_files(body or "", [], t0, cwd=root, vault_root=root)
+        except Exception as e:  # noqa: BLE001
+            print(f"[reminders] collecting run images failed: {type(e).__name__}: {e}", file=sys.stderr)
+            return 0
+        sent = 0
+        for f in files:
+            path = str((f.get("path") if isinstance(f, dict) else f) or "")
+            if sent >= RUN_IMAGES_MAX or Path(path).suffix.lower() not in RUN_IMAGE_EXTS:
+                continue
+            try:
+                if Path(path).stat().st_size > RUN_IMAGE_MAX_BYTES:
+                    continue
+                res = await self.deps.send_file(rem.get("chat_id", ""), path, brain)
+                if isinstance(res, tuple) and res and res[0]:
+                    sent += 1
+                elif isinstance(res, tuple) and len(res) > 1 and res[1] not in ("no file channel", "no Telegram chat"):
+                    print(f"[reminders] image {Path(path).name} not sent: {res[1]}", file=sys.stderr)
+            except Exception as e:  # noqa: BLE001
+                print(f"[reminders] image {Path(path).name} not sent: {type(e).__name__}: {e}", file=sys.stderr)
+        return sent
+
+    async def _prefetch(self, brain: str, text: str, mq: str, job: str) -> str:
+        """Replay the recipe of a recurring job (job_recipes.py). Returns the block to add to the prompt, "" when
+        there is no usable recipe today or any step failed (the run then goes the normal way, recorded afresh)."""
+        try:
+            root = self.deps.brain_root(brain)
+            job_recipes.begin(job)
+            steps = job_recipes.plan(await asyncio.to_thread(job_recipes.load, root, job), text, mq)
+            if not steps:
+                return ""
+            import mcp_hub
+            job_recipes.pause(job)
+            results, reason = None, "failed"
+            try:
+                _tools, route = await mcp_hub.discover_all(mq, vault_root=root)
+                results, reason = await asyncio.wait_for(job_recipes.replay(steps, route), timeout=PREFETCH_TIMEOUT_S)
+            except Exception as e:  # noqa: BLE001 - any trouble: run the normal way
+                print(f"[recipes] replay failed for {job_recipes.base_job(job)}: {type(e).__name__}: {e}",
+                      file=sys.stderr)
+            await asyncio.to_thread(job_recipes.replay_done, root, job, bool(results), reason, steps)
+            return job_recipes.prompt_block(results) if results else ""
+        except Exception as e:  # noqa: BLE001 - a recipe is an optimisation, never a reason to fail the job
+            print(f"[recipes] prefetch skipped: {type(e).__name__}: {e}", file=sys.stderr)
+            return ""
+
     async def _run_task(self, brain: str, text: str, muc_quyen: str = "", previous: str = "",
                         late_s: float = 0.0, intro: str = "", agent: str = ""):
         """mode 'task': tới giờ chạy engine làm việc user đã hẹn. Trả (kết_quả, lỗi).
@@ -1136,13 +1235,13 @@ class RemindersFeature:
         as_agent = False
         if agent and self.deps.build_agent_prompt:
             # a reminder made in a partner chat does its job as that assistant (role, file body, memory,
-            # owner rules). The assistant deleted since -> plain Vanhanh, so the job still runs.
+            # owner rules). The assistant deleted since -> plain Naota, so the job still runs.
             try:
                 # Worker thread, like build_system_prompt below.
                 sysprompt = await asyncio.to_thread(self.deps.build_agent_prompt, brain, agent)
                 as_agent = True
             except Exception as e:
-                print(f"[reminders] assistant '{agent}' unavailable, running as Vanhanh: {type(e).__name__}: {e}",
+                print(f"[reminders] assistant '{agent}' unavailable, running as Naota: {type(e).__name__}: {e}",
                       file=sys.stderr)
                 sysprompt = None
         if sysprompt is None:
@@ -1189,7 +1288,7 @@ class RemindersFeature:
                     cli.mcp_config = mcpf
                     cli.mcp_strict = True
         cli = aux_engine.apply(self.deps, cli, mode=mq, tag="reminder")
-        # Trần chung cho fork nền (mặc định không giới hạn, env VANHANH_BG_MAX_WALL_S). Số cứng 300s cũ
+        # Trần chung cho fork nền (mặc định không giới hạn, env NAOTA_BG_MAX_WALL_S). Số cứng 300s cũ
         # từng giết việc lịch thật đang chạy dở - xem doc tại aux_engine.bg_max_wall_s.
         cli.max_wall_s = aux_engine.bg_max_wall_s()
         if not cli.is_available():
@@ -1219,6 +1318,9 @@ class RemindersFeature:
             "Việc cần làm:\n" + text
             + task_context_note(previous, late_s)
         )
+        recipe_job = _RECIPE_JOB.get()
+        if recipe_job:
+            prompt += await self._prefetch(brain, text, mq, recipe_job)
         out, err = "", ""
         try:
             async for ev in cli.query(prompt):
@@ -1259,7 +1361,7 @@ class RemindersFeature:
             p = payload or {}
             brain = str(p.get("brain") or "brain")
             # Body thiếu 'brain' → rơi Brain Default. Sau khi recipe curl (channel_context) và tool
-            # vanhanh_schedule đều gắn brain, thiếu brain là BẤT THƯỜNG (model quên) → log để soi chứ
+            # naota_schedule đều gắn brain, thiếu brain là BẤT THƯỜNG (model quên) → log để soi chứ
             # KHÔNG chặn (giữ tương thích caller cũ/thủ công cố ý dùng default). Đây từng là bug câm
             # "chat brain khác nhưng nhắc hẹn vẫn vào default".
             if not str(p.get("brain") or "").strip():
@@ -1304,7 +1406,7 @@ class RemindersFeature:
 
         @router.get("/reminders/scripts")
         def reminders_scripts(brain: str = Query("brain")):
-            """Liệt kê script chạy được (job không-LLM) đặt trong <brain>/Vanhanh/scripts.
+            """Liệt kê script chạy được (job không-LLM) đặt trong <brain>/Naota/scripts.
             Tự tạo thư mục nếu chưa có để user biết chỗ bỏ file vào."""
             d = self._scripts_dir(brain)
             try:

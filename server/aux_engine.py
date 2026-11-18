@@ -13,17 +13,17 @@ thừa hưởng nguyên vẹn, không phải chép lại.
 
 Ba loại engine, khác nhau ở CÔNG CỤ có được - đây là chỗ phải cẩn thận:
 - anthropic-cli: Claude Code. Tool file native + Bash + MCP, chặn theo allowlist per-call.
-- openai-oauth: Codex CLI, cũng là agent thật (đọc/ghi file + MCP qua profile vanhanh).
+- openai-oauth: Codex CLI, cũng là agent thật (đọc/ghi file + MCP qua profile naota).
   Sandbox của Codex ánh xạ theo mode: suggest -> read-only, auto -> workspace-write,
   full -> toàn quyền. KHÔNG có allowlist per-call như Claude nên chỉ chặn ở tầng sandbox.
 - grok-cli: Grok Build CLI chạy bằng gói SuperGrok / X Premium+. Cũng agent thật (tool file +
   MCP hub qua .grok/config.toml trong brain). Mức quyền xuống thẳng cờ chặn của CLI:
   suggest -> chặn Write/Edit/Bash, auto -> chặn Bash, full -> không chặn ở tầng CLI.
 - api (openrouter/openai/gemini/anthropic-api): KHÔNG có tool native. Bù lại hub cấp
-  vanhanh_read_file / vanhanh_list_dir / vanhanh_write_file / vanhanh_use_skill, tìm và đọc web
-  (vanhanh_web_search / vanhanh_web_fetch) + tool MCP, và vanhanh_write_file tự chặn khi mode là
-  suggest (mcp_hub._builtin_tools). Từ 05/11/2026 có thêm TERMINAL THẬT (vanhanh_terminal,
-  vanhanh_process) trong brain, nhưng chỉ khi việc chạy ở mức `full` VÀ engine Claude mà nó thay
+  naota_read_file / naota_list_dir / naota_write_file / naota_use_skill, tìm và đọc web
+  (naota_web_search / naota_web_fetch) + tool MCP, và naota_write_file tự chặn khi mode là
+  suggest (mcp_hub._builtin_tools). Từ 05/11/2026 có thêm TERMINAL THẬT (naota_terminal,
+  naota_process) trong brain, nhưng chỉ khi việc chạy ở mức `full` VÀ engine Claude mà nó thay
   thế cũng được chạy Bash (`cli_cho_bash`). Nghĩa là cùng một việc, đổi bộ não sang API key
   thì được đúng những gì Claude Code được: loop bị cô lập, việc mức auto/suggest vẫn không có
   lệnh máy; việc Toàn quyền (dựng video bằng ffmpeg chẳng hạn) thì có.
@@ -71,8 +71,8 @@ _KEY_FIELD = {
     "anthropic-compat": "anthropic_compat_key",
 }
 
-# mode của Vanhanh -> sandbox của Codex CLI. Bản đồ thật nằm ở `claude_cli.codex_sandbox_cho_mode`
-# (nó còn đọc cờ VANHANH_CODEX_SANDBOX); giữ dict này để mã cũ đọc tên mức vẫn chạy.
+# mode của Naota -> sandbox của Codex CLI. Bản đồ thật nằm ở `claude_cli.codex_sandbox_cho_mode`
+# (nó còn đọc cờ NAOTA_CODEX_SANDBOX); giữ dict này để mã cũ đọc tên mức vẫn chạy.
 _CODEX_SANDBOX = {"suggest": "read-only", "auto": "workspace-write", "full": None}
 
 # ── Final "mất đăng nhập" phải bị coi là engine CHẾT, không phải kết quả ──────────────────
@@ -105,10 +105,10 @@ def final_loi_dang_nhap(text: str) -> bool:
 # ghi Google Sheet + gửi Telegram bị chặt ngang lúc đang ghi dở, result rỗng.
 # Trần này là LƯỚI ĐỠ chống fork treo vô hạn, không phải công cụ quản chi phí - fork đơ
 # thật thì watchdog idle-timeout của engine bắt sớm hơn nhiều, nên đặt trần theo việc nền
-# DÀI NHẤT hợp lệ chứ không theo việc trung bình. Chỉnh qua env VANHANH_BG_MAX_WALL_S
+# DÀI NHẤT hợp lệ chứ không theo việc trung bình. Chỉnh qua env NAOTA_BG_MAX_WALL_S
 # (giây; giá trị rác hoặc <= 0 thì về mặc định).
 #
-# No model time cap by default: 0 = no cap. A positive VANHANH_BG_MAX_WALL_S still sets one. Kanban runs keep their lease by heartbeat, not by this number,
+# No model time cap by default: 0 = no cap. A positive NAOTA_BG_MAX_WALL_S still sets one. Kanban runs keep their lease by heartbeat, not by this number,
 # so a long run is never reclaimed while its worker lives; the Stop button on the Tasks page still ends it.
 BG_MAX_WALL_S_DEFAULT = 0
 
@@ -116,7 +116,7 @@ BG_MAX_WALL_S_DEFAULT = 0
 def bg_max_wall_s() -> int:
     """The wall-clock cap for one background run, in seconds; 0 = no cap. Engines read 0 as no cap (`if max_wall_s`)."""
     try:
-        v = int(float(os.getenv("VANHANH_BG_MAX_WALL_S", "") or 0))
+        v = int(float(os.getenv("NAOTA_BG_MAX_WALL_S", "") or 0))
         if v > 0:
             return v
     except (TypeError, ValueError):
@@ -172,7 +172,78 @@ async def pick_openrouter_free(key: str = "") -> str:
     return best
 
 
-def read_spec(settings: dict = None) -> dict:
+# Tags of the work Naota starts on its own. On an Automatic background model these run on the LIGHT pick;
+# everything else (reminder, loop, Kanban dispatch, workflow, ingest) is work the owner handed over and runs
+# on the MID pick. See model_routing.background_spec.
+LIGHT_TAGS = ("next-prompt", "learn", "reply-policy", "habit-coach", "web-watch-summary", "incident-triage",
+              "agent-judge", "auto-learning", "curator",
+              # naota_scout with effort="quick" (scout.py). A "careful" scout carries the tag "scout" and runs MID.
+              "scout-quick")
+
+
+def tier_for_tag(tag) -> str:
+    t = str(tag or "")
+    return "light" if any(t == x or t.startswith(x + "-") or t.startswith(x + ":") for x in LIGHT_TAGS) else "mid"
+
+
+def _rung_model(m: dict, provider: str, tier: str, start_model: str) -> str:
+    """The model an Automatic background job runs NOW (job_scorecard.py): the job's own rung on the provider's
+    ladder when a job is running, else the starting rung of its tier, moved by what the owner asked for.
+    No ladder yet (nothing picked, or the brain was not sure) -> `start_model`, as before the scorecard."""
+    try:
+        import job_scorecard
+        ladder = [x for x in (model_routing.background_picks(m, provider).get("ladder") or []) if x]
+        if not ladder:
+            return start_model
+        main_model = model_routing.profile(m, provider)["model"]
+        rungs = ladder + ([main_model] if main_model not in ladder else [])
+        job_scorecard.remember_ladder(provider, rungs)
+        r = job_scorecard.active()
+        if r is not None:
+            return r.choose(provider, ladder, tier, main_model, start_model)
+        base = rungs.index(start_model) if start_model in rungs else None
+        return rungs[job_scorecard.start_index(tier, len(rungs), job_scorecard.intent(), base)]
+    except Exception as e:   # noqa: BLE001 - the scorecard must never stop a background job
+        print(f"[aux] scorecard: {type(e).__name__}: {e}", file=sys.stderr)
+        return start_model
+
+
+def _score_link(e, error=None) -> None:
+    """Tell the running job's scorecard which link answered, or why one did not."""
+    try:
+        import job_scorecard
+        r = job_scorecard.active()
+        if r is None:
+            return
+        model = getattr(e, "model", None) or ""
+        if error is None:
+            r.link_answered(model)
+            return
+        low = str(error).lower()
+        # The model itself is not usable here (the plan does not carry it, it was withdrawn) or it gave nothing
+        # usable: that is about the rung. A sign-in, a spent quota or an outage is not.
+        about_model = "model" in low and any(k in low for k in ("not found", "does not exist", "not supported",
+                                                                "no access", "unknown model", "invalid model"))
+        r.link_failed(model, quota=not about_model and cooldown_for(error) > 0)
+    except Exception:   # noqa: BLE001
+        pass
+
+
+def _score_tokens(ev) -> None:
+    try:
+        import job_scorecard
+        r = job_scorecard.active()
+        if r is None or not isinstance(ev, dict):
+            return
+        if ev.get("type") == "final":
+            r.add_tokens((ev.get("tokens_in") or 0) + (ev.get("tokens_out") or 0))
+        elif ev.get("type") == "usage":
+            r.add_tokens((ev.get("input") or 0) + (ev.get("output") or 0))
+    except Exception:   # noqa: BLE001
+        pass
+
+
+def read_spec(settings: dict = None, tag: str = None) -> dict:
     """{'provider','model'} của model việc nền. Cấu hình cũ chỉ có 'model' (luôn là alias
     Claude) nên thiếu provider = anthropic-cli - giữ nguyên hành vi bản cũ.
 
@@ -183,8 +254,11 @@ def read_spec(settings: dict = None) -> dict:
     phần tiêu tiền lúc người ta không ngồi nhìn.
     """
     s = settings if settings is not None else cfgmod.read_settings()
-    aux = (s.get("model", {}) or {}).get("auxiliary") or {}
-    spec = {"provider": (aux.get("provider") or CLAUDE), "model": (aux.get("model") or "")}
+    # `tag` names the job, and with it the tier an Automatic background model runs (tier_for_tag).
+    bg = model_routing.background_spec(s.get("model", {}) or {}, tier_for_tag(tag))
+    spec = {"provider": (bg.get("provider") or CLAUDE), "model": (bg.get("model") or "")}
+    if bg.get("auto"):
+        spec["model"] = _rung_model(s.get("model", {}) or {}, spec["provider"], tier_for_tag(tag), spec["model"])
     if spec["provider"] not in API_PROVIDERS:
         return spec                      # gói thuê bao: không tính tiền theo token, kệ phanh
     try:
@@ -298,7 +372,7 @@ def availability(spec: dict, settings: dict = None) -> tuple:
         try:
             import antigravity_cli as _a
             if not _a.find_antigravity_cli():
-                return False, "Chưa cài Antigravity CLI (`agy`) trên máy chạy Vanhanh."
+                return False, "Chưa cài Antigravity CLI (`agy`) trên máy chạy Naota."
             # Bản NỀN (đọc cache, làm mới bằng thread), KHÔNG phải auth_status(): hàm này chạy
             # ngay trong code async (học sau lượt chat, việc Kanban, nhắc hẹn, loop), mà
             # auth_status() hỏi thẳng `agy models` tới 80 giây. Cả app đứng theo: người dùng đổi
@@ -352,7 +426,7 @@ class _ApiAuxEngine:
         self.account_id = account_id or ""
         self.system_prompt = system_prompt
         self.vault_root = vault_root
-        self.vanhanh_mode = mode
+        self.naota_mode = mode
         self.tag = tag
         self.reasoning = reasoning
         self.session_id = None      # engine API không có phiên nối tiếp - giữ cho đủ hợp đồng
@@ -405,11 +479,11 @@ class _ApiAuxEngine:
             try:
                 if ctx is not None:
                     tools, route = await mcp_hub.discover_all(
-                        self.vanhanh_mode or "full", vault_root=self.vault_root,
+                        self.naota_mode or "full", vault_root=self.vault_root,
                         workspace_root=list(ctx.workspace_roots), coding_ctx_cua_phien=ctx)
-                    co_terminal = "vanhanh_terminal" in route
+                    co_terminal = "naota_terminal" in route
                 else:
-                    tools, route = await mcp_hub.discover_all(self.vanhanh_mode or "full",
+                    tools, route = await mcp_hub.discover_all(self.naota_mode or "full",
                                                               vault_root=self.vault_root)
             except Exception as e:
                 print(f"[aux discover] {e}", file=sys.stderr)
@@ -421,8 +495,8 @@ class _ApiAuxEngine:
         # ("phiên này bị chặn quyền"), khiến chủ đi sửa mức quyền trong khi mức quyền không hề
         # sai. Nói rõ THIẾU GÌ và VÌ SAO thì câu báo về mới dẫn đúng tới việc cần làm.
         if co_terminal:
-            _may = ("terminal thật (vanhanh_terminal, chạy nền bằng background=true rồi xem bằng "
-                    "vanhanh_process) với thư mục làm việc là brain, nên chạy được ffmpeg, python, "
+            _may = ("terminal thật (naota_terminal, chạy nền bằng background=true rồi xem bằng "
+                    "naota_process) với thư mục làm việc là brain, nên chạy được ffmpeg, python, "
                     "script dựng video... như trên máy chủ; ")
             _thieu = "Bạn KHÔNG có: "
         else:
@@ -432,9 +506,9 @@ class _ApiAuxEngine:
         sysprompt += (
             "\n\n[Sự thật hệ thống - năng lực của phiên này] Bạn đang chạy bằng engine API "
             f"'{self.provider}', KHÔNG phải Claude Code. Bạn có: {_may}tìm và đọc web "
-            "(vanhanh_web_search, vanhanh_web_fetch; chưa thấy trong danh sách thì tìm bằng "
-            "vanhanh_search_tools rồi gọi qua vanhanh_run_tool), các tool qua MCP Hub của Vanhanh "
-            "(gồm tool đọc/ghi file trong vault và mọi MCP người dùng đã đấu vào Vanhanh). "
+            "(naota_web_search, naota_web_fetch; chưa thấy trong danh sách thì tìm bằng "
+            "naota_search_tools rồi gọi qua naota_run_tool), các tool qua MCP Hub của Naota "
+            "(gồm tool đọc/ghi file trong vault và mọi MCP người dùng đã đấu vào Naota). "
             f"{_thieu}các "
             "connector gắn thẳng vào TÀI KHOẢN Claude - Gmail, Google Drive, Google Calendar "
             "gọi bằng tool native `mcp__<tên>__*` chỉ tồn tại trên engine Claude Code. "
@@ -528,7 +602,7 @@ class _ApiAuxEngine:
         Thư mục làm việc là brain của việc. Mỗi lượt một mã phiên riêng (`nen-<tag>-<ngẫu nhiên>`)
         nên thư mục hiện hành, biến môi trường và tiến trình nền của việc này không lẫn sang việc
         khác. Tiến trình chạy nền xong thì báo về khung chat của chủ nếu lượt biết (turn_context),
-        còn không thì về Vanhanh Core của brain (`main._report_route`, nhánh khung chat không tồn tại)."""
+        còn không thì về Naota Core của brain (`main._report_route`, nhánh khung chat không tồn tại)."""
         if not self.terminal or not self.vault_root:
             return None
         try:
@@ -643,6 +717,33 @@ def _cool_key(e) -> str:
     return (f"{kind}:{getattr(e, 'model', '') or ''}" + (f":{acc}" if acc else "")) if kind else ""
 
 
+# Plan CLI link classes -> their provider id, for a link not pointed at one account (no `account_provider`).
+_PLAN_CLASS_PROVIDER = {"ClaudeSDK": CLAUDE, "CodexCLI": CODEX, "GrokCLI": GROK_CLI, "AntigravityCLI": ANTIGRAVITY}
+
+
+def _note_plan_limit(e, error) -> None:
+    """A plan link was refused for running out of plan quota: the usage ring turns red and Naota's own work waits,
+    exactly as after a refused chat turn (the chat path does this in main._limit_frame). Before, only chat recorded
+    it, so background work could run a plan dry while the ring stayed green. Same detector as chat: the plan's own
+    sentence, or plain quota words for Grok and Antigravity, which print no fixed sentence. Never raises."""
+    try:
+        prov = getattr(e, "account_provider", None)
+        if not (isinstance(prov, str) and prov):
+            prov = _PLAN_CLASS_PROVIDER.get(type(e).__name__, "")
+        import limit_learner
+        hint = limit_learner.ENGINE_HINT_BY_PROVIDER.get(prov, "")
+        if not hint:
+            return                      # an API key has no plan to run out of
+        import plan_limits
+        hit = limit_learner.parse_subscription_limit(str(error or ""), engine_hint=hint)
+        if hit is not None:
+            plan_limits.ghi_het(hint, float(hit.reset_epoch or 0))
+        elif hint in ("grok-cli", "antigravity-cli") and plan_limits.la_het_han_muc(error):
+            plan_limits.ghi_het(hint)
+    except Exception as exc:  # noqa: BLE001 - a meter must never break the routing
+        print(f"[aux router] plan limit: {type(exc).__name__}: {exc}", file=sys.stderr)
+
+
 def _resting(e, now: float) -> float:
     """Monotonic time a resting link wakes, 0 when it is not resting."""
     key = _cool_key(e)
@@ -709,6 +810,7 @@ class _FallbackChain:
 
     @staticmethod
     def _rest(e, error) -> None:
+        _note_plan_limit(e, error)
         key, secs = _cool_key(e), cooldown_for(error)
         if key and secs:
             _COOLDOWN[key] = time.monotonic() + secs
@@ -734,7 +836,7 @@ class _FallbackChain:
                     fail = f"{self._name(e)} không sẵn sàng"
                     continue
                 got_final, got_error, acted = False, None, False
-                async for ev in e.query(prompt):
+                async for ev in _query_retrying_hub(e, prompt, self._name(e)):
                     t = (ev or {}).get("type")
                     if t == "tool_call":
                         acted = True
@@ -775,13 +877,16 @@ class _FallbackChain:
                         got_error = ((ev.get("content") or "").strip()[:300]
                                      or f"{self._name(e)} kết thúc lỗi ({ev.get('subtype') or 'final'})")
                         break
+                    _score_tokens(ev)
                     yield ev
                     if t == "final":
                         got_final = True
                 if got_final:
                     _COOLDOWN.pop(_cool_key(e), None)            # it works again: no more rest
+                    _score_link(e)
                     return                                       # mắt này chạy ngon → xong
                 fail = got_error or f"{self._name(e)} kết thúc mà không có final"
+                _score_link(e, fail)
                 self._rest(e, fail)
                 if acted:
                     # (spec 2.7): this link already called a tool before it broke. Running the prompt again on
@@ -793,6 +898,7 @@ class _FallbackChain:
                     return
             except Exception as exc:
                 fail = f"{self._name(e)}: {type(exc).__name__}: {exc}"
+                _score_link(e, fail)
                 self._rest(e, fail)
             print(f"[aux router] {self._name(e)} lỗi → thử mắt xích kế tiếp. Lý do: {str(fail)[:300]}",
                   file=sys.stderr)
@@ -817,12 +923,12 @@ def cli_cho_bash(cli) -> bool:
 
 
 def _build_api(spec, claude_cli_obj, mode, tag):
-    _mode = mode or getattr(claude_cli_obj, "vanhanh_mode", None) or "full"
+    _mode = mode or getattr(claude_cli_obj, "naota_mode", None) or "full"
     return _ApiAuxEngine(
         provider=spec["provider"],
         model=spec.get("model") or "",
         system_prompt=getattr(claude_cli_obj, "system_prompt", None),
-        vault_root=getattr(claude_cli_obj, "vanhanh_vault", None),
+        vault_root=getattr(claude_cli_obj, "naota_vault", None),
         mode=_mode,
         tag=tag or getattr(claude_cli_obj, "tag", "aux"),
         terminal=_mode == "full" and cli_cho_bash(claude_cli_obj),
@@ -836,29 +942,29 @@ def _build_codex(spec, claude_cli_obj, mode, tag, codex_profile=None):
                   model=spec.get("model") or None,
                   instructions=getattr(claude_cli_obj, "system_prompt", None))
     # Codex không có allowlist per-call như Claude → chặn ở tầng sandbox của chính nó.
-    # `codex_sandbox_cho_mode` còn đọc cờ VANHANH_CODEX_SANDBOX: trong Docker, bubblewrap không
+    # `codex_sandbox_cho_mode` còn đọc cờ NAOTA_CODEX_SANDBOX: trong Docker, bubblewrap không
     # chạy nổi nên rào đó không phải "chặt hơn" mà là "chết hẳn", và cờ là đường thoát.
-    cc.sandbox = codex_sandbox_cho_mode(mode or getattr(claude_cli_obj, "vanhanh_mode", None) or "full")
-    cc.vault_root = getattr(claude_cli_obj, "vanhanh_vault", None)   # ảnh Codex vẽ về đúng brain
+    cc.sandbox = codex_sandbox_cho_mode(mode or getattr(claude_cli_obj, "naota_mode", None) or "full")
+    cc.vault_root = getattr(claude_cli_obj, "naota_vault", None)   # ảnh Codex vẽ về đúng brain
     if codex_profile:
         try:
-            cc.profile = codex_profile()   # profile vanhanh = thấy MCP của Vanhanh (POS, connector...)
+            cc.profile = codex_profile()   # profile naota = thấy MCP của Naota (POS, connector...)
         except Exception as e:
             print(f"[aux codex profile] {e}", file=sys.stderr)
-    # The turn key (X-Vanhanh-Turn) rides on every query, as on a chat turn (main._apply_codex_hub). Without it a reminder
-    # or Kanban job on Codex reached the hub as "nobody", so vanhanh_team op=dispatch refused it with "lượt không có danh
-    # tính" and the team never woke up. Only when the profile's `vanhanh` entry IS the hub (hub on): an override under
-    # mcp_servers.vanhanh with no hub entry would be a broken half-entry. No bound turn -> no key, nothing sent.
+    # The turn key (X-Naota-Turn) rides on every query, as on a chat turn (main._apply_codex_hub). Without it a reminder
+    # or Kanban job on Codex reached the hub as "nobody", so naota_team op=dispatch refused it with "lượt không có danh
+    # tính" and the team never woke up. Only when the profile's `naota` entry IS the hub (hub on): an override under
+    # mcp_servers.naota with no hub entry would be a broken half-entry. No bound turn -> no key, nothing sent.
     try:
         cc.hub_turn = bool(cc.profile) and bool(cfgmod.read_settings().get("mcp", {}).get("hub", True))
     except Exception as e:  # noqa: BLE001 - no key means "nobody", never a broken job
         print(f"[aux codex turn] {e}", file=sys.stderr)
     try:
         import mcp_hub
-        mcp_hub.dat_codex_vault(cc.extra_config, getattr(claude_cli_obj, "vanhanh_vault", None))
+        mcp_hub.dat_codex_vault(cc.extra_config, getattr(claude_cli_obj, "naota_vault", None))
         # The job's own level, not the profile's `full` (see mcp_hub.dat_codex_mode).
         mcp_hub.dat_codex_mode(cc.extra_config,
-                               mode or getattr(claude_cli_obj, "vanhanh_mode", None) or "full")
+                               mode or getattr(claude_cli_obj, "naota_mode", None) or "full")
     except Exception as e:
         print(f"[aux codex vault] {e}", file=sys.stderr)
     # Việc nền theo lịch: hub bắt buộc, không app ChatGPT - xem mcp_hub.CODEX_REQUIRED_KEY. Chat
@@ -900,6 +1006,42 @@ def _hub_bat_buoc_hong(text) -> bool:
         return False
 
 
+# One more try when the required hub was late. Codex exits on that error BEFORE it calls the model, so running
+# the same link again costs no model turn and cannot repeat an action. Without it the run was dropped until the
+# schedule's next slot. The pause lets the hub finish whatever made it slow (connector discovery for several sessions
+# opening in the same minute). A second failure goes up unchanged and stops the chain as before.
+HUB_RETRY_WAIT_S = 30.0
+
+
+async def _query_retrying_hub(e, prompt, name=""):
+    """`e.query(prompt)`, run a second time when its first event of substance is the required-hub failure."""
+    import asyncio
+    for attempt in (0, 1):
+        stream = e.query(prompt)
+        started, late_hub = False, False
+        try:
+            async for ev in stream:
+                t = (ev or {}).get("type")
+                if t == "error" and attempt == 0 and not started and _hub_bat_buoc_hong(ev.get("content")):
+                    late_hub = True
+                    break
+                if t in ("text", "tool_call", "tool_result", "final"):
+                    started = True
+                yield ev
+        finally:
+            close = getattr(stream, "aclose", None)
+            if close is not None:
+                try:
+                    await close()
+                except Exception:  # noqa: BLE001 - a stream that will not close must not hide the run's own result
+                    pass
+        if not late_hub:
+            return
+        print(f"[aux router] {name or type(e).__name__}: required hub was late, one more try in "
+              f"{int(HUB_RETRY_WAIT_S)} s.", file=sys.stderr)
+        await asyncio.sleep(HUB_RETRY_WAIT_S)
+
+
 def _build_grok(spec, claude_cli_obj, mode, tag):
     """Engine việc nền/agent chạy bằng Grok Build CLI (`grok`).
 
@@ -909,16 +1051,16 @@ def _build_grok(spec, claude_cli_obj, mode, tag):
 
     Entry MCP dựng bằng `grok_cli.hub_entry()` chứ KHÔNG viết tay: Grok đọc khoá `url`, còn
     `agy` đọc `serverUrl`. Chép nhầm khoá giữa hai engine là không có lấy một tool nào của
-    Vanhanh mà không một câu lỗi nào - đúng thứ đã xảy ra với `agy` mấy bản liền.
+    Naota mà không một câu lỗi nào - đúng thứ đã xảy ra với `agy` mấy bản liền.
     """
     import grok_cli as _g
-    muc = mode or getattr(claude_cli_obj, "vanhanh_mode", None) or "full"
+    muc = mode or getattr(claude_cli_obj, "naota_mode", None) or "full"
     gc = _g.GrokCLI(cwd=getattr(claude_cli_obj, "cwd", None),
                     tag=tag or getattr(claude_cli_obj, "tag", "aux"),
                     model=spec.get("model") or None,
                     instructions=getattr(claude_cli_obj, "system_prompt", None))
     gc.mode = muc
-    vault = getattr(claude_cli_obj, "vanhanh_vault", None) or getattr(claude_cli_obj, "cwd", None)
+    vault = getattr(claude_cli_obj, "naota_vault", None) or getattr(claude_cli_obj, "cwd", None)
     if vault:
         try:
             import mcp_hub
@@ -926,7 +1068,7 @@ def _build_grok(spec, claude_cli_obj, mode, tag):
             if bool(cfgmod.read_settings().get("mcp", {}).get("hub", True)):
                 hub = _g.hub_entry(mcp_hub.hub_url(),
                                    {"Authorization": f"Bearer {mcp_hub.hub_token()}",
-                                    "X-Vanhanh-Mode": muc, "X-Vanhanh-Vault": str(vault)})
+                                    "X-Naota-Mode": muc, "X-Naota-Vault": str(vault)})
             _g.ghi_mcp_settings(vault, hub)
         except Exception as e:
             print(f"[aux grok mcp] {e}", file=sys.stderr)
@@ -943,18 +1085,18 @@ def _build_antigravity(spec, claude_cli_obj, mode, tag):
       `antigravity_cli.co_quyen_cho_mode` - nó nói thẳng chuyện này, và rào tiền/đơn/đăng bài
       vẫn nằm ở MCP Hub chứ không ở CLI.
     - **Hình dạng entry MCP khác hẳn.** `agy` đọc khoá `serverUrl`, Grok đọc `url`. Chép nhầm
-      khoá là engine chạy trơn tru mà không có lấy một tool nào của Vanhanh, không một tiếng
+      khoá là engine chạy trơn tru mà không có lấy một tool nào của Naota, không một tiếng
       động - đúng thứ đã xảy ra mấy bản liền. Nên dựng entry bằng `antigravity_cli.hub_entry()`
       chứ không viết tay.
     """
     import antigravity_cli as _a
-    muc = mode or getattr(claude_cli_obj, "vanhanh_mode", None) or "full"
+    muc = mode or getattr(claude_cli_obj, "naota_mode", None) or "full"
     ac = _a.AntigravityCLI(cwd=getattr(claude_cli_obj, "cwd", None),
                            tag=tag or getattr(claude_cli_obj, "tag", "aux"),
                            model=spec.get("model") or None,
                            instructions=getattr(claude_cli_obj, "system_prompt", None))
     ac.mode = muc
-    vault = getattr(claude_cli_obj, "vanhanh_vault", None) or getattr(claude_cli_obj, "cwd", None)
+    vault = getattr(claude_cli_obj, "naota_vault", None) or getattr(claude_cli_obj, "cwd", None)
     if vault:
         try:
             import mcp_hub
@@ -962,7 +1104,7 @@ def _build_antigravity(spec, claude_cli_obj, mode, tag):
             if bool(cfgmod.read_settings().get("mcp", {}).get("hub", True)):
                 hub = _a.hub_entry(mcp_hub.hub_url(),
                                    {"Authorization": f"Bearer {mcp_hub.hub_token()}",
-                                    "X-Vanhanh-Mode": muc, "X-Vanhanh-Vault": str(vault)})
+                                    "X-Naota-Mode": muc, "X-Naota-Vault": str(vault)})
             _a.ghi_mcp_settings(vault, hub)
         except Exception as e:
             print(f"[aux antigravity mcp] {e}", file=sys.stderr)
@@ -1117,11 +1259,11 @@ def _links_for_step(step: dict, cli, mode, tag, codex_profile, settings, claude_
                     else model_routing.usable_accounts(m, prov, field))
             mk = lambda key="", acc="": _ApiAuxEngine(   # noqa: E731
                 provider=prov, model=sp["model"], system_prompt=getattr(cli, "system_prompt", None),
-                vault_root=getattr(cli, "vanhanh_vault", None),
-                mode=mode or getattr(cli, "vanhanh_mode", None) or "full",
+                vault_root=getattr(cli, "naota_vault", None),
+                mode=mode or getattr(cli, "naota_mode", None) or "full",
                 tag=tag or getattr(cli, "tag", "aux"), reasoning=level if level in model_routing.LEVELS else "off",
                 api_key=key, account_id=acc,
-                terminal=(mode or getattr(cli, "vanhanh_mode", None) or "full") == "full" and cli_cho_bash(cli))
+                terminal=(mode or getattr(cli, "naota_mode", None) or "full") == "full" and cli_cho_bash(cli))
             if len(accs) > 1:
                 return [mk(a["key"], a["id"]) for a in accs]
             if accs:
@@ -1137,7 +1279,7 @@ def swap(cli, mode: str = None, tag: str = None, spec: dict = None,
     """Engine Claude đã dựng -> ROUTER việc nền (model-routing-spec part 2.4).
 
     Order: the background model (or `spec`, e.g. an assistant's own model) -> fallback 1, 2, ... of the Models page
-    usage order, each on its provider's starting config -> MAIN last, on its starting config. An API card contributes
+    usage order, each on the model picked on its card -> MAIN last, on its starting config. An API card contributes
     one link per usable key. The chain is the same at every permission level: a link that already called a tool and
     then broke stops the chain (_FallbackChain), so nothing is sent twice. Earlier the chain was fixed
     (Claude, the main brain, OpenRouter free) and `full` jobs had none.
@@ -1147,7 +1289,7 @@ def swap(cli, mode: str = None, tag: str = None, spec: dict = None,
     try:
         s = settings if settings is not None else cfgmod.read_settings()
         m = s.get("model", {}) or {}
-        sp = spec if spec is not None else read_spec(s)
+        sp = spec if spec is not None else read_spec(s, tag=tag)
         first = {"provider": sp.get("provider") or CLAUDE, "model": sp.get("model") or "",
                  "reasoning": (sp.get("reasoning") if sp.get("reasoning") in model_routing.LEVELS
                                else model_routing.background_spec(m)["reasoning"] if spec is None else "off")}
@@ -1161,6 +1303,16 @@ def swap(cli, mode: str = None, tag: str = None, spec: dict = None,
         # cost another failed call, so each plan provider appears once.
         for st in model_routing.background_chain(m, conn, first=first, once=(CLAUDE, CODEX, GROK_CLI, ANTIGRAVITY)):
             chain.extend(_links_for_step(st, cli, mode, tag, codex_profile, s, claude_used))
+        # Automatic background model on a plan: the pick is a model Naota chose from the provider's list, and a
+        # plan provider appears only once above. If the provider refuses that model (the plan does not carry it,
+        # it was withdrawn), the job must still run: one last link on MAIN's own model, as before Automatic.
+        if spec is None and first["provider"] in (CLAUDE, CODEX, GROK_CLI, ANTIGRAVITY) \
+                and model_routing.background_auto(m):
+            main_prof = model_routing.profile(m, first["provider"])
+            if (main_prof["model"] or "") != (first["model"] or ""):
+                chain.extend(_links_for_step({"provider": first["provider"], "model": main_prof["model"],
+                                              "reasoning": first["reasoning"], "step": "main"},
+                                             cli, mode, tag, codex_profile, s, claude_used))
         if not chain:
             return cli
         return chain[0] if len(chain) == 1 else _FallbackChain(chain)

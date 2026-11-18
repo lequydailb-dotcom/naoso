@@ -1,8 +1,8 @@
 # Quy ước dev (phiên Claude Code làm việc trên repo này)
 
 File này tách khỏi `CLAUDE.md`. Lý do: `CLAUDE.md` là system prompt đi vào
-MỌI lượt chat của Vanhanh, có trần ngân sách (`tests/python/test_prompt_budget.py`), mà quy ước
-dev thì người dùng Vanhanh không bao giờ cần. Để ở đây thì viết bao nhiêu cũng được, không đánh
+MỌI lượt chat của Naota, có trần ngân sách (`tests/python/test_prompt_budget.py`), mà quy ước
+dev thì người dùng Naota không bao giờ cần. Để ở đây thì viết bao nhiêu cũng được, không đánh
 thuế lên lượt chat nào cả.
 
 ## Nhánh, PR và merge
@@ -49,6 +49,17 @@ Quy ước này giảm va chạm chứ không diệt hết: hai phiên khởi đ
 cùng đọc `main` rồi cùng chọn một số. Cái nó tránh là va chạm ở phút cuối, lúc PR đã xanh và
 mọi thứ đã xong.
 
+## Thiết kế giao diện: đọc `docs/dev/design-style.md` trước
+
+`docs/dev/design-style.md` gom các lần sửa giao diện của bản nguồn (chữ, điện thoại, màu, bố cục, nút, câu chữ, trang
+của gói Store, cách làm việc), có danh sách kiểm trước khi gửi và bảng những lần đổi ý. Luật riêng của NAOTA (không tự
+bỏ tính năng, màu thương hiệu) đứng trên file đó.
+
+- Việc nào có giao diện (dashboard, trang HTML của gói trong `naota-store`) thì đọc file đó trước khi vẽ, và chạy mục 0
+  "Kiểm trước khi gửi" trước khi báo xong.
+- Màn mới hoặc thiết kế lại: làm bản HTML cho chủ duyệt trước khi code, trừ khi chủ bảo làm thẳng.
+- Chủ chốt thêm một luật thiết kế mới thì ghi vào file đó (đúng mục, kèm ngày và lời chủ), cùng PR với thay đổi.
+
 ## Chữ hiện lên màn hình
 
 Giao diện chạy bằng tiếng Anh với người dùng trình duyệt tiếng Anh, nên chữ MỚI viết cho màn hình
@@ -59,8 +70,12 @@ không được là tiếng Việt trần:
   chạy mà không nằm trong danh sách ngoại lệ dữ liệu.
 - **Server:** chữ trả về cho màn hình (lỗi, thông báo, nhãn) viết `localefmt.chu("tiếng Việt",
   "English")`. Không có request (Telegram, việc nền) thì nó theo `ui_lang` của máy.
-- **KHÔNG dịch:** prompt và mô tả tool gửi cho model, regex nhận câu người dùng gõ hay nói, log,
-  nội dung ghi vào brain của người dùng. Lý do ở them-mot-ngon-ngu.
+- **Prompt gửi cho model viết tiếng Anh, MỘT bản cho mọi ngôn ngữ** (từ 15/11/2026). Không đi qua i18n, không
+  dịch ra từng thứ tiếng: model trả lời theo ngôn ngữ người dùng nhờ khối `# === NGÔN NGỮ ===`. Luật mới, mô tả tool
+  mới viết tiếng Anh; phần cũ còn tiếng Việt thì dịch khi PR đụng tới. Giữ nguyên tiêu đề `# === ... ===` (mốc đo
+  token) và tên mà chương trình tự viết hay tự đọc (`[Phiên chat: ...]`, `[NGỮ CẢNH GIAO DIỆN: ...]`...).
+  `tests/python/test_core_prompt_english.py` canh các khối lõi.
+- **KHÔNG dịch:** regex nhận câu người dùng gõ hay nói, log, nội dung ghi vào brain của người dùng.
 
 ## Chữ giải thích gập vào nút (i)
 
@@ -69,8 +84,8 @@ Giải thích dài phải gọn lại trong chữ (i), không để xổ hết r
 - **Ngoài mặt chỉ để thứ cần nhìn và cần bấm:** tiêu đề, nhãn, trạng thái, số liệu, ô nhập, nút. Một dòng phụ ngắn
   (tới khoảng 100 ký tự, một câu) được đứng ngoài nếu thiếu nó người ta không biết bấm gì.
 - **Câu giải thích dài hơn thế** (vì sao, lưu ý, cách làm từng bước, rủi ro, khác nhau giữa hai lựa chọn) **nằm trong
-  nút (i)**: `VanhanhInfo.btn(t("info.more"))` cạnh tiêu đề hoặc nhãn, `VanhanhInfo.body(...)` ngay sau, hoặc
-  `VanhanhInfo.pair(html, nhãn)` khi không có tiêu đề để đứng cạnh (`dashboard/info-tip.js`). HTML tĩnh dùng cùng hai lớp
+  nút (i)**: `NaotaInfo.btn(t("info.more"))` cạnh tiêu đề hoặc nhãn, `NaotaInfo.body(...)` ngay sau, hoặc
+  `NaotaInfo.pair(html, nhãn)` khi không có tiêu đề để đứng cạnh (`dashboard/info-tip.js`). HTML tĩnh dùng cùng hai lớp
   `info-i` / `info-body`, mẫu ở đầu file đó. Bấm mới mở, trong một popup cạnh nút (điện thoại: bảng từ dưới lên), không xổ ra trong trang. Khối `info-body` chỉ là nguồn chữ cho popup và luôn ẩn.
 - **Không gập:** lỗi và câu xác nhận hiện ra sau khi người dùng bấm (họ đang chờ đúng câu đó), placeholder, nội dung
   người dùng mở ra để đọc (nhật ký cập nhật, nội dung chat, ghi chú). Cảnh báo về tiền hay mất dữ liệu: để ngoài một câu
@@ -85,9 +100,9 @@ Giải thích dài phải gọn lại trong chữ (i), không để xổ hết r
 Tiêu đề lặp lại chỉ tốn diện tích hiển thị. Đầu mỗi trang đã có thanh tiêu đề chung (`.cview-head`, chữ lấy từ `page.<id>.title` và
 `page.<id>.sub`), nên:
 
-- **Thân trang không vẽ lại tên trang**, kể cả khi kèm một câu khẩu hiệu ("Webhook: sự kiện bên ngoài gọi Vanhanh làm
+- **Thân trang không vẽ lại tên trang**, kể cả khi kèm một câu khẩu hiệu ("Webhook: sự kiện bên ngoài gọi Naota làm
   việc" ngay dưới tiêu đề "Webhook" là sai). Mở trang là vào thẳng thứ cần nhìn: số liệu, danh sách, nút bấm.
-- Nút (i) từng đứng cạnh cái tiêu đề thừa thì dời sang cạnh nút hành động chính, hoặc dùng `VanhanhInfo.pair(html, nhãn)`
+- Nút (i) từng đứng cạnh cái tiêu đề thừa thì dời sang cạnh nút hành động chính, hoặc dùng `NaotaInfo.pair(html, nhãn)`
   với một nhãn nói đúng nội dung bên trong ("Cách lấy cookie").
 - Tiêu đề thẻ bên trong trang phải mang thông tin mới (một con số, một trạng thái), không nhắc lại tên trang hay tên tab.
 - Trang tự ẩn `.cview-head` (Nhiệm vụ, Hội thoại, Nhóm, Chat) thì được có tiêu đề riêng, vì không còn gì để lặp.
@@ -103,8 +118,11 @@ Nhóm và trang Hội thoại.
 - Đổi cách khung chat trông hoặc chạy (ô nhập, nút mic, nút gửi, đính kèm, Enter, trích dẫn, thẻ tin nhắn...) thì
   **trong cùng PR** phải áp cho mọi màn có khung chat tương tự, không đợi chủ nhắc.
 - Các màn hiện có: chat chính (`app.js`, `composer-dictate.js`), Nhóm (`teams.js`), Hội thoại/Chatbot
-  (`conversations.js`). Mic đọc chữ dùng chung `dictate.js`: tìm mọi chỗ gọi bằng `grep -n "VanhanhDictate" dashboard/*.js`.
+  (`conversations.js`). Mic đọc chữ dùng chung `dictate.js`: tìm mọi chỗ gọi bằng `grep -n "NaotaDictate" dashboard/*.js`.
   Có màn chat mới thì thêm tên vào danh sách này.
+- Tự nhảy số thứ tự khi xuống dòng (`chat-list.js`, từ 11/11/2026) chạy bằng MỘT bộ nghe chung, nhận ô chat qua danh
+  sách `BOXES` trong file đó. Có ô chat mới thì thêm selector của nó vào `BOXES`, kèm một dòng kiểm trong
+  `tests/js/test_chat_list_continue.js`.
 - Màn nào cố ý để khác thì ghi lý do trong mô tả PR, và nói rõ với chủ.
 - Thêm test cho từng màn đã đổi, để lần sau lệch là CI đỏ.
 
@@ -112,14 +130,14 @@ Nhóm và trang Hội thoại.
 
 "nếu mà update tính năng mới thì cho vào trong plugin của Zalo luôn chứ đừng tạo một plugin
 mới". Lý do: mỗi tính năng Zalo từng đẻ thêm một plugin (gửi ảnh, nhóm, đọc ảnh, kết bạn), trang Plugin bị phân mảnh
-thành bốn mục cho một thứ chủ coi là một. Gói `vanhanh.zalo` 2.0.0 (kho `vanhanh-store`) đã gộp cả bốn thành MỘT plugin.
+thành bốn mục cho một thứ chủ coi là một. Gói `naota.zalo` 2.0.0 (kho `naota-store`) đã gộp cả bốn thành MỘT plugin.
 
-- Tool Zalo mới mà MCP của vanhanh-zalo chưa có thì viết trong gói `vanhanh.zalo` của `vanhanh-store`, vào plugin
-  `packs/vanhanh.zalo/plugins/zalo-extras/`: thêm hàm vào module đúng mảng (`send_media.py`, `group.py`,
+- Tool Zalo mới mà MCP của naota-zalo chưa có thì viết trong gói `naota.zalo` của `naota-store`, vào plugin
+  `packs/naota.zalo/plugins/zalo-extras/`: thêm hàm vào module đúng mảng (`send_media.py`, `group.py`,
   `read_images.py`, `friend.py`), hoặc một module mới cạnh đó rồi thêm tên vào `_PARTS` trong `plugin.py`. Thêm tên
   tool vào `tools` của `plugin.yaml`, nâng số bản của plugin và của gói cùng nhau.
 - **Không tạo thư mục plugin Zalo thứ hai**, trong gói đó hay trong `system/plugins/` của lõi.
-  `tests/vanhanh.zalo/test_zalo_extras.py` của kho đỏ khi gói có thêm thư mục plugin, mất một tool hay một tool bị đổi
+  `tests/naota.zalo/test_zalo_extras.py` của kho đỏ khi gói có thêm thư mục plugin, mất một tool hay một tool bị đổi
   mức quyền.
 - Mỗi tool tự khai mức quyền khi đăng ký (`min_mode`): đọc là `readonly`, ghi vào brain là `safe`, gửi hay đổi gì trên
   Zalo là `full`.
@@ -152,7 +170,7 @@ Repo mở cho người đóng góp quốc tế, nên phần NGƯỜI NGOÀI Đ�
   i18n (`vi.json` có dấu, `en.json`). Bảng từ điển định danh tiếng Việt cũ cho người nước ngoài ở
   GLOSSARY, kiến trúc ở `ARCHITECTURE.md`.
 - **Giữ tiếng Việt:** `CHANGELOG.md` (bản gốc), file quy ước này, spec trong
-  `docs/dev/`, và prompt gửi cho model (lý do ở them-mot-ngon-ngu).
+  `docs/dev/`. Prompt gửi cho model thì viết tiếng Anh từ 15/11/2026 (xem mục "Chữ hiện lên màn hình").
 - PR từ người ngoài không cần đụng `VERSION`/CHANGELOG: người merge tăng số và viết nhật ký.
 
 ## Bản dịch README và hướng dẫn cài nhanh

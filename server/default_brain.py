@@ -7,7 +7,7 @@ it. Deleting it alone would not stick: the folder is
 created again on the next call and the backup restores it. So the default became a CHOICE: the owner picks another
 brain as the default in the brain picker, and the old one turns into an ordinary brain that can be deleted.
 
-Where the choice lives. A small file at the top of BRAINS_DIR, `.vanhanh-default-brain.json`, not settings.json:
+Where the choice lives. A small file at the top of BRAINS_DIR, `.naota-default-brain.json`, not settings.json:
 - the GitHub backup syncs everything under BRAINS_DIR (tombstones live there too), so every machine sharing the repo
   agrees on which brain is the default. With a per-machine setting, a machine still pointing at the old brain would
   keep restoring it and push it back to the others after it was deleted;
@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 FALLBACK_FOLDER = "Brain Default"
-POINTER_FILE = ".vanhanh-default-brain.json"
+POINTER_FILE = ".naota-default-brain.json"
 
 _BAD_CHARS = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
 

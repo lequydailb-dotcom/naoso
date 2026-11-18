@@ -63,11 +63,11 @@ check("switching a tab does not rebuild the popup", /function switchTab[\s\S]*?\
 check("Esc steps back from a run before it closes", js.includes("if (sub && !sub.hidden) { hideSub(); return; }"));
 check("a refresh keeps the popup open and redraws its head in place", js.includes('M.el.querySelector(".wh-dhead").innerHTML = headHtml(h, M.tab)'));
 check("leaving the page closes the popup", js.includes("function unmount()") && fs.readFileSync(path.join(__dirname, "../../dashboard/console.js"), "utf8")
-  .includes("window.VanhanhWebhooks.unmount()"));
+  .includes("window.NaotaWebhooks.unmount()"));
 
 // The page draws no title of its own: the page header already says Webhook.
 check("no in-page title", !js.includes('"wh.head"') && !("wh.head" in vi) && !("wh.head" in en));
-check("the stylesheet loads with the page", html.includes('"/static/webhooks.css?v=') && html.includes('"/static/webhooks.js?v=8"'));
+check("the stylesheet loads with the page", html.includes('"/static/webhooks.css?v=') && /"\/static\/webhooks\.js\?v=\d+"/.test(html));
 check("nothing in the stylesheet is under 16px", !/font-size:\s*1[0-5](\.\d+)?px/.test(css));
 const used = new Set((js.match(/"wh\.[a-z0-9_]+"/g) || []).map((k) => k.slice(1, -1)));
 const missing = [...used].filter((k) => !(k in vi) || !(k in en));

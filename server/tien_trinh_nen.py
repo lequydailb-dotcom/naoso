@@ -1,14 +1,14 @@
-"""Tiến trình nền do engine bỏ lại: Vanhanh nhận theo dõi, xong thì tự báo và tự làm tiếp.
+"""Tiến trình nền do engine bỏ lại: Naota nhận theo dõi, xong thì tự báo và tự làm tiếp.
 
 Vì sao có file này
 ==================
-Lỗi đã gặp: nhờ Vanhanh làm video, Vanhanh trả lời "Đang render
+Lỗi đã gặp: nhờ Naota làm video, Naota trả lời "Đang render
 nền, xong mình ghép tiếng và gửi video" rồi im. Video render xong lúc 14:57 mà phải tới 16:14,
-khi chủ hỏi "xong video chưa", Vanhanh mới biết.
+khi chủ hỏi "xong video chưa", Naota mới biết.
 
 Gốc rễ: engine có shell (Codex, Grok Build, Antigravity) tự bật lệnh dài chạy ngầm (`cmd &`,
-`nohup cmd &`) rồi kết thúc lượt. Vanhanh chỉ biết tự báo về cho việc Kanban, loop và nhắc hẹn.
-Một tiến trình do engine tự bật thì Vanhanh không hề biết nó tồn tại, nên không có gì đánh thức
+`nohup cmd &`) rồi kết thúc lượt. Naota chỉ biết tự báo về cho việc Kanban, loop và nhắc hẹn.
+Một tiến trình do engine tự bật thì Naota không hề biết nó tồn tại, nên không có gì đánh thức
 khung chat khi nó xong. Còn lời hứa "xong mình gửi" là lời của model, không có cơ chế nào đứng
 sau.
 
@@ -25,7 +25,7 @@ model, không cần model nhớ gọi tool nào: đây là sự thật đọc t�
      xong. Gọi `_KHI_XONG` do main đặt: báo về đúng khung chat + hòm thư + thông báo đẩy, và nếu
      cần thì mở một lượt nối tiếp trong cùng phiên để làm nốt (ghép tiếng, kiểm tra, gửi file).
 
-Lượt nối tiếp chạy khi: model đã dặn rõ bằng tool `vanhanh_job` op=then, HOẶC câu trả lời của
+Lượt nối tiếp chạy khi: model đã dặn rõ bằng tool `naota_job` op=then, HOẶC câu trả lời của
 lượt vừa rồi có hứa "xong em làm tiếp/gửi" (bộ bắt lời hứa của background_status). Nhờ vậy lời
 hứa của model thành sự thật, thay vì chỉ bị dán nhãn là hứa suông.
 
@@ -60,7 +60,7 @@ try:
     import config as _cfg
     _STATE_DIR = Path(_cfg.STATE_DIR)
 except Exception:          # chạy lẻ trong test
-    _STATE_DIR = Path(os.getenv("VANHANH_STATE_DIR", str(Path(__file__).parent)))
+    _STATE_DIR = Path(os.getenv("NAOTA_STATE_DIR", str(Path(__file__).parent)))
 
 POSIX = os.name != "nt"
 
@@ -80,9 +80,12 @@ _KHOA = threading.Lock()
 
 _NHOM_THEO_TAG: Dict[str, List[int]] = {}      # tag lượt -> pid engine (= mã nhóm)
 _VIEC: Dict[str, dict] = {}                     # mã việc -> bản ghi
-_LOI_DAN: Dict[str, dict] = {}                  # chat_id -> {"text", "ts"} (vanhanh_job op=then)
+_LOI_DAN: Dict[str, dict] = {}                  # chat_id -> {"text", "ts"} (naota_job op=then)
 _KHI_XONG: Optional[Callable[[dict], Any]] = None
 _VONG: Optional[asyncio.Task] = None
+# The server's event loop, where the watcher runs. Remembered so a job registered from a worker
+# thread (naota_terminal background=true runs in asyncio.to_thread) can still start the watcher.
+_LOOP: Optional[asyncio.AbstractEventLoop] = None
 
 
 # ---------------------------------------------------------------------------------------
@@ -93,7 +96,7 @@ def nhom_con_song(pgid: int) -> bool:
 
     Tiến trình đã chết mà chưa ai dọn (zombie, trạng thái Z) vẫn làm killpg(0) thành công. Máy
     thật có tiến trình số 1 dọn chúng (tini trong Docker, systemd, launchd), nhưng một container
-    chạy thẳng uvicorn làm PID 1 thì không: khi đó việc đã xong mà Vanhanh tưởng còn chạy mãi. Nên
+    chạy thẳng uvicorn làm PID 1 thì không: khi đó việc đã xong mà Naota tưởng còn chạy mãi. Nên
     có /proc thì hỏi thêm trạng thái từng thành viên, chỉ tính người còn sống thật.
     """
     if not POSIX or not pgid:
@@ -167,7 +170,9 @@ def mo_ta_lenh(members: List[dict]) -> str:
         # Claude Code's Bash tool wraps the command ("bash -c source <snapshot> ... eval '<cmd>' ..."): show <cmd>.
         inner = _EVAL_INNER.search(cmd) if _CLAUDE_SHELL.search(cmd) else None
         if inner and inner.group(1).strip():
-            cmd = inner.group(1).strip()
+            # Inside eval '...' every ' was written as '"'"' (or '\''): turn it back so the line
+            # reads as typed instead of a run of quote marks.
+            cmd = inner.group(1).strip().replace("'\"'\"'", "'").replace("'\\''", "'")
         if not cmd:
             continue
         dau = cmd.split()[0]
@@ -248,10 +253,10 @@ def ghi_nhom(tag: str, pid: int) -> None:
 # ---------------------------------------------------------------------------------------
 # Reason: a long video render or edit started from the chat never
 # reported back, neither in the chat nor in the bell. The process group test above cannot see
-# Claude Code's work: Vanhanh keeps its `claude` process warm between turns (it does not exit), the
+# Claude Code's work: Naota keeps its `claude` process warm between turns (it does not exit), the
 # SDK starts it without a session of its own, and its Bash tool runs every command in a NEW
 # session. So `nohup ffmpeg ... &` left behind by Claude Code was never adopted, and
-# `vanhanh_job op=then` silently dropped its instruction at the end of the turn.
+# `naota_job op=then` silently dropped its instruction at the end of the turn.
 #
 # Instead the engine starts with ENV_MARK=<mark> in its environment. Every process it starts
 # inherits it (Claude Code filters only its own CLAUDE_CODE_* and BUN_* variables from its shell),
@@ -261,7 +266,7 @@ def ghi_nhom(tag: str, pid: int) -> None:
 # tool is still running in the background (a turn that ended with its background tasks running).
 # The engine itself, its MCP servers and anything else still owned by a live engine process are
 # not orphans and are left alone.
-ENV_MARK = "VANHANH_BG_MARK"
+ENV_MARK = "NAOTA_BG_MARK"
 _MARKS_BY_TAG: Dict[str, List[str]] = {}
 _CLAUDE_SHELL = re.compile(r"shell-snapshots/snapshot-|pwd -P >\| \S*claude-[0-9a-f]+-cwd")
 _EVAL_INNER = re.compile(r"\beval '(.*?)'(?: < /dev/null)?(?: && pwd -P|$)", re.S)
@@ -373,7 +378,7 @@ def _marked(mark: str) -> List[dict]:
 
 
 def groups_left_by_mark(mark) -> List[int]:
-    """Process groups the engine marked `mark` left running (see ENV_MARK). Groups Vanhanh already
+    """Process groups the engine marked `mark` left running (see ENV_MARK). Groups Naota already
     tracks, the server's own group and groups holding an engine the server started are skipped."""
     m = _clean_mark(mark)
     if not POSIX or not m:
@@ -405,7 +410,7 @@ def groups_left_by_mark(mark) -> List[int]:
 
 
 def dat_loi_dan(chat_id: str, text: str) -> None:
-    """Model dặn "khi việc nền của lượt này xong thì làm tiếp X" (tool vanhanh_job op=then)."""
+    """Model dặn "khi việc nền của lượt này xong thì làm tiếp X" (tool naota_job op=then)."""
     cid = str(chat_id or "").strip()
     t = str(text or "").strip()
     if not cid or not t:
@@ -489,9 +494,9 @@ def nhan_nuoi_theo_tag(tag: str, brain_root: str, chat_id: str, *, hua: bool = F
 
 
 def theo_doi_nhom(pgid: int, mo_ta: str, cwd: str, brain_root: str, chat_id: str) -> str:
-    """Nhận theo dõi NGAY một nhóm tiến trình Vanhanh tự bật (terminal của engine API).
+    """Nhận theo dõi NGAY một nhóm tiến trình Naota tự bật (terminal của engine API).
 
-    Khác `nhan_nuoi_theo_tag`: không cần đợi hết lượt rồi dò nhóm còn sống, vì chính Vanhanh bật
+    Khác `nhan_nuoi_theo_tag`: không cần đợi hết lượt rồi dò nhóm còn sống, vì chính Naota bật
     tiến trình và biết chắc mã nhóm. Trả mã việc (rỗng nếu không theo dõi được).
     """
     if not POSIX or not pgid or not chat_id:
@@ -664,13 +669,39 @@ async def _vong_theo_doi() -> None:
         await asyncio.sleep(NHIP_GIAY)
 
 
-def _dam_bao_vong() -> None:
-    global _VONG
+def _remember_loop() -> Optional[asyncio.AbstractEventLoop]:
+    """Return the running loop of this thread (None in a worker thread), and remember it as the
+    server loop when no live server loop is known yet."""
+    global _LOOP
     try:
-        loop = asyncio.get_running_loop()
+        here = asyncio.get_running_loop()
     except RuntimeError:
+        return None
+    if _LOOP is None or not _LOOP.is_running():
+        _LOOP = here
+    return here
+
+
+def _dam_bao_vong() -> None:
+    """Make sure exactly one watcher runs, on the server loop, whichever thread calls this.
+
+    `theo_doi_nhom` is reached from `coding_terminal.chay_nen`, which the hub runs in
+    `asyncio.to_thread`. That thread has no running loop, so the watcher was never started and
+    the job stayed "running" until the next server restart. Now the start is handed to the
+    server loop with `call_soon_threadsafe`; this function runs again there and starts it.
+    """
+    global _VONG
+    here = _remember_loop()
+    loop = _LOOP
+    if loop is None or loop.is_closed() or not loop.is_running():
+        return          # no live server loop: khoi_dong() picks the job up at the next start
+    if here is not loop:
+        try:
+            loop.call_soon_threadsafe(_dam_bao_vong)
+        except RuntimeError:
+            pass        # the loop closed in between: same as above
         return
-    if _VONG is None or _VONG.done():
+    if _VONG is None or _VONG.done() or _VONG.get_loop() is not loop:
         _VONG = loop.create_task(_vong_theo_doi())
 
 
@@ -678,6 +709,7 @@ def khoi_dong() -> None:
     """Máy chủ vừa bật: nạp sổ cũ. Việc còn "run" mà nhóm vẫn sống thì theo dõi tiếp (engine
     chạy với session riêng nên việc nền sống sót qua lần khởi động lại máy chủ). Nhóm đã chết
     thì vòng theo dõi sẽ báo "xong" ở nhịp đầu tiên, kèm file mới như thường."""
+    _remember_loop()     # runs on the server loop at startup: worker threads hand the watcher to it
     _nap()
     if dang_chay():
         _dam_bao_vong()

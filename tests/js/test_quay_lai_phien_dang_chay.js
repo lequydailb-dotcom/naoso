@@ -1,6 +1,6 @@
-// Back on a chat whose turn is still running: "khi vanhanh đang chat, anh back ra khung chat khác và
+// Back on a chat whose turn is still running: "khi naota đang chat, anh back ra khung chat khác và
 // truy cập lại thì nó hiện 1 bong bóng rỗng". Opening the chat again drew an empty answer bubble above the activity chip
-// while Vanhanh had not written a word yet. Now a bubble is drawn only when the turn has text.
+// while Naota had not written a word yet. Now a bubble is drawn only when the turn has text.
 //
 //     node tests/js/test_quay_lai_phien_dang_chay.js
 //
@@ -26,7 +26,7 @@ function run(turnState) {
     convo: [], savedSessionId: null, _dangDungLoat: false, _tinCu: null, _phienMoLuc: null,
     hideActivity() {}, goMoiTinCu() {}, chatArea: { innerHTML: "" }, ngoaiAlpine(f) { f(); },
     veTinDaLuu() { return null; }, datMoiTinCu() {}, veNhanBrain() {}, graphSource: { value: "brain" },
-    window: { t: (k) => k, VanhanhResume: null, VanhanhInbox: null, VanhanhBackground: null },
+    window: { t: (k) => k, NaotaResume: null, NaotaInbox: null, NaotaBackground: null },
     turns: { s1: turnState },
     createStreamingBubble() { const b = el("bubble"); area.push(b); return b; },
     markdownToHtml: (x) => "<p>" + x + "</p>",

@@ -14,7 +14,7 @@ import os
 import sys
 import tempfile
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-limit-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-limit-"))
 
 import limit_learner as ll  # noqa: E402
 
@@ -27,7 +27,7 @@ def check(name, cond):
         _fails.append(name)
 
 
-# ---- 1. Ca THẬT đã chặn Vanhanh, chép lại từ màn hình ----
+# ---- 1. Ca THẬT đã chặn Naota, chép lại từ màn hình ----
 _groq = ('{"error":{"message":"Request too large for model `llama-3.3-70b-versatile` in '
          'organization `org_01abcdefghijklmnopqrstuvwx` service tier `on_demand` on tokens '
          'per minute (TPM): Limit 12000, Requested 15447, please reduce your message size '
@@ -174,7 +174,7 @@ check("báo lỗi cuối: nói rõ đã tự thử lại", "thử lại" in _msg
 
 # ---- 7. MỌI đường gọi provider đều phải học hạn mức ----
 # Lỗi đã xảy ra thật: bản đầu chỉ vá các hàm stream thuần, trong khi đường Groq thật đi qua
-# _cc_tool_loop (luôn có tool vì Vanhanh có builtin tools). Code đúng, test xanh, và không bao
+# _cc_tool_loop (luôn có tool vì Naota có builtin tools). Code đúng, test xanh, và không bao
 # giờ chạy. Rào này đối chiếu: chỗ nào phát "error" theo status_code thì phải có học hạn mức
 # ngay trên đó.
 import re as _re  # noqa: E402
@@ -235,7 +235,7 @@ check("and it dominates when it is the whole output", ll.subscription_dominates(
 check("a curly apostrophe (You’ve) is read like a straight one",
       bool(ll.parse_subscription_limit("You\u2019ve hit your limit · resets 1:50am (Asia/Bangkok)"))
       and ll.subscription_dominates(_SPEND.replace("'", "\u2019")))
-check("an ads account's spending limit is NOT Vanhanh's plan running out",
+check("an ads account's spending limit is NOT Naota's plan running out",
       ll.parse_subscription_limit("You've reached your spending limit for this ad account.") is None
       and ll.parse_subscription_limit("Campaign paused: account spending limit reached") is None)
 

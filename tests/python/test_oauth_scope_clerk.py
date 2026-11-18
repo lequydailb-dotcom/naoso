@@ -3,7 +3,7 @@
     python tests/run.py oauth_scope_clerk      (KHÔNG mạng)
 
 Lỗi đã gặp: kết nối Higgsfield báo invalid_grant. Lỗi thật nằm ở URL callback: Higgsfield đăng nhập qua Clerk,
-Clerk trả invalid_scope "OAuth 2.0 Client is not allowed to request scope 'private_metadata'". Vanhanh đã xin NGUYÊN danh sách
+Clerk trả invalid_scope "OAuth 2.0 Client is not allowed to request scope 'private_metadata'". Naota đã xin NGUYÊN danh sách
 `scopes_supported` của máy chủ đăng nhập, rồi bỏ qua tham số error ở callback và đem code rỗng đi đổi.
 
 File này canh:
@@ -19,7 +19,7 @@ import tempfile
 import urllib.parse
 from unittest.mock import AsyncMock, patch
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-oauth-scope-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-oauth-scope-")
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -41,15 +41,15 @@ CLERK = ["openid", "profile", "email", "public_metadata", "private_metadata", "o
 
 # ---- 1. Chọn phạm vi
 check("CANARY: không có nguồn nào khác thì vẫn dùng danh sách máy chủ đăng nhập",
-      oauth_mcp._chon_scopes({"scopes_supported": CLERK}, {}) == CLERK)
+      oauth_mcp._pick_scopes({"scopes_supported": CLERK}, {}) == CLERK)
 check("protected resource metadata thắng danh sách máy chủ đăng nhập",
-      oauth_mcp._chon_scopes({"scopes_supported": CLERK, "_prm_scopes": ["openid", "email"]}, {}) == ["openid", "email"])
+      oauth_mcp._pick_scopes({"scopes_supported": CLERK, "_prm_scopes": ["openid", "email"]}, {}) == ["openid", "email"])
 check("scope trong WWW-Authenticate thắng tất cả",
-      oauth_mcp._chon_scopes({"scopes_supported": CLERK, "_prm_scopes": ["openid"], "_www_scope": "mcp:tools email"}, {})
+      oauth_mcp._pick_scopes({"scopes_supported": CLERK, "_prm_scopes": ["openid"], "_www_scope": "mcp:tools email"}, {})
       == ["mcp:tools", "email"])
 check("phạm vi đã bị từ chối thì bỏ ở mọi nguồn",
-      "private_metadata" not in oauth_mcp._chon_scopes({"scopes_supported": CLERK}, {"blocked_scopes": ["private_metadata"]}))
-check("scope_omit: không gửi phạm vi nào", oauth_mcp._chon_scopes({"scopes_supported": CLERK}, {"scope_omit": True}) == [])
+      "private_metadata" not in oauth_mcp._pick_scopes({"scopes_supported": CLERK}, {"blocked_scopes": ["private_metadata"]}))
+check("scope_omit: không gửi phạm vi nào", oauth_mcp._pick_scopes({"scopes_supported": CLERK}, {"scope_omit": True}) == [])
 check("đọc được tên phạm vi trong lời báo của Clerk",
       oauth_mcp._scope_bi_tu_choi("OAuth 2.0 Client is not allowed to request scope 'private_metadata'.") == ["private_metadata"])
 

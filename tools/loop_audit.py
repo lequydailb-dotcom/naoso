@@ -1,6 +1,6 @@
 """Count blocking work done directly on the server's event loop (performance stage 3).
 
-Vanhanh serves every page, chat turn, MCP hub call and background job from ONE asyncio event loop. A blocking call made
+Naota serves every page, chat turn, MCP hub call and background job from ONE asyncio event loop. A blocking call made
 inside an `async def` (a SQLite read or write, a file read or write, a directory scan, a subprocess, a sleep) freezes
 every other click until it returns. That is what the owner felt as "delay mấy giây": the Kanban dispatcher
 held the loop up to 1.2 s on a busy SQLite file.

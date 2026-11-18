@@ -26,7 +26,7 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-taofile-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-taofile-")
 
 import main  # noqa: E402
 import claude_sdk_engine  # noqa: E402
@@ -81,12 +81,12 @@ check("hub của ba engine CLI vẫn trỏ gốc brain kể cả khi cwd là rep
 # ============================================================
 # 2. Chuẩn hoá link: hành vi THẬT trên đĩa
 # ============================================================
-brain = Path(tempfile.mkdtemp(prefix="vanhanh-brain-")).resolve()
+brain = Path(tempfile.mkdtemp(prefix="naota-brain-")).resolve()
 (brain / "bai-viet").mkdir()
 (brain / "bai-viet" / "bai-1.txt").write_text("x", encoding="utf-8")
 (brain / "06 - Sources").mkdir()
 (brain / "06 - Sources" / "ghi chu.md").write_text("y", encoding="utf-8")
-ngoai = Path(tempfile.mkdtemp(prefix="vanhanh-ngoai-")).resolve()
+ngoai = Path(tempfile.mkdtemp(prefix="naota-ngoai-")).resolve()
 (ngoai / "lac.md").write_text("z", encoding="utf-8")
 
 
@@ -134,7 +134,7 @@ check("sai thư mục mà KHÔNG có file nào trùng tên thì giữ nguyên (�
 check("ảnh markdown cũng được chuẩn hoá",
       H(f"![sơ đồ]({brain}/bai-viet/bai-1.txt)") == "![sơ đồ](bai-viet/bai-1.txt)")
 check("không có gì để đổi thì trả nguyên văn", H("chào anh, hôm nay 3/5 bài xong rồi") == "chào anh, hôm nay 3/5 bài xong rồi")
-check("backtick chứa lệnh/tên tool không bị đụng", H("gọi `vanhanh_write_file` rồi `ls -la`") == "gọi `vanhanh_write_file` rồi `ls -la`")
+check("backtick chứa lệnh/tên tool không bị đụng", H("gọi `naota_write_file` rồi `ls -la`") == "gọi `naota_write_file` rồi `ls -la`")
 
 # ============================================================
 # 3. Link trỏ vào hư không → nói ra, không im
@@ -194,24 +194,24 @@ check("engine: id chết bị bỏ ngay trong vòng đọc sự kiện",
       (ROOT / "server" / "claude_sdk_engine.py").read_text(encoding="utf-8"))
 check("dashboard: mất mạch thì mồi lại từ kho phiên (cùng cách Codex)",
       "_resume_failed = await _consume_claude(" in MAIN
-      and "Vanhanh đang khôi phục ngữ cảnh từ lịch sử đã lưu" in MAIN)
+      and "Naota đang khôi phục ngữ cảnh từ lịch sử đã lưu" in MAIN)
 check("telegram: mất mạch thì mồi lại", "_rf = await _chay_claude(_cli_prompt)" in MAIN)
 
 # ============================================================
 # 6. Prompt: dặn ghi file vào TRONG vault, link tương đối, đếm file bằng tool
 # ============================================================
 _agentic = main.main_prompt_rendering.render_agentic_paths(
-    str(brain), brain / "agents", brain / "workflows", brain / "Vanhanh/loops", brain / "skills")
+    str(brain), brain / "agents", brain / "workflows", brain / "Naota/loops", brain / "skills")
 check("production nối đúng renderer LỚP AGENTIC dùng chung",
       "base += main_prompt_rendering.render_agentic_paths(root, ag, wf, lp, sk)" in MAIN)
 check("LỚP AGENTIC dặn ghi FILE THƯỜNG vào trong vault bằng đường dẫn tuyệt đối",
-      "FILE KHÁC (bài viết, báo cáo, nháp, dữ liệu): ghi VÀO TRONG vault root" in _agentic)
+      "OTHER FILES (articles, reports, drafts, data): write them INSIDE the vault root" in _agentic)
 check("LỚP AGENTIC dặn đếm/liệt kê file bằng tool ngay lúc đó (không nhớ lại lượt trước)",
-      "liệt kê lại thư mục bằng tool ngay lúc đó" in _agentic)
+      "list the folder again with a tool right then" in _agentic)
 # Luật này CỐ Ý không nằm trong CLAUDE.md: file đó đã sát trần 33.600 ký tự (test_prompt_budget),
 # còn khối LỚP AGENTIC thì đi cùng mọi engine mỗi lượt và mang đúng đường dẫn gốc brain.
 check("luật ghi file mang ĐÚNG gốc brain đã render, không phải chữ chung chung",
-      f"dẫn TUYỆT ĐỐI `{brain}/<thư mục>/<tên file>`" in _agentic)
+      f"ABSOLUTE path `{brain}/<folder>/<file name>`" in _agentic)
 check("dashboard: link trỏ vào hư không → đẩy một dòng riêng (cùng cách lời hứa suông)",
       "await push_to_chat(conv_sid, _cau_link_khong_thay(_thieu))" in MAIN)
 check("telegram: nối dòng đó vào cuối tin", '+ "\\n\\n" + _cau_link_khong_thay(_thieu)' in MAIN)

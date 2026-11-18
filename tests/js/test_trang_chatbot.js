@@ -52,9 +52,9 @@ const noi = (k, chu) => CB.includes(k) && tu(k, chu);
 check("index.html có nạp module trang Chatbot", /chatbots\.js\?v=/.test(HTML));
 // So bằng thẻ <script> chứ không bằng tên file: console.js được NHẮC trong hơn chục comment
 // nằm phía trên, nên indexOf("console.js") trần trụi trỏ vào comment đầu tiên.
-check("nạp TRƯỚC console.js (console gọi window.VanhanhChatbots)",
+check("nạp TRƯỚC console.js (console gọi window.NaotaChatbots)",
   HTML.indexOf('src="/static/chatbots.js') < HTML.indexOf('src="/static/console.js'));
-check("module phơi ra đúng một cửa vào", /window\.VanhanhChatbots\s*=\s*\{\s*render:\s*render\s*\}/.test(CB));
+check("module phơi ra đúng một cửa vào", /window\.NaotaChatbots\s*=\s*\{\s*render:\s*render\s*\}/.test(CB));
 // RAIL_ITEMS nay là danh sách ID phẳng (nhãn lấy từ từ điển i18n). Id `chatbots` VẪN còn (nó
 // là nguồn icon + nhãn, và là bí danh cho lệnh nói / bookmark cũ) nhưng KHÔNG được hiện thành
 // một mục trên thanh bên: trang Chatbot là tab của trang Hội thoại từ khi đó.
@@ -68,7 +68,7 @@ check("CANARY: mục chưa xếp nhóm cũng phải đi qua RAIL_AN",
 check("console định tuyến sang trang Chatbot",
   /if \(id === "chatbots"\) return renderChatbots\(el\)/.test(CON));
 check("console uỷ quyền cho module chứ không tự vẽ lại",
-  /window\.VanhanhChatbots/.test(CON));
+  /window\.NaotaChatbots/.test(CON));
 check("có icon riêng cho mục Chatbot", /chatbots:\s*"[a-z-]+"/.test(CON));
 check("CSS của trang đã có", /\.cb-grid/.test(CSS) && /\.cb-card/.test(CSS));
 
@@ -107,7 +107,7 @@ check("CANARY: form bot KHÔNG còn ô token", CB.indexOf('id="cbToken"') === -1
 check("CANARY: form bot KHÔNG còn tự gọi verify-token", CB.indexOf("/chatbots/verify-token") === -1);
 check("CANARY: form bot KHÔNG còn gửi token lên server", !/chung\.token = /.test(CB));
 check("nối kênh mới thì gọi lại modal Thêm tài khoản của tab Kênh",
-  /VanhanhConversations && window\.VanhanhConversations\.themTaiKhoan/.test(CB) &&
+  /NaotaConversations && window\.NaotaConversations\.themTaiKhoan/.test(CB) &&
   noi("cb.noi_kenh_moi", "Kết nối kênh mới"));
 check("nối xong thì nạp lại danh sách tài khoản và TÍCH SẴN con vừa nối",
   /function noiKenhMoi\(/.test(CB) && /onXong: async function \(tk\)/.test(CB) &&
@@ -158,7 +158,7 @@ check("cảnh báo nói thẳng người điều khiển là người nhắn cho
   noi("cb.intro_6", "người điều khiển bot là người nhắn cho nó")
   || noi("cb.mq_full", "Người điều khiển là người nhắn cho nó"));
 // CANARY - chữ trên trang phải tả theo LOẠI THAO TÁC, không kể tên việc của một ngành.
-// Bản đầu viết "tạo đơn, tiêu tiền quảng cáo, đăng bài": người dùng Vanhanh để quản lý dự án hay
+// Bản đầu viết "tạo đơn, tiêu tiền quảng cáo, đăng bài": người dùng Naota để quản lý dự án hay
 // dạy học đọc xong tưởng cảnh báo không áp cho mình.
 ["đơn hàng", "tạo đơn", "tiêu tiền", "quảng cáo", "đăng bài", "cửa hàng", "bán hàng", "bảng giá"]
   .forEach((n) => {
@@ -201,7 +201,7 @@ check("trang nói rõ đang xem bot của brain nào",
   /window\.t\("cb\.intro_1"\)\) \+ ' <b>' \+ esc\(tenBrain\(\)\)/.test(CB)
   && tu("cb.intro_1", "Bot của bộ não"));
 // tenBrain() đọc tên trên ô chọn bộ não. In thẳng brain() là in ĐỊA CHỈ: chữ "brain" với bộ não
-// mặc định, đường dẫn máy chủ (/opt/vanhanh/app/brains/...) với bộ não khác - đúng lỗi chủ đã thấy.
+// mặc định, đường dẫn máy chủ (/opt/naota/app/brains/...) với bộ não khác - đúng lỗi chủ đã thấy.
 check("CANARY: tên bộ não lấy từ ô chọn, không in địa chỉ",
   /dataset\.brainLabel/.test(CB) && !/esc\(brain\(\)\)/.test(CB));
 check("trang chỉ cách xem brain khác", noi("cb.intro_8", "Đổi bộ não ở đầu trang"));
@@ -209,7 +209,7 @@ check("trang chỉ cách xem brain khác", noi("cb.intro_8", "Đổi bộ não �
 check("thẻ bot không nhắc lại brain", !/ic\("brain"\) \+ ' ' \+ esc\(b\.brain\)/.test(CB));
 // Trang "Agents" riêng đã gộp vào trang Cộng sự, nên nút này phải dẫn tới "workspace": dẫn
 // sang một id trang không còn tồn tại thì rail không sáng mục nào và khung giữa trắng trơn.
-check("có nút sang trang Cộng sự để tạo trợ lý", /id="cbNewAgent"/.test(CB) && /VanhanhNav\.go\("workspace"\)/.test(CB));
+check("có nút sang trang Cộng sự để tạo trợ lý", /id="cbNewAgent"/.test(CB) && /NaotaNav\.go\("workspace"\)/.test(CB));
 // Vai trò dài làm <option> tràn ngang khỏi hộp, mà <option> thì không tạo kiểu được.
 check("vai trò Agent bị cắt ngắn trước khi vào option", /vai\.slice\(0, 34\)/.test(CB));
 check("CSS chặn select nở rộng ra khỏi form", /\.cb-form select \{[^}]*text-overflow: ellipsis/.test(CSS));
@@ -217,7 +217,7 @@ check("CSS chặn select nở rộng ra khỏi form", /\.cb-form select \{[^}]*t
 // `{ go: navigateTo }` thành object có thêm openGroup/setCollapsed và `go` đi qua store Alpine
 // để bung luôn nhóm chứa trang. Khoá cứng nguyên văn thì mỗi lần thêm cửa là test đỏ oan.
 check("console phơi cửa chuyển trang cho module ngoài",
-  /window\.VanhanhNav = \{/.test(CON) && /\bgo\((id)?\)/.test(CON));
+  /window\.NaotaNav = \{/.test(CON) && /\bgo\((id)?\)/.test(CON));
 // Vai trò dài làm <option> tràn ngang khỏi hộp, mà <option> thì không tạo kiểu được.
 check("vai trò Agent bị cắt ngắn trước khi vào option", /vai\.slice\(0, 34\)/.test(CB));
 check("CSS chặn select nở rộng ra khỏi form", /\.cb-form select \{[^}]*text-overflow: ellipsis/.test(CSS));
@@ -266,9 +266,11 @@ check("nạp ngầm không nhấp nháy màn hình", /async function tai\(im\)/.
 // tự nhận việc trong nhóm lạ" là đúng, nhưng cách từ chối thì sai: im hoàn toàn, không log,
 // không dòng nào ở đây. "Hành vi đúng" và "bot hỏng" trông y hệt nhau.
 check("thẻ hiện nhóm đang chờ chủ cho phép", /b\.nhom_cho/.test(CB) && /cb-nhomcho/.test(CB));
-check("cho phép nhóm bằng ĐÚNG một cú bấm",
-  /cb-ok-nhom/.test(CB) && /\/groups"/.test(CB) && /choNhom\(b, cid, true, loai\)/.test(CB));
-check("và bỏ qua được nhóm không muốn", /cb-bo-nhom/.test(CB) && /choNhom\(b, cid, false, loai\)/.test(CB));
+// 13/11/2026: mỗi dòng chờ là một ô tích, Cho phép / Bỏ qua là MỘT thanh nút cho mọi dòng đã tích (chủ repo: chín nhóm
+// chờ là chín lượt mở popup rồi bấm). Hành vi chi tiết ở tests/js/test_bot_pending_bulk.js.
+check("cho phép nhiều nhóm bằng MỘT cú bấm: dòng có ô tích, một nút Cho phép chung",
+  /class="cb-pd-c"/.test(CB) && /cb-pd-ok/.test(CB) && /\/groups"/.test(CB) && /settle\(true\)/.test(CB));
+check("và bỏ qua được các nhóm không muốn", /cb-pd-skip/.test(CB) && /settle\(false\)/.test(CB));
 check("CSS cho khối nhóm chờ đã có", /\.cb-nhomcho \{/.test(CSS));
 // Khai nhóm ngay lúc TẠO. Bản trước chỉ cho khai ở form Sửa, nên đường đi tự nhiên nhất (tạo
 // bot rồi thả thẳng vào nhóm) bảo đảm lần thử đầu của mọi người dùng gặp một con bot im lặng.
@@ -285,7 +287,7 @@ check("gợi ý chế độ riêng tư chỉ hiện khi có tài khoản Telegra
       /class="cb-hint cb-chi-tg" id="cbRwTg"/.test(CB) && /a\.channel === "telegram"[\s\S]{0,160}cbRwTg/.test(CB));
 check("lựa chọn 'được gọi tên' KHÔNG được chọn sẵn khi bot đang ở Tự đánh giá",
       /var rw0 = \(b && \(b\.reply_when === "auto" \|\| b\.reply_when === "always"\)\) \? b\.reply_when : "mention"/.test(CB));
-// Chế độ riêng tư của Telegram chặn Ở PHÍA TELEGRAM, trước khi Vanhanh nhìn thấy tin nào. Đây là
+// Chế độ riêng tư của Telegram chặn Ở PHÍA TELEGRAM, trước khi Naota nhìn thấy tin nào. Đây là
 // nguyên nhân số một của "nhắn riêng thì được, trong nhóm tag tên thì im re", nên cảnh báo phải
 // hiện cho MỌI bot có dùng nhóm - không riêng bot đặt "trả lời mọi tin" như bản trước.
 check("cảnh báo chế độ riêng tư cho mọi bot có dùng nhóm",
@@ -349,7 +351,7 @@ check("và KHÔNG gửi id nhóm thừa lên server",
   /var co = coNhomForm\(\)/.test(CB) && /groups: co \? ds\("group"\)\.join\("\\n"\) : ""/.test(CB));
 check("thẻ bot nói thẳng khi chưa có kênh nào",
   noi("cb.chua_token", "chưa có kênh"));
-check("mở form từ tab Tài khoản bot với tài khoản tích sẵn", /vanhanh:chatbot-new/.test(CB) && /chonSan/.test(CB));
+check("mở form từ tab Tài khoản bot với tài khoản tích sẵn", /naota:chatbot-new/.test(CB) && /chonSan/.test(CB));
 check("cảnh báo riêng tư chỉ hiện khi bot có tài khoản Telegram",
   /a\.channel === "telegram"/.test(CB) && /coTelegram && duNhom/.test(CB));
 check("bộ lọc kênh chỉ hiện khi có từ hai kênh trở lên",
@@ -391,11 +393,12 @@ check("hai nút ở chân form đổi vai theo bước chứ không mọc thêm 
   noi("cb.quay_lai", "Quay lại") && noi("cb.tiep_tuc", "Tiếp tục"));
 // Ba ô có mặc định dùng được ngay mới được gấp. Mức quyền thì KHÔNG: đọc sót nó là mất tiền
 // thật, nên nó phải nằm phơi ra trên màn hình chứ không phải sau một cú bấm.
-check("chỉ ngôn ngữ gấp vào Nâng cao; nhóm và người nằm ở phần Bot trả lời ai, ngoài khối gấp",
-  /class="cb-nangcao"/.test(CB) && noi("cb.nang_cao", "Nâng cao: ngôn ngữ trả lời") &&
-  CB.indexOf('class="cb-nangcao"') < CB.indexOf('id="cbNgonNgu"') &&
-  CB.indexOf('id="cbPk"') < CB.indexOf('class="cb-nangcao"') && !/id="cbNhomBox"/.test(CB));
-// người dùng bỏ ô "người trực nhận chuyển tiếp" (Chat ID Telegram, vô nghĩa với bot Zalo).
+// Bot luôn trả lời khách bằng đúng thứ tiếng khách nhắn, nên ô ghim ngôn ngữ và khối
+// "Nâng cao" chỉ chứa mỗi ô đó đã bị gỡ.
+check("form không còn ô ghim ngôn ngữ; nhóm và người nằm ở phần Bot trả lời ai",
+  !/id="cbNgonNgu"/.test(CB) && !/class="cb-nangcao"/.test(CB) && !/ngon_ngu:/.test(CB) &&
+  CB.indexOf('id="cbPk"') > -1 && !/id="cbNhomBox"/.test(CB));
+// chủ dự án bỏ ô "người trực nhận chuyển tiếp" (Chat ID Telegram, vô nghĩa với bot Zalo).
 check("form KHÔNG còn ô người trực nhận chuyển tiếp và không gửi handoff_to lên server",
   !/id="cbHandoff"/.test(CB) && !/handoff_to:\s*ho/.test(CB) && !/cb\.lb_handoff/.test(CB));
 check("thẻ bot KHÔNG còn nhãn cảnh báo 'chưa đặt người nhận' (hết chỗ để đặt)",
@@ -441,7 +444,7 @@ check("thẻ bot có một dòng 'Trả lời: ...' và menu '...' cho việc ph
   /tomTatDoiTuong\(b\)/.test(CB) && /class="cb-mn"/.test(CB) && /class="cb-mn-l" hidden/.test(CB) &&
   /cb-log/.test(CB) && /cb-hoi-thoai/.test(CB) && /cb-del/.test(CB));
 check("hàng chờ duyệt có cả người, nút Cho phép gọi /people cho người và /groups cho nhóm",
-  /\/people"/.test(CB) && /cb2\.cho_nguoi/.test(CB) && /data-loai=/.test(CB));
+  /\/people"/.test(CB) && /kind === "private" \? "\/people" : "\/groups"/.test(CB) && /data-loai=/.test(CB));
 check("cảnh báo mức quyền gọn: hiện 2 câu đầu, còn lại sau 'Xem đủ rủi ro'",
   /const HIEN|var HIEN = 2/.test(CB) && /class="cb-xem-du"/.test(CB) && tu("cb2.xem_du", "Xem đủ rủi ro"));
 check("mọi khoá cb2.* giao diện dùng đều có trong tiếng Việt và tiếng Anh", (function () {
@@ -451,11 +454,11 @@ check("mọi khoá cb2.* giao diện dùng đều có trong tiếng Việt và t
   if (thieu.length) console.log("  thiếu:", thieu.join(", "));
   return Object.keys(ks).length > 30 && !thieu.length;
 })());
-check("CANARY: mức quyền KHÔNG bị gấp vào khối Nâng cao",
-  CB.indexOf('htmlMuc(muc0)') > -1 && CB.indexOf('htmlMuc(muc0)') < CB.indexOf('class="cb-nangcao"'));
+check("CANARY: mức quyền KHÔNG bị gấp vào khối nào",
+  CB.indexOf('htmlMuc(muc0)') > -1 && !/class="cb-nangcao"/.test(CB));
 check("CSS của form hai bước đã có",
   /\.cb-wizard \.cb-form-acts/.test(CSS) && /\.cb-buoc \{/.test(CSS) &&
-  /\.cb-tom \{/.test(CSS) && /\.cb-nangcao \{/.test(CSS) &&
+  /\.cb-tom \{/.test(CSS) &&
   /\.cb-rc \{|\.cb-form label\.cb-rc \{/.test(CSS) && /\.cb-seg \{/.test(CSS) && /\.cb-pk \{/.test(CSS) &&
   /\.cb-mn \{/.test(CSS));
 // Gõ lại đúng cái tên vừa đọc ở bước trước là việc thừa.

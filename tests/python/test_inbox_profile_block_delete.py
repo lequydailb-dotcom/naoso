@@ -5,9 +5,9 @@
 Guarded, in order of what would hurt most if it broke:
 
   1. Delete never loses a record of something still online: when the platform refuses (a comment Facebook will
-     not delete, a Zalo conversation the CLI cannot delete), nothing is deleted in Vanhanh either.
+     not delete, a Zalo conversation the CLI cannot delete), nothing is deleted in Naota either.
   2. A comment thread deletes the TOP-LEVEL comment on its platform; a Zalo chat is deleted on Zalo with the right
-     thread type; a Messenger or Instagram direct message is only removed from Vanhanh (Meta has no delete API).
+     thread type; a Messenger or Instagram direct message is only removed from Naota (Meta has no delete API).
   3. Block: Messenger through the Page's block list with the PSID, Zalo through `friend block`; the chat is then
      taken over so the bot stays quiet. Instagram, comments and other channels are refused, never half done.
   4. Profile: Messenger name and picture (no profile link, said in words), Instagram with its instagram.com link,
@@ -20,8 +20,8 @@ import os
 import sys
 import tempfile
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-inbox-pbd-")
-os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-inbox-pbd-")
+os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -156,7 +156,7 @@ MODE["graph"] = "ok"
 fbc = conv("messenger", aid, "cmt:10_20")
 GRAPH.clear()
 r = cl.post(f"/conversations/{fbc}/delete").json()
-check("Facebook comment thread: the top-level comment is deleted on Facebook, then the chat in Vanhanh",
+check("Facebook comment thread: the top-level comment is deleted on Facebook, then the chat in Naota",
       r.get("ok") and r.get("remote") and GRAPH == [("DELETE", "10_20", {})] and conversations.chi_tiet(fbc) is None, (r, GRAPH))
 igc = conv("messenger", aid, "igc:179")
 GRAPH.clear()
@@ -164,7 +164,7 @@ cl.post(f"/conversations/{igc}/delete")
 check("Instagram comment thread: the comment is deleted on Instagram", GRAPH == [("DELETE", "179", {})], GRAPH)
 GRAPH.clear()
 r = cl.post(f"/conversations/{dm2}/delete").json()
-check("Messenger direct message: removed from Vanhanh only, Meta not called",
+check("Messenger direct message: removed from Naota only, Meta not called",
       r.get("ok") and r.get("remote") is False and not GRAPH and conversations.chi_tiet(dm2) is None, (r, GRAPH))
 check("its messages are gone too", conversations.tin_nhan(dm2) == [])
 CLI.clear()
@@ -178,17 +178,17 @@ check("Zalo group: deleted on Zalo as a group thread", CLI == [(["conv", "delete
 MODE["graph"] = "fail"
 fbc2 = conv("messenger", aid, "cmt:11_21")
 r = cl.post(f"/conversations/{fbc2}/delete")
-check("Facebook refuses: nothing deleted in Vanhanh either", r.status_code == 400 and conversations.chi_tiet(fbc2) is not None,
+check("Facebook refuses: nothing deleted in Naota either", r.status_code == 400 and conversations.chi_tiet(fbc2) is not None,
       r.json())
 MODE["graph"] = "ok"
 MODE["cli"] = "fail"
 zp2 = conv("zalo_personal", "zconn1", "9002")
 r = cl.post(f"/conversations/{zp2}/delete")
-check("Zalo refuses: nothing deleted in Vanhanh either", r.status_code == 400 and conversations.chi_tiet(zp2) is not None,
+check("Zalo refuses: nothing deleted in Naota either", r.status_code == 400 and conversations.chi_tiet(zp2) is not None,
       r.json())
 MODE["cli"] = "ok"
 r = cl.post(f"/conversations/{tg}/delete").json()
-check("any other channel: removed from Vanhanh", r.get("ok") and conversations.chi_tiet(tg) is None, r)
+check("any other channel: removed from Naota", r.get("ok") and conversations.chi_tiet(tg) is None, r)
 
 print()
 if _fails:

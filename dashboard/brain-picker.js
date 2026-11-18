@@ -1,4 +1,4 @@
-/* brain-picker.js - the brain picker, drawn by Vanhanh instead of the browser.
+/* brain-picker.js - the brain picker, drawn by Naota instead of the browser.
 
    Seen on a phone: the brain list "shows one way on one device and another
    way on the next", and the order could not be changed. The list was a plain <select>, so every browser drew its own
@@ -16,8 +16,11 @@
    The four buttons beside the picker (new, rename, delete, outside folder) move INTO the panel, "giống
    phần tạo cộng sự": each brain's row carries Export (.zip), Rename and Delete, done right on the row (no prompt or alert),
    and the panel ends with New brain, Upload a brain (.zip) and Open an outside folder. The work itself is in
-   brains-ui.js (window.VanhanhBrains); export and upload talk to /brains/export/* and /brains/import/*
+   brains-ui.js (window.NaotaBrains); export and upload talk to /brains/export/* and /brains/import/*
    (server/brain_export.py): packing and unpacking run in the background, the upload goes in 32MB pieces.
+
+   Each row's counts read "1920 node · 2480 liên kết" on ONE line (it used to break in two); the same
+   counts for the open brain sit in the graph's top-left corner, no longer beside this button.
 
    The pure part (moveItem, orderFromOptions) is tested in node by tests/js/test_brain_picker.js. No em dash here. */
 (function (root) {
@@ -44,7 +47,7 @@
   var api = { moveItem: moveItem, orderFromOptions: orderFromOptions };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (!root || typeof document === "undefined") return;
-  root.VanhanhBrainPicker = api;
+  root.NaotaBrainPicker = api;
 
   var sel = document.getElementById("graphSource");
   if (!sel) return;
@@ -149,7 +152,7 @@
     new MutationObserver(function () { drawButton(); if (open) drawList(); })
       .observe(sel, { childList: true, subtree: true, characterData: true, attributes: true });
   } catch (e) {}
-  root.addEventListener("vanhanh:i18n", drawButton);
+  root.addEventListener("naota:i18n", drawButton);
 
   // ---- the panel ----
   var open = false, reorder = false, query = "", work = null, saving = false;
@@ -249,21 +252,15 @@
     return '<div class="bp-row' + (on ? " on" : "") + '" role="option" tabindex="0" aria-selected="' + on + '" data-value="' + esc(x.value) + '">' +
       '<span class="bp-dot">' + esc((x.label || "?").trim().charAt(0).toUpperCase()) + "</span>" +
       '<span class="bp-name"><span class="bp-label">' + esc(x.label) + "</span>" +
-      (sub ? '<span class="bp-sub">' + subHtml(sub) + "</span>" : "") + "</span>" +
+      (sub ? '<span class="bp-sub">' + esc(sub) + "</span>" : "") + "</span>" +
       '<span class="bp-acts">' + actsHtml(x) + "</span></div>" + formHtml(x);
   }
 
-  // "1.962 node · 9.573 liên kết": two pieces that each stay whole, so a narrow row breaks between them, not inside.
-  function subHtml(sub) {
-    return String(sub).split(" · ").map(function (p, i, a) {
-      return '<span class="bp-sub-part">' + esc(p) + (i < a.length - 1 ? " ·" : "") + "</span>";
-    }).join("");
-  }
   function actBtn(act, ic, label, disabled) {
     return '<button type="button" class="bp-act' + (act === "delete" || act === "forget" ? " bp-act-del" : "") + '" data-act="' + act +
       '" title="' + esc(label) + '" aria-label="' + esc(label) + '"' + (disabled ? " disabled" : "") + ">" + icon(ic) + "</button>";
   }
-  // Export, Rename, Default, Delete on a brain Vanhanh manages; only "remove from the list" on an outside folder.
+  // Export, Rename, Default, Delete on a brain Naota manages; only "remove from the list" on an outside folder.
   // The star: filled on the default brain, a button on every other one that makes it the default. That is
   // the way to delete the old default: it becomes an ordinary brain once another one is the default.
   function actsHtml(x) {
@@ -341,7 +338,7 @@
   function importHtml() {
     var f = imp.file;
     return '<div class="bp-import">' +
-      '<p class="bp-form-msg">' + esc(t("bpick.import_lead", null, "Choose a .zip exported by Vanhanh, on this machine or another. Vanhanh makes a NEW brain from it and never touches the brains you have.")) + "</p>" +
+      '<p class="bp-form-msg">' + esc(t("bpick.import_lead", null, "Choose a .zip exported by Naota, on this machine or another. Naota makes a NEW brain from it and never touches the brains you have.")) + "</p>" +
       '<label class="bp-drop">' + icon("upload-cloud") +
       '<span>' + esc(t("bpick.import_drop", null, "Drop the file here or tap to choose")) + "</span>" +
       (f ? '<span class="bp-file">' + esc(f.name) + " · " + esc(sizeText(f.size)) + "</span>" : "") +
@@ -515,24 +512,24 @@
     if (act === "import-cancel") { if (!imp.busy) { view = "list"; drawList(); } return; }
     if (act === "import-go") { uploadBrain(); return; }
     if (!edit) return;
-    if (act === "create") run(root.VanhanhBrains && root.VanhanhBrains.create(edit.text), function (r) {
+    if (act === "create") run(root.NaotaBrains && root.NaotaBrains.create(edit.text), function (r) {
       return t("bpick.created", { name: r.name || edit.text.trim() }, "Created {name}.");
     });
-    if (act === "save") run(root.VanhanhBrains && root.VanhanhBrains.rename(edit.value, edit.text), function (r) {
+    if (act === "save") run(root.NaotaBrains && root.NaotaBrains.rename(edit.value, edit.text), function (r) {
       return t("bpick.renamed", { name: r.label || edit.text.trim() }, "Renamed to {name}.");
     });
     if (act === "make-default") {
       var e1 = entryOf(edit.value), newName = e1 ? e1.label : "";
-      run(root.VanhanhBrains && root.VanhanhBrains.setDefault && root.VanhanhBrains.setDefault(edit.value), function (r) {
+      run(root.NaotaBrains && root.NaotaBrains.setDefault && root.NaotaBrains.setDefault(edit.value), function (r) {
         return t("bpick.default_done", { name: r.label || newName }, "{name} is now the default brain.");
       });
     }
     if (act === "really") {
       var e0 = entryOf(edit.value), name = e0 ? e0.label : "";
-      if (edit.kind === "forget") run(root.VanhanhBrains && root.VanhanhBrains.forget(edit.value), function () {
+      if (edit.kind === "forget") run(root.NaotaBrains && root.NaotaBrains.forget(edit.value), function () {
         return t("bpick.forgot", { name: name }, "Removed {name} from the list.");
       });
-      else run(root.VanhanhBrains && root.VanhanhBrains.remove(edit.value, edit.text), function () {
+      else run(root.NaotaBrains && root.NaotaBrains.remove(edit.value, edit.text), function () {
         return t("bpick.deleted", { name: name }, "Deleted {name} (kept in the trash for 30 days).");
       });
     }
@@ -725,7 +722,7 @@
       if (off.length) text += " " + t("bpick.imported_off", { what: off.join(", ") }, "{what} arrived switched off; turn them on where they live if you want them.");
       imp = { file: null, name: "", busy: false, msg: "", err: false };
       view = "list";
-      Promise.resolve(root.VanhanhBrains && root.VanhanhBrains.adopt ? root.VanhanhBrains.adopt(d.path) : null)
+      Promise.resolve(root.NaotaBrains && root.NaotaBrains.adopt ? root.NaotaBrains.adopt(d.path) : null)
         .then(function () { if (open) say(text); });
     }
   }
@@ -749,7 +746,7 @@
         saving = false;
         if (!res.ok) throw new Error((res.d && res.d.error) || "");
         reorder = false; work = null;
-        var reload = root.VanhanhBrains && root.VanhanhBrains.reload;
+        var reload = root.NaotaBrains && root.NaotaBrains.reload;
         return Promise.resolve(reload ? reload() : null).then(function () { if (open) drawList(); });
       })
       .catch(function (e) {

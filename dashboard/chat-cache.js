@@ -15,7 +15,7 @@
 (function () {
   "use strict";
 
-  var DB = "vanhanh-chat-cache";
+  var DB = "naota-chat-cache";
   var STORE = "chats";
   var MAX = 50;
   var MAX_AGE = 7 * 24 * 3600 * 1000;
@@ -110,6 +110,6 @@
   }
 
   var api = { all: all, put: put, del: del, clear: clear, toDrop: toDrop, MAX: MAX, MAX_AGE: MAX_AGE };
-  if (typeof window !== "undefined") window.VanhanhChatCache = api;
+  if (typeof window !== "undefined") window.NaotaChatCache = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })();

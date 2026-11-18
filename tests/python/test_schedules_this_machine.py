@@ -2,7 +2,7 @@
 
     python tests/python/test_schedules_this_machine.py      (no network)
 
-Reminders and loops sync to every machine through the brain repo, so each machine running Vanhanh fired them once.
+Reminders and loops sync to every machine through the brain repo, so each machine running Naota fired them once.
 The switch lives in settings.json (never synced): off on one machine, the others keep running the schedule.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
@@ -11,7 +11,7 @@ import os
 import sys
 import tempfile
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-sched-here-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-sched-here-")
 
 import config as cfgmod   # noqa: E402
 import main               # noqa: E402

@@ -10,7 +10,7 @@ Hai báo cáo:
    thư mục đó vào /data/home (volume sẵn có, KHÔNG cần user sửa compose).
 2. "Người mới cài không có codex... kết nối được nhưng không sử dụng được" - hai lỗ:
    image từng phát hành với codex cài best-effort (lỗi bị nuốt bằng `|| echo`), và thẻ
-   Codex báo "Đã kết nối" thuần theo OAuth token (Vanhanh tự lo, không cần binary) nên
+   Codex báo "Đã kết nối" thuần theo OAuth token (Naota tự lo, không cần binary) nên
    thiếu binary vẫn xanh, vào chat mới vỡ. Fix: build thiếu codex phải ĐỎ, và thẻ
    Models lộ cli_found để cảnh báo ngay tại chỗ.
 """
@@ -40,10 +40,17 @@ check("có docker/entrypoint.sh", EP.is_file())
 check("entrypoint có quyền thực thi (git giữ bit +x)", os.access(EP, os.X_OK))
 
 
-def chay_ep(home, persist, cmd=("sh", "-c", "echo DA_CHAY")):
+def chay_ep(home, persist, cmd=("sh", "-c", "echo DA_CHAY"), node_major=None):
     # Tự cài agy/grok TẮT ở đây: test này canh việc giữ HOME, không được ra mạng thật.
     # Phần tự cài có test riêng với curl giả: test_docker_tu_cai_cli.py.
-    env = dict(os.environ, HOME=str(home), VANHANH_HOME_PERSIST=str(persist), VANHANH_AUTO_INSTALL_CLIS="0")
+    env = dict(os.environ, HOME=str(home), NAOTA_HOME_PERSIST=str(persist), NAOTA_AUTO_INSTALL_CLIS="0")
+    if node_major is not None:
+        # A stand-in `node` first on PATH, so the test decides which Node major the "image" has.
+        gia = Path(home).parent / f"node-gia-{node_major}"
+        gia.mkdir(exist_ok=True)
+        (gia / "node").write_text(f"#!/bin/sh\necho {node_major}\n")
+        os.chmod(gia / "node", 0o755)
+        env["PATH"] = str(gia) + os.pathsep + env.get("PATH", "")
     return subprocess.run(["sh", str(EP), *cmd], env=env, capture_output=True,
                           text=True, timeout=30)
 
@@ -72,7 +79,7 @@ else:
         check("entrypoint exec lệnh chính (server vẫn lên)", r.returncode == 0
               and "DA_CHAY" in r.stdout)
         # `.gemini` vào danh sách từ khi đó: `agy` để cấu hình MCP ở
-        # ~/.gemini/config/mcp_config.json (chỗ Vanhanh đấu hub vào) và token OAuth của MCP
+        # ~/.gemini/config/mcp_config.json (chỗ Naota đấu hub vào) và token OAuth của MCP
         # ở đó. Thiếu nó thì cập nhật xong là mất sạch kết nối MCP người dùng tự thêm.
         # `.grok` vào danh sách từ khi đó. Lỗi đã gặp: mỗi lần nâng cấp bản mới thì grok lại bị logout. Đúng hạng lỗi của `agy` trước đó, chỉ khó thấy hơn một
         # bậc - binary `grok` nằm ở ~/.local/bin nên VẪN CÒN sau update, thẻ Models vẫn báo
@@ -115,6 +122,40 @@ else:
         check("nội dung volume THẮNG nội dung home mới (không mất đăng nhập)",
               (persist / ".antigravity" / "auth.db").read_text() == "token-cu")
 
+        # 2026-11-13: what npx and uvx installed for the MCP sources lives through an update too. Lost with the
+        # container, every such source reinstalled itself right after each update, all at once, and the VPS froze.
+        home5 = Path(td) / "home5"
+        (home5 / ".npm" / "_npx" / "abc123" / "node_modules" / "some-mcp").mkdir(parents=True)
+        (home5 / ".npm" / "_npx" / "abc123" / "node_modules" / "some-mcp" / "package.json").write_text("{}")
+        (home5 / ".npm" / "_cacache").mkdir()
+        (home5 / ".npm" / "_cacache" / "tarball").write_text("tgz")
+        (home5 / ".cache" / "uv" / "archive-v0").mkdir(parents=True)
+        (home5 / ".cache" / "uv" / "archive-v0" / "wheel").write_text("whl")
+        persist5 = Path(td) / "data5" / "home"
+        chay_ep(home5, persist5, node_major=22)
+        for d in (".npm", ".cache"):
+            check(f"CANARY: ~/{d} becomes a link into the volume",
+                  (home5 / d).is_symlink() and str((home5 / d).resolve()).startswith(str(persist5.resolve())))
+        home6 = Path(td) / "home6"
+        home6.mkdir()
+        r6 = chay_ep(home6, persist5, node_major=22)
+        check("CANARY: after an 'update' (new HOME) the packages npx installed are still there",
+              r6.returncode == 0
+              and (home6 / ".npm" / "_npx" / "abc123" / "node_modules" / "some-mcp" / "package.json").is_file())
+        check("CANARY: and so is what uvx downloaded",
+              (home6 / ".cache" / "uv" / "archive-v0" / "wheel").read_text() == "whl")
+        check("the Node major the packages were installed under is recorded",
+              (persist5 / ".npm" / ".naota-node-major").read_text().strip() == "22")
+        home7 = Path(td) / "home7"
+        home7.mkdir()
+        r7 = chay_ep(home7, persist5, node_major=24)
+        check("an update to another Node major drops the installed packages (built for the old one)",
+              r7.returncode == 0 and not (persist5 / ".npm" / "_npx").exists())
+        check("but keeps the download cache, so the reinstall needs little network",
+              (persist5 / ".npm" / "_cacache" / "tarball").read_text() == "tgz")
+        check("and records the new major",
+              (persist5 / ".npm" / ".naota-node-major").read_text().strip() == "24")
+
         # /data hỏng (mkdir fail) → bỏ link nhưng server VẪN LÊN, không chết app.
         hong = Path(td) / "chan.txt"
         hong.write_text("file thường, không mkdir con được")
@@ -137,8 +178,8 @@ check("ENTRYPOINT chạy qua entrypoint.sh", "/app/docker/entrypoint.sh" in df)
 # triệu chứng trông giống hệt lỗi đăng nhập nên đi lần nhầm hướng (đã xảy ra hai lần).
 _ep = EP.read_text(encoding="utf-8")
 _dong_for = next((l for l in _ep.splitlines() if l.startswith("for d in ")), "")
-for _d in (".local", ".antigravity", ".config", ".gemini", ".grok"):
-    check(f"CANARY: entrypoint còn giữ {_d} trong danh sách", _d in _dong_for)
+for _d in (".local", ".antigravity", ".config", ".gemini", ".grok", ".npm", ".cache"):
+    check(f"CANARY: entrypoint còn giữ {_d} trong danh sách", _d in _dong_for.replace(";", " ").split())
 
 # ---- Trang Models nói thật khi thiếu binary ----
 src = (SERVER / "main.py").read_text(encoding="utf-8")

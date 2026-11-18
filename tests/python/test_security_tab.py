@@ -2,15 +2,15 @@
 
     python tests/run.py security_tab      (no network)
 
-A VPS Vanhanh had its username, password and 2FA changed by someone who edited settings.json on the server. The owner
+A VPS Naota had its username, password and 2FA changed by someone who edited settings.json on the server. The owner
 stayed signed in, nothing logged when or from where, and the way back was a Python one-liner in a root terminal.
 This file pins what now exists:
 
 1. Security log: sign-ins (ok, wrong password, wrong code), account changes, with IP and device, never a secret.
 2. Sign-in from a network never seen before is an alert for the owner.
 3. Security tab data (/auth/security): devices signed in, sign out one or all others; browser session only.
-4. settings.json account block edited outside Vanhanh: every session ends, the event is logged and alerted.
-5. VANHANH_RESET_2FA turns 2FA off once per value.
+4. settings.json account block edited outside Naota: every session ends, the event is logged and alerted.
+5. NAOTA_RESET_2FA turns 2FA off once per value.
 6. AI engines are refused when a command or a tool call touches a secret file (secret_guard.py).
 7. Hostinger compose: port 7777 listens on 127.0.0.1 once DOMAIN_NAME is set.
 """
@@ -20,10 +20,10 @@ import os
 import tempfile
 import time
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-sec-tab-")
-os.environ["VANHANH_REQUIRE_LOGIN"] = "1"
-os.environ.pop("VANHANH_ADMIN_PASSWORD", None)
-os.environ.pop("VANHANH_RESET_2FA", None)
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-sec-tab-")
+os.environ["NAOTA_REQUIRE_LOGIN"] = "1"
+os.environ.pop("NAOTA_ADMIN_PASSWORD", None)
+os.environ.pop("NAOTA_RESET_2FA", None)
 
 from fastapi.testclient import TestClient   # noqa: E402
 import config as c          # noqa: E402
@@ -137,7 +137,7 @@ check("username change logged with the old name",
 check("username change is an alert", any(x["event"] == "username_changed" for x in security_log.drain_alerts()))
 
 # ============================================================
-# 4. settings.json edited outside Vanhanh
+# 4. settings.json edited outside Naota
 # ============================================================
 check("a stamp of the account block exists", (c.STATE_DIR / ".auth_stamp.json").is_file())
 check("nothing reported while the file matches", c.auth_guard_check(grace=0) is None)
@@ -163,27 +163,27 @@ c.SETTINGS_PATH.write_text(json.dumps(raw, ensure_ascii=False, indent=2), encodi
 check("grace: first sight of a mismatch waits", c.auth_guard_check(grace=0.2) is None)
 time.sleep(0.25)
 check("grace: still mismatched later -> reported", c.auth_guard_check(grace=0.2) is not None)
-# Changes through Vanhanh are never "outside".
+# Changes through Naota are never "outside".
 set_account(pw="matkhau-moi-1", user="owner")
-check("a write through Vanhanh is not an outside edit", c.auth_guard_check(grace=0) is None)
+check("a write through Naota is not an outside edit", c.auth_guard_check(grace=0) is None)
 
 # ============================================================
-# 5. VANHANH_RESET_2FA
+# 5. NAOTA_RESET_2FA
 # ============================================================
 c.totp_set(secret=totp.sinh_secret(), enabled=True, recovery=["aaaa-bbbb"], last_step=0)
 check("2FA on before the reset", c.totp_enabled())
 c.new_session()
-os.environ["VANHANH_RESET_2FA"] = "1"
-check("VANHANH_RESET_2FA turns 2FA off", c.reset_2fa_from_env() == "reset" and not c.totp_enabled())
+os.environ["NAOTA_RESET_2FA"] = "1"
+check("NAOTA_RESET_2FA turns 2FA off", c.reset_2fa_from_env() == "reset" and not c.totp_enabled())
 check("and ends every session", len(c.SESSIONS) == 0)
 check("account itself is kept", c.verify_password("matkhau-moi-1") and c.read_settings()["auth"]["username"] == "owner")
 c.totp_set(secret=totp.sinh_secret(), enabled=True, recovery=["cccc-dddd"], last_step=0)
 check("same value left in the environment does NOT wipe the new 2FA", c.reset_2fa_from_env() == "" and c.totp_enabled())
-os.environ["VANHANH_RESET_2FA"] = "2026-11-09"
+os.environ["NAOTA_RESET_2FA"] = "2026-11-09"
 check("a new value applies again", c.reset_2fa_from_env() == "reset" and not c.totp_enabled())
-os.environ["VANHANH_RESET_2FA"] = "0"
+os.environ["NAOTA_RESET_2FA"] = "0"
 check("'0' does nothing", c.reset_2fa_from_env() == "")
-os.environ.pop("VANHANH_RESET_2FA", None)
+os.environ.pop("NAOTA_RESET_2FA", None)
 check("the reset never counts as an outside edit", c.auth_guard_check(grace=0) is None)
 
 # ============================================================
@@ -193,7 +193,7 @@ st = str(c.STATE_DIR)
 for cmd in (f"cat {st}/settings.json", f"cd {st} && sed -i 's/a/b/' settings.json",
             "python3 -c \"print(open('/data/state/.secret_key').read())\"", "cat /data/state/se\"tt\"ings.json",
             "cat ~/.codex/auth.json", "cat ~/.claude/.credentials.json", "echo k >> /root/.ssh/authorized_keys",
-            "grep token $VANHANH_STATE_DIR/settings.json", f"cp {st}/.sessions.json /tmp/x"):
+            "grep token $NAOTA_STATE_DIR/settings.json", f"cp {st}/.sessions.json /tmp/x"):
     check(f"guard refuses: {cmd[:50]}", secret_guard.check_text(cmd) != "")
 for cmd in ("cat .vscode/settings.json", "npm test", "ls /data/state", "git status", "python -m pytest tests/"):
     check(f"guard lets through: {cmd}", secret_guard.check_text(cmd) == "")
@@ -202,12 +202,12 @@ check("Claude Read of settings.json in the state dir refused",
 check("Claude Grep with the state dir as path refused",
       secret_guard.check_tool("Grep", {"path": st, "pattern": "settings"}) != "")
 check("Claude Edit of a note in the brain allowed", secret_guard.check_tool("Edit", {"file_path": "/brains/x/a.md"}) == "")
-wd = tempfile.mkdtemp(prefix="vanhanh-sec-term-")
+wd = tempfile.mkdtemp(prefix="naota-sec-term-")
 out = coding_terminal.chay(f"cat {st}/settings.json", "sec-test", [wd])
-check("vanhanh_terminal refuses it at every level", out.startswith("ERROR") and "file bí mật" in out, out[:120])
-check("vanhanh_terminal refusal is in the security log", events("agent_secret_blocked"))
+check("naota_terminal refuses it at every level", out.startswith("ERROR") and "file bí mật" in out, out[:120])
+check("naota_terminal refusal is in the security log", events("agent_secret_blocked"))
 out = coding_terminal.chay("echo hello", "sec-test", [wd])
-check("vanhanh_terminal still runs ordinary commands", "hello" in out, out[:120])
+check("naota_terminal still runs ordinary commands", "hello" in out, out[:120])
 
 import asyncio  # noqa: E402
 import claude_cli  # noqa: E402
@@ -215,14 +215,14 @@ import claude_secret_hook  # noqa: E402
 import claude_sdk_engine  # noqa: E402
 claude_secret_hook.install()
 check("hook installed on ClaudeSDK._options without editing the pinned claude_sdk_engine.py",
-      getattr(claude_sdk_engine.ClaudeSDK._options, "_vanhanh_secret_hook", False))
+      getattr(claude_sdk_engine.ClaudeSDK._options, "_naota_secret_hook", False))
 opts = claude_sdk_engine.ClaudeSDK(system_prompt="x", cwd=wd, tag="chat:t")._options()
 pre = (getattr(opts, "hooks", None) or {}).get("PreToolUse") or []
 check("every Claude turn carries the secret-guard PreToolUse hook",
       any(claude_secret_hook.secret_guard_hook in (m.hooks or []) for m in pre))
 check("installing twice does not stack the wrapper",
       claude_secret_hook.install() and not getattr(getattr(claude_sdk_engine.ClaudeSDK._options, "__wrapped__", None),
-                                                   "_vanhanh_secret_hook", False))
+                                                   "_naota_secret_hook", False))
 deny = asyncio.run(claude_secret_hook.secret_guard_hook(
     {"tool_name": "Bash", "tool_input": {"command": f"cat {st}/settings.json"}}, "t1", None))
 check("hook denies Bash on settings.json",
@@ -238,7 +238,7 @@ check("claude_cli installs the hook where it builds every Claude engine",
 # ============================================================
 yml = (ROOT / "docker-compose.hostinger.yml").read_text(encoding="utf-8")
 check("Hostinger compose binds 7777 to 127.0.0.1 when DOMAIN_NAME is set",
-      '"${DOMAIN_NAME:+127.0.0.1:}${VANHANH_HOST_PORT:-7777}:7777"' in yml)
+      '"${DOMAIN_NAME:+127.0.0.1:}${NAOTA_HOST_PORT:-7777}:7777"' in yml)
 
 # ============================================================
 # 8. Dashboard: Security tab with devices and history

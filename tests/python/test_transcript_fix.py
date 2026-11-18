@@ -3,15 +3,16 @@
     python tests/run.py transcript_fix
 
 No network: the model call (`transcript_fix._ask_model`) is replaced by fakes. Pins: rules always run (Nauta OS ->
-Vanhanh, Groq kept), Groq wins when its key is set, otherwise the background model only when it is an API with a key,
-a model that rewrites the sentence or fails falls back to the rules, and the route never errors.
+Naota, Groq kept), Groq wins when its key is set, otherwise the background model only when it is an API with a key,
+a model that rewrites the sentence or fails falls back to the rules, and the route never errors. 2026-11-12: a model
+that turns an English sentence into Vietnamese is refused too.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
 import asyncio
 import os
 import tempfile
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-fix-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-fix-"))
 
 import main  # noqa: E402
 import transcript_fix  # noqa: E402
@@ -45,7 +46,7 @@ check("background model is Claude Code: rules only",
 
 # ---- rules only ----
 r = fix({"model": {}}, "tôi hỏi Nauta OS nhé")
-check("rules: Nauta OS -> VANHANH", r == {"text": "tôi hỏi VANHANH nhé", "source": "rules", "ai": False})
+check("rules: Nauta OS -> NAOTA", r == {"text": "tôi hỏi NAOTA nhé", "source": "rules", "ai": False})
 check("rules: Groq is kept, not turned into Grok", fix({"model": {}}, "tôi dùng Groq")["text"] == "tôi dùng Groq")
 check("empty text stays empty", fix({"model": {}}, "  ")["text"] == "")
 
@@ -54,14 +55,14 @@ seen = []
 
 
 async def fake_ok(pick, sentence, terms):
-    seen.append((pick[0], sentence, "Vanhanh" in terms))
+    seen.append((pick[0], sentence, "Naota" in terms))
     return sentence.replace("Clod", "Claude")
 
 
 transcript_fix._ask_model = fake_ok
 r = fix({"model": {"groq_api_key": "gk"}}, "mở Clod giúp Nauta OS")
-check("model: gets the rules' output and the AI terms", seen and seen[-1] == ("groq", "mở Clod giúp VANHANH", True))
-check("model: its fix is returned", r == {"text": "mở Claude giúp VANHANH", "source": "groq", "ai": True})
+check("model: gets the rules' output and the AI terms", seen and seen[-1] == ("groq", "mở Clod giúp NAOTA", True))
+check("model: its fix is returned", r == {"text": "mở Claude giúp NAOTA", "source": "groq", "ai": True})
 n = len(seen)
 fix({"model": {"groq_api_key": "gk"}}, "mở Clod giúp Nauta OS")
 check("model: the same sentence is answered from the cache", len(seen) == n)
@@ -76,13 +77,24 @@ r = fix({"model": {"groq_api_key": "gk"}}, "báo cáo hôm nay")
 check("model rewrites the sentence: rules kept", r == {"text": "báo cáo hôm nay", "source": "rules", "ai": False})
 
 
+async def fake_translate(pick, sentence, terms):
+    return "Tôi không biết vì sao vấn đề này tồn tại"
+
+
+transcript_fix._ask_model = fake_translate
+r = fix({"model": {"groq_api_key": "gk"}}, "i don't know why this problem exists")
+check("model translates English into Vietnamese: rules kept",
+      r == {"text": "i don't know why this problem exists", "source": "rules", "ai": False})
+check("the system prompt says to keep the language", "không dịch" in transcript_fix.SYSTEM_PROMPT)
+
+
 async def fake_fail(pick, sentence, terms):
     raise RuntimeError("down")
 
 
 transcript_fix._ask_model = fake_fail
-r = fix({"model": {"groq_api_key": "gk"}}, "Vân Hạnh ơi")
-check("model fails: rules kept, no error", r == {"text": "Vanhanh ơi", "source": "rules", "ai": False})
+r = fix({"model": {"groq_api_key": "gk"}}, "Nauta ơi")
+check("model fails: rules kept, no error", r == {"text": "Naota ơi", "source": "rules", "ai": False})
 check("is_safe_fix: a one-word fix is fine", transcript_fix.is_safe_fix("mở Grox giúp tôi", "mở Grok giúp tôi"))
 check("is_safe_fix: empty is refused", not transcript_fix.is_safe_fix("a b", ""))
 
@@ -90,7 +102,7 @@ check("is_safe_fix: empty is refused", not transcript_fix.is_safe_fix("a b", "")
 main.cfgmod.read_settings = lambda: {"model": {}}
 res = client.post("/stt/fix", json={"text": "Nauta OS ơi"})
 check("/stt/fix: 200 with the fixed text", res.status_code == 200 and res.json() == {
-    "ok": True, "text": "VANHANH ơi", "source": "rules", "ai": False})
+    "ok": True, "text": "NAOTA ơi", "source": "rules", "ai": False})
 res = client.post("/stt/fix", content=b"not json", headers={"Content-Type": "application/json"})
 check("/stt/fix: broken body -> ok=false, no error", res.status_code == 200 and res.json()["ok"] is False)
 

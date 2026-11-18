@@ -2,7 +2,7 @@
 
     python tests/python/test_turn_plan.py
 
-Claude's app shows a Plan checklist beside a long task and Vanhanh showed nothing, though Claude Code,
+Claude's app shows a Plan checklist beside a long task and Naota showed nothing, though Claude Code,
 Codex and Grok already make that list. These checks pin how each engine's shape becomes one plan op, and that main.py
 and the Codex readers really pass it on.
 """

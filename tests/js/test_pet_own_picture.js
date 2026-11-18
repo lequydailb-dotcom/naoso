@@ -1,5 +1,5 @@
 /* Mascot own picture: the pet shows an uploaded picture cut to its shape, and the same picture can
-   become the browser tab icon so several Vanhanh open side by side tell apart.
+   become the browser tab icon so several Naota open side by side tell apart.
 
        node tests/js/test_pet_own_picture.js
 
@@ -30,7 +30,7 @@ function node() {
 }
 
 const win = {
-  VanhanhPet: null, matchMedia: () => ({ matches: false, addEventListener() {} }),
+  NaotaPet: null, matchMedia: () => ({ matches: false, addEventListener() {} }),
   addEventListener() {}, dispatchEvent() {}, innerWidth: 1280, innerHeight: 800,
 };
 const iconLinks = [];
@@ -40,7 +40,7 @@ const head = {
   appendChild: (l) => { l.parentNode = { removeChild: (x) => iconLinks.splice(iconLinks.indexOf(x), 1) }; iconLinks.push(l); },
 };
 const doc = {
-  documentElement: { dataset: { vanhanhTheme: "dark" }, getAttribute: () => "dark", classList: { contains: () => false } },
+  documentElement: { dataset: { naotaTheme: "dark" }, getAttribute: () => "dark", classList: { contains: () => false } },
   addEventListener() {}, querySelectorAll: () => [], querySelector: () => node(), head,
   getElementById: () => node(), createElement: () => node(), createElementNS: () => node(), body: node(),
 };
@@ -50,7 +50,7 @@ new Function("window", "document", "localStorage", "navigator", "matchMedia",
   fs.readFileSync(path.join(ROOT, "dashboard", "pet.js"), "utf8"))(
   win, doc, { getItem: () => null, setItem() {} }, { userAgent: "node" }, win.matchMedia,
   () => 0, () => {}, () => ({ getPropertyValue: () => "" }), () => new Promise(() => {}));
-const P = win.VanhanhPet;
+const P = win.NaotaPet;
 check("pet.js loads", !!P);
 
 const NAME = "0123456789abcdef0123.webp";
@@ -71,7 +71,7 @@ check("mascot editor has the upload button", ed0.indexOf("data-pet-upload") >= 0
 check("no tab icon switch before a picture exists", ed0.indexOf("data-pet-favicon") < 0);
 const ed1 = P.editorHtml(Object.assign(P.get(), { image: NAME }), { size: true, vanh: true, image: true });
 check("tab icon switch shows with a picture, on by default", /data-pet-favicon checked/.test(ed1));
-check("button back to the Vanhanh face shows with a picture", ed1.indexOf("data-pet-unimg") >= 0);
+check("button back to the Naota face shows with a picture", ed1.indexOf("data-pet-unimg") >= 0);
 check("shape picker previews the picture", (ed1.match(/<image href="\/avatars\//g) || []).length >= 6);
 const edOff = P.editorHtml(Object.assign(P.get(), { image: NAME, favicon: false }), { image: true });
 check("switch reflects favicon:false", edOff.indexOf("data-pet-favicon>") >= 0 && !/data-pet-favicon checked/.test(edOff));

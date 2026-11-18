@@ -6,7 +6,7 @@ No network: Graph is faked. Guarded, in order of what would hurt most if it brok
 
   1. Comments are threads like Pancake shows them: a top-level comment opens conversation
      `cmt:<comment id>`, a reply under it joins that same conversation, the Page's own comments
-     (every reply Vanhanh sends) are skipped, so the bot never answers itself.
+     (every reply Naota sends) are skipped, so the bot never answers itself.
   2. Sending to a comment conversation posts a reply under the top-level comment, never a
      Messenger message, and shows no typing indicator.
   3. Modes: "reply" runs a bot turn told the comment is public, "inbox" only records it,
@@ -26,7 +26,7 @@ import sys
 import tempfile
 from urllib.parse import parse_qs, urlparse
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-messenger-cmt-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-messenger-cmt-")
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -72,7 +72,7 @@ top = messenger_bot.comment_event(change(TOP, POST)["value"], PAGE)
 rep = messenger_bot.comment_event(change(REPLY, TOP)["value"], PAGE)
 check("a top-level comment is its own thread", top and top["root_id"] == TOP, top)
 check("a reply under it joins that thread", rep and rep["root_id"] == TOP, rep)
-check("the Page's own comment (a reply Vanhanh sent) is skipped",
+check("the Page's own comment (a reply Naota sent) is skipped",
       messenger_bot.comment_event(change("555_102", TOP, who=PAGE)["value"], PAGE) is None)
 check("an edited comment is skipped", messenger_bot.comment_event(change(TOP, POST, verb="edited")["value"], PAGE) is None)
 check("a reaction or a post is skipped",
@@ -145,9 +145,8 @@ check("reply mode: the bot gets the comment text in the thread's conversation",
       and m.get("user_name") == "Chị Lan" and m.get("message_id") == REPLY, seen)
 check("reply mode: the model is told the reply is public, the inbox title names the post",
       "CÔNG KHAI" in m.get("ghi_chu_dau", "") and "Áo thun" in m.get("chat_title", ""), m)
-check("reply mode: the comment is liked, then the answer goes under the top-level comment as plain text, once",
-      calls == [(f"{REPLY}/likes", {}),
-                (f"{TOP}/comments", {"message": "Dạ 150k ạ, chị nhắn Page để em tư vấn thêm nhé."})], calls)
+check("reply mode: the answer goes under the top-level comment as plain text, once",
+      calls == [(f"{TOP}/comments", {"message": "Dạ 150k ạ, chị nhắn Page để em tư vấn thêm nhé."})], calls)
 check("reply mode: no seen marker or typing on a comment", not any(c[1].get("sender_action") for c in calls), calls)
 
 calls, seen = run(_comment_turn("inbox", top))
@@ -185,7 +184,7 @@ check("a reply typed in the inbox goes under the comment",
 
 async def _photo_refused():
     bot = messenger_bot.MessengerBot({"page_id": PAGE, "access_token": TOKEN, "app_secret": SECRET}, "", None)
-    p = os.path.join(os.environ["VANHANH_STATE_DIR"], "bang-gia.pdf")
+    p = os.path.join(os.environ["NAOTA_STATE_DIR"], "bang-gia.pdf")
     with open(p, "wb") as f:
         f.write(b"%PDF-1.4")
     return await bot.send_file(p, "", chat="cmt:" + TOP)
@@ -227,6 +226,13 @@ check("login asks for the posting permission", "pages_manage_posts" in messenger
 check("posting row: warning when pages_manage_posts is missing, green when present",
       messenger_setup.posts_item(["pages_messaging"])["ok"] is None
       and messenger_setup.posts_item(["pages_manage_posts"])["ok"] is True)
+# Post insights are optional; the row only warns.
+check("login keeps read_insights out of the always-asked permissions",
+      "read_insights" not in messenger_oauth.SCOPES and messenger_oauth.INSIGHTS_SCOPES == ("read_insights",))
+check("insights row: warning when read_insights is missing, green when present",
+      messenger_setup.insights_item(["pages_messaging"])["ok"] is None
+      and messenger_setup.insights_item(["pages_messaging"])["detail"] == "read_insights"
+      and messenger_setup.insights_item(["read_insights"])["ok"] is True)
 
 
 # ============================================================
@@ -234,7 +240,7 @@ check("posting row: warning when pages_manage_posts is missing, green when prese
 # ============================================================
 APP = "987654321098765"
 APP_SECRET = "d" * 32
-REDIRECT = "https://vanhanh.example.com/messenger/oauth/callback"
+REDIRECT = "https://naota.example.com/messenger/oauth/callback"
 USER_SHORT = "EAAshort" + "s" * 50
 USER_LONG = "EAAlong" + "l" * 50
 
@@ -282,6 +288,12 @@ check("start returns the Facebook login address with redirect, state and scopes"
       and "pages_messaging" in q["scope"][0] and "pages_manage_engagement" in q["scope"][0], r)
 state = r["state"]
 check("before the callback the login is pending", messenger_oauth.result(state)["status"] == "pending")
+check("read_insights is not asked unless ticked", "read_insights" not in q["scope"][0].split(","), q["scope"])
+r_in = run(with_fb(lambda c: messenger_oauth.start(APP, APP_SECRET, REDIRECT, client=c, insights=True)))
+q_in = parse_qs(urlparse(r_in.get("url", "")).query)
+check("ticked, start asks for read_insights on top of the Page permissions",
+      r_in["ok"] and "read_insights" in q_in["scope"][0].split(",") and "pages_messaging" in q_in["scope"][0]
+      and messenger_oauth._pending[r_in["state"]]["insights"] is True, q_in)
 
 r = run(with_fb(lambda c: messenger_oauth.callback(state, "bad", client=c)))
 check("a bad code reads as an error, also through result()",
@@ -348,7 +360,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 # Behind the owner's HTTPS proxy, as on a VPS: the request arrives on localhost with forwarded headers.
 client = TestClient(main.app, base_url="http://localhost",
-                    headers={"x-forwarded-proto": "https", "x-forwarded-host": "vanhanh.example.com"})
+                    headers={"x-forwarded-proto": "https", "x-forwarded-host": "naota.example.com"})
 check("callback and privacy page are public paths",
       "/messenger/oauth/callback" in main._AUTH_PUBLIC_EXACT and "/messenger/privacy" in main._AUTH_PUBLIC_EXACT)
 r = client.get("/messenger/privacy")
@@ -356,8 +368,24 @@ check("privacy page served as HTML", r.status_code == 200 and "Privacy policy" i
 r = client.get("/messenger/setup")
 d = r.json()
 check("setup gives the redirect address and the privacy address to paste into Meta",
-      d.get("oauth_redirect") == "https://vanhanh.example.com/messenger/oauth/callback"
-      and d.get("privacy_url") == "https://vanhanh.example.com/messenger/privacy", d)
+      d.get("oauth_redirect") == "https://naota.example.com/messenger/oauth/callback"
+      and d.get("privacy_url") == "https://naota.example.com/messenger/privacy", d)
+seen_start = []
+
+
+async def fake_start(*a, **kw):
+    seen_start.append(kw)
+    return {"ok": True, "state": "st-x", "url": "https://www.facebook.com/x"}
+
+orig_start = main.messenger_oauth.start
+main.messenger_oauth.start = fake_start
+try:
+    client.post("/messenger/oauth/start", json={"app_id": APP, "app_secret": APP_SECRET, "insights": True})
+    client.post("/messenger/oauth/start", json={"app_id": APP, "app_secret": APP_SECRET, "instagram": True})
+finally:
+    main.messenger_oauth.start = orig_start
+check("the start route passes the insights tick on its own, apart from Instagram",
+      [(k.get("insights"), k.get("instagram")) for k in seen_start] == [(True, False), (False, True)], seen_start)
 r = client.get("/messenger/oauth/callback", params={"state": "nope", "code": "x"})
 check("callback with an unknown state shows an error page, not a crash",
       r.status_code == 200 and "⚠" in r.text, r.status_code)
@@ -388,7 +416,7 @@ d = r.json()
 res = {x["page_id"]: x for x in d.get("results", [])}
 check("finish connects only Pages from the login, with the long-lived user token",
       [c[0] for c in seen_connect] == [PAGE, "222333444555"] and seen_connect[0][1] == USER_LONG
-      and seen_connect[0][2] == "https://vanhanh.example.com/messenger/webhook", seen_connect)
+      and seen_connect[0][2] == "https://naota.example.com/messenger/webhook", seen_connect)
 check("finish reports each Page on its own", d.get("ok") and res[PAGE]["ok"] and not res["222333444555"]["ok"]
       and res["222333444555"]["error"] == "lỗi 210", d)
 acc = channel_accounts.owner_of(PAGE, "messenger") or {}

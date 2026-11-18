@@ -3,18 +3,18 @@
     python tests/run.py project_vao_prompt      (KHÔNG mạng, không spawn engine)
 
 Đợt 1 dựng kho. Đợt này là chỗ Project thôi làm cái nhãn lọc giao diện và bắt đầu đổi hành xử
-của Vanhanh. Hai quyết định đi KHÁC spec, cả hai đều vì cùng một lý do: một tính năng nửa vời
+của Naota. Hai quyết định đi KHÁC spec, cả hai đều vì cùng một lý do: một tính năng nửa vời
 tệ hơn không có, vì người dùng tin là nó đang chạy.
 
 1. GHIM FILE = NẠP NỘI DUNG, không phải đổi thứ tự danh sách.
    Spec chỉ liệt kê tên và thêm chữ "(ghim)". Nhưng người ghim bảng giá vào project thì họ
-   nghĩ Vanhanh đã BIẾT bảng giá, chứ không phải biết TÊN nó. Ghim mà chỉ đổi thứ tự là một cái
+   nghĩ Naota đã BIẾT bảng giá, chứ không phải biết TÊN nó. Ghim mà chỉ đổi thứ tự là một cái
    nút trông như công tắc nhưng không nối vào đâu.
 
 2. HƯỚNG DẪN ĐI CẢ VÀO ĐƯỜNG TIẾT KIỆM (Phase 8), danh sách tài liệu thì không.
    Spec bỏ cả khối khi Phase 8 rút gọn. Nhưng hướng dẫn là HỢP ĐỒNG HÀNH XỬ ("luôn trả lời
    bằng tiếng Anh"), vài trăm ký tự; bỏ nó nghĩa là cùng một project, cùng một câu hỏi, lượt
-   này tuân luật lượt kia không - và người dùng không có cách nào biết vì sao, chỉ thấy Vanhanh
+   này tuân luật lượt kia không - và người dùng không có cách nào biết vì sao, chỉ thấy Naota
    bướng. Danh sách tài liệu là dữ liệu tra cứu, bỏ thì cùng lắm model phải hỏi lại.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
@@ -22,9 +22,9 @@ import os
 import tempfile
 from pathlib import Path
 
-_STATE = tempfile.mkdtemp(prefix="vanhanh-pvp-")
-os.environ.setdefault("VANHANH_STATE_DIR", _STATE)
-_BRAINS = tempfile.mkdtemp(prefix="vanhanh-pvp-brains-")
+_STATE = tempfile.mkdtemp(prefix="naota-pvp-")
+os.environ.setdefault("NAOTA_STATE_DIR", _STATE)
+_BRAINS = tempfile.mkdtemp(prefix="naota-pvp-brains-")
 os.environ["BRAINS_DIR"] = _BRAINS
 
 import main  # noqa: E402
@@ -84,10 +84,10 @@ check("có tiêu đề nói rõ đây là nội dung nạp sẵn",
 st.set_project_file_pinned(pid, f_png, True)
 kh = main._project_block(pid)
 check("ảnh ghim KHÔNG bị nhét byte nhị phân vào prompt", "\x89PNG" not in kh)
-# Im lặng bỏ qua là tệ nhất: người dùng ghim xong tưởng Vanhanh đã đọc rồi ngạc nhiên vì nó
+# Im lặng bỏ qua là tệ nhất: người dùng ghim xong tưởng Naota đã đọc rồi ngạc nhiên vì nó
 # trả lời như chưa thấy gì.
 check("mà nói thẳng là tệp nhị phân, tự mở khi cần",
-      "tệp nhị phân" in kh and "logo.png" in kh, kh)
+      "binary" in kh and "logo.png" in kh, kh)
 
 # ============================================================
 # 4. Trần: một project không được nuốt hết ngân sách token
@@ -98,7 +98,7 @@ st.set_project_file_pinned(pid, f_to, True)
 kh = main._project_block(pid)
 check(f"file ghim to bị cắt về trần {main.PROJECT_GHIM_FILE_MAX} ký tự",
       kh.count("A") <= main.PROJECT_GHIM_FILE_MAX + 50, kh.count("A"))
-check("và nói rõ là đã cắt bớt chứ không lặng lẽ", "đã cắt bớt" in kh, kh[-400:])
+check("và nói rõ là đã cắt bớt chứ không lặng lẽ", "(clipped)" in kh, kh[-400:])
 check("tổng nội dung ghim không vượt trần chung",
       len(kh) < main.PROJECT_GHIM_TONG_MAX + 3000, len(kh))
 
@@ -109,9 +109,9 @@ check("link có trong danh sách", "doi-thu-mau.vn" in kh, kh)
 # Chỉ 3 engine CLI có tool duyệt web. Sáu engine API nhìn thấy URL mà không mở được, nên
 # prompt phải nói trước, không thì model bịa nội dung trang cho xong.
 check("dặn thẳng: không có tool duyệt web thì nói, đừng đoán",
-      "đừng đoán nội dung trang" in kh, kh)
+      "instead of guessing the page" in kh, kh)
 check("và dặn đừng đoán nội dung file từ cái tên",
-      "đừng đoán nội dung từ cái tên" in kh, kh)
+      "do not guess its content from its name" in kh, kh)
 
 # ============================================================
 # 6. Đường tiết kiệm: giữ HƯỚNG DẪN, bỏ danh sách tài liệu
@@ -133,7 +133,7 @@ khong = main.build_system_prompt("brain")
 check("không truyền project_id thì KHÔNG có khối nào (hành vi cũ nguyên vẹn)",
       "TRÁNH XANH DƯƠNG" not in khong)
 check("project_id sai cũng không làm hỏng prompt",
-      "Vanhanh" in main.build_system_prompt("brain", project_id="bay-gio-khong-co"))
+      "Naota" in main.build_system_prompt("brain", project_id="bay-gio-khong-co"))
 
 # ============================================================
 # 8. CANARY nguồn: ba chỗ gọi THẬT phải truyền project_id

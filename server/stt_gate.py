@@ -1,14 +1,14 @@
-"""Score a vendor's new speech-to-text model against the one in use before Vanhanh switches to it.
+"""Score a vendor's new speech-to-text model against the one in use before Naota switches to it.
 
 Owner: "do the self-scoring, in the lean form". stt_models finds a vendor's newest ear model by its name; newest is
 not always best, and the risk that matters is a new model tuned for English that hears a Vietnamese sentence with
 English words worse than the old one. So before a switch both models hear the same short set of sentences and the
-new one is taken only when it is not worse. Runs only when a vendor shows a model Vanhanh has not judged yet (a few
+new one is taken only when it is not worse. Runs only when a vendor shows a model Naota has not judged yet (a few
 times a year per vendor), never on a schedule, and only between models of the SAME vendor: which vendor's ear goes
 first stays the owner's rule (the main brain's vendor first, voice_ear.order).
 
 The set: the sentences of tools/stt_bench/corpus.py (Vietnamese, English, and Vietnamese with English terms, read
-whole by a Vietnamese voice, which is how people here speak them), made once with the free Edge voices Vanhanh already
+whole by a Vietnamese voice, which is how people here speak them), made once with the free Edge voices Naota already
 reads aloud with, kept in <STATE_DIR>/stt_gate/. Recordings of a real voice in <STATE_DIR>/stt_bench/real/refs.tsv
 (the bench's own format: "file<TAB>exact sentence<TAB>term|term") are used too, and weigh like any other clip.
 
@@ -36,7 +36,7 @@ SENTENCES = (
     ("e2", EN_VOICE, "Send an email to the customer about the new order", ()),
     ("m1", VI_VOICE, "Mở dashboard Facebook ads rồi báo cáo ROAS tuần này", ("dashboard", "Facebook ads", "ROAS")),
     ("m2", VI_VOICE, "Gửi email cho khách hàng về đơn hàng mới", ("email",)),
-    ("m3", VI_VOICE, "Vanhanh ơi check inventory của sản phẩm bulong", ("Vanhanh", "check", "inventory")),
+    ("m3", VI_VOICE, "Naota ơi check inventory của sản phẩm bulong", ("Naota", "check", "inventory")),
     ("m4", VI_VOICE, "Tạo một workflow mới tên là daily report", ("workflow", "daily report")),
     ("m5", VI_VOICE, "Kết nối MCP của Pancake POS", ("MCP", "Pancake POS")),
     ("m6", VI_VOICE, "Đặt reminder họp team lúc ba giờ chiều", ("reminder", "team")),
@@ -99,7 +99,7 @@ def score(rows: list) -> dict:
 
 def verdict(current: dict, candidate: dict) -> tuple:
     """(take the candidate?, reason). Not worse than the model in use is enough: when equal, the newer one wins, so
-    Vanhanh keeps up with the vendor."""
+    Naota keeps up with the vendor."""
     clips = max(1, candidate.get("clips") or 0)
     if candidate.get("answered", 0) / clips < MIN_ANSWERED:
         return False, "candidate_fails"

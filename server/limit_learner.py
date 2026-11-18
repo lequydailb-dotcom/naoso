@@ -3,7 +3,7 @@
 Vì sao module này tồn tại, và vì sao thiết kế cũ sai:
 
 Bản trước bắt người vận hành KHAI TRƯỚC hạn mức của từng model rồi mới bảo vệ được. Nghĩa
-là Vanhanh chỉ đỡ được nhà cung cấp nào đã có người ngồi tra tài liệu và điền số. Cắm model
+là Naota chỉ đỡ được nhà cung cấp nào đã có người ngồi tra tài liệu và điền số. Cắm model
 mới, hoặc nhà cung cấp đổi hạn mức, là lại thủng.
 
 Nhưng chính câu báo lỗi đã chứa sự thật chính xác nhất:
@@ -110,7 +110,7 @@ class LimitFact:
 # Mỗi mẫu: (tên, kind, regex có 2 nhóm số theo thứ tự limit, requested).
 # Viết riêng từng nhà cung cấp thay vì một regex tham lam: một regex "bắt mọi số gần chữ
 # limit" sẽ đọc nhầm số tiền, số giây, số phiên bản - và đọc nhầm hạn mức thì tệ hơn không
-# đọc, vì nó làm Vanhanh tự bóp mình xuống một con số bịa.
+# đọc, vì nó làm Naota tự bóp mình xuống một con số bịa.
 # Groq (và vài endpoint OpenAI-compatible khác) dùng CHUNG một khuôn cho cả bốn chiều siết:
 #
 #   ... on tokens per minute (TPM): Limit 12000, Used 8812, Requested 4701. try again in 7.5s
@@ -263,11 +263,11 @@ def parse_limit_error(status_code: int, body: str) -> LimitFact | None:
 #     tương tự). Vượt thì co prompt bao nhiêu cũng vô ích - phải CHỜ tới mốc reset, hoặc
 #     đổi sang bộ não khác.
 #
-# Nhầm hai cái này là Vanhanh sẽ cắt ngữ cảnh của người dùng để giải một bài toán mà cắt không
+# Nhầm hai cái này là Naota sẽ cắt ngữ cảnh của người dùng để giải một bài toán mà cắt không
 # giải được, rồi vẫn lỗi - tệ hơn hẳn việc nói thẳng "gói này hết lượt, tới HH:MM mới lại".
 #
 # Ranh giới trung thực: đây là NHẬN DẠNG CÂU CHỮ do CLI in ra, không phải một API hạn mức.
-# Nhà cung cấp đổi cách viết thì mẫu sẽ trượt, và khi trượt thì Vanhanh phải trả nguyên văn lỗi
+# Nhà cung cấp đổi cách viết thì mẫu sẽ trượt, và khi trượt thì Naota phải trả nguyên văn lỗi
 # gốc chứ không được bịa ra một mốc reset. Vì vậy `reset_epoch` = 0 nghĩa là KHÔNG BIẾT, và
 # mọi chỗ hiển thị đều phải xử đúng nghĩa "không biết" thay vì đoán bừa.
 
@@ -321,7 +321,7 @@ _SUB_PATTERNS: tuple[tuple[str, str, str, re.Pattern], ...] = (
     # your 5-hour limit resets 7am (UTC)": the plan window is spent and so is the extra-usage cap the owner set.
     # Unmatched, a customer chatbot sent it to a customer as its reply. The link's
     # `cc_cli_limit_message` tag marks any later wording of the same notice. "monthly spend" stays required: an ads
-    # report saying "you've reached your spending limit" is about an ad account, not about Vanhanh's plan. No engine
+    # report saying "you've reached your spending limit" is about an ad account, not about Naota's plan. No engine
     # named, so the hint decides.
     ("sub_spend", "", "",
      re.compile(r"(?:hit|reached)\s+your\s+monthly\s+spend\s+limit|cc_cli_limit_message", re.I)),
@@ -340,7 +340,7 @@ _SUB_PATTERNS: tuple[tuple[str, str, str, re.Pattern], ...] = (
 # giới từ mà nhà cung cấp hay in: "resets 12pm (UTC)". Bắt buộc có "at|in|on" thì mốc reset duy
 # nhất người dùng được cho biết lại rơi mất, và câu báo hoá ra "không biết lúc nào reset".
 # Nhưng bỏ hẳn giới từ thì "Please reset your API key at console.anthropic.com" cũng lọt, và
-# Vanhanh đi khoe "Nhà cung cấp nói: reset your API key at console" - nên dạng không giới từ phải
+# Naota đi khoe "Nhà cung cấp nói: reset your API key at console" - nên dạng không giới từ phải
 # có NGAY một mốc thời gian đằng sau (số, midnight, noon, tomorrow).
 _RESET_TEXT_RE = re.compile(
     r"(resets?\s+(?:at|in|on)\s+[^.\n|]{1,60}"
@@ -360,10 +360,12 @@ _RESET_IN_RE = re.compile(
 _MONTHS = {"jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6, "jul": 7, "aug": 8,
            "sep": 9, "oct": 10, "nov": 11, "dec": 12}
 # "try again at 8:42 AM" is the ChatGPT plan's form (Codex CLI and ChatGPT Live).
+# A reset days away carries the year too: "try again at Nov 13th, 2026 3:32 PM". Without the optional year the
+# whole sentence matched nothing and the reset read as "unknown".
 _RESET_CLOCK_RE = re.compile(
     r"\b(?:resets?\s+(?:at\s+|on\s+)?|try\s+again\s+(?:at|on)\s+)"
     r"(?:(?P<mon>jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(?P<day>\d{1,2})"
-    r"(?:st|nd|rd|th)?,?\s+(?:at\s+)?)?"
+    r"(?:st|nd|rd|th)?(?:,?\s+(?P<year>\d{4}))?,?\s+(?:at\s+)?)?"
     r"(?:(?P<word>midnight|noon)\b"
     r"|(?P<h>\d{1,2})(?::(?P<m>\d{2}))?\s*(?P<ap>[ap])\.?m\b\.?"
     r"|(?P<h24>\d{1,2}):(?P<m24>\d{2})\b)"
@@ -395,7 +397,8 @@ def _reset_clock_epoch(text: str, now: float) -> float:
 
     The time is read in the tz in parentheses; without one (or with a name this machine cannot
     resolve), in this machine's local time, which is the clock the CLI itself printed in. A time
-    already past today means tomorrow; a past date means next year."""
+    already past today means tomorrow; a past date means next year, unless the text names the year itself
+    (then a date already past reads as "unknown")."""
     m = _RESET_CLOCK_RE.search(text or "")
     if not m:
         return 0.0
@@ -418,9 +421,15 @@ def _reset_clock_epoch(text: str, now: float) -> float:
     cand = base.replace(hour=hour, minute=minute, second=0, microsecond=0)
     try:
         if m.group("mon"):
-            cand = cand.replace(month=_MONTHS[m.group("mon")[:3].lower()], day=int(m.group("day")))
-            if cand <= base:
-                cand = cand.replace(year=cand.year + 1)
+            month, day = _MONTHS[m.group("mon")[:3].lower()], int(m.group("day"))
+            if m.group("year"):
+                cand = cand.replace(year=int(m.group("year")), month=month, day=day)
+                if cand <= base:
+                    return 0.0      # the stated date is already past: never roll a stated year forward
+            else:
+                cand = cand.replace(month=month, day=day)
+                if cand <= base:
+                    cand = cand.replace(year=cand.year + 1)
         elif cand <= base:
             cand = cand + timedelta(days=1)
     except ValueError:

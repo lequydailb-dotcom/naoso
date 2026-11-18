@@ -13,7 +13,7 @@ import sys
 import tempfile
 from urllib.parse import urlparse, parse_qs
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-oauthtest-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-oauthtest-")
 
 import openai_oauth     # noqa: E402
 

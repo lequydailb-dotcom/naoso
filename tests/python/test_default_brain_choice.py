@@ -12,7 +12,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="nt-defbrain-state-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="nt-defbrain-state-"))
 BR = Path(tempfile.mkdtemp(prefix="nt-defbrain-brains-")).resolve()
 os.environ["BRAINS_DIR"] = str(BR)
 

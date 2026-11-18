@@ -34,12 +34,12 @@ vm.runInContext(infoTip, ctx);
 ctx.t = (k, v) => (vi[k] || k).replace(/\{(\w+)\}/g, (m, n) => (v && v[n] != null ? v[n] : m));
 ctx.esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 vm.runInContext(cut("  function agentInfoHtml(x, tg) {", "  // Nối dây cho các nút vừa vẽ.") + "\nwindow.agentInfoHtml = agentInfoHtml;", ctx);
-const h = ctx.window.agentInfoHtml({ slug: "may", name: "Vanhanh Mây <b>", role: "Trợ lý chăm khách qua Zalo và Telegram, trả lời 24/7" },
+const h = ctx.window.agentInfoHtml({ slug: "may", name: "Naota Mây <b>", role: "Trợ lý chăm khách qua Zalo và Telegram, trả lời 24/7" },
   ["Bán hàng"]);
-check("(i) button with a label naming the assistant", h.includes('class="info-i"') && h.includes("Mô tả Vanhanh Mây &lt;b&gt;"));
+check("(i) button with a label naming the assistant", h.includes('class="info-i"') && h.includes("Mô tả Naota Mây &lt;b&gt;"));
 check("hidden block holds the whole role, the name and the tags",
   /<div class="info-body" hidden>/.test(h) && h.includes("Trợ lý chăm khách qua Zalo và Telegram, trả lời 24/7")
-  && h.includes('<p class="ws-info-name"><strong>Vanhanh Mây &lt;b&gt;</strong></p>') && h.includes("Bán hàng"));
+  && h.includes('<p class="ws-info-name"><strong>Naota Mây &lt;b&gt;</strong></p>') && h.includes("Bán hàng"));
 check("button and block are siblings, so info-tip.js finds the block",
   /^<span class="ws-item-info"><button[^]*<\/button><div class="info-body" hidden>/.test(h));
 check("no role and no tags: no (i)", ctx.window.agentInfoHtml({ slug: "x", name: "X", role: "  " }, []) === "");

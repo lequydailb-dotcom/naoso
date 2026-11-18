@@ -1,4 +1,4 @@
-// Vanhanh UI sounds and their on/off switch ("nút tích nghe thật đã tai, nút phá băng cũng vậy",
+// Naota UI sounds and their on/off switch ("nút tích nghe thật đã tai, nút phá băng cũng vậy",
 // then "để bật tắt âm thanh vào chỗ gần với chỗ sáng tối, không cần có volume chỉnh chỉ cần nút thôi").
 // Sounds are made on the spot with Web Audio, no sound file: a crisp click and a bright ding for a tick, a rising
 // sparkle for a priority, a whoosh into a warm chord when a habit lights, ice cracking then glass chimes when it thaws,
@@ -6,7 +6,7 @@
 // off means silent everywhere. Quiet on a hidden tab; a browser without Web Audio simply stays silent.
 (function () {
   "use strict";
-  var KEY = "vanhanh.sound";
+  var KEY = "naota.sound";
   var AC_ = null, NOISE_ = null;
   function audioCtx() {
     if (AC_ === false) return null;
@@ -95,10 +95,10 @@
     var b = document.getElementById("soundToggle");
     if (b) b.addEventListener("click", toggle);
     sync();
-    window.addEventListener("vanhanh:i18n", sync);
+    window.addEventListener("naota:i18n", sync);
     window.addEventListener("storage", function (e) { if (e.key === KEY) sync(); });   // other tabs follow
   }
-  window.VanhanhSound = { on: on, set: set, play: play, _sfxPlay: sfxPlay };
+  window.NaotaSound = { on: on, set: set, play: play, _sfxPlay: sfxPlay };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
 })();

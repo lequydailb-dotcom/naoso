@@ -1,5 +1,6 @@
 // Wiring giao diện chat trên điện thoại (mobile-only, <=860px):
-//  - dời chip model (#mbOpen + #mbPop) và nút + (#newChatBtn) lên header khi mobile, trả về khi desktop
+//  - phone: the notification bell and the + button (#newChatBtn) move into the header, a computer gets them back
+//    (the model chip stays in the composer next to the Effort chip on every width since 2026-11-09)
 //  - dời nhóm Hệ thống (chọn brain, đổi tông, loa, dải HỆ THỐNG) vào đáy ngăn kéo
 //  - nút + = hội thoại mới (reset) + focus ô nhập
 //  - ngăn kéo điều hướng: nút menu mở/đóng, backdrop / Esc / chọn mục thì đóng
@@ -9,14 +10,10 @@
     var mq = window.matchMedia("(max-width: 860px)");
     var railEl = document.querySelector(".rail");
 
-    // ---- 1) Header mobile: dời chip model + nút + lên header; desktop trả về chỗ cũ ----
-    var mbOpen = document.getElementById("mbOpen");
-    var mbPop = document.getElementById("mbPop");
-    // The model chip lives in the composer's button row (#cpChips); its picker (#mbPop) is a child of the card.
-    var chipHost = document.getElementById("cpChips");
-    var mbPopHome = mbPop ? mbPop.parentElement : null;
+    // ---- 1) Phone header: the bell and the + button move up into it; a computer gets them back ----
+    // The model chip (#mbOpen) and its picker (#mbPop) are NOT moved: on a phone it sits next to the Effort chip, as on a
+    // computer. A phone once carried the chip in the header; the composer is now compact enough to hold it.
     var headerRoot = document.querySelector(".hud-top");
-    var headerCenter = document.querySelector(".hud-center-title");
     var newChatBtn = document.getElementById("newChatBtn");
     var origNewChatParent = newChatBtn ? newChatBtn.parentElement : null;
     var notificationTrigger = document.getElementById("notificationTrigger");
@@ -30,18 +27,8 @@
           if (navToggle && navToggle.parentElement === headerRoot) headerRoot.insertBefore(notificationTrigger, navToggle.nextSibling);
           else headerRoot.insertBefore(notificationTrigger, headerRoot.firstChild);
         }
-        // back in the header on a phone (it had once been moved into the composer, which was worse).
-        if (mbOpen && mbOpen.parentElement !== headerRoot) {
-          if (headerCenter && headerCenter.parentElement === headerRoot) headerRoot.insertBefore(mbOpen, headerCenter.nextSibling);
-          else headerRoot.appendChild(mbOpen);
-          if (mbPop) headerRoot.insertBefore(mbPop, mbOpen.nextSibling);
-        }
         if (newChatBtn && newChatBtn.parentElement !== headerRoot) headerRoot.appendChild(newChatBtn);  // + về cuối header
       } else {
-        if (mbOpen && chipHost && mbOpen.parentElement !== chipHost) {
-          chipHost.insertBefore(mbOpen, document.getElementById("effBtn"));
-          if (mbPop && mbPopHome) mbPopHome.appendChild(mbPop);
-        }
         if (newChatBtn && origNewChatParent && newChatBtn.parentElement !== origNewChatParent) origNewChatParent.appendChild(newChatBtn);
         if (notificationTrigger && origNotificationParent && notificationTrigger.parentElement !== origNotificationParent) {
           if (origNotificationNext && origNotificationNext.parentElement === origNotificationParent) {
@@ -129,7 +116,7 @@
     // Cả hai chuỗi đều TRA TỪ ĐIỂN lúc vẽ. Bản trước CHỤP placeholder từ DOM một lần lúc
     // khởi tạo, mà lúc đó applyDom() của i18n chưa chạy, nên cái chụp được luôn là chuỗi
     // tiếng Việt viết cứng trong index.html - chọn tiếng Anh thì ô nhập trên màn rộng vẫn
-    // nói tiếng Việt. Từ điển về sau DOMContentLoaded nên còn phải vẽ lại ở "vanhanh:i18n".
+    // nói tiếng Việt. Từ điển về sau DOMContentLoaded nên còn phải vẽ lại ở "naota:i18n".
     var chatInput = document.getElementById("chatInput");
     function setPlaceholder() {
       if (!chatInput) return;
@@ -137,7 +124,7 @@
       var chu = window.t(khoa);
       // t() trả về CHÍNH cái khoá khi từ điển chưa về (hoặc thiếu khoá). Ghi đè lúc đó là
       // in "bar.input_ph" vào ô nhập, tệ hơn hẳn chuỗi tiếng Việt sẵn trong HTML. Bỏ qua,
-      // lượt "vanhanh:i18n" bên dưới sẽ vẽ lại bằng chữ thật.
+      // lượt "naota:i18n" bên dưới sẽ vẽ lại bằng chữ thật.
       if (chu === khoa) return;
       chatInput.setAttribute("placeholder", chu);
     }
@@ -179,7 +166,7 @@
     function refitGraph(delay) {
       setTimeout(function () {
         try {
-          var g = window.__vanhanhGraph;
+          var g = window.__naotaGraph;
           if (g && typeof g.refit === "function") g.refit(360);
           else if (g && typeof g.resize === "function") g.resize();
         } catch (e) {}
@@ -293,9 +280,9 @@
     function applyAll() { placeHeader(); placeSystem(); setPlaceholder(); syncBrainMax(); syncKeyboard(); }
     applyAll();
 
-    // Từ điển nạp bất đồng bộ (i18n/index.js fetch xong mới bắn "vanhanh:i18n"), nên mọi chữ
+    // Từ điển nạp bất đồng bộ (i18n/index.js fetch xong mới bắn "naota:i18n"), nên mọi chữ
     // vẽ bằng window.t() ở trên đều chạy TRƯỚC khi có từ điển. Vẽ lại đúng những chỗ đó.
-    window.addEventListener("vanhanh:i18n", function () {
+    window.addEventListener("naota:i18n", function () {
       setPlaceholder();
       if (sysLbl) sysLbl.textContent = window.t("nav.group.bo_nao");
       if (brainMaxBtn) {

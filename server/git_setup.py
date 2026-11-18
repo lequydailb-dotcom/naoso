@@ -11,9 +11,9 @@ connecting GitHub, and install it first when the machine has none. So "Connect" 
                    Windows  winget (per-user scope), then the official Git for Windows installer with /CURRENTUSER,
                             the same two steps packaging/windows/bootstrap.ps1 takes. Neither needs admin rights.
                    macOS    Homebrew when it is there, then Apple's developer tools (`xcode-select --install` opens
-                            Apple's own dialog; the person presses Install and Vanhanh waits for it).
+                            Apple's own dialog; the person presses Install and Naota waits for it).
                    Linux    the system package manager, only as root (Docker, most VPS) or with password-less sudo.
-                 Empty = Vanhanh cannot do it here; manual() is the command to run by hand.
+                 Empty = Naota cannot do it here; manual() is the command to run by hand.
     start()      runs the plan in a worker thread (an install takes minutes). state() reports it for the dashboard.
 
 macOS ships /usr/bin/git as a stub that only asks to install the developer tools, and running it pops Apple's dialog.
@@ -39,7 +39,7 @@ import winproc
 
 # winget, brew and apt can each take several minutes on a slow line; past this the step counts as failed.
 INSTALL_TIMEOUT = 20 * 60
-# How long Vanhanh waits for the person to press Install in Apple's dialog and for the download that follows.
+# How long Naota waits for the person to press Install in Apple's dialog and for the download that follows.
 XCODE_WAIT = 30 * 60
 XCODE_POLL = 5
 GFW_LATEST = "https://api.github.com/repos/git-for-windows/git/releases/latest"
@@ -175,7 +175,7 @@ def _is_root() -> bool:
 
 
 def _sudo_ok() -> bool:
-    """Password-less sudo: Vanhanh must never sit on a password prompt nobody can see."""
+    """Password-less sudo: Naota must never sit on a password prompt nobody can see."""
     if not shutil.which("sudo"):
         return False
     try:
@@ -201,7 +201,7 @@ def _brew() -> str:
 
 
 def plan() -> List[str]:
-    """The install methods to try here, best first. Empty when Vanhanh cannot install git on this machine by itself."""
+    """The install methods to try here, best first. Empty when Naota cannot install git on this machine by itself."""
     if os.name == "nt":
         return (["winget"] if shutil.which("winget") else []) + ["installer"]
     if sys.platform == "darwin":
@@ -214,7 +214,7 @@ def plan() -> List[str]:
 
 
 def manual() -> str:
-    """The command to run by hand when Vanhanh cannot install git itself."""
+    """The command to run by hand when Naota cannot install git itself."""
     if os.name == "nt":
         return "winget install -e --id Git.Git"
     if sys.platform == "darwin":
@@ -267,7 +267,7 @@ def _install_official() -> None:
     """Git for Windows from its GitHub release, silent and per user (installs into %LOCALAPPDATA%\\Programs\\Git)."""
     import httpx
     import config as cfgmod
-    headers = {"Accept": "application/vnd.github+json", "User-Agent": "vanhanh"}
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "naota"}
     try:
         rel = httpx.get(GFW_LATEST, headers=headers, timeout=60, follow_redirects=True)
         rel.raise_for_status()
@@ -281,7 +281,7 @@ def _install_official() -> None:
     dest = folder / str(asset["name"])
     try:
         sha = hashlib.sha256()
-        with httpx.stream("GET", str(asset["browser_download_url"]), headers={"User-Agent": "vanhanh"},
+        with httpx.stream("GET", str(asset["browser_download_url"]), headers={"User-Agent": "naota"},
                           timeout=120, follow_redirects=True) as r:
             r.raise_for_status()
             with open(dest, "wb") as f:

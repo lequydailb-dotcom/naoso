@@ -3,14 +3,14 @@
 READ ONLY. Nothing here writes to the brain, calls a model or runs a job. Sources, all under the brain:
 
     agents/*.md                  staff (name, role, tags; the first tag is the department)
-    Vanhanh/loops/*.md             loops (name, enabled, interval_min, quiet_hours, optional group)
-    Vanhanh/loop-state.json        per loop: last_run, last_status, fail_streak, auto_paused_reason
-    Vanhanh/loop-log/<day>.md      one "## [YYYY-MM-DD HH:MM] <slug> ..." block per run, with
+    Naota/loops/*.md             loops (name, enabled, interval_min, quiet_hours, optional group)
+    Naota/loop-state.json        per loop: last_run, last_status, fail_streak, auto_paused_reason
+    Naota/loop-log/<day>.md      one "## [YYYY-MM-DD HH:MM] <slug> ..." block per run, with
                                  "**Kiểm chứng:** ✓/✗" when the run was verified
-    Vanhanh/reminders.json         reminders (label, cron/repeat_min/due_at, status, error)
-    Vanhanh/work-log.jsonl         one line per reminder run (ts, ref, title, status)
-    Vanhanh/kanban.json            the task board (tasks waiting for the owner)
-    Vanhanh/office.json            optional, written by the owner: {"targets": {"<job id>": runs/day}}
+    Naota/reminders.json         reminders (label, cron/repeat_min/due_at, status, error)
+    Naota/work-log.jsonl         one line per reminder run (ts, ref, title, status)
+    Naota/kanban.json            the task board (tasks waiting for the owner)
+    Naota/office.json            optional, written by the owner: {"targets": {"<job id>": runs/day}}
 
 Rule for everything that leaves this module: no secret, token, key, chat id, script body or
 server path. Free text (run summaries, pause reasons, errors) goes through `scrub()`.
@@ -200,7 +200,7 @@ def _in_quiet(hour: int, quiet) -> bool:
 def build(brain: Path, now: float, tz: tzinfo, day: str = "", gather=None) -> dict:
     """`gather(day)` -> (teams, tasks, runs) for handoffs(); the server passes it, tests may leave it out."""
     brain = Path(brain)
-    nd = brain / "Vanhanh"
+    nd = brain / "Naota"
     today = _day_of(now, tz)
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", day or ""):
         day = today
@@ -441,12 +441,12 @@ def live(brain: Path, now: float, tz: tzinfo, loop_now: dict | None, rem_now: di
     """Everything running at this second, oldest first, read only and scrubbed like build().
 
     loop_now = {"slug", "since"} of the loop iteration running, rem_now = {reminder id: started_at},
-    tasks = the task-board cards (only "running" ones count), procs = shell work Vanhanh watches.
+    tasks = the task-board cards (only "running" ones count), procs = shell work Naota watches.
     Each item: {kind, id, name, since, since_at, secs}; `id` matches the job id in build() for
     loops and reminders, so the page can light the right desk.
     """
     brain = Path(brain)
-    nd = brain / "Vanhanh"
+    nd = brain / "Naota"
     today = _day_of(now, tz)
     items = []
 
@@ -504,11 +504,11 @@ _TASK_STATUS = {"running": "running", "done": "done", "cancelled": "cancelled", 
 
 
 def staff_names(brain: Path) -> dict:
-    """{slug: name} of the brain's assistants, from agents/*.md (old Vanhanh/agents/ as a fallback)."""
+    """{slug: name} of the brain's assistants, from agents/*.md (old Naota/agents/ as a fallback)."""
     brain = Path(brain)
     adir = brain / "agents"
     if not adir.is_dir():
-        adir = brain / "Vanhanh" / "agents"
+        adir = brain / "Naota" / "agents"
     out = {}
     for p in sorted(adir.glob("*.md")) if adir.is_dir() else []:
         out[p.stem] = str(frontmatter(_read(p)).get("name") or p.stem)

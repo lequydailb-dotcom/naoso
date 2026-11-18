@@ -3,7 +3,7 @@
 //     python tests/run.py --js agent_pulse_ui -v
 //
 // Hàm thuần chạy dưới node: bảng theo từng ngữ cảnh (trạng thái, bậc, lần xem xét, lý do thức, đổi nhịp trước/sau và
-// nguồn, phản hồi đã xử lý, nút), sổ đăng ký `VanhanhPulseParts` cho phần J/L, escape. Bộ đếm "đã xem" với đồng hồ giả:
+// nguồn, phản hồi đã xử lý, nút), sổ đăng ký `NaotaPulseParts` cho phần J/L, escape. Bộ đếm "đã xem" với đồng hồ giả:
 // ≥ 1,5 giây trong khung nhìn khi tab hiển thị, gom lô, mỗi tin một lần, tab ẩn thì không tính, ngữ cảnh không phải của
 // trợ lý thì thôi gửi. Cộng các chỗ nối: script, cột phải trang Cộng sự, dòng thành viên nhóm, khung tin nhóm, CSS, i18n.
 "use strict";
@@ -91,7 +91,7 @@ check("lỗi máy chủ: báo chưa lưu, không báo thành công", (function (
 const reg = [{ name: "judge", render: function (v) { return "<div class=\"jx\">" + v.agent_key + "</div>"; } },
   { name: "broken", render: function () { throw new Error("x"); } }];
 h = P.panelHtml(view, { registry: reg });
-check("sổ đăng ký VanhanhPulseParts: mục của phần J/L hiện trong bảng, mục lỗi không làm hỏng bảng",
+check("sổ đăng ký NaotaPulseParts: mục của phần J/L hiện trong bảng, mục lỗi không làm hỏng bảng",
   h.includes('data-part="judge"') && h.includes("ag_1") && !h.includes('data-part="broken"'), h);
 check("changeLine: sự kiện bật Auto, nguồn chủ", P.changeLine({ kind: "on", source: "owner" }).includes(vi["pulse.ev.on"])
   && P.changeLine({ kind: "on", source: "owner" }).includes(vi["pulse.by_owner"]));
@@ -193,7 +193,7 @@ function fakeTimers() {
     === JSON.stringify({ ctx: "team:tm_a", mid: 9, sid: "" }));
   check("contextOf: tin của chủ trong nhóm không theo dõi", SEEN.contextOf(el("tm-msg tm-msg-owner", { "data-mid": 9 }, box))
     === null);
-  check("contextOf: bong bóng trả lời chat riêng", SEEN.contextOf(el("msg-vanhanh", { "data-mid": 4, "data-sid": "s9" })).ctx
+  check("contextOf: bong bóng trả lời chat riêng", SEEN.contextOf(el("msg-naota", { "data-mid": 4, "data-sid": "s9" })).ctx
     === "session:s9");
   check("contextOf: phần tử khác không theo dõi", SEEN.contextOf(el("msg-user", { "data-mid": 4, "data-sid": "s9" })) === null);
 
@@ -222,8 +222,8 @@ function fakeTimers() {
   const idx = read("index.html"), ws = read("workspace.js"), tm = read("teams.js"), css = read("console.css");
   check("index.html nạp agent-pulse.js và pulse-seen.js", idx.includes("/static/agent-pulse.js?v=") &&
     idx.includes("/static/pulse-seen.js?v="));
-  check("trang Cộng sự: khung #wsPulse dưới Cộng hưởng và gắn VanhanhPulse.mount", ws.includes('id="wsPulse"') &&
-    ws.includes("VanhanhPulse.mount(ph"));
+  check("trang Cộng sự: khung #wsPulse dưới Cộng hưởng và gắn NaotaPulse.mount", ws.includes('id="wsPulse"') &&
+    ws.includes("NaotaPulse.mount(ph"));
   check("ngăn Nhóm: dòng thành viên mở ra có nhịp đúng nhóm (only: team:<id>)", tm.includes("data-pulse-ctx=\"team:") &&
     tm.includes("only: el.getAttribute(\"data-pulse-ctx\")"));
   check("khung tin nhóm mang mã nhóm cho sự kiện đã xem", tm.includes('setAttribute("data-seen-team"'));
@@ -245,6 +245,19 @@ function fakeTimers() {
   const dashes = Object.entries(vi).concat(Object.entries(en)).filter(([k, v]) => k.startsWith("pulse.") &&
     /[\u2013\u2014]/.test(v));
   check("không em dash, en dash trong chữ mới", dashes.length === 0 && !/[\u2013\u2014]/.test(pulseSrc));
+
+  // 2026-11-14 (Auto toàn quyền): mốc trợ lý tự hẹn hiện trên bảng đầy đủ và bản gọn, có escape, lọc theo ngữ cảnh.
+  const fu = Object.assign({}, view, { followups: [
+    { id: 1, context_ref: "dm:ag_1", due_at: 2000000000, note: "Kiểm bãi gửi xe <b>" },
+    { id: 2, context_ref: "team:tm_a", due_at: 2000003600, note: "Hỏi tiến độ" }] });
+  const full = P.panelHtml(fu, {});
+  check("mốc tự hẹn: bảng đầy đủ có tiêu đề và ghi chú đã escape", full.includes(vi["pulse.followups_title"])
+    && full.includes("Kiểm bãi gửi xe &lt;b&gt;") && !full.includes("<b>"));
+  const only = P.panelHtml(fu, { only: "team:tm_a" });
+  check("mốc tự hẹn: hàng một ngữ cảnh chỉ vẽ mốc của ngữ cảnh đó", only.includes("Hỏi tiến độ")
+    && !only.includes("Kiểm bãi gửi xe"));
+  check("mốc tự hẹn: bản gọn cũng hiện", P.compactHtml(fu, { registry: [] }).includes("Kiểm bãi gửi xe"));
+  check("không có mốc: không vẽ mục", P.followupsHtml([], {}) === "" && !P.panelHtml(view, {}).includes(vi["pulse.followups_title"]));
 
   console.log(fails ? `\n${fails} FAIL` : "\nALL OK");
   process.exit(fails ? 1 : 0);

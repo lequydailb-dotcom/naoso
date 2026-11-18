@@ -1,8 +1,8 @@
 """Security log of the owner account: who signed in, from where, and every change to the account.
 
-The username, password and 2FA of a VPS Vanhanh were changed by someone who edited
+The username, password and 2FA of a VPS Naota were changed by someone who edited
 settings.json on the server. Nothing recorded when it happened or from where: container logs are lost on every update
-and the only log Vanhanh kept (auth_audit.jsonl) covered API token probes. This module is the missing record.
+and the only log Naota kept (auth_audit.jsonl) covered API token probes. This module is the missing record.
 
 - One JSON line per event in STATE_DIR/security_log.jsonl. STATE_DIR is a volume on Docker/Hostinger, so the log
   survives updates and redeploys. Rotated at MAX_BYTES into security_log.1.jsonl (one old file kept).
@@ -63,7 +63,7 @@ def state_dir() -> Path:
         import config
         return Path(config.STATE_DIR)
     except Exception:  # noqa: BLE001 - config failing to import must not stop a security record
-        return Path(os.getenv("VANHANH_STATE_DIR", str(Path(__file__).parent)))
+        return Path(os.getenv("NAOTA_STATE_DIR", str(Path(__file__).parent)))
 
 
 def _log_path() -> Path:

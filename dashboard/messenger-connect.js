@@ -7,7 +7,7 @@
  *
  * Messenger used to be its own section under the connected list, with the form
  * opening inside the page. It now follows the page's own frame like every other service: a card in the "Available" grid
- * (`catCard`), the form in the shared connection dialog (`window.VanhanhConnModal`, from console.js), and the connected
+ * (`catCard`), the form in the shared connection dialog (`window.NaotaConnModal`, from console.js), and the connected
  * Pages as one card in the "Connected" list (`mount`), drawn only once a Page is connected.
  *
  * Log in with Facebook. The form now asks for the App ID and App secret only; the button opens Facebook's login in
@@ -49,9 +49,9 @@
     });
   }
   var ic = function (n) { return (typeof window !== "undefined" && window.ic) ? window.ic(n) : ""; };
-  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(tw("info.more")) : ""; }
+  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(tw("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.VanhanhInfo;
+    var J = typeof window !== "undefined" && window.NaotaInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
   function icon(name) {
@@ -60,9 +60,9 @@
   // Guides on GitHub: the Vietnamese interface opens docs/, every other language docs/en/.
   var GUIDE = { full: ["31-messenger.md", "31-messenger.md"], steps: ["31-messenger-tung-buoc.md", "31-messenger-step-by-step.md"] };
   function guideUrl(which) {
-    var vi = typeof window !== "undefined" && window.VanhanhI18n && window.VanhanhI18n.lang() === "vi";
+    var vi = typeof window !== "undefined" && window.NaotaI18n && window.NaotaI18n.lang() === "vi";
     var g = GUIDE[which];
-    return "https://github.com/lequydailb-dotcom/vanhanh/blob/main/docs/" + (vi ? g[0] : "en/" + g[1]);
+    return "https://github.com/vuongtex/naota/blob/main/docs/" + (vi ? g[0] : "en/" + g[1]);
   }
   function guideLink(which, key) {
     return '<a class="msc-guide" href="' + esc(guideUrl(which)) + '" target="_blank" rel="noopener">' + esc(tw(key)) + " ↗</a>";
@@ -204,6 +204,10 @@
       // refuses the whole login over its permissions).
       + '<label class="msc-ig-tick"><input type="checkbox" data-f-ig="1"> ' + esc(tw("msc.ig_tick")) + "</label>"
       + infoBtn() + infoBody(esc(tw("msc.ig_tick_how")))
+      // Post and Page insights: read_insights only when ticked, for the same reason as Instagram. Its own
+      // line; it reuses the Instagram tick's look.
+      + '<div><label class="msc-ig-tick"><input type="checkbox" data-f-insights="1"> ' + esc(tw("msc.insights_tick")) + "</label>"
+      + infoBtn() + infoBody(esc(tw("msc.insights_tick_how"))) + "</div>"
       + '<div class="lv-form-act"><button class="s-btn" type="button" data-f="login"' + (https ? "" : " disabled") + ">"
       + esc(tw("msc.login")) + "</button>"
       + '<button class="s-btn-ghost" type="button" data-f="cancel">' + esc(tw("msc.cancel")) + "</button>"
@@ -323,7 +327,7 @@
   }
 
   async function openThreadsForm() {
-    var M = typeof window !== "undefined" && window.VanhanhConnModal;
+    var M = typeof window !== "undefined" && window.NaotaConnModal;
     if (!M) return;
     if (!thSetup) await load();
     var m = M.open(M.head(esc(tw("th.dialog_head"))) + '<div class="conn-form">' + thFormHtml(thSetup || {}) + "</div>", 640);
@@ -422,7 +426,7 @@
 
   // Every connected Page with its Check / Repair / Renew buttons, in the dialog this page opens for every service.
   function openPages() {
-    var M = typeof window !== "undefined" && window.VanhanhConnModal;
+    var M = typeof window !== "undefined" && window.NaotaConnModal;
     var accounts = (setup && setup.accounts) || [];
     var threads = (thSetup && thSetup.accounts) || [];
     if (!M || (!accounts.length && !threads.length)) return;
@@ -481,8 +485,9 @@
     btn.disabled = true;
     msg.textContent = tw("msc.working");
     var igBox = form.querySelector("[data-f-ig]");
+    var insBox = form.querySelector("[data-f-insights]");
     var r = await api("/messenger/oauth/start", { app_id: appId, app_secret: secret, brain: brain(),
-      instagram: !!(igBox && igBox.checked) });
+      instagram: !!(igBox && igBox.checked), insights: !!(insBox && insBox.checked) });
     if (!r.ok) {
       btn.disabled = false;
       msg.textContent = r.error || tw("msc.err_net");
@@ -534,7 +539,7 @@
 
   // The form, in the same dialog every other service opens from this page.
   async function openForm(preset) {
-    var M = typeof window !== "undefined" && window.VanhanhConnModal;
+    var M = typeof window !== "undefined" && window.NaotaConnModal;
     if (!M) return;
     if (!setup) await load();
     var m = M.open(M.head(esc(tw("msc.dialog_head"))) + '<div class="conn-form">' + formHtml(setup || {}, preset) + "</div>", 640);
@@ -592,7 +597,7 @@
     if (!r || !r.ok) { slot.innerHTML = '<div class="lv-note">' + esc((r && r.error) || tw("msc.err_net")) + "</div>"; return; }
     if (r.bot_tat) window.alert(tw("msc.removed_bot_off", { bot: r.bot_tat }));
     await load();
-    var M = typeof window !== "undefined" && window.VanhanhConnModal;
+    var M = typeof window !== "undefined" && window.NaotaConnModal;
     if (M) M.close();
     if (((setup && setup.accounts) || []).length || ((thSetup && thSetup.accounts) || []).length) openPages();
   }
@@ -629,6 +634,6 @@
   var api_ = { mount: mount, openForm: openForm, catCard: catCard, groupHtml: groupHtml, checklistHtml: checklistHtml,
     summaryHtml: summaryHtml, accountHtml: accountHtml, formHtml: formHtml, addToConnCount: addToConnCount,
     openPages: openPages, pickHtml: pickHtml, appsHtml: appsHtml, thFormHtml: thFormHtml, thAccHtml: thAccHtml, openThreadsForm: openThreadsForm, resultsHtml: resultsHtml, commentSelect: commentSelect, guideUrl: guideUrl, igRowHtml: igRowHtml };
-  if (typeof window !== "undefined") window.VanhanhMessenger = api_;
+  if (typeof window !== "undefined") window.NaotaMessenger = api_;
   if (typeof module !== "undefined" && module.exports) module.exports = api_;
 })();

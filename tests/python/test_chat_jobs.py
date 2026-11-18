@@ -3,7 +3,7 @@
     python tests/run.py chat_jobs        (no network, the turn itself is faked)
 
 A caller on a serverless host pays for every second `/chat` holds the request open, and a dropped
-connection loses an answer Vanhanh already finished. What is pinned, through the real routes and the
+connection loses an answer Naota already finished. What is pinned, through the real routes and the
 real login middleware, with only `_cli_turn` faked:
   1. The same 400s as /chat come back before anything starts, and /chat itself still answers.
   2. A job answers at once with a job id, reads `running`, then `done` with the /chat payload.
@@ -23,8 +23,8 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-chat-jobs-")
-os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="vanhanh-chat-jobs-brains-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-chat-jobs-")
+os.environ["BRAINS_DIR"] = tempfile.mkdtemp(prefix="naota-chat-jobs-brains-")
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -180,7 +180,7 @@ with TestClient(main.app, base_url="http://localhost:7777") as cl:
     main.cfgmod.gate_active = lambda: True
 
 # ---------------------------------------------------------------- 7. restart and expiry
-store_path = Path(tempfile.mkdtemp(prefix="vanhanh-chat-jobs-store-")) / "chat_jobs.json"
+store_path = Path(tempfile.mkdtemp(prefix="naota-chat-jobs-store-")) / "chat_jobs.json"
 now = time.time()
 store_path.write_text(json.dumps({
     "cj_cut": {"owner": "owner", "lane": "cli:x", "status": "running", "boot": "old-process",

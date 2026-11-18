@@ -11,7 +11,10 @@ nói thẳng nguyên nhân là một tính năng, không phải trang trí.
 """
 import asyncio
 import json
+import os
+import re
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -24,16 +27,17 @@ _CHECK_TIMEOUT = 60       # trần một lần ping (stdio spawn nguội trên W
 
 _state: dict = {}         # conn_id -> {ok, kind, message, checked_at, tools}
 _task = None
+_main_loop = None       # the event loop `start()` ran on; a worker thread hands the owner notice to it (`_send`)
 
 # Bản tiếng Anh của các câu cố định bên dưới. `_state` và `_engines` vẫn GIỮ câu tiếng Việt
-# (`vanhanh_connections` của bộ não đọc chúng), chỉ lúc trả ra màn hình (`snapshot`,
+# (`naota_connections` của bộ não đọc chúng), chỉ lúc trả ra màn hình (`snapshot`,
 # `engines_snapshot`, `check_by_id`) mới chọn theo ngôn ngữ giao diện. Câu có phần động
 # (thiếu quyền gì) mang sẵn `message_en` trong bản ghi.
 _EN = {
     "Hết phiên đăng nhập - bấm Kết nối lại để đăng nhập lại.":
         "Signed out - click Reconnect to sign in again.",
-    "Không khởi động được trình kết nối trên máy chạy Vanhanh.":
-        "Could not start the connector on the machine running Vanhanh.",
+    "Không khởi động được trình kết nối trên máy chạy Naota.":
+        "Could not start the connector on the machine running Naota.",
     "Dịch vụ không phản hồi - có thể do mạng hoặc máy chủ dịch vụ.":
         "The service is not responding - possibly the network or the service's server.",
     "Lỗi không rõ": "Unknown error",
@@ -57,16 +61,16 @@ _EN = {
         "Still starting (a first run may be downloading its package) - not an error yet. Wait a "
         "moment, then click Check.",
     "Gói cài đặt của trình kết nối bị thiếu file (cài dở). Chờ khoảng hai phút rồi bấm Kiểm tra "
-    "để Vanhanh dọn bản hỏng và cài lại.":
+    "để Naota dọn bản hỏng và cài lại.":
         "The connector's installed package is missing files (an interrupted install). Wait about "
-        "two minutes, then click Check and Vanhanh removes the broken copy and installs it again.",
-    "Composio từ chối consumer key mà Vanhanh đang dùng. Vào Composio "
+        "two minutes, then click Check and Naota removes the broken copy and installs it again.",
+    "Composio từ chối consumer key mà Naota đang dùng. Vào Composio "
     "For You → Connect my agent, lấy key ck_*, nhập vào thẻ Composio "
-    "trong Vanhanh rồi bấm Kết nối hoặc Kết nối lại. Kết nối lại riêng "
+    "trong Naota rồi bấm Kết nối hoặc Kết nối lại. Kết nối lại riêng "
     "Calendar không thay đổi key này.":
-        "Composio rejected the consumer key Vanhanh is using. In Composio go to "
+        "Composio rejected the consumer key Naota is using. In Composio go to "
         "For You → Connect my agent, get a ck_* key, enter it on the Composio card "
-        "in Vanhanh, then click Connect or Reconnect. Reconnecting only "
+        "in Naota, then click Connect or Reconnect. Reconnecting only "
         "Calendar does not change this key.",
 }
 
@@ -84,7 +88,7 @@ def _hien(rec: dict) -> dict:
 
 # Thứ tự các nhánh CÓ Ý NGHĨA: auth soi trước (chuỗi 401/unauthorized đặc trưng),
 # spawn trước net (lỗi spawn stdio hay kèm chữ chung chung như "connection closed").
-_AUTH_HINTS = ("401", "unauthorized", "invalid_grant", "oauth session expired",
+_AUTH_HINTS = ("unauthorized", "invalid_grant", "oauth session expired",
                "token expired", "invalid token", "invalid_token", "authentication",
                "hết phiên đăng nhập")
 _SPAWN_HINTS = ("filenotfounderror", "no such file", "not recognized", "enoent",
@@ -92,7 +96,19 @@ _SPAWN_HINTS = ("filenotfounderror", "no such file", "not recognized", "enoent",
 _BROKEN_INSTALL_HINTS = ("module_not_found", "cannot find module", "err_module_not_found")
 _NET_HINTS = ("timeout", "timed out", "getaddrinfo", "connection refused",
               "connecterror", "connectionerror", "ssl", "network", "unreachable",
-              "connection closed", "server disconnected", "502", "503", "504")
+              "connection closed", "server disconnected")
+_NET_STATUS = ("502", "503", "504")
+
+
+def _has_status(low: str, *codes: str) -> bool:
+    """One of these HTTP status codes stands in the error text AS a code, not as digits inside something else.
+
+    The codes used to be plain substrings. An error text often carries a path, and a path can hold any digits: a
+    missing binary under `/tmp/jt-24013-x/` read as "401", so "could not start" was shown as "sign-in expired, click
+    Reconnect" (found 2026-11-10 through a CI run whose runner pid contained 401; the same happens to a user whose
+    install path does). A code counts only when no letter, digit, path separator, dot, dash or underscore touches it:
+    "HTTP 401", "(401)", "status_code=401" and "401 Unauthorized" still match."""
+    return any(re.search(r"(?<![\w/\\.\-])" + c + r"(?![\w/\\.\-])", low) for c in codes)
 
 
 def _is_npx(conn) -> bool:
@@ -110,13 +126,13 @@ def classify_error(err: str, conn=None) -> tuple[str, str]:
     (nút Kết nối lại) nên thà bỏ sót (rơi vào unknown) còn hơn bắt nhầm."""
     low = (err or "").lower()
     if (conn or {}).get("connector_id") == "composio" and (
-            "401" in low or "bearer token rejected" in low):
-        message = ("Composio từ chối consumer key mà Vanhanh đang dùng. Vào Composio "
+            _has_status(low, "401") or "bearer token rejected" in low):
+        message = ("Composio từ chối consumer key mà Naota đang dùng. Vào Composio "
                    "For You → Connect my agent, lấy key ck_*, nhập vào thẻ Composio "
-                   "trong Vanhanh rồi bấm Kết nối hoặc Kết nối lại. Kết nối lại riêng "
+                   "trong Naota rồi bấm Kết nối hoặc Kết nối lại. Kết nối lại riêng "
                    "Calendar không thay đổi key này.")
         return "auth", message
-    if any(s in low for s in _AUTH_HINTS):
+    if _has_status(low, "401") or any(s in low for s in _AUTH_HINTS):
         return "auth", "Hết phiên đăng nhập - bấm Kết nối lại để đăng nhập lại."
     # Node cannot load a module of the connector's own package: an install that was cut short
     # (see npx_cache). Checked before the generic spawn hints, which would only say "could not
@@ -125,12 +141,19 @@ def classify_error(err: str, conn=None) -> tuple[str, str]:
         # "Wait about two minutes": npx_cache leaves a folder touched in the last QUIET_SECONDS
         # alone (it may still be mid-install), so a Check right away would repair nothing.
         return "install", ("Gói cài đặt của trình kết nối bị thiếu file (cài dở). Chờ khoảng hai "
-                           "phút rồi bấm Kiểm tra để Vanhanh dọn bản hỏng và cài lại.")
+                           "phút rồi bấm Kiểm tra để Naota dọn bản hỏng và cài lại.")
     if any(s in low for s in _SPAWN_HINTS):
-        return "spawn", "Không khởi động được trình kết nối trên máy chạy Vanhanh."
-    if any(s in low for s in _NET_HINTS):
+        return "spawn", "Không khởi động được trình kết nối trên máy chạy Naota."
+    if _has_status(low, *_NET_STATUS) or any(s in low for s in _NET_HINTS):
         return "net", "Dịch vụ không phản hồi - có thể do mạng hoặc máy chủ dịch vụ."
     return "unknown", (err or "Lỗi không rõ").strip()[:160]
+
+
+def _oauth_facts(oauth_mcp, conn_id) -> tuple:
+    """(signed in, missing scopes) of one OAuth connection. The missing scopes are only asked for when signed in."""
+    if not oauth_mcp.status(conn_id).get("connected"):
+        return False, []
+    return True, list(oauth_mcp.scope_report(conn_id).get("missing") or [])
 
 
 async def check_one(conn, pool=None) -> dict:
@@ -143,7 +166,9 @@ async def check_one(conn, pool=None) -> dict:
     if (conn.get("auth") == "oauth"):
         try:
             import oauth_mcp
-            if not oauth_mcp.status(conn["id"]).get("connected"):
+            # Both calls read the token store: on a worker thread (2026-11-13, see `_loop`).
+            connected, missing = await asyncio.to_thread(_oauth_facts, oauth_mcp, conn["id"])
+            if not connected:
                 rec.update(kind="auth",
                            message="Chưa hoàn tất đăng nhập - bấm Kết nối lại để đăng nhập.")
                 _state[conn["id"]] = rec
@@ -151,17 +176,16 @@ async def check_one(conn, pool=None) -> dict:
             # Đăng nhập rồi nhưng token THIẾU PHẠM VI QUYỀN: tools/list của Google không cần
             # token nên ping bên dưới vẫn xanh, chỉ tool thật mới chết. Không soi ở đây thì
             # trang Kết nối nói dối là mọi thứ ổn (vụ Lịch thiếu calendar.events.freebusy).
-            missing = oauth_mcp.scope_report(conn["id"]).get("missing") or []
             if missing:
                 rec.update(kind="auth",
                            message="Thiếu quyền: " + ", ".join(oauth_mcp.short_scopes(missing))
                                    + " - bấm Kết nối lại và tick đủ mọi ô quyền. Google không"
-                                   " hiện ô tick nào (quyền cũ đã cấp) thì gỡ Vanhanh tại"
+                                   " hiện ô tick nào (quyền cũ đã cấp) thì gỡ Naota tại"
                                    " myaccount.google.com/permissions rồi kết nối lại.",
                            message_en="Missing permissions: "
                                       + ", ".join(oauth_mcp.short_scopes(missing))
                                       + " - click Reconnect and tick every permission box. If Google"
-                                      " shows no boxes (old permissions already granted), remove Vanhanh at"
+                                      " shows no boxes (old permissions already granted), remove Naota at"
                                       " myaccount.google.com/permissions and reconnect.")
                 _state[conn["id"]] = rec
                 return rec
@@ -184,7 +208,7 @@ async def check_one(conn, pool=None) -> dict:
         rec.update(ok=True, tools=len(tools))
         # Nối được nhưng hộp công cụ RỖNG thì không được tô xanh. Đèn xanh ghi "Hoạt động
         # bình thường (0 công cụ)" là câu nói dối tai hại nhất trang này: người dùng tin là
-        # nguồn ổn nên đi tìm lỗi ở chỗ khác, còn bộ não thì đọc `vanhanh_connections` thấy
+        # nguồn ổn nên đi tìm lỗi ở chỗ khác, còn bộ não thì đọc `naota_connections` thấy
         # "ổn" rồi kết luận bừa (vụ: "POS ổn nhưng không có tool nào" - model quay ra
         # đổ cho brain chưa gắn nguồn). Máy chủ có thật mà không có tool là hỏng, nói thẳng.
         if not tools:
@@ -220,7 +244,7 @@ async def check_one(conn, pool=None) -> dict:
 
 async def check_by_id(conn_id, pool=None) -> dict:
     """Ép check ngay một connection theo id (nút test trên UI)."""
-    conn = next((c for c in mcp_store.resolved(enabled_only=False)
+    conn = next((c for c in await asyncio.to_thread(mcp_store.resolved, False)
                  if c["id"] == conn_id), None)
     if not conn:
         return _hien({"ok": False, "kind": "unknown", "message": "Không tìm thấy kết nối",
@@ -231,7 +255,7 @@ async def check_by_id(conn_id, pool=None) -> dict:
 async def sweep(pool=None) -> int:
     """Quét mọi connection đang bật. Trả số connection đã check."""
     n = 0
-    for conn in mcp_store.resolved(enabled_only=True):
+    for conn in await asyncio.to_thread(mcp_store.resolved, True):
         try:
             await check_one(conn, pool)
             n += 1
@@ -279,15 +303,16 @@ ENGINE_FIX = {
     "claude": "Vào trang Models để kết nối lại.",
     "codex": "Vào trang Models để kết nối lại ChatGPT.",
 }
-ENGINE_FIX_DEFAULT = "Vào trang Models để kết nối và sử dụng Vanhanh."
+ENGINE_FIX_DEFAULT = "Vào trang Models để kết nối và sử dụng Naota."
 ENGINE_FIX_EN = {
     "claude": "Go to the Models page to reconnect.",
     "codex": "Go to the Models page to reconnect ChatGPT.",
 }
-ENGINE_FIX_DEFAULT_EN = "Go to the Models page to connect and use Vanhanh."
+ENGINE_FIX_DEFAULT_EN = "Go to the Models page to connect and use Naota."
 
 
 _ENGINE_NOTICE_FILE = "engine_down_notified.json"   # in STATE_DIR
+_notice_lock = threading.Lock()
 
 
 def _engine_notice_path():
@@ -297,7 +322,7 @@ def _engine_notice_path():
 
 def _engine_notified_saved() -> dict:
     """{engine name: time} of the down notices already sent and not yet followed by a recovery. Kept on disk
-    so a restart while an engine is still down does not send the same "Vanhanh is not usable" notice again."""
+    so a restart while an engine is still down does not send the same "Naota is not usable" notice again."""
     try:
         d = json.loads(_engine_notice_path().read_text(encoding="utf-8"))
         return d if isinstance(d, dict) else {}
@@ -306,17 +331,24 @@ def _engine_notified_saved() -> dict:
 
 
 def _engine_notified_set(name: str, on: bool) -> None:
-    d = _engine_notified_saved()
-    if bool(d.get(name)) == on:
-        return
-    if on:
-        d[name] = time.time()
-    else:
-        d.pop(name, None)
-    try:
-        _engine_notice_path().write_text(json.dumps(d), encoding="utf-8")
-    except OSError as e:
-        print(f"[engine health] cannot save notice state: {e}", file=sys.stderr)
+    # Under a lock and written whole (2026-11-13): the periodic probe now runs on a worker thread while a chat turn
+    # can report an engine on the event loop, and a half-written file read by the other one would send the same
+    # "Naota is not usable" notice twice.
+    with _notice_lock:
+        d = _engine_notified_saved()
+        if bool(d.get(name)) == on:
+            return
+        if on:
+            d[name] = time.time()
+        else:
+            d.pop(name, None)
+        try:
+            path = _engine_notice_path()
+            tmp = path.with_name(path.name + ".tmp")
+            tmp.write_text(json.dumps(d), encoding="utf-8")
+            os.replace(tmp, path)
+        except OSError as e:
+            print(f"[engine health] cannot save notice state: {e}", file=sys.stderr)
 
 
 def looks_like_error_line(text) -> bool:
@@ -337,7 +369,7 @@ def _set_engine(name, ok, message="", source="probe"):
     if not ok and not rec["notified"] and on_engine_down:
         # Chỉ báo Telegram khi bộ não này ĐANG là Main Model. Đèn của bộ não khác (vd lượt
         # chạy việc nền bằng Claude phát hiện mất đăng nhập trên máy Main Codex) vẫn được
-        # ghi lại, nhưng câu "Vanhanh chưa dùng được" là SAI với người dùng đó - việc nền đã
+        # ghi lại, nhưng câu "Naota chưa dùng được" là SAI với người dùng đó - việc nền đã
         # tự chạy tiếp bằng bộ não chat (_FallbackChain).
         try:
             if name not in engines_in_use():
@@ -347,21 +379,37 @@ def _set_engine(name, ok, message="", source="probe"):
         rec["notified"] = True
         _engine_notified_set(name, True)
         try:
-            # Nói theo góc NGƯỜI DÙNG: với họ chỉ có một sự thật là chưa dùng được Vanhanh,
+            # Nói theo góc NGƯỜI DÙNG: với họ chỉ có một sự thật là chưa dùng được Naota,
             # và một việc phải làm. Tên engine để trong ngoặc cho ai cần đi tra, không đặt
             # lên đầu câu.
             import localefmt
             coro = on_engine_down(localefmt.chu(
-                "⚠ Vanhanh chưa dùng được: chưa kết nối được Model AI. "
+                "⚠ Naota chưa dùng được: chưa kết nối được Model AI. "
                 + ENGINE_FIX.get(name, ENGINE_FIX_DEFAULT)
                 + f" (chi tiết: {name} - {message})",
-                "⚠ Vanhanh is not usable yet: no AI model is connected. "
+                "⚠ Naota is not usable yet: no AI model is connected. "
                 + ENGINE_FIX_EN.get(name, ENGINE_FIX_DEFAULT_EN)
                 + f" (details: {name} - {_EN.get(message) or message})"))
             if asyncio.iscoroutine(coro):
-                asyncio.ensure_future(coro)
+                _send(coro)
         except Exception as e:
             print(f"[engine health] notify lỗi: {e}", file=sys.stderr)
+
+
+def _send(coro) -> None:
+    """Start the owner notice. `_set_engine` runs on the event loop for a chat turn and on a worker thread for the
+    periodic probe (`_loop`), and only the loop can start a coroutine: from a thread it is handed to the loop that
+    `start()` saw."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        if _main_loop is not None and not _main_loop.is_closed():
+            asyncio.run_coroutine_threadsafe(coro, _main_loop)
+        else:
+            coro.close()
+            print("[engine health] notice not sent: no event loop to send it from", file=sys.stderr)
+        return
+    asyncio.ensure_future(coro)
 
 
 def flag_engine_auth_error(name, raw) -> bool:
@@ -370,7 +418,7 @@ def flag_engine_auth_error(name, raw) -> bool:
 
     Only a short error line counts (`looks_like_error_line`). The engine passes the result of every turn, so
     a normal answer that quoted "not logged in" or "invalid api key" used to light the red light and tell the owner
-    that Vanhanh is not usable. The check lives here, not in the engine: `claude_sdk_engine.py` is part of the pinned
+    that Naota is not usable. The check lives here, not in the engine: `claude_sdk_engine.py` is part of the pinned
     improvement profile (`improvement_claude.PROFILE_SOURCES`)."""
     if not looks_like_error_line(raw):
         return False
@@ -459,7 +507,7 @@ def engines_in_use() -> set:
 
     Model việc nền KHÔNG soi ở đây nữa. Việc nền có _FallbackChain:
     Claude không sẵn sàng thì nó tự chạy bằng chính bộ não chat - tức 'model việc nền
-    chưa đăng nhập' KHÔNG còn nghĩa là 'Vanhanh chưa dùng được'. Trong khi đó banner đọc
+    chưa đăng nhập' KHÔNG còn nghĩa là 'Naota chưa dùng được'. Trong khi đó banner đọc
     đúng nghĩa đen như vậy, và trong một ngày đã hai lần bắt oan máy Main Model
     Codex chỉ vì cấu hình việc nền còn trỏ một model Claude (bản đầu lọc mỗi ca
     'anthropic-cli + model rỗng' của nút Về mặc định - vẫn sót ca chọn hẳn haiku theo
@@ -549,11 +597,15 @@ async def _loop():
     first = True
     while True:
         try:
-            probe_engines()
+            # 2026-11-13: the probe reads the sign-in files and the notice state, and the rounds below read the
+            # connection store, the token store and the smoke state. All of it ran on the event loop, and the
+            # first round starts 25 s after a restart, when the disk is busiest: GET /health/loop on the owner's
+            # VPS named this module among the five that froze the server. Now on worker threads.
+            await asyncio.to_thread(probe_engines)
             # The first round after a restart or an update is the smoke test (it pings every
             # source like a sweep, then retries and reports); the next ones are plain sweeps.
             if first:
-                await startup_smoke(_app_version())
+                await startup_smoke(await asyncio.to_thread(_app_version))
             else:
                 await sweep()
         except Exception as e:
@@ -565,7 +617,8 @@ async def _loop():
 
 def start() -> None:
     """Gọi từ startup của app. Idempotent."""
-    global _task
+    global _task, _main_loop
+    _main_loop = asyncio.get_running_loop()
     if _task is None or _task.done():
         _task = asyncio.create_task(_loop())
 
@@ -640,7 +693,7 @@ async def startup_smoke(version: str = "", pool=None, retry_after: float | None 
     if again:
         await asyncio.sleep(wait)
         p = pool or mcp_client.pool
-        budget = mcp_client._env_seconds("VANHANH_MCP_INSTALL_TIMEOUT", mcp_client._INSTALL_TIMEOUT)
+        budget = mcp_client._env_seconds("NAOTA_MCP_INSTALL_TIMEOUT", mcp_client._INSTALL_TIMEOUT)
         deadline = time.time() + budget
         while time.time() < deadline and any(p.is_starting(mcp_client._conn_spec(c)) for c in again):
             await asyncio.sleep(min(5.0, max(0.1, wait)))
@@ -655,7 +708,7 @@ async def startup_smoke(version: str = "", pool=None, retry_after: float | None 
                "message": rec.get("message") or "", "message_en": rec.get("message_en") or ""}
               for cid, rec in results.items() if not rec.get("ok") and rec.get("kind") != "starting"]
     fingerprint = sorted(f"{f['id']}:{f['kind']}" for f in failed)
-    already = fingerprint == _last_notified()
+    already = fingerprint == await asyncio.to_thread(_last_notified)
     _smoke = {"version": version, "at": time.time(), "checked": len(conns),
               "ok": len(conns) - len(failed), "failed": failed, "notified": False}
     sent = False
@@ -673,9 +726,9 @@ async def startup_smoke(version: str = "", pool=None, retry_after: float | None 
                            for f in failed[:5])
             try:
                 coro = notify(localefmt.chu(
-                    f"⚠ Sau khi Vanhanh khởi động lại{ban}, {len(failed)} kết nối chưa chạy: {vi}. "
+                    f"⚠ Sau khi Naota khởi động lại{ban}, {len(failed)} kết nối chưa chạy: {vi}. "
                     "Mở trang Kết nối và bấm Kiểm tra.",
-                    f"⚠ After Vanhanh restarted{ver}, {len(failed)} connection(s) are not working: "
+                    f"⚠ After Naota restarted{ver}, {len(failed)} connection(s) are not working: "
                     f"{en}. Open the Connections page and click Check."))
                 if asyncio.iscoroutine(coro):
                     await coro
@@ -686,6 +739,6 @@ async def startup_smoke(version: str = "", pool=None, retry_after: float | None 
     # report): saved while no notifier is wired yet, or after a notice that failed, that set
     # would never be reported on a later restart.
     if sent or not failed:
-        _save_notified(fingerprint)
+        await asyncio.to_thread(_save_notified, fingerprint)
     _smoke["notified"] = sent
     return last_smoke()

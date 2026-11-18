@@ -2,7 +2,7 @@
 
     python tests/run.py zalo_signed_out_bell      (no network)
 
-The report: a bot stopped answering in its groups for over a day. vanhanh-zalo printed "Not logged in" on every read,
+The report: a bot stopped answering in its groups for over a day. naota-zalo printed "Not logged in" on every read,
 the phrase was not recognised, and nothing reached the owner.
 """
 from _paths import ROOT, SERVER  # noqa: E402,F401
@@ -30,7 +30,7 @@ def check(name, cond, detail=""):
 
 
 RAW = ("gọi tool lỗi: RuntimeError: process đóng stdout ([mcp] Config loaded: {\"a\":1} | "
-       "[mcp] Thread name cache init failed (non-fatal): Not logged in. Run: vanhanh-zalo login")
+       "[mcp] Thread name cache init failed (non-fatal): Not logged in. Run: naota-zalo login")
 OTHER = "process đóng stdout (something else broke)"
 CONN = {"id": "c1", "label": "Shop"}
 
@@ -52,7 +52,7 @@ async def fail_once(raw=RAW):
     await asyncio.sleep(0)
 
 
-check("the real vanhanh-zalo line reads as signed out", "sign in" in zc.mo_ta_loi(RAW).lower(), zc.mo_ta_loi(RAW))
+check("the real naota-zalo line reads as signed out", "sign in" in zc.mo_ta_loi(RAW).lower(), zc.mo_ta_loi(RAW))
 
 asyncio.run(fail_once(OTHER))
 check("another error does not ring", not sent)

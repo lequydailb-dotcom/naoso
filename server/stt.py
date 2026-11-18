@@ -1,6 +1,6 @@
 """Nghe tin thoại: file âm thanh -> chữ (speech-to-text), qua Whisper của Groq.
 
-Vì sao Groq: Vanhanh đã có sẵn ô nhập `groq_api_key` ở trang Models (Groq là một trong tám bộ
+Vì sao Groq: Naota đã có sẵn ô nhập `groq_api_key` ở trang Models (Groq là một trong tám bộ
 não), và Groq phục vụ Whisper trên CÙNG endpoint OpenAI-compat với model chat. Ai đã đấu Groq
 để chat thì không phải đăng ký thêm nhà cung cấp nào nữa mới ra lệnh bằng giọng nói được.
 
@@ -8,7 +8,7 @@ Module này KHÔNG đọc settings và KHÔNG biết Telegram/Zalo là gì: nh�
 Chỗ gọi (main.py) lo lấy key, kênh chat lo lời thoại với người dùng. Nhờ vậy kênh Zalo đấu
 vào sau này dùng lại nguyên module chứ không phải chép bản thứ hai.
 
-Trả về LUÔN là dict có khoá `ok`. Hỏng thì kèm `ly_do` (mã máy đọc) và `noi_voi_vanhanh` (một
+Trả về LUÔN là dict có khoá `ok`. Hỏng thì kèm `ly_do` (mã máy đọc) và `noi_voi_naota` (một
 dòng tiếng Việt để đưa thẳng vào lượt chat) - chứ không ném ngoại lệ: một tin thoại nghe hụt
 không được phép làm gãy vòng nhận tin của bot.
 """
@@ -24,7 +24,7 @@ import stt_models
 # rõ là nó "nhớ lại" mấy câu outro dày đặc trong dữ liệu học. Tiếng Việt nổi tiếng nhất là
 # "Hãy subscribe cho kênh ABC Để không bỏ lỡ những video hấp dẫn". Đây là thứ nguy hiểm
 # một cách âm thầm: không phải lỗi mạng nên không có gì báo, nó lặng lẽ thành tin nhắn của
-# người dùng và Vanhanh trả lời nó một cách nghiêm túc. Whisper cũng hay dán câu bịa vào TRƯỚC
+# người dùng và Naota trả lời nó một cách nghiêm túc. Whisper cũng hay dán câu bịa vào TRƯỚC
 # lời thật, nên phải cắt theo từng câu chứ không vứt cả lượt.
 #
 # Ranh giới: mẫu phải ĐỦ HẸP để không đụng lời nói thật. Người dùng bàn chuyện marketing hằng
@@ -62,7 +62,7 @@ _CHU_THICH = re.compile(
     r"[\[\(]\s*(music|nhạc|nhạc\s*nền|applause|vỗ\s*tay|laughter|cười|silence|im\s*lặng|"
     r"blank[_\s]*audio|inaudible|sound|tiếng\s*động)[^\]\)]{0,20}[\]\)]", re.I)
 _NOT_NHAC = re.compile("[♪♫♬♩]+")
-# Tách "câu" để soi từng mảnh. XUỐNG DÒNG cũng là ranh giới: khối điều khiển của Vanhanh
+# Tách "câu" để soi từng mảnh. XUỐNG DÒNG cũng là ranh giới: khối điều khiển của Naota
 # (`[NGỮ CẢNH GIAO DIỆN: ...]`) đứng riêng một dòng, không tách ra thì nó dính vào câu bịa ngay
 # sau và bị cắt oan. Ba nhánh phủ HẾT mọi ký tự nên ghép lại là nguyên văn.
 _CAU = re.compile(r"[^.!?…\n]+[.!?…]*|[.!?…]+|\n")
@@ -187,10 +187,10 @@ STT_MODEL_MAC_DINH = stt_models.DEFAULTS["groq"]
 MAX_STT_MB = 24          # Groq chặn ở 25MB; chừa biên cho phần multipart bọc ngoài
 STT_TIMEOUT = 120.0      # tin thoại dài vài phút vẫn phải kịp, mạng VPS có lúc chậm
 
-# Câu Vanhanh nói khi chưa đấu key. Để ở đây (không rải trong từng kênh) vì mọi kênh nói CÙNG
+# Câu Naota nói khi chưa đấu key. Để ở đây (không rải trong từng kênh) vì mọi kênh nói CÙNG
 # một chuyện: thiếu đúng một thứ, và thứ đó nằm ở đúng một chỗ trong dashboard.
 _HD_THIEU_KEY = (
-    "[Người dùng vừa gửi TIN THOẠI. Vanhanh chưa nghe được vì chưa có bộ nghe nào - "
+    "[Người dùng vừa gửi TIN THOẠI. Naota chưa nghe được vì chưa có bộ nghe nào - "
     "thứ chuyển giọng nói thành chữ. Hãy nói với họ: muốn ra lệnh bằng ghi âm thì chọn MỘT trong ba cách: "
     "vào trang Models nối gói ChatGPT đang dùng (đăng nhập là xong, không cần key); hoặc ở trang Models dán "
     "API key của Groq (lấy ở console.groq.com, có gói miễn phí), "
@@ -213,7 +213,7 @@ def khoi_thoai(nghe, kenh):
     thật (gửi tin, đăng bài, đặt lịch, tiêu tiền) là loại sai không rút lại được. Đọc lại
     câu nghe được TRƯỚC khi làm là chỗ duy nhất người dùng bắt lỗi được.
     """
-    dan = (MARK_THOAI + f" qua {kenh}. Vanhanh đã nghe thành chữ (có thể nhầm vài từ) - câu ở "
+    dan = (MARK_THOAI + f" qua {kenh}. Naota đã nghe thành chữ (có thể nhầm vài từ) - câu ở "
            "dưới. Cứ làm theo như user gõ tay. Nếu việc sắp làm có tác động RA NGOÀI (gửi "
            "tin, đăng bài, đặt lịch, tiêu tiền, sửa file) thì mở đầu bằng một dòng "
            "\"Mình nghe: ...\" rồi hỏi xác nhận trước khi làm.]")
@@ -225,18 +225,18 @@ def _mb(n):
 
 
 def loi_thanh_dong(ly_do, chi_tiet=""):
-    """Mã lỗi -> một dòng cho engine. Nội dung là LỜI DẶN Vanhanh nói gì, không phải câu nói sẵn:
+    """Mã lỗi -> một dòng cho engine. Nội dung là LỜI DẶN Naota nói gì, không phải câu nói sẵn:
     kênh nào cũng đi qua engine nên giọng vẫn hợp ngữ cảnh (chủ hay khách, tiếng Việt hay không).
     """
     if ly_do == "thieu_key":
         return _HD_THIEU_KEY
     if ly_do == "qua_lon":
-        return ("[Người dùng gửi một tin thoại quá dài để Vanhanh nghe " + chi_tiet + ". "
+        return ("[Người dùng gửi một tin thoại quá dài để Naota nghe " + chi_tiet + ". "
                 "Nhờ họ thu ngắn lại hoặc gõ chữ.]")
     if ly_do == "khong_nghe_ro":
-        return ("[Người dùng gửi tin thoại nhưng Vanhanh nghe không ra chữ nào (có thể im lặng "
+        return ("[Người dùng gửi tin thoại nhưng Naota nghe không ra chữ nào (có thể im lặng "
                 "hoặc quá ồn). Nhờ họ thu lại gần micro hơn, hoặc gõ chữ.]")
-    return ("[Người dùng gửi tin thoại nhưng Vanhanh nghe hỏng: " + (chi_tiet or "lỗi không rõ") +
+    return ("[Người dùng gửi tin thoại nhưng Naota nghe hỏng: " + (chi_tiet or "lỗi không rõ") +
             ". Nhờ họ gõ chữ, và báo là chỗ nghe giọng đang trục trặc.]")
 
 
@@ -244,10 +244,10 @@ async def groq_nghe(data, ten_file, api_key, model="", ngon_ngu=None, hotwords="
     """Chuyển bytes âm thanh thành chữ. Trả dict:
 
         {"ok": True,  "text": "...", "model": "..."}
-        {"ok": False, "ly_do": "thieu_key|rong|qua_lon|khong_nghe_ro|loi", "noi_voi_vanhanh": "..."}
+        {"ok": False, "ly_do": "thieu_key|rong|qua_lon|khong_nghe_ro|loi", "noi_voi_naota": "..."}
 
     `hotwords` là tham số `prompt` của Whisper: một danh sách tên riêng (hotwords) để nó ưu tiên
-    chép đúng chính tả "Vanhanh", tên công cụ, tên dự án thay vì từ gần âm ("Nauta"). Chỗ gọi
+    chép đúng chính tả "Naota", tên công cụ, tên dự án thay vì từ gần âm ("Nauta"). Chỗ gọi
     lấy từ `nghe_sua.goi_y_whisper(nghe_sua.vocabulary(cfg))`; rỗng thì không gửi.
 
     `ngon_ngu` gợi ý cho Whisper. Ba giá trị có ý nghĩa KHÁC NHAU, đừng gộp:
@@ -334,12 +334,12 @@ async def _api_ready(data: bytes, ten_file: str) -> tuple:
 
 async def _api_transcribe(url, ten, data, ten_file, api_key, mdl, ngon_ngu, hotwords):
     if not api_key:
-        return {"ok": False, "ly_do": "thieu_key", "noi_voi_vanhanh": loi_thanh_dong("thieu_key")}
+        return {"ok": False, "ly_do": "thieu_key", "noi_voi_naota": loi_thanh_dong("thieu_key")}
     if not data:
-        return {"ok": False, "ly_do": "rong", "noi_voi_vanhanh": loi_thanh_dong("loi", "file rỗng")}
+        return {"ok": False, "ly_do": "rong", "noi_voi_naota": loi_thanh_dong("loi", "file rỗng")}
     if len(data) > MAX_STT_MB * 1024 * 1024:
         ct = f"({_mb(len(data))}MB, trần {MAX_STT_MB}MB)"
-        return {"ok": False, "ly_do": "qua_lon", "noi_voi_vanhanh": loi_thanh_dong("qua_lon", ct)}
+        return {"ok": False, "ly_do": "qua_lon", "noi_voi_naota": loi_thanh_dong("qua_lon", ct)}
 
     data, ten_file = await _api_ready(data, ten_file)
     form = {"model": mdl, "response_format": "json"}
@@ -364,7 +364,7 @@ async def _api_transcribe(url, ten, data, ten_file, api_key, mdl, ngon_ngu, hotw
             ly = ((d.get("error") or {}).get("message") if isinstance(d.get("error"), dict)
                   else d.get("error")) or f"{ten} HTTP {r.status_code}"
             print(f"[stt {ten}] {ly}", file=sys.stderr)
-            return {"ok": False, "ly_do": "loi", "noi_voi_vanhanh": loi_thanh_dong("loi", str(ly)[:200])}
+            return {"ok": False, "ly_do": "loi", "noi_voi_naota": loi_thanh_dong("loi", str(ly)[:200])}
         # Lọc câu bịa TRƯỚC khi trả: lọc xong rỗng thì đúng nghĩa là không nghe được gì, đi
         # chung một đường với im lặng thật để chỗ gọi chỉ phải xử một trường hợp.
         text = loc_ao_giac(d.get("text"))
@@ -372,21 +372,21 @@ async def _api_transcribe(url, ten, data, ten_file, api_key, mdl, ngon_ngu, hotw
             text = ""
         if not text:
             return {"ok": False, "ly_do": "khong_nghe_ro",
-                    "noi_voi_vanhanh": loi_thanh_dong("khong_nghe_ro")}
+                    "noi_voi_naota": loi_thanh_dong("khong_nghe_ro")}
         return {"ok": True, "text": text, "model": mdl}
     except Exception as e:
         loi = f"{type(e).__name__}: {e}"
         print(f"[stt {ten}] {loi}", file=sys.stderr)
-        return {"ok": False, "ly_do": "loi", "noi_voi_vanhanh": loi_thanh_dong("loi", loi[:200])}
+        return {"ok": False, "ly_do": "loi", "noi_voi_naota": loi_thanh_dong("loi", loi[:200])}
 
 
-# ChatGPT plan ear. Owner: "if the subscription already has a Whisper, use it". Of the four plans Vanhanh
-# signs in with (ChatGPT, Claude, Antigravity, Grok) only ChatGPT gives Vanhanh a way to hear: the dictation endpoint of
-# the ChatGPT and Codex Desktop apps, reached with the same ChatGPT login Vanhanh already holds for chat and images
+# ChatGPT plan ear. Owner: "if the subscription already has a Whisper, use it". Of the four plans Naota
+# signs in with (ChatGPT, Claude, Antigravity, Grok) only ChatGPT gives Naota a way to hear: the dictation endpoint of
+# the ChatGPT and Codex Desktop apps, reached with the same ChatGPT login Naota already holds for chat and images
 # (openai_oauth.valid_creds). No API key, nothing billed apart from the plan. Like the Codex chat endpoint it is not a
 # public API, so the shape below follows what the Codex Desktop app sends (multipart `file` plus an optional `language`,
 # answer {"text": ...}) and every failure hands over to the next ear instead of costing the sentence.
-# Claude, Antigravity and Grok have no such door: Claude's voice needs the login token Vanhanh never reads, `agy` keeps
+# Claude, Antigravity and Grok have no such door: Claude's voice needs the login token Naota never reads, `agy` keeps
 # its session in the OS keyring, and xAI's speech-to-text is an API billed apart from SuperGrok.
 CHATGPT_STT_URL = "https://chatgpt.com/backend-api/transcribe"
 CHATGPT_STT_MODEL = "chatgpt-transcribe"     # a label for logs and the browser; the endpoint picks its own model
@@ -402,12 +402,12 @@ async def chatgpt_nghe(data, ten_file, access_token, account_id="", ngon_ngu=Non
     is still fixed afterwards by nghe_sua.sua, like every other ear."""
     import os
     if not access_token:
-        return {"ok": False, "ly_do": "thieu_key", "noi_voi_vanhanh": loi_thanh_dong("thieu_key")}
+        return {"ok": False, "ly_do": "thieu_key", "noi_voi_naota": loi_thanh_dong("thieu_key")}
     if not data:
-        return {"ok": False, "ly_do": "rong", "noi_voi_vanhanh": loi_thanh_dong("loi", "file rỗng")}
+        return {"ok": False, "ly_do": "rong", "noi_voi_naota": loi_thanh_dong("loi", "file rỗng")}
     if len(data) > MAX_STT_MB * 1024 * 1024:
         ct = f"({_mb(len(data))}MB, trần {MAX_STT_MB}MB)"
-        return {"ok": False, "ly_do": "qua_lon", "noi_voi_vanhanh": loi_thanh_dong("qua_lon", ct)}
+        return {"ok": False, "ly_do": "qua_lon", "noi_voi_naota": loi_thanh_dong("qua_lon", ct)}
     data, ten_file = await _api_ready(data, ten_file)
     ten_file = ten_file or "voice.webm"
     ext = os.path.splitext(ten_file.lower())[1]
@@ -418,7 +418,7 @@ async def chatgpt_nghe(data, ten_file, access_token, account_id="", ngon_ngu=Non
     if goi_y:
         form["language"] = goi_y
     headers = {"Authorization": f"Bearer {access_token}", "originator": CHATGPT_STT_ORIGINATOR,
-               "User-Agent": "vanhanh/0.3 (codex)", "Accept": "application/json"}
+               "User-Agent": "naota/0.3 (codex)", "Accept": "application/json"}
     if account_id:
         headers["ChatGPT-Account-Id"] = account_id
     try:
@@ -434,15 +434,15 @@ async def chatgpt_nghe(data, ten_file, access_token, account_id="", ngon_ngu=Non
             ly = ((err.get("message") if isinstance(err, dict) else err)
                   or (d.get("detail") if isinstance(d, dict) else "") or f"chatgpt HTTP {r.status_code}")
             print(f"[stt chatgpt] {ly}", file=sys.stderr)
-            return {"ok": False, "ly_do": "loi", "noi_voi_vanhanh": loi_thanh_dong("loi", str(ly)[:200])}
+            return {"ok": False, "ly_do": "loi", "noi_voi_naota": loi_thanh_dong("loi", str(ly)[:200])}
         text = loc_ao_giac(d.get("text") if isinstance(d, dict) else "")
         if not text:
-            return {"ok": False, "ly_do": "khong_nghe_ro", "noi_voi_vanhanh": loi_thanh_dong("khong_nghe_ro")}
+            return {"ok": False, "ly_do": "khong_nghe_ro", "noi_voi_naota": loi_thanh_dong("khong_nghe_ro")}
         return {"ok": True, "text": text, "model": CHATGPT_STT_MODEL}
     except Exception as e:
         loi = f"{type(e).__name__}: {e}"
         print(f"[stt chatgpt] {loi}", file=sys.stderr)
-        return {"ok": False, "ly_do": "loi", "noi_voi_vanhanh": loi_thanh_dong("loi", loi[:200])}
+        return {"ok": False, "ly_do": "loi", "noi_voi_naota": loi_thanh_dong("loi", loi[:200])}
 
 
 # ============================================================
@@ -478,7 +478,7 @@ async def _as_mp3(data: bytes, ten_file: str) -> bytes:
     if not shutil.which("ffmpeg"):
         return b""
     ext = os.path.splitext(str(ten_file or ""))[1][:8] or ".bin"
-    with tempfile.TemporaryDirectory(prefix="vanhanh-stt-") as d:
+    with tempfile.TemporaryDirectory(prefix="naota-stt-") as d:
         src, dst = os.path.join(d, "in" + ext), os.path.join(d, "out.mp3")
         with open(src, "wb") as f:
             f.write(data)
@@ -514,26 +514,26 @@ async def transcribe_with(vendor, data, ten_file, api_key, model, ngon_ngu=None)
         return await _api_transcribe(OPENAI_STT_URL, "openai", data, ten_file, api_key, model, ngon_ngu, "")
     if vendor == "gemini":
         return await _gemini_once(data, ten_file, api_key, model, ngon_ngu, "")
-    return {"ok": False, "ly_do": "loi", "noi_voi_vanhanh": loi_thanh_dong("loi", f"unknown ear {vendor}")}
+    return {"ok": False, "ly_do": "loi", "noi_voi_naota": loi_thanh_dong("loi", f"unknown ear {vendor}")}
 
 
 async def _gemini_once(data, ten_file, api_key, mdl, ngon_ngu, hotwords):
     import base64
     import os
     if not api_key:
-        return {"ok": False, "ly_do": "thieu_key", "noi_voi_vanhanh": loi_thanh_dong("thieu_key")}
+        return {"ok": False, "ly_do": "thieu_key", "noi_voi_naota": loi_thanh_dong("thieu_key")}
     if not data:
-        return {"ok": False, "ly_do": "rong", "noi_voi_vanhanh": loi_thanh_dong("loi", "file rỗng")}
+        return {"ok": False, "ly_do": "rong", "noi_voi_naota": loi_thanh_dong("loi", "file rỗng")}
     mime = _GEMINI_MIME.get(os.path.splitext(str(ten_file or "").lower())[1], "")
     if not mime:
         data = await _as_mp3(data, ten_file)
         mime = "audio/mp3"
         if not data:
             return {"ok": False, "ly_do": "loi",
-                    "noi_voi_vanhanh": loi_thanh_dong("loi", "Gemini không nhận định dạng âm thanh này")}
+                    "noi_voi_naota": loi_thanh_dong("loi", "Gemini không nhận định dạng âm thanh này")}
     if len(data) > GEMINI_MAX_MB * 1024 * 1024:
         ct = f"({_mb(len(data))}MB, trần {GEMINI_MAX_MB}MB)"
-        return {"ok": False, "ly_do": "qua_lon", "noi_voi_vanhanh": loi_thanh_dong("qua_lon", ct)}
+        return {"ok": False, "ly_do": "qua_lon", "noi_voi_naota": loi_thanh_dong("qua_lon", ct)}
     mdl = mdl or GEMINI_STT_MODEL
     goi_y = STT_MAC_DINH if ngon_ngu is None else ngon_ngu
     prompt = _GEMINI_PROMPT
@@ -556,18 +556,18 @@ async def _gemini_once(data, ten_file, api_key, mdl, ngon_ngu, hotwords):
             ly = ((d.get("error") or {}).get("message") if isinstance(d.get("error"), dict) else "") \
                 or f"gemini HTTP {r.status_code}"
             print(f"[stt gemini] {ly}", file=sys.stderr)
-            return {"ok": False, "ly_do": "loi", "noi_voi_vanhanh": loi_thanh_dong("loi", str(ly)[:200])}
+            return {"ok": False, "ly_do": "loi", "noi_voi_naota": loi_thanh_dong("loi", str(ly)[:200])}
         parts = (((d.get("candidates") or [{}])[0].get("content") or {}).get("parts") or [])
         text = loc_ao_giac(" ".join(str(p.get("text") or "") for p in parts if isinstance(p, dict)).strip())
         if text.strip() in ('""', "''"):
             text = ""
         if not text:
-            return {"ok": False, "ly_do": "khong_nghe_ro", "noi_voi_vanhanh": loi_thanh_dong("khong_nghe_ro")}
+            return {"ok": False, "ly_do": "khong_nghe_ro", "noi_voi_naota": loi_thanh_dong("khong_nghe_ro")}
         return {"ok": True, "text": text, "model": mdl}
     except Exception as e:
         loi = f"{type(e).__name__}: {e}"
         print(f"[stt gemini] {loi}", file=sys.stderr)
-        return {"ok": False, "ly_do": "loi", "noi_voi_vanhanh": loi_thanh_dong("loi", loi[:200])}
+        return {"ok": False, "ly_do": "loi", "noi_voi_naota": loi_thanh_dong("loi", loi[:200])}
 
 
 # Order when the caller gives none. The caller (main._stt_nghe) normally passes voice_ear.order(), which puts the ear
@@ -599,7 +599,7 @@ async def listen_any(data, ten_file, keys: dict, ngon_ngu=None, hotwords="", gro
     if local is not None:
         ears.append(("local", lambda: local(data, ten_file, STT_MAC_DINH if ngon_ngu is None else ngon_ngu)))
     if not ears:
-        return {"ok": False, "ly_do": "thieu_key", "noi_voi_vanhanh": loi_thanh_dong("thieu_key")}
+        return {"ok": False, "ly_do": "thieu_key", "noi_voi_naota": loi_thanh_dong("thieu_key")}
     res = {}
     for name, run in ears:
         res = await run()

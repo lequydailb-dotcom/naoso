@@ -5,8 +5,8 @@
      - projects of the chat panel (sessions-ui.js, POST /projects/order),
      - pinned chats (sessions-ui.js, POST /sessions/pin-order),
      - tags of the Partners page and of the Teams page (workspace.js, teams.js, POST /ui/order).
-   VanhanhReorder.open({title, hint, items: [{id, label, icon}], save(ids) -> Promise<"" | error text>}).
-   VanhanhReorder.rank(scope, key) and sortTags(list, scope, keyOf, nameOf) read the saved tag orders (GET /ui/order,
+   NaotaReorder.open({title, hint, items: [{id, label, icon}], save(ids) -> Promise<"" | error text>}).
+   NaotaReorder.rank(scope, key) and sortTags(list, scope, keyOf, nameOf) read the saved tag orders (GET /ui/order,
    loaded once and kept fresh after every save). Pure helpers are exported for node tests. No em dash here. */
 (function (root) {
   "use strict";
@@ -48,7 +48,7 @@
     _setOrders: function (o) { orders = o || {}; } };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (!root || typeof document === "undefined") return;
-  root.VanhanhReorder = api;
+  root.NaotaReorder = api;
 
   function t(key, vars) { try { return root.t ? root.t(key, vars) : key; } catch (e) { return key; } }
   function icon(name) { try { return root.ic ? root.ic(name) : ""; } catch (e) { return ""; } }
@@ -64,7 +64,7 @@
         if (d && d.orders) { orders = d.orders; announce(); }
       }).catch(function () {});
   }
-  function announce() { try { root.dispatchEvent(new CustomEvent("vanhanh:order-changed", { detail: { orders: orders } })); } catch (e) {} }
+  function announce() { try { root.dispatchEvent(new CustomEvent("naota:order-changed", { detail: { orders: orders } })); } catch (e) {} }
   api.load = loadOrders;
   // Save one tag list's order: (scope, keys) -> Promise<"" | error>.
   api.saveTags = function (scope, keys) {

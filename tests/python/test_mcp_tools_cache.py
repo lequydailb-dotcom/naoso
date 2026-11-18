@@ -17,7 +17,7 @@ import tempfile
 import time
 from pathlib import Path
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-toolscache-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-toolscache-"))
 
 import mcp_client  # noqa: E402
 
@@ -153,7 +153,7 @@ for line in sys.stdin:
         continue
     print(json.dumps({"jsonrpc": "2.0", "id": mid, "result": result}), flush=True)
 '''
-helper = Path(tempfile.mkdtemp(prefix="vanhanh-toolscache-srv-")) / "changing_server.py"
+helper = Path(tempfile.mkdtemp(prefix="naota-toolscache-srv-")) / "changing_server.py"
 helper.write_text(SERVER_SRC, encoding="utf-8")
 mcp_client.SessionPool._make = real_make
 pool2 = mcp_client.SessionPool()

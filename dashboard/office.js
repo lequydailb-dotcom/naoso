@@ -28,9 +28,9 @@
     });
   }
   var ic = function (n) { return (typeof window !== "undefined" && window.ic) ? window.ic(n) : ""; };
-  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(tw("info.more")) : ""; }
+  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(tw("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.VanhanhInfo;
+    var J = typeof window !== "undefined" && window.NaotaInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
 
@@ -69,12 +69,15 @@
       + aiCell(d)
       + "</div>";
   }
-  // what AI calls cost that day on this server; an engine on a monthly plan counts 0, so the note says so
+  // money AI calls really billed that day on this server (API keys only); a plan turn is $0,
+  // so a day run only on a monthly plan says that instead of a bare "$0"
   function aiCell(d) {
     var a = d && d.ai;
     var v = a ? "$" + (a.cost < 10 ? a.cost.toFixed(2) : Math.round(a.cost)) : "[?]";
+    var onlyPlan = a && !a.cost && a.plan_turns && a.plan_turns === a.turns;
+    var label = !a ? tw("office.k_ai_none") : tw(onlyPlan ? "office.k_ai_plan" : "office.k_ai", { n: a.turns });
     return '<div class="of-kpi" title="' + esc(tw("office.k_ai_note")) + '"><b>' + esc(v) + "</b><span>"
-      + esc(a ? tw("office.k_ai", { n: a.turns }) : tw("office.k_ai_none")) + "</span></div>";
+      + esc(label) + "</span></div>";
   }
 
   // The line of news running along the bottom of the 3D office: handoffs and runs, newest first.
@@ -322,7 +325,7 @@
       + (TODO_KEY[j.state] ? '<div class="o3-do"><b>' + esc(tw("office.todo")) + "</b> " + esc(tw(TODO_KEY[j.state])) + "</div>" : "");
   }
 
-  var VIEW_KEY = "vanhanh.office.view";
+  var VIEW_KEY = "naota.office.view";
   function savedView() { try { return localStorage.getItem(VIEW_KEY) === "3d"; } catch (e) { return false; } }
   function saveView(v) { try { localStorage.setItem(VIEW_KEY, v ? "3d" : "cards"); } catch (e) { /* private mode */ } }
 
@@ -331,7 +334,7 @@
   function mount(box, opts) {
     unmount();
     opts = opts || {};
-    var O3 = typeof window !== "undefined" && window.VanhanhOffice3D;
+    var O3 = typeof window !== "undefined" && window.NaotaOffice3D;
     var st = { day: "", timer: 0, alive: true, data: null, view3d: !!(O3 && O3.supported() && savedView()), v3: null, host3d: null,
       live: null, liveAt: 0, liveTimer: 0, tick: 0 };
     current_ = st;
@@ -414,7 +417,7 @@
       st.liveSeen = true;
     }
     box.addEventListener("click", function (ev) {
-      if (ev.target.closest(".ofTg")) { try { window.VanhanhNav.go("channels"); } catch (e) {} return; }
+      if (ev.target.closest(".ofTg")) { try { window.NaotaNav.go("channels"); } catch (e) {} return; }
       if (!ev.target.closest(".ofView") || !st.data) return;
       st.view3d = !st.view3d && !!(O3 && O3.supported());
       saveView(st.view3d);
@@ -449,6 +452,6 @@
 
   var api_ = { mount: mount, unmount: unmount, pageHtml: pageHtml, issueHtml: issueHtml, deptHtml: deptHtml,
     jobRowHtml: jobRowHtml, kpiHtml: kpiHtml, feedHtml: feedHtml, nowHtml: nowHtml, dur: dur, handoffsHtml: handoffsHtml, tickerItems: tickerItems, zoneSub: zoneSub, alertHtml: alertHtml, issuesHtml: issuesHtml, deptName: deptName, describe: describe };
-  if (typeof window !== "undefined") window.VanhanhOffice = api_;
+  if (typeof window !== "undefined") window.NaotaOffice = api_;
   if (typeof module !== "undefined" && module.exports) module.exports = api_;
 })();

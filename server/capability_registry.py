@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import config
+import sqlite_tune
 
 
 REGISTRY_SCHEMA_VERSION = "registry-v1"
@@ -76,7 +77,7 @@ def _source(tool: dict, route_meta: dict, scope: str) -> tuple[str, str]:
         source_id = str(conn.get("id") or conn.get("namespace") or tool.get("server") or "unknown")
     elif not source_type:
         source_type = "builtin"
-        source_id = str(tool.get("server") or "vanhanh")
+        source_id = str(tool.get("server") or "naota")
     return source_type, f"{scope}:{source_type}:{source_id}"
 
 
@@ -96,6 +97,7 @@ class CapabilityRegistry:
         try:
             db.row_factory = sqlite3.Row
             db.execute("PRAGMA journal_mode=WAL")
+            sqlite_tune.normal_if_wal(db)   # 2026-11-10: no fsync per commit, see sqlite_tune.py
             db.execute("PRAGMA foreign_keys=ON")
             return db
         except Exception:

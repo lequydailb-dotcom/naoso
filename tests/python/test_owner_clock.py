@@ -2,14 +2,14 @@
 
     python tests/run.py owner_clock      (no network)
 
-The owner saw a security notice "09/11 14:47" in the bell and on the "System notice" card in Vanhanh Core, while it was
+The owner saw a security notice "09/11 14:47" in the bell and on the "System notice" card in Naota Core, while it was
 21:47 in Vietnam. The VPS runs on UTC and both texts used `datetime.fromtimestamp(ts)` with no zone, so they printed
 the server's clock. Settings has a timezone (`locale.tz`) for exactly this.
 
 What this file pins:
   1. `localefmt.format_ts` prints an epoch in the configured timezone, and follows the setting when it changes.
-  2. The security alert and the Vanhanh Core notice card print the owner's time on a UTC server.
-  3. The webhook event prompt and the Vanhanh Gate chat reader do the same.
+  2. The security alert and the Naota Core notice card print the owner's time on a UTC server.
+  3. The webhook event prompt and the Naota Gate chat reader do the same.
   4. No server code calls `fromtimestamp(x)` without a zone, except as the fallback of an `except` block or on a
      line marked "# server clock on purpose".
 """
@@ -21,7 +21,7 @@ import tempfile
 import time
 from datetime import datetime, timezone
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-owner-clock-")
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-owner-clock-")
 # Act like a VPS: the process clock is UTC. Windows has no tzset; the checks still hold there because the owner's
 # timezone is applied explicitly, only the "server is on UTC" part is not simulated.
 os.environ["TZ"] = "UTC"
@@ -71,7 +71,7 @@ check("security alert: the owner's time (21:47), not the server's (14:47)", "09/
       txt)
 card = main._cite_text("inbox", {"id": "n1", "ts": TS, "title": "[Bảo mật] Đăng nhập", "body": "chi tiết",
                                  "kind": "system", "label": "Thông báo hệ thống"}, "brain")
-check("notice card in Vanhanh Core: the owner's date and time", "09/11/2026 21:47" in card and "14:47" not in card, card)
+check("notice card in Naota Core: the owner's date and time", "09/11/2026 21:47" in card and "14:47" not in card, card)
 news = main._cite_text("news", {"id": "release:1", "published_at": "2026-11-09", "title": "v1", "summary": "s"}, "brain")
 check("a news item keeps its published date as written", "2026-11-09" in news, news)
 
@@ -81,7 +81,7 @@ import webhook_triggers  # noqa: E402
 
 prompt = webhook_triggers.event_prompt({"name": "Đơn mới"}, "{}", TS)
 check("webhook event prompt: the time it arrived on the owner's clock", "lúc 2026-11-09 21:47" in prompt, prompt[:200])
-check("chat reader (Vanhanh Gate): message times on the owner's clock", chat_bridge._gio(TS) == "2026-11-09 21:47",
+check("chat reader (Naota Gate): message times on the owner's clock", chat_bridge._gio(TS) == "2026-11-09 21:47",
       chat_bridge._gio(TS))
 check("chat reader: a missing time stays empty", chat_bridge._gio(None) == "")
 

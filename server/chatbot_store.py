@@ -17,6 +17,7 @@ Xem bot-chuyen-trach-spec.
 from __future__ import annotations
 
 import json
+import kept
 import os
 import re
 import threading
@@ -56,7 +57,8 @@ _SLUG_CAM = re.compile(r"[/\\\x00-\x1f\x7f]")           # tách đường dẫn 
 # là chữ số nên đã khớp nhánh đầu.
 # Zalo Bot group ids carry a "zgr-" prefix (e.g. "zgr-0123456789abcdef0123").
 # Without it here "Allow this group" returned OK while the id was silently dropped.
-_CHAT_ID_RE = re.compile(r"^(-?\d{1,20}|(?:zgr-)?[0-9a-fA-F]{8,40}|[CGDUW][A-Z0-9]{6,20})$")
+# A WeChat follower is an OpenID: "o" then 27 letters, digits, "-" or "_" (e.g. "o6_bmjrPTlm6_2sgVt7hMZOPfL2M").
+_CHAT_ID_RE = re.compile(r"^(-?\d{1,20}|(?:zgr-)?[0-9a-fA-F]{8,40}|[CGDUW][A-Z0-9]{6,20}|o[0-9A-Za-z_-]{20,40})$")
 
 # Kênh nhắn tin của bot. Trường này có nhưng ghim cứng "telegram"; nay là
 # lựa chọn thật, đọc từ SỔ ĐĂNG KÝ KÊNH (`channels`) thay vì chép ở đây: kênh nào
@@ -101,14 +103,14 @@ NGUON = ("agent", "tai_lieu")
 NGUON_DEFAULT = "agent"
 
 # Mức quyền của MỘT LƯỢT bot. Cố ý dùng ĐÚNG bộ tên của loop và của hub
-# (`mcp_catalog._MODE_CAP`): chữ chọn trên giao diện đi thẳng xuống header `X-Vanhanh-Mode` mà
+# (`mcp_catalog._MODE_CAP`): chữ chọn trên giao diện đi thẳng xuống header `X-Naota-Mode` mà
 # không qua bảng dịch nào. Bảng dịch là chỗ dễ sai nhất, và sai ở đây nghĩa là cấp nhầm quyền
 # cho một con bot đang nói chuyện với NGƯỜI LẠ.
 #
 #   "suggest" - chỉ đọc. Không có tool nào cả (xem `main._bot_tra_loi`). MẶC ĐỊNH.
 #   "read_docs" - đọc tài liệu. Vẫn không ghi, không gọi nguồn dữ liệu nào, nhưng bot có
 #               ba tool chỉ-đọc để TỰ tìm và mở tài liệu trong brain của nó (`chatbot_doc_tools`),
-#               thay vì chỉ trông vào vài đoạn Vanhanh khớp chữ sẵn. Riêng mức này không có tên bên
+#               thay vì chỉ trông vào vài đoạn Naota khớp chữ sẵn. Riêng mức này không có tên bên
 #               hub cũ: hub nhận đúng chữ này và trả ba tool đó, không gì khác. Không lấy đi thứ gì
 #               mà phần tra sẵn chưa lấy, nên KHÔNG đòi xác nhận rủi ro.
 #   "auto"    - đọc + GHI file trong brain của chính bot, gọi được MCP đã đấu ở mức đọc/ghi.
@@ -143,7 +145,7 @@ def nhan_muc(muc: str) -> str:
 #
 # Nhưng "nói đúng cái mất được" KHÔNG có nghĩa là kể tên việc của một ngành. Bản đầu viết
 # "tạo đơn, tiêu tiền quảng cáo, đăng bài" - đọc lọt tai với người bán hàng, và vô nghĩa với
-# người dùng Vanhanh để quản lý dự án, chăm sức khoẻ hay dạy học. Tệ hơn: người đó đọc xong
+# người dùng Naota để quản lý dự án, chăm sức khoẻ hay dạy học. Tệ hơn: người đó đọc xong
 # tưởng cảnh báo không áp cho mình. Nên tả theo LOẠI THAO TÁC (gửi đi, thanh toán, đặt/huỷ,
 # xoá, công bố) - đúng cách `mcp_catalog` phân loại, và đúng cho mọi nguồn dữ liệu đấu vào.
 _CANH_BAO = {
@@ -152,7 +154,7 @@ _CANH_BAO = {
         "trong bộ não đổi thật, không có bước duyệt.",
         "Bot gọi được các nguồn dữ liệu (MCP) bạn đã đấu, ở mức đọc và ghi. Mọi thứ trong "
         "những nguồn đó nằm trong tầm với của người đang chat với bot.",
-        "Vanhanh vẫn CHẶN cứng nhóm thao tác RA NGOÀI ở mức này: không gửi đi, không thanh toán, "
+        "Naota vẫn CHẶN cứng nhóm thao tác RA NGOÀI ở mức này: không gửi đi, không thanh toán, "
         "không đặt hay huỷ, không xoá, không công bố gì.",
         "Bot vẫn KHÔNG thấy bộ não khác, không chạy lệnh máy, không ra được ngoài máy.",
     ],
@@ -177,7 +179,7 @@ _CANH_BAO_EN = {
         "in the brain really changes, with no review step.",
         "The bot can call the data sources (MCP) you connected, for reading and writing. Everything in "
         "those sources is within reach of whoever is chatting with the bot.",
-        "Vanhanh still hard-BLOCKS OUTSIDE actions at this level: nothing is sent, paid, "
+        "Naota still hard-BLOCKS OUTSIDE actions at this level: nothing is sent, paid, "
         "booked or cancelled, deleted or published.",
         "The bot still CANNOT see other brains, run machine commands or reach outside the machine.",
     ],
@@ -217,11 +219,25 @@ def _now() -> float:
     return time.time()
 
 
+def _read_text():
+    """The store file as text, None when there is none. Any other read error goes to `_load`."""
+    try:
+        return STORE_PATH.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return None
+
+
+# 2026-11-13: same reason as channel_accounts._TEXT. Every bot message looks its bot up, and each lookup read this
+# file on the event loop. The loop gets the text from memory (kept.py); `_save` drops it, so a change shows at once.
+_TEXT = kept.Value(lambda: _read_text(), key=lambda: str(STORE_PATH), name="chatbots.json")
+
+
 def _load() -> dict:
     try:
-        d = json.loads(STORE_PATH.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        return {"version": 1, "bots": []}
+        text = _TEXT.get()
+        if text is None:
+            return {"version": 1, "bots": []}
+        d = json.loads(text)
     except Exception:
         # File hỏng (sửa tay, đĩa đầy giữa chừng): KHÔNG xoá, đổi tên để còn cứu, rồi bắt đầu lại.
         # Mất danh sách bot đã đau, mất luôn bản gốc để dò thì không cứu được nữa.
@@ -229,6 +245,7 @@ def _load() -> dict:
             STORE_PATH.rename(STORE_PATH.with_suffix(".json.hong"))
         except Exception:
             pass
+        _TEXT.drop()
         return {"version": 1, "bots": []}
     if not isinstance(d, dict) or not isinstance(d.get("bots"), list):
         return {"version": 1, "bots": []}
@@ -262,6 +279,7 @@ def _save(d: dict) -> None:
     tmp = STORE_PATH.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(d, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     os.replace(tmp, STORE_PATH)   # ghi nguyên tử: mất điện giữa chừng không để lại file cụt
+    _TEXT.drop()
 
 
 def _slugify(name: str) -> str:
@@ -702,6 +720,47 @@ def allow_patch(bot: dict, chat_type: str, chat_id: str, on: bool) -> dict:
     if covered:
         blocked.append(cid)
     return {"blocked": blocked, key: listed}
+
+
+def parse_chat_ids(chat_id: Any = "", chat_ids: Any = "") -> tuple[List[str], str]:
+    """Chat ids from the allow / ignore forms of the bot card: one (`chat_id`) or many (`chat_ids`, a JSON list, sent
+    when the owner ticks several waiting chats and settles them in one press). Returns `(ids, error)`: ids in the order
+    given, without blanks or repeats; the error is set when `chat_ids` is not a JSON list or no id is left."""
+    ids: List[str] = []
+    raw = str(chat_ids or "").strip()
+    if raw:
+        try:
+            many = json.loads(raw)
+        except ValueError:
+            many = None
+        if not isinstance(many, list):
+            return [], localefmt.chu("Danh sách id không đọc được.", "The id list cannot be read.")
+        ids = [str(x).strip() for x in many if not isinstance(x, (dict, list))]
+    ids.append(str(chat_id or "").strip())
+    out: List[str] = []
+    for x in ids:
+        if x and x not in out:
+            out.append(x)
+    if not out:
+        return [], localefmt.chu("Thiếu id cuộc chat.", "Missing chat id.")
+    return out, ""
+
+
+def set_listed(bot_id: str, key: str, ids: List[str], on: bool) -> tuple[bool, str]:
+    """Put every id of `ids` on the bot's `groups` or `people` list (`on`), or take them off, in ONE write. Many chats
+    settled together must not be many read-change-write rounds: two of those overlapping would drop an id, and each
+    round rewrites the whole bots file."""
+    if key not in ("groups", "people"):
+        return False, localefmt.chu("Danh sách id không đọc được.", "The id list cannot be read.")
+    bot = get_bot(bot_id)
+    if not bot:
+        return False, LOI_KHONG_CO_BOT
+    listed = [str(x) for x in (bot.get(key) or [])]
+    if on:
+        listed += [x for x in ids if x not in listed]
+    else:
+        listed = [x for x in listed if x not in ids]
+    return update_bot(bot_id, {key: listed})
 
 
 # ============================================================
@@ -1228,7 +1287,7 @@ def delete_bot(bot_id: str) -> tuple[bool, str]:
 
 
 def _remove_learned_mirror(bot: dict) -> None:
-    """Deleting a bot also removes what it learned from its brain folder (`Vanhanh/learned/bots/<slug>*.json`)."""
+    """Deleting a bot also removes what it learned from its brain folder (`Naota/learned/bots/<slug>*.json`)."""
     try:
         import learned_mirror
         learned_mirror.remove_bot(bot)

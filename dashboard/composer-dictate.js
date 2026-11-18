@@ -75,7 +75,7 @@
   var pure = { fmtTime: fmtTime, levelOf: levelOf, enterSendsFrom: enterSendsFrom, MAX_SECONDS: MAX_SECONDS };
   if (typeof module !== "undefined" && module.exports) module.exports = pure;
   if (typeof document === "undefined") return;
-  window.VanhanhComposerDictate = pure;
+  window.NaotaComposerDictate = pure;
 
   function tw(k) { return window.t ? window.t(k) : k; }
   // A finger, not a mouse: no Shift+Enter, an on-screen keyboard that comes up with focus.
@@ -90,8 +90,8 @@
 
   // The last messages of the main chat, for the rewrite's context.
   function chatContext() {
-    var D = window.VanhanhDictate;
-    return D && D.recentMessages ? D.recentMessages($("chatArea"), ".msg-user:not(.msg-nhap-giong) .utext, .msg-vanhanh > .bubble", 4) : [];
+    var D = window.NaotaDictate;
+    return D && D.recentMessages ? D.recentMessages($("chatArea"), ".msg-user:not(.msg-nhap-giong) .utext, .msg-naota > .bubble", 4) : [];
   }
 
   // state: "idle" | "listening" | "transcribing"
@@ -99,7 +99,7 @@
     ctx: null, src: null, analyser: null, buf: null, raf: 0, levels: [], lastPush: 0 };
 
   function note(key) {
-    try { if (window.VanhanhNoteFlash) window.VanhanhNoteFlash(tw(key)); } catch (e) {}
+    try { if (window.NaotaNoteFlash) window.NaotaNoteFlash(tw(key)); } catch (e) {}
   }
 
   function inCall() {
@@ -223,7 +223,7 @@
   }
 
   function finished() {
-    var inp = $("chatInput"), send = S.sendAfter, D = window.VanhanhDictate;
+    var inp = $("chatInput"), send = S.sendAfter, D = window.NaotaDictate;
     S.dict = null;
     S.sendAfter = false;
     // The rewritten sentence (or the words as heard when the rewrite failed) lands now, in one piece.
@@ -244,7 +244,7 @@
   }
 
   function start() {
-    var D = window.VanhanhDictate;
+    var D = window.NaotaDictate;
     if (!D) { note("dict.unsupported"); return; }
     if (S.state !== "idle") return;
     if (inCall()) { note("dict.in_call"); return; }
@@ -264,7 +264,7 @@
       },
       context: chatContext,
       // The open chat: a partner's chat (or one pinned to a model) is heard by that model's vendor.
-      session: function () { return window.VanhanhChatApi && window.VanhanhChatApi.sid ? window.VanhanhChatApi.sid() : ""; },
+      session: function () { return window.NaotaChatApi && window.NaotaChatApi.sid ? window.NaotaChatApi.sid() : ""; },
       onState: function (st) {
         var was = S.state;
         S.state = st;
@@ -335,8 +335,8 @@
     window.addEventListener("keydown", function (e) {
       if (S.state === "idle") return;
       if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); cancel(); return; }
-      // Enter follows the chat's own rule (VanhanhActs.enterSends): a phone's Enter stays a new line here too.
-      var sends = window.VanhanhActs ? window.VanhanhActs.enterSends(e, false) : e.key === "Enter" && !e.shiftKey;
+      // Enter follows the chat's own rule (NaotaActs.enterSends): a phone's Enter stays a new line here too.
+      var sends = window.NaotaActs ? window.NaotaActs.enterSends(e, false) : e.key === "Enter" && !e.shiftKey;
       // Not only from the text box: the focus usually sits on the page (see the note at the top).
       if (sends && enterSendsFrom(e.target, { input: "chatInput", cancel: "dictCancel", stop: "dictStop" }, card)) {
         e.preventDefault(); e.stopPropagation(); sendNow();

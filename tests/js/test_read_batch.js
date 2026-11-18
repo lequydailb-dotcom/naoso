@@ -55,7 +55,7 @@ function load(opts) {
   const ctx = vm.createContext({ window: win, location: win.location, localStorage: win.localStorage, Response, CustomEvent,
     URL, Promise, Date, setTimeout, clearTimeout, TextDecoder, document: {} });
   vm.runInContext(read("dashboard/fetch-gop.js"), ctx);
-  return { win, F: win.VanhanhFetchGop, net, store };
+  return { win, F: win.NaotaFetchGop, net, store };
 }
 const get = async (win, u, init) => (await win.fetch(u, init)).json();
 
@@ -65,7 +65,7 @@ async function learnAndSend() {
   F.visit("page:tasks");
   await get(win, "/kanban?brain=b"); await get(win, "/reminders?brain=b"); await get(win, "/version");
   await wait(2700);
-  const man = JSON.parse(store["vanhanh.batch.page:tasks"] || "[]");
+  const man = JSON.parse(store["naota.batch.page:tasks"] || "[]");
   check("a moment records the reads it made (only those a batch may carry)",
     man.length === 2 && man.includes("/kanban?brain=b") && man.includes("/reminders?brain=b"), man);
   net.length = 0;
@@ -84,7 +84,7 @@ async function chatTemplate() {
   await get(win, "/sessions/aaaaaa111111/meta");
   await get(win, "/background?brain=b&chat_id=web%3Aaaaaaa111111");
   await wait(2700);
-  const man = JSON.parse(store["vanhanh.batch.chat"] || "[]");
+  const man = JSON.parse(store["naota.batch.chat"] || "[]");
   check("a chat switch is learned with the chat id left open", man.includes("/sessions/{sid}/meta")
     && man.includes("/background?brain=b&chat_id=web%3A{sid}"), man);
   net.length = 0;
@@ -171,7 +171,7 @@ function wiring() {
     && /gocThat\("\/batch"/.test(g));
   check("fetch-gop starts the boot moment as it loads", /api\.visit\("boot"\);\s*\n\}\)\(\);\s*$/.test(g));
   check("every page draw is a moment", /api\.visit\("page:" \+ page\);/.test(g));
-  check("every chat switch is a moment", /window\.VanhanhFetchGop\.visit\("chat", \{ sid: id \}\)/.test(read("dashboard/app.js")));
+  check("every chat switch is a moment", /window\.NaotaFetchGop\.visit\("chat", \{ sid: id \}\)/.test(read("dashboard/app.js")));
   for (const f of ["dashboard/fetch-gop.js", "tests/js/test_read_batch.js"]) {
     const s = read(f);
     check(f + " has no long dash", s.indexOf(String.fromCharCode(0x2014)) < 0 && s.indexOf(String.fromCharCode(0x2013)) < 0);

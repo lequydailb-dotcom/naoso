@@ -6,14 +6,14 @@ so before anyone clicks:
 
   - Profile. Messenger: name and picture from the User Profile API; Facebook never gives an app the person's profile
     link. Instagram: name, @username, picture and a link to instagram.com/<username>. Zalo personal account: display
-    name, Zalo name, avatar and phone when the person shares it (`vanhanh-zalo friend info`). Groups have no profile.
+    name, Zalo name, avatar and phone when the person shares it (`naota-zalo friend info`). Groups have no profile.
   - Block. Messenger: the Page's block list (`POST /<page>/blocked` with the PSID). Zalo personal account:
-    `vanhanh-zalo friend block`. Instagram and comment threads: the API has no block, so the action is not offered.
+    `naota-zalo friend block`. Instagram and comment threads: the API has no block, so the action is not offered.
   - Delete. A Facebook or Instagram comment thread: the top-level comment is deleted on the platform (its replies go
     with it). A Threads reply cannot be deleted by anyone but its author, so it is hidden under the post. Zalo personal
-    account: the conversation is deleted on Zalo (`vanhanh-zalo conv delete`). Messenger and
-    Instagram direct messages: Meta lets no app delete them, so only the copy in Vanhanh goes. In every case the
-    conversation then leaves the Vanhanh inbox. When the platform refuses, nothing is deleted in Vanhanh either, so the
+    account: the conversation is deleted on Zalo (`naota-zalo conv delete`). Messenger and
+    Instagram direct messages: Meta lets no app delete them, so only the copy in Naota goes. In every case the
+    conversation then leaves the Naota inbox. When the platform refuses, nothing is deleted in Naota either, so the
     owner can retry instead of losing the record of something still online.
 
 Each function takes a conversation as `conversations.chi_tiet` returns it and never raises: errors come back as text.
@@ -71,8 +71,8 @@ def capabilities(c: dict) -> list:
 
 
 def _no(what: str) -> dict:
-    return {"ok": False, "error": localefmt.chu(f"Kênh này không cho {what} qua Vanhanh",
-                                                f"This channel does not allow {what} from Vanhanh")}
+    return {"ok": False, "error": localefmt.chu(f"Kênh này không cho {what} qua Naota",
+                                                f"This channel does not allow {what} from Naota")}
 
 
 def _messenger_creds(c: dict) -> dict:

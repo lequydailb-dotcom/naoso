@@ -1,13 +1,13 @@
 """A reminder or loop made in a partner chat reports to that chat and runs as that assistant.
 
-an auto-post job set up in a partner (agent) chat sent its failures to Vanhanh Core. Three
+an auto-post job set up in a partner (agent) chat sent its failures to Naota Core. Three
 causes, three fixes:
 
-1. vanhanh_schedule left `chat_id` empty (an agent chat never told the model its `web:<id>`), so reports went to Vanhanh
+1. naota_schedule left `chat_id` empty (an agent chat never told the model its `web:<id>`), so reports went to Naota
    Core. The tool now takes the chat from the turn the host set, and the agent prompt states the id.
-2. The job forgot which assistant made it and ran on the plain Vanhanh prompt. It now carries `agent` and runs as that
-   assistant (prompt, memory, owner rules), its VANHANH_LESSON lines going to the assistant's memory.
-3. The incident desk always posted to Vanhanh Core. A report now names the chat the job came from and the desk's
+2. The job forgot which assistant made it and ran on the plain Naota prompt. It now carries `agent` and runs as that
+   assistant (prompt, memory, owner rules), its NAOTA_LESSON lines going to the assistant's memory.
+3. The incident desk always posted to Naota Core. A report now names the chat the job came from and the desk's
    messages go there.
 
 No engine, network or server: fakes record what they receive.
@@ -21,8 +21,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-partner-jobs-"))
-sys.path.insert(0, str(ROOT / "system" / "plugins" / "vanhanh-schedule"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-partner-jobs-"))
+sys.path.insert(0, str(ROOT / "system" / "plugins" / "naota-schedule"))
 
 import incident_desk as idk  # noqa: E402
 import luot_dang_chay  # noqa: E402
@@ -46,7 +46,7 @@ def _atomic_write(path, text):
     p.write_text(text, encoding="utf-8")
 
 
-VAULT = tempfile.mkdtemp(prefix="vanhanh-partner-vault-")
+VAULT = tempfile.mkdtemp(prefix="naota-partner-vault-")
 
 
 def _with_turn(turn, fn):
@@ -57,7 +57,7 @@ def _with_turn(turn, fn):
         turn_context.reset(tok)
 
 
-# ── 1. vanhanh_schedule takes the asking chat and the assistant from the host's turn ──
+# ── 1. naota_schedule takes the asking chat and the assistant from the host's turn ──
 partner_turn = turn_context.make("dashboard", chat_id="s-partner", la_chu=True, session_id="s-partner")
 partner_turn["assistant"] = "dang-bai"   # set by run_turn, like a chatbot turn's bot_id
 check("the host's assistant key survives bind/current",
@@ -78,7 +78,7 @@ finally:
 
 out = _with_turn(partner_turn, lambda: asyncio.run(sched._do_create(VAULT, {
     "op": "create", "name": "Đăng bài mỗi 2 tiếng", "prompt": "Đăng một bài video lên trang.", "schedule": "120m"})))
-loop_file = Path(VAULT) / "Vanhanh" / "loops" / "dang-bai-moi-2-tieng.md"
+loop_file = Path(VAULT) / "Naota" / "loops" / "dang-bai-moi-2-tieng.md"
 text = loop_file.read_text(encoding="utf-8") if loop_file.is_file() else ""
 check("loop from a partner chat reports to that chat", 'owner_chat: "web:s-partner"' in text)
 check("loop from a partner chat names its assistant", 'agent: "dang-bai"' in text)
@@ -86,7 +86,7 @@ check("reply says where the result goes and who runs it", "web:s-partner" in out
 
 out2 = _with_turn(partner_turn, lambda: asyncio.run(sched._do_create(VAULT, {
     "op": "create", "name": "Báo về Telegram", "prompt": "x", "schedule": "60m", "chat_id": "12345"})))
-t2 = (Path(VAULT) / "Vanhanh" / "loops" / "bao-ve-telegram.md").read_text(encoding="utf-8")
+t2 = (Path(VAULT) / "Naota" / "loops" / "bao-ve-telegram.md").read_text(encoding="utf-8")
 check("a chat_id the model passed is kept", 'owner_chat: "12345"' in t2 and 'agent: "dang-bai"' in t2)
 check("no 'picked the chat' line when the model named it", "khung chat đang hỏi" not in out2)
 
@@ -108,7 +108,7 @@ check("reminder from a partner chat: chat and assistant in the payload",
       sent and sent[0].get("chat_id") == "web:s-partner" and sent[0].get("agent") == "dang-bai")
 
 # ── 2. the reminder store keeps the assistant and runs as it ──
-BRAIN = tempfile.mkdtemp(prefix="vanhanh-partner-brain-")
+BRAIN = tempfile.mkdtemp(prefix="naota-partner-brain-")
 agent_prompts, finished = [], []
 
 
@@ -121,7 +121,7 @@ def _agent_prompt(brain, slug):
 
 def _finish(brain, slug, task, out):
     finished.append((slug, task))
-    return "\n".join(x for x in out.splitlines() if not x.startswith("VANHANH_LESSON:"))
+    return "\n".join(x for x in out.splitlines() if not x.startswith("NAOTA_LESSON:"))
 
 
 async def _send(chat_id, text, **kw):
@@ -129,7 +129,7 @@ async def _send(chat_id, text, **kw):
 
 feature = reminders.RemindersFeature(reminders.RemindersDeps(
     brain_root=lambda _b: BRAIN, atomic_write_text=_atomic_write, send_telegram=_send,
-    build_system_prompt=lambda _b: "SYS-VANHANH", aux_model=lambda: None, safe_tools=[], readonly_tools=[],
+    build_system_prompt=lambda _b: "SYS-NAOTA", aux_model=lambda: None, safe_tools=[], readonly_tools=[],
     scheduler_brains=lambda: [BRAIN], build_agent_prompt=_agent_prompt, finish_agent_run=_finish))
 rem = feature._create(BRAIN, "Đăng poster", cron="0 7 * * *", mode="task", allow_no_channel=True,
                       chat_id="web:s-partner", agent="dang-bai")
@@ -155,18 +155,18 @@ class FakeCli:
         return True
 
     async def query(self, prompt):
-        yield {"type": "final", "content": "Đã đăng poster.\nVANHANH_LESSON: luôn kèm hashtag"}
+        yield {"type": "final", "content": "Đã đăng poster.\nNAOTA_LESSON: luôn kèm hashtag"}
 
 _real_engine = reminders.claude_engine
 reminders.claude_engine = FakeCli
 try:
     body, err = asyncio.run(feature._run_task(BRAIN, "Đăng poster.", "full", agent="dang-bai"))
-    check("run as the assistant: its prompt, not Vanhanh's", seen[-1] == "SYS-AGENT dang-bai")
+    check("run as the assistant: its prompt, not Naota's", seen[-1] == "SYS-AGENT dang-bai")
     check("lesson lines stripped from the posted result", body == "Đã đăng poster." and finished)
     body2, _ = asyncio.run(feature._run_task(BRAIN, "Đăng poster.", "full", agent="da-xoa"))
-    check("assistant gone -> plain Vanhanh, job still runs", seen[-1] == "SYS-VANHANH" and "VANHANH_LESSON" in body2)
+    check("assistant gone -> plain Naota, job still runs", seen[-1] == "SYS-NAOTA" and "NAOTA_LESSON" in body2)
     asyncio.run(feature._run_task(BRAIN, "Nhắc gọi khách.", "full"))
-    check("no assistant -> plain Vanhanh as before", seen[-1] == "SYS-VANHANH")
+    check("no assistant -> plain Naota as before", seen[-1] == "SYS-NAOTA")
 finally:
     reminders.claude_engine = _real_engine
 
@@ -183,7 +183,7 @@ check("a failed reminder tells the incident desk its chat",
       hooked and hooked[-1].get("chat") == "web:s-partner")
 
 # ── 3. loops keep and use the assistant ──
-LOOP_BRAIN = tempfile.mkdtemp(prefix="vanhanh-partner-loops-")
+LOOP_BRAIN = tempfile.mkdtemp(prefix="naota-partner-loops-")
 loop_prompts = []
 
 
@@ -194,11 +194,11 @@ class FakeLoopCli:
         return True
 
     async def query(self, prompt):
-        yield {"type": "final", "content": "Đã đăng 1 video.\nVANHANH_LESSON: giờ vàng là 20h"}
+        yield {"type": "final", "content": "Đã đăng 1 video.\nNAOTA_LESSON: giờ vàng là 20h"}
 
 lfeat = self_improve.LoopFeature(self_improve.LoopDeps(
-    build_system_prompt=lambda b: "SYS-VANHANH", brain_root=lambda b: LOOP_BRAIN, aux_model=lambda: None,
-    atomic_write_text=_atomic_write, project_root=Path("."), state_dir=Path(os.environ["VANHANH_STATE_DIR"]),
+    build_system_prompt=lambda b: "SYS-NAOTA", brain_root=lambda b: LOOP_BRAIN, aux_model=lambda: None,
+    atomic_write_text=_atomic_write, project_root=Path("."), state_dir=Path(os.environ["NAOTA_STATE_DIR"]),
     safe_tools=["Read"], readonly_tools=["Read"], build_agent_prompt=_agent_prompt, finish_agent_run=_finish))
 
 
@@ -207,7 +207,7 @@ def _make_cli(loop, cwd, sysprompt, **kw):
     return FakeLoopCli()
 
 lfeat._make_cli = _make_cli
-d = Path(LOOP_BRAIN) / "Vanhanh" / "loops"
+d = Path(LOOP_BRAIN) / "Naota" / "loops"
 d.mkdir(parents=True, exist_ok=True)
 (d / "video.md").write_text("---\nname: Video\ngoal: custom\nmode: suggest\nenabled: false\nagent: dang-bai\n"
                             "owner_chat: web:s-partner\n---\nĐăng một video.\n", encoding="utf-8")
@@ -220,7 +220,7 @@ lfeat.toggle("brain", "video")
 check("toggling keeps the assistant", "agent: dang-bai" in (d / "video.md").read_text(encoding="utf-8"))
 r = asyncio.run(lfeat.run_cycle("brain", "video", "manual"))
 check("loop round runs as the assistant", loop_prompts and loop_prompts[-1] == "SYS-AGENT dang-bai")
-check("loop round's lesson line is stripped", "VANHANH_LESSON" not in str(r.get("summary") or ""))
+check("loop round's lesson line is stripped", "NAOTA_LESSON" not in str(r.get("summary") or ""))
 
 # ── 4. the incident desk posts to the chat the job came from ──
 posts = []
@@ -233,7 +233,7 @@ async def post_with_chat(brain, text, chat=""):
 async def post_old(brain, text):
     posts.append((brain, "<old>", text))
 
-_desk_dir, _old_dir = Path(tempfile.mkdtemp(prefix="vanhanh-inc-")), Path(tempfile.mkdtemp(prefix="vanhanh-inc-"))
+_desk_dir, _old_dir = Path(tempfile.mkdtemp(prefix="naota-inc-")), Path(tempfile.mkdtemp(prefix="naota-inc-"))
 desk = idk.IncidentDesk(idk.IncidentDeps(state_dir=lambda: _desk_dir,
                                          post=post_with_chat, ask=None))
 
@@ -245,7 +245,7 @@ async def _desk_run(d, **kw):
 asyncio.run(_desk_run(desk, ref="r_1", title="Đăng poster", error="api key invalid", chat="web:s-partner"))
 check("incident notice goes to the job's chat", posts and posts[-1][1] == "web:s-partner")
 asyncio.run(_desk_run(desk, ref="r_2", title="Nhắc", error="api key invalid"))
-check("no chat -> empty chat (the host routes it to Vanhanh Core)", posts[-1][1] == "")
+check("no chat -> empty chat (the host routes it to Naota Core)", posts[-1][1] == "")
 check("the incident keeps its chat on the list",
       any(i.get("ref") == "r_1" and i.get("chat") == "web:s-partner" for i in desk.list("b")))
 old = idk.IncidentDesk(idk.IncidentDeps(state_dir=lambda: _old_dir,

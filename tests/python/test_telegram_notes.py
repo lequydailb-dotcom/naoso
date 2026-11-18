@@ -14,7 +14,7 @@ import re
 import sys
 import tempfile
 
-os.environ.setdefault("VANHANH_STATE_DIR", tempfile.mkdtemp(prefix="vanhanh-tgnotes-"))
+os.environ.setdefault("NAOTA_STATE_DIR", tempfile.mkdtemp(prefix="naota-tgnotes-"))
 
 import telegram_bot as tb  # noqa: E402
 

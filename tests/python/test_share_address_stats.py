@@ -11,9 +11,9 @@ import json
 import os
 import tempfile
 
-_STATE = tempfile.mkdtemp(prefix="vanhanh-share-addr-")
-_BRAINS = tempfile.mkdtemp(prefix="vanhanh-share-addr-brains-")
-os.environ["VANHANH_STATE_DIR"] = _STATE
+_STATE = tempfile.mkdtemp(prefix="naota-share-addr-")
+_BRAINS = tempfile.mkdtemp(prefix="naota-share-addr-brains-")
+os.environ["NAOTA_STATE_DIR"] = _STATE
 os.environ["BRAINS_DIR"] = _BRAINS
 
 BRAIN = os.path.join(_BRAINS, "brain")
@@ -46,30 +46,30 @@ def check(name, cond, extra=None):
 
 # ---- 1. slugify ----
 check("slugify strips Vietnamese marks and punctuation",
-      share_store.slugify("  Đường dẫn: Vibecode Vanhanh!! ") == "duong-dan-vibecode-vanhanh")
+      share_store.slugify("  Đường dẫn: Vibecode Naota!! ") == "duong-dan-vibecode-naota")
 check("slugify caps the length", len(share_store.slugify("a" * 200)) == share_store.SLUG_MAX)
 
 # ---- 2. custom address through the dashboard route ----
 app_link = cl.post("/share/create", json={"brain": BRAIN, "path": "apps/demo/index.html"}).json()
 note_link = cl.post("/share/create", json={"brain": BRAIN, "path": "notes/ke-hoach.md"}).json()
 tok = app_link["token"]
-r = cl.post("/share/rename", json={"token": tok, "nhan": "Demo", "slug": "Vibecode Vanhanh"}).json()
-check("rename sets name and address together", r.get("ok") and r.get("slug") == "vibecode-vanhanh"
-      and r.get("url") == "/s/vibecode-vanhanh" and r.get("ten") == "Demo", r)
+r = cl.post("/share/rename", json={"token": tok, "nhan": "Demo", "slug": "Vibecode Naota"}).json()
+check("rename sets name and address together", r.get("ok") and r.get("slug") == "vibecode-naota"
+      and r.get("url") == "/s/vibecode-naota" and r.get("ten") == "Demo", r)
 
-g = cl.get("/s/vibecode-vanhanh", follow_redirects=False)
+g = cl.get("/s/vibecode-naota", follow_redirects=False)
 check(".html via the slug redirects to the slug with a trailing slash, not to the token",
-      g.status_code == 307 and g.headers.get("location") == "/s/vibecode-vanhanh/", (g.status_code, g.headers.get("location")))
-check("the slug serves the page", cl.get("/s/vibecode-vanhanh/").status_code == 200)
-check("the slug is case-insensitive", cl.get("/s/Vibecode-Vanhanh/").status_code == 200)
-check("files next to the page load through the slug", cl.get("/s/vibecode-vanhanh/data.json").json() == {"a": 1})
+      g.status_code == 307 and g.headers.get("location") == "/s/vibecode-naota/", (g.status_code, g.headers.get("location")))
+check("the slug serves the page", cl.get("/s/vibecode-naota/").status_code == 200)
+check("the slug is case-insensitive", cl.get("/s/Vibecode-Naota/").status_code == 200)
+check("files next to the page load through the slug", cl.get("/s/vibecode-naota/data.json").json() == {"a": 1})
 check("the random token keeps working (links already sent do not break)", cl.get("/s/" + tok + "/").status_code == 200)
 of = cl.get("/share/of", params={"brain": BRAIN, "path": "apps/demo/index.html"}).json()
-check("the editor's Share button hands out the slug address", of["share"]["path"] == "/s/vibecode-vanhanh", of)
+check("the editor's Share button hands out the slug address", of["share"]["path"] == "/s/vibecode-naota", of)
 again = cl.post("/share/create", json={"brain": BRAIN, "path": "apps/demo/index.html"}).json()
-check("sharing the same file again returns the slug address", again["path"] == "/s/vibecode-vanhanh", again)
+check("sharing the same file again returns the slug address", again["path"] == "/s/vibecode-naota", again)
 
-taken = cl.post("/share/rename", json={"token": note_link["token"], "nhan": "Khác", "slug": "vibecode-vanhanh"}).json()
+taken = cl.post("/share/rename", json={"token": note_link["token"], "nhan": "Khác", "slug": "vibecode-naota"}).json()
 check("a taken address is refused", taken.get("ok") is False and taken.get("field") == "slug", taken)
 check("and the refused call changed nothing (name untouched)",
       share_store.get(note_link["token"]).get("nhan") != "Khác" and not share_store.get(note_link["token"]).get("slug"))
@@ -86,7 +86,7 @@ check("changing only the address keeps the name", only_slug.get("ok") and only_s
       and share_store.get(note_link["token"]).get("nhan") == only_slug.get("nhan"), only_slug)
 
 cl.post("/share/rename", json={"token": tok, "slug": "demo-moi"})
-check("changing the address frees the old one", cl.get("/s/vibecode-vanhanh/").status_code == 404
+check("changing the address frees the old one", cl.get("/s/vibecode-naota/").status_code == 404
       and cl.get("/s/demo-moi/").status_code == 200)
 cl.post("/share/rename", json={"token": tok, "slug": ""})
 check("clearing the address leaves only the token", cl.get("/s/demo-moi/").status_code == 404
@@ -134,7 +134,7 @@ real_gate, real_valid = main.cfgmod.gate_active, main.cfgmod.valid_session
 main.cfgmod.gate_active = lambda: True
 main.cfgmod.valid_session = lambda tok_: tok_ == "owner-session"
 try:
-    cl.cookies.set("vanhanh_session", "owner-session")
+    cl.cookies.set("naota_session", "owner-session")
     cl.get("/s/" + atok + "/", headers={"User-Agent": "Mozilla/5.0 Owner/1"})
     check("the owner opening their own link does not count", views(atok) == 1, views(atok))
     cl.cookies.clear()

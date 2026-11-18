@@ -1,5 +1,5 @@
 """
-learn.py - Engine TỰ HỌC của Vanhanh (rewire sau lượt + auto-Wiki + skill + curator).
+learn.py - Engine TỰ HỌC của Naota (rewire sau lượt + auto-Wiki + skill + curator).
 
 Triết lý an toàn (mạnh hơn cả kế hoạch gốc, theo review đối kháng):
   - FORK HỌC LÀ READ-ONLY. Nó chỉ Read/Glob/Grep/LS + trả về 1 MANIFEST JSON. Nó KHÔNG
@@ -60,6 +60,7 @@ def _roll_day(cfg: dict) -> dict:
     today = _today()
     if st.get("day") != today:
         st["day"] = today; st["fork_count"] = 0; st["token_est"] = 0
+        st["hold_logged"] = ""
     return st
 
 
@@ -94,7 +95,7 @@ def _yaml_scalar(value: str) -> str:
     return json.dumps("" if value is None else str(value), ensure_ascii=False)
 
 
-# Nhóm mặc định khi fork không nêu `group` (giống trang Studio và Vanhanh/index.md - MỘT tên
+# Nhóm mặc định khi fork không nêu `group` (giống trang Studio và Naota/index.md - MỘT tên
 # nhóm mặc định cho cả skill, agent lẫn workflow, để ba chỗ không hiểu khác nhau).
 NHOM_MAC_DINH = "Chung"
 
@@ -118,7 +119,7 @@ def _skill_frontmatter(name: str, desc: str, group: str, today: str) -> str:
     """
     return (f"---\nname: {_yaml_scalar(name)}\ndescription: {_yaml_scalar(desc)}\n"
             f"group: {_yaml_scalar(group)}\n"
-            f"origin: vanhanh-learned\nstatus: active\ncreated: {today}\n---\n")
+            f"origin: naota-learned\nstatus: active\ncreated: {today}\n---\n")
 
 
 # ============================================================
@@ -140,7 +141,7 @@ def _skill_frontmatter(name: str, desc: str, group: str, today: str) -> str:
 # Cộng thêm git-commit sẵn có nên vẫn hoàn tác được bằng một chạm.
 #
 # SKILL có thêm HAI rào nữa, vì hai đường hỏng dưới đây không tồn tại với agent/workflow:
-#   5. Skill HỆ THỐNG (vanhanh-builder, ingest-source, query-wiki, lint-wiki, notes,
+#   5. Skill HỆ THỐNG (naota-builder, ingest-source, query-wiki, lint-wiki, notes,
 #      html-to-webcake, security-audit) là CẤM. Chúng do app ship và tự cập nhật theo bản mới; đụng vào một
 #      cái là nó thành bản của người dùng và app ngừng cập nhật đè lên - mất im lặng một
 #      năng lực mặc định. `system_sync.is_system_skill` là nguồn chuẩn duy nhất.
@@ -234,7 +235,7 @@ def append_history(body: str, reason: str, today: str, old_body: str = "") -> st
     return "\n".join(out).strip()
 
 
-# Mục do Vanhanh quản trong THÂN agent: ngoài hai mục này là của chủ, chốt chặn
+# Mục do Naota quản trong THÂN agent: ngoài hai mục này là của chủ, chốt chặn
 # agent_rules.missing_owner_lines bắt mọi lần ghi phải giữ nguyên.
 _AGENT_MANAGED = (_HISTORY_HEADER, agent_rules.LEARNED_ADDITIONS_HEADER)
 # Mục bài học trong bộ nhớ agent (main._BAI_HOC_HEADER), quay vòng 15 dòng nên được phép mất dòng.
@@ -412,9 +413,15 @@ class LearnDeps:
     # overlay (its additions then wait for the owner instead of going live), None otherwise. Raises ValueError
     # when the host checks refuse the text.
     stage_agent_procedure: Optional[Callable] = None
+    # side_work_paused() -> a short reason when work Naota starts on its own must wait (the plan's 5-hour
+    # allowance is nearly used up), "" otherwise. None = never paused (tests with minimal deps).
+    side_work_paused: Optional[Callable] = None
+    # learning_lessons(brain) -> the lessons about HOW to learn that Naota Core holds for this brain (what the
+    # owner said, later what Core concluded), as ready prompt text; "" when there are none. None = not wired.
+    learning_lessons: Optional[Callable] = None
 
 
-ALLOWED_WRITE_PREFIXES = ["memory", "Memory", "Wiki", "skills", ".claude/skills", "Vanhanh",
+ALLOWED_WRITE_PREFIXES = ["memory", "Memory", "Wiki", "skills", ".claude/skills", "Naota",
                           "agents", "workflows"]
 
 
@@ -425,7 +432,7 @@ class LearnFeature:
         self.DEFAULT = {
             "enabled": True,                    # mặc định BẬT tự học ngay
             "mode": "auto",                     # dry-run | suggest | auto - mặc định tự ghi (không cần git)
-            # task=False: Vanhanh KHÔNG tự suy ra việc nền từ hội thoại nữa. Lý do, sau khi soi
+            # task=False: Naota KHÔNG tự suy ra việc nền từ hội thoại nữa. Lý do, sau khi soi
             # bảng thật: 28/28 việc là máy tự đẻ, phần lớn worker headless không
             # thể làm (cookie, gửi Zalo, chờ duyệt, repo ngoài brain) nên chết yểu. Việc chỉ
             # sinh khi được BẢO THẲNG trong chat (POST /kanban/task). Công tắc vẫn còn trong
@@ -434,14 +441,25 @@ class LearnFeature:
             # lớn (hiện thẳng trong Studio) nên mặc định TẮT, chủ bật ở trang Tự học. Khác
             # quyết định trước đó (cấm loop nền quét-nâng-cấp hàng loạt): đây chỉ học từ batch
             # hội thoại vừa diễn ra, tạo MỚI không ghi đè, và có vòng verify như skill.
-            "capabilities": {"memory": True, "wiki": True, "skill": True, "task": False,
+            # skill=False: out of the box Naota learns memories and wiki notes only.
+            # Skill learning adds a second verify session per batch and switches on the whole
+            # auto-learning judge (auto_learning follows this switch), which is where much of the
+            # plan allowance went while nobody was typing. One switch on the Tự học page brings it back.
+            "capabilities": {"memory": True, "wiki": True, "skill": False, "task": False,
                              "agent": False, "workflow": False},
-            "debounce": {"k": 3, "idle_min": 10, "dense_idle_min": 3},
-            # token_day counts REAL tokens (input + cache + output, as the engine
-            # reports them), not len(text)/4: the old estimate said 395k for a day that really
-            # used 12.5M (seen in practice), so the cap never meant anything. 15M sits
-            # above a normal day (fork_day is the everyday limiter) and stops a runaway one.
-            "rate": {"min_interval_s": 90, "fork_day": 40, "token_day": TOKEN_DAY_DEFAULT},
+            # WHEN a batch runs: once the brain has been quiet for idle_min minutes
+            # after its last event (a chat turn, a finished background job, a customer talking to a
+            # bot). One conversation is then learned in one pass. Before, a batch also fired after
+            # every 3 turns, so a 12-turn chat opened four sessions that each re-read much the same
+            # messages. A day with no event learns nothing at all.
+            # max_wait_min is a bound, not a rhythm: a shop whose bot talks to customers all day is never
+            # quiet for 15 minutes, and without it the owner's own chats would wait forever.
+            # min_turns is a knob of Naota Core's loop (core_loop.py), moved by `min_turns_rule` from how many
+            # recent batches learned nothing; nobody sets it by hand.
+            "debounce": {"idle_min": 15, "max_wait_min": 120, "min_turns": 1},
+            # No daily cap: "some people use a lot, some a little". fork_count and
+            # token_est in _state are still counted, for the figures on the Tự học page only.
+            "rate": {"min_interval_s": 90},
             # stale_days: brain im lặng quá ngần này ngày thì curator BỎ QUA (0 = không lọc).
             # Danh sách brains chỉ có thêm chứ không bớt (mỗi brain từng chat một lần là nằm đó
             # mãi), nên không có mốc này thì curator cứ 24h lại chạy LINT Wiki - một phiên agent
@@ -458,6 +476,8 @@ class LearnFeature:
         }
         self.lock = asyncio.Lock()             # serialize batch trong-process
         self._pending: Dict[str, dict] = {}    # brain -> {count, dense, urgent, last_ts, convs:set, jobs:list}
+        self._turns: Dict[tuple, int] = {}     # (brain, conversation) -> turns since the last batch read it
+        self._leftover: Dict[str, int] = {}    # conversation -> turns the last digest had no room for
         self._pending_lock = asyncio.Lock()
         self.router = self._make_router()
 
@@ -467,7 +487,13 @@ class LearnFeature:
     _MIGRATIONS = {"task_autocreate_off": ("capabilities", "task", False),
                    # The unit of token_day changed (estimate -> real usage); a value set in
                    # the old unit would stop learning after one fork.
-                   "token_day_real_usage": ("rate", "token_day", TOKEN_DAY_DEFAULT)}
+                   "token_day_real_usage": ("rate", "token_day", TOKEN_DAY_DEFAULT),
+                   # 10/11/2026: skill learning was on by default, so nobody chose it; off once, the
+                   # switch on the Tự học page still turns it back on.
+                   "skill_learning_off": ("capabilities", "skill", False),
+                   # 10/11/2026: the quiet time before a batch is 15 minutes (it was 10, next to a
+                   # "3 turns" rule that is gone).
+                   "idle_15_minutes": ("debounce", "idle_min", 15)}
 
     def read_config(self) -> dict:
         cfg = json.loads(json.dumps(self.DEFAULT))
@@ -504,17 +530,15 @@ class LearnFeature:
 
     # ── rate limit / budget ──
     def _rate_check(self, cfg: dict) -> dict:
-        """Kiểm tra trần ngày + min-interval. Trả {allow_promote, reason}. KHÔNG chặn phân tích
-        (dry-run luôn cho phép để user vẫn thấy 'sẽ học gì'); chỉ chặn GHI file khi vượt trần."""
+        """The minimum gap between two written batches. Returns {allow_promote, reason}.
+
+        The daily caps (40 batches, 15M tokens) are gone : a heavy user and a light one
+        cannot share one number, and the 15-minute quiet rule already bounds how often a batch runs."""
         st = _roll_day(cfg)
         rate = cfg.get("rate", {})
         now = time.time()
         if now - float(st.get("last_fork_ts", 0)) < float(rate.get("min_interval_s", 90)):
             return {"allow_promote": False, "reason": "min-interval chưa đủ (chống spam fork)"}
-        if int(st.get("fork_count", 0)) >= int(rate.get("fork_day", 40)):
-            return {"allow_promote": False, "reason": "đã chạm trần fork/ngày → hạ dry-run (backpressure)"}
-        if int(st.get("token_est", 0)) >= int(rate.get("token_day", TOKEN_DAY_DEFAULT)):
-            return {"allow_promote": False, "reason": "đã chạm trần token/ngày → hạ dry-run (backpressure)"}
         return {"allow_promote": True, "reason": ""}
 
     # ── gate tầng-1 (Python, miễn phí) ──
@@ -544,13 +568,18 @@ class LearnFeature:
                 brains.append(brain)
                 cfg["brains"] = brains
                 self.write_config(cfg)
-            # learning switched off for this brain (Vanhanh Core > Memory) = nothing new is queued.
+            # learning switched off for this brain (Naota Core > Memory) = nothing new is queued.
             try:
                 import memory_control
                 if not memory_control.learning_enabled(self.deps.brain_memory_dir(brain)):
                     return
             except Exception:
                 pass
+            if conv_sid:
+                # Every turn, the short ones too: the batch reads the conversation from where the last
+                # batch stopped, and a skipped greeting still sits between the turns worth learning.
+                self._turns[(brain, conv_sid)] = self._turns.get((brain, conv_sid), 0) + 1
+            self.touch(brain)       # activity: an already waiting batch starts its quiet time over
             kind = self._classify_turn(user, assistant)
             if kind == "low":
                 return
@@ -562,6 +591,7 @@ class LearnFeature:
                 p["dense"] = p["dense"] or (kind == "dense")
                 p["urgent"] = p["urgent"] or urgent
                 p["last_ts"] = time.time()
+                p.setdefault("first_ts", p["last_ts"])
                 if conv_sid:
                     p["convs"].add(conv_sid)
         except Exception as e:
@@ -569,7 +599,7 @@ class LearnFeature:
 
     # ── enqueue_job (gọi khi một VIỆC NỀN Kanban chạy xong) ──
     # Vì sao cần: `enqueue` ở trên chỉ nghe được luồng CHAT (`_persist_turn`), nên mọi thứ
-    # Vanhanh tự làm trong nền - việc chạy trót lọt, và nhất là việc VƯỚNG - đi qua mà không để
+    # Naota tự làm trong nền - việc chạy trót lọt, và nhất là việc VƯỚNG - đi qua mà không để
     # lại bài học nào. Đó đúng là chỗ kinh nghiệm thực chiến sinh ra: một việc bị chặn vì
     # thiếu MCP, một quy trình phải làm đi làm lại, một cách làm vừa chạy thông.
     #
@@ -631,20 +661,62 @@ class LearnFeature:
             print(f"[learn enqueue_job] {e}", file=__import__('sys').stderr)
 
     def _should_fire(self, cfg: dict, p: dict) -> bool:
+        """A batch runs when the brain has been quiet for idle_min minutes after its last event and has
+        something queued. The one exception is an explicit "ghi nhớ giúp": that is the owner asking, so
+        it is learned 30 seconds later instead of at the end of the conversation."""
         deb = cfg.get("debounce", {})
-        k = max(2, int(deb.get("k", 3)))           # K>=2 kể cả dense (review)
-        idle = int(deb.get("idle_min", 10)) * 60
-        dense_idle = int(deb.get("dense_idle_min", 3)) * 60
-        since = time.time() - float(p.get("last_ts", 0))
-        if p.get("count", 0) >= k:
+        idle = max(1, int(deb.get("idle_min", 15))) * 60
+        now = time.time()
+        since = now - float(p.get("last_ts", 0))
+        if p.get("count", 0) <= 0:
+            return False
+        if p.get("urgent") and since >= 30:
             return True
-        if p.get("urgent") and since >= 30:        # 'ghi nhớ' gộp vào batch kế, không tức thì
-            return True
-        if p.get("dense") and since >= dense_idle:
-            return True
-        if since >= idle and p.get("count", 0) > 0:
-            return True
-        return False
+        longest = max(idle, int(deb.get("max_wait_min", 120)) * 60)
+        if p.get("first_ts") and now - float(p["first_ts"]) >= longest:
+            return True                 # the brain was never quiet: learn what is queued anyway
+        if p.get("count", 0) < max(1, int(deb.get("min_turns", 1))):
+            return False                # too little to be worth a batch yet; it stays queued (see min_turns_rule)
+        return since >= idle
+
+    # ── a knob of Naota Core's loop: how many turns worth learning must be queued before a batch ──
+    MIN_TURNS_LO, MIN_TURNS_HI, MIN_TURNS_DEFAULT = 1, 4, 1
+    YIELD_KEEP = 12       # automatic batches remembered (1 = it learned something, 0 = nothing)
+    YIELD_NEED = 6        # batches needed before the rule says anything
+
+    def min_turns(self) -> int:
+        return int(self.read_config().get("debounce", {}).get("min_turns", self.MIN_TURNS_DEFAULT))
+
+    def set_min_turns(self, value: int) -> None:
+        cfg = self.read_config()
+        cfg.setdefault("debounce", {})["min_turns"] = max(self.MIN_TURNS_LO, min(self.MIN_TURNS_HI, int(value)))
+        cfg.setdefault("_state", {})["yield"] = []      # the evidence was about the old value: start over
+        self.write_config(cfg)
+
+    def min_turns_rule(self, current: int):
+        """(new value, why) or None, from the last automatic batches. Three in four came back empty: a batch
+        is being spent on conversations too short to hold anything, so wait for one more turn. Nearly all of them
+        learned something and the bar was raised earlier: lower it again. Nothing is lost either way, the turns
+        stay queued; "ghi nhớ giúp" and the 2-hour bound ignore this knob."""
+        y = [int(bool(v)) for v in (self.read_config().get("_state", {}).get("yield") or [])]
+        if len(y) < self.YIELD_NEED:
+            return None
+        empty = y.count(0)
+        if empty * 4 >= len(y) * 3 and current < self.MIN_TURNS_HI:
+            return (current + 1, f"{empty}/{len(y)} mẻ học gần nhất không rút ra được gì")
+        if empty * 4 <= len(y) and current > self.MIN_TURNS_DEFAULT:
+            return (current - 1, f"{len(y) - empty}/{len(y)} mẻ học gần nhất đều rút ra được điều mới")
+        return None
+
+    def touch(self, brain: str) -> None:
+        """Something just happened in this brain (the owner wrote again, a bot is answering a customer):
+        a batch that is waiting starts its quiet time over. Creates nothing: activity alone is not
+        something to learn from."""
+        now = time.time()
+        for key in {str(brain or ""), self._ten_brain(str(brain or ""))}:
+            p = self._pending.get(key)
+            if p:
+                p["last_ts"] = now
 
     async def tick(self) -> None:
         """Scheduler gọi định kỳ (~30s): với mỗi brain pending đủ điều kiện → chạy 1 batch."""
@@ -658,34 +730,78 @@ class LearnFeature:
                     target = brain
                     break
         if target:
+            hold = self._auto_hold(cfg)
+            if hold:
+                # Pending turns stay queued: they are learned once the cap or the pause lifts.
+                st = _roll_day(cfg)
+                if st.get("hold_logged") != hold:
+                    st["hold_logged"] = hold
+                    self.write_config(cfg)
+                    self._log(target, "learn", "tạm nghỉ học tự động", hold)
+                return
             await self.run_once(target, reason="auto")
 
+    def _auto_hold(self, cfg: dict) -> str:
+        """Why an AUTOMATIC batch must wait, "" when it may run: the plan it would run on has used most of
+        its 5-hour allowance (the host decides, see LearnDeps.side_work_paused). The manual "Học ngay"
+        button is not held: that run is the owner's own choice."""
+        paused = self.deps.side_work_paused
+        if not paused:
+            return ""
+        try:
+            return str(paused() or "")
+        except Exception:   # noqa: BLE001 - a broken meter must not stop learning for good
+            return ""
+
     # ── DIGEST (full text từ SQLite, KHÔNG dùng bản .md đã clip) ──
-    def _build_digest(self, brain: str, convs: List[str], jobs: Optional[List[str]] = None) -> str:
+    # Characters of conversation one batch reads. A whole conversation is now learned in one pass, so
+    # this is twice the old 24,000; what does not fit is read by the next batch (see _leftover).
+    DIGEST_MAX = 48000
+    _TAIL_TURNS = 6       # turns read from a conversation whose count is unknown (manual run, after a restart)
+
+    def _build_digest(self, brain: str, convs: List[str], jobs: Optional[List[str]] = None,
+                      turns: Optional[Dict[str, int]] = None) -> str:
+        """The text one batch learns from.
+
+        `turns` = {conversation: turns since the last batch read it}: each conversation gives exactly
+        those turns, oldest first, so a message is read once however long the chat ran. Without it (a
+        manual run) each of the 3 newest conversations gives its last 12 messages, as before.
+        When the budget runs out, the turns left over are recorded in `self._leftover` for the caller
+        to queue again."""
         store = self.deps.sessions_store
         parts: List[str] = []
         seen = 0
-        # Việc nền đứng TRƯỚC hội thoại: nó là thứ Vanhanh tự làm, và cũng là phần dễ bị cắt
-        # nhất nếu xếp sau (ngân sách 24k ký tự tiêu gần hết cho chat). Đã tính vào `seen` nên
+        self._leftover = {}
+        # Việc nền đứng TRƯỚC hội thoại: nó là thứ Naota tự làm, và cũng là phần dễ bị cắt
+        # nhất nếu xếp sau (ngân sách ký tự tiêu gần hết cho chat). Đã tính vào `seen` nên
         # không làm digest phình quá trần.
         for khoi in (jobs or [])[:self._JOB_MAX]:
             parts.append(khoi)
             seen += len(khoi)
-        for sid in (convs or [])[:3]:
+        budget = self.DIGEST_MAX if turns is not None else 24000
+        full = False
+        for sid in (list(convs or []) if turns is not None else (convs or [])[:3]):
+            n_turns = int((turns or {}).get(sid) or 0) or self._TAIL_TURNS
+            if full:
+                if turns is not None:
+                    self._leftover[sid] = n_turns
+                continue
             try:
                 msgs = store.get_messages(sid)
             except Exception:
                 msgs = []
-            tail = [m for m in msgs if m.get("role") in ("user", "assistant") and m.get("content")][-12:]
-            for m in tail:
-                who = "NGƯỜI DÙNG" if m["role"] == "user" else "VANHANH(assistant)"
+            tail = [m for m in msgs if m.get("role") in ("user", "assistant") and m.get("content")][-2 * n_turns:]
+            for i, m in enumerate(tail):
+                who = "NGƯỜI DÙNG" if m["role"] == "user" else "NAOTA(assistant)"
                 txt = str(m["content"])[:3000]
                 parts.append(f"[{who}] {txt}")
                 seen += len(txt)
-                if seen > 24000:
+                if seen > budget:
+                    full = True
+                    rest = len(tail) - (i + 1)
+                    if turns is not None and rest > 0:
+                        self._leftover[sid] = (rest + 1) // 2
                     break
-            if seen > 24000:
-                break
         digest = "\n\n".join(parts)
         return sanitize_source(digest)
 
@@ -694,9 +810,9 @@ class LearnFeature:
                     r"^(\d+\s*[-_.]\s*)?wiki$", "Wiki"))
 
     def _cap_dir(self, brain: str, new_name: str, old_rel: str, create: bool = False) -> Path:
-        """Thư mục agents/ hoặc workflows/ - chuẩn PHẲNG ở gốc brain, fallback Vanhanh/<x> cũ
+        """Thư mục agents/ hoặc workflows/ - chuẩn PHẲNG ở gốc brain, fallback Naota/<x> cũ
         (đồng logic main._brain_sub, chép lại vì module này không import main). Ghi nhầm vào
-        Vanhanh/ khi thư mục phẳng ĐÃ tồn tại là file biến mất khỏi app (sự cố đã gặp)."""
+        Naota/ khi thư mục phẳng ĐÃ tồn tại là file biến mất khỏi app (sự cố đã gặp)."""
         root = Path(self.deps.brain_root(brain))
         new = root / new_name
         if new.is_dir():
@@ -717,7 +833,7 @@ class LearnFeature:
             return []
 
     def _cap_file(self, brain: str, new_name: str, old_rel: str, slug: str) -> Optional[Path]:
-        """File agent/workflow ĐANG CÓ của slug này (phẳng trước, rồi Vanhanh/ cũ); None = chưa có.
+        """File agent/workflow ĐANG CÓ của slug này (phẳng trước, rồi Naota/ cũ); None = chưa có.
 
         op=update phải ghi ĐÚNG file đang có: brain chưa migrate mà ghi bản sửa ra thư mục
         phẳng thì thành hai bản, app đọc bản cũ và chủ tưởng sửa không ăn."""
@@ -760,7 +876,7 @@ class LearnFeature:
     def _write_owner_rules(self, brain: str, slug: str, rules: List[str],
                            written_paths: List[str], root, rep: dict) -> None:
         """Luật CHỦ dặn mà fork nhận ra → mục Luật chủ dặn trong bộ nhớ agent, cùng chỗ với
-        VANHANH_RULE khi chủ dặn thẳng agent. Không trần, không bao giờ bị đẩy ra."""
+        NAOTA_RULE khi chủ dặn thẳng agent. Không trần, không bao giờ bị đẩy ra."""
         fp = self.deps.brain_memory_dir(brain) / "agents" / slug / "MEMORY.md"
         try:
             text = fp.read_text(encoding="utf-8") if fp.exists() else ""
@@ -782,8 +898,8 @@ class LearnFeature:
     def _agent_lines(self, brain: str) -> str:
         """Agent hiện có, mỗi dòng 'slug (Tên): vai trò' - đủ để fork dedup và biết sửa cái nào."""
         out = []
-        for slug in self._cap_slugs(brain, "agents", "Vanhanh/agents")[:30]:
-            fp = self._cap_file(brain, "agents", "Vanhanh/agents", slug)
+        for slug in self._cap_slugs(brain, "agents", "Naota/agents")[:30]:
+            fp = self._cap_file(brain, "agents", "Naota/agents", slug)
             fm, _ = read_md(fp) if fp else ({}, "")
             khoa = " [chủ đã khoá]" if learn_locked(fm) else ""
             out.append(f"- {slug} ({fm.get('name') or slug}): {str(fm.get('role') or '')[:100]}{khoa}")
@@ -793,8 +909,8 @@ class LearnFeature:
         """Workflow hiện có KÈM các bước - fork phải thấy cấu trúc hiện tại mới đề xuất sửa
         được (chỉ đưa tên thì nó không biết bước nào thừa/thiếu, đành đẻ workflow mới)."""
         out = []
-        for slug in self._cap_slugs(brain, "workflows", "Vanhanh/workflows")[:20]:
-            fp = self._cap_file(brain, "workflows", "Vanhanh/workflows", slug)
+        for slug in self._cap_slugs(brain, "workflows", "Naota/workflows")[:20]:
+            fp = self._cap_file(brain, "workflows", "Naota/workflows", slug)
             fm, _ = read_md(fp) if fp else ({}, "")
             steps = fm.get("steps") if isinstance(fm.get("steps"), list) else []
             buoc = " | ".join(
@@ -1004,20 +1120,20 @@ class LearnFeature:
                 '"priority":1..3,"confidence":0..3}]')
 
         return (
-            "BẠN LÀ VÒNG HỌC READ-ONLY của Vanhanh. TUYỆT ĐỐI KHÔNG ghi/sửa/xoá file, KHÔNG gọi tool ghi. "
+            "BẠN LÀ VÒNG HỌC READ-ONLY của Naota. TUYỆT ĐỐI KHÔNG ghi/sửa/xoá file, KHÔNG gọi tool ghi. "
             "Chỉ ĐỌC (Read/Glob/Grep) để dedup rồi TRẢ VỀ 1 KHỐI JSON DUY NHẤT (không văn xuôi ngoài JSON).\n\n"
             "PHÂN LOẠI ĐA-NHÃN (1 đoạn có thể sinh nhiều loại):\n"
             "• fact (Memory) = sự thật BỀN về CHÍNH user/doanh nghiệp này (bỏ tên riêng thì mất nghĩa).\n"
             "• wiki = KHÁI NIỆM/framework/quy trình TÁI DÙNG (đúng cả với người khác).\n"
-            "• skill = quy trình nhiều bước Vanhanh VỪA TỰ LÀM, có công thức lặp lại.\n"
+            "• skill = quy trình nhiều bước Naota VỪA TỰ LÀM, có công thức lặp lại.\n"
             + ("• agent = VAI chuyên môn user nhờ đi nhờ lại hoặc yêu cầu rõ (vd 'viết email "
                "chăm khách', 'biên tập bài'), đáng đóng thành một vai có system prompt riêng.\n"
                if caps.get("agent") else "")
             + ("• workflow = CHUỖI từ 2 bước trở lên, nhiều vai nối nhau, user đã làm/nhờ lặp lại "
                "theo đúng trình tự đó.\n" if caps.get("workflow") else "")
-            + "• task = VIỆC NỀN cụ thể đáng giao Vanhanh tự làm sau (yêu cầu lặp lại / việc bỏ dở / câu hỏi mở).\n\n"
+            + "• task = VIỆC NỀN cụ thể đáng giao Naota tự làm sau (yêu cầu lặp lại / việc bỏ dở / câu hỏi mở).\n\n"
             "PROVENANCE (bắt buộc, chống bịa): 'user'=user khẳng định; 'source'=trích nguồn có tên; "
-            "'assistant'=CHÍNH VANHANH tự nói không nguồn. ⚠ Mục wiki provenance='assistant' sẽ BỊ LOẠI "
+            "'assistant'=CHÍNH NAOTA tự nói không nguồn. ⚠ Mục wiki provenance='assistant' sẽ BỊ LOẠI "
             "(đẩy sang cần-xác-minh) → chỉ đưa vào wiki thứ user/nguồn khẳng định.\n"
             "DENSITY (wiki, 0-3): 0=nhắc thoáng, 3=được định nghĩa/giải thích có cấu trúc. Chỉ đưa density>=2.\n"
             "DEDUP: đọc INDEX dưới đây trước; nếu khái niệm ĐÃ CÓ → set same_as=tên trang (đừng tạo trùng); "
@@ -1056,7 +1172,7 @@ class LearnFeature:
                "(…-v2, …-moi, …-ban-sua).\n"
                "  11. KHÔNG update chỉ để chữ đẹp hơn: phải có BẰNG CHỨNG trong batch này "
                "rằng làm theo skill cũ đã ra kết quả sai hoặc thiếu. Không có thì để yên. "
-               "Skill hệ thống (vanhanh-builder, ingest-source, query-wiki, lint-wiki, notes, "
+               "Skill hệ thống (naota-builder, ingest-source, query-wiki, lint-wiki, notes, "
                "html-to-webcake, security-audit) và skill ghi [chủ đã khoá] thì cấm đụng.\n\n"
                if caps.get("skill") else "")
             + ("TASK (chống spam backlog): worker nền là HEADLESS - chỉ đọc/ghi file TRONG brain này "
@@ -1162,6 +1278,13 @@ class LearnFeature:
         # rough estimate rather than counting zero.
         st = _roll_day(cfg)
         st["token_est"] = int(st.get("token_est", 0)) + (real or (len(prompt) + len(out)) // 4)
+        try:
+            import job_scorecard
+            _score = job_scorecard.active()
+            if _score and not isinstance(gcli, aux_engine._FallbackChain):
+                _score.add_tokens(real)
+        except Exception:   # noqa: BLE001
+            pass
         return out
 
     # ── VERIFY skill (spawn thứ 2 độc lập, chỉ cho skill - blast radius lớn nhất) ──
@@ -1175,7 +1298,7 @@ class LearnFeature:
             f"{s.get('description','')}"
             + (f" | lý do sửa: {str(s.get('reason') or '').strip()[:200]}" if is_update(s) else "")
             for s in skills)
-        prompt = ("Một vòng học đề xuất TẠO hoặc SỬA các SKILL sau (Vanhanh tự quan sát từ việc đã "
+        prompt = ("Một vòng học đề xuất TẠO hoặc SỬA các SKILL sau (Naota tự quan sát từ việc đã "
                   "làm). GIẢ ĐỊNH chúng SAI/thừa. Với mỗi slug, quyết định giữ hay bỏ.\n" + listing +
                   "\nBỎ một bản TẠO nếu quy trình không có thật, không đủ cụ thể, hoặc trùng skill "
                   "có sẵn. BỎ một bản SỬA nếu lý do không dẫn được ra bằng chứng skill cũ đã cho "
@@ -1189,8 +1312,8 @@ class LearnFeature:
     # ── VERIFY agent + workflow (cùng lý do với skill: blast radius lớn - hiện thẳng Studio).
     # Gộp 1 spawn cho cả hai để không nhân đôi chi phí fork mỗi batch. ──
     async def _verify_agents_workflows(self, brain: str, manifest: dict, cfg: dict) -> None:
-        # Vanhanh Core's file is the owner's to edit on its card; a learning round never rewrites it.
-        manifest["agents"] = [a for a in (manifest.get("agents") or []) if str(a.get("slug") or "").lower() != "vanhanh-core"]
+        # Naota Core's file is the owner's to edit on its card; a learning round never rewrites it.
+        manifest["agents"] = [a for a in (manifest.get("agents") or []) if str(a.get("slug") or "").lower() != "naota-core"]
         agents = manifest.get("agents") or []
         wfs = manifest.get("workflows") or []
         if not agents and not wfs:
@@ -1205,7 +1328,7 @@ class LearnFeature:
         if wfs:
             listing += ("\n" if listing else "") + "\n".join(
                 _dong("workflow", w, f"{len(w.get('steps') or [])} bước") for w in wfs)
-        prompt = ("Một vòng học đề xuất TẠO hoặc SỬA các AGENT/WORKFLOW sau (Vanhanh tự quan sát từ "
+        prompt = ("Một vòng học đề xuất TẠO hoặc SỬA các AGENT/WORKFLOW sau (Naota tự quan sát từ "
                   "hội thoại). GIẢ ĐỊNH chúng SAI/thừa. Với mỗi slug, quyết định giữ hay bỏ.\n"
                   "  • Mục [TẠO]: chỉ giữ vai/chuỗi THẬT SỰ lặp lại, đủ cụ thể, không trùng cái "
                   "có sẵn trong agents/ và workflows/. Trùng một cái đã có mà lại đòi tạo mới → BỎ "
@@ -1296,7 +1419,7 @@ class LearnFeature:
                             except Exception:
                                 pass
                     fm = (f"---\ntype: {f.get('kind','fact')}\nprovenance: {f.get('provenance','user')}\n"
-                          f"origin: vanhanh-learned\ncreated: {today}\nupdated: {today}\n---\n")
+                          f"origin: naota-learned\ncreated: {today}\nupdated: {today}\n---\n")
                     self.deps.atomic_write_text(fp, fm + body + "\n")
                     written_paths.append(str(fp.relative_to(root)).replace("\\", "/"))
                     rep["facts"].append(slug)
@@ -1316,7 +1439,7 @@ class LearnFeature:
                     if not title or not body or int(w.get("density", 0)) < 2:
                         continue
                     if (w.get("provenance") == "assistant"):
-                        self._append_open_question(brain, wiki_dir, title, "provenance=assistant (Vanhanh tự nói, cần xác minh)", written_paths, root)
+                        self._append_open_question(brain, wiki_dir, title, "provenance=assistant (Naota tự nói, cần xác minh)", written_paths, root)
                         rep["blocked"].append(f"wiki '{title}': assistant-only → cần xác minh"); continue
                     if secret_hits(title + "\n" + body):
                         rep["blocked"].append(f"wiki '{title}': chứa secret"); continue
@@ -1370,7 +1493,7 @@ class LearnFeature:
                     if cu:
                         rep["blocked"].append(f"wiki '{title}': trùng [[{cu.stem}]] → bỏ qua")
                         continue
-                    fm = (f"---\ntype: wiki\nstatus: active\ntags: [wiki]\norigin: vanhanh-learned\n"
+                    fm = (f"---\ntype: wiki\nstatus: active\ntags: [wiki]\norigin: naota-learned\n"
                           f"created: {today}\nupdated: {today}\nsource: [[conversations/{today}]]\n---\n")
                     self.deps.atomic_write_text(fp, fm + body + "\n")
                     written_paths.append(str(fp.relative_to(root)).replace("\\", "/"))
@@ -1451,10 +1574,10 @@ class LearnFeature:
             # ---- AGENTS (tự học, cap mặc định TẮT) ----
             # op=create: vai MỚI, không bao giờ đè vai đã có.
             # op=update: SỬA vai đang có tại chỗ - xem khối "Sửa TẠI CHỖ" đầu file cho bốn rào.
-            # Ghi vào thư mục PHẲNG agents/ (fallback Vanhanh/agents chỉ khi phẳng chưa có).
+            # Ghi vào thư mục PHẲNG agents/ (fallback Naota/agents chỉ khi phẳng chưa có).
             written_agents: set = set()
             if caps.get("agent"):
-                ag_dir = self._cap_dir(brain, "agents", "Vanhanh/agents", create=True)
+                ag_dir = self._cap_dir(brain, "agents", "Naota/agents", create=True)
                 for a in (manifest.get("agents") or []):
                     slug = _slugify(a.get("slug") or a.get("name") or "")
                     body = (a.get("body") or "").strip()
@@ -1471,7 +1594,7 @@ class LearnFeature:
                         rep["blocked"].append(f"agent '{slug}': chứa secret"); continue
                     if injection_in_output(blob):
                         rep["blocked"].append(f"agent '{slug}': chứa câu injection"); continue
-                    old_fp = self._cap_file(brain, "agents", "Vanhanh/agents", slug)
+                    old_fp = self._cap_file(brain, "agents", "Naota/agents", slug)
                     old_fm, old_body = (read_md(old_fp) if (upd and old_fp) else ({}, ""))
                     if not upd:
                         if old_fp:
@@ -1540,7 +1663,7 @@ class LearnFeature:
                     else:
                         fm_data = {"type": "agent", "name": a.get("name") or slug, "slug": slug,
                                    "role": role, "group": _nhom(a), "skills": sk_ok, "model": "",
-                                   "origin": "vanhanh-learned", "updated": today}
+                                   "origin": "naota-learned", "updated": today}
                         new_body = body
                     fp = old_fp if (upd and old_fp) else (ag_dir / f"{slug}.md")
                     self.deps.atomic_write_text(fp, f"---\n{dump_fm(fm_data)}\n---\n{new_body}\n")
@@ -1554,9 +1677,9 @@ class LearnFeature:
             # op=create: tạo ở status "off" cho chủ xem trước. op=update: sửa tại chỗ, GIỮ
             # trạng thái bật/tắt và tên hiển thị của chủ (bốn rào ở khối "Sửa TẠI CHỖ" đầu file).
             if caps.get("workflow"):
-                wf_dir = self._cap_dir(brain, "workflows", "Vanhanh/workflows", create=True)
-                ag_dir = self._cap_dir(brain, "agents", "Vanhanh/agents")
-                legacy_ag = Path(root) / "Vanhanh" / "agents"
+                wf_dir = self._cap_dir(brain, "workflows", "Naota/workflows", create=True)
+                ag_dir = self._cap_dir(brain, "agents", "Naota/agents")
+                legacy_ag = Path(root) / "Naota" / "agents"
                 for w in (manifest.get("workflows") or []):
                     slug = _slugify(w.get("slug") or w.get("name") or "")
                     steps_in = w.get("steps") or []
@@ -1578,7 +1701,7 @@ class LearnFeature:
                         rep["blocked"].append(f"workflow '{slug}': chứa secret"); continue
                     if injection_in_output(blob):
                         rep["blocked"].append(f"workflow '{slug}': chứa câu injection"); continue
-                    old_fp = self._cap_file(brain, "workflows", "Vanhanh/workflows", slug)
+                    old_fp = self._cap_file(brain, "workflows", "Naota/workflows", slug)
                     upd = is_update(w)
                     old_fm, old_body = (read_md(old_fp) if (upd and old_fp) else ({}, ""))
                     if not upd:
@@ -1620,7 +1743,7 @@ class LearnFeature:
                         fm_data = {"type": "workflow", "name": w.get("name") or slug, "slug": slug,
                                    "status": "off", "description": w.get("description") or "",
                                    "group": _nhom(w), "steps": steps,
-                                   "origin": "vanhanh-learned", "updated": today}
+                                   "origin": "naota-learned", "updated": today}
                         new_body = (w.get("description") or "").strip()
                     fp = old_fp if (upd and old_fp) else (wf_dir / f"{slug}.md")
                     self.deps.atomic_write_text(fp, f"---\n{dump_fm(fm_data)}\n---\n\n{new_body}\n")
@@ -1812,8 +1935,19 @@ class LearnFeature:
     # ── 1 batch học ──
     async def run_once(self, brain: str, reason: str = "manual",
                        force_write: bool = False, caps_override: Optional[dict] = None) -> dict:
+        """One learning batch, scored: the scorecard (job_scorecard.py) learns from each batch which model is
+        enough for learning. A batch whose answer could not be read as the JSON asked for counts against the
+        model; an engine that would not start does not."""
+        import job_scorecard
+        with job_scorecard.run("learn", "learn", "Tự học"):
+            return await self._run_once_inner(brain, reason, force_write, caps_override)
+
+    async def _run_once_inner(self, brain: str, reason: str = "manual",
+                              force_write: bool = False, caps_override: Optional[dict] = None) -> dict:
         """force_write=True (nút thủ công /reflect): ghi bất kể mode/rate, NHƯNG vẫn fail-closed
         qua git + secret-scan. caps_override: bộ capability riêng cho lần chạy (không lưu config)."""
+        import job_scorecard
+        _score = job_scorecard.active()
         if self.lock.locked():
             return {"ok": False, "error": localefmt.chu("Đang chạy batch khác", "Another batch is running")}
         async with self.lock:
@@ -1837,19 +1971,46 @@ class LearnFeature:
             if not convs and not jobs:
                 return {"ok": True, "summary": localefmt.chu("Không có hội thoại để học.", "No conversation to learn from.")}
 
-            digest = self._build_digest(brain, convs, jobs)
+            # Automatic batch: read each conversation from where the last batch stopped. A manual run keeps
+            # the old "last 12 messages" window (turns=None).
+            turns = ({sid: self._turns.pop((brain, sid), 0) for sid in convs} if p else None)
+            digest = self._build_digest(brain, convs, jobs, turns)
+            if turns is not None and self._leftover:
+                # More than one batch can hold: the rest is queued again and runs on the next tick.
+                for sid, n in self._leftover.items():
+                    self._turns[(brain, sid)] = self._turns.get((brain, sid), 0) + n
+                async with self._pending_lock:
+                    q = self._pending.setdefault(brain, {"count": 0, "dense": False, "urgent": False,
+                                                         "last_ts": 0.0, "convs": set()})
+                    q["count"] += sum(self._leftover.values())
+                    q["convs"].update(self._leftover)
+                self._leftover = {}
             if len(digest.strip()) < 40:
                 return {"ok": True, "summary": localefmt.chu("Hội thoại quá ngắn, bỏ qua.",
                                                              "The conversation is too short, skipped.")}
 
             prompt = self._build_prompt(caps, brain, digest)
+            if self.deps.learning_lessons:
+                # Lessons about HOW to learn (what the owner told Naota Core, later what Core concluded) go
+                # first: they decide what is worth writing down at all.
+                try:
+                    lessons = str(await asyncio.to_thread(self.deps.learning_lessons, brain) or "").strip()
+                except Exception:   # noqa: BLE001 - a broken lesson store must not stop learning
+                    lessons = ""
+                if lessons:
+                    prompt = lessons + "\n\n" + prompt
             out = await self._spawn_readonly(brain, prompt, cfg)
             if not out or out.startswith("__ERROR__"):
+                if _score:
+                    _score.fail(job_scorecard.CAUSE_OTHER, "phiên học không chạy được")
+                self.write_config(cfg)      # keep the tokens this failed session used in today's count
                 self._log(brain, "learn", f"fork lỗi/không phản hồi ({reason})", out[:200] if out else "")
                 return {"ok": False, "error": localefmt.chu("Fork học lỗi: ", "Learning fork failed: ")
                         + (out[:160] if out else localefmt.chu("rỗng", "empty"))}
             manifest = _extract_json(out)
             if not manifest:
+                if _score:
+                    _score.fail(job_scorecard.CAUSE_MODEL, "trả lời không đúng khuôn JSON")
                 self._log(brain, "learn", f"không parse được manifest ({reason})", out[:300])
                 return {"ok": False, "error": localefmt.chu("Không parse được JSON từ fork",
                                                             "Could not parse JSON from the fork")}
@@ -1926,6 +2087,11 @@ class LearnFeature:
                 st["fork_count"] = int(st.get("fork_count", 0)) + 1
                 st["last_fork_ts"] = time.time()
 
+            if reason == "auto":
+                # What min_turns_rule reads: did this automatic batch learn anything at all?
+                st = cfg.setdefault("_state", {})
+                learned = any(report.get(k) for k in ("facts", "wiki", "skills", "agents", "workflows", "tasks"))
+                st["yield"] = (list(st.get("yield") or []) + [1 if learned else 0])[-self.YIELD_KEEP:]
             # token của lượt đã cộng ngay trong _spawn_readonly (usage thật của engine)
             cfg["last_run"] = time.time()
             summary = manifest.get("notes", "") or "Đã học."
@@ -1944,6 +2110,8 @@ class LearnFeature:
                       + (f" task={report['tasks']}" if report.get("tasks") else "")
                       + (f" · commit {report['commit']}" if report.get("commit") else ""),
                       summary + ("\n\n**Bị chặn:** " + "; ".join(report["blocked"]) if report.get("blocked") else ""))
+            if _score:
+                _score.ok()
             return {"ok": True, "summary": summary, "report": report, "status": status}
 
     # ── CURATOR (định kỳ - bảo trì, KHÔNG xoá) ──
@@ -2031,7 +2199,7 @@ class LearnFeature:
         """Gỡ khỏi MEMORY.md những dòng mục lục KHÔNG CÒN GIÁ TRỊ. Trả {n, ly_do} hoặc None.
 
         Vì sao đây là việc đáng làm nhất trong "chống rác tri thức": MEMORY.md được nạp
-        TRƯỚC MỌI câu hỏi. Một fact đã bị thay thế mà còn nằm trong mục lục thì Vanhanh vẫn
+        TRƯỚC MỌI câu hỏi. Một fact đã bị thay thế mà còn nằm trong mục lục thì Naota vẫn
         đọc thông tin cũ mỗi lượt, và index vẫn tính vào trần ~150 dòng. Nhánh `supersedes`
         của learn đã biết ghi `superseded_by:` vào file cũ, nhưng CHƯA AI gỡ dòng mục lục
         của nó, nên tri thức "đã nghỉ hưu" ở lại vĩnh viễn.
@@ -2078,7 +2246,7 @@ class LearnFeature:
         """Lần CUỐI người dùng thật sự trò chuyện trên brain này (epoch), 0 = không rõ.
 
         Đọc <bộ nhớ>/conversations/ chứ KHÔNG đọc mtime cả thư mục: chính curator ghi
-        Vanhanh/learn-log mỗi vòng, nên lấy mtime thư mục là brain nào cũng "vừa mới hoạt
+        Naota/learn-log mỗi vòng, nên lấy mtime thư mục là brain nào cũng "vừa mới hoạt
         động" - curator tự nuôi lý do để chạy tiếp trên brain đã bỏ.
 
         Thử CẢ HAI cách viết vì brain cũ chưa migrate còn dùng `Memory/` hoa. Trước đây chỗ
@@ -2139,7 +2307,7 @@ class LearnFeature:
     # ── learn-log (người đọc) ──
     def _log(self, brain: str, kind: str, title: str, body: str) -> None:
         try:
-            d = Path(self.deps.brain_root(brain)) / "Vanhanh" / "learn-log"
+            d = Path(self.deps.brain_root(brain)) / "Naota" / "learn-log"
             d.mkdir(parents=True, exist_ok=True)
             now = _now_vn()
             with open(d / f"{now.strftime('%Y-%m-%d')}.md", "a", encoding="utf-8") as fh:
@@ -2193,7 +2361,7 @@ class LearnFeature:
             self.write_config(cfg)
             return {"ok": True, "git": g, "config": cfg,
                     "note": (localefmt.chu("Đã git-init brain → auto-write an toàn/undo được.",
-                                           "The brain is now a git repo → auto-write is safe and can be undone.")
+                                           "The brain is now a git repository → auto-write is safe and can be undone.")
                              if g.get("ok")
                              else localefmt.chu("⚠ Chưa git được (thiếu git?) → auto sẽ tự hạ dry-run. ",
                                                 "⚠ Could not set up git (git missing?) → auto falls back to dry-run. ")
@@ -2219,7 +2387,7 @@ class LearnFeature:
 
         @router.get("/learn/review")
         def learn_review(brain: str = Query("brain"), limit: int = Query(20)):
-            """Danh sách commit học gần nhất (cho panel 'Vanhanh đã tự học gì') + trạng thái git."""
+            """Danh sách commit học gần nhất (cho panel 'Naota đã tự học gì') + trạng thái git."""
             root = self.deps.brain_root(brain)
             return {"git_repo": git_brain.is_git_checkout(root),
                     "commits": git_brain.list_learn_commits(root, limit)}
@@ -2238,7 +2406,7 @@ class LearnFeature:
             được trong 3 ngày gần nhất - phân trang mà không có gì để lật. Vẫn có trần 60 file
             để một brain chạy lâu năm không kéo cả năm nhật ký lên chỉ vì ai đó gõ limit to.
             """
-            d = Path(self.deps.brain_root(brain)) / "Vanhanh" / "learn-log"
+            d = Path(self.deps.brain_root(brain)) / "Naota" / "learn-log"
             entries = []
             want = max(1, min(int(limit or 15), 500))
             if d.is_dir():

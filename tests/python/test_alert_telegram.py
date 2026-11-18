@@ -2,7 +2,7 @@
 
     python tests/python/test_alert_telegram.py
 
-- an incident that needs the owner is urgent, so Vanhanh Core's default ("urgent only") lets it ring;
+- an incident that needs the owner is urgent, so Naota Core's default ("urgent only") lets it ring;
 - an incident from a job made in a web chat goes to that chat AND to the owner's Telegram, once;
 - an incident whose chat is the owner's Telegram is not sent twice; a calm notice ("ran it again") is not copied;
 - a Team notice (blocked, failed, waits for you) reaches the owner's Telegram, not the bell only;
@@ -14,8 +14,8 @@ import asyncio
 import os
 import tempfile
 
-STATE = tempfile.mkdtemp(prefix="vanhanh-alert-tg-")
-os.environ["VANHANH_STATE_DIR"] = STATE
+STATE = tempfile.mkdtemp(prefix="naota-alert-tg-")
+os.environ["NAOTA_STATE_DIR"] = STATE
 
 import main  # noqa: E402
 import notify_policy  # noqa: E402

@@ -7,7 +7,7 @@ thế là xong - nó bám đúng cho MỌI thứ tiếng.
 Đây là một bước LÙI có chủ ý của module này, và lý do là số liệu đo được từ chính bản trước:
 
   - bộ dò tự chốt ngôn ngữ trả lời, và dò tiếng Anh trên câu hỏi thật chỉ đạt 16/18 - tức vẫn
-    có câu người ta gõ tiếng Anh mà Vanhanh đáp tiếng Việt;
+    có câu người ta gõ tiếng Anh mà Naota đáp tiếng Việt;
   - người viết tiếng Thái, Nhật, Pháp, Tây Ban Nha thì LUÔN bị đáp tiếng Việt, kể cả khi bộ
     dò nhận ra đúng, vì các thứ tiếng đó không có trong sổ đăng ký nên rơi hết về mặc định.
 
@@ -22,8 +22,10 @@ BỘ DÒ VẪN CÒN, và vẫn cần, ở những chỗ KHÔNG CÓ MODEL trong v
 
 Ba biến ngôn ngữ tách rời (spec mục 4.1), đừng nhập một:
   ui_lang       chữ trên màn hình      - user chọn, lưu theo thiết bị
-  reply_lang    Vanhanh trả lời          - mặc định "auto" = để model bám theo người dùng
-  content_lang  nội dung trong brain   - của user, Vanhanh không đụng
+  reply_lang    Naota trả lời          - since 2026-11-15 NOT a setting: the model follows whoever writes
+                                         (owner: "the language setting only sets the interface"). The
+                                         key stays "auto" in settings.json, see main.migrate_reply_lang_to_profile
+  content_lang  nội dung trong brain   - của user, Naota không đụng
 
 Dò ngôn ngữ KHÔNG dùng thư viện ngoài. Chỉ cần phân biệt giữa các ngôn ngữ ĐÃ ĐĂNG KÝ, nên
 hai tầng là đủ: nhận hệ chữ qua khoảng mã Unicode (xong ngay tiếng Nhật, Thái, Hàn, Ả Rập,
@@ -47,7 +49,7 @@ DO_DAI_TOI_THIEU = 12
 @dataclass(frozen=True)
 class LangDecision:
     lang: str            # ngôn ngữ để NÊU TÊN khi cần nêu (đồng hồ, danh sách skill, giọng đọc)
-    source: str          # turn | chatbot | brain | channel | detect | ui | default
+    source: str          # turn | chatbot | setting | brain | channel | detect | ui | default
     confidence: float
     has_lexicon: bool    # có bộ từ vựng cho ngôn ngữ này không (xem server/lexicon/)
     detected: str = ""   # ngôn ngữ dò được từ lượt này, kể cả khi không được dùng
@@ -61,7 +63,7 @@ class LangDecision:
 
         KHÁC `self.lang`, và phân biệt được hai cái là chuyện sống còn:
 
-      - `lang`        = Vanhanh TRẢ LỜI bằng tiếng gì. Không bao giờ rỗng (rơi về mặc định).
+      - `lang`        = Naota TRẢ LỜI bằng tiếng gì. Không bao giờ rỗng (rơi về mặc định).
       - `lang_cau_hoi` = người dùng đang VIẾT tiếng gì. Rỗng nghĩa là chưa biết.
 
         Cổng chặn đọc CÂU HỎI, nên nó phải dùng cái thứ hai. Đưa nhầm `lang` xuống cổng là
@@ -73,11 +75,22 @@ class LangDecision:
         # Chỉ có một câu trả lời đúng: thứ dò được từ CHÍNH lượt này. Không dò được (câu quá
         # ngắn: "ok thanks", "cho anh xem") thì trả rỗng, và cổng chặn phải suy biến an toàn.
         #
-        # TUYỆT ĐỐI không mượn `self.lang` khi nó đến từ một cái GHIM: cái ghim nói Vanhanh phải
+        # TUYỆT ĐỐI không mượn `self.lang` khi nó đến từ một cái GHIM: cái ghim nói Naota phải
         # TRẢ LỜI bằng tiếng gì, nó không nói gì về ngôn ngữ người dùng đang VIẾT. Mượn nhầm
         # là đúng con bệnh đã đo được - user ghim trả lời tiếng Anh rồi hỏi tiếng Việt thì
         # cổng đem bộ từ vựng tiếng Anh ra chấm một câu tiếng Việt.
         return self.detected
+
+    @property
+    def capsule_lang(self) -> str:
+        """Language to NAME in a prompt that carries no full language block (a compiled capsule), "" = follow.
+
+        Only a language a person pinned (Settings, a bot, a command in this message). Owner, 2026-11-15:
+        "Claude and ChatGPT already follow the user's language, let the model handle it." The old code
+        named a guess here, the interface language when nothing was detected, so a short English message
+        ("ok do 2") on a Vietnamese interface was answered in Vietnamese.
+        """
+        return "" if self.theo_nguoi_dung else self.lang
 
     def as_trace(self) -> dict:
         return {"lang": self.lang, "lang_source": self.source,
@@ -85,7 +98,7 @@ class LangDecision:
                 "lang_has_lexicon": self.has_lexicon,
                 "lang_detected": self.detected,
                 # Đọc trace mà không có cờ này thì `lang` gây hiểu nhầm: nó là ngôn ngữ để
-                # NÊU TÊN ở vài chỗ trong prompt, không phải ngôn ngữ Vanhanh đã trả lời.
+                # NÊU TÊN ở vài chỗ trong prompt, không phải ngôn ngữ Naota đã trả lời.
                 "lang_theo_nguoi_dung": self.theo_nguoi_dung}
 
 
@@ -171,7 +184,7 @@ _DAU_CHUNG = re.compile(r"[éáíóúàèìòù]", re.I)
 # Dấu RIÊNG của tiếng Việt. Cố ý KHÔNG lấy cả bộ dấu: à á è é ì í ò ó ù ú â ê ô dùng chung
 # với tiếng Pháp, Tây Ban Nha, Bồ Đào Nha, Ý. Bản đầu vơ hết vào đây, nên
 # "Peux-tu me résumer les ventes du mois de juin ?" bị nhận là tiếng Việt với độ tin 0.97
-# chỉ vì một chữ "é", rồi Vanhanh được lệnh trả lời người Pháp bằng tiếng Việt.
+# chỉ vì một chữ "é", rồi Naota được lệnh trả lời người Pháp bằng tiếng Việt.
 #
 # Còn lại đây là những ký tự gần như chỉ tiếng Việt dùng: ă đ ơ ư, cùng các tổ hợp dấu hỏi,
 # ngã, nặng. Một ký tự trong nhóm này là đủ chắc.
@@ -291,7 +304,7 @@ def _yeu_cau_thang(text: str) -> str:
 
     Cố ý đòi một ĐỘNG TỪ ra lệnh đứng gần tên ngôn ngữ, chứ không chỉ thấy chữ "tiếng Anh" là
     đổi. Câu "anh cần dịch bài này sang tiếng Anh" là một YÊU CẦU DỊCH, không phải yêu cầu
-    Vanhanh đổi ngôn ngữ trả lời, mà hai câu đó rất giống nhau ở mặt chữ.
+    Naota đổi ngôn ngữ trả lời, mà hai câu đó rất giống nhau ở mặt chữ.
     """
     s = _bo_dau(text)
     if not s:
@@ -318,7 +331,7 @@ def _yeu_cau_thang(text: str) -> str:
     # Dạng đảo ("in English please", "bang tieng Anh nhe") CHỈ tính khi cả tin nhắn là một
     # câu ra lệnh ngắn. Câu dài chỉ NHẮC TỚI một ngôn ngữ thì không phải lệnh: "File hợp đồng
     # bằng tiếng Anh nằm ở đâu trong brain" là một câu hỏi về vị trí file, không phải yêu cầu
-    # Vanhanh đổi sang tiếng Anh - mà bản đầu hiểu đúng thành lệnh và đổi cả cuộc trò chuyện.
+    # Naota đổi sang tiếng Anh - mà bản đầu hiểu đúng thành lệnh và đổi cả cuộc trò chuyện.
     if len(s) <= 40:
         for code in lang_registry.ma_list():
             for tu in lang_registry.get(code).request_words:
@@ -362,7 +375,7 @@ def co_lexicon(code: str) -> bool:
 
 def resolve(*, turn_text: str = "", reply_pref: str = "auto", chatbot_pin: str = "",
             brain_pin: str = "", channel_default: str = "", ui_lang: str = "") -> LangDecision:
-    """Chốt xem lượt này Vanhanh trả lời bằng tiếng gì.
+    """Chốt xem lượt này Naota trả lời bằng tiếng gì.
 
     NGUYÊN TẮC (đổi sau khi đo): **model tự bám theo ngôn ngữ người dùng, hàm này
     chỉ lo phần con người đã GHIM.**
@@ -384,7 +397,8 @@ def resolve(*, turn_text: str = "", reply_pref: str = "auto", chatbot_pin: str =
       2. ngôn ngữ ghim của chatbot (bot phục vụ khách lạ, không theo ngôn ngữ của chủ)
       3. `reply_pref` khác "auto" - user đã ghim ở Cài đặt
       4. ngôn ngữ ghim của brain
-      5. mặc định của kênh (Zalo là nền tảng Việt Nam)
+      5. the language a voice call was spoken in (`call_language`); no channel has a fixed language since
+         2026-11-15 (Zalo owner chats used to default to Vietnamese)
 
     Không ghim gì mà CÓ chữ người dùng gõ -> để model bám. Không ghim và cũng KHÔNG có chữ
     nào (việc chạy nền: loop, nhắc hẹn, Kanban, tự học) -> không có gì để bám, phải nêu tên
@@ -397,31 +411,33 @@ def resolve(*, turn_text: str = "", reply_pref: str = "auto", chatbot_pin: str =
     do_duoc, tin = detect(turn_text)
 
     def _xong(lang: str, source: str, conf: float, theo=False) -> LangDecision:
-        ma = lang_registry.chuan_hoa(lang) or lang_registry.MAC_DINH
+        ma = lang_registry.reply_code(lang) or lang_registry.MAC_DINH
         return LangDecision(ma, source, conf, co_lexicon(ma), do_duoc, theo)
 
     thang = _yeu_cau_thang(turn_text)
     if thang:
         return _xong(thang, "turn", 0.99)
 
-    if lang_registry.chuan_hoa(chatbot_pin):
+    if lang_registry.reply_code(chatbot_pin):
         return _xong(chatbot_pin, "chatbot", 1.0)
 
-    pref = lang_registry.chuan_hoa(reply_pref)
+    pref = lang_registry.reply_code(reply_pref)
     if pref:
         return _xong(pref, "setting", 1.0)
 
-    if lang_registry.chuan_hoa(brain_pin):
+    if lang_registry.reply_code(brain_pin):
         return _xong(brain_pin, "brain", 1.0)
 
-    if lang_registry.chuan_hoa(channel_default):
+    if lang_registry.reply_code(channel_default):
         return _xong(channel_default, "channel", 0.9)
 
     if str(turn_text or "").strip():
         # Có chữ của người dùng: model bám theo. `lang` ở đây KHÔNG phải ngôn ngữ trả lời,
         # nó chỉ là ngôn ngữ để nêu tên ở những chỗ buộc phải nêu (đồng hồ trong prompt, danh
         # sách skill, giọng đọc dự phòng) - lấy ngôn ngữ dò được nếu có, không thì cấu hình.
-        neu_ten = (do_duoc if lang_registry.duoc_ho_tro(do_duoc) else "") or ui_lang
+        # 2026-11-15: a detected language Naota can NAME (Japanese, Thai, Korean...) is named too, not
+        # only vi/en: the fast-path capsule then says "answer in Japanese" instead of the interface's.
+        neu_ten = lang_registry.reply_code(do_duoc) or ui_lang
         return _xong(neu_ten, "detect" if do_duoc else "ui", max(tin, 0.5), theo=True)
 
     # Việc chạy nền: không có lượt người dùng nào để mà bám.
@@ -429,6 +445,18 @@ def resolve(*, turn_text: str = "", reply_pref: str = "auto", chatbot_pin: str =
         return _xong(ui_lang, "ui", 0.7)
 
     return _xong(lang_registry.MAC_DINH, "default", 0.5)
+
+
+def resolve_background(*, ui_lang: str = "") -> LangDecision:
+    """Language of work that has no chat turn: Kanban tasks, reminders, loops, learning (2026-11-15).
+
+    The model follows the language of the TASK itself, which the owner wrote: a reminder written in
+    Japanese reports in Japanese. Before, `build_system_prompt` without a language named Vietnamese
+    for every brain, so an English or Japanese owner got every background report in Vietnamese.
+    `ui_lang` only names the language of the clock line and the skill list.
+    """
+    ui = lang_registry.chuan_hoa(ui_lang) or lang_registry.MAC_DINH
+    return LangDecision(ui, "ui", 0.7, co_lexicon(ui), "", True)
 
 
 # ---------------------------------------------------------------- chữ cho prompt
@@ -440,61 +468,93 @@ def call_language(said: str, recognition_lang: str = "") -> str:
     lúc là tiếng Anh dù người dùng nói tiếng Việt). Không dò ra thì theo ngôn ngữ nhận dạng của
     mic ("vi-VN"); mic để "auto" thì không ghim gì."""
     code, _ = detect(said)
-    if lang_registry.duoc_ho_tro(code):
-        return lang_registry.chuan_hoa(code)
-    return lang_registry.chuan_hoa(recognition_lang)
+    # Any nameable language (2026-11-15): a call in Japanese pins Japanese, as one in Vietnamese pins Vietnamese.
+    return lang_registry.reply_code(code) or lang_registry.reply_code(recognition_lang)
+
+
+# Why the pin holds, in the block and in the per-turn line. Background work and an unknown source
+# name no reason: there is no person behind it to quote.
+_PIN_REASON = {
+    "turn": "asked for in this message",
+    "setting": "set in Settings",
+    "chatbot": "the language of this bot",
+    "brain": "the language of this brain",
+    "channel": "the language of this channel or call",
+}
+
+# The prompt around this block is mostly Vietnamese (the blocks Naota inserts, the channel rules,
+# tool results, system skills), and its examples address the reader as mình/bạn. Measured
+# 2026-11-15: after the English kernel, the last ~13,000 characters before the model writes are
+# about 80% Vietnamese words. A model reads that as a hint; this line says it is none.
+_NOT_A_HINT = ("These rules are in English, while tool results, the brain and Naota's own labels may be in "
+               "Vietnamese or another language. That is NEVER a hint about the reply language.")
+_KEEP_AS_IS = ("Do not translate: proper nouns, file paths, tool names, brain names, code blocks, and "
+               "verbatim excerpts from the brain or a tool result. Content in another language is read "
+               "as it is; only the REPLY follows this block.")
 
 
 def khoi_ngon_ngu(quyet_dinh: LangDecision) -> str:
     """Khối "# === NGÔN NGỮ ===" nối vào system prompt.
 
-    Bản thân khối viết bằng TIẾNG VIỆT có chủ ý (spec quyết định số hai: một bản CLAUDE.md,
-    không dịch luật hành xử ra N bản - model không cần đọc luật bằng tiếng Anh để trả lời
-    bằng tiếng Anh). Chỉ câu `nudge` cuối là viết bằng chính ngôn ngữ đích, dành cho model
-    nhỏ vốn trôi theo ngôn ngữ của prompt.
+    Written in ENGLISH since 2026-11-15. The old reason to keep it Vietnamese ("one CLAUDE.md, the
+    rules are not translated N times") lapsed when CLAUDE.md itself moved to English; what was left
+    was a Vietnamese rule about the reply language sitting in a Vietnamese tail, read by an English
+    speaker's turn. The header stays `# === NGÔN NGỮ ===`: CLAUDE.md points at it by that name and
+    `context_runtime` measures blocks by their header. The last line of a pinned block is the
+    registry `nudge`, written in the target language itself, for small models that drift with
+    the language of the prompt.
     """
-    l = lang_registry.get(quyet_dinh.lang)
-    chung = [
-        "Giữ nguyên KHÔNG dịch: tên riêng, đường dẫn file, tên tool, tên brain, khối mã, và "
-        "đoạn trích nguyên văn từ brain hoặc từ kết quả tool.",
-        "Nội dung trong brain viết bằng ngôn ngữ khác thì cứ đọc bình thường, chỉ TRẢ LỜI "
-        "theo luật trên.",
-    ]
+    l = lang_registry.reply_info(quyet_dinh.lang)
+    # "English (en)", "Japanese (日本語, ja)": the native name helps a model tell close languages apart.
+    ten = f"{l.english} ({l.code})" if l.english == l.native else f"{l.english} ({l.native}, {l.code})"
 
     if quyet_dinh.theo_nguoi_dung:
         # Không ai ghim gì: để model bám. Nó làm việc này tốt hơn bộ dò của mình, và làm được
-        # với MỌI thứ tiếng chứ không riêng hai thứ có trong sổ đăng ký.
+        # với MỌI thứ tiếng chứ không riêng hai thứ có trong sổ đăng ký. But a reply language the
+        # person STATED (profile, memory, earlier in the chat) used to lose to "the language of
+        # the last message" here, because this block sits after the profile and said nothing
+        # about it: the root of "it keeps forgetting I want English".
         return "\n".join([
             "",
             "",
             "# === NGÔN NGỮ ===",
-            "Trả lời bằng ĐÚNG thứ tiếng người dùng vừa viết trong tin nhắn cuối cùng. Họ gõ "
-            "tiếng Việt thì trả lời tiếng Việt, gõ tiếng Anh thì trả lời tiếng Anh, gõ thứ "
-            "tiếng nào khác thì trả lời bằng chính thứ tiếng đó.",
-            "Viết TOÀN BỘ câu trả lời bằng ngôn ngữ ấy, kể cả tiêu đề, nhãn, đơn vị và câu "
-            "cảnh báo. Đừng trộn hai thứ tiếng trong một câu trả lời.",
-            "Tin nhắn quá ngắn để đoán (\"ok\", \"thanks\") thì giữ nguyên thứ tiếng đang dùng "
-            "trong cuộc trò chuyện này.",
-            *chung,
+            "Reply in the language of the user's latest message: Vietnamese gets Vietnamese, "
+            "English gets English, any other language gets that language.",
+            "A reply language the user has STATED wins over that rule: in the user profile, in "
+            "long-term memory, or earlier in this conversation (\"English please\", \"always answer "
+            "me in Vietnamese\"). Keep it on every later turn, even when they type in another "
+            "language, until they ask for a different one. If they say to ALWAYS use a language, "
+            "also save it as a `preference` memory.",
+            "Write the WHOLE reply in that one language, headings, labels, units, warnings and "
+            "questions back included. Do not mix two languages in one reply.",
+            "A message too short to tell (\"ok\", \"do 2\") keeps the language already in use in "
+            "this conversation.",
+            _NOT_A_HINT,
+            _KEEP_AS_IS,
         ])
 
+    why = _PIN_REASON.get(quyet_dinh.source, "")
     dong = [
         "",
         "",
         "# === NGÔN NGỮ ===",
-        f"Ngôn ngữ trả lời: {l.lang_directive} ({l.code}).",
+        f"Reply language: {ten}" + (f", {why}." if why else "."),
     ]
     if quyet_dinh.detected and quyet_dinh.detected != l.code:
-        dong.append(f"(Người dùng đang viết bằng: {quyet_dinh.detected}. Vẫn trả lời bằng "
-                    f"{l.lang_directive} theo lựa chọn đã ghim.)")
+        dong.append(f"(The user is writing in: {quyet_dinh.detected}. Still reply in "
+                    f"{l.english}, as pinned.)")
     dong += [
-        "Viết TOÀN BỘ câu trả lời bằng ngôn ngữ này, kể cả tiêu đề, nhãn, đơn vị và câu cảnh báo.",
-        *chung,
-        l.nudge,
+        f"Write the WHOLE reply in {l.english}, headings, labels, units, warnings and "
+        "questions back included.",
+        _NOT_A_HINT,
+        _KEEP_AS_IS,
     ]
+    if quyet_dinh.source in ("turn", "setting"):
+        dong.append("If the user now asks for another language, use that one.")
+    dong.append(l.nudge)
     return "\n".join(dong)
 
 
 def nudge_dau_luot(code: str) -> str:
     """Câu nhắc ngắn viết bằng chính ngôn ngữ đích, dán lên đầu tin nhắn user cho engine yếu."""
-    return lang_registry.get(code).nudge
+    return lang_registry.reply_info(code).nudge

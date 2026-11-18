@@ -1,7 +1,7 @@
 """Voice call with a partner (an assistant of the Partners page): who the call model is.
 
 A call started from a partner's chat (session channel `agent:<slug>`) used to speak with the plain
-Vanhanh voice prompt, which says nothing about that partner: no name, no role, no instructions from
+Naota voice prompt, which says nothing about that partner: no name, no role, no instructions from
 the partner file. Asked "who are you", the ChatGPT Live model then answered that it was ChatGPT
 . This module turns any of the voice prompts (voice_live, voice_brain)
 into the partner's prompt, and builds the identity block from the partner file.
@@ -13,9 +13,9 @@ import os
 
 # Every voice prompt opens with this clause (voice_live.SYSTEM_PROMPT, GPT_LIVE_PROMPT,
 # CHATGPT_LIVE_PROMPT, voice_brain.SYSTEM_PROMPT); test_voice_persona.py keeps them in step.
-OPENING = "Bạn là Vanhanh, trợ lý cá nhân,"
+OPENING = "Bạn là Naota, trợ lý cá nhân,"
 
-# Voice budgets are *Vanhanh* defaults, not provider model context limits.
+# Voice budgets are *Naota* defaults, not provider model context limits.
 # Keep a bounded override for long-lived agent profiles (including future telephone gateways).
 def _env_budget(name: str, default: int, ceiling: int) -> int:
     try:
@@ -25,12 +25,12 @@ def _env_budget(name: str, default: int, ceiling: int) -> int:
     return max(1000, min(configured, ceiling))
 
 
-BODY_CHARS = _env_budget("VANHANH_VOICE_AGENT_BODY_CHARS", 12000, 24000)
-MEMORY_CHARS = _env_budget("VANHANH_VOICE_AGENT_MEMORY_CHARS", 6000, 12000)
+BODY_CHARS = _env_budget("NAOTA_VOICE_AGENT_BODY_CHARS", 12000, 24000)
+MEMORY_CHARS = _env_budget("NAOTA_VOICE_AGENT_MEMORY_CHARS", 6000, 12000)
 # Optional markers in an agent's Markdown body. Move the enclosed high-priority
 # instructions before ordinary agent prose *before* applying BODY_CHARS.
-VOICE_RULES_START = "<!-- VANHANH_VOICE_RULES_START -->"
-VOICE_RULES_END = "<!-- VANHANH_VOICE_RULES_END -->"
+VOICE_RULES_START = "<!-- NAOTA_VOICE_RULES_START -->"
+VOICE_RULES_END = "<!-- NAOTA_VOICE_RULES_END -->"
 
 # These operational integrity rules are never subject to body or memory truncation.
 # Worded for any partner (not only a sales one): the caller is the owner, not a customer.
@@ -65,22 +65,22 @@ def _cut(text: str, cap: int) -> str:
 
 
 def identity_block(name: str, role: str = "", body: str = "", memory: str = "") -> str:
-    """Who the partner is, for a call model: the Vanhanh context, the partner's role and its own instructions."""
+    """Who the partner is, for a call model: the Naota context, the partner's role and its own instructions."""
     name = str(name or "").strip() or "cộng sự"
     role = str(role or "").strip()
     parts = [
         "# Bạn là ai trong cuộc gọi này",
-        f"Bạn là **{name}**, một cộng sự (trợ lý chuyên trách) trong VANHANH, hệ trợ lý AI cá nhân của chủ."
+        f"Bạn là **{name}**, một cộng sự (trợ lý chuyên trách) trong NAOTA, hệ trợ lý AI cá nhân của chủ."
         + (f" Vai trò: {role}." if role else ""),
-        "Vanhanh là hệ thống bạn đang chạy bên trong, không phải tên của bạn. Chủ đang gọi thoại riêng với bạn "
-        "từ khung chat của bạn trên dashboard. Mọi chỗ ở trên nói 'Vanhanh' là nói về chính bạn trong vai này.",
-        f"Khi được hỏi bạn là ai, trả lời bạn là {name}, cộng sự trong Vanhanh của chủ, và nói ngắn vai của mình. "
+        "Naota là hệ thống bạn đang chạy bên trong, không phải tên của bạn. Chủ đang gọi thoại riêng với bạn "
+        "từ khung chat của bạn trên dashboard. Mọi chỗ ở trên nói 'Naota' là nói về chính bạn trong vai này.",
+        f"Khi được hỏi bạn là ai, trả lời bạn là {name}, cộng sự trong Naota của chủ, và nói ngắn vai của mình. "
         "KHÔNG tự nhận là ChatGPT, Claude, Gemini, Grok hay một trợ lý AI chung chung. Chỉ khi chủ hỏi rõ đang "
         "chạy model hay engine nào mới nói tên đó.",
-        f"When asked in English \"Who are you?\", answer \"I'm {name}, an AI assistant working within VANHANH.\" "
+        f"When asked in English \"Who are you?\", answer \"I'm {name}, an AI assistant working within NAOTA.\" "
         "Do not identify as ChatGPT or another underlying model unless the user specifically asks which model powers this call.",
         "Việc cần dữ liệu thật, công cụ hay hành động thì vẫn giao như hướng dẫn ở trên: phần đó do chính bạn "
-        f"({name}) làm tiếp với đủ công cụ của Vanhanh, nên kết quả trả về là của bạn, thuật lại như lời mình.",
+        f"({name}) làm tiếp với đủ công cụ của Naota, nên kết quả trả về là của bạn, thuật lại như lời mình.",
         ALWAYS_ON,
     ]
     if str(body or "").strip():
@@ -98,7 +98,7 @@ def apply(base: str, name: str, block: str) -> str:
     base = str(base or "")
     name = str(name or "").strip() or "cộng sự"
     block = str(block or "").strip()
-    head = f"Bạn là {name}, một cộng sự của chủ trong Vanhanh,"
+    head = f"Bạn là {name}, một cộng sự của chủ trong Naota,"
     if OPENING in base:
         out = base.replace(OPENING, head, 1)
         # Front-load the partner identity: ChatGPT Live reads this realtime prompt on every turn.

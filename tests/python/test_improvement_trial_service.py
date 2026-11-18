@@ -2,6 +2,7 @@
 from _paths import ROOT, SERVER  # noqa: F401
 
 import hashlib
+import importlib.metadata
 import importlib.util
 import os
 import sys
@@ -31,7 +32,7 @@ class DashboardServiceTests(unittest.TestCase):
         self.addCleanup(self.f.doCleanups)
         self.host = fixtures.H
         self.stack = self.f.stack
-        self.stack.enter_context(patch.dict(os.environ, {"VANHANH_STATE_DIR": str(self.f.state)}))
+        self.stack.enter_context(patch.dict(os.environ, {"NAOTA_STATE_DIR": str(self.f.state)}))
         self.stack.enter_context(patch.object(self.host.sessions, "_store", self.f.store))
         self.stack.enter_context(patch.object(sys.modules["workflow_runs"], "_STORE", self.f.workflow))
         self.codec = Fernet(Fernet.generate_key())
@@ -50,9 +51,12 @@ class DashboardServiceTests(unittest.TestCase):
         import improvement_claude
         self.binary = self.f.root / "inert-cli.exe"
         self.binary.write_bytes(b"Never execute this synthetic binary")
-        self.stack.enter_context(patch.dict(os.environ, {"VANHANH_CLAUDE_CLI": str(self.binary)}))
+        self.stack.enter_context(patch.dict(os.environ, {"NAOTA_CLAUDE_CLI": str(self.binary)}))
         self.stack.enter_context(patch.object(improvement_claude, "VERIFIED_NATIVE_RUNTIMES", {
-            (sys.platform, "synthetic", hashlib.sha256(self.binary.read_bytes()).hexdigest(), "0.2.116")}))
+            # The SDK version of this environment, not a fixed number: requirements.txt carries a range since
+            # 2026-11-10 (the SDK updates itself inside its series), and `create_pin` matches the installed version.
+            (sys.platform, "synthetic", hashlib.sha256(self.binary.read_bytes()).hexdigest(),
+             importlib.metadata.version("claude-agent-sdk"))}))
         self.stack.enter_context(patch("subprocess.run", side_effect=AssertionError("No native/auth/model call")))
         self.stack.enter_context(patch("subprocess.Popen", side_effect=AssertionError("No native/auth/model call")))
 

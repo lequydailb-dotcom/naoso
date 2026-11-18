@@ -27,8 +27,8 @@ import tempfile
 import time
 from urllib.parse import parse_qs, urlparse
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-threads-")
-os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-threads-")
+os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:

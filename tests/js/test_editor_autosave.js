@@ -56,8 +56,8 @@ const A = require(path.join(ROOT, "dashboard/editor-autosave.js"));
   const now = 1e12;
   check("pickDraft: draft made from the file on disk comes back",
     A.pickDraft({ base: A.hash("old"), text: "old + new words", ts: now - 1000 }, "old", now) === "old + new words");
-  check("pickDraft: file changed since (Vanhanh edited it) wins",
-    A.pickDraft({ base: A.hash("old"), text: "old + new words", ts: now - 1000 }, "edited by Vanhanh", now) === null);
+  check("pickDraft: file changed since (Naota edited it) wins",
+    A.pickDraft({ base: A.hash("old"), text: "old + new words", ts: now - 1000 }, "edited by Naota", now) === null);
   check("pickDraft: a week-old draft is dropped",
     A.pickDraft({ base: A.hash("old"), text: "x", ts: now - 8 * 24 * 3600 * 1000 }, "old", now) === null);
   check("pickDraft: same as the file is nothing to restore",
@@ -131,10 +131,10 @@ const A = require(path.join(ROOT, "dashboard/editor-autosave.js"));
   check("and written to the file", w3[0] === "Dear Team HR, long rewrite");
 
   mem[A.DRAFT_PREFIX + "b::changed.md"] = JSON.stringify({ base: A.hash("v1"), text: "v1 + mine", ts: Date.now() });
-  const td = box("v2 by Vanhanh");
-  A.attach({ key: "b::changed.md", original: "v2 by Vanhanh", get: () => td.value, sources: [td],
+  const td = box("v2 by Naota");
+  A.attach({ key: "b::changed.md", original: "v2 by Naota", get: () => td.value, sources: [td],
     save: () => Promise.resolve(true), apply: (t) => { td.value = t; } });
-  check("a file changed since keeps its new content", td.value === "v2 by Vanhanh" && !mem[A.DRAFT_PREFIX + "b::changed.md"]);
+  check("a file changed since keeps its new content", td.value === "v2 by Naota" && !mem[A.DRAFT_PREFIX + "b::changed.md"]);
 
   // ---- 7. the mic places words where the cursor was ----
   const E = require(path.join(ROOT, "dashboard/editor-dictate.js"));
@@ -152,8 +152,8 @@ const A = require(path.join(ROOT, "dashboard/editor-autosave.js"));
   const fe = read("dashboard/file-editor.js");
   const html = read("dashboard/index.html");
   const css = read("dashboard/style.css");
-  check("note editor attaches autosave", /VanhanhAutosave\.attach\(/.test(cs));
-  check("note editor attaches the mic", /VanhanhEditorDictate\.attach\(/.test(cs));
+  check("note editor attaches autosave", /NaotaAutosave\.attach\(/.test(cs));
+  check("note editor attaches the mic", /NaotaEditorDictate\.attach\(/.test(cs));
   check("note editor writes pending words when it closes", /function closeNote\(\)[\s\S]{0,700}_neDropAssist\(\)/.test(cs));
   check("note editor deletes without writing back", /_neDropAssist\(true\)/.test(cs));
   check("popup editor attaches autosave", /AS\.attach\(/.test(fe));

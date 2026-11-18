@@ -20,8 +20,8 @@ import tempfile
 import threading
 import time
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-bachodung-")
-os.environ["VANHANH_ALLOWED_HOSTS"] = "testserver"
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-bachodung-")
+os.environ["NAOTA_ALLOWED_HOSTS"] = "testserver"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -70,7 +70,7 @@ gsrc = (ROOT / "server" / "routes" / "graph.py").read_text(encoding="utf-8")
 check("graph.py không còn awatch (RustNotify dựng trên event loop)", "awatch(" not in gsrc)
 
 seen = {}
-root = tempfile.mkdtemp(prefix="vanhanh-bachodung-vault-")
+root = tempfile.mkdtemp(prefix="naota-bachodung-vault-")
 note = os.path.join(root, "moi.md")
 
 

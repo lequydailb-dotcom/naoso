@@ -41,7 +41,7 @@ def install() -> bool:
     except Exception:  # noqa: BLE001
         return False
     original = getattr(transports, "create_ssl_context", None)
-    if original is None or getattr(original, "_vanhanh_shared", False):
+    if original is None or getattr(original, "_naota_shared", False):
         return bool(original)
 
     def create_ssl_context(cert=None, verify=True, trust_env=True, http2=False, *args, **kwargs):
@@ -57,7 +57,7 @@ def install() -> bool:
                     _CACHE[key] = ctx
         return ctx
 
-    create_ssl_context._vanhanh_shared = True
+    create_ssl_context._naota_shared = True
     transports.create_ssl_context = create_ssl_context
     if getattr(cfg, "create_ssl_context", None) is original:
         cfg.create_ssl_context = create_ssl_context

@@ -32,15 +32,15 @@ _SLUG = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}\Z")
 _TOOL = re.compile(r"[a-z][a-z0-9_]{0,63}\Z")
 _LOCK_TYPES = (type(threading.Lock()), type(threading.RLock()))
 _SESSION_FIELDS = {"id", "brain", "channel", "engine", "model", "project_id", "pinned_provider", "pinned_model", "archived"}
-_RESERVED = {"vanhanh_connections", "vanhanh_read_file", "vanhanh_list_dir", "vanhanh_write_file", "vanhanh_use_skill",
-    "vanhanh_edit_file", "vanhanh_search_files", "vanhanh_run_command", "vanhanh_terminal", "vanhanh_process",
-    "vanhanh_web_search", "vanhanh_web_fetch"}
-_GOAL_FILE = Path(__file__).resolve().parent.parent / "system" / "plugins" / "vanhanh-goal" / "plugin.py"
+_RESERVED = {"naota_connections", "naota_read_file", "naota_list_dir", "naota_write_file", "naota_use_skill",
+    "naota_edit_file", "naota_search_files", "naota_run_command", "naota_terminal", "naota_process",
+    "naota_web_search", "naota_web_fetch"}
+_GOAL_FILE = Path(__file__).resolve().parent.parent / "system" / "plugins" / "naota-goal" / "plugin.py"
 # Pin the audited data-only branch; a coherent edited source+cache is still not
 # authority to reinterpret an arbitrary predicate as the ordinary-owner result.
 # Re-pinned after an audit of the diff: the plugin opens the store with `RS.shared()` instead of
 # `RS.GoalStore()` (one opened store per file); `_visible`'s branches and what they return are unchanged.
-_GOAL_SOURCE_HASH = "285e625d2ab77986292d08178c37aa9c72a7dfa1c12616ea48cd6135cee9bda3"
+_GOAL_SOURCE_HASH = "39625ed24112fb9963195c7323b99d6ddaa742711e808eb2f92cc4300e58d951"
 
 
 def _plain(value):
@@ -255,7 +255,7 @@ class PluginCapabilityProjection:
         if (any(item["kind"] == "directory" and not item["name"].startswith((".", "_")) for item in pack_members or [])
                 or packs._cache.get("packs") or packs._cache.get("connectors") or (ledger_raw and _mapping(ledger_raw))):
             raise ValueError("unsupported_pack_context")
-        pack_off = str(os.getenv("VANHANH_DISABLE_PACKS", "")).strip().lower() in ("1", "true", "yes", "on")
+        pack_off = str(os.getenv("NAOTA_DISABLE_PACKS", "")).strip().lower() in ("1", "true", "yes", "on")
         if pack_off:
             pack_signature = "off"
         elif pack_members is None:
@@ -268,12 +268,12 @@ class PluginCapabilityProjection:
                 pack_signature.append(("_so", info.st_mtime_ns, info.st_size))
             pack_signature = tuple(pack_signature)
         user_env = [str(os.getenv(key, "") or "").strip().lower() for key in
-                    ("VANHANH_ENABLE_USER_PLUGINS", "VANHANH_ENABLE_VAULT_PLUGINS")]
+                    ("NAOTA_ENABLE_USER_PLUGINS", "NAOTA_ENABLE_VAULT_PLUGINS")]
         effective_env = next((value for value in user_env if value), "")
         user_enabled = effective_env not in ("0", "false", "no", "off")
         flat = observation.directory(root, "plugins")
-        nested = observation.directory(root, "Vanhanh/plugins")
-        layout = "plugins" if flat is not None else "Vanhanh/plugins" if nested is not None else "plugins"
+        nested = observation.directory(root, "Naota/plugins")
+        layout = "plugins" if flat is not None else "Naota/plugins" if nested is not None else "plugins"
         dirs = {}
         for source, base, members in (("bundled", bundled, observation.directory(bundled.parent, bundled.name)),
                                      ("user", global_dir, observation.directory(global_dir.parent, global_dir.name)),
@@ -426,7 +426,7 @@ class PluginCapabilityProjection:
                 if vis is not None and not skipped:
                     visibility = function(vis, pdir)
                     module = sys.modules.get(vis.__module__)
-                    if (source != "bundled" or lp.slug != "vanhanh-goal" or pdir / "plugin.py" != _GOAL_FILE
+                    if (source != "bundled" or lp.slug != "naota-goal" or pdir / "plugin.py" != _GOAL_FILE
                             or hashlib.sha256(observation.read(pdir, "plugin.py", required=True).encode("utf-8")).hexdigest() != _GOAL_SOURCE_HASH
                             or vis.__name__ != "_visible" or type(module) is not types.ModuleType or vis.__globals__ is not module.__dict__):
                         raise ValueError("unsupported_plugin_visibility")

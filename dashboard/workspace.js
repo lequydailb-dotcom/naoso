@@ -13,21 +13,21 @@
   "use strict";
   var t = function (k, v) { return (window.t ? window.t(k, v) : k); };
   // Gọi sang module nạp chậm (teams.js, packs.js: nap-cham.js): nạp nhóm nếu chưa có rồi gọi.
-  var nhom = function (ten, fn) { return window.VanhanhNapCham ? window.VanhanhNapCham.goi(ten, fn) : fn(); };
+  var nhom = function (ten, fn) { return window.NaotaNapCham ? window.NaotaNapCham.goi(ten, fn) : fn(); };
   // (i) button from info-tip.js; without it (node tests) the explanation is drawn inline.
-  function infoBtn() { var J = typeof window !== "undefined" && window.VanhanhInfo; return J ? J.btn(t("info.more")) : ""; }
+  function infoBtn() { var J = typeof window !== "undefined" && window.NaotaInfo; return J ? J.btn(t("info.more")) : ""; }
   function infoBody(html) {
-    var J = typeof window !== "undefined" && window.VanhanhInfo;
+    var J = typeof window !== "undefined" && window.NaotaInfo;
     return J ? J.body(html) : '<div class="info-body">' + html + "</div>";
   }
   var ic = function (n, o) { return (window.ic ? window.ic(n, o) : ""); };
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
   function khongDau(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\u0111/g, "d").replace(/\u0110/g, "D").toLowerCase(); }
-  function brain() { try { return window.VanhanhSessions ? window.VanhanhSessions.brain() : "brain"; } catch (e) { return "brain"; } }
+  function brain() { try { return window.NaotaSessions ? window.NaotaSessions.brain() : "brain"; } catch (e) { return "brain"; } }
   async function api(url, opt) { var r = await fetch(url, opt); return r.json(); }
   function fd(o) { var f = new FormData(); Object.keys(o).forEach(function (k) { f.append(k, o[k]); }); return f; }
 
-  function avatar(a, size, state) { return window.VanhanhAvatar ? window.VanhanhAvatar.html(a, size, state) : ic("bot"); }
+  function avatar(a, size, state) { return window.NaotaAvatar ? window.NaotaAvatar.html(a, size, state) : ic("bot"); }
   function agentOf(slug) { return S.agents.find(function (a) { return a.slug === slug || a.name === slug; }) || {slug: slug || ""}; }
   // daTai = đã tải được danh sách ÍT NHẤT MỘT LẦN. Phân biệt "brain mới tinh, chưa có cộng sự
   // nào" với "gọi /agents hỏng nên không biết có gì": cả hai đều để lại mảng rỗng, nhưng cái
@@ -38,7 +38,7 @@
   var lanDung = 0;
   // Khung được dựng khi từ điển i18n CHƯA về: mọi t() trong khung khi đó trả về chính cái khoá
   // (`ws.tab_agent`...). Trang này không có data-i18n nên applyDom không cứu được, và nó cũng không
-  // tự nghe "vanhanh:i18n"; console.js hỏi cờ này rồi dựng lại trang đúng một lần khi từ điển về.
+  // tự nghe "naota:i18n"; console.js hỏi cờ này rồi dựng lại trang đúng một lần khi từ điển về.
   var dungKhiChuaCoTuDien = false;
   // Phiên chat của BỘ NÃO CHÍNH đang mở trước khi vào trang này, để lúc rời trang trả khung
   // chat về đúng cuộc đang dở (xem traKhungChat).
@@ -54,7 +54,7 @@
       // Send has two owners: this lock and a running turn in app.js. Set the lock and let app.js
       // decide, so leaving the page mid-turn does not re-enable send.
       b.dataset.wsLock = value ? "" : "1";
-      if (window.VanhanhSyncActiveUI) window.VanhanhSyncActiveUI(); else b.disabled = !value;
+      if (window.NaotaSyncActiveUI) window.NaotaSyncActiveUI(); else b.disabled = !value;
     });
     var files = S.el && S.el.querySelector("#wsFiles"); if (files) files.disabled = !value;
     var run = S.el && S.el.querySelector("#wsRun");
@@ -72,7 +72,7 @@
   // cộng sự ghim mà hai tuần không gọi sẽ tụt xuống cuối và cái ghim thành vô nghĩa.
   function sapXep(ds, khoa) {
     return ds.slice().sort(function (a, b) {
-      // Vanhanh Core (`system`) is always first, ahead of the pinned ones.
+      // Naota Core (`system`) is always first, ahead of the pinned ones.
       var sa = a.system ? 1 : 0, sb = b.system ? 1 : 0;
       if (sa !== sb) return sb - sa;
       var ga = a.pinned ? 1 : 0, gb = b.pinned ? 1 : 0;
@@ -90,7 +90,7 @@
   // "..." để đổi tên cả nhóm. Dữ liệu vẫn là field `group` sẵn có trong frontmatter, nên
   // Studio, ô lọc và menu "Chuyển sang nhóm" đều nhìn thấy cùng một thứ.
   var NHOM_MD = "Chung";
-  var KHOA_THU = "vanhanh_ws_thu";                 // localStorage: nhóm đang THU GỌN, theo loại
+  var KHOA_THU = "naota_ws_thu";                 // localStorage: nhóm đang THU GỌN, theo loại
   function nhomCua(x) { return (String((x && x.group) || "").trim()) || NHOM_MD; }
   function docThu() {
     try { return JSON.parse(localStorage.getItem(KHOA_THU) || "{}") || {}; }
@@ -119,7 +119,7 @@
   // nằm lẫn giữa danh sách theo giờ chat. Mỗi mục vẫn chỉ hiện một lần.
   function gomNhom(ds, nhomLoc, nhomTrong, can) {
     var ra = [];
-    // Vanhanh Core: its own first block, above "needs you" and the pinned ones, with no heading (the row
+    // Naota Core: its own first block, above "needs you" and the pinned ones, with no heading (the row
     // carries the System badge).
     var he = (ds || []).filter(function (x) { return x.system; });
     if (he.length) { ra.push({ he: true, nhom: "", items: he }); ds = (ds || []).filter(function (x) { return !x.system; }); }
@@ -155,7 +155,10 @@
   // Auto is on right now. Same leading-space trick as TAG_NONE, so it never clashes with a real tag.
   var TAG_AUTO = " auto";
   function autoBat(rs, slug) { var r = rs && rs[slug]; return !!(r && r.enabled && r.status === "active"); }
-  // Vanhanh Core's Auto is always on: its row shows the switch on even before the server's list is in.
+  // An assistant whose file went away (`missing`) or that was retired can never be "on", yet its Auto block is the only
+  // place holding the two confirm buttons ("same assistant" / "new assistant") and its old goals. So it counts as shown.
+  function autoBlocked(rs, slug) { var r = rs && rs[slug]; return !!(r && (r.status === "missing" || r.status === "retired")); }
+  // Naota Core's Auto is always on: its row shows the switch on even before the server's list is in.
   function coreAutoRow(x) {
     var r = S.rs[x.slug] || {};
     return { slug: x.slug, name: x.name, enabled: true, status: "active", goals_open: r.goals_open || 0 };
@@ -203,7 +206,7 @@
   }
   // The owner's own tag order (reorder-dialog.js, saved for this page), else by name.
   function thuTuTag(ds) {
-    var R = typeof window !== "undefined" && window.VanhanhReorder;
+    var R = typeof window !== "undefined" && window.NaotaReorder;
     return R ? R.sortTags(ds, "tags_agents", function (g) { return g.key; }, function (g) { return g.ten; })
       : ds.sort(function (a, b) { return a.ten.localeCompare(b.ten, "vi"); });
   }
@@ -309,7 +312,7 @@
   var S = { loai: "agent", q: "", nhom: "", thu: docThu(), agents: [], workflows: [], chon: { agent: null, workflow: null },
             el: null, tienDo: {}, sessionCuaPhien: {}, tabPhai: "lichsu",
             // T0 nhóm chat team: trạng thái Cộng hưởng theo slug, và các dòng đang chờ server trả lời.
-            rs: {}, rsSaving: {},
+            rs: {}, rsSaving: {}, packSaving: {},
             // Huy hiệu việc theo slug (Đang làm, Cần bạn), tách khỏi công tắc Auto: Auto tắt vẫn có thể có việc Đang làm.
             jc: {},
             // unread count, newest message time and mute per partner (GET /agents/unread).
@@ -331,7 +334,7 @@
   function danhSach() { return S.loai === "agent" ? S.agents : S.workflows; }
   function kenh(item) { return (S.loai === "agent" ? "agent:" : "workflow:") + item.slug; }
   function dangChon() { var slug = S.chon[S.loai]; return danhSach().find(function (x) { return x.slug === slug; }) || null; }
-  var VI_TRI_KEY = "vanhanh_workspace_view";
+  var VI_TRI_KEY = "naota_workspace_view";
   function docViTri() {
     try {
       var v = JSON.parse(localStorage.getItem(VI_TRI_KEY) || "null");
@@ -386,7 +389,7 @@
   // làm nghẽn luồng phụ của server. Có sự kiện trong lúc đang đếm thì đếm lại đúng một lần sau khi xong.
   var _demDang = false, _demLai = false;
   async function loadJobCounts() {
-    var round = lanDung, b0 = brain(), AJ = window.VanhanhAgentJobs;
+    var round = lanDung, b0 = brain(), AJ = window.NaotaAgentJobs;
     if (!AJ || !AJ.loadCounts) return false;
     if (_demDang) { _demLai = true; return false; }
     _demDang = true;
@@ -481,9 +484,10 @@
   // dùng chung trạng thái `S.rs`. Khoá trong lúc chờ server (bấm hai lần không gửi hai lệnh); chỉ server xác nhận mới
   // đổi; lỗi thì về đúng trạng thái thật và nói lý do (toggleAgent luôn phát sự kiện tải lại).
   function doiAuto(slug, wantOn) {
-    var row = S.rs[slug], RA = window.VanhanhResonanceAgent;
+    var row = S.rs[slug], RA = window.NaotaResonanceAgent;
     if (!RA || !row || S.rsSaving[slug]) return false;
-    var question = wantOn ? "" : RA.offConfirmText(row);
+    // Turning Auto on gives full access (2026-11-14), so it is confirmed like turning off with open goals.
+    var question = wantOn ? (RA.onConfirmText ? RA.onConfirmText(row) : "") : RA.offConfirmText(row);
     if (question && !window.confirm(question)) { veDanhSach(); return false; }
     S.rsSaving[slug] = true; veDanhSach();
     RA.toggleAgent(slug, wantOn).then(function (result) {
@@ -499,6 +503,18 @@
     S.tagNote = result && result.ok ? null
       : { loi: true, msg: t("resonance.t0_failed", { error: (result && result.error) || "" }) };
   }
+  // The Auto state of the brain just arrived: the cards, and the line under the filter bar that asks about a whole
+  // pack (it appears and goes with that state, so it is redrawn with the cards).
+  function drawAutoState() {
+    if (S.el) veThanhNhom(S.el);
+    veDanhSach();
+  }
+  // One draw of the list for answers that arrive in the same turn.
+  var listTimer = 0;
+  function listSoon() {
+    if (listTimer) return;
+    listTimer = setTimeout(function () { listTimer = 0; if (active && S.el) veDanhSach(); }, 0);
+  }
   async function taiDanhSach() {
     var lan = lanDung, b0 = brain();
     var b = encodeURIComponent(b0);
@@ -513,9 +529,11 @@
     }
     // T0 nhóm chat team: trạng thái Cộng hưởng của MỌI trợ lý trong một request riêng (không gọi theo từng dòng), đọc
     // SAU khi danh sách đã có: tới đâu vẽ lại tới đó. Chưa về hay lỗi thì dòng không có công tắc (không đoán).
-    loadResonance().then(function (ok) { if (ok && active && S.loai === "agent") { veDanhSach(); veAuto(dangChon()); } });
-    loadJobCounts().then(function (ok) { if (ok && active && S.loai === "agent") veDanhSach(); });
-    loadUnread().then(function (ok) { if (ok && active && S.loai === "agent") veDanhSach(); });
+    // 2026-11-13: the three answers usually land together (one batched request), so the list is drawn once for all of
+    // them (listSoon), not once each.
+    loadResonance().then(function (ok) { if (ok && active && S.loai === "agent") { if (S.el) veThanhNhom(S.el); listSoon(); veAuto(dangChon()); } });
+    loadJobCounts().then(function (ok) { if (ok && active && S.loai === "agent") listSoon(); });
+    loadUnread().then(function (ok) { if (ok && active && S.loai === "agent") listSoon(); });
     S.agents = sapXep(r[0].agents, "last_chat_at");
     S.workflows = sapXep(r[1].workflows.filter(function (w) { return w.status === "active"; }), "last_run_at");
     daTai = true;
@@ -529,9 +547,9 @@
 
   // ---------- dựng khung ----------
   function render(el, opts) {
-    // Đọc TRƯỚC khi vẽ gì: khung bên dưới dùng t() ngay lúc dựng. Thiếu VanhanhI18n thì không bao giờ
+    // Đọc TRƯỚC khi vẽ gì: khung bên dưới dùng t() ngay lúc dựng. Thiếu NaotaI18n thì không bao giờ
     // có sự kiện để dựng lại, nên coi như đã xong thay vì đòi một lần dựng lại không ai gọi.
-    dungKhiChuaCoTuDien = !!(window.VanhanhI18n && window.VanhanhI18n.ready && !window.VanhanhI18n.ready());
+    dungKhiChuaCoTuDien = !!(window.NaotaI18n && window.NaotaI18n.ready && !window.NaotaI18n.ready());
     S.el = el; active = true; ready = false;
     // DỰNG LẠI TỪ ĐẦU, không nối tiếp lần trước. Trang này còn được dựng lại NGAY TẠI CHỖ khi
     // người dùng đổi bộ não (console.js gọi thẳng renderPage, không đi qua navigateTo nên roi()
@@ -615,26 +633,26 @@
         '</aside>' +
       '</div>';
     if (opts && opts.borrow) opts.borrow(el.querySelector("#wsSlot"));
-    el.querySelectorAll("[data-loai]").forEach(function (b) { b.onclick = function () { S.loai = b.dataset.loai; S.nhom = ""; S.hien = TRANG; luuChon(); veTrai(); chonMacDinh(); }; });
+    el.querySelectorAll("[data-loai]").forEach(function (b) { b.onclick = function () { S.loai = b.dataset.loai; S.nhom = ""; S.hien = TRANG; luuChon(); chonSan(); veTrai(); chonMacDinh(); }; });
     noiODoTim(el);
     el.querySelectorAll("[data-rtab]").forEach(function (b) { b.onclick = function () { chonTabPhai(b.dataset.rtab); }; });
     el.querySelector(".ws-panel-close").onclick = function () { datPhai(false); };
     el.querySelector("#wsNew").onclick = function () { taoMoi(S.loai); };
     el.querySelector("#wsImport").onclick = function () {
-      if (window.VanhanhStudio) window.VanhanhStudio.importItems(async function () {
+      if (window.NaotaStudio) window.NaotaStudio.importItems(async function () {
         if (!active) return;
-        await taiDanhSach(); veTrai(); chonMacDinh();
+        await taiDanhSach(); chonSan(); veTrai(); chonMacDinh();
       });
     };
     // Một ngăn kéo cho cả hai phạm vi (của trợ lý / chỉ cuộc này), công tắc nằm ở đầu ngăn.
     // Quy trình không có tài liệu riêng, nên ở tab Quy trình nút này vẫn mở tài liệu của cuộc.
     el.querySelector("#wsFiles").onclick = function () {
-      if (!ready || !window.VanhanhChatSide) return;
+      if (!ready || !window.NaotaChatSide) return;
       var x = dangChon();
-      if (S.loai === "agent" && x && window.VanhanhChatSide.moTaiLieu) window.VanhanhChatSide.moTaiLieu(x.slug, x.name);
-      else window.VanhanhChatSide.moKhungCuoc();
+      if (S.loai === "agent" && x && window.NaotaChatSide.moTaiLieu) window.NaotaChatSide.moTaiLieu(x.slug, x.name);
+      else window.NaotaChatSide.moKhungCuoc();
     };
-    el.querySelector("#wsStore").onclick = function () { nhom("packs", function () { if (window.VanhanhPacks && window.VanhanhPacks.moKho) window.VanhanhPacks.moKho(S.loai, "workspace", t("page.workspace.label")); }); };
+    el.querySelector("#wsStore").onclick = function () { nhom("packs", function () { if (window.NaotaPacks && window.NaotaPacks.moKho) window.NaotaPacks.moKho(S.loai, "workspace", t("page.workspace.label")); }); };
     el.querySelector("#wsNewChat").onclick = function () { var x = dangChon(); if (x) moPhien(x, true); };
     var page = el.querySelector("#wsPage");
     el.querySelector("#wsLeftBtn").onclick = function () { page.classList.toggle("left-open"); };
@@ -660,8 +678,8 @@
     });
     // Nhớ chỗ đang đứng: mở lại trang mà rơi về mục đầu danh sách thì mỗi lần ghé qua trang
     // khác rồi quay lại là mất chỗ, trong khi cộng sự đang dùng thường chỉ là một hai mục.
-    try { var l = localStorage.getItem("vanhanh_ws_loai"); if (l === "agent" || l === "workflow") S.loai = l; S.chon.agent = localStorage.getItem("vanhanh_ws_agent"); S.chon.workflow = localStorage.getItem("vanhanh_ws_workflow"); } catch (e) {}
-    try { var r = localStorage.getItem("vanhanh_ws_rtab"); S.tabPhai = TAB_PHAI.indexOf(r) >= 0 ? r : "lichsu"; } catch (e) { S.tabPhai = "lichsu"; }
+    try { var l = localStorage.getItem("naota_ws_loai"); if (l === "agent" || l === "workflow") S.loai = l; S.chon.agent = localStorage.getItem("naota_ws_agent"); S.chon.workflow = localStorage.getItem("naota_ws_workflow"); } catch (e) {}
+    try { var r = localStorage.getItem("naota_ws_rtab"); S.tabPhai = TAB_PHAI.indexOf(r) >= 0 ? r : "lichsu"; } catch (e) { S.tabPhai = "lichsu"; }
     // Chỉ tab của TRỢ LÝ được nhớ qua localStorage. Quy trình mở trang là về Cài đặt: "khởi
     // đầu vào luôn cài đặt" là điều cần, nhớ tab cũ qua F5 là làm ngược lại.
     S.tabCua = { agent: S.tabPhai, workflow: "cai" };
@@ -669,7 +687,7 @@
     chonTabPhai(S.tabPhai);
     nhoPhienTruoc();
     var lanNay = lanDung;
-    taiDanhSach().then(function (moi) { if (moi === false || lanNay !== lanDung) return; if (pendingCommand) { var cmd = pendingCommand; pendingCommand = null; selectCommand(cmd); } else { veTrai(); chonMacDinh(); } }).catch(function () { if (lanNay !== lanDung) return; if (pendingCommand) { pendingCommand.resolve(false); pendingCommand = null; } veLoi(t("ws.err_list")); });
+    taiDanhSach().then(function (moi) { if (moi === false || lanNay !== lanDung) return; if (pendingCommand) { var cmd = pendingCommand; pendingCommand = null; selectCommand(cmd); } else { chonSan(); veTrai(); chonMacDinh(); } }).catch(function () { if (lanNay !== lanDung) return; if (pendingCommand) { pendingCommand.resolve(false); pendingCommand = null; } veLoi(t("ws.err_list")); });
   }
   async function selectCommand(cmd) {
     S.loai = cmd.kind; S.chon[cmd.kind] = cmd.slug; S.q = ""; S.nhom = "";
@@ -685,10 +703,10 @@
     return new Promise(function (resolve) {
       var cmd = {kind: kind, slug: slug, sid: sid || "", resolve: resolve};
       if (active) { selectCommand(cmd); return; }
-      if (!window.VanhanhNav) { resolve(false); return; }
+      if (!window.NaotaNav) { resolve(false); return; }
       if (pendingCommand) pendingCommand.resolve(false);
       pendingCommand = cmd;
-      window.VanhanhNav.go("workspace");
+      window.NaotaNav.go("workspace");
     });
   }
   // Mở trang Cộng sự ở ĐÚNG tab (menu nhanh của linh vật: "Trợ lý" / "Quy trình"). Khác
@@ -702,12 +720,12 @@
     // vẽ lại ô chọn theo S.nhom nên hai bên vẫn khớp.
     S.loai = loai; S.nhom = "";
     luuChon();
-    if (active) { veTrai(); chonMacDinh(); return true; }
-    if (!window.VanhanhNav) return false;
-    window.VanhanhNav.go("workspace");
+    if (active) { chonSan(); veTrai(); chonMacDinh(); return true; }
+    if (!window.NaotaNav) return false;
+    window.NaotaNav.go("workspace");
     return true;
   }
-  function luuChon() { try { localStorage.setItem("vanhanh_ws_loai", S.loai); if (S.chon.agent) localStorage.setItem("vanhanh_ws_agent", S.chon.agent); if (S.chon.workflow) localStorage.setItem("vanhanh_ws_workflow", S.chon.workflow); } catch (e) {} }
+  function luuChon() { try { localStorage.setItem("naota_ws_loai", S.loai); if (S.chon.agent) localStorage.setItem("naota_ws_agent", S.chon.agent); if (S.chon.workflow) localStorage.setItem("naota_ws_workflow", S.chon.workflow); } catch (e) {} }
 
   // ---------- ô tìm thu gọn ----------
   // Nút kính lúp bung ô nhập ra; ô nhập RỖNG mà mất tiêu điểm thì tự thu lại. Esc xoá chữ,
@@ -737,14 +755,14 @@
   // Cây thư mục là node MƯỢN của màn chính, chỉ có MỘT bản. Rời tab (hay rời trang) mà không
   // trả thì màn chính và trang Trò chuyện mất hẳn panel Vault - cùng bài học với tab Thư mục
   // của trang Trò chuyện (xem sessions-ui.js chonTab).
-  function traCayThuMuc() { try { if (window.VanhanhVaultPanel) window.VanhanhVaultPanel.giveBack(); } catch (e) {} }
+  function traCayThuMuc() { try { if (window.NaotaVaultPanel) window.NaotaVaultPanel.giveBack(); } catch (e) {} }
   function chonTabPhai(tab) {
     var el = S.el; if (!el) return;
     S.tabPhai = TAB_PHAI.indexOf(tab) >= 0 ? tab : "cai";
     if (S.tabPhai === "viec" && S.loai !== "agent") S.tabPhai = "cai";
     if (S.tabCua) S.tabCua[S.loai] = S.tabPhai;
     // Tab của quy trình chỉ sống trong lần mở trang này (xem S.tabCua), không ghi xuống.
-    if (S.loai !== "workflow") { try { localStorage.setItem("vanhanh_ws_rtab", S.tabPhai); } catch (e) {} }
+    if (S.loai !== "workflow") { try { localStorage.setItem("naota_ws_rtab", S.tabPhai); } catch (e) {} }
     el.querySelectorAll("[data-rtab]").forEach(function (b) { b.classList.toggle("active", b.dataset.rtab === S.tabPhai); });
     el.querySelectorAll("[data-rpane]").forEach(function (p) { p.classList.toggle("on", p.dataset.rpane === S.tabPhai); });
     var jb = el.querySelector('[data-rtab="viec"]');
@@ -763,8 +781,8 @@
     var host = S.el && S.el.querySelector("#wsRightJobs");
     if (_congViec) { _congViec.destroy(); _congViec = null; }
     if (!host) return;
-    if (!item || S.loai !== "agent" || !window.VanhanhAgentJobs) { host.innerHTML = ""; return; }
-    _congViec = window.VanhanhAgentJobs.mount(host, { slug: item.slug, name: item.name || item.slug, brain: brain,
+    if (!item || S.loai !== "agent" || !window.NaotaAgentJobs) { host.innerHTML = ""; return; }
+    _congViec = window.NaotaAgentJobs.mount(host, { slug: item.slug, name: item.name || item.slug, brain: brain,
       noAssign: !!item.system,
       // Trợ lý KHÁC trong brain: người nhận việc kiểm chứng khi bấm "Giao kiểm chứng" trên một thẻ.
       agents: function () {
@@ -773,14 +791,14 @@
       },
       openChat: function (sid) { var x = dangChon(); if (x) moPhien(x, false, sid); },
       // The chat beside the tab is this assistant's: its running turn shows at the top of the tab.
-      liveTurn: function () { return window.VanhanhChatLive ? window.VanhanhChatLive.turn() : null; },
+      liveTurn: function () { return window.NaotaChatLive ? window.NaotaChatLive.turn() : null; },
       openTeam: function (teamId, taskId) {
         // teams.js nạp chậm (nap-cham.js): chờ nó rồi mở.
         nhom(["congviec", "teams"], function () {
-          if (window.VanhanhTeams && window.VanhanhTeams.open) window.VanhanhTeams.open(teamId, taskId);
+          if (window.NaotaTeams && window.NaotaTeams.open) window.NaotaTeams.open(teamId, taskId);
         });
       },
-      openWork: function () { if (window.VanhanhNav && window.VanhanhNav.go) window.VanhanhNav.go("kanban"); },
+      openWork: function () { if (window.NaotaNav && window.NaotaNav.go) window.NaotaNav.go("kanban"); },
       // A workflow run the assistant took part in: open that workflow on this page, on the run's chat when it has one.
       openWorkflow: function (wfSlug, sid) { if (wfSlug) openCommand("workflow", wfSlug, sid || ""); } });
   }
@@ -793,7 +811,7 @@
   // Nhóm TRỐNG (tạo bằng "+ Nhóm mới" mà chưa kéo ai vào) không tồn tại ở đâu trên đĩa - nhóm
   // là tập hợp cộng sự có cùng `group` - nên nhớ tạm trong localStorage theo brain và loại; hễ
   // có cộng sự mang tên nhóm đó là xoá khỏi sổ vì nhóm đã "thật".
-  var KHOA_NHOM_TRONG = "vanhanh_ws_nhom_trong";
+  var KHOA_NHOM_TRONG = "naota_ws_nhom_trong";
   function khoaTrong() { return brain() + "|" + S.loai; }
   function docNhomTrong() {
     try { var o = JSON.parse(localStorage.getItem(KHOA_NHOM_TRONG) || "{}") || {}; return (o[khoaTrong()] || []).slice(); }
@@ -846,7 +864,7 @@
     veTrai(); veGiua(dangChon());
   }
   function moBangNhom(neo) {
-    var cs = window.VanhanhChatSide; if (!cs || !cs.menu) return;
+    var cs = window.NaotaChatSide; if (!cs || !cs.menu) return;
     var dem = demNhom();
     var rows = [
       { label: t("ws.all_groups"), icon: "layers", on: !S.nhom, run: function () { chonNhom(""); } },
@@ -867,7 +885,7 @@
   }
   // Hộp chức năng của MỘT nhóm, đi sâu trong cùng bảng nổi (như project bên Trò chuyện).
   function moChucNangNhom(neo, g) {
-    var cs = window.VanhanhChatSide; if (!cs || !cs.menu) return;
+    var cs = window.NaotaChatSide; if (!cs || !cs.menu) return;
     cs.menu(neo, [
       { label: g, icon: "folder", wrap: true, run: function () { chonNhom(g); } },
       { sep: true },
@@ -906,25 +924,51 @@
     var ic0 = !S.nhom ? "layers" : S.nhom === TAG_NONE ? "circle" : S.nhom === TAG_AUTO ? "zap" : "tag";
     // the bar markup is shared with the Teams page (tag-picker.js), so both look and behave the same.
     bar.innerHTML =
-      window.VanhanhTagPicker.barHtml({ label: nhanTag(S.nhom), icon: ic0, canClear: !!S.nhom,
+      window.NaotaTagPicker.barHtml({ label: nhanTag(S.nhom), icon: ic0, canClear: !!S.nhom,
                                       pickTitle: t("ws.tag_pick_title"), clearTitle: t("ws.tag_clear_title") }) +
       // Kết quả thao tác tag (gộp tag, lỗi một phần) nằm ngay dưới thanh, sống tới lần thao tác kế.
       (S.tagNote ? '<div class="ws-tag-note' + (S.tagNote.loi ? " loi" : "") + '" role="status">' +
         esc(S.tagNote.msg) + '<button type="button" class="ws-tag-note-x" title="' + esc(t("common.close")) + '">' +
-        ic("x") + '</button></div>' : '');
+        ic("x") + '</button></div>' : '') +
+      // 2026-11-11: assistants of one Store pack that wait for "same assistant?" are answered with one button here,
+      // not card by card (resonance-agent.js draws the line; nothing waits, nothing is drawn).
+      packConfirmHtml();
     var cur = bar.querySelector(".cs-proj-cur"); if (cur) cur.onclick = function (e) { moBangTag(e.currentTarget); };
     var x = bar.querySelector(".cs-proj-x"); if (x) x.onclick = function () { chonNhom(""); };
     var nx = bar.querySelector(".ws-tag-note-x"); if (nx) nx.onclick = function () { S.tagNote = null; veThanhTag(bar); };
+    bar.querySelectorAll("[data-pack-confirm]").forEach(function (b) {
+      b.onclick = function () { confirmPackAuto(b.getAttribute("data-pack-confirm"), bar); };
+    });
+  }
+  function packConfirmHtml() {
+    var RA = window.NaotaResonanceAgent;
+    if (!RA || !RA.packConfirmHtml) return "";
+    var rows = Object.keys(S.rs || {}).map(function (k) { return S.rs[k]; });
+    return RA.packConfirmHtml(RA.missingByPack(rows), S.packSaving);
+  }
+  // One click answers "same assistant" for the whole pack. Locked while the request is out; a failure says why under
+  // the bar. The reload of the real state comes from the event confirmPack always fires.
+  function confirmPackAuto(packId, bar) {
+    var RA = window.NaotaResonanceAgent;
+    if (!RA || !RA.confirmPack || !packId || S.packSaving[packId]) return false;
+    S.packSaving[packId] = true; veThanhTag(bar);
+    RA.confirmPack(packId).then(function (result) {
+      delete S.packSaving[packId];
+      S.tagNote = result && result.ok ? null
+        : { loi: true, msg: t("resonance.pack_confirm_failed", { error: (result && result.error) || "" }) };
+      if (active && S.el) veThanhNhom(S.el);
+    });
+    return true;
   }
   function moBangTag(neo) {
-    var cs = window.VanhanhChatSide; if (!cs || !cs.menu) return;
+    var cs = window.NaotaChatSide; if (!cs || !cs.menu) return;
     var dem = demTag(danhSach());
     var rows = [
       { label: t("ws.tag_all"), icon: "layers", right: String(danhSach().length), on: !S.nhom, run: function () { chonNhom(""); } },
       { label: t("ws.tag_none"), icon: "circle", right: String(dem.khong), on: S.nhom === TAG_NONE,
         run: function () { chonNhom(TAG_NONE); } },
     ];
-    if (window.VanhanhResonanceAgent) {
+    if (window.NaotaResonanceAgent) {
       var soAuto = danhSach().filter(function (x) { return autoBat(S.rs, x.slug); }).length;
       rows.push({ label: t("ws.tag_auto"), icon: "zap", right: String(soAuto), on: S.nhom === TAG_AUTO,
         run: function () { chonNhom(TAG_AUTO); } });
@@ -936,10 +980,10 @@
                   acts: [{ icon: "ellipsis-vertical", title: t("ws.tag_acts"), run: function () { moChucNangTag(neo, g); } }] });
     });
     // Drag the tags into the owner's own order.
-    if (dem.tags.length > 1 && window.VanhanhReorder) {
+    if (dem.tags.length > 1 && window.NaotaReorder) {
       rows.push({ sep: true });
       rows.push({ label: t("reorder.menu_tags"), icon: "arrow-up-down", run: function () {
-        var R = window.VanhanhReorder;
+        var R = window.NaotaReorder;
         R.open({ title: t("reorder.title_tags"), items: dem.tags.map(function (g) { return { id: g.key, label: g.ten, icon: "tag" }; }),
           save: function (keys) { return R.saveTags("tags_agents", keys); } });
       } });
@@ -948,7 +992,7 @@
   }
   // `g` = {ten, key}: gửi server TÊN (server tự so theo khoá), giữ trạng thái trang theo KHOÁ.
   function moChucNangTag(neo, g) {
-    var cs = window.VanhanhChatSide; if (!cs || !cs.menu) return;
+    var cs = window.NaotaChatSide; if (!cs || !cs.menu) return;
     cs.menu(neo, [
       { label: g.ten, icon: "tag", wrap: true, run: function () { chonNhom(g.key); } },
       { sep: true },
@@ -1037,15 +1081,15 @@
   //    thì chỉ tổ chật cột.
   function veDanhSach() {
     var el = S.el; if (!el) return;
-    anTheMini();   // the rows are about to be replaced: a card left on a gone row would never get its mouseleave
     var laTag = S.loai === "agent";
     var ds = loc(danhSach(), S.q, S.nhom, laTag, S.rs), chon = S.chon[S.loai];
     var host = el.querySelector("#wsList");
     var trong = (S.q || S.nhom || laTag) ? [] : docNhomTrong();
     // Not loaded yet (a tab switch or a toggle before the first list arrived): still loading, not "nothing here".
-    if (!daTai && !ds.length) { host.innerHTML = dangTaiHtml("ws.loading_list"); return; }
+    if (!daTai && !ds.length) { anTheMini(); host.__wsHtml = null; host.innerHTML = dangTaiHtml("ws.loading_list"); return; }
     if (!ds.length && !trong.length) {
       var nhomTrong = !laTag && !!(S.nhom && !S.q && docNhomTrong().indexOf(S.nhom) >= 0);
+      anTheMini(); host.__wsHtml = null;
       host.innerHTML = '<div class="ws-empty">' + esc(t(nhomTrong ? "ws.group_empty_hint" : "ws.empty")) + '</div>';
       return;
     }
@@ -1066,11 +1110,20 @@
       tong += n.items.length;
       n.items.forEach(function (x) { if (daVe < S.hien) { html += mucHtml(x, chon); daVe++; } });
     });
-    host.innerHTML = html +
-      (tong > S.hien
-        ? '<button type="button" class="ws-more" id="wsMore">' +
-            esc(t("sess.more", { so: Math.min(TRANG, tong - S.hien) })) + '</button>'
-        : "");
+    html += tong > S.hien
+      ? '<button type="button" class="ws-more" id="wsMore">' +
+          esc(t("sess.more", { so: Math.min(TRANG, tong - S.hien) })) + '</button>'
+      : "";
+    // 2026-11-13: the same list again is not drawn again. Opening the page asked for this list five times in a row
+    // (the list, the default choice, then the Auto state, the job counts and the unread marks as each arrived), and
+    // every one replaced all the rows, bound every row's handlers again and measured every card's tags, with a forced
+    // layout per card: 272 layouts for one opening on a brain of 28 assistants. The rows on screen are exactly what
+    // this HTML would produce (the only thing that edits them afterwards is the tag fitting below, which depends on
+    // the HTML and the column width alone), so keeping them also keeps the scroll position, the hover and the focus.
+    if (host.__wsHtml === html) return;
+    anTheMini();   // the rows are about to be replaced: a card left on a gone row would never get its mouseleave
+    host.innerHTML = html;
+    host.__wsHtml = html;
     var nutThem = host.querySelector("#wsMore");
     if (nutThem) nutThem.onclick = function () {
       // Giữ chỗ cuộn: vẽ lại cả danh sách mà để nó nhảy về đầu thì bấm "Xem thêm" xong lại
@@ -1109,7 +1162,7 @@
         esc(t("ws.tag_more", { n: du })) + '</span>' : "") + '</span>';
   }
   // An assistant card's second line, under the name and right beside the avatar, carries
-  // the System badge (Vanhanh Core) and the assistant's tags, on the same row as the time and Auto switch in the right
+  // the System badge (Naota Core) and the assistant's tags, on the same row as the time and Auto switch in the right
   // corner. One line only: two chips, the rest folded into "+n" (every name in its title), each chip cuts its own text.
   var CARD_TAG_MAX = 2;
   function cardSubInner(x, he, max) {
@@ -1125,6 +1178,7 @@
   // only when it alone is too long. With no layout (a hidden page, tests) the CSS fallback keeps 104px clear instead.
   function fitCardTags(host) {
     if (!host || !host.querySelectorAll) return;
+    S.tagFitW = host.clientWidth;   // the column width this fitting was done for (see watchCardTags)
     host.querySelectorAll(".ws-item-sub").forEach(function (sub) {
       var wrap = sub.closest ? sub.closest(".ws-item-wrap") : null;
       var btn = wrap && wrap.querySelector("[data-slug]"), end = wrap && wrap.querySelector(".ws-item-end");
@@ -1149,7 +1203,13 @@
     if (typeof ResizeObserver === "undefined" || S.tagRoHost === host) return;
     if (S.tagRo) S.tagRo.disconnect();
     S.tagRoHost = host;
-    S.tagRo = new ResizeObserver(function () { fitCardTags(host); });
+    // A ResizeObserver reports once right after observe(), with the size the fitting above was just done for: fit
+    // again only when the column really has another width (it measured every card a second time on each draw).
+    S.tagRo = new ResizeObserver(function () {
+      var w = host.clientWidth;
+      if (typeof w === "number" && w > 0 && w === S.tagFitW) return;
+      fitCardTags(host);
+    });
     S.tagRo.observe(host);
   }
   // HTML của MỘT hàng. Tách khỏi veDanhSach để chỗ kia chỉ còn lo nhóm - phân trang, và để
@@ -1190,15 +1250,15 @@
     // tay dễ nhầm với dấu ghim) và nhãn Auto nhỏ khi Auto đang bật. Dấu ghim không vẽ: thẻ ghim đã nằm dưới tiêu đề "Đã ghim".
     // tags are back on the card, as the one-line row under the name (cardSubHtml), with the System badge.
     var laAgent = S.loai === "agent";
-    var he = laAgent && !!x.system;   // Vanhanh Core: no Auto switch, no "..." menu (the server refuses those anyway)
+    var he = laAgent && !!x.system;   // Naota Core: no Auto switch, no "..." menu (the server refuses those anyway)
     var tg = laAgent ? tagsCua(x) : [];
-    var bd = laAgent && S.jc && window.VanhanhAgentJobs && window.VanhanhAgentJobs.badgeHtml
-      ? window.VanhanhAgentJobs.badgeHtml(S.jc[x.slug]) : "";
+    var bd = laAgent && S.jc && window.NaotaAgentJobs && window.NaotaAgentJobs.badgeHtml
+      ? window.NaotaAgentJobs.badgeHtml(S.jc[x.slug]) : "";
     // the Auto switch and the time sit in the corner cluster (.ws-item-end), so only a badge needs a third line.
     var coTt = !!bd;
     // the job state as one dot on the avatar of the avatar strip (data-st, colours in console.css).
-    var jst = laAgent && S.jc && window.VanhanhAgentJobs && window.VanhanhAgentJobs.statusOf
-      ? window.VanhanhAgentJobs.statusOf(S.jc[x.slug]) : "";
+    var jst = laAgent && S.jc && window.NaotaAgentJobs && window.NaotaAgentJobs.statusOf
+      ? window.NaotaAgentJobs.statusOf(S.jc[x.slug]) : "";
     var title = laAgent ? [x.name, x.role || ""].concat(tg.length ? [t("ws.tags_aria") + ": " + tg.join(", ")] : [])
       .filter(Boolean).join("\n") : "";
     var nTin = laAgent ? chuaDoc(x.slug) : 0;
@@ -1218,9 +1278,9 @@
       // công tắc Auto đứng chung một cụm nhỏ ở góc dưới phải của thẻ. Công tắc có trên MỌI trợ lý, tắt thì màu xám.
       // Cụm nằm ngoài nút chọn mục (không lồng nút trong nút); CSS đặt nó BÊN TRONG thẻ.
       (laAgent ? '<div class="ws-item-end">' + gioNhanHtml(x.last_chat_at) + tinHtml(x) +
-        // Vanhanh Core shows the same switch, always on and locked.
-        (window.VanhanhResonanceAgent
-          ? window.VanhanhResonanceAgent.rowToggleHtml(he ? coreAutoRow(x) : S.rs[x.slug],
+        // Naota Core shows the same switch, always on and locked.
+        (window.NaotaResonanceAgent
+          ? window.NaotaResonanceAgent.rowToggleHtml(he ? coreAutoRow(x) : S.rs[x.slug],
               { saving: !he && !!S.rsSaving[x.slug], locked: he }) : "") + '</div>' : "") +
       (he ? "" : '<button type="button" class="ws-item-more" data-more="' + esc(x.slug) + '" title="' +
         esc(t("ws.manage")) + '" aria-label="' + esc(t("ws.manage")) + '">' + ic("ellipsis-vertical") + '</button>') +
@@ -1229,7 +1289,7 @@
   // The (i) on an assistant card: top right, on the name's row, above the Auto switch. Outside the select button (no
   // button inside a button); info-tip.js opens the hidden block in a popup. No role and no tags means no button.
   function agentInfoHtml(x, tg) {
-    var J = typeof window !== "undefined" && window.VanhanhInfo;
+    var J = typeof window !== "undefined" && window.NaotaInfo;
     var role = String(x.role || "").trim();
     if (!J || (!role && !tg.length)) return "";
     return '<span class="ws-item-info">' + J.btn(t("ws.about_agent", { ten: x.name || x.slug })) +
@@ -1247,7 +1307,7 @@
         // warm the chat this partner last opened in, so the click finds it ready.
         var x = danhSach().find(function (m) { return m.slug === b.dataset.slug; });
         var sid = x && _phienGanNhat[khoaGanNhat(x)];
-        try { if (sid && window.VanhanhSessions && window.VanhanhSessions.prefetch) window.VanhanhSessions.prefetch(sid); } catch (e) {}
+        try { if (sid && window.NaotaSessions && window.NaotaSessions.prefetch) window.NaotaSessions.prefetch(sid); } catch (e) {}
       });
       b.addEventListener("mouseleave", anTheMini);
       b.addEventListener("focus", function () { hienTheMini(b); });
@@ -1499,7 +1559,7 @@
     return tatCa.map(function (g) { return { ten: g.ten, key: g.key, on: coKhoa.has(g.key) }; });
   }
   function veMenuTag(item, m, focusKhoa) {
-    var TP = window.VanhanhTagPicker;   // shared with the Teams page row menu
+    var TP = window.NaotaTagPicker;   // shared with the Teams page row menu
     m.innerHTML = TP.pickerHtml(dongChonTag(item, danhSach()));
     var dang = false;
     async function doi(fields, giuKhoa) {
@@ -1545,10 +1605,10 @@
   // bung modal của nó (xem editAgent: chỉ khi CÓ host nó mới vẽ tại chỗ) - đúng thứ một động
   // tác "Sửa" cần, và cùng đường với nút Sửa quy trình ở cột phải.
   function suaMuc(item) {
-    if (!window.VanhanhStudio) return;
+    if (!window.NaotaStudio) return;
     var xong = { onSaved: async function () { await sauLuu(item, S.loai); } };
-    if (S.loai === "agent") window.VanhanhStudio.editAgent(item, xong);
-    else window.VanhanhStudio.editWorkflow(item, xong);
+    if (S.loai === "agent") window.NaotaStudio.editAgent(item, xong);
+    else window.NaotaStudio.editWorkflow(item, xong);
   }
   async function xoaMuc(item) {
     var hoi = S.loai === "agent" ? t("studio.del_ag", { ten: item.name })
@@ -1559,7 +1619,13 @@
     if (S.chon[S.loai] === item.slug) S.chon[S.loai] = null;
     await taiDanhSach();
     if (!active) return;
-    veTrai(); chonMacDinh();
+    chonSan(); veTrai(); chonMacDinh();
+  }
+  // The default choice, settled BEFORE the list is drawn (2026-11-13). veTrai() used to draw the list with nothing
+  // chosen and chonMacDinh() drew it again a moment later with the first row lit: two full draws for one opening.
+  function chonSan() {
+    var ds = danhSach();
+    if (ds.length && !ds.some(function (x) { return x.slug === S.chon[S.loai]; })) S.chon[S.loai] = ds[0].slug;
   }
   function chonMacDinh() {
     var ds = danhSach();
@@ -1575,7 +1641,7 @@
   }
 
   // ---------- trả khung chat về bộ não chính khi rời trang ----------
-  // Khung chat là node MƯỢN của app: trang Cộng sự, trang Trò chuyện và màn Vanhanh dùng CHUNG
+  // Khung chat là node MƯỢN của app: trang Cộng sự, trang Trò chuyện và màn Naota dùng CHUNG
   // một khung. Rời trang mà không làm gì thì đoạn chat với trợ lý còn nằm nguyên ở hai chỗ kia
   // - và tệ hơn hiển thị: `savedSessionId` vẫn là phiên agent:<slug>, nên tin gõ tiếp ở trang
   // Trò chuyện BAY VÀO ĐÚNG PHIÊN CỦA TRỢ LÝ. Đó là hai chức năng chat khác nhau,
@@ -1586,23 +1652,23 @@
   // sẽ còn nằm lại - xoá trắng trước thì trường hợp xấu nhất cũng chỉ là một khung trống.
   function laPhienCongSu(id) { return !!(id && S.sessionCuaPhien[id]); }
   function traKhungChat() {
-    if (!window.VanhanhSessions) return;
-    var cur = window.VanhanhSessions.current();
-    // Phiên mở từ tab Lịch sử (sessions-ui gọi thẳng VanhanhSessions.open) không đi qua moPhien
+    if (!window.NaotaSessions) return;
+    var cur = window.NaotaSessions.current();
+    // Phiên mở từ tab Lịch sử (sessions-ui gọi thẳng NaotaSessions.open) không đi qua moPhien
     // nên không có trong S.sessionCuaPhien, mà nó VẪN là phiên cộng sự: rời trang mà không trả
     // khung chat là tin kế tiếp ở trang Trò chuyện rơi vào phiên trợ lý. Chỉ đúng một trường
     // hợp không đụng: khung chat vẫn đang ở đúng cuộc của bộ não chính lúc vào trang.
     if (!cur || (!laPhienCongSu(cur) && cur === _phienTruoc)) return;
-    window.VanhanhSessions.new();
+    window.NaotaSessions.new();
     if (_phienTruoc && _phienTruoc !== cur && !laPhienCongSu(_phienTruoc)) {
-      try { window.VanhanhSessions.open(_phienTruoc); } catch (e) {}
+      try { window.NaotaSessions.open(_phienTruoc); } catch (e) {}
     }
   }
   // Nhớ cuộc đang dở của bộ não chính NGAY LÚC DỰNG TRANG: lúc này khung chat còn là của
   // trang trước, chưa bị moPhien() đổi sang phiên trợ lý.
   function nhoPhienTruoc() {
     try {
-      var cur = window.VanhanhSessions && window.VanhanhSessions.current();
+      var cur = window.NaotaSessions && window.NaotaSessions.current();
       var v = docViTri();
       if (v && cur === v.sessionId) { _phienTruoc = v.mainSessionId || null; return; }
       if (cur && !laPhienCongSu(cur)) _phienTruoc = cur;
@@ -1638,11 +1704,11 @@
       // fetched the agent, the history list and its GitHub icons again and redrew the whole form on every click.
       if (!phaiDaVeCho(item)) vePhai(item);
       // New conversation: the old chat leaves the screen at once instead of after the server answers.
-      if (moiHan && window.VanhanhSessions && window.VanhanhSessions.blank) window.VanhanhSessions.blank();
+      if (moiHan && window.NaotaSessions && window.NaotaSessions.blank) window.NaotaSessions.blank();
       var b = encodeURIComponent(brain()), ch = kenh(item), id = sidChiDinh || null;
       if (!id && !moiHan && item.system) {
-        // Vanhanh Core: open the brain's default chat, the one reports land in (the server makes it when missing).
-        var c = await api("/vanhanh-core/session", { method: "POST", body: fd({ brain: brain() }),
+        // Naota Core: open the brain's default chat, the one reports land in (the server makes it when missing).
+        var c = await api("/naota-core/session", { method: "POST", body: fd({ brain: brain() }),
                                                    signal: abortAfter(CORE_SESSION_WAIT_MS) });
         if (!still()) return false;
         id = c && c.id;
@@ -1652,9 +1718,9 @@
         // open the remembered chat right away, in parallel with asking which chat is newest. Before, the
         // chat waited for this answer and then for its own messages: two round trips in a row on every click.
         nho = !item.system ? _phienGanNhat[khoaGanNhat(item)] : null;
-        if (nho && window.VanhanhSessions) {
+        if (nho && window.NaotaSessions) {
           S.sessionCuaPhien[nho] = item.slug;
-          moSom = window.VanhanhSessions.open(nho, still);
+          moSom = window.NaotaSessions.open(nho, still);
         }
         var r = await api("/sessions?brain=" + b + "&channel=" + encodeURIComponent(ch) + "&limit=1");
         if (!still()) return false;
@@ -1674,9 +1740,9 @@
       S.sessionCuaPhien[id] = item.slug;
       if (moSom && id === nho) await moSom;   // the remembered chat is still the newest: it is already open
       // A chat made just now is empty: open it without asking the server for its (zero) messages.
-      else if (window.VanhanhSessions) await window.VanhanhSessions.open(id, still, phienMoiTao ? { empty: true } : undefined);
+      else if (window.NaotaSessions) await window.NaotaSessions.open(id, still, phienMoiTao ? { empty: true } : undefined);
       if (!still()) return false;
-      if (!window.VanhanhSessions || window.VanhanhSessions.current() !== id) throw new Error(t("ws.err_session"));
+      if (!window.NaotaSessions || window.NaotaSessions.current() !== id) throw new Error(t("ws.err_session"));
       if (!item.system) _phienGanNhat[khoaGanNhat(item)] = id;
       chatReady(true);
       clearOpenError();
@@ -1686,7 +1752,7 @@
       else ganCongHuong(item, id);
       return true;
     } catch (e) {
-      if (still()) { clearOpenError(); veLoi(t("ws.err_session")); if (window.VanhanhSessions) window.VanhanhSessions.new(); }
+      if (still()) { clearOpenError(); veLoi(t("ws.err_session")); if (window.NaotaSessions) window.NaotaSessions.new(); }
       return false;
     } finally {
       clearTimeout(slow);
@@ -1696,11 +1762,11 @@
   // reads in a row. 12 s showed the error on opens that were only slow, never stuck.
   var OPEN_WAIT_MS = 16000;
   var OPEN_RECHECK_MS = 2000;
-  // The Vanhanh Core POST is never retried by fetch-gop.js and had no limit: a connection that hung kept the open waiting
+  // The Naota Core POST is never retried by fetch-gop.js and had no limit: a connection that hung kept the open waiting
   // for good. Past this it is cut and the error with its Retry shows.
   var CORE_SESSION_WAIT_MS = 15000;
   function reconnecting() {
-    try { return !!(window.VanhanhFetchGop && window.VanhanhFetchGop.retrying && window.VanhanhFetchGop.retrying()); }
+    try { return !!(window.NaotaFetchGop && window.NaotaFetchGop.retrying && window.NaotaFetchGop.retrying()); }
     catch (e) { return false; }
   }
   function abortAfter(ms) {
@@ -1715,13 +1781,13 @@
   }
   async function chayQuyTrinh() {
     var item = dangChon();
-    if (!ready || S.loai !== "workflow" || !item || !window.VanhanhSend) return;
+    if (!ready || S.loai !== "workflow" || !item || !window.NaotaSend) return;
     var td = tienDoHienTai(item);
     if (td.trang_thai === "dang" || td.cho_duyet) return;
     var input = document.getElementById("chatInput");
     // Cờ wfRun: bấm nút Chạy là ý định chạy đã nói rõ bằng một cú bấm, nên server
     // không xét lại xem câu trong ô nhập có phải đang nói về chính quy trình không.
-    window.VanhanhSend((input && input.value.trim()) || t("ws.run_default"), { wfRun: true });
+    window.NaotaSend((input && input.value.trim()) || t("ws.run_default"), { wfRun: true });
   }
   function veLoi(msg) { var el = S.el && S.el.querySelector("#wsIdentity"); if (el) {
     el.innerHTML += '<small class="ws-err">' + esc(msg) + '</small><button type="button" class="ws-btn" id="wsRetry">' + esc(t("ws.retry_session")) + '</button>';
@@ -1734,7 +1800,7 @@
   async function lamLai() {
     try { await taiDanhSach(); } catch (e) { if (active) { veGiua(dangChon()); veLoi(t("ws.err_list")); } return; }
     if (!active) return;
-    veTrai(); chonMacDinh();
+    chonSan(); veTrai(); chonMacDinh();
   }
   // `nhac` = câu thay cho lời mời chọn mục, dùng khi danh sách rỗng (chưa có gì để chọn cả).
   function veGiua(item, nhac) {
@@ -1776,7 +1842,7 @@
     var nut = function (id, fn) { var b = host.querySelector(id); if (b) b.onclick = fn; };
     nut("#wsObAgent", function () { taoMoi("agent"); });
     nut("#wsObWf", function () { taoMoi("workflow"); });
-    nut("#wsObStore", function () { nhom("packs", function () { if (window.VanhanhPacks && window.VanhanhPacks.moKho) window.VanhanhPacks.moKho(S.loai, "workspace", t("page.workspace.label")); }); });
+    nut("#wsObStore", function () { nhom("packs", function () { if (window.NaotaPacks && window.NaotaPacks.moKho) window.NaotaPacks.moKho(S.loai, "workspace", t("page.workspace.label")); }); });
   }
 
   // ---------- ẩn/hiện cột bên phải, nhớ lựa chọn ----------
@@ -1797,7 +1863,7 @@
     if (mq.addEventListener) mq.addEventListener("change", doi); else if (mq.addListener) mq.addListener(doi);
     _khoManGan = true;
   }
-  function nhoPhaiHien() { try { return localStorage.getItem("vanhanh_ws_right") === "1"; } catch (e) { return false; } }
+  function nhoPhaiHien() { try { return localStorage.getItem("naota_ws_right") === "1"; } catch (e) { return false; } }
   function phaiDangHien() {
     var page = S.el && S.el.querySelector("#wsPage");
     if (!page) return false;
@@ -1808,12 +1874,12 @@
     var page = S.el && S.el.querySelector("#wsPage");
     if (!page) return;
     page.classList.toggle("right-open", manRong() ? !hien : !!hien);
-    if (manRong() && !tamThoi) { try { localStorage.setItem("vanhanh_ws_right", hien ? "1" : "0"); } catch (e) {} }
+    if (manRong() && !tamThoi) { try { localStorage.setItem("naota_ws_right", hien ? "1" : "0"); } catch (e) {} }
   }
 
   // ---------- kéo đường biên để đổi bề rộng cột ----------
-  var BE_RONG = { left: { bien: "--ws-left-w", khoa: "vanhanh_ws_left_w", min: 220, max: 560 },
-    right: { bien: "--ws-right-w", khoa: "vanhanh_ws_right_w", min: 280, max: 640 } };
+  var BE_RONG = { left: { bien: "--ws-left-w", khoa: "naota_ws_left_w", min: 220, max: 560 },
+    right: { bien: "--ws-right-w", khoa: "naota_ws_right_w", min: 280, max: 640 } };
   var CHAT_TOI_THIEU = 360;   // khung chat giữa không bao giờ hẹp hơn mức này vì kéo hai cột bên
   // Dragging the list edge
   // past NGUONG_MINI snaps the column to MINI_W, a strip of avatars only (class ws-mini on the page; hover shows the
@@ -1856,9 +1922,9 @@
     try { localStorage.setItem(BE_RONG[ben].khoa, String(w)); } catch (e) {}
   }
   // The name card of the avatar strip: the row's name, role or step count, and time, next to the avatar under the
-  // pointer. The card itself is shared with the Teams page (VanhanhColResize.miniTip in col-resize.js).
+  // pointer. The card itself is shared with the Teams page (NaotaColResize.miniTip in col-resize.js).
   function anTheMini() {
-    var CR = typeof window !== "undefined" ? window.VanhanhColResize : null;
+    var CR = typeof window !== "undefined" ? window.NaotaColResize : null;
     if (CR && CR.miniTip) CR.miniTip.hide();
   }
   function hienTheMini(b) {
@@ -1869,10 +1935,10 @@
     var wrap = b.closest(".ws-item-wrap"), gio = wrap && wrap.querySelector(".ws-item-time");
     var anh = b.querySelector(".ws-item-ic");
     var x = (S.agents || []).filter(function (a) { return a.slug === b.dataset.slug; })[0];
-    var tt = S.loai === "agent" && x && S.jc && window.VanhanhAgentJobs && window.VanhanhAgentJobs.statusText
-      ? window.VanhanhAgentJobs.statusText(S.jc[x.slug]) : "";
-    var st = tt ? window.VanhanhAgentJobs.statusOf(S.jc[x.slug]) : "";
-    window.VanhanhColResize.miniTip.show(b, { ava: anh ? anh.innerHTML : "", name: ten ? ten.textContent : "",
+    var tt = S.loai === "agent" && x && S.jc && window.NaotaAgentJobs && window.NaotaAgentJobs.statusText
+      ? window.NaotaAgentJobs.statusText(S.jc[x.slug]) : "";
+    var st = tt ? window.NaotaAgentJobs.statusOf(S.jc[x.slug]) : "";
+    window.NaotaColResize.miniTip.show(b, { ava: anh ? anh.innerHTML : "", name: ten ? ten.textContent : "",
       time: gio ? gio.textContent : "", sub: phu ? phu.textContent : (x && x.role) || "", stText: tt, st: st });
   }
   function noiKeoBien(page) {
@@ -1945,7 +2011,7 @@
     if (input) input.focus();
   }
 
-  // Vanhanh Core may have saved a new name in the turn that just ended (`vanhanh_core_name`): read it back so the list,
+  // Naota Core may have saved a new name in the turn that just ended (`naota_core_name`): read it back so the list,
   // the chat header and the card show it without a reload.
   async function docLaiTenCore(ag) {
     var d = null;
@@ -1978,25 +2044,25 @@
     if (S.loai === "agent") {
       // the column
       // opens on what every assistant app has (picture, name, role, instructions, documents, skills, model). The Auto
-      // block sits below and shows only while Auto is on (veAuto); lessons are handled in chat (vanhanh_memory).
-      // Vanhanh Core opens this same form, picture, name, role, instructions, documents, skills,
+      // block sits below and shows only while Auto is on (veAuto); lessons are handled in chat (naota_memory).
+      // Naota Core opens this same form, picture, name, role, instructions, documents, skills,
       // model. Being the system assistant only drops Export and Delete; its Auto stays on (veAuto).
       host.innerHTML = '<div class="ws-form" id="wsAgentForm"></div><div class="ws-auto-block" id="wsAuto"></div>' +
         (item.system ? "" : '<div class="ws-acts"><button type="button" class="ws-btn" id="wsExport">' + esc(t("studio.export")) + '</button>' +
         '<button type="button" class="ws-btn danger" id="wsDel">' + esc(t("common.delete")) + '</button></div>');
       // MƯỢN chính trình sửa agent của Studio (studio.js), không dựng bản thứ hai: chọn model,
       // chọn skill, nhóm... đã nằm ở đó, chép lại là hai bản trôi lệch nhau ngay lần sửa đầu.
-      if (window.VanhanhStudio && window.VanhanhStudio.editAgent) {
-        window.VanhanhStudio.editAgent(item, { host: host.querySelector("#wsAgentForm"),
+      if (window.NaotaStudio && window.NaotaStudio.editAgent) {
+        window.NaotaStudio.editAgent(item, { host: host.querySelector("#wsAgentForm"),
           onSaved: async function () { await sauLuu(item, "agent"); } });
       }
       veAuto(item);
       if (!item.system) {
-        host.querySelector("#wsExport").onclick = function () { window.VanhanhStudio && window.VanhanhStudio.exportItem("agent", item.slug); };
+        host.querySelector("#wsExport").onclick = function () { window.NaotaStudio && window.NaotaStudio.exportItem("agent", item.slug); };
         host.querySelector("#wsDel").onclick = async function () {
           if (!confirm(t("studio.del_ag", { ten: item.name }))) return;
           await api("/agents/delete", { method: "POST", body: fd({ slug: item.slug, brain: brain() }) });
-          S.chon.agent = null; await taiDanhSach(); veTrai(); chonMacDinh();
+          S.chon.agent = null; await taiDanhSach(); chonSan(); veTrai(); chonMacDinh();
         };
       }
     } else {
@@ -2014,12 +2080,12 @@
         '<button type="button" class="ws-btn danger" id="wsDel">' + esc(t("common.delete")) + '</button></div>';
       host.querySelector("#wsRun").onclick = chayQuyTrinh;
       veBuoc(item, td);
-      host.querySelector("#wsEditWf").onclick = function () { var moi = dangChon() || item; window.VanhanhStudio && window.VanhanhStudio.editWorkflow(moi, { onSaved: async function () { await sauLuu(moi, "workflow"); } }); };
-      host.querySelector("#wsExport").onclick = function () { window.VanhanhStudio && window.VanhanhStudio.exportItem("workflow", item.slug); };
+      host.querySelector("#wsEditWf").onclick = function () { var moi = dangChon() || item; window.NaotaStudio && window.NaotaStudio.editWorkflow(moi, { onSaved: async function () { await sauLuu(moi, "workflow"); } }); };
+      host.querySelector("#wsExport").onclick = function () { window.NaotaStudio && window.NaotaStudio.exportItem("workflow", item.slug); };
       host.querySelector("#wsDel").onclick = async function () {
         if (!confirm(t("studio.del_wf", { ten: item.name }))) return;
         await api("/workflows/delete", { method: "POST", body: fd({ slug: item.slug, brain: brain() }) });
-        S.chon.workflow = null; await taiDanhSach(); veTrai(); chonMacDinh();
+        S.chon.workflow = null; await taiDanhSach(); chonSan(); veTrai(); chonMacDinh();
       };
     }
     veLichSu(item);
@@ -2027,32 +2093,34 @@
   }
   // Khối Cộng hưởng của trợ lý (resonance-agent.js). Biết phiên đang mở để server nói được phiên này dùng được mã
   // hiện tại không; "Mở cuộc trò chuyện mới" đi đúng đường mở phiên của trang (moPhien), không tự chuyển phiên cũ.
-  // The Auto block of one assistant: goals and pulse, only while its Auto switch (left row) is on. Off means nothing to
-  // show, so the column stays the plain settings form.
+  // The Auto block of one assistant: goals and pulse, while its Auto switch (left row) is on. Off means nothing to
+  // show, so the column stays the plain settings form. A `missing` or `retired` assistant shows it too: the row's
+  // "Auto: needs confirming" button opens this column, and the confirm buttons live in this block.
   function veAuto(item) {
     var box = S.el && S.el.querySelector("#wsAuto");
     if (!box || !item) return;
-    if (!window.VanhanhResonanceAgent || !(item.system || autoBat(S.rs, item.slug))) { box.innerHTML = ""; return; }
+    var show = item.system || autoBat(S.rs, item.slug) || autoBlocked(S.rs, item.slug);
+    if (!window.NaotaResonanceAgent || !show) { box.innerHTML = ""; return; }
     if (box.querySelector("#wsResonance")) return;
     box.innerHTML = '<div class="rsa-panel" id="wsResonance"></div><div class="rsa-panel pulse-panel" id="wsPulse"></div>';
     ganCongHuong(item);
   }
   function ganCongHuong(item, sid) {
     var host = S.el && S.el.querySelector("#wsResonance");
-    if (!host || !window.VanhanhResonanceAgent || !item) return;
-    window.VanhanhResonanceAgent.mount(host, { slug: item.slug,
-      sessionId: sid || (window.VanhanhSessions && window.VanhanhSessions.current && window.VanhanhSessions.current()) || "",
+    if (!host || !window.NaotaResonanceAgent || !item) return;
+    window.NaotaResonanceAgent.mount(host, { slug: item.slug,
+      sessionId: sid || (window.NaotaSessions && window.NaotaSessions.current && window.NaotaSessions.current()) || "",
       onNewSession: function () { var x = dangChon(); return x ? moPhien(x, true) : false; } });
     // T3: bảng Nhịp chủ động (agent-pulse.js) ngay dưới Cộng hưởng: mọi ngữ cảnh của trợ lý, nút chỉ báo xong sau 200.
     var ph = S.el && S.el.querySelector("#wsPulse");
     // the compact view: one plain line for the daily limit and pending proposals only (no pace, no thresholds).
-    if (ph && window.VanhanhPulse) window.VanhanhPulse.mount(ph, { slug: item.slug, brain: brain(), compact: true });
+    if (ph && window.NaotaPulse) window.NaotaPulse.mount(ph, { slug: item.slug, brain: brain(), compact: true });
   }
   function tenAgent(slug) { var a = S.agents.find(function (x) { return x.slug === slug; }); return a ? a.name : (slug || ""); }
   // Tiến độ ĐANG XEM: lần chạy sống của phiên đang mở nếu có, không thì khung rỗng dựng từ
   // các bước khai trong file quy trình (để cột phải vẫn nói được quy trình này làm những gì).
   function tienDoHienTai(item) {
-    var sid = window.VanhanhSessions ? window.VanhanhSessions.current() : null;
+    var sid = window.NaotaSessions ? window.NaotaSessions.current() : null;
     if (sid && S.tienDo[sid]) return S.tienDo[sid];
     var buocs = cacBuoc(item);
     var td = tienDoMoi(buocs.length);
@@ -2083,9 +2151,9 @@
     var ap = host.querySelector("#wsApprove");
     if (ap) ap.onclick = function () {
       ap.disabled = true;
-      var sid = window.VanhanhSessions ? window.VanhanhSessions.current() : null;
-      if (!sid || !window.VanhanhWsSend) return;
-      window.VanhanhWsSend({ action: "wf_resume", session_id: sid, task_id: td.cho_duyet.task_id, node: td.cho_duyet.node, code: td.cho_duyet.code, brain: brain() });
+      var sid = window.NaotaSessions ? window.NaotaSessions.current() : null;
+      if (!sid || !window.NaotaWsSend) return;
+      window.NaotaWsSend({ action: "wf_resume", session_id: sid, task_id: td.cho_duyet.task_id, node: td.cho_duyet.node, code: td.cho_duyet.code, brain: brain() });
       td.cho_duyet = null; td.trang_thai = "dang"; veBuoc(item, td);
     };
     var run = S.el.querySelector("#wsRun");
@@ -2116,8 +2184,8 @@
     // đây ở chế độ lọc theo kênh: cùng ô tìm, cùng nhóm theo ngày, cùng ghim / đổi tên / xoá,
     // cùng nút "Xem thêm". Cần đúng trải nghiệm ấy chứ không phải một danh sách
     // rút gọn khác; và một bản thứ hai thì lệch dần khỏi bản gốc ngay từ lần sửa đầu tiên.
-    if (window.VanhanhChatSide && window.VanhanhChatSide.mount) {
-      window.VanhanhChatSide.mount(host.querySelector("#wsSess"), {
+    if (window.NaotaChatSide && window.NaotaChatSide.mount) {
+      window.NaotaChatSide.mount(host.querySelector("#wsSess"), {
         kenh: kenh(item), chiHoiThoai: true,
         onNew: function () { var x = dangChon(); if (x) moPhien(x, true); },
         trangTri: S.loai === "workflow" ? trangTriHang : null,
@@ -2138,7 +2206,7 @@
     };
   }
   // Hàng của phiên ĐANG MỞ do chính cột lịch sử tự tô (lớp .active, mỗi lần
-  // VanhanhChatSide.refresh chạy) - Tab này không còn danh sách nào của riêng nó nữa
+  // NaotaChatSide.refresh chạy) - Tab này không còn danh sách nào của riêng nó nữa
   // nên ở đây không phải tô gì cả.
   // Nạp SỔ lần chạy: session_id -> lần chạy. Không vẽ danh sách nào cả - dữ liệu này chỉ để
   // trang trí hàng hội thoại tương ứng (xem trangTriHang), nên nạp xong thì bảo cột lịch sử
@@ -2151,7 +2219,7 @@
     var so = {};
     (r.runs || []).forEach(function (x) { if (x.session_id) so[x.session_id] = x; });
     S.lanChay = so;
-    if (window.VanhanhChatSide && window.VanhanhChatSide.refresh) window.VanhanhChatSide.refresh();
+    if (window.NaotaChatSide && window.NaotaChatSide.refresh) window.NaotaChatSide.refresh();
   }
   // ---------- sự kiện quy trình từ WebSocket ----------
   // app.js chuyển MỌI khung wf_event vào đây, kể cả của phiên đang không mở: ghi theo
@@ -2159,11 +2227,11 @@
   function onWfEvent(frame) {
     var sid = frame.session_id, ev = frame.event || {}; if (!sid) return;
     var item = dangChon();
-    // Phiên mở từ cột LỊCH SỬ đi thẳng qua VanhanhSessions.open (module lịch sử lo), không qua
+    // Phiên mở từ cột LỊCH SỬ đi thẳng qua NaotaSessions.open (module lịch sử lo), không qua
     // moPhien nên chưa có tên trong sổ "phiên nào của cộng sự nào". Lần chạy đầu tiên ở đó mà
     // thiếu dòng này thì icon quay ở cột trái không bao giờ bật: dangChay() tra sổ không thấy.
     if (item && !S.sessionCuaPhien[sid] &&
-        window.VanhanhSessions && window.VanhanhSessions.current() === sid) {
+        window.NaotaSessions && window.NaotaSessions.current() === sid) {
       S.sessionCuaPhien[sid] = item.slug;
     }
     if (!S.tienDo[sid]) {
@@ -2175,7 +2243,7 @@
     // quy trình đọc từ S.tienDo, nên không vẽ lại thì bắt đầu chạy mà hàng vẫn đứng im, và
     // chạy xong rồi mà vẫn quay.
     if (S.loai === "workflow") veDanhSach();
-    var cur = window.VanhanhSessions ? window.VanhanhSessions.current() : null;
+    var cur = window.NaotaSessions ? window.NaotaSessions.current() : null;
     if (item && S.loai === "workflow" && cur === sid) {
       veBuoc(item, S.tienDo[sid]);
       // Xong / lỗi / chờ duyệt = lịch sử chạy vừa có dòng mới và mốc "chạy gần nhất" vừa đổi,
@@ -2206,7 +2274,7 @@
     apDung(S.tienDo[sid], { type: "stopped" });
     if (S.loai === "workflow") veDanhSach();
     var item = dangChon();
-    var cur = window.VanhanhSessions ? window.VanhanhSessions.current() : null;
+    var cur = window.NaotaSessions ? window.NaotaSessions.current() : null;
     if (item && S.loai === "workflow" && cur === sid) veBuoc(item, S.tienDo[sid]);
   }
 
@@ -2214,7 +2282,7 @@
   // `loai` chỉ rõ tạo TRỢ LÝ hay QUY TRÌNH: màn khởi đầu bày cả hai nút nên nút được bấm mới
   // là thứ quyết định, không phải tab đang đứng. Bỏ trống thì theo tab (nút Tạo mới cột trái).
   function taoMoi(loai) {
-    if (!window.VanhanhStudio) return;
+    if (!window.NaotaStudio) return;
     loai = loai === "agent" || loai === "workflow" ? loai : S.loai;
     var sau = async function (saved) {
       await taiDanhSach(); if (!active) return;
@@ -2228,8 +2296,8 @@
     };
     // Không truyền `host`: tạo mới vẫn mở modal của Studio (cột phải đang là form của mục
     // đang chọn, vẽ đè lên đó thì người dùng tưởng mình đang sửa mục cũ).
-    if (loai === "agent") window.VanhanhStudio.editAgent(null, { onSaved: sau });
-    else window.VanhanhStudio.editWorkflow(null, { onSaved: sau });
+    if (loai === "agent") window.NaotaStudio.editAgent(null, { onSaved: sau });
+    else window.NaotaStudio.editWorkflow(null, { onSaved: sau });
   }
 
   // Rời trang: trả ô nhập về lời mời chung. veGiua() đổi placeholder thành "Nhắn cho <trợ lý>",
@@ -2252,33 +2320,33 @@
     if (inp) inp.placeholder = t("bar.input_ph");
   }
 
-  window.VanhanhWorkspace = { gioNgan: gioNgan, render: render, roi: roi, openCommand: openCommand, openTab: openTab, onTurnDone: onTurnDone, canSend: function () { return !active || ready; }, dungKhiChuaCoTuDien: function () { return dungKhiChuaCoTuDien; }, onChatState: onChatState, chayQuyTrinh: chayQuyTrinh, onWfEvent: onWfEvent, sapXep: sapXep, loc: loc, tienDoMoi: tienDoMoi, apDung: apDung, phanTram: phanTram,
+  window.NaotaWorkspace = { gioNgan: gioNgan, render: render, roi: roi, openCommand: openCommand, openTab: openTab, onTurnDone: onTurnDone, canSend: function () { return !active || ready; }, dungKhiChuaCoTuDien: function () { return dungKhiChuaCoTuDien; }, onChatState: onChatState, chayQuyTrinh: chayQuyTrinh, onWfEvent: onWfEvent, sapXep: sapXep, loc: loc, tienDoMoi: tienDoMoi, apDung: apDung, phanTram: phanTram,
     dangChay: dangChay, tabPhai: chonTabPhai, gomNhom: gomNhom, nhomHtml: nhomHtml, chonNhom: chonNhom, state: function () { return S; },
     tagsCua: tagsCua, tagCap: tagCap, laKhoa: laKhoa, demTag: demTag, coTag: coTag, khoaTag: khoaTag,
-    dongChonTag: dongChonTag, chipTagHtml: chipTagHtml, TAG_NONE: TAG_NONE, TAG_AUTO: TAG_AUTO, laLocGia: laLocGia, autoBat: autoBat,
+    dongChonTag: dongChonTag, chipTagHtml: chipTagHtml, TAG_NONE: TAG_NONE, TAG_AUTO: TAG_AUTO, laLocGia: laLocGia, autoBat: autoBat, autoBlocked: autoBlocked,
     resonanceMap: resonanceMap, afterToggle: afterToggle, tinHtml: tinHtml, tatDen: tatDen };
-  // Sidebar lịch sử mở phiên trực tiếp qua VanhanhSessions.open, ngoài đường moPhien ở trên.
+  // Sidebar lịch sử mở phiên trực tiếp qua NaotaSessions.open, ngoài đường moPhien ở trên.
   // Ghi lại sau khi nó mở xong để lần dựng trang sau vẫn ở đúng cuộc đã chọn.
-  window.addEventListener("vanhanh:sessions-changed", function () {
-    if (active && ready && window.VanhanhSessions) luuViTri(window.VanhanhSessions.current());
+  window.addEventListener("naota:sessions-changed", function () {
+    if (active && ready && window.NaotaSessions) luuViTri(window.NaotaSessions.current());
   });
   // T0 nhóm chat team: trạng thái Cộng hưởng vừa đổi (tab này, tab khác qua gói WS resonance_agents, hay trang Cài
   // đặt): đọc lại trạng thái THẬT của host rồi vẽ lại danh sách. Không giữ trạng thái người dùng vừa bấm.
   // The tag order changed: the list and its tag bar follow.
-  window.addEventListener("vanhanh:order-changed", function () { if (active && ready) veDanhSach(); });
-  window.addEventListener("vanhanh:resonance-agents-changed", function () {
+  window.addEventListener("naota:order-changed", function () { if (active && ready) veDanhSach(); });
+  window.addEventListener("naota:resonance-agents-changed", function () {
     if (!active) return;
-    loadResonance().then(function (ok) { if (ok && active && S.loai === "agent") { veDanhSach(); veAuto(dangChon()); } });
+    loadResonance().then(function (ok) { if (ok && active && S.loai === "agent") { drawAutoState(); veAuto(dangChon()); } });
     henDemViec();
   });
   // Huy hiệu việc trên thẻ trợ lý theo cùng các sự kiện với tab Công việc (gộp nhịp 800ms).
   // Performance: a plain chat switch (reason "open") adds no message and no job, so it does not recount.
   function laDoiPhien(e) { return !!(e && e.detail && e.detail.reason === "open"); }
-  ["vanhanh:team-event", "vanhanh:sessions-changed", "vanhanh:agent-jobs-changed"].forEach(function (ev) {
+  ["naota:team-event", "naota:sessions-changed", "naota:agent-jobs-changed"].forEach(function (ev) {
     window.addEventListener(ev, function (e) { if (!laDoiPhien(e)) henDemViec(); });
   });
   // a message landed somewhere, or another tab read or muted a partner: read the unread counts again.
-  ["vanhanh:sessions-changed", "vanhanh:agent-read"].forEach(function (ev) {
+  ["naota:sessions-changed", "naota:agent-read"].forEach(function (ev) {
     window.addEventListener(ev, function (e) { if (!laDoiPhien(e)) henUnread(); });
   });
   if (typeof document !== "undefined" && document.addEventListener) document.addEventListener("visibilitychange", function () {

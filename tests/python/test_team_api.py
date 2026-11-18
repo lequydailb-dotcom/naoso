@@ -11,9 +11,9 @@ import os
 import tempfile
 from pathlib import Path
 
-os.environ["VANHANH_STATE_DIR"] = tempfile.mkdtemp(prefix="vanhanh-team-api-")
-BR = Path(tempfile.mkdtemp(prefix="vanhanh-team-api-brain-"))
-BR2 = Path(tempfile.mkdtemp(prefix="vanhanh-team-api-brain2-"))
+os.environ["NAOTA_STATE_DIR"] = tempfile.mkdtemp(prefix="naota-team-api-")
+BR = Path(tempfile.mkdtemp(prefix="naota-team-api-brain-"))
+BR2 = Path(tempfile.mkdtemp(prefix="naota-team-api-brain2-"))
 (BR / "agents").mkdir()
 for slug, name in (("lan", "Lan"), ("minh", "Minh"), ("hoa", "Hoa")):
     (BR / "agents" / f"{slug}.md").write_text(f"---\nname: {name}\nrole: Thành viên\n---\nBạn là {name}.\n",
@@ -154,7 +154,7 @@ turns = c.get(f"/teams/{TID}/turns{Q}").json()["turns"]
 check("sổ lượt có lượt của việc", any(t["task_id"] == ja and t["status"] == "ok" for t in turns))
 
 # Đề xuất việc của trưởng nhóm, chủ bấm Tạo việc
-script[(keys["lan"], "leader_reply")] = ['Nên làm bản tin. <!-- VANHANH_TEAM: {"op": "propose_job", "title": "Bản tin"} -->']
+script[(keys["lan"], "leader_reply")] = ['Nên làm bản tin. <!-- NAOTA_TEAM: {"op": "propose_job", "title": "Bản tin"} -->']
 c.post(f"/teams/{TID}/messages{Q}", json={"text": "Tuần này?", "client_msg_id": "m4"})
 drain()
 card = c.get(f"/teams/{TID}/messages{Q}").json()["messages"][-1]
@@ -321,7 +321,9 @@ T3 = r.json()["team"]
 T3ID = T3["team_id"]
 k3 = {m["slug"]: m["agent_key"] for m in T3["members"]}
 check("T3 nhóm mới ở Quyền giới hạn, view có authority và trần hiệu lực", T3["authority"]["authority"] is None
-      and T3["authority"]["effective_caps"]["task_turns"] == 12 and "provider_quota" in T3["authority"]["fixed_limits"])
+      # 2026-11-12: a team made through the route has no per-job cap (replies, steps); the daily cap stays.
+      and T3["authority"]["effective_caps"]["task_turns"] is None and T3["authority"]["effective_caps"]["task_steps"] is None
+      and T3["authority"]["effective_caps"]["daily_turns"] == 100 and "provider_quota" in T3["authority"]["fixed_limits"])
 grant = {"caps": {"task_turns": {"unlimited": True}}, "ceilings": {"task_turns": {"unlimited": True}, "daily_turns": 150},
          "providers_unlimited": ["aux"], "can_interrupt": False}
 r = c.post(f"/teams/{T3ID}/authority{Q}", json={"mode": "full", "grant": grant})
@@ -358,7 +360,7 @@ ra = {a["slug"]: a for a in c.get(f"/resonance/agents{Q}").json()["agents"]}
 check("T3 host bật Cộng hưởng cho agent do nhóm quản lý (ghi by=leader)", ra["lan-2"]["enabled"])
 r = c.post(f"/teams/{T3ID}/authority{Q}", json={"mode": "limited"})
 check("T3 chủ thu hồi: về Quyền giới hạn", r.status_code == 200 and r.json()["team"]["authority"]["authority"] is None
-      and r.json()["team"]["authority"]["effective_caps"]["task_turns"] == 12)
+      and r.json()["team"]["authority"]["effective_caps"]["task_turns"] is None)
 
 # T4: tìm trong nhóm qua route
 main.get_store().append_team_message(T3["session_id"], "user", "Kế hoạch RA MẮT tháng Mười", author_kind="owner",
