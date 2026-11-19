@@ -6,6 +6,11 @@ Lịch sử phiên bản NAOTA. Bản mới nhất ở trên cùng. Xem ngay tro
 
 Định dạng: mỗi phiên bản là một khối `## [x.y.z] - ngày`, bên dưới nhóm thay đổi theo `### Thêm mới / Sửa lỗi / Cải thiện / Bảo mật`.
 
+## [1.46.4] - 2026-11-19
+### Sửa lỗi
+- **Nút Cập nhật lấy đúng kho NAOSO.** Trước đây app báo có bản mới ở kho NAOSO nhưng khi bấm lại đi gộp từ kho khác nên báo lỗi xung đột. Giờ mọi chỗ dùng chung một địa chỉ kho duy nhất.
+- **Bản cài có lịch sử khác kho không còn kẹt.** Khi git không thể gộp, app lưu mã cũ vào nhánh `backup/` rồi đồng bộ thẳng về bản mới. Dữ liệu và khóa của anh giữ nguyên.
+
 ## [1.46.3] - 2026-11-18
 ### Cải thiện
 - **Văn phòng 3D có thanh số liệu.** Hàng ô trên đầu khung 3D cho biết số nhân viên AI, lượt đã chạy, tỉ lệ đạt, số việc đang lỗi và số lượt hỏi AI của ngày đang xem. Số đếm từ dữ liệu thật của app, chưa có gì thì hiện dấu gạch. Chạm vào từng ô để đọc ý nghĩa. Trên điện thoại vuốt ngang để xem hết.

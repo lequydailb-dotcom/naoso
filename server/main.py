@@ -17613,7 +17613,8 @@ async def config():
 # ============================================
 # Phiên bản + cập nhật trong UI
 # ============================================
-GITHUB_REPO = "lequydailb-dotcom/naoso"
+import release_repo
+GITHUB_REPO = release_repo.REPO
 _UPDATE_TASKS = set()   # giữ ref mạnh cho asyncio.create_task (tránh GC nuốt mất task)
 
 

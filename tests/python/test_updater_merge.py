@@ -91,6 +91,26 @@ with tempfile.TemporaryDirectory(prefix="naota-updater-merge-") as tmp:
         assert detached.returncode != 0 and safe
         assert "detached HEAD" in (detached.stderr or "")
         assert git(install, "rev-parse", "HEAD") == before
+
+        # Hai lịch sử KHÔNG có tổ tiên chung (bản cài lấy từ kho khác): đồng bộ về bản phát hành,
+        # mã cũ nằm lại trong nhánh backup/, VERSION mới có mặt.
+        git(install, "switch", "my-custom-branch")
+        other = base / "other-release"
+        other.mkdir()
+        git(other, "init", "-b", "main")
+        git(other, "config", "user.name", "Naota Test")
+        git(other, "config", "user.email", "naota-test@example.invalid")
+        (other / "VERSION").write_text("9.9.9\n", encoding="utf-8")
+        git(other, "add", ".")
+        git(other, "commit", "-m", "unrelated release")
+        updater.release_source = lambda: (str(other), "main")
+        old_head = git(install, "rev-parse", "HEAD")
+        synced, safe = updater.merge_release()
+        assert synced.returncode == 0 and safe, (synced.stdout, synced.stderr)
+        assert (install / "VERSION").read_text(encoding="utf-8").strip() == "9.9.9"
+        assert git(install, "status", "--porcelain") == ""
+        backups = git(install, "branch", "--list", "backup/*").split()
+        assert backups and git(install, "rev-parse", backups[-1]) == old_head
     finally:
         updater.ROOT = previous_root
         updater.release_source = previous_source

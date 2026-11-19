@@ -36,7 +36,8 @@ from typing import Any, Awaitable, Callable, Iterable, Optional
 
 from config import STATE_DIR
 
-SOURCE_REPO = "vuongtex/naota"             # the repo every install updates from (updater.release_source)
+import release_repo
+SOURCE_REPO = release_repo.REPO           # the repo every install updates from (updater.release_source)
 STORE_DIR = STATE_DIR / "self_upgrade"
 OWNER_SCHEDULED = ("kanban", "reminder")     # background work the owner set up runs with the owner's word
 MAX_CHARS = 200_000

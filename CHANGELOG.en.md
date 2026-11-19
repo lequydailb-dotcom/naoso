@@ -4,6 +4,11 @@
 
 NAOTA release history. Newest first.
 
+## [1.46.4] - 2026-11-19
+### Fixed
+- **The Update button now uses the NAOSO repo.** The app said a new version was out in the NAOSO repo, but pressing Update merged from a different repo and failed with a conflict. Everything now reads one shared repo address.
+- **Installs whose history differs from the repo no longer get stuck.** When git cannot merge, the app keeps the old code on a `backup/` branch and syncs straight to the new release. Your data and keys stay as they are.
+
 ## [1.46.3] - 2026-11-18
 ### Improved
 - **The 3D office has a numbers bar.** A row of tiles over the 3D view shows AI staff, runs, success rate, jobs in trouble and AI calls for the day you are viewing. Figures are counted from the app's real data, and a dash shows when there is nothing yet. Tap a tile to read what it means. On a phone, swipe sideways to see them all.

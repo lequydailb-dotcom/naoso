@@ -296,12 +296,28 @@ def drop_update_stash(stash_oid, restored):
 
 def release_source():
     """The same official release branch that /version checks in main.py."""
-    return "https://github.com/vuongtex/naota.git", "main"
+    import release_repo
+    return f"https://github.com/{release_repo.REPO}.git", release_repo.BRANCH
 
 
 def _clean_tracked_tree():
     status = run(["git", "status", "--porcelain", "--untracked-files=no"])
     return status.returncode == 0 and not (status.stdout or "").strip()
+
+
+def _dong_bo_ve_ban_phat_hanh(before):
+    """Không có tổ tiên chung: lưu HEAD cũ vào nhánh backup/ rồi reset --hard về FETCH_HEAD."""
+    ten = "backup/truoc-cap-nhat-" + time.strftime("%Y%m%d-%H%M%S")
+    saved = run(["git", "branch", ten, before])
+    if saved.returncode != 0:
+        error = _chu("Không tạo được nhánh sao lưu; dừng cập nhật để không mất mã nguồn cũ.",
+                     "Could not create a backup branch; update stopped so the old code is not lost.")
+        return subprocess.CompletedProcess(["git", "branch"], 1, saved.stdout, error), True
+    reset = run(["git", "reset", "--hard", "FETCH_HEAD"])
+    if reset.returncode != 0:
+        return reset, False
+    return subprocess.CompletedProcess(["git", "reset"], 0,
+                                       f"Synced to the release (old code kept on branch {ten}).", ""), True
 
 
 def merge_release():
@@ -328,6 +344,11 @@ def merge_release():
     fetched = run(["git", "fetch", remote, branch])
     if fetched.returncode != 0:
         return fetched, True
+    if run(["git", "merge-base", "HEAD", "FETCH_HEAD"]).returncode != 0:
+        # Hai lịch sử không có tổ tiên chung (ví dụ bản cài tải từ kho khác rồi mới đổi nguồn): git không
+        # thể gộp, nút Cập nhật sẽ hỏng mãi. Cất nhánh sao lưu rồi đồng bộ thẳng về bản phát hành. Dữ
+        # liệu người dùng (brain, khóa, đăng nhập) nằm ngoài git nên giữ nguyên.
+        return _dong_bo_ve_ban_phat_hanh(before)
     merged = run(["git", "merge", "--no-edit", "FETCH_HEAD"])
     if merged.returncode == 0:
         if _clean_tracked_tree():
