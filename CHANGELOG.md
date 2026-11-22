@@ -6,15 +6,259 @@ Lịch sử phiên bản NAOTA. Bản mới nhất ở trên cùng. Xem ngay tro
 
 Định dạng: mỗi phiên bản là một khối `## [x.y.z] - ngày`, bên dưới nhóm thay đổi theo `### Thêm mới / Sửa lỗi / Cải thiện / Bảo mật`.
 
-## [1.46.4] - 2026-11-19
+## [1.60.1] - 2026-11-22
+### Thêm mới
+- **Gộp toàn bộ bản NAOTA mới nhất (1.47 đến 1.60) vào NAOSO.** Mọi tính năng của các bản đó đều có trong NAOSO, gồm linh vật mang dáng logo mới.
 ### Sửa lỗi
-- **Nút Cập nhật lấy đúng kho NAOSO.** Trước đây app báo có bản mới ở kho NAOSO nhưng khi bấm lại đi gộp từ kho khác nên báo lỗi xung đột. Giờ mọi chỗ dùng chung một địa chỉ kho duy nhất.
-- **Bản cài có lịch sử khác kho không còn kẹt.** Khi git không thể gộp, app lưu mã cũ vào nhánh `backup/` rồi đồng bộ thẳng về bản mới. Dữ liệu và khóa của anh giữ nguyên.
-
-## [1.46.3] - 2026-11-18
+- **Nút Cập nhật lấy đúng kho NAOSO.** Mọi chỗ dùng chung một địa chỉ kho duy nhất, không còn gộp từ kho khác rồi báo lỗi xung đột.
+- **Bản cài có lịch sử khác kho không còn kẹt.** Khi git không gộp được, app lưu mã cũ vào nhánh `backup/` rồi đồng bộ về bản mới. Dữ liệu và khoá của anh giữ nguyên.
 ### Cải thiện
-- **Văn phòng 3D có thanh số liệu.** Hàng ô trên đầu khung 3D cho biết số nhân viên AI, lượt đã chạy, tỉ lệ đạt, số việc đang lỗi và số lượt hỏi AI của ngày đang xem. Số đếm từ dữ liệu thật của app, chưa có gì thì hiện dấu gạch. Chạm vào từng ô để đọc ý nghĩa. Trên điện thoại vuốt ngang để xem hết.
-- **Cập nhật theo kho NAOSO.** Bản này gộp toàn bộ bản mới của NAOTA (1.46.2) và đổi tên hiển thị thành NAOSO; app sẽ nhận cập nhật từ kho NAOSO của anh Đại.
+- **Tên hiển thị là NAOSO ở mọi nơi**, còn dữ liệu, khoá và tên kỹ thuật của NAOTA giữ nguyên.
+
+## [1.60.0] - 2026-11-22
+### Cải thiện
+- **Linh vật mang dáng logo NAOTA**: ngôi sao cam của bản cũ thành ô vuông bo góc màu vàng NAOTA, ở trang Việc cần làm, con linh vật nép mép màn hình và thẻ Tặng sao. Máy đang để ngôi sao mặc định tự đổi sang hình mới sau khi cập nhật; ai đã tự chọn hình hay màu khác thì giữ nguyên. Ngôi sao vẫn còn trong Cài đặt > Linh vật nếu muốn chọn lại.
+
+## [1.59.0] - 2026-11-22
+### Thêm mới
+- **Naota bấm nút và điền form được bằng cookie đã cất** (cần kết nối Playwright). Mỗi thẻ ở trang Cookies có công tắc riêng, cookie cũ vẫn chỉ đọc tới khi bạn bật. Chatbot khách không bao giờ dùng được trình duyệt đã đăng nhập.
+- **Naota chạy được đoạn code chỉ đọc (`naota_code`)** để gọi nối nhiều tool đọc rồi chỉ trả kết quả, đỡ tốn token. Chạy cách ly, tối đa 40 lần gọi, tắt bằng `NAOTA_CODE_MODE=0`.
+### Sửa lỗi
+- **Việc nền không còn kẹt vì bước chỉ bạn làm được** (nghe kiểm, duyệt, tải file quá lớn). Các bước đó chuyển sang mục **Để lại cho bạn** trên thẻ việc, kèm chuông báo.
+- **Bước của Team và việc Kanban tự chạy lại sau khi máy mất mạng chốc lát.** Gọi tool kèm tên nguồn không còn nhảy sang tài khoản khác, và link cài Hostinger gọn hơn để hPanel không từ chối.
+
+## [1.58.0] - 2026-11-22
+### Thêm mới
+- **Chặn, Rời nhóm, Xoá ngay trong bảng Thông tin của cuộc chat**, giống menu "..." trên danh sách. Rời nhóm Zalo thì cuộc chat cũng được xoá khỏi Naota, và cuộc chat đã xoá không tự hiện lại nữa.
+- **Bot có thể nhường khi nhân viên trả lời từ app Zalo OA hoặc hộp thư Trang.** Ghi số phút vào ô "Nhường khi bạn nhắn tay" là bot im chừng ấy phút rồi tự trả lời lại. Mặc định không nhường.
+### Sửa lỗi
+- **Bot Zalo cá nhân không còn nói "chưa có thông tin" sau khi bạn nhắn tay**, và chọn người cho bot trả lời giờ mở ngay danh sách nhắn riêng.
+- **Facebook Trang dùng đúng mọi kết nối đang bật**, bỏ qua kết nối đang tắt. Nội dung webhook dài tới 5.000 ký tự, số ảnh bot gửi chỉnh được bằng `NAOTA_BOT_MAX_IMAGES`.
+
+## [1.57.0] - 2026-11-22
+### Cải thiện
+- **Khung chat gọn một hàng như Claude.** Trong khung chỉ còn nút +, ô chữ, ghi âm và gửi. Model, mức suy nghĩ và vòng hạn mức xuống dưới khung bên phải; thư mục ghim và repo GitHub bên trái. Khung cũng nằm sát đáy màn hình hơn.
+### Sửa lỗi
+- **Nút X rõ ràng để bỏ repo**, ở khung chat, trong bảng chọn và ở trang Nhóm. Chạm nhầm vào dòng repo không còn bỏ mất nó, và repo vừa chọn không còn "nhảy về" cái cũ.
+- **Vòng hạn mức gói hết kẹt đỏ sau khi đổi model.** Một model bị chặn riêng cũng không còn làm đỏ cả gói.
+- **Câu trả lời dài lại báo về điện thoại** khi bạn không mở đúng cuộc chat đó.
+
+## [1.56.0] - 2026-11-21
+### Thêm mới
+- **Kết nối Asana.** Trang Kết nối có thẻ Asana dùng MCP chính chủ bản V2: Naota tìm và đọc việc, dự án, hạn chót, tạo và cập nhật việc, thêm bình luận. Đăng nhập ngay trong dashboard, chạy được cả trên VPS.
+- Cần tạo một MCP app trong Asana một lần (khoảng 5 phút), thẻ có hướng dẫn từng bước. Mặc định ở mức Chỉ đọc.
+- **Đồng bộ brain 2 chiều nối bằng tài khoản GitHub đã đăng nhập.** Ở trang Tự học, bấm Kết nối GitHub rồi Tạo repo riêng tư hoặc Chọn repo có sẵn. Không còn phải tự tạo token và dán URL.
+- **Nối xong là đồng bộ ngay và bật tự động.** Máy thứ hai chọn cùng repo là kéo brain về.
+- **Ai đang dùng token riêng vẫn chạy như cũ,** và có nút chuyển sang tài khoản GitHub đã đăng nhập để khỏi lo token hết hạn.
+- **Trang Tài khoản có dòng "Quên mật khẩu hiện tại?"** ngay dưới nút Đổi mật khẩu. Trên Windows và Mac, bấm vào là Naota mở thư mục cài đặt và chọn sẵn file reset, chỉ cần bấm đúp. Trên VPS, Docker, Hostinger thì hiện các bước đặt lại.
+- **Mac có file `reset-auth.command`** làm đúng việc của `reset-auth.bat` trên Windows: xoá mật khẩu cũ để đặt lại từ đầu.
+- **Hội thoại Claude Code và Codex tự lưu vào Naota.** Mỗi lượt xong, câu bạn gõ và câu trả lời cuối hiện trong Lịch sử dưới tên "Từ Claude Code: ..." hay "Từ Codex: ...", và vào vòng tự học.
+- **Cài chỉ bằng một câu "ok".** Nối Claude Code hay Codex vào Naota Gate là nó hỏi có bật Naota Sync không; đồng ý là nó tự cài trên máy, không phải gõ lệnh hay chép token.
+- **Không tốn hạn mức, không lo mất.** Naota không chạy model cho việc này, API key được che trước khi lưu, Naota tắt thì lượt chờ gửi bù sau. Token của nó chỉ lưu được hội thoại, không làm được gì khác.
+### Sửa lỗi
+- **Nhờ Naota tự sửa mã nguồn Naota không còn đỏ lỗi "không có quyền ghi vào vuongtex/naota" ở máy người dùng.** Trước đây mọi máy đều tải repo gốc về, sửa cả lượt rồi mới hỏng ở bước đẩy. Giờ máy không có quyền ghi thì Naota không tải, không sửa, mà viết sẵn một báo lỗi kèm hướng sửa và đưa link mở trang tạo Issue cho nhà phát triển. Bạn đọc lại, bấm Submit là gửi, không cần token hay quyền gì thêm.
+- **Thẻ cookie Facebook đọc được trang trở lại.** Khi mở trang bằng cookie trên trang Cookies, Naota giờ gửi kèm các header điều hướng như trình duyệt thật (`Sec-Fetch-*`, `Accept`, `Upgrade-Insecure-Requests`). Trước đó Facebook trả lỗi 400 trước cả khi xét tới cookie, nên thẻ còn sống vẫn báo "lần gần nhất không tải được".
+- **File reset không còn mở lại bộ cài đặt lần đầu** (model, kênh, khoá API giữ nguyên), và trên Mac mật khẩu cũ không còn tự quay lại ở lần khởi động sau.
+### Cải thiện
+- Công tắc Tự động và Đồng bộ cả ảnh có hiệu lực ngay, không cần bấm Lưu.
+- **Trang Công cụ (Plugins) làm lại gọn như trang Nhiệm vụ.** Cột trái lọc theo trạng thái và nguồn, mục Tất cả là một danh sách liền xếp theo tên, công cụ của bạn và từ Chợ ứng dụng có tag riêng.
+- **Mỗi dòng chỉ còn tên, một dòng mô tả, mức quyền bằng chữ dễ hiểu và công tắc.** Bấm vào dòng để xem lệnh, phiên bản và nút Gỡ. Gỡ hỏi lại ngay trong trang và có Hoàn tác.
+- **Nút "Thêm công cụ" gom ba cách thêm:** Chợ ứng dụng, nhờ Naota tạo trong chat, cài từ tệp .zip. Nút "Cài từ tệp .zip" vẫn đứng riêng cạnh đó.
+- **Trình duyệt và Bộ nghe offline chuyển sang mục "Phần mềm trên máy"**, nút Gỡ không còn tô màu đặc. Trên điện thoại cột trái thành hàng chip, nút + tròn ở góc.
+
+## [1.55.0] - 2026-11-21
+### Cải thiện
+- **Bot Messenger biết khách tới từ quảng cáo nào.** Khách bấm quảng cáo "Gửi tin nhắn", link m.me có mã, hay khung chat trên website: bot thấy tên quảng cáo hoặc mã link, kể cả khi khách mở lại một cuộc chat cũ từ quảng cáo rồi mới gõ.
+- **Bot xem được video khách gửi** (cắt vài khung hình, nghe cả lời nói nếu có key chuyển giọng nói), thay vì chỉ nhận một đường link không mở được.
+- **Sticker và nút thích (👍) được hiểu đúng là cảm xúc**, bot không còn tải về rồi tả lại như một bức ảnh. Trên Instagram, khách trả lời story hay nhắc tài khoản trong story thì bot biết.
+- **Messenger giới hạn tần suất hoặc tạm lỗi gửi thì bot chờ rồi gửi lại**, không mất câu trả lời.
+- **Bot Slack trả lời đúng thread.** Trước đây, đang trả lời câu hỏi ở thread này mà có người nhắn ở thread khác cùng kênh thì câu trả lời có thể rơi nhầm sang thread kia. Giờ mỗi câu trả lời luôn về đúng thread của câu hỏi.
+- **Khách nhắn tiếp trong thread cũ vẫn được trả lời sau khi Naota khởi động lại**, không bị coi là người khác nói chuyện với nhau.
+- **Hộp thư hiện tên kênh Slack** (ví dụ #sales), và bot báo ngay khi được thêm vào hoặc bị gỡ khỏi một kênh, giống Telegram. Chữ khách gõ như `a < b`, `@Kim`, đường link giờ tới Naota đúng như khách gõ.
+- **Slack đang giới hạn tần suất thì bot chờ rồi gửi lại**, không mất nửa câu trả lời. App tạo theo hướng dẫn cũ vẫn chạy; muốn có tên kênh thì dán lại manifest mới và cài lại app (docs/29-slack-whatsapp.md).
+- **Nhóm Telegram có chủ đề (topic): bot trả lời đúng chủ đề người ta hỏi**, thay vì dồn hết về mục General. Trong nhóm, câu trả lời còn trích đúng tin được hỏi, nên đông người vẫn biết bot đang trả lời ai.
+- **Khách gửi nhiều ảnh một lúc thì bot trả lời một lần**, xem đủ cả bộ ảnh, không còn trả lời tách thành hai ba lượt.
+- **Bot xem được video khách gửi** (cắt vài khung hình, nghe cả lời nói nếu có key chuyển giọng nói). Vị trí, danh bạ, sticker và bình chọn khách gửi cũng tới được bot, trước đây bị bỏ qua.
+- **Telegram giới hạn tần suất thì bot chờ rồi gửi lại**, câu trả lời dài được chia đúng chỗ xuống đoạn, video bot gửi đi xem được ngay trong chat.
+- **Bot WhatsApp đọc được đơn đặt hàng từ catalog.** Trước đây khách bấm gửi giỏ hàng thì bot bỏ qua cả đơn. Giờ bot thấy từng sản phẩm, số lượng, tổng tiền và lời nhắn kèm theo. Danh bạ khách gửi, biểu mẫu WhatsApp Flow, tên và địa chỉ của vị trí cũng tới được bot.
+- **Bot biết khách tới từ quảng cáo nào** (quảng cáo bấm vào nhắn WhatsApp) và khách đang hỏi sản phẩm nào trong catalog, để trả lời đúng ý.
+- **Bot đang tạm dừng hoặc bạn đang tiếp quản thì khách không còn thấy "đang soạn tin..." rồi im luôn.** Dòng đó chỉ hiện khi bot thật sự trả lời.
+- **WhatsApp giới hạn tần suất thì bot chờ rồi gửi lại**, video gửi đi xem được ngay trong chat, ảnh quá cỡ tự gửi thành tài liệu thay vì báo lỗi.
+
+## [1.54.0] - 2026-11-21
+### Thêm mới
+- **Rời nhóm Zalo ngay ở menu "..." của trang Hội thoại.** Lịch sử chat vẫn giữ trong Naota, ở bộ lọc Đã ẩn.
+- **Nút Chặn có ở mọi kênh.** Messenger và Zalo chặn thật trên nền tảng; kênh khác chặn trong Naota: bot im, chat ẩn đi, tin mới không làm nó hiện lại.
+- **Thêm Bỏ chặn** cho cuộc chat đã chặn, trả lại đúng chế độ trả lời trước đó.
+### Sửa lỗi
+- **Hội thoại của bot Telegram (và mọi kênh bot khác) hiện lại trong lịch sử của cộng sự nối với bot.** Bot nào được lưu brain theo một cách viết khác của cùng brain đó (đường dẫn đầy đủ từ bản cũ, có dấu `/` ở cuối, hay thư mục brain đã dời chỗ) vẫn trả lời bình thường, nhưng cuộc chat của nó không bao giờ lên cột Lịch sử của cộng sự. Giờ Naota so theo brain mà hội thoại thực sự được lưu, và tên cộng sự có dấu tiếng Việt cũng khớp dù file tạo trên macOS.
+- **Chấm đỏ ở thư mục hội thoại chỉ hiện khi chat đã xong mà chưa đọc.** Chat còn đang chạy hiện vòng xoay chứ không làm sáng chấm đỏ ở thư mục, ở dòng "Chưa xếp nhóm", ở chính dòng chat và ở menu bên trái. Chat đang mở trên màn hình cũng không bị tính. Lượt chạy xong mà chưa được xem thì chấm đỏ mới hiện.
+- **Mở lại hội thoại không còn lặng lẽ hiện bản cũ.** Máy chủ trả lời chậm hoặc lỗi thì khung chat báo rõ đang hiện bản lưu trên máy, kèm nút Thử lại, thay vì để tin cũ nằm đó như thể đã mới nhất.
+- **Hội thoại tải mãi không mở được nay có lời báo.** Sau vài giây chờ, Naota nói cuộc trò chuyện đang tải lâu và cho bấm Thử lại.
+- **Một tin hiển thị lỗi không còn làm mất các tin sau nó.** Tin đó hiện dạng chữ thường, các tin còn lại vẫn đủ, và lỗi được ghi vào trang Sức khoẻ để dễ tìm nguyên nhân.
+- **Hồ sơ tự học không còn ghi "chủ cửa hàng".** Hồ sơ giờ gọi người đang chat là "đối tượng" và lấy họ làm chủ thể, ví dụ "đối tượng được gọi là anh Việt, đối tượng xưng anh", hợp cả khi bot không dùng cho kinh doanh. Hồ sơ cũ đổi theo ở lần cập nhật kế tiếp.
+- **Kết nối nick Zalo thứ hai không còn làm nick thứ nhất mất kết nối.** Hai người báo ngày 19 và 20/11/2026: mỗi nick một bot ở hai brain, vừa quét QR nick thứ hai thì thẻ bot của nick thứ nhất báo "Một phiên khác của cùng nick đang giành kết nối Zalo" và bot lỡ phần lớn tin, dù không ai mở Zalo Web.
+- **Quét QR bằng nick đã kết nối thì Naota báo ngay, không tạo kết nối thứ hai.** Câu báo nêu tên kết nối đang giữ nick đó. Muốn nối nick khác, mở app Zalo bằng nick đó rồi quét lại.
+- **Bot Zalo cá nhân đọc được tin dạng thẻ link.** Trước đây một link người khác gửi (Zalo hiện thành thẻ có tiêu đề và ảnh) bị xếp vào loại "khác" nên bot bỏ qua, kể cả khi người gửi tag bot. Giờ thẻ link được đọc như tin chữ, gồm tiêu đề, mô tả và địa chỉ link.
+- **Hộp thư và lịch sử giữ lại địa chỉ link.** Tin thẻ link không còn chỉ hiện dòng mô tả của trang mà có cả link để bấm, kể cả tin nhập lại từ lịch sử.
+### Cải thiện
+- **"Chưa xếp nhóm" cũng có chấm đỏ.** Cuộc chat chưa thuộc dự án nào mà có câu trả lời chưa đọc thì mục Chưa xếp nhóm trong ô chọn dự án hiện chấm đỏ, giống các dự án. Đọc xong hoặc xếp cuộc đó vào một dự án thì chấm tự tắt.
+- **Đánh dấu chưa đọc được cả hội thoại đang mở.** Menu "..." của hội thoại đang xem giờ cũng có nút này. Bấm xong chấm đỏ hiện ngay và giữ nguyên, tới khi bạn mở hội thoại khác rồi quay lại, nên dễ đánh dấu những việc chưa xong để quay lại sau.
+
+## [1.53.0] - 2026-11-20
+### Thêm mới
+- **Nhờ Naota đặt lịch chạy script ngay trong chat.** Ví dụ "mỗi phút chạy check_shop.py": job chạy thẳng script, không gọi model nên rẻ, và chạy được mỗi phút.
+- **Việc "Chờ bạn" của nhóm giờ trả lời được, không chỉ Thử lại.** Bấm **Trả lời** cạnh Thử lại: chọn "Làm tiếp" để thành viên làm lại bước đó kèm câu trả lời của bạn, hoặc "Hỏi lại" để hỏi rõ trước, việc vẫn chờ bạn.
+- Câu trả lời và câu hỏi đều hiện trong khung chat của nhóm, có trích lý do việc dừng ở trên, nên đọc lại vẫn biết đang trả lời chuyện gì.
+- **Tab Thông tin của team gọn lại như Zalo.** Ảnh, File, Link mỗi mục chỉ hiện vài cái mới nhất, kèm nút **Xem tất cả**.
+- **Kho lưu trữ:** bấm Xem tất cả là mở ngay trong bảng bên, có ba tab Ảnh, File, Link, ô tìm không cần dấu, xếp theo ngày và phân trang 20 mục một trang.
+- Mỗi file có ô màu ghi đuôi file, dung lượng, và báo **File không còn** khi file đã bị xoá hay dời đi. Team có hơn 200 file giờ xem được hết.
+### Sửa lỗi
+- **Danh sách model Codex nhận đủ bản mới hơn đã cài.** Naota so phiên bản Codex trên `PATH` với bản cài trong thư mục người dùng để không bỏ sót model mới.
+- **Duyệt một mốc của quy trình ở trang Nhiệm vụ thì quy trình chạy tiếp, không hỏi duyệt lại.** Trước đây mỗi lần trả lời, quy trình chạy lại từ bước đầu nên lại dừng đúng mốc cũ. Giờ trả lời "Duyệt", "ok" hay "đồng ý" là chạy tiếp từ mốc đó. Câu yêu cầu sửa vẫn cho quy trình làm lại kèm lời sửa như cũ.
+- **Việc chạy quy trình trên trang Nhiệm vụ biết đợi gói mở lại.** Trước đây bước nào vấp gói thuê bao hết lượt là việc thử lại ngay, đốt hết 3 lần thử trong vài giây rồi kẹt. Giờ việc tự hẹn chạy lại đúng giờ gói mở và không tính vào số lần thử.
+- **Naota không còn bị kẹt cảnh mất kết nối vì một bản chạy thừa giữ cổng.** Trên Mac, bản launchd quản lý giờ tự tắt bản Naota chạy lạc rồi tiếp quản; bản thừa khác thì thoát ngay, không chạy phần khởi động.
+- **Cập nhật trên Mac luôn đổi ca qua launchd**, kể cả khi lệnh kiểm tra của launchd lỗi, nên không còn sinh ra bản chạy ngoài launchd.
+- **Naota Store không còn trống trơn khi máy chưa đặt mật khẩu.** Cài gói cần đăng nhập thật, nên trước đây Store bị chặn mà không nói vì sao. Giờ trang nói rõ cần đặt mật khẩu và có nút Đặt mật khẩu dẫn thẳng tới trang Tài khoản.
+### Cải thiện
+- **Kết quả của lịch được lưu đủ, không còn cắt ở 2.000 ký tự.** Lần chạy sau vẫn chỉ đọc phần đầu cho gọn, nhưng giờ biết rõ là đã bị cắt.
+- **Lịch lặp bị lỡ lượt thì trang Nhiệm vụ ghi "lỡ N lần".** Trước đây khi một lượt chạy trễ hay chạy lâu, các lượt kế bị bỏ qua mà không ai biết.
+
+## [1.52.0] - 2026-11-20
+### Thêm mới
+- **Đăng video lên Trang có ảnh bìa.** Công cụ đăng video nhận thêm ảnh .jpg/.png làm thumbnail mặc định, và có chế độ đăng dạng Reels. Kết quả ghi rõ ảnh bìa đã gắn hay chưa.
+- **Naota nhắn khách được ngay từ khung chat.** Bảo Naota "trả lời chị Lan là còn size M", nó tìm cuộc chat trên trang Hội thoại rồi gửi đúng Page Messenger, Instagram, bot Telegram hay Zalo của cuộc đó, như bạn gõ ở Hộp thư. Trước đây Naota báo thiếu công cụ gửi Messenger và bắt bạn tự dán tin.
+- **Tin gửi đi ghi là của bạn, bot của cuộc đó vẫn chạy như cũ.** Chỉ bạn ra lệnh được việc này: khách nhắn bot không đọc hay nhắn được cho khách khác, và Naota chỉ thấy cuộc chat của brain đang dùng.
+- **Link Naota gửi trên WhatsApp hiện thẻ xem trước** với tiêu đề và ảnh của trang, không còn là link trần.
+- **Bot học từ câu bạn xác nhận.** Trên bản nháp ở Hộp thư có ô tick "Bot học câu này", bật sẵn. Gửi một câu có lệnh của bạn, hoặc câu bạn đã tự sửa, thì câu đó được ghi vào tài liệu của Agent (file `tri-thuc-chatbot/<tên-agent>.md`). Lần sau khách khác hỏi chuyện tương tự, bot trả lời theo đúng câu bạn đã xác nhận. Chuyện riêng của một khách thì bỏ tick.
+### Sửa lỗi
+- **Thẻ bot hiện tên Fanpage thay vì Page ID dạng số.** Trang gắn bằng cách dán token trước đây chỉ lưu ID nên chip kênh hiện một dãy số, khó biết là Trang nào. Nay mỗi lần bot khởi động, Naota lưu tên thật của Trang và chip hiện tên đó. Nhãn bạn tự đặt (tên viết tắt) vẫn được ưu tiên, còn ID xem được khi rê chuột vào chip.
+- **Nút soạn trả lời khách làm đúng lệnh của chủ.** Gõ "lịch đã xác nhận 20h ngày 21 và 22" rồi bấm soạn, câu trả lời báo đúng lịch đó, không còn viết "em chưa có lịch xác nhận" chỉ vì tài liệu chưa có hay trước đó bot từng nói "đang kiểm tra". Lệnh của chủ là lời mới nhất, đứng trên tài liệu và lịch sử cuộc chat, không kèm danh sách câu cấm nào. Bấm Viết lại cũng theo lệnh đó.
+### Cải thiện
+- **"A.I. soạn" đổi tên thành "Naota soạn"** ở nút trong ô nhập, chế độ trên đầu cuộc chat và các dòng của bản nháp.
+
+## [1.51.0] - 2026-11-20
+### Thêm mới
+- **Khung chat vẽ được công thức toán.** Công thức viết dạng `$...$`, `$$...$$`, `\(...\)` hoặc `\[...\]` giờ hiện thành phân số, căn, mũ như trong sách thay vì nguyên mã. Thư viện KaTeX chỉ tải lần đầu có công thức; mất mạng thì vẫn thấy mã gốc. Số tiền kiểu "$5 và $10" không bị nhận nhầm.
+- **Link mở thẳng một việc.** Địa chỉ dạng `#task=<mã>` mở trang Nhiệm vụ rồi mở đúng việc đó: việc của bạn (`m:`), nhắc hẹn (`r:`) hoặc việc Naota làm (`k:`). Trang ngoài như bảng điều hành tự làm có thể dẫn thẳng tới một việc thay vì chỉ tới trang Nhiệm vụ.
+### Sửa lỗi
+- **Gọi `naota_team` không còn báo "không tồn tại" khi hub bật chế độ lazy.** Khi có nhiều công cụ, hub giấu bớt sau ô tìm kiếm, nhưng trợ lý quen gọi thẳng tên nên bị báo lỗi. Giờ gọi thẳng tên vẫn chạy đúng công cụ, vẫn qua cùng lớp quyền. Lối tắt huỷ lịch nhắc cũng chạy lại được khi lazy bật.
+- **/goal và /plan gõ ở cuối hay giữa câu giờ chạy được.** Trước đây chỉ ăn khi đứng đầu tin, gõ "...làm luôn giúp anh /goal" thì Naota chỉ chat thường. Phần chữ còn lại thành nội dung của mục tiêu.
+- **Skill, agent, workflow vừa cài giữa cuộc trò chuyện gọi được ngay bằng "/" ở giữa câu.** Trang nạp lại danh sách trước khi gửi nếu gặp tên lạ, không còn coi là chữ thường.
+- **Gõ tên agent hay workflow không cần tiền tố.** "/seo-pro" mở thẳng agent seo-pro, như "/agent-seo-pro".
+- **Dấu câu ngay sau lệnh không làm hụt lệnh.** "/viet-email," hay "/goal." vẫn được nhận.
+- **Phóng to ảnh trong chat không còn dạt sang trái.** Bấm vào ảnh để xem cỡ thật, ảnh nhỏ hơn màn hình giờ nằm giữa, ảnh lớn hơn thì mở đúng chỗ vừa bấm.
+### Cải thiện
+- **Chuông thông báo gọn hẳn.** Câu trả lời của trò chuyện, trợ lý và team không còn đẩy lên chuông. Thay vào đó là **chấm đỏ** ở mục Trò chuyện, Trợ lý, Team trên menu, như chấm đỏ đang có ở từng cuộc chat.
+- **Việc chạy theo lịch không còn kêu mỗi lần chạy.** Kết quả vẫn về đúng khung chat hoặc Telegram, chuông chỉ kêu khi việc lỗi hẳn, hoặc khi chính lần chạy thấy có chuyện anh cần ra tay.
+- **Tiêu đề thông báo dễ đọc hơn.** Mỗi lần chạy tự viết một dòng tiêu đề ngắn nói kết quả, không còn kiểu "Em kiểm tra..." và không lặp lại tiêu đề ở dòng dưới.
+- **Hội thoại chưa đọc lên đầu danh sách.** Các cuộc có chấm đỏ giờ gom thành nhóm **Chưa đọc** ngay dưới nhóm Đã ghim, kể cả cuộc cũ nằm tận trang sau. Đọc xong thì cuộc đó về lại đúng chỗ theo ngày.
+- **Gõ thêm lúc Naota đang làm, nút Dừng tự đổi thành nút Gửi** ngay tại chỗ, đỡ tốn chỗ. Xoá hết chữ trong ô thì nút Dừng quay lại.
+- **Tab Đã học và Tài liệu chia trang, mỗi trang 20 mục.** Danh sách dài có ô tìm (gõ không dấu vẫn ra) và nút Thêm đứng ngay trên đầu, khỏi phải cuộn hết danh sách.
+- **Ghi chú Đã học dễ nhìn hơn.** Lọc nhanh theo Sự thật, Quyết định, Thuật ngữ; mỗi loại một màu; ghi chú của bạn có vạch cam bên trái.
+- **Sửa ghi chú, bài học, mô tả tài liệu trong một khung rộng.** Thay cho ô nhập một dòng của trình duyệt: chữ hiện trọn, có đếm ký tự, đổi được loại ghi chú, Ctrl+Enter để lưu. Trên điện thoại khung kéo từ dưới lên.
+- **Naota tìm đúng tool hơn hẳn khi có nhiều nguồn.** Câu hỏi đời thường như "doanh thu hôm nay trên POS", "lịch sử tin nhắn Zalo", "chi phí Google Ads" giờ ra đúng tool, kể cả khi mô tả tool viết tiếng Anh. Trên bộ 55 câu thử thật, tỉ lệ tìm trúng từ 20 lên 55.
+- **Nêu tên nguồn là ra danh sách tool của nguồn đó**, và nhiều tài khoản cùng loại (ba shop POS, hai Zalo) được gộp một dòng, không còn chiếm chỗ của tool khác.
+- **Gọi tool thiếu tiền tố hay gõ sai tên vẫn chạy** nếu chỉ có một tool khớp, nhiều tool khớp thì Naota nêu tên để chọn. Kết quả tìm cũng ngắn hơn để vẫn tiết kiệm token.
+
+## [1.50.0] - 2026-11-19
+### Thêm mới
+- **Bot đọc được file nhân viên gửi cho khách trên Zalo OA và Fanpage.** Báo giá PDF, Word, Excel hay ảnh nhân viên gửi từ app OA hoặc hộp thư Trang giờ hiện trong Hộp thư (nhãn Nhân viên), và bot biết nội dung để trả lời khi khách hỏi lại. Ảnh được một bộ não đã kết nối có mắt đọc hộ.
+- **Bot đọc được file PDF, Word, Excel khách gửi**, không chỉ biết là "có file" như trước.
+- **Trang Cộng sự có tab Đã học cho từng trợ lý.** Nút trên thanh đầu đổi thành "Tài liệu & Đã học". Tab mới liệt kê những bài học trợ lý tự rút ra khi làm việc, đúng những bài nó đang dùng, kèm nơi áp dụng (chat riêng, trong nhóm, mọi nơi). Bạn sửa, xoá hay thêm bài học ngay ở đó, giống tab Đã học của project.
+- Bài học bạn thêm dùng ở mọi nơi. Bài học bạn sửa thành của bạn và không bị thay khi danh sách đầy. Xoá thì trợ lý thôi dùng và không tự học lại đúng câu đó.
+- **Naota Store có tab Tất cả.** Tab đứng đầu hàng, gom mọi trợ lý, kỹ năng, quy trình, công cụ và kết nối vào một lưới, và kho mở ra ở tab này. Ô tìm ở đây tìm trên cả kho, mỗi thẻ ghi rõ nó thuộc loại nào.
+- **Tìm ở một tab mà không thấy thì có nút tìm trong Tất cả.** Nút ghi sẵn số mục khớp ở các tab khác và giữ nguyên chữ bạn đã gõ.
+### Sửa lỗi
+- **Tab Công việc của cộng sự ghi lại từng lần cộng sự tự làm.** Trước đây phần Auto báo "Hôm nay đã tự làm 1 lần" mà tab Công việc vẫn trống, vì tab chỉ đọc mục tiêu, việc team, việc chat và quy trình. Giờ mỗi lần cộng sự tự nhìn quanh hay tự xem lại là một thẻ ở nguồn Auto, kèm kết quả: đã tự làm gì, đã nhắn bạn, đề xuất việc gì, hay không thấy việc gì cần làm. Số lần hôm nay và số thẻ luôn khớp nhau vì đọc cùng một sổ.
+- **Biểu tượng chờ ở trang Chatbot giờ quay thật.** Trước đây nút "A.I. đang viết...", nút Gửi bản nháp, mic lúc đang chép lời và thẻ hồ sơ khách đều đứng im.
+- **Playwright không còn báo "chưa cài trình duyệt" sau khi Naota vừa tải xong.** Naota giờ chỉ thẳng cho Playwright file trình duyệt nó đã tải, nên hai bên lệch phiên bản cũng chạy được. Ai đã tự chọn trình duyệt riêng thì Naota giữ nguyên.
+- **Bảng chọn repository trong dự án và trong team không còn bị cắt.** Mục "Đã chọn" trước đây chỉ hiện một dải mỏng, và danh sách bên dưới không cuộn được tới các repository ở cuối. Giờ từng dòng hiện đủ và danh sách cuộn bình thường, ở cả tài liệu của dự án, của cộng sự, ô tạo team và khung chat của team.
+- **Một gói trong Kho cài được vào nhiều brain.** Trước đây gói đã cài ở brain này thì sang brain khác chỉ hiện "đã cài" kèm nút Tắt và Gỡ, không cách nào đưa trợ lý và skill của gói vào brain đó. Giờ thẻ gói hiện nút "Cài vào brain này". Cập nhật gói thì mọi brain đã cài cùng lên bản mới, phần bạn đã tự sửa vẫn giữ nguyên. Gỡ gói thì gỡ ở mọi brain, và hộp xác nhận nêu tên từng brain.
+- **Ô chọn nhóm của Chatbot không còn hiện id trần.** Nhóm đã tick mà ô tìm lọc mất, hoặc cũ hơn 80 cuộc chat gần nhất, trước đây hiện thành dãy số dài. Giờ nhóm nào cũng mang tên thật lấy từ Hộp thư, nhóm chưa rõ tên thì hiện "Nhóm …" kèm đuôi id.
+### Cải thiện
+- **Cần bật thêm một lần:** Zalo OA bật sự kiện `oa_send_text`, `oa_send_image`, `oa_send_file` ở mục Webhook của app. Fanpage bấm **Sửa tự động** ở bảng kiểm tra để Naota bật `message_echoes`.
+- Trong ngăn tài liệu của trang Cộng sự, tab nằm trên công tắc "Của trợ lý / Chỉ cuộc này", vì công tắc chỉ là lựa chọn của tab Tài liệu.
+- **Dùng lại key Google cho mọi dịch vụ Google.** Hàng "Dùng lại key này" giờ nằm ngay đầu form, có cả ở Google Ads, Analytics, Merchant Center, Search Console, và mượn được key (kể cả service account) đã lưu ở bất kỳ dịch vụ Google nào. Google chỉ cho xem Client Secret đúng một lần lúc tạo, nên key trong Naota thường là bản duy nhất còn lại.
+- **Đổi key ngay trên kết nối.** Mục "Kết nối lại (đăng nhập / đổi key)" của Gmail, Lịch, Analytics, Ads... giờ mở form đổi key: chọn key đã lưu ở dịch vụ khác, hoặc dán key mới, rồi đăng nhập lại.
+- **Báo trước khi mất key.** Xoá kết nối cuối cùng còn giữ một key Google thì hộp xác nhận nói rõ, kèm cách giữ lại.
+- **Bấm "A.I. viết" hay "Viết lại" ở Hộp thư giờ thấy ngay A.I. đang làm gì.** Chỗ bản nháp sẽ hiện ra có một khung "A.I. đang viết": biểu tượng nhấp nháy, dòng chữ nói bước hiện tại (đọc cuộc chat, tra tài liệu, xem ảnh khách gửi, viết câu trả lời), số giây đã chờ và ba vạch chạy. Quá 25 giây thì khung nói nhẹ nhàng là A.I. vẫn đang viết, để không ai tưởng bị lỗi.
+- **Soạn nháp nhanh hơn một chút:** tra tài liệu, lấy ngữ cảnh plugin và xem ảnh khách gửi giờ chạy cùng lúc thay vì lần lượt.
+
+## [1.49.0] - 2026-11-19
+### Sửa lỗi
+- **Số tiết kiệm ước tính trên trang Mức dùng nay đúng với thứ thật sự được gửi.** Mức Tối ưu trước đây chỉ tính bản luật rút gọn và quên phần nền vẫn gửi kèm (có khối luật kênh chat), nên trang báo bớt 84% cho mọi bộ não. Nay: bộ não dùng API key thấy con số thật, còn gói thuê bao (Claude Code, ChatGPT...) thấy rõ là bộ luật được giữ nguyên, chỉ bộ nhớ và skill nạp phần liên quan.
+- **Số token đã tiết kiệm cộng dồn không còn tính mọi lượt ở mức Siêu tiết kiệm như lượt đi đường tắt.** Chỉ câu hỏi đơn giản đi đường tắt, nên phần cộng dồn tính theo giá mức Tối ưu; phần "đo được" của trang vẫn cho thấy đường tắt bớt thật bao nhiêu.
+### Cải thiện
+- **Việc chạy nền trên bộ não dùng khóa API gửi ít token hơn khoảng 60%.** Việc Kanban, việc lặp và nhắc hẹn có làm việc mang bộ luật việc nền ngắn thay cho toàn bộ bộ luật chat, ở mỗi lần gọi công cụ. Mọi luật về hành động được giữ nguyên: làm đúng việc trong mức quyền, không bịa số, báo kết quả về đúng người giao, không hứa suông, không tự tạo thêm việc, plugin mới luôn tắt. Thử bằng model thật trên 7 loại việc nền mẫu, kết quả ngang bản đầy đủ.
+- **Gói thuê bao không đổi.** Claude Code, ChatGPT, Grok, Antigravity vẫn mang bộ luật đầy đủ. Bật thử cho khoảng 10% việc chạy nền, tắt theo mức Tắt.
+- **Skill dài nạp có chọn lọc, Naota chọn trước khi nạp.** Với skill kiểu thực đơn như trình tạo agent/loop/plugin, Naota chỉ nạp phần yêu cầu cần cùng mọi mục luật (và phần nó dặn tạo trước, như workflow kéo theo mẫu agent), nhẹ hơn khoảng 47-63%. Đo bằng model thật trên 7 loại yêu cầu, câu trả lời đủ ý như khi nạp cả skill.
+- **Mọi ngôn ngữ như nhau.** Cách chọn không dựa vào tiếng Việt hay tiếng Anh: tách chữ được mọi hệ chữ (kể cả Trung, Nhật, Hàn, Thái), nhận cả từ có đuôi biến đổi (tiếng Nga, Đức, Thổ, Hàn), và tự tìm từ thừa ngay trong skill. Người hỏi bằng ngôn ngữ khác skill thì model tóm việc bằng ngôn ngữ của skill để Naota chọn đúng phần. Không chắc là nạp cả skill như cũ, và skill dạng quy trình liền mạch luôn nạp đủ.
+- **Học từ cách dùng.** Phần nào model hay phải lấy thêm thì lần sau Naota nạp sẵn. Bật thử cho khoảng 10% phiên chat trước, tắt theo mức Tắt.
+- **Lượt dài tốn ít token hơn, với mọi bộ não.** Model gọi lại đúng công cụ với đúng tham số mà kết quả y hệt lần trước thì nhận một dòng tham chiếu thay vì cả khối chữ lần nữa. Công cụ vẫn chạy lại thật, nên dữ liệu đổi là model nhận bản mới đầy đủ. Với Claude Code và Codex, việc này làm ở cổng hub, và Naota quên sổ của lượt đó mỗi khi chúng nén hội thoại.
+- **JSON gọn hơn.** Kết quả JSON thụt lề hay có chữ Việt bị mã hoá được viết gọn lại, cùng nội dung. Tệp, terminal, trang web và skill thì giữ nguyên từng ký tự.
+- Chọn mức **Tắt** trên trang Mức dùng là tắt luôn hai cách tiết kiệm này. Số ký tự bớt được hiện chung ở dòng kết quả tool trên trang đó.
+
+## [1.48.0] - 2026-11-19
+### Thêm mới
+- **Nút @ trong khung chat nhóm.** Khi trợ lý tag bạn mà tin đã trôi khỏi màn hình, góc dưới bên phải hiện nút tròn có chữ @ và số tin đang chờ. Bấm là cuộn tới đúng tin đó, bấm tiếp tới tin sau; đọc hết hay bạn đã trả lời thì nút tự ẩn.
+- **Tab Team hiện model của từng thành viên.** Dưới tên mỗi trợ lý có dòng engine và model nó đang chạy, ghi rõ "Model chính" khi trợ lý chưa chọn model riêng, để dễ kiểm soát cả nhóm.
+- **Trả lời được thẻ Xin duyệt trong chat team.** Thẻ còn hai nút lớn có icon: Duyệt và Trả lời. Trả lời mở một khung ngay trong thẻ với ba lựa chọn: Hỏi thêm (câu hỏi vào chat kèm trích dẫn, gọi đúng cộng sự đã xin, thẻ vẫn chờ bạn), Sửa (gửi yêu cầu sửa như trước) và Từ chối. Mỗi lựa chọn có vài câu gợi ý bấm nhanh. Bấm icon trích ở một dòng (Sẽ làm, Ảnh hưởng) để hỏi đúng dòng đó. Ctrl hoặc Cmd + Enter để gửi, Esc để đóng. Không còn hộp hỏi xám của trình duyệt.
+### Sửa lỗi
+- **Mở một team không còn kẹt lâu ở "Đang tải tin nhắn của nhóm".** Mỗi lần mở, máy chủ từng cộng lại chi phí model của cả team từ trước tới nay, team càng lâu càng chậm, trong khi màn hình không còn hiện con số đó. Giờ bỏ hẳn bước này khi mở team.
+- **Tab Thông tin của team không còn "Đang tải..." mãi.** Team mở ở tab Việc rồi bấm sang Thông tin thì giờ hiện ngay ảnh, tài liệu và link của team.
+- **Danh sách skill khi gõ / trong Team không còn chồng chữ.** Mỗi skill một dòng tên, một dòng mô tả, tên dài được cắt bằng dấu ba chấm, danh sách cuộn khi dài.
+- **Thanh "Đang xem tin của việc" gọn còn một dòng** trên điện thoại: tên việc, một icon mở nghiệm thu và mức dùng, một dấu X để xem lại mọi tin. Trước đây nó chiếm ba dòng và đẩy khung chat xuống.
+- **Bấm tên việc hay "Mở tab Việc" trong khung chi tiết của viên thuốc giờ mở đúng thứ đó,** trước đây khung chỉ đóng lại.
+- **Việc bạn đã trả lời không hiện lại trên viên thuốc** khi bạn đang xem tin của một việc khác. Việc chưa có tin nào thì khung chat nói đúng như vậy.
+- **Câu gợi ý trả lời không còn đè lên dòng "đang gõ"** khi dòng đó hiện ra phía trên ô nhập, ở cả trang Team lẫn chat chính.
+### Cải thiện
+- **Tab cài đặt của team gọn hẳn và tự lưu.** Bỏ mục Nâng cao (nghiệm thu, mức dùng, các con số giới hạn, quyền chi tiết của phó nhóm, bảng giới hạn, sổ lần trả lời): Naota tự lo theo mặc định, còn quyền của phó nhóm theo ba mức đã chọn. Tên và mô tả tự lưu khi rời ô, tạm dừng là một công tắc, không còn nút Lưu. Lưu trữ và Xoá team đứng riêng ở cuối, viền đỏ. Hai lựa chọn "Hành động ra ngoài của nhóm" là thẻ chọn giống ba mức tự quyết.
+- **Tin hết lượt không còn nút "Mở giới hạn của team"**, vì không còn con số nào để mở; nút Thử lại vẫn còn.
+- **Team không còn giới hạn số lần trả lời mỗi ngày.** Trước đây một team dùng hết 100 lần trả lời trong ngày thì mọi cộng sự dừng với "Team đã hết số lần trả lời cho phép", và "Mở giới hạn của team" chỉ nâng thêm từng nấc. Nay không còn trần theo ngày, kể cả với team đã lưu một con số trước đây, với nút "Cho thêm lượt" hay quyền tự quyết của phó nhóm. Giới hạn của từng việc giữ nguyên. Việc đang dừng vì hết lượt ngày thì bấm "Cho thêm lượt" hay "Thử lại" để chạy tiếp.
+- **Nút tới tin được tag giờ nằm ở góc trên.** Nút tròn có mũi tên hướng lên, dưới là @ kèm số tin đang chờ, giống Zalo, vì tin được tag thường nằm phía trên. Nút hiện hay ẩn không làm xô lệch tin đang đọc.
+- **Team chỉ tải các tin gần nhất, cuộn lên mới tải tiếp tin cũ.** Gần tới đầu khung chat là tự tải thêm một trang, giữ nguyên chỗ đang đọc, giống khung chat chính và trang Chatbot. Lúc đang tải hiện dòng "Đang tải tin cũ...".
+- **Việc của team chạy song song.** Mọi việc giao cho team bắt đầu ngay, kể cả việc giao chung cho cả team (trước đây việc chung phải chờ nhau vì cùng tính là của phó nhóm).
+- **Chỉ chờ khi cần kết quả của người khác:** các phần trong một việc có thứ tự trước sau vẫn chờ nhau, và việc anh viết kiểu "sau khi … xong", "lần lượt" vẫn chờ việc trước nó. Mỗi cộng sự làm lần lượt các phần được giao, đúng thứ tự giao.
+- **Bỏ giới hạn số việc mỗi team (trước là 3) và số team làm việc cùng lúc (trước là 4).** Một bước chờ cộng sự đang bận ở việc khác trong cùng team giờ cứ chờ tới lượt, không còn bị báo dừng "bận quá lâu".
+- **Tab Việc của team làm lại theo kiểu trang Nhiệm vụ.** Mỗi việc là một thẻ, ngay dưới là từng thành viên đang làm gì: xong, đang làm hay chờ lượt, kèm lời giao. Việc đang chờ bạn đứng trên cùng.
+- **Nút chữ đổi thành icon.** Sửa yêu cầu, nghiệm thu, huỷ, ưu tiên và cất vào Lưu trữ đều là icon; chỉ còn một nút có chữ cho việc đang chờ bạn. Ba tab Thông tin, Việc, Team có icon, tab Việc kèm số việc đang mở.
+- **Bấm một việc đã hoàn thành để xem tóm tắt:** xong lúc nào, kết quả, ai đã làm gì. Việc đã hoàn thành và Lưu trữ đều lật trang, 5 việc một trang.
+- **Lưu trữ không còn bị cắt ở 30 việc** và có ô tìm khi dài hơn một trang. Nút "Xoá tất cả" đứng riêng ở cuối.
+- **Nhắn thêm trong team là cộng sự đọc ngay.** Cộng sự đang soạn câu trả lời cho tin trước thì dừng lại và trả lời gộp cả hai tin, tin mới nhất được ưu tiên. Không còn cảnh phải chờ trả lời xong câu trên mới đọc câu dưới.
+- **Phó nhóm đang làm một bước việc cũng đọc tin mới ở bước kế tiếp,** nên đổi được cách làm ngay giữa chừng. Dòng trạng thái ghi rõ "Đã đọc giữa chừng".
+- **Thẻ xin duyệt đã trả lời thì thông báo tự tắt.** Bấm Duyệt, Sửa, Từ chối, hay Trả lời hỏi lại trên thẻ, thông báo của nó trong chuông chuyển thành đã đọc. Yêu cầu hết hạn hay bị huỷ cũng vậy.
+- **Phó nhóm nổi bật trong cài đặt team:** đứng ngay dưới chủ nhóm, có nền màu, viền nhấn và huy hiệu ngôi sao.
+- **Việc của team gọn thành một viên thuốc ngay trên khung nhập,** giống việc nền ở chat chính. Bấm vào mới mở chi tiết: lý do dừng, nút xử lý, ai đang làm.
+- **Việc chờ bạn tự ẩn khỏi viên thuốc khi bạn đã nhắn trong khung chat sau lúc nó dừng.** Việc vẫn còn ở tab Việc cho tới khi xử lý xong.
+- **Đổi tên vai trong team:** bạn, người tạo team, là Trưởng nhóm; cộng sự dẫn team là Phó nhóm (trước là "Điều phối"). Nhãn vai luôn nằm trên một dòng, và "Chia việc", "Làm" ở từng bước thành tag gọn.
+- **Tab Việc đứng đầu ngăn bên** (Việc, Thông tin, Team). Mở team đang có việc thì vào thẳng tab Việc, chưa có việc thì vào tab Thông tin.
+- **Thẻ Xin duyệt gọn hơn.** Hạn duyệt hiện "còn 5 giờ" ở đầu thẻ cạnh nhãn "Chờ bạn"; bằng chứng và lời gọi thu vào một dòng có số, đường dẫn dài chỉ hiện tên tệp (rê chuột xem đủ). Thẻ nghiệm thu và cơ hội dùng chung khung nền đặc, bo 16px.
+
+## [1.47.0] - 2026-11-19
+### Thêm mới
+- **Giao việc nền kèm điều kiện hoàn thành cố định.** Việc do script hay quy trình giao mỗi ngày giữ nguyên lời giao và được chấm đúng theo các điều kiện đó, không còn hôm đạt hôm kẹt.
+- **Báo mỗi câu trả lời khi bạn không xem hội thoại đó.** Bật ô mới trong phần Thông báo đẩy của chuông: Naota trả lời xong là điện thoại kêu, nếu bạn đã chuyển sang app khác hoặc đang mở một hội thoại khác. Đang xem đúng hội thoại đó thì im. Bấm thông báo là mở thẳng hội thoại.
+### Sửa lỗi
+- **Khoá màn hình rồi mở lại vẫn thấy câu trả lời.** Hỏi trên điện thoại, khoá máy, lúc mở lại Naota tự kéo câu trả lời đã xong trong lúc vắng mặt, không phải hỏi lại hay treo màn hình chờ.
+- **App trên màn hình chính bị tắt hẳn rồi mở lại cũng đủ câu trả lời.** Trước đây khung chat chỉ hiện bản lưu cũ trên máy, phải vào Lịch sử bấm lại mới thấy.
+- **Việc nền trả lời `[SILENT]` thì xong lặng lẽ**, như nhắc hẹn: không còn tin "không có gì" mỗi lần chạy, cũng không bị máy tự kiểm chấm trượt.
+- **Sửa lịch đổi được mức quyền, nơi nhận kết quả và giọng đọc.** Trước đây Naota báo "Đã sửa" mà lịch vẫn giữ mức cũ.
+- **Wikilink tên ngắn như `[[log]]` mở được** cả khi brain có nhiều file nhắc tới chữ đó. Team cần duyệt chạy ChatGPT trên Docker bị từ chối thì câu báo chỉ luôn cách bật sandbox.
+- **Chữ Naota viết trước và sau mỗi lần gọi công cụ không còn dính liền nhau** (kiểu "cần đăng nhập.Xong mục 3"). Mỗi đoạn mới bắt đầu ở một dòng mới, với Claude Code, Codex, Grok Build và Antigravity.
+- **Ghi chú Naota viết trong lúc đang làm cũng theo đúng thứ tiếng bạn dùng**, không còn trôi sang tiếng Anh giữa chừng khi đọc code hay log.
+- **Ảnh chụp màn hình của Playwright hiện ngay trong khung chat.** Trước đây khi Naota chụp màn hình một trang bằng Playwright, ảnh bị đổi thành một chuỗi ký tự dài gửi cho model, nên bạn không thấy gì trong khung chat. Giờ ảnh được lưu vào bộ não ở `attachments/tool-images/` và Naota nhúng nó vào câu trả lời để bạn xem trước. Ảnh do công cụ khác trả về (biểu đồ, thiết kế) cũng được xử lý giống vậy.
+### Cải thiện
+- **Gõ thêm lúc đang theo đuổi mục tiêu không còn làm mục tiêu tạm dừng.** Tin bạn gửi được gộp vào mục tiêu: vòng đang chạy đọc nó ở bước kế tiếp, các vòng sau đều mang theo, nên bạn chỉnh hay mở rộng mục tiêu ngay khi Naota đang làm. Mỗi tin như vậy cho thêm một vòng (tối đa 10). Vòng nào báo đạt mà chưa kịp đọc tin của bạn thì Naota vẫn làm thêm một vòng cho tin đó. Nút Dừng vẫn tạm dừng mục tiêu như trước.
+- Thanh chọn dự án và danh sách dự án có chấm đỏ khi dự án khác có câu trả lời chưa đọc. Dự án đang xem chỉ báo trên từng cuộc chat, tránh báo trùng.
+- Mở dự án vẫn giữ dấu chưa đọc cho đến khi mở đúng cuộc chat. Dấu báo cập nhật khi có câu trả lời mới hoặc khi đọc ở tab khác.
+- **Cập nhật xong, việc đang dở tự chạy tiếp.** Việc team bị cắt giữa chừng tự làm tiếp đúng bước đang dở, câu team đang trả lời tự trả lời lại; không còn phải bấm "Làm tiếp" hay "Thử lại".
+- **Câu chat đang trả lời dở cũng được trả lời lại** khi trang mở lại sau khi máy chủ khởi động, cho cả chat chính lẫn chat với cộng sự.
+- **Việc nền quay lại hàng đợi ngay** thay vì chờ 90 giây, và lần bị cắt không còn bị tính là một lần thử hỏng.
+- **Không làm trùng việc ra ngoài.** Bước nào đã kịp gửi tin, đăng bài hay tạo đơn trước khi máy chủ dừng thì Naota dừng lại báo bạn, không tự làm lại. Lượt workflow bị cắt không còn treo "đang chạy" mãi.
+- **Số tin chưa đọc của cộng sự nằm ở góc dưới trái avatar.** Giờ chat có chỗ riêng ở góc dưới phải, dòng thoáng hơn trên điện thoại, và dải avatar thu gọn trên máy tính giờ cũng thấy ai có tin mới.
+- **Lời nhắc "Thêm Naota vào Màn hình chính" không bung ngay lúc vừa đăng nhập nữa.** Trước đây nó hiện 12 giây sau khi mở trang, đè lên cả màn đăng nhập và bộ cài đặt lần đầu. Nay nó chỉ hiện khi bạn đã dùng Naota thật khoảng 3 phút (cộng dồn qua các lần mở), không lúc nào có màn đăng nhập, bộ cài đặt hay hộp khác đang mở, và không giữa lúc bạn đang gõ. Nút "Cài lên điện thoại" trong menu vẫn mở hướng dẫn bất cứ lúc nào.
+- **Thông báo lượt chạy lâu không còn bị nuốt khi bạn đang ở hội thoại khác.** Trước đây cứ mở Naota là im, nay chỉ im khi màn hình đang hiện đúng hội thoại đó.
 
 ## [1.46.2] - 2026-11-17
 ### Sửa lỗi

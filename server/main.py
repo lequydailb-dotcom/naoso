@@ -5,6 +5,10 @@ Kiến trúc: Voice (browser) ⇄ FastAPI WebSocket ⇄ Claude Code CLI subproce
 Naota KHÔNG gọi Anthropic API trực tiếp. Mọi reasoning + tool calling đi qua
 `claude` CLI đã cài trên máy → tự kế thừa MCP, skills, auth.
 """
+# Before ANY startup work: a second copy on a port another Naota already serves must not run startup at all
+# (2026-11-19, see port_guard.py). Does nothing when main is imported by tests.
+import port_guard
+port_guard.claim_port()
 import brain_seed_i18n   # file hạt giống của brain mới theo ngôn ngữ người dùng
 import brain_label   # tên hiển thị của brain, tách khỏi thư mục
 import brain_export   # xuất/nhập cả bộ não thành một file .zip
@@ -75,6 +79,7 @@ _write_update_state = update_state.write_state
 _record_boot_version = update_state.record_boot_version
 _update_outcome = update_state.update_outcome
 import git_brain
+import backup_github   # brain backup on the signed-in GitHub account (20/11/2026)
 import engine
 import vision_input
 import borrowed_eyes   # mắt mượn: bộ não khác xem hộ ảnh khi model của bot không xem được
@@ -115,6 +120,7 @@ import security_log   # account security log: sign-ins, account changes, outside
 import image_gen      # tạo ảnh bằng gói ChatGPT (OAuth) - Codex Responses + tool image_generation
 import media_gc       # dọn vùng cache media (attachments/ + inbox/) theo hạn tuổi + trần dung lượng
 import inbox         # hòm thư: mọi kết quả chạy nền để lại một mẩu thư bền ở server
+import notice_text   # short headline and one summary line for each bell item
 import notify_policy  # Naota Core decides which notices ring (groups, levels, modes, the owner's reactions)
 import webpush       # thông báo đẩy trình duyệt (Web Push, tự mã hoá - không thêm thư viện)
 import stt            # nghe tin thoại (Whisper qua Groq) -> chữ, cho kênh Telegram/Zalo
@@ -168,6 +174,7 @@ import resonance_api           # Naota Resonance MVP: API thẻ mục tiêu và 
 import agent_presence          # Auto registry in step with the assistant files (pack reinstall, 2026-11-11)
 import limit_learner          # học hạn mức từ chính lỗi nhà cung cấp trả về
 import limit_resume           # tự chạy lại lượt chat khi gói thuê bao mở lại hạn mức
+import turn_ledger            # chat turns in flight, on disk: a restart cuts them, the next process runs them again
 import quota_scheduler        # sổ cái TPM dùng chung (Việc 6)
 import model_limits           # hạn mức GỢI Ý theo provider, để khai quota profile cho canary
 import model_router           # Phase 12: chọn model theo từng bước, lọc năng lực trước
@@ -202,6 +209,7 @@ import naota_core        # Naota Core: system assistant pinned in every brain
 import main_prompt_rendering  # pure shared prompt blocks; no live reads
 import main_attachment_rendering  # pure shared attachment templates; no live reads
 import memory_control    # list/edit/forget memories, learning switch, person profile
+import agent_learned     # the Learned tab of an assistant (Cộng sự page)
 import memory_chat       # the same, plus agent lessons, from chat (tool naota_memory)
 import project_context   # 2026-11-13: what Naota learnt about a project, and tool naota_project
 import memory_receipt    # the "Đã nhớ · Hoàn tác" line under an answer, and no empty "đã quên"
@@ -249,6 +257,10 @@ import voice_call     # nút mic là gọi Naota: tự chọn ChatGPT Live / Liv
 app = FastAPI(title="NAOTA")
 import voice_persona  # a voice call from a partner's chat speaks as that partner
 _CHAT_RUNTIME = ChatRuntime()
+# 16/11/2026: a chat job that is over closes its row in the ledger of turns in flight (kept during shutdown).
+_CHAT_RUNTIME.on_finish = turn_ledger.end
+_CHAT_RUNTIME.on_start = lambda sid, turn: turn_ledger.begin(
+    sid, turn.get("user_mid") or 0, turn.get("user_message") or "", turn.get("user_text"), turn.get("brain") or "")
 
 
 def _steer_read(sid, ids):
@@ -2747,7 +2759,8 @@ def _side_work_paused() -> str:
     auto-learning) must wait, "" otherwise. It waits when the plan that work would run on has used most of
     its 5-hour allowance (plan_limits.side_pause) and resumes by itself after the reset. Never raises."""
     try:
-        st = plan_limits.side_pause(aux_engine.read_spec(tag="learn").get("provider"))
+        _spec = aux_engine.read_spec(tag="learn")
+        st = plan_limits.side_pause(_spec.get("provider"), model=str(_spec.get("model") or ""))
     except Exception:   # noqa: BLE001 - a broken meter must not stop that work for good
         return ""
     if not st.get("paused"):
@@ -3497,16 +3510,22 @@ def _resonance_agents_meta(root):
     """A1: trợ lý của brain cho trang Cộng hưởng: slug, tên và engine thật sự chạy phiên của nó (model riêng của trợ
     lý, hay bộ não chính khi trợ lý không chọn model) để giao diện báo đúng khả năng theo engine."""
     try:
-        main_prov = _chat_provider(cfgmod.read_settings().get("model", {}) or {})[0]
+        mcfg = cfgmod.read_settings().get("model", {}) or {}
+        main_prov = _chat_provider(mcfg)[0]
+        main_model = str(_effective_main({"model": mcfg}).get("model") or "")
     except Exception:  # noqa: BLE001
-        main_prov = ""
+        main_prov, main_model = "", ""
     out = []
     for a in agents_index(root, kem_prompt=False):
-        prov = _agent_model_provider(a.get("model") or "", a.get("model_provider") or "") if a.get("model") else main_prov
+        own = str(a.get("model") or "")
+        prov = _agent_model_provider(own, a.get("model_provider") or "") if own else main_prov
         # avatar: trang Nhóm vẽ đúng ảnh trợ lý đang dùng (cùng nhân dạng với trang Cộng sự).
         # title: vai của trợ lý (dòng "role" ở trang Cộng sự) cho gợi ý @ của trang Nhóm.
+        # model / model_label / model_main (owner, 18/11/2026: "trong team nhìn được model của các thành viên"): the
+        # model a team turn picks first (team_engine.choose_spec): the assistant's own, else the main model.
         out.append({"slug": a["slug"], "name": a.get("name") or a["slug"], "provider": prov, "avatar": a.get("avatar"),
-                    "title": str(a.get("role") or "")[:120]})
+                    "title": str(a.get("role") or "")[:120], "model": own or main_model,
+                    "model_label": str((_provider_def(prov) or {}).get("label") or prov), "model_main": not own})
     return out
 
 
@@ -3837,6 +3856,13 @@ def _clear_pin_limit(provider: str) -> bool:
     itself, with no way to undo it from the page. True when a mark was lifted."""
     prov = str(provider or "")
     had = _PIN_LIMITED.pop(prov, None) is not None
+    try:
+        # The usage ring's "ran out" mark goes with it. It used to outlive the pick, so the ring stayed red
+        # for up to an hour after the owner switched to a model the plan still ran (owner's report, Team plan at 66%).
+        import plan_limits
+        plan_limits.clear_het(prov)
+    except Exception as e:  # noqa: BLE001
+        print(f"[routing] clear ring mark {prov}: {type(e).__name__}: {e}", file=sys.stderr)
     try:
         m = cfgmod.read_settings().get("model") or {}
         if not (plan_accounts.in_use(prov) and plan_accounts.has_extra(m, prov)):
@@ -7258,6 +7284,13 @@ async def connect_substack_resolve_uid(q: str = Query("")):
 @app.post("/connect/update")
 async def connect_update(request: Request):
     data = await request.json()
+    # "Change key" form of a Google connection: borrow the key of another connection of the same family, copied
+    # here on the server (reuse_client_fields checks the family). The browser only names the donor.
+    reuse_from = (data.get("reuse_from") or "").strip()
+    if reuse_from and data.get("id"):
+        own = mcp_store.get_connection(data.get("id")) or {}
+        data = dict(data, fields=mcp_store.reuse_client_fields(
+            mcp_catalog.get(own.get("connector_id")), data.get("fields") or {}, reuse_from))
     ok = mcp_store.update_connection(data.get("id"), data)
     mcp_hub.invalidate_cache()
     return {"ok": ok}
@@ -7813,6 +7846,9 @@ async def settings_set(section: str = Form(...), data: str = Form("{}")):
         # "hidden" = push notifications say only that something arrived, without its text.
         if "preview" in patch:
             cfg.setdefault("push", {})["preview"] = "hidden" if patch.get("preview") == "hidden" else "full"
+        if "turn_done" in patch:
+            # 2026-11-17: "all" = every dashboard answer rings when the owner is not looking at that chat.
+            cfg.setdefault("push", {})["turn_done"] = "all" if patch.get("turn_done") == "all" else "long"
     elif section == "zalo_bot":
         # Cùng khuôn với telegram. Id Zalo là chuỗi HEX chứ không phải số, nhưng `tg_parse_ids`
         # chỉ tách và bỏ trùng chứ không ép kiểu nên dùng chung được.
@@ -7897,6 +7933,10 @@ async def settings_set(section: str = Form(...), data: str = Form("{}")):
             # Use that picture as the browser tab icon too, so several Naota tabs tell apart at a glance.
             if "favicon" in pet_moi:
                 pet["favicon"] = bool(pet_moi["favicon"])
+            # Which generation of defaults this look has seen (pet.js LOOK): a small whole number, nothing else.
+            v = pet_moi.get("look")
+            if isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 99:
+                pet["look"] = v
             cfg["dashboard"]["pet"] = pet
     elif section == "image":
         cfg.setdefault("image", {})
@@ -8034,10 +8074,12 @@ def _do_backup(brain: str = "") -> dict:
     Cập nhật last_backup/last_status/last_report."""
     cfg = cfgmod.read_settings()
     b = cfg.get("backup", {}) or {}
-    if not (b.get("repo_url") and b.get("token")):
-        return {"ok": False, "error": localefmt.chu("Chưa cấu hình repository URL + token", "Repository URL and token are not configured yet")}
+    tok = backup_github.effective_token(b)
+    if not (b.get("repo_url") and tok):
+        return {"ok": False, "error": localefmt.chu("Chưa chọn repository để đồng bộ. Kết nối GitHub rồi chọn một repository riêng tư.",
+                                                    "No repository to sync with yet. Connect GitHub, then pick a private repository.")}
     mirror = str(cfgmod.STATE_DIR / "brains-backup")   # repo mirror riêng (tránh nested git từng brain)
-    res = git_brain.sync_brains(BRAINS_DIR, mirror, b["repo_url"], b["token"], b.get("branch") or "main",
+    res = git_brain.sync_brains(BRAINS_DIR, mirror, b["repo_url"], tok, b.get("branch") or "main",
                                 trash_dir=str(cfgmod.STATE_DIR / "brain-trash"),
                                 protected_names={_default_brain_dir().name},
                                 sync_images=bool(b.get("sync_images")))
@@ -8085,6 +8127,10 @@ def backup_status(brain: str = Query("brain")):
         "interval_hours": b.get("interval_hours", 6),
         "sync_images": bool(b.get("sync_images")),
         "token_set": bool(b.get("token")),
+        # Where the sync token comes from: "github" (the Connections page sign-in), "token" (pasted here) or "".
+        "use_github": bool(b.get("use_github")),
+        "token_source": backup_github.token_source(b),
+        "ready": backup_github.ready(b),
         "last_backup": b.get("last_backup", 0.0),
         "last_status": b.get("last_status", ""),
         "last_report": b.get("last_report") or {},
@@ -8106,6 +8152,7 @@ async def backup_config(
         b["repo_url"] = repo_url.strip()
     if token:                     # chỉ ghi khi có token MỚI (tránh xoá bằng chuỗi che ••••)
         b["token"] = token.strip()
+        b["use_github"] = False   # a token pasted here is chosen on purpose: it wins over the GitHub connection
     if branch:
         b["branch"] = branch.strip() or "main"
     if enabled is not None:
@@ -8126,12 +8173,42 @@ async def backup_test():
     """Kiểm tra token + repo hợp lệ (git ls-remote) trước khi bật auto."""
     cfg = cfgmod.read_settings()
     b = cfg.get("backup", {}) or {}
-    return await asyncio.to_thread(git_brain.remote_reachable, b.get("repo_url", ""), b.get("token", ""))
+    return await asyncio.to_thread(git_brain.remote_reachable, b.get("repo_url", ""), backup_github.effective_token(b))
 
 
 @app.post("/backup/now")
 async def backup_now(brain: str = Form("brain")):
     return await asyncio.to_thread(_do_backup, brain)
+
+
+async def _backup_link_call(fn, *args):
+    """Run a backup_github step off the event loop; its errors are localized and safe to show."""
+    try:
+        out = await asyncio.to_thread(fn, *args)
+    except backup_github.BackupLinkError as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+    return {"ok": True, "items": out} if isinstance(out, list) else {"ok": True, **out}
+
+
+@app.get("/backup/github/repos")
+async def backup_github_repos():
+    """Private repos of the connected GitHub account, for the one-tap backup picker."""
+    return await _backup_link_call(backup_github.repos)
+
+
+@app.post("/backup/github/link")
+async def backup_github_link(full_name: str = Form("")):
+    return await _backup_link_call(backup_github.link, full_name)
+
+
+@app.post("/backup/github/create")
+async def backup_github_create(name: str = Form("")):
+    return await _backup_link_call(backup_github.create, name)
+
+
+@app.post("/backup/github/unlink")
+async def backup_github_unlink():
+    return await _backup_link_call(backup_github.unlink)
 
 
 _OR_MODELS_CACHE = {"data": None, "ts": 0.0}
@@ -9709,7 +9786,7 @@ def _eager_brain_sync() -> None:
     6-hour round, so the other machines learn it before they can undo it. Background and best effort."""
     try:
         _b = cfgmod.read_settings().get("backup", {}) or {}
-        if _b.get("enabled") and _b.get("repo_url") and _b.get("token") and git_brain.has_git():
+        if _b.get("enabled") and backup_github.ready(_b) and git_brain.has_git():
             _t = asyncio.create_task(asyncio.to_thread(_do_backup))
             _DELETE_SYNC_TASKS.add(_t)
             _t.add_done_callback(_DELETE_SYNC_TASKS.discard)
@@ -10520,6 +10597,17 @@ def _agent_assets_sua(brain: str, slug: str, doi):
             return None, JSONResponse({"error": str(e)}, status_code=400)
         _write_md(f, meta_moi, body)
         return ket_qua, None
+
+
+def _agent_add_doc(brain: str, slug: str, rel: str, name: str = ""):
+    """Attach a brain file to an Agent's Documents (`chatbot_runtime.learn_from_owner`). The same path twice keeps the one
+    entry. Raises when the Agent is gone or the path leaves the brain."""
+    found = _asset_target(brain, rel)
+    if not found or found[2]:
+        raise ValueError("no such file")
+    _id, loi = _agent_assets_sua(brain, slug, lambda m: agent_assets.them_file(m, found[0], name or found[1]))
+    if loi is not None:
+        raise ValueError("agent not found or full")
 
 
 @app.get("/agents/{slug}/assets")
@@ -11642,6 +11730,68 @@ async def files_open_local(request: Request, path: str = Form(...), brain: str =
         return JSONResponse({"error": localefmt.chu("Không mở được file: ", "Could not open the file: ") + str(e)},
                             status_code=500)
     return {"ok": True, "action": action, "path": str(target)}
+
+
+# ---- Forgot the current password: Account page help (owner request 2026-11-20) ----
+# The dashboard needs the current password before it changes one, so the way back starts on the machine itself. On a
+# desktop install the Account page reveals the reset script in Explorer / Finder; everywhere else it shows the steps.
+_RESET_SCRIPTS = {"windows": "reset-auth.bat", "mac": "reset-auth.command"}
+
+
+def _reset_kind() -> str:
+    if os.path.exists("/.dockerenv"):
+        return "docker"
+    if sys.platform.startswith("win"):
+        return "windows"
+    if sys.platform == "darwin":
+        return "mac"
+    return "linux"
+
+
+def _reset_script(kind: str):
+    """The reset script for this install, or None when it cannot do the job: not a desktop install, the file is
+    missing, or settings.json lives somewhere the script does not look (it reads <repo>/server unless told)."""
+    name = _RESET_SCRIPTS.get(kind)
+    if not name:
+        return None
+    root = Path(__file__).resolve().parent.parent
+    script = root / name
+    try:
+        same_state = Path(cfgmod.SETTINGS_PATH).resolve() == (root / "server" / "settings.json").resolve()
+    except Exception:  # noqa: BLE001
+        same_state = False
+    return script if script.is_file() and same_state else None
+
+
+@app.get("/auth/reset-help")
+async def auth_reset_help(request: Request):
+    """What the Account page offers under "Forgot your current password?": `can_open` = a button that reveals the
+    reset script on this computer, otherwise the steps for `kind` (docker, linux, or a desktop seen from afar)."""
+    kind = _reset_kind()
+    script = _reset_script(kind)
+    return {"kind": kind, "file": _RESET_SCRIPTS.get(kind, ""),
+            "can_open": bool(script) and _local_open_here(request) and local_open.can_launch()}
+
+
+@app.post("/auth/reset-help/open")
+async def auth_reset_help_open(request: Request):
+    """Show the reset script selected in Explorer / Finder. Only REVEALS it: running it stays a deliberate double
+    click on the machine, so an unattended signed-in browser cannot change the password without the current one."""
+    if not _local_open_here(request):
+        return JSONResponse({"error": localefmt.chu(
+            "Chỉ mở được khi bạn dùng Naota ngay trên máy đang chạy nó.",
+            "This only works when you use Naota on the computer that runs it.")}, status_code=403)
+    script = _reset_script(_reset_kind())
+    if not script:
+        return JSONResponse({"error": localefmt.chu("Không tìm thấy file đặt lại mật khẩu trên máy này.",
+                                                    "The password reset file is not on this computer.")},
+                            status_code=404)
+    try:
+        local_open.launch("reveal", script)
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse({"error": localefmt.chu("Không mở được thư mục: ", "Could not open the folder: ") + str(e)},
+                            status_code=500)
+    return {"ok": True, "file": script.name, "folder": str(script.parent)}
 
 
 # ---- CHIA SẺ CÔNG KHAI một file (nút Chia sẻ trong trình sửa) ----
@@ -12928,6 +13078,8 @@ async def _phi_moi_muc(brain: str = "brain") -> dict:
         return (o[1] if o else {})
     phi = {k: int((v or {}).get("token_moi_request") or 0)
            for k, v in ((uoc or {}).get("muc") or {}).items()}
+    # The price per turn for the running tally, where the estimate gives one (see _uoc_tinh_tiet_kiem).
+    phi.update({k: int(v or 0) for k, v in ((uoc or {}).get("phi_tinh_cong_don") or {}).items()})
     _PHI_MUC_CACHE[khoa] = (time.time(), phi)
     return phi
 
@@ -14368,6 +14520,7 @@ async def _execute_workflow_raw(brain, slug, input="", tools=None, session_id=""
         attempt = 0
         reason = ""
         loi_buoc = ""      # bước này HỎNG vì sao. "" = bước chạy được.
+        step_limit: dict = {}   # Reset point when the step stopped on an exhausted plan
         while True:
             out = ""
             loi_engine = ""
@@ -14393,6 +14546,7 @@ async def _execute_workflow_raw(brain, slug, input="", tools=None, session_id=""
             # của đúng cái gói vừa hết để hỏi một câu vô nghĩa.
             loi_buoc = _loi_het_luot_cua_buoc(out, loi_engine, agent_prov, agent_name) or loi_engine
             if loi_buoc:
+                step_limit = _step_subscription_limit(out, loi_engine, agent_prov)
                 break
 
             if not verify_slug:
@@ -14450,7 +14604,10 @@ async def _execute_workflow_raw(brain, slug, input="", tools=None, session_id=""
             # còn tasks.py gộp step_error và error vào chung một biến.
             if loi_buoc != loi_engine:
                 yield {"type": "step_error", "i": i, "content": loi_buoc}
-            yield {"type": "error", "i": i, "agent": agent_name, "content": loi_buoc}
+            err_ev = {"type": "error", "i": i, "agent": agent_name, "content": loi_buoc}
+            if step_limit:
+                err_ev["limit"] = step_limit   # The Kanban queue waits for this reset
+            yield err_ev
             return
         if verified is False:
             # Still failing its check after the last retry. Before, the step was marked
@@ -14529,6 +14686,44 @@ async def _ghi_lich_su(gen, *, brain, slug, name, input, source, session_id, run
                 pass
 
 
+def close_cut_workflow_runs() -> list:
+    """Workflow runs the last restart cut short (owner, 16/11/2026: work in flight must not be lost by an update).
+
+    A run that was `running` when the process died used to say "running" for ever. It is closed with the reason. What
+    happens next depends on who started it:
+    - Kanban, a reminder, a loop or a webhook: that scheduler runs its job again by itself (the Kanban job goes back
+      to the queue, the reminder is still due, the loop is still overdue), which starts a new run.
+    - The owner, in the workflow's chat (source "web"): it is NOT run again from the start, because the steps that had
+      finished may have sent or posted something and a workflow run has no once-only record of its own. The chat gets
+      one stored line saying where the run stopped, and Run starts it again."""
+    import workflow_runs
+    rows = workflow_runs.get_store().close_cut(_PROCESS_STARTED, localefmt.chu(
+        "Máy chủ khởi động lại giữa chừng", "The server restarted in the middle of this run"))
+    for r in rows:
+        if r.get("source") != "web" or not r.get("session_id"):
+            continue
+        done = sum(1 for b in (r.get("steps") or []) if b.get("output"))
+        name = str(r.get("name") or r.get("slug") or "")
+        try:
+            get_store().append_message(str(r["session_id"]), "assistant", localefmt.chu(
+                f"Máy chủ khởi động lại khi quy trình \"{name}\" đang chạy (đã xong {done} bước). Naota không tự chạy "
+                "lại từ đầu, vì các bước đã xong có thể đã gửi hoặc đăng gì đó. Bấm Chạy để chạy lại.",
+                f"The server restarted while the workflow \"{name}\" was running ({done} steps done). Naota did not "
+                "run it again from the start, because the finished steps may have sent or posted something. "
+                "Press Run to run it again."))
+        except Exception as ex:  # noqa: BLE001 - the chat of the run is gone: the history row still tells it
+            print(f"[workflow cut note] {type(ex).__name__}: {ex}", file=sys.stderr)
+    return rows
+
+
+@app.on_event("startup")
+async def _close_cut_workflow_runs():
+    try:
+        await asyncio.to_thread(close_cut_workflow_runs)
+    except Exception as ex:  # noqa: BLE001 - never keep the server from starting
+        print(f"[workflow cut runs] {type(ex).__name__}: {ex}", file=sys.stderr)
+
+
 # Sources that run a workflow with nobody pressing a button. A workflow switched off is not run
 # from these; Studio and the workflow chat (source "web") still run it, since there the owner
 # asked for this one run in person, typically to try it out before switching it on.
@@ -14585,7 +14780,7 @@ def workflow_capability_guard(node, route_entry, approved: bool) -> str:
 
 
 async def _execute_workflow_resume_raw(brain, slug, task_id, node_id, code, tools=None,
-                                       session_id=""):
+                                       session_id="", mode=None):
     """Duyệt xong thì chạy tiếp workflow đang dừng. Yield event như /workflows/run."""
     graph = load_workflow_graph(brain, slug)
     if graph is None:
@@ -14597,7 +14792,7 @@ async def _execute_workflow_resume_raw(brain, slug, task_id, node_id, code, tool
                                                          "This task was not found or cannot be resumed.")}
         return
     canary = _get_workflow_canary(brain)
-    mk, agent_sysprompt, log_run, learn = _workflow_agent_helpers(brain, tools)
+    mk, agent_sysprompt, log_run, learn = _workflow_agent_helpers(brain, tools, mode)
     queue: asyncio.Queue = asyncio.Queue()
 
     async def sink(event):
@@ -14654,14 +14849,14 @@ async def _execute_workflow_resume_raw(brain, slug, task_id, node_id, code, tool
 
 
 async def execute_workflow_resume(brain, slug, task_id, node_id, code, tools=None,
-                                  session_id="", source="other"):
+                                  session_id="", source="other", mode=None):
     """Chạy tiếp lần đang chờ duyệt, ghi vào ĐÚNG bản ghi lịch sử đang `waiting`."""
     import workflow_runs
     cu = workflow_runs.get_store().tim_theo_task(task_id)
     wf_file = _workflows_dir(brain) / f"{slug}.md"
     meta, _ = _read_md(wf_file) if wf_file.exists() else ({}, "")
     async for ev in _ghi_lich_su(
-            _execute_workflow_resume_raw(brain, slug, task_id, node_id, code, tools, session_id),
+            _execute_workflow_resume_raw(brain, slug, task_id, node_id, code, tools, session_id, mode),
             brain=_brain_key(brain), slug=slug, name=meta.get("name", slug), input=(cu or {}).get("input", ""),
             source=source, session_id=session_id or (cu or {}).get("session_id", ""),
             run_id=(cu or {}).get("id")):
@@ -15064,7 +15259,7 @@ def huy_viec_nen_giong(conv_sid: str) -> int:
 
 async def _bo_vao_hom_thu(owner_chat, text, *, kind="answer", label="", source="",
                           quiet=False, brain="", dedup="", routing="", level="", group="", decision=None, viec=None,
-                          push_if_away=False):
+                          push_if_away=False, title="", summary=""):
     """Để lại MỘT mẩu thư cho mọi kết quả chạy nền, rồi rung chuông đẩy nếu có đăng ký.
 
     Vì sao đặt ở đây chứ không ở từng nơi sinh việc: `_notify_owner` là CỬA DUY NHẤT mà
@@ -15080,8 +15275,14 @@ async def _bo_vao_hom_thu(owner_chat, text, *, kind="answer", label="", source="
     (loud), is kept quietly under "Filtered" (quiet), or is not kept at all (drop: the owner turned its group off).
     """
     try:
+        # Owner, 2026-11-19: a NAOTA_NOTIFY block the run wrote gives the headline; it never shows in the bell itself.
+        text, meta = notice_text.split_block(text)
+        title = title or meta.get("title") or ""
+        summary = summary or meta.get("line") or ""
+        if meta.get("act") and not level:
+            level = "urgent"
         dec = decision or _notify_decide(text, kind=kind, source=source, quiet=quiet, level=level, group=group,
-                                         viec=viec, dedup=dedup)
+                                         viec=viec, dedup=dedup, title=title)
         if dec.get("verdict") == "drop":
             return {"dropped": True, "id": "", "session_id": ""}
         filtered = dec.get("verdict") != "loud"
@@ -15095,24 +15296,50 @@ async def _bo_vao_hom_thu(owner_chat, text, *, kind="answer", label="", source="
         # đường rời trang). Hỏng thì bỏ qua - kênh là thứ làm ĐẸP đường về, không phải điều
         # kiện để lưu thư.
         kenh = ""
+        muted = False
         if sid:
             try:
                 kenh = str((get_store().get_session(sid) or {}).get("channel") or "")
                 # a muted partner's report still lands in its chat and the bell, just quietly.
                 if kenh.startswith("agent:") and _partner_muted(get_store().get_session(sid) or {}):
                     quiet = True
+                    muted = True
             except Exception as e:
                 print(f"[inbox] không đọc được kênh của phiên {sid[:8]}: "
                       f"{type(e).__name__}: {e}", file=sys.stderr)
-        item = inbox.add(text, kind=kind, session_id=sid, source=source, label=label,
+        # Owner, 2026-11-19: "answers of partners, chats and teams need no notification, a red dot on the menu is
+        # enough". A notice whose content sits in a chat the dashboard marks unread (Chat, Partners, Team) is not filed
+        # in the bell; the chat's own dot and the rail dot (rail-unread.js) are the signal. Only what needs the owner
+        # (urgent and ringing: a question, an approval, a reminder they set, a run that says they must act) still is.
+        hidden = bool(sid and _chat_has_own_dot(sid, kenh)
+                      and not (dec.get("verdict") == "loud" and dec.get("level") == "urgent"))
+        if hidden:
+            quiet = True
+        item = inbox.add(text, kind=kind, session_id=sid, source=source, label=label, title=title,
+                         summary=summary or notice_text.summary(text, title or inbox._tieu_de(text)),
                          read=bool(quiet), channel=kenh, brain=brain, dedup=dedup, routing=routing,
                          group=dec.get("group") or "", level=dec.get("level") or "", sig=dec.get("sig") or "",
-                         filtered=filtered, why=dec.get("why") or "")
+                         filtered=filtered, why=dec.get("why") or "", hidden=hidden)
     except Exception as e:
         print(f"[inbox] bỏ thư lỗi: {type(e).__name__}: {e}", file=sys.stderr)
         return None
     if item.get("duplicate"):
         return item   # the same report was already filed: no second bell, no second push
+    if hidden:
+        # Not in the bell: the chat's dot and the rail dot (rail-unread.js) carry it. They refresh now.
+        try:
+            await _CHAT_RUNTIME.publish({"type": "chat_unread", "session_id": sid})
+        except Exception as e:  # noqa: BLE001 - the rail dot then shows on its next refresh
+            print(f"[inbox] chat_unread WebSocket: {type(e).__name__}: {e}", file=sys.stderr)
+        # An earlier change took the push away together with the bell entry, so a
+        # long answer, a background job's follow-up and a Gate task no longer rang a phone in a pocket, where the red
+        # dot cannot be seen. A chat turn's answer (push_if_away) rings the phone again when the notice would have
+        # rung (loud) or the owner turned on "notify every answer". Still nothing in the bell, and a muted partner
+        # stays quiet.
+        if push_if_away and not muted and (dec.get("verdict") == "loud"
+                                           or turn_done_notice.every_turn(cfgmod.read_settings())):
+            _push_chat_answer(sid, text)
+        return item
     try:
         # Ai đang mở dashboard thì chấm đỏ trên chuông phải nhảy NGAY, không đợi lần
         # tải lại trang sau. Đi chung đường WebSocket sẵn có của khung chat.
@@ -15132,7 +15359,7 @@ async def _bo_vao_hom_thu(owner_chat, text, *, kind="answer", label="", source="
         url = f"/?mo_thu={item['id']}"
         # "hide content" in the bell's settings shows only that something arrived; the text is read after
         # opening Naota, where login is checked again.
-        title, body = item["title"], item["body"][:200]
+        title, body = item["title"], (item.get("summary") or item["body"])[:200]
         if (cfgmod.read_settings().get("push") or {}).get("preview") == "hidden":
             title, body = "Naota", localefmt.chu("Bạn có tin mới trong Naota.", "You have a new message in Naota.")
         # KHÔNG await: mỗi đăng ký chết là một request chờ tới 15 giây, mà việc rung chuông
@@ -15140,7 +15367,7 @@ async def _bo_vao_hom_thu(owner_chat, text, *, kind="answer", label="", source="
         # Giữ tham chiếu tới task, không thì bộ dọn rác có thể nuốt nó giữa chừng.
         t = asyncio.create_task(
             webpush.gui_het(title, body, url, tag=f"naota-{item['id']}", phien_hop_le=_phien_con_hieu_luc(),
-                            **({"quiet_if_visible": True} if push_if_away else {})))
+                            **({"quiet_if_visible": True, "session_id": sid} if push_if_away else {})))
         _PUSH_TASKS.add(t)
         t.add_done_callback(_PUSH_TASKS.discard)
     except Exception as e:
@@ -15148,16 +15375,38 @@ async def _bo_vao_hom_thu(owner_chat, text, *, kind="answer", label="", source="
     return item
 
 
-def _notify_decide(text, *, kind="answer", source="", quiet=False, level="", group="", viec=None, dedup="") -> dict:
+# Channels of chats that carry their own unread dot on the dashboard (sessions.UNREAD_SQL for chats and partner chats, the
+# team list for teams). A notice about one of them is shown by that dot, not by the bell (2026-11-19).
+_DOT_PREFIXES = ("agent:", "workflow:", "coding:", "team:")
+
+
+def _chat_has_own_dot(sid: str, channel: str) -> bool:
+    ch = str(channel or "")
+    if ch.startswith(_DOT_PREFIXES):
+        return True
+    if ch not in ("web", "dashboard", ""):
+        return False
+    try:
+        return bool(get_store().get_session(sid))
+    except Exception:  # noqa: BLE001 - unsure: keep the notice in the bell
+        return False
+
+
+def _notify_decide(text, *, kind="answer", source="", quiet=False, level="", group="", viec=None, dedup="",
+                   title="") -> dict:
     """Naota Core's verdict on one notice (`notify_policy.decide`). Never raises: a broken rule store rings."""
     try:
         g = notify_policy.group_of(source=source, kind=kind, viec=viec, dedup=dedup, group=group)
         lv = notify_policy.level_of(level=level, quiet=quiet, group=g)
-        return notify_policy.decide(g, lv, inbox._tieu_de(text))
+        return notify_policy.decide(g, lv, title or inbox._tieu_de(text))
     except Exception as e:  # noqa: BLE001
         print(f"[notify policy] decide failed: {type(e).__name__}: {e}", file=sys.stderr)
         return {"group": group or "other", "level": level or ("info" if quiet else "important"), "sig": "",
                 "verdict": "quiet" if quiet else "loud", "why": ""}
+
+
+# Sources whose report the owner scheduled on purpose: always delivered to their chat or channel (see _notify_owner).
+_OWNER_SCHEDULED = frozenset({"reminder", "mytask", "habit"})
 
 
 def _owner_telegram_id() -> str:
@@ -15248,7 +15497,7 @@ def _report_route(owner_chat, brain, kind, quiet=False, filtered=False) -> dict:
 
 async def _notify_owner(owner_chat, text, *, kind="answer", label="", source="",
                         quiet=False, ngan="", viec=None, web="", card="", brain="", dedup="",
-                        level="", group="") -> tuple:
+                        level="", group="", title="", summary="") -> tuple:
     """Báo cáo cho NGƯỜI YÊU CẦU loop/task (mặc định của Naota). Quy tắc:
       - owner_chat dạng "web:<sid>" → đẩy thẳng vào ĐÚNG khung chat web đã giao việc.
       - owner_chat dạng "zalo:<id>" → gửi qua bot Zalo cho ĐÚNG người đó.
@@ -15280,14 +15529,29 @@ async def _notify_owner(owner_chat, text, *, kind="answer", label="", source="",
     Trả (ok, error). `ok` là ĐÃ TỚI ĐƯỢC NGƯỜI DÙNG, và hòm thư tính là tới: nó nằm ở
     server, còn sau F5, thấy được từ máy khác. Nhờ vậy một cái nhắc hẹn trên máy chưa đấu
     Telegram không còn bị ghi là "failed" trong khi nội dung đang nằm sẵn trong hòm."""
+    # Owner, 2026-11-19: a background run may end with a NAOTA_NOTIFY block (notice_text.py), its own headline for
+    # the bell. Taken out here so no channel ever shows it; `act` in it means the owner has to do something.
+    text, meta = notice_text.split_block(text)
+    ngan = notice_text.split_block(ngan)[0] if ngan else ngan
+    web = notice_text.split_block(web)[0] if web else web
+    title = title or meta.get("title") or ""
+    summary = summary or meta.get("line") or ""
+    if meta.get("act") and not level:
+        level = "urgent"
     # Naota Core's verdict first, so a filtered notice is neither copied to its chat nor sent to Telegram.
-    dec = _notify_decide(text, kind=kind, source=source, quiet=quiet, level=level, group=group, viec=viec, dedup=dedup)
+    dec = _notify_decide(text, kind=kind, source=source, quiet=quiet, level=level, group=group, viec=viec, dedup=dedup,
+                         title=title)
     filtered = dec.get("verdict") != "loud"
-    route = _report_route(owner_chat, brain, kind, quiet=quiet or filtered, filtered=filtered)
+    # Owner, 2026-11-19: what the owner scheduled (a job, a reminder, a task of "Mine") is delivered where it was set to
+    # go whatever the bell decides; the filter only decides whether the bell rings. Before, a scheduled job's report was
+    # "urgent" in the bell on every run, so an hourly job rang 24 times a day.
+    scheduled = source in _OWNER_SCHEDULED
+    route = _report_route(owner_chat, brain, kind, quiet=quiet if scheduled else (quiet or filtered),
+                          filtered=False if scheduled else filtered)
     chat = route.get("chat") or ""
     vao_hom = await _bo_vao_hom_thu(f"{WEB_CHAT_PREFIX}{chat}" if chat else "", text, kind=kind, label=label,
                                     source=source, quiet=quiet, brain=route.get("brain") or "", dedup=dedup,
-                                    routing=route.get("routing") or "", decision=dec)
+                                    routing=route.get("routing") or "", decision=dec, title=title, summary=summary)
     if vao_hom and vao_hom.get("duplicate"):
         return True, ""   # filed before: a retry must not post or ring a second time
     if vao_hom and vao_hom.get("dropped") and not chat and not route.get("external"):
@@ -15526,6 +15790,7 @@ tasks_feature = tasks_mod.register(app, tasks_mod.TasksDeps(
     brain_root=_brain_root,
     atomic_write_text=_atomic_write_text,
     execute_workflow=execute_workflow,
+    execute_workflow_resume=execute_workflow_resume,   # 17/11/2026: an approval answered on the Tasks page runs on
     workflows_dir=_workflows_dir,
     build_system_prompt=_background_system_prompt,   # 2026-11-15: Settings pin or the task's language, not vi
     aux_model=_aux_model,
@@ -15630,14 +15895,18 @@ def _notify_live_warn() -> str:
         return ""
 
 
-async def _bao_nhac_hen(chat_id, text, viec=None, web="", brain="", dedup="") -> tuple:
+async def _bao_nhac_hen(chat_id, text, viec=None, web="", brain="", dedup="", notice=None) -> tuple:
     """Đường BÁO của nhắc hẹn. Cùng chữ ký (chat_id, text) -> (ok, err) như `_tg_send_to` cũ,
     nhưng đi qua `_notify_owner` nên nhắc hẹn được đúng ba thứ mà trước đây nó không có:
     hòm thư ở server, đẩy về khung chat web khi chat_id là "web:<sid>", và thông báo đẩy.
     Trước bản này nhắc hẹn là thứ DUY NHẤT còn gọi thẳng Telegram - đó cũng là lý do
     reminders.py phải chặn không cho tạo khi chưa đấu bot."""
+    n = notice if isinstance(notice, dict) else {}
+    # Owner, 2026-11-19: a scheduled job's run is a result ("job"), a plain reminder stays "reminder" (reminders._bell_notice).
     return await _notify_owner(chat_id, text, kind="report", source="reminder",
-                               viec=viec, web=web, brain=brain, dedup=dedup)
+                               viec=viec, web=web, brain=brain, dedup=dedup,
+                               level=str(n.get("level") or ""), group=str(n.get("group") or ""),
+                               title=str(n.get("title") or ""), summary=str(n.get("summary") or ""))
 
 
 async def _voice_note_rel(brain, text) -> str:
@@ -15918,12 +16187,16 @@ task_stats_feature = task_stats.register(app, task_stats.TaskStatsDeps(
 
 # login vault (login_vault.py). The owner's sign-in cookies, encrypted, reused by naota_login and by
 # page watches. Its routes need a real dashboard session: an API token can neither read nor add a sign-in.
+# A sign-in can also go into the Playwright browser (browser_login.py); switching one off or deleting
+# it takes it out of that browser again.
+import browser_login  # noqa: E402
 import login_vault  # noqa: E402
 
 login_vault.register(app, login_vault.LoginVaultDeps(
     state_dir=lambda: cfgmod.STATE_DIR,
     has_session=lambda r: cfgmod.valid_session(r.cookies.get("naota_session", "")),
     fetch=web_watch.fetch,
+    forget_browser=browser_login.forget,
 ))
 
 
@@ -16377,7 +16650,7 @@ async def _bao_luot_dai_xong(conv_sid: str, brain, turn_tag: str, user_message: 
     (turn_done_notice.py). True when a notice was filed."""
     text = str(final_text or "")
     if not turn_done_notice.should_notify(elapsed, user_message, text):
-        return False
+        return _bao_luot_xong_ngan(conv_sid, text)
     import chat_bridge as _cb
     if _cb.co_viec(conv_sid):
         return False   # work an outside AI sent: chat_bridge rings once, and only if that AI did not read the answer
@@ -16388,6 +16661,47 @@ async def _bao_luot_dai_xong(conv_sid: str, brain, turn_tag: str, user_message: 
                                  label=turn_done_notice.label(elapsed, user_message), source="job",
                                  brain=_brain_key(brain), dedup=f"turn:{turn_tag}", push_if_away=True)
     return bool(item)
+
+
+def _bao_luot_xong_ngan(conv_sid: str, final_text: str) -> bool:
+    """A short dashboard turn ended and the owner turned on "notify every answer" (push.turn_done = "all"): push only,
+    no bell entry. The phone stays quiet when a tab in front of the owner shows this chat (sw.js asks the tab).
+    True when a push was scheduled."""
+    try:
+        if not turn_done_notice.every_turn(cfgmod.read_settings()) or not conv_sid:
+            return False
+        import chat_bridge as _cb
+        if _cb.co_viec(conv_sid):
+            return False
+        return _push_chat_answer(conv_sid, final_text)
+    except Exception as e:  # noqa: BLE001 - a missed doorbell never fails the turn
+        print(f"[turn push] {type(e).__name__}: {e}", file=sys.stderr)
+        return False
+
+
+def _push_chat_answer(conv_sid: str, final_text: str) -> bool:
+    """Push "Naota has answered" for one dashboard chat, with no bell entry. The phone stays quiet when a tab in front
+    of the owner shows this chat (sw.js asks the tab). Shared by a short turn under "notify every answer" and by a
+    chat answer whose bell entry is hidden (`_bo_vao_hom_thu`). True when a push was scheduled. Never raises."""
+    try:
+        if not conv_sid or not webpush.so_sub():
+            return False
+        body = turn_done_notice.push_text(channel_context.strip_control_blocks(str(final_text or "")))
+        if not body:
+            return False
+        if (cfgmod.read_settings().get("push") or {}).get("preview") == "hidden":
+            body = localefmt.chu("Naota đã trả lời xong.", "Naota has answered.")
+        # Not awaited: a dead subscription waits up to 15 s and the turn is already over. One notice per chat: a newer
+        # answer replaces the older one (tag).
+        t = asyncio.create_task(webpush.gui_het(
+            "Naota", body, f"/?mo_phien={conv_sid}", tag=f"naota-turn-{conv_sid[:24]}",
+            phien_hop_le=_phien_con_hieu_luc(), quiet_if_visible=True, session_id=conv_sid))
+        _PUSH_TASKS.add(t)
+        t.add_done_callback(_PUSH_TASKS.discard)
+        return True
+    except Exception as e:  # noqa: BLE001 - a missed doorbell never fails the turn
+        print(f"[turn push] {type(e).__name__}: {e}", file=sys.stderr)
+        return False
 
 
 async def _canh_bao_hua_suong(brain: str, chat_id: str, final_text: str,
@@ -17253,7 +17567,7 @@ async def _start_scheduler():
                 # 4) Đồng bộ GitHub tự động (2 CHIỀU): đủ interval → kéo về + hoà nhập + đẩy lên
                 try:
                     bcfg = cfgmod.read_settings().get("backup", {}) or {}
-                    if bcfg.get("enabled") and bcfg.get("repo_url") and bcfg.get("token") and git_brain.has_git():
+                    if bcfg.get("enabled") and backup_github.ready(bcfg) and git_brain.has_git():
                         interval = max(1, int(bcfg.get("interval_hours", 6))) * 3600
                         if time.time() - float(bcfg.get("last_backup", 0)) >= interval:
                             await asyncio.to_thread(_do_backup)   # 1 lần: toàn bộ thư mục brains, 2 chiều
@@ -17384,8 +17698,13 @@ async def _start_scheduler():
                              session_probe=_manual_session_probe, session_undo=_manual_session_undo,
                              # hear what is said in a video a customer sends (same Groq key as voice messages).
                              transcribe=_stt_nghe,
+                             # 2026-11-18: a photo a staff member sends from the Zalo OA app / Page inbox is read by a
+                             # connected brain, so the bot can answer about the quote in it.
+                             describe=lambda paths, caption, chat_id="": _bot_xem_ho(paths, caption, "", "", chat_id),
                              # A dedicated bot never polls the token of a running admin bot.
                              admin_tokens=_admin_bot_tokens,
+                             # The file of replies the owner confirmed joins the Agent's Documents.
+                             agent_add_doc=_agent_add_doc,
                              # Lượt bot hỏng: khách không nhận gì, chủ nghe ở chuông thông báo.
                              # urgent: a customer is waiting for a person, or got no answer at all.
                              notify=lambda text: _bo_vao_hom_thu("", text, kind="system", source="chatbot",
@@ -20657,6 +20976,7 @@ async def _chat_socket(ws):
             # Lượt này vấp "hết lượt gói thuê bao"? Bốn nhánh engine thuê bao ghi vào đây qua
             # `_limit_frame`; cuối lượt đọc ra để lưu câu báo và hẹn tự chạy lại.
             _limit_state = {}
+            _turn_t0 = time.time()   # A refusal older than this turn goes once the turn answers
             _turn_acc = {}     # provider -> plan account THIS turn runs on (the one that rests on a quota error)
 
             def _limit_frame(raw, engine_hint, model=""):
@@ -20679,9 +20999,9 @@ async def _chat_socket(ws):
                 try:
                     import plan_limits
                     if noi:
-                        plan_limits.ghi_het(engine_hint, float(lim.reset_epoch or 0))
+                        plan_limits.ghi_het(engine_hint, float(lim.reset_epoch or 0), model=model or "")
                     elif engine_hint in ("grok-cli", "antigravity-cli") and plan_limits.la_het_han_muc(raw):
-                        plan_limits.ghi_het(engine_hint)
+                        plan_limits.ghi_het(engine_hint, model=model or "")
                         _limit_state["quota"] = True   # the next route may take over
                         if engine_hint == "grok-cli":
                             _note_pin_limit("grok-cli", account=_turn_acc.get("grok-cli"))   # that account rests
@@ -21978,6 +22298,16 @@ async def _chat_socket(ws):
             if final_text:
                 await _persist_turn(store, conv_sid, brain, user_message, final_text,
                                     turn_started=(_mem_snap or {}).get("t0") or 0)
+                if not _limit_state.get("quota"):
+                    # The plan just answered, so an older "ran out" mark on the ring goes (or, when it was
+                    # another model's refusal, stays on that model only). Before, only a fresh meter report lifted it,
+                    # and Claude Code sends one only when its limit state changes.
+                    try:
+                        import plan_limits
+                        _ok_model = api_model or (mcfg.get("claude_model") if prov == "anthropic-cli" else "")
+                        await asyncio.to_thread(plan_limits.lift_het, prov, str(_ok_model or ""), _turn_t0)
+                    except Exception as _e:  # noqa: BLE001 - a meter must never break a turn
+                        print(f"[plan limits] lift: {type(_e).__name__}: {_e}", file=sys.stderr)
                 if _limit_state.get("quota") and not ws.untouched():
                     # out of quota halfway (words written or tools run): the turn stops where it is, never
                     # reruns by itself (a tool may have sent or posted something). A "Run again" card under the answer
@@ -22712,6 +23042,59 @@ async def _chat_socket(ws):
                 runtime_step_id=runtime_trace.step_id if runtime_trace else "",
             )
 
+        async def _resume_cut_turns():
+            """Chat turns the last restart cut short answer again (owner, 16/11/2026: "việc nào đang dang dở kể cả ở
+            cộng sự, ở chat ... khởi động lại server sau khi update cũng phải khởi động lại").
+
+            Runs when a page connects, because a chat turn is built from this handler's closures: the first page back
+            after the restart (the dashboard reloads by itself after an update) takes every cut turn, once. A turn is
+            run again only while its question is still the last message of the chat. It is NOT run again when it had
+            already done something outside (send, post, order), or when restarts cut it turn_ledger.MAX_RESUMES times;
+            the chat then gets one stored line saying why."""
+            for row in turn_ledger.take_cut():
+                sid = row["session_id"]
+                try:
+                    msgs = await asyncio.to_thread(store.get_messages, sid) or []
+                except Exception:  # noqa: BLE001 - the session is gone
+                    msgs = []
+                last = msgs[-1] if msgs else {}
+                if (not turn_ledger.resume_on() or not row["user_mid"] or last.get("role") != "user"
+                        or int(last.get("id") or 0) != int(row["user_mid"]) or _CHAT_RUNTIME.get_job(sid)):
+                    turn_ledger.drop(sid)
+                    continue
+                why = ""
+                if row["acted"]:
+                    why = localefmt.chu(
+                        "Máy chủ khởi động lại khi Naota đang làm dở câu này, và lượt đó đã làm một việc ra ngoài "
+                        "(gửi, đăng, tạo...). Naota không tự chạy lại để tránh làm trùng. Nhắn \"làm tiếp\" nếu "
+                        "bạn muốn Naota làm nốt.",
+                        "The server restarted while Naota was in the middle of this, and that turn had already done "
+                        "something outside (sent, posted, created...). Naota did not run it again so nothing "
+                        "happens twice. Say \"continue\" if you want Naota to finish.")
+                elif int(row["resumes"] or 0) >= turn_ledger.MAX_RESUMES:
+                    why = localefmt.chu(
+                        "Máy chủ đã khởi động lại nhiều lần khi đang trả lời câu này nên Naota dừng tự chạy lại. "
+                        "Gửi lại câu hỏi khi máy chủ đã ổn.",
+                        "The server restarted several times while answering this, so Naota stopped running it again. "
+                        "Send the question again once the server is steady.")
+                if why:
+                    turn_ledger.drop(sid)
+                    _persist_limit_notice(store, sid, row["user_message"], why)
+                    await send_raw({"type": "system", "session_id": sid, "content": why})
+                    continue
+                await send_raw({"type": "system", "session_id": sid, "content": localefmt.chu(
+                    "Máy chủ vừa khởi động lại. Naota trả lời lại câu đang dở.",
+                    "The server just restarted. Naota is answering the question it was on again.")})
+                # On disk again until this run is over; the same question keeps its count of restarts.
+                turn_ledger.begin(sid, int(row["user_mid"]), row["user_message"], row["user_text"], row["brain"])
+                await _start_resumed_turn(sid, row["user_message"], row["brain"], 0, None,
+                                          user_mid=int(row["user_mid"]), user_text=row["user_text"])
+
+        try:
+            await _resume_cut_turns()
+        except Exception as _e:  # noqa: BLE001 - a broken resume must never keep a page from connecting
+            print(f"[turn resume] {type(_e).__name__}: {_e}", file=sys.stderr)
+
         while True:
             raw = await _real_ws.receive_text()
             try:
@@ -22757,13 +23140,18 @@ async def _chat_socket(ws):
                     _sid = str(payload.get("session_id") or "").strip()
                     _txt = str(payload.get("message") or "").strip()[:steer_inbox.MAX_CHARS]
                     _cid = str(payload.get("client_id") or "")[:40]
+                    # 2026-11-16: typed while a /goal runs. The goal goes on: the round reads it, or the dashboard folds
+                    # it into the next round. Never a turn of its own ("goal" mode): that would race the next round.
+                    _goal = bool(payload.get("goal"))
                     _row = store.get_session(_sid) if _sid else None
                     if not _row or not _txt:
                         continue
                     store.append_message(_sid, "user", _txt)
-                    _it = steer_inbox.INBOX.put(_sid, _txt)
+                    _it = steer_inbox.INBOX.put(_sid, _txt, goal=_goal)
                     if _it:
-                        _mode, _id = ("live" if steer_inbox.INBOX.live(_sid) else "after"), _it["id"]
+                        _mode, _id = ("live" if steer_inbox.INBOX.live(_sid) else ("goal" if _goal else "after")), _it["id"]
+                    elif _goal:
+                        _mode, _id = "goal", 0
                     else:
                         # The turn just ended (or too many are waiting): this message is its own next turn.
                         _mode, _id = "after", 0
@@ -23049,6 +23437,7 @@ async def _chat_socket(ws):
                     except Exception:
                         _vconf = None
                     _bao_lan_nhanh_bo_qua(_vconf)
+                _turn_row = None
                 if _vconf and _vconf.get("mode") == "fast" and _vconf.get("provider"):
                     _voice_coro = run_voice_turn(
                         conv_sid, user_message, brain, turn_tag, runtime_trace, _vconf,
@@ -23062,10 +23451,15 @@ async def _chat_socket(ws):
                         conv_sid, user_message, brain, turn_tag, runtime_trace, has_attachments,
                         goc_chat=_goc, user_mid=_user_mid, effort=str(payload.get("effort") or ""))
                     task = asyncio.create_task(voice_turn_protocol.run(_voice_coro, store, conv_sid, _voice_uid) if _voice_uid else _voice_coro)
+                    # 16/11/2026: the owner's question goes on disk with its job (`turn=`), so a restart in the middle
+                    # answers it again (the ledger of turns in flight, `_resume_cut_turns`). Passed through the
+                    # runtime, not written here, because tests run this block and `run_turn` on their own with stubs.
+                    _turn_row = {"user_mid": _user_mid, "user_message": user_message, "user_text": None, "brain": brain}
                 _CHAT_RUNTIME.register_job(
                     conv_sid, task, turn_tag,
                     runtime_task_id=runtime_trace.task_id if runtime_trace else "",
                     runtime_step_id=runtime_trace.step_id if runtime_trace else "",
+                    turn=_turn_row,
                 )
                 if _pending_voice_receipt:
                     await send_client(_pending_voice_receipt)
@@ -23138,8 +23532,18 @@ async def _gate_bao(sid: str, brain: str, body: str, label: str, dedup: str) -> 
     return bool(item) and not item.get("dropped")
 
 
+def _gate_base_url() -> str:
+    """Naota Gate: this Naota's public https address for the Naota Sync install command, or "" when unknown (the tool
+    then asks the outside AI, which knows the URL it connected to). Order: the domain set in Settings, DOMAIN_NAME,
+    the link the login page found by itself (routes/domain.py)."""
+    import routes.domain as _domain
+    d = _domain._norm_domain((cfgmod.read_settings().get("domain") or {}).get("custom") or "") \
+        or _domain._norm_domain(os.getenv("DOMAIN_NAME", ""))
+    return f"https://{d}" if d else str(_domain._AUTO.get("url") or "")
+
+
 chat_bridge.gan(lambda ws: _chat_socket(ws), lambda: _CHAT_RUNTIME, _gate_luu_luot,
-                models=_gate_models, model_cua=_gate_chat_model, bao=_gate_bao,
+                models=_gate_models, model_cua=_gate_chat_model, bao=_gate_bao, base_url=_gate_base_url,
                 # `_pin_chat_model` sits with the /sessions routes further down: looked up when called.
                 ghim=lambda sid, prov, model: _pin_chat_model(sid, prov, model))
 
@@ -23297,7 +23701,7 @@ async def terminal_ws(ws: WebSocket, session: str = Query(""), brain: str = Quer
 @app.get("/sessions")
 def sessions_list(brain: str = Query(None), limit: int = Query(50),
                         project: str = Query(""), channel: str = Query(""), bots: int = Query(0),
-                        archived: int = Query(0)):
+                        archived: int = Query(0), unread_first: int = Query(0)):
     """project: bỏ trống = mọi hội thoại; "none" = cuộc chưa xếp nhóm; còn lại = id project.
     channel: bỏ trống = loại các kênh cộng sự (agent:/workflow:); có giá trị = đúng kênh đó
     (trang Cộng sự mở một trợ lý/quy trình).
@@ -23305,12 +23709,14 @@ def sessions_list(brain: str = Query(None), limit: int = Query(50),
     xin cái này). Mặc định 0: lúc trang Cộng sự chọn "phiên gần nhất để mở tiếp" (limit=1) mà lẫn phiên của khách
     vào thì tin chủ gõ sẽ rơi vào cuộc chat của khách.
     archived: 1 = only the archived chats (the history column's "Archived" view). Every answer also carries
-    `archived_count`, the number behind the "Archived" row at the bottom of the column."""
+    `archived_count`, the number behind the "Archived" row at the bottom of the column.
+    unread_first: 1 = unread chats right after the pinned ones (the history column)."""
     keys = _brain_keys(brain)
     also = _agent_history_channels(brain, channel) if bots else []
     store = get_store()
     return {"sessions": store.list_sessions(limit=limit, brain=keys, project=project or None, channel=channel or None,
-                                            also_channels=also, archived_only=bool(archived)),
+                                            also_channels=also, archived_only=bool(archived),
+                                            unread_first=bool(unread_first)),
             "archived_count": store.count_archived(brain=keys, project=project or None, channel=channel or None,
                                                    also_channels=also)}
 
@@ -23322,7 +23728,14 @@ def _agent_history_channels(brain, channel) -> list:
     chatbot. Kênh của phiên bot là `bot:<slug hoặc id>` (xem `_tg_answer`).
 
     The owner's chats from the admin channels and the CLI join too. Naota Core's history holds the plain ones (Naota Core
-    is who answers there); an agent's holds the ones routed to it, stored as `<channel>@<slug>` (`_owner_store_channel`)."""
+    is who answers there); an agent's holds the ones routed to it, stored as `<channel>@<slug>` (`_owner_store_channel`).
+
+    A bot is matched by the brain its chats are STORED under (`_brain_key`, what `_tg_answer` writes), not by the raw
+    string in the bot record. A bot saved with another spelling of the same brain (an absolute path from an older version
+    or a moved brain folder) answered fine but its chats never reached the agent's history. The agent slug is compared
+    in NFC too, so a slug from a macOS file name still matches."""
+    import unicodedata
+
     ch = str(channel or "").strip()
     if not ch.startswith("agent:"):
         return []
@@ -23331,13 +23744,14 @@ def _agent_history_channels(brain, channel) -> list:
         return list(OWNER_TURN_CHANNELS)
     keys = {str(k) for k in (_brain_keys(brain) or [])}
     out = [f"{c}@{slug}" for c in OWNER_TURN_CHANNELS]
+    nfc = lambda s: unicodedata.normalize("NFC", str(s or ""))  # noqa: E731
     try:
         for b in chatbot_store.list_bots():
             a = b.get("agent") or {}
-            if str(a.get("slug")) != slug:
+            if nfc(a.get("slug")) != nfc(slug):
                 continue
-            # Phiên của bot được lưu với brain CỦA BOT (xem `_tg_answer`), nên so brain đó.
-            if keys and str(b.get("brain")) not in keys:
+            # Phiên của bot được lưu với brain CỦA BOT (xem `_tg_answer`), nên so brain đó, theo đúng khoá kho đã ghi.
+            if keys and str(b.get("brain")) not in keys and _brain_key(b.get("brain")) not in keys:
                 continue
             kenh = "bot:" + str(b.get("slug") or b.get("id"))
             if kenh not in out:
@@ -23407,6 +23821,21 @@ def sessions_search(q: str = Query(...), brain: str = Query(None), limit: int = 
     return {"results": get_store().search(q, limit=limit, brain=_brain_keys(brain),
                                           channel=channel or None,
                                           also_channels=_agent_history_channels(brain, channel) if bots else [])}
+
+
+def _unread_skip(skip: str) -> list:
+    """`skip` query of the unread counts: comma-separated chat ids the dashboard sees running or has open on screen.
+    Owner 2026-11-20: a dot means a chat that has finished and is not read yet."""
+    return [x for x in (skip or "").split(",") if x.strip()]
+
+
+@app.get("/sessions/unread-summary")
+def sessions_unread_summary(brain: str = Query(None), skip: str = Query("")):
+    """How many chats have a reply the owner has not read, per rail entry (owner, 2026-11-19: "answers of partners,
+    chats and teams need no notification, a red dot on the menu is enough"). `chat`: chats of the Chat page;
+    `workspace`: chats with a partner or a workflow (Partners page). Teams count on their own (`GET /teams/unread`).
+    `skip`: chats still running or open on screen, not counted (_unread_skip)."""
+    return {"ok": True, **get_store().unread_summary(_brain_keys(brain), skip=_unread_skip(skip))}
 
 
 @app.get("/sessions/{session_id}")
@@ -23528,6 +23957,10 @@ async def sessions_message_pin(session_id: str, message_id: int, request: Reques
 # lặng lẽ giữa lượt thì không.
 PHIEN_TS_MAX_FILE = 200        # trần một cuộc, đủ cho cuộc dài nhất mà không đổ ra vô hạn
 PHIEN_TS_MAX_LINK = 200
+# 2026-11-19 (owner: "phần file với link trong nhóm cần phân trang"): the team's archive asks one kind a page at a time
+# (`kind`, `q`, `offset`, `limit`), so it reaches every file and link, not only the newest 200 of the plain call.
+ASSET_KINDS = ("image", "file", "link")
+ASSET_PAGE_MAX = 100
 
 
 def _ts_trong_brain(broot: Path, duong: Path):
@@ -23546,8 +23979,13 @@ def _ts_trong_brain(broot: Path, duong: Path):
 
 
 @app.get("/sessions/{session_id}/assets")
-def sessions_assets(session_id: str, brain: str = Query("")):
+def sessions_assets(session_id: str, brain: str = Query(""), kind: str = Query(""), q: str = Query(""),
+                    offset: int = Query(0), limit: int = Query(20)):
     """File Naota đã tạo và link đã nhắc trong CUỘC TRÒ CHUYỆN này.
+
+    Without `kind`: the newest 200 files and 200 links, as before, plus `counts` (images, files, links) that are the true
+    totals even when a list is cut. With `kind` = image | file | link: one page of that kind, newest first, filtered by
+    every word of `q` (no accents, any case, in the name, label, path, url or description): `items`, `total`, `offset`.
 
     Ứng viên file có hai nguồn, và luật giữ khác nhau vì độ tin cậy khác nhau:
 
@@ -23558,10 +23996,49 @@ def sessions_assets(session_id: str, brain: str = Query("")):
       trong lời giải thích trông y hệt đường dẫn thật, nên nó phải tự chứng minh bằng cách
       tồn tại.
     """
+    got = _session_asset_lists(session_id, brain)
+    if got is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    b, ra_file, ra_link = got
+    if kind:
+        if kind not in ASSET_KINDS:
+            return JSONResponse({"ok": False, "error": localefmt.chu("Loại không hợp lệ", "Unknown kind")}, status_code=400)
+        rows = ra_link if kind == "link" else [f for f in ra_file if bool(f.get("image")) == (kind == "image")]
+        rows = _assets_matching(rows, q)
+        rows.sort(key=lambda x: -(x.get("ts") or 0))     # stable: the same time keeps the order of the plain list
+        lim = max(1, min(int(limit or 0), ASSET_PAGE_MAX))
+        off = max(0, int(offset or 0))
+        return {"ok": True, "brain": b, "kind": kind, "total": len(rows), "offset": off, "limit": lim,
+                "items": rows[off:off + lim]}
+    images = sum(1 for f in ra_file if f.get("image"))
+    return {"ok": True, "brain": b,
+            "files": ra_file[:PHIEN_TS_MAX_FILE],
+            "links": ra_link[:PHIEN_TS_MAX_LINK],
+            "counts": {"images": images, "files": len(ra_file) - images, "links": len(ra_link)}}
+
+
+def _assets_matching(rows: list, query: str) -> list:
+    """The rows whose name, label, path, url or description holds every word of `query` (no accents, any case)."""
+    words = [w for w in sessions.SessionStore.fold_text(query or "").split() if w]
+    if not words:
+        return list(rows)
+    fold = sessions.SessionStore.fold_text
+    out = []
+    for r in rows:
+        hay = fold(" ".join(str(r.get(k) or "") for k in ("name", "label", "brain_path", "url", "description")))
+        if all(w in hay for w in words):
+            out.append(r)
+    return out
+
+
+def _session_asset_lists(session_id: str, brain: str = ""):
+    """(brain, files, links) of one conversation, every row (no cap), or None when there is no such conversation.
+
+    Files: the ones the owner attached first, then the ones found in the messages, newest first. Links the same."""
     store = get_store()
     sess = store.get_session(session_id)
     if not sess:
-        return JSONResponse({"error": "not found"}, status_code=404)
+        return None
     b = (brain or sess.get("brain") or "brain").strip() or "brain"
     broot = Path(_brain_root(b)).resolve()
     ceil = _files_root(b)
@@ -23618,9 +24095,7 @@ def sessions_assets(session_id: str, brain: str = Query("")):
     ra_link = tay_link + [l for l in ra_link if l["url"] not in url_tay]
     for f in ra_file:
         f.pop("_that", None)
-    return {"ok": True, "brain": b,
-            "files": ra_file[:PHIEN_TS_MAX_FILE],
-            "links": ra_link[:PHIEN_TS_MAX_LINK]}
+    return b, ra_file, ra_link
 
 
 def _cuoc_tai_lieu_tay(session_id: str, sess: dict):
@@ -24026,8 +24501,13 @@ def sessions_set_project(session_id: str, project_id: str = Form(""),
 # Project = nhóm hội thoại người dùng tự gom. Xoá project chỉ GỠ NHÃN, không xoá hội thoại.
 # ============================================================
 @app.get("/projects")
-def projects_list(brain: str = Query(None)):
-    return {"projects": get_store().list_projects(brain=brain)}
+def projects_list(brain: str = Query(None), skip: str = Query("")):
+    """`ungrouped_unread`: unread chats in no project, the dot on "Chưa xếp nhóm" (2026-11-20). `skip`: chats still
+    running or open on screen, left out of every unread count (_unread_skip)."""
+    store = get_store()
+    ids = _unread_skip(skip)
+    return {"projects": store.list_projects(brain=brain, skip=ids),
+            "ungrouped_unread": store.count_unread(brain=_brain_keys(brain), project="none", skip=ids)}
 
 
 @app.post("/projects")
@@ -24808,8 +25288,16 @@ async def _uoc_tinh_tiet_kiem(brain: str = "brain") -> dict:
 
     Ba con số:
       - Tắt: gửi nguyên CLAUDE.md + chỉ mục bộ nhớ + khối skill + mô tả tool.
-      - Tối ưu: capsule nhỏ thay chỗ CLAUDE.md, vẫn kèm mô tả tool.
-      - Siêu tiết kiệm: như trên, và câu hỏi đơn giản đi thẳng không kèm mô tả tool.
+      - Tối ưu: the small capsule PLUS the base the compiler keeps (see below), with tool descriptions.
+      - Siêu tiết kiệm: a simple question goes straight with the capsule alone; others go as Tối ưu.
+
+    2026-11-18 (token saving, phase 3): the old figure for Tối ưu was capsule + tools and left out the base
+    (`source_fallback_contract`) that Phase 8 always sends with it (adaptive_context_runtime.prepare). That base
+    depends on the kind of brain: an API engine sends `build_adaptive_source_prompt` (no CLAUDE.md) plus the WHOLE
+    channel block; a subscription engine keeps CLAUDE.md ON PURPOSE (see `_subscription_system_prompt`) and drops
+    only the memory index and the skill block. The page said Tối ưu saved 84% on Claude Code too, while a real turn
+    sent about as much as Tắt, and the running tally (`usage_saving.tiet_kiem`) multiplied that by every turn.
+    Memory and skill parts loaded per question change with the question and are not counted here.
 
     Dùng CHÍNH hệ số ký tự-trên-token mà runtime đang dùng để ước lượng, để con số ở đây và
     con số ở chỗ khác không đá nhau. Đây là ƯỚC LƯỢNG: bộ đếm token thật của từng nhà cung
@@ -24840,6 +25328,15 @@ async def _uoc_tinh_tiet_kiem(brain: str = "brain") -> dict:
         cu = tok(await asyncio.to_thread(_dung_prompt_cu))
     except Exception:  # noqa: BLE001
         return {}
+    # Loại bộ não đang chạy: quyết định phần nền mức Tối ưu còn gửi, và mức Siêu tiết kiệm có đường tắt không.
+    # ĐỌC cấu hình thật, KHÔNG gõ cứng (lý do ở chỗ tính fast_hop bên dưới).
+    try:
+        _st = cfgmod.read_settings()
+        _prov, _kind, _k, _m = _chat_provider(_st.get("model", {}) or {})
+        _kinds_tat = [str(x) for x in (((_st.get("context_runtime") or {}).get("canary") or {})
+                                       .get("provider_kinds") or ["api"])]
+    except Exception:  # noqa: BLE001 - phần thông tin, không được làm sập trang
+        _kind, _kinds_tat = "api", ["api"]
     try:
         cc = context_compiler
         vien = tok(cc.CORE_CONTRACT
@@ -24848,6 +25345,21 @@ async def _uoc_tinh_tiet_kiem(brain: str = "brain") -> dict:
                    + cc.ContextCompiler._profile_section(cc.owner_profile())   # #1349: the capsule carries it too
                    + cc.dong_ho()
                    + cc.ContextCompiler._output_contract_text("dashboard"))
+    except Exception:  # noqa: BLE001
+        return {}
+
+    def _dung_nen() -> str:
+        """The base Tối ưu still sends after the capsule, built as `_phase8_base` (API) and
+        `_subscription_system_prompt` (subscription) build it, with memory and skills loaded per question."""
+        kenh = channel_context.build_channel_block(
+            "dashboard", {"session_id": "uoc-tinh"}, telegram_running=bool(_TG_BOT),
+            port=_naota_port(), brain_root=_brain_root(brain))
+        if _kind == "api":
+            return build_adaptive_source_prompt(brain) + kenh
+        return build_system_prompt(brain, include_memory=False, include_skills=False) + kenh
+
+    try:
+        nen = tok(await asyncio.to_thread(_dung_nen))
     except Exception:  # noqa: BLE001
         return {}
     try:
@@ -24873,30 +25385,37 @@ async def _uoc_tinh_tiet_kiem(brain: str = "brain") -> dict:
     # gõ cứng này không ai nhớ sửa - nên trang vẫn dán nhãn "không áp cho bộ não đang dùng"
     # lên đúng mức vừa được mở, và người dùng bấm vào rồi tưởng mình bấm nhầm. Đọc thẳng
     # provider_kinds của đường tắt thì lần sau mở thêm bộ não nào, trang tự đúng theo.
-    try:
-        _st = cfgmod.read_settings()
-        _prov, _kind, _k, _m = _chat_provider(_st.get("model", {}) or {})
-        _kinds_tat = [str(x) for x in (((_st.get("context_runtime") or {}).get("canary") or {})
-                                       .get("provider_kinds") or ["api"])]
-    except Exception:  # noqa: BLE001 - phần thông tin, không được làm sập trang
-        _kind, _kinds_tat = "api", ["api"]
     fast_hop = _kind in _kinds_tat
-    max_token = vien if fast_hop else (vien + cong_cu)
+    saving_token = vien + nen + cong_cu
+    max_token = vien if fast_hop else saving_token
     return {
         "chu_ky_ky_tu_tren_token": ratio,
         "la_uoc_luong": True,
         "kind_bo_nao": _kind,
-        "chi_tiet": {"claude_md_va_bo_nho": cu, "capsule": vien, "mo_ta_cong_cu": cong_cu},
+        "chi_tiet": {"claude_md_va_bo_nho": cu, "capsule": vien, "nen_giu_lai": nen, "mo_ta_cong_cu": cong_cu},
+        # Cost per turn for the running saving tally (usage_saving.tiet_kiem). Only SIMPLE questions take the
+        # shortcut of the max level; the rest go the Optimized route, and how many do is not known here. Counting
+        # every turn at the shortcut price is what made the tally overstate, so it counts the max level at the
+        # Optimized price: the measured section of the page shows what the shortcut really saved.
+        "phi_tinh_cong_don": {"off": goc, "saving": saving_token, "max": saving_token},
         "muc": {
             "off": {"token_moi_request": goc, "phan_tram": 0, "ap_dung": True,
                     "ghi_chu": localefmt.chu("Gửi nguyên bộ luật, bộ nhớ và danh sách skill mỗi lượt.",
                                              "Sends the full rules, memory and skill list every turn.")},
-            "saving": {"token_moi_request": vien + cong_cu, "phan_tram": muc(vien + cong_cu),
+            "saving": {"token_moi_request": saving_token, "phan_tram": muc(saving_token),
                        "ap_dung": True,
-                       "ghi_chu": localefmt.chu(
-                           "Thay bộ luật dài bằng bản rút gọn; nhớ và skill chỉ nạp phần liên quan.",
-                           "Replaces the long rules with a short version; memory and skills load only "
-                           "what is relevant.")},
+                       "ghi_chu": (localefmt.chu(
+                           "Thay bộ luật dài bằng bản rút gọn, vẫn giữ luật của kênh chat; nhớ và skill chỉ "
+                           "nạp phần liên quan.",
+                           "Replaces the long rules with a short version and keeps the chat channel rules; "
+                           "memory and skills load only what is relevant.")
+                                   if _kind == "api" else
+                                   localefmt.chu(
+                           "Gói thuê bao không tính tiền theo token nên giữ nguyên bộ luật; mức này chỉ nạp "
+                           "phần liên quan của bộ nhớ và skill. Brain càng nhiều ghi nhớ và skill thì càng bớt.",
+                           "A subscription plan is not billed per token, so the full rules stay; this level "
+                           "loads only the relevant memory and skills. The more memories and skills a brain "
+                           "has, the more it saves."))},
             "max": {"token_moi_request": max_token, "phan_tram": muc(max_token),
                     "ap_dung": fast_hop,
                     "ghi_chu": (localefmt.chu(
@@ -25304,6 +25823,25 @@ def _het_luot_ap_dao(raw: str) -> bool:
     chung một bộ nhận dạng (tasks.py không import được main).
     """
     return limit_learner.subscription_dominates(raw or "")
+
+
+def _step_subscription_limit(out: str, loi: str, provider: str) -> dict:
+    """The reset point of a workflow step that stopped on an exhausted plan, for the Kanban queue. {} = not that.
+
+    The step's `error` event carries only the translated sentence, which the queue's own parser cannot
+    read, so a `wf:` job retried at once and burnt its three attempts in seconds instead of waiting for the reset.
+    Same detection as `_loi_het_luot_cua_buoc`, so both agree on what counts as an exhausted plan."""
+    hint = _NHA_SANG_ENGINE.get(str(provider or "").strip(), "")
+    for raw, must_dominate in ((out, True), (loi, False)):
+        if must_dominate and not _het_luot_ap_dao(raw or ""):
+            continue
+        _msg, lim = _subscription_limit_event(raw or "", hint)
+        if lim:
+            return {"engine": str(getattr(lim, "engine", "") or hint),
+                    "reset_epoch": float(getattr(lim, "reset_epoch", 0) or 0),
+                    "reset_text": str(getattr(lim, "reset_text", "") or ""),
+                    "scope": str(getattr(lim, "scope", "") or "")}
+    return {}
 
 
 def _loi_het_luot_cua_buoc(out: str, loi: str, provider: str, agent_name: str) -> str:
@@ -30041,13 +30579,17 @@ def _chan_ngoai_le(raw, cu, xac_nhan):
 
 
 @app.get("/chatbots/chats")
-async def chatbots_chats(account_ids: str = "", bot_id: str = "", q: str = "", limit: int = 60):
+async def chatbots_chats(account_ids: str = "", bot_id: str = "", q: str = "", limit: int = 60, chon: str = "",
+                         chat_type: str = ""):
     """Các cuộc chat ĐÃ BIẾT (người và nhóm) cho ô "chọn người và nhóm" của form bot.
 
     Nguồn là Hộp thư (`conversations`) nên có tên hiển thị thật thay vì id. `account_ids` (cách nhau
     bằng dấu phẩy) là các tài khoản kênh ĐANG TÍCH trong form, kể cả khi bot chưa tồn tại; `bot_id`
     thêm hàng chờ duyệt và cờ "đã chọn". Phải đăng ký TRƯỚC mọi route có `{bot_id}` để "chats" không
     bị coi là id bot.
+
+    `chon` (id cách nhau bằng dấu phẩy) là các cuộc chat form ĐANG TÍCH: `ten` trả tên của chúng (cùng mọi id bot đã
+    lưu) dù ô tìm hay giới hạn trang để chúng ra ngoài danh sách, để form không vẽ chúng thành id trần.
     """
     bot = chatbot_store.get_bot(bot_id) if bot_id else None
     ids = [x.strip() for x in str(account_ids or "").split(",") if x.strip()]
@@ -30057,7 +30599,10 @@ async def chatbots_chats(account_ids: str = "", bot_id: str = "", q: str = "", l
     else:
         tk = list((bot or {}).get("accounts") or [])
     cho = chatbot_runtime.nhom_cho(bot_id) if bot else []
-    return {"ok": True, "chats": chatbot_cuoc_chat.danh_sach(tk, q, limit, cho, bot)}
+    can_ten = [x.strip() for x in str(chon or "").split(",") if x.strip()]
+    can_ten += [str(x) for x in list((bot or {}).get("groups") or []) + list((bot or {}).get("people") or [])]
+    return {"ok": True, "chats": chatbot_cuoc_chat.danh_sach(tk, q, limit, cho, bot, chat_type=chat_type),
+            "ten": chatbot_cuoc_chat.ten_da_chon(tk, can_ten)}
 
 
 @app.get("/chatbots/zalo-labels")
@@ -30300,6 +30845,7 @@ conversations_routes.register(app, conversations_routes.ConversationsDeps(
     pending=chatbot_runtime.nhom_cho,
     drop_pending=chatbot_runtime.bo_nhom_cho,
     manual_meta=chatbot_runtime.manual_meta,
+    learn_owner=chatbot_runtime.learn_from_owner,
 ))
 
 # Trang Coding: sổ repo, ràng buộc phiên, worktree, điểm hồi. Không có deps - kho
@@ -30832,6 +31378,24 @@ async def chat_job_status(job_id: str, request: Request):
     return {"ok": True, **view}
 
 
+@app.post("/chat/external")
+async def chat_external(payload: dict = Body(...)):
+    """Save finished turns of the owner's own Claude Code or Codex session into Naota (owner, 20/11/2026).
+
+    Called by `tools/naota-sync/naota_sync.py`, the Claude Code Stop hook and Codex `notify` program, with an API
+    token (scope `chat` is enough). Body: {"source": "claude-code"|"codex", "session": id, "project": folder name,
+    "turns": [{"id", "user", "assistant"}]}, or {"check": true} to test the URL and token without saving anything.
+    Runs no Naota turn: see `chat_bridge.log_transcript`. 409 when the owner is chatting in that conversation right
+    now (the hook keeps the turns and sends them next time)."""
+    if payload.get("check"):
+        return {"ok": True, "sources": sorted(chat_bridge.TRANSCRIPT_SOURCES)}
+    out = await chat_bridge.log_transcript(payload.get("source") or "", payload.get("session") or "",
+                                           payload.get("turns"), str(payload.get("project") or ""))
+    if out.get("ok"):
+        return out
+    return JSONResponse(out, status_code=409 if out.get("busy") else 400)
+
+
 @app.post("/telegram/send-file")
 async def telegram_send_file(payload: dict = Body(...)):
     """Gửi 1 file qua Telegram tới chat whitelist. Agent gọi bằng curl từ localhost
@@ -31005,7 +31569,8 @@ async def slash_memory(brain: str = Query("brain")):
 
 @app.post("/slash/block")
 async def slash_block(kind: str = Form(...), dk: str = Form(""), vong: int = Form(1),
-                      toi_da: int = Form(lenh_he_thong.GOAL_MAX_ROUNDS), left: str = Form("")):
+                      toi_da: int = Form(lenh_he_thong.GOAL_MAX_ROUNDS), left: str = Form(""),
+                      them: str = Form("")):
     """Khối chỉ dẫn của `/plan` và `/goal` cho khung chat web.
 
     Máy chủ là nguồn DUY NHẤT của chữ trong khối (Telegram dùng chung `lenh_he_thong`): trình
@@ -31019,7 +31584,13 @@ async def slash_block(kind: str = Form(...), dk: str = Form(""), vong: int = For
                                 status_code=400)
         toi_da = max(1, min(int(toi_da), 20))
         vong = max(1, min(int(vong), toi_da))
-        return {"block": lenh_he_thong.khoi_muc_tieu(dk, vong, toi_da, left)}
+        # 2026-11-16: `them` = JSON list of what the owner typed while the goal ran (folded into the goal).
+        try:
+            _them = json.loads(them) if (them or "").strip() else []
+        except ValueError:
+            _them = []
+        _them = [str(x) for x in _them] if isinstance(_them, list) else []
+        return {"block": lenh_he_thong.khoi_muc_tieu(dk, vong, toi_da, left, _them)}
     return JSONResponse({"error": localefmt.chu("kind phải là plan hoặc goal", "kind must be plan or goal")},
                         status_code=400)
 
@@ -31293,6 +31864,9 @@ async def _warm_mcp_hub():
 @app.on_event("shutdown")
 async def _shutdown_mcp_pool():
     """Đóng các session MCP sống lâu (stdio subprocess, httpx client) khi server tắt."""
+    # 16/11/2026: from here on a chat turn that gets cancelled is a turn this stop cut short, not one that ended:
+    # its row stays in the ledger so the next process answers it again (turn_ledger.py).
+    turn_ledger.closing = True
     try:
         await _shutdown_improvement_candidates()
     except Exception:
@@ -31797,6 +32371,11 @@ def _team_engine_for(team, agent_key, role):
             except Exception:  # noqa: BLE001 - Codex reports its own sign-in error
                 pass
         _step_plan_account(eng, prov)   # the plan account that should run now (rotation, as in chat)
+        if prov == aux_engine.CLAUDE and steer_inbox.INBOX.has_tag(tag):
+            # 18/11/2026: this step reads the owner's messages to its member after each tool call. ClaudeSDK only turns
+            # its steer hook on for chat tags; switched on here, on this one engine, so claude_sdk_engine.py keeps the
+            # bytes its native qualification pinned (test_plan_limits CANARY). The hook finds the step by its tag.
+            eng._steer_on = lambda _t=tag: steer_inbox.INBOX.has_tag(_t)
         avail = getattr(eng, "is_available", None)
         if callable(avail) and not avail():
             raise team_runner.EngineUnavailable(f"engine {tool_spec['provider']} chưa sẵn sàng (kiểm tra trang Models)")
@@ -31830,6 +32409,10 @@ def _team_engine_for(team, agent_key, role):
         # 10/11/2026: a plan account out of quota rests and the turn runs again at once on the card's next account, as
         # a chat turn does (spec 6.4). `moved` is the line the message carries when that happened.
         hops, moved = 0, ""
+        if tools_on and req.get("steer_sid"):
+            # 18/11/2026: the owner's messages to this member reach the step at its next tool call (Claude Code hook by
+            # tag; the API engines read the turn's inbox from the context).
+            steer_inbox.INBOX.attach_tag(str(req["steer_sid"]), tag)
         while True:
             if tools_on:
                 eng = await asyncio.to_thread(_build_tools, req["system"], tag, str(req.get("team_gate") or ""))
@@ -31924,6 +32507,10 @@ def _team_engine_for(team, agent_key, role):
         # Bind before asyncio.to_thread: constructors and CLI correlation inherit the host execution.
         import uuid
         ambient = turn_context.current() or turn_context.make("team", chat_id=req.get("team_id"))
+        # 16/11/2026: a tool step of a team job records its outside actions once per step chain (once_ledger.py, keyed
+        # on the turn's `job`), so the step can run again after a restart without sending or posting twice.
+        if req.get("once_key"):
+            ambient["job"] = str(req["once_key"])
         ambient["execution"] = turn_context.execution_metadata({
             "team_id": req.get("team_id"), "task_id": req.get("task_id"), "step_id": req.get("step_id"),
             "turn_id": req.get("turn_id"), "attempt": req.get("attempt"), "job_revision": req.get("job_revision"),
@@ -32029,11 +32616,13 @@ _TEAM_ASKS_OWNER = re.compile(r"gọi bạn trong nhóm|called you in team|chờ
                               r"xin duyệt|asks for approval|vẫn đang chờ bạn|still waiting for you", re.I)
 
 
-async def _team_notify(session_id, text):
+async def _team_notify(session_id, text, ref=""):
     asks = bool(_TEAM_ASKS_OWNER.search(str(text or "")))
+    # `ref` (18/11/2026): the notice is filed under it, so `_team_notice_done` clears it once the owner answered.
     await _bo_vao_hom_thu(f"{WEB_CHAT_PREFIX}{session_id}", text, kind="report",
                           label=localefmt.chu("Team", "Team"), source="team",
-                          group="question" if asks else "team", level="urgent" if asks else "important")
+                          group="question" if asks else "team", level="urgent" if asks else "important",
+                          dedup=str(ref or ""))
     # every team notice is a job blocked, failed, or waiting on the owner: it reaches their phone too, not the bell
     # only, and as urgent (Naota Core rings only urgent by default; the owner can still mute a team or the group)
     try:
@@ -32041,6 +32630,16 @@ async def _team_notify(session_id, text):
                                     level="urgent")
     except Exception as e:  # noqa: BLE001 - a lost Telegram copy never breaks the team
         print(f"[team notify] Telegram copy failed: {type(e).__name__}: {e}", file=sys.stderr)
+
+
+async def _team_notice_done(ref):
+    """An approval request of a team was answered: its notice in the bell turns read, and open tabs refresh the bell."""
+    changed = await asyncio.to_thread(inbox.read_by_dedup, str(ref or ""))
+    if changed:
+        try:
+            await _CHAT_RUNTIME.publish({"type": "inbox", "session_id": "", "cleared": True})
+        except Exception as e:  # noqa: BLE001 - the bell refreshes on its next load anyway
+            print(f"[inbox] bắn WebSocket lỗi: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 _FEEDBACK_PROJECTOR = [None]
@@ -32605,7 +33204,8 @@ _TEAM_API = team_api.register(app, team_api.TeamApiDeps(
     task_store=lambda: tasks_feature.store, resonance_store=lambda: _resonance_store(),
     agents_meta=_resonance_agents_meta, agent_info=lambda root, key: _team_agent_info(root, key, "team"),
     engine_for=_team_engine_for,
-    broadcast=lambda ev: _CHAT_RUNTIME.publish(ev), notify=_team_notify, admin=_TeamAdmin(),
+    broadcast=lambda ev: _CHAT_RUNTIME.publish(ev), notify=_team_notify, notice_done=_team_notice_done,
+    admin=_TeamAdmin(),
     owner_name=lambda: ((cfgmod.read_settings().get("auth") or {}).get("username") or ""),
     ceiling=_team_ceiling, projector=_feedback_projector, judge=lambda: _agent_judge(),
     learning=_team_learning,
@@ -34064,6 +34664,13 @@ async def _learn_tick():
 agent_review.register_routes(app, agent_review.LearnRouteDeps(
     brain_key=lambda b: _brain_key(b), agent_exists=lambda root, slug: _agent_md_path(root, slug) is not None,
     agent_key=lambda root, slug: _agent_jobs_key(root, slug), store=_pulse_store))
+# 2026-11-16: the Learned tab of an assistant (Cộng sự page): what it learnt, from the same store the prompt reads.
+agent_learned.register_routes(app, agent_learned.Deps(
+    brain_key=lambda b: _brain_key(b), agent_exists=lambda root, slug: _agent_md_path(root, slug) is not None,
+    agent_key=lambda root, slug, reg: _agent_jobs_key(root, slug, register=reg),
+    store=lambda create: _pulse_store() or (_resonance_store() if create else None),
+    legacy_file=lambda root, slug: _brain_memory_dir(root) / "agents" / slug / "MEMORY.md",
+    refuse=lambda text: project_context.blocked_reason(text)))
 
 @app.get("/model/fast-state")
 async def model_fast_state():

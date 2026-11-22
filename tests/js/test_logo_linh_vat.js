@@ -3,9 +3,9 @@
        node tests/js/test_logo_linh_vat.js
 
    Logo là chữ (cùng kiểu logo VUONG.AI): ô đen #0E1116 bo góc, chữ N
-   vàng #FCCB1D Montserrat Black nghiêng. Linh
-   vật vẫn là ngôi sao nhưng mặc định màu vàng "nắng" theo bộ màu thương hiệu, và không còn thay
-   chỗ logo. Logo nằm ở nhiều chỗ (logo.svg, các PNG, MAC_DINH, nút Đặt lại) nên test khoá lại.
+   vàng #FCCB1D Montserrat Black nghiêng. Bản 1.0.0 giữ linh vật là ngôi sao màu "nắng".
+   Từ 1.60.0 (22/11/2026, chủ: "hình và mọi thứ vẫn còn như cái cũ", "toàn bộ hiển thị trên naota")
+   linh vật mặc định mang dáng logo: ô vuông bo góc, màu vàng NAOTA #FCCB1D (bảng màu "naota"). Logo nằm ở nhiều chỗ (logo.svg, các PNG, MAC_DINH, nút Đặt lại) nên test khoá lại.
 
    KHÔNG dùng ký tự em dash. */
 const fs = require("fs");
@@ -21,10 +21,11 @@ function check(name, cond, extra) {
 const pet = read("dashboard/pet.js");
 const svg = read("dashboard/logo.svg");
 
-check("linh vật mặc định là NGÔI SAO", /var MAC_DINH = \{[^}]*shape: "star"/.test(pet));
-check("linh vật mặc định màu NẮNG (vàng thương hiệu)", /var MAC_DINH = \{[^}]*palette: "nang"/.test(pet));
-check("nút Đặt lại trả về ngôi sao màu nắng",
-  /P\.setCfg\(\{ shape: "star", palette: "nang",/.test(read("dashboard/console.js")));
+check("linh vật mặc định là Ô VUÔNG như logo", /var MAC_DINH = \{[^}]*shape: "square"/.test(pet));
+check("linh vật mặc định màu VÀNG NAOTA", /var MAC_DINH = \{[^}]*palette: "naota"/.test(pet) && /naota:\s+\{ key: "pet\.color\.naota",\s+sun: \["#FCCB1D"/.test(pet));
+check("nút Đặt lại trả về ô vuông vàng NAOTA",
+  /P\.setCfg\(\{ shape: "square", palette: "naota",/.test(read("dashboard/console.js")));
+check("trang Việc cần làm không còn ngôi sao cam cũ", !/#fd6100/i.test(read("dashboard/tasks.js")));
 check("logo.svg là logo chữ NAOTA 1.0.0, bọc đúng ảnh PNG", /Logo NAOTA 1\.0\.0/.test(svg) && /href="data:image\/png;base64,/.test(svg));
 check("logo.svg không còn ngôi sao cam cũ", !/#FD6100/i.test(svg));
 

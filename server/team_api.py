@@ -37,9 +37,19 @@ LOOP_EVERY_S = 5.0          # nhịp điều phối (spec 8.3: cùng nhịp 5 gi
 REMIND_EVERY_S = 3600.0     # nhịp nhắc việc bị chặn quá 24 giờ
 RECONCILE_EVERY_S = 60.0    # nhịp đối soát sổ lượt chung với team_turns (T2, thiết kế 9.1)
 FINISHED_SHOWN = 30          # việc đã xong hiện ở tab Việc của nhóm
+# Jobs tab redesign (owner, 16/11/2026): the archive grows without a ceiling the owner can feel, so it is listed light
+# (title, who, when) up to this many rows and paged on the page; the report of one job loads when it is opened.
+ARCHIVE_SHOWN = 500
+STEP_BRIEF_MAX = 240         # a step's brief on a job card: one or two lines, never the whole instruction
+
+
+def _step_rows(steps: list) -> list:
+    """What a job card shows of each step: who, which kind, where it stands, and the first lines of its brief."""
+    return [{"agent_key": x.get("agent_key") or "", "kind": x.get("kind") or "", "status": x.get("status") or "",
+             "brief": " ".join(str(x.get("brief") or "").split())[:STEP_BRIEF_MAX]} for x in steps][:20]
+PINNED_SHOWN = 20            # tin đã ghim hiện ở dải trên khung chat, như Sổ quyết định của lượt
 CREATE_DOCS_MAX = 10         # files, and links, a team may be given in its create box (team_docs.MAX_PER_SEND)
 NEW_TEAM_UNCAPPED = ("task_turns", "task_steps")   # caps a new team starts without (TeamOps.create)
-PINNED_SHOWN = 20            # tin đã ghim hiện ở dải trên khung chat, như Sổ quyết định của lượt
 
 
 # Performance: the usage block of GET /teams/{id} reads the usage index, its events log and two more
@@ -53,6 +63,11 @@ PINNED_SHOWN = 20            # tin đã ghim hiện ở dải trên khung chat, 
 #   time, wait for that one call) instead of each starting the same work on another thread;
 # - figures that took long to add up are kept longer (_USAGE_COST_FACTOR times as long, at most _USAGE_TTL_MAX_S), so
 #   the work never takes more than a small share of one core however large the team's history is.
+#
+# 2026-11-18 (owner: opening a team showed "Loading the team's messages..." for a long time). The dashboard stopped
+# showing this block on 17/11/2026 (the short Team settings tab), yet GET /teams/{id} kept adding it up on every open,
+# and the chat waits for that answer before it draws a single message. It now lives only behind
+# GET /teams/{id}/usage, still through this cache.
 _USAGE_TTL_S = 15.0
 _USAGE_TTL_MAX_S = 600.0
 _USAGE_COST_FACTOR = 20.0
@@ -113,6 +128,8 @@ class TeamApiDeps:
     engine_for: Callable[[dict, str, str], tuple]      # (team, agent_key, role) -> (engine, model, async fn)
     broadcast: Optional[Callable[[dict], Any]] = None  # gói WS tới mọi tab (async)
     notify: Optional[Callable[[str, str], Any]] = None  # (session_id nhóm, chữ) -> hộp thư (async)
+    # 18/11/2026: ref -> mark the owner's notices filed under that ref read (an approval card already answered).
+    notice_done: Optional[Callable[[str], Any]] = None
     spawn: Callable[[Any], Any] = field(default=asyncio.ensure_future)
     store_path: Optional[Path] = None                  # mặc định STATE_DIR/team.sqlite3
     admin: Any = None                                  # thao tác host cho lệnh quản trị Toàn quyền (T3)
@@ -226,7 +243,7 @@ class TeamApi:
                 if self.deps.broadcast is not None:
                     self._spawn(self.deps.broadcast(ev))
 
-            def notify(team_id: str, text: str) -> None:
+            def notify(team_id: str, text: str, ref: str = "") -> None:
                 if self.deps.notify is None:
                     return
 
@@ -235,10 +252,22 @@ class TeamApi:
                     # a muted team never reaches the owner's inbox or devices ("team nào bị tắt thông báo thì dù
                     # có tag tên cũng không báo về máy").
                     if team and not team.get("muted"):
-                        res = self.deps.notify(team["session_id"], text)
+                        try:
+                            res = (self.deps.notify(team["session_id"], text, ref=ref) if ref
+                                   else self.deps.notify(team["session_id"], text))
+                        except TypeError:   # a host notify without `ref` (older host, tests)
+                            res = self.deps.notify(team["session_id"], text)
                         if asyncio.iscoroutine(res):
                             await res
                 self._spawn(go())
+
+            def notice_done(ref: str) -> None:
+                # 18/11/2026: the request a notice was about is handled (approval answered): the bell stops ringing.
+                if self.deps.notice_done is None:
+                    return
+                res = self.deps.notice_done(ref)
+                if asyncio.iscoroutine(res):
+                    self._spawn(res)
 
             self._runner = TeamRunner(
                 teams=self.teams(), tasks=self.deps.task_store(), sessions=self.deps.session_store(),
@@ -252,6 +281,7 @@ class TeamApi:
                 contrib_reader=self.deps.contrib_reader, docs_block=self.deps.docs_block,
                 check_command=self.deps.check_command, brain_root=self.deps.brain_root,
                 work_dir=self.deps.work_dir, job_done=self.deps.job_done, skill_block=self.deps.skill_block)
+            self._runner.notice_done = notice_done
             if self._loop is not None:
                 self._runner._loop, self._runner._loop_thread = self._loop, self._loop_thread
         return self._runner
@@ -324,7 +354,12 @@ class TeamApi:
         for m in members:
             reg = regs.get(m["agent_key"]) or {}
             ident = self._identity(team, m, reg, by_slug)
-            out.append(dict(ident, agent_key=m["agent_key"], title=str((by_slug.get(ident.get("slug")) or {}).get("title") or "")
+            # The model this member's turns run on (owner, 18/11/2026), only while its file is confirmed as this member.
+            info = (by_slug.get(ident.get("slug")) or {}) if reg.get("status") == "active" else {}
+            model = {"model": str(info.get("model") or ""), "label": str(info.get("model_label") or ""),
+                     "main": bool(info.get("model_main"))} if info.get("model_label") else None
+            out.append(dict(ident, agent_key=m["agent_key"], model=model,
+                            title=str((by_slug.get(ident.get("slug")) or {}).get("title") or "")
                             if reg.get("status") == "active" else "",
                             role=m["role"], status=m["status"], agent_status=reg.get("status") or "",
                             resonance_enabled=bool(reg.get("enabled")), joined_at=m["joined_at"],
@@ -430,6 +465,8 @@ class TeamApi:
             rep = await r._io(r.recover)
             if rep["resumed"]:
                 self._spawn(r.resume_jobs(rep["resumed"]))
+            if rep.get("replies"):
+                self._spawn(r.retry_cut_replies(rep["replies"]))
             for tid in rep.get("rechecks") or []:
                 self._spawn(r.recheck(tid))
         # approval requests past their deadline close before dispatch, so their jobs stay stopped with the reason.
@@ -770,6 +807,18 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
             return {"ok": True, "teams": rows, "next": nxt}
         return await api.io(_do)
 
+    @app.get("/teams/unread")
+    async def teams_unread(brain: str = "brain"):
+        """How many teams of the brain have messages the owner has not read (owner, 2026-11-19): the red dot on the
+        Team entry of the rail, in place of a bell notification for every team answer."""
+        def _do():
+            root = _root(brain)
+            if root is None or not api.exists():
+                return {"ok": True, "teams": 0}
+            teams = api.teams().list_teams(root, limit=200)
+            return {"ok": True, "teams": sum(1 for t in teams if (api.unread(t) or {}).get("n"))}
+        return await api.io(_do)
+
     @app.post("/teams")
     async def teams_create(request: Request, brain: str = "brain"):
         body = await _body(request)
@@ -841,9 +890,8 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
             pinned = [{"id": m["id"], "ts": m["ts"], "author_kind": m["author_kind"], "author_ref": m["author_ref"],
                        "content": str(m.get("content") or "")[:400]}
                       for m in deps.session_store().team_decisions(team["session_id"], PINNED_SHOWN)]
-            view = api.view(team)
-            view["quality_usage"] = _team_usage_cached(team_id)
-            return {"ok": True, "team": view, "typing": api.teams().active_turns(team_id), "pinned": pinned}
+            # No usage block here (2026-11-18): nothing on the page reads it, and adding it up made every open wait.
+            return {"ok": True, "team": api.view(team), "typing": api.teams().active_turns(team_id), "pinned": pinned}
         return await api.io(_do)
 
     @app.patch("/teams/{team_id}")
@@ -947,31 +995,49 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
             if err:
                 return err
             out = dict(deps.task_store().team_queue(team_id), ok=True, busy=api.runner().busy_view(team_id))
+            # Owner, 16/11/2026: "anh cần biết các agent đang có những nhiệm vụ gì". A job that runs or waits for the
+            # owner carries its steps, so the card can list every member under the job.
+            for t in out["running"] + out["blocked"]:
+                try:
+                    t["steps"] = _step_rows(api.teams().steps(t["id"]))
+                except Exception:  # noqa: BLE001 - a broken step list never hides the job
+                    t["steps"] = []
             out.update(_finished(team))
             return out
         return await api.io(_do)
 
     def _finished(team: dict) -> dict:
         """Finished jobs of the team for the Jobs tab: `finished` (not yet marked Done by the owner, each with a
-        short report: result, who did which step) and `archived` (marked Done). Deleted ones are left out."""
+        short report: result, who did which step) and `archived` (marked Done). Deleted ones are left out.
+
+        16/11/2026: the archive is a light list (title, who, when) of up to ARCHIVE_SHOWN jobs, without result or
+        steps; the page reads one job's report from GET /teams/{id}/tasks/{task_id} when the owner opens it."""
         import job_marks
-        rows = deps.task_store().team_history(team["team_id"], FINISHED_SHOWN)
+        rows = deps.task_store().team_history(team["team_id"], ARCHIVE_SHOWN)
+        results = {}
         jobs = []
         for t in rows:
-            steps = []
-            try:
-                steps = [{"agent_key": x.get("agent_key") or "", "kind": x.get("kind") or "", "status": x.get("status") or ""}
-                         for x in api.teams().steps(t["id"])][:20]
-            except Exception:  # noqa: BLE001 - a broken step list never hides the job
-                steps = []
+            results[t["id"]] = str(t.get("result") or "")[:4000]
             jobs.append({"id": f"team:{t['id']}", "task_id": t["id"], "title": t.get("title") or "", "bucket": "done",
                          "status": t.get("status") or "", "cancelled": t.get("status") == "cancelled",
-                         "result": str(t.get("result") or "")[:4000], "created_at": t.get("created_at"),
-                         "updated_at": t.get("updated_at"), "steps": steps})
+                         "created_at": t.get("created_at"), "updated_at": t.get("updated_at")})
         try:
-            kept, archived = job_marks.split(jobs, job_marks.marks(team["brain_id"]))
+            kept, archived = job_marks.split(jobs, job_marks.marks(team["brain_id"]), archive_max=ARCHIVE_SHOWN)
         except Exception:  # noqa: BLE001
             kept, archived = jobs, []
+        kept = kept[:FINISHED_SHOWN]
+        for j in kept:
+            j["result"] = results.get(j["task_id"], "")
+            try:
+                j["steps"] = _step_rows(api.teams().steps(j["task_id"]))
+            except Exception:  # noqa: BLE001 - a broken step list never hides the job
+                j["steps"] = []
+        try:
+            who = api.teams().step_agents([j["task_id"] for j in archived])
+        except Exception:  # noqa: BLE001
+            who = {}
+        for j in archived:
+            j["agents"] = who.get(j["task_id"], [])
         return {"finished": kept, "archived": archived}
 
     @app.post("/teams/{team_id}/queue/{task_id}/priority")
@@ -1061,6 +1127,32 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
             # có bản tổng hợp (review T3 P P3).
             runner.pulse_task_event("revise", team_id, list(shares), f"revise:{task_id}:{rev}", shares=shares)
             return {"ok": True, "revision": rev}
+        return await api.io(_do)
+
+    @app.post("/teams/{team_id}/tasks/{task_id}/answer")
+    async def teams_task_answer(team_id: str, task_id: str, request: Request, brain: str = "brain"):
+        """19/11/2026: the owner answers a job stopped on a step (the "Reply" box of a "Waiting for you" card). The
+        answer goes to the chat and the stopped step runs again with it."""
+        body = await _body(request)
+        answer = str(body.get("answer") or "").strip()
+        text = str(body.get("text") or "").strip()
+        cmid = str(body.get("client_msg_id") or "").strip()[:120]
+
+        def _do():
+            team, err = _team(team_id, brain)
+            if err:
+                return err
+            if not _own_task(team_id, task_id):
+                return _err(404, "Không có việc này trong nhóm", "No such job in this team")
+            if not answer:
+                return _err(400, "Gõ câu trả lời trước khi gửi", "Type your answer first")
+            res = api.runner().answer_blocked(task_id, answer, text=text, client_msg_id=cmid)
+            if res is None:
+                return _err(409, "Việc này không còn chờ câu trả lời; tải lại để xem trạng thái mới",
+                            "This job no longer waits for an answer; reload to see where it stands")
+            api.kick()
+            api.runner()._state(team_id)
+            return {"ok": True, **res}
         return await api.io(_do)
 
     @app.post("/teams/{team_id}/tasks/{task_id}/unblock")
@@ -1204,6 +1296,9 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
                                     mention_all=bool(body.get("mention_all")))
             except TeamError as ex:
                 return _team_err(ex)
+            if body.get("approval_id"):
+                # 18/11/2026: a Reply (Ask) on an approval card: the owner has seen the request, its notice stops ringing.
+                runner.approval_answered(team_id, str(body.get("approval_id") or "")[:80])
             pics = [f for f in files if f.get("image")] if api.deps.describe is not None else []
             if sub["replies"] or sub.get("judge"):
                 # Lượt trả lời theo @ (như cũ), rồi bộ phán xử cho người không được gọi (T3 phần J), đều chạy nền.
@@ -1537,8 +1632,8 @@ def register(app, deps: TeamApiDeps) -> TeamApi:
             team, err = _team(team_id, brain)
             if err:
                 return err
-            import team_usage
-            return {"ok": True, "usage": team_usage.team_usage(team_id)}
+            # Through the cache: several readers of the same busy team add it up once.
+            return {"ok": True, "usage": _team_usage_cached(team_id)}
         return await api.io(_do)
 
     @app.get("/teams/{team_id}/tasks/{task_id}/usage")

@@ -99,9 +99,11 @@ e = ev(type="chat.recommended", text=json.dumps({"title": "D", "action": "recomm
 check("a card with a hidden number still shows the name", e["message_type"] == "text" and "D" in e["text"], e)
 
 e = ev(type="chat.recommended", text=json.dumps({"title": "Bài viết", "action": "recommened.link", "href": "https://a.vn"}))
-check("a shared link is not a card", e["message_type"] == "other", e["message_type"])
+# A shared link is read as a link card (title + link), never as a contact card.
+check("a shared link is not a contact card", e["message_type"] == "text" and "[Danh thiếp]" not in e["text"]
+      and "https://a.vn" in e["text"], e)
 e = ev(type="chat.recommended", text="https://hoc.example/courses/1")
-check("a plain link stays as it was", e["message_type"] == "other" and e["text"] == "https://hoc.example/courses/1", e)
+check("a plain link reaches the bot as its link", e["message_type"] == "text" and e["text"] == "https://hoc.example/courses/1", e)
 e = ev(type="text", text=json.dumps({"phone": "0901234567"}))
 check("a text message that only looks like a card is untouched", '"phone"' in e["text"], e["text"])
 

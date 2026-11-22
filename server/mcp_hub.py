@@ -40,13 +40,19 @@ import mcp_catalog
 import mcp_client
 import mcp_store
 import once_ledger
+import turn_ledger
 import scout
+import code_mode
 import secret_guard
 import skill_router
 import skill_usage
 import team_gate
+import tool_finder
+import tool_images
 import tool_pins
 import tool_result_shaper
+import tool_result_reuse   # 2026-11-17: compact JSON + per-turn repeat references for CLI engines
+import section_select   # 2026-11-18: load the parts of a long menu-style skill a task needs
 import tool_result_tools
 import turn_context
 from config import STATE_DIR
@@ -189,6 +195,8 @@ def allow_patterns():
 # `naota_team` creates, edits and deletes team chats and writes assistant files: owner-only for the same reason.
 # `naota_watch` makes the server fetch an address on a schedule and message the owner: not a customer's call.
 # `naota_login` opens pages signed in as the owner (login vault): a customer must never browse as them.
+# Its op=browser puts a sign-in into the Playwright browser; `discover_all` then also keeps that
+# browser's own tools away from a bot.
 OWNER_ONLY_TOOLS = frozenset({"naota_reply_policy", "naota_reply_policy_tune", "naota_team", "naota_memory",
                               "naota_watch", "naota_login",
                               # changes which notices reach the owner. A customer must never mute the owner.
@@ -207,6 +215,9 @@ OWNER_ONLY_TOOLS = frozenset({"naota_reply_policy", "naota_reply_policy_tune", "
                               # tìm và đọc web. Bot nói chuyện với khách lạ không được biến
                               # máy chủ của chủ thành máy đi đọc web hộ bất kỳ ai nhắn tới.
                               "naota_web_search", "naota_web_fetch",
+                              # 2026-11-19 (PR 1554 review): list, read and message EVERY customer of the shop. A
+                              # stranger chatting with a bot must never read other customers' chats or write to them.
+                              "inbox_find", "inbox_reply",
                               # 2026-11-05 audit: adds an MCP server to the store EVERY brain shares and dials it
                               # at once. A customer must never plant a server in the owner's tool list.
                               "naota_add_mcp"})
@@ -314,7 +325,8 @@ def result_size_stats(days: int = 7, top: int = 10) -> dict:
     less than `days`; `since` says how far it goes."""
     days = max(1, min(90, int(days or 7)))
     cutoff = (datetime.now() - timedelta(days=days)).isoformat(timespec="seconds")   # same clock as the log's `ts`
-    counted = tool_result_shaper.MODEL_KINDS | {"raw", "query"}
+    # "repeat": a repeated identical result handed over as a reference (tool_result_reuse, API engines)
+    counted = tool_result_shaper.MODEL_KINDS | {"raw", "query", "repeat", "sections"}
     total = {"calls": 0, "raw_chars": 0, "sent_chars": 0, "stored": 0, "over_cap": 0}
     by_tool, since = {}, ""
     for path in (_SIZES_PATH.with_suffix(".jsonl.1"), _SIZES_PATH):
@@ -427,6 +439,9 @@ def _shape_and_log(text, fn, conn, tool, scope):
 # use it, and a line costs far less per turn than listing the whole tool.
 SCOUT_HINT = (" naota_scout(task): giao model nền ĐỌC dữ liệu nặng (nhiều nguồn, nhiều trang, kỳ dài) rồi chỉ trả "
               "về kết luận; gọi qua {run}.")
+# Same idea for naota_code (code_mode.py): one line, in English like every new prompt text.
+CODE_MODE_HINT = (" naota_code(code): run a read-only Python script that chains several tool reads and returns only "
+                  "what it prints; call via {run}.")
 
 
 def _shape_view(result, name, scope):
@@ -452,8 +467,11 @@ def _shaped_call(call, ent, fn, scope):
     tool = ent["tool"]
 
     async def _call(args):
-        result = await call(args)
-        if tool_result_shaper.audience() == "":
+        audience = tool_result_shaper.audience()
+        # Inside a model's turn an image the tool returns is saved in this brain and shown in the chat (tool_images).
+        with tool_images.saving_to(scope if audience else "", tool):
+            result = await call(args)
+        if audience == "":
             return result                       # an internal caller: exactly as before, and not measured
         text = result if isinstance(result, str) else str(result)
         if len(text) < tool_result_shaper.MIN_SHAPE_CHARS:
@@ -516,6 +534,9 @@ def _guard(ent, fn, mode):
         if cls == "read":
             result = await mcp_client.call_route({fn: {"spec": ent["spec"], "tool": tool}}, fn, args)
         else:
+            # 16/11/2026: a chat turn that acts outside is marked, so a restart in the middle of it does not run the
+            # whole turn again by itself (turn_ledger.py). A turn that only read things is safe to run again.
+            turn_ledger.mark_acted(str((turn_context.current() or {}).get("session_id") or ""))
             # a Kanban job that runs again must not send, post or order twice (once_ledger.py).
             # Outside a background job this calls straight through.
             result = await once_ledger.run(
@@ -548,6 +569,23 @@ def _guard(ent, fn, mode):
 # ============================================================
 _AMBIENT_TTL = 300          # giây - danh sách connector tài khoản ít đổi, cache rộng
 _ambient_cache = {"ts": 0.0, "servers": [], "refreshing": False}
+
+
+def _outside_plugin_call(fn, call):
+    """A plugin tool whose strongest level is `full` acts outside (sends, posts, orders), like a connector call that
+    is not a read. 16/11/2026, for work that runs again by itself after a restart:
+
+    - a chat turn that calls it is marked, so the turn is not run again as a whole (turn_ledger.py);
+    - a team step records it once per step chain, so the step that runs again does not do it twice (once_ledger.py,
+      the `team:` keys of team_runner.once_key). Kanban jobs keep calling plugin tools straight through, as before.
+
+    The turn is read at CALL time: routes are cached and shared by every turn."""
+    async def _run(args):
+        turn_ledger.mark_acted(str((turn_context.current() or {}).get("session_id") or ""))
+        if once_ledger.current_job().startswith("team:"):
+            return await once_ledger.run(fn, args, call)
+        return await call(args)
+    return _run
 
 
 def _ambient_enabled():
@@ -820,7 +858,8 @@ def _connections_json(include_ambient=False, hidden=None, bo_qua=None, owner_cha
                                   "Code. Model đang chạy bằng API key nên không gọi được. Nói đúng lý do đó, rồi "
                                   "chỉ hai cách: nối nguồn này ở trang Kết nối của Naota (mọi model đều dùng "
                                   "được), hoặc đổi model chat sang Claude Code.")})
-    return json.dumps(out, ensure_ascii=False, indent=1)
+    # Compact: a model reads this list on every engine; indent=1 made a sample list of six connections 17% longer.
+    return json.dumps(out, ensure_ascii=False, separators=(",", ":"))
 
 
 def _skills_dir(vault_root):
@@ -1156,6 +1195,11 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
 
     async def _skill(args):
         name = str((args or {}).get("name") or "").strip()
+        # 2026-11-18 (section_select): a long skill built as a menu loads the parts this task needs; `section` and
+        # `full` fetch more. Every doubt loads the whole skill, as before.
+        want_section = str((args or {}).get("section") or "").strip()
+        want_full = bool((args or {}).get("full"))
+        task = str((args or {}).get("task") or "").strip()
         from improvement_task_skill_scope import current, ScopeUnavailable
         from improvement_blobs import AssetUnavailable
         import sqlite3
@@ -1173,7 +1217,23 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
         if asset is None:
             return ("ERROR: không có skill đó. Skill khả dụng: "
                     + (", ".join(_list_skills(vault_root)) or "(chưa có)"))
-        text = _skill_base_line(vault_root, asset) + asset.text[:60_000]
+        base = _skill_base_line(vault_root, asset)
+        text = base + asset.text[:60_000]
+        _sess = section_select.session_key()
+        if want_section:
+            part = section_select.find_section(asset.text, want_section)
+            if part is None:
+                return (f"ERROR: skill `{asset.slug}` has no section matching '{want_section}'. Its sections: "
+                        + "; ".join(section_select.section_titles(asset.text)))
+            await asyncio.to_thread(section_select.note_fetch, "skill", asset.slug, _sess,
+                                    section_select.resolve_title(asset.text, want_section) or want_section)
+            return base + part
+        if want_full:
+            await asyncio.to_thread(section_select.note_fetch, "skill", asset.slug, _sess, "*")
+        else:
+            picked = await asyncio.to_thread(section_select.for_skill, asset.slug, asset.text, task, None, _sess)
+            if picked:
+                text = base + picked
         # ĐIỂM ĐẾM DUY NHẤT: mọi engine nạp skill qua tool này đều đi ngang đây. Chỉ đếm ở
         # đường THÀNH CÔNG - nhánh trên đã lọc slug sai/skill tắt nên không đếm gõ nhầm.
         # Count the slug verified by the shared reader, not the raw name from the engine.
@@ -1263,9 +1323,12 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
         listing += (f"; …(+{_con_lai} skill nữa không liệt kê ở đây, vẫn nạp được bằng "
                     f"name=<slug> nếu biết tên - xem Naota/index.md)")
     add("naota_use_skill",
-        "Nạp nội dung 1 skill (hướng dẫn chuyên sâu) rồi LÀM THEO. Truyền name=<slug>. "
-        "Skill khả dụng (slug: mô tả): " + (listing or "(chưa có)"),
-        {"name": {"type": "string"}}, ["name"], _skill)
+        "Load a skill (in-depth instructions) and FOLLOW it. Pass name=<slug> and task=<what you are about to do, in a "
+        "few words, in the language of the skill's description: translate the request if needed>; a long skill may "
+        "come back as the parts this task needs, listing the rest: read one with "
+        "section=<title>, or all with full=true. Available skills (slug: description): " + (listing or "(none yet)"),
+        {"name": {"type": "string"}, "task": {"type": "string"}, "section": {"type": "string"},
+         "full": {"type": "boolean"}}, ["name"], _skill)
 
     # `naota_run_command` chỉ hiện khi phiên CÓ thư mục làm việc. Phiên chat thường không thấy
     # nó, nên không có chuyện một câu hỏi bình thường lại gọi được lệnh máy. Mức quyền vẫn do
@@ -1418,7 +1481,9 @@ CORE_CODING_FNS = frozenset({"naota_edit_file", "naota_search_files"})
 # Mô tả nhóm tool nội bộ cho thực đơn lazy. Builtin/plugin không có connector trong
 # mcp_catalog nên không tự có mô tả; thiếu dòng này thì model chỉ thấy "naota (naota, N tool)".
 _LOCAL_GROUP_DESC = {
-    "naota": "skill của brain, danh sách nguồn đang đấu, tiện ích nội bộ",
+    # Cut at 70 characters in the menu. Names what the prompt promises (Kanban work, reminders, team chats) so a
+    # model looking for naota_team knows it sits here and searches, instead of saying it has too many tools.
+    "naota": "việc nền, lịch nhắc, nhóm chat, trợ lý, skill của brain, tiện ích",
     "plugin": "tool do plugin cài thêm",
 }
 
@@ -1517,42 +1582,32 @@ def _connector_menu(pool, ambient=None):
     return "; ".join(parts)
 
 
-def _rank_tools(pool, query, top_k):
-    """Xếp hạng pool theo độ khớp query: khớp cả cụm (+5), đếm từ khoá (+1/từ), boost khi
-    query nhắc thẳng namespace (+3). Trả top_k tool điểm > 0; query rỗng → [] (handler trả menu).
-
-    2026-11-10, two changes so a search stops costing 10,000 to 25,000 characters:
-      - A word found in the tool's own NAME (fn, name, namespace, label) counts twice. Counting every word
-        once favoured whichever description was longest: a search for shop orders came back with the skill
-        loader on top, because its description lists dozens of skills and so contains nearly any word.
-      - A hit that scores under half of the best one is dropped. It was only there because top_k had room."""
-    q = (query or "").strip().lower()
-    if not q:
-        return []
-    terms = set(_WORD_RE.findall(q))
-    scored = []
+def _source_descs(pool):
+    """namespace -> one-line description of the source (catalog, plugin manifest or local group), the same
+    words the connector menu shows. tool_finder reads them to send "doanh thu" to a POS whose tools only
+    speak English."""
+    out = {}
     for t in pool:
-        own = " ".join([str(t.get("fn") or ""), str(t.get("name") or ""),
-                        str(t.get("namespace") or ""), str(t.get("label") or "")]).lower()
-        hay = own + " " + str(t.get("description") or "").lower()
-        score = 5 if q in hay else 0
-        score += sum(1 for w in terms if w in hay)
-        in_name = sum(1 for w in terms if w in own)
-        score += in_name
-        if q == str(t.get("fn") or "").lower() or q == str(t.get("name") or "").lower():
-            score += 100                                   # asked for by exact name: always first
-        ns = str(t.get("namespace") or "").lower()
-        if ns and ns in q:
-            score += 3
-        if score > 0:
-            scored.append((score, t, in_name))
-    scored.sort(key=lambda x: x[0], reverse=True)
-    if scored:
-        floor = scored[0][0] / 2
-        # ...unless the tool's own name carries two of the words asked for: that is a real match even when
-        # another tool's description happens to contain the whole phrase and takes the top score.
-        scored = [x for x in scored if x[0] >= floor or x[2] >= 2]
-    return [t for _s, t, _n in scored[:top_k]]
+        ns = t.get("namespace") or t.get("server") or "?"
+        if ns in out:
+            continue
+        con = mcp_catalog.get(t.get("connector_id")) or {}
+        out[ns] = (str(con.get("description") or "").strip() or str(t.get("group_desc") or "").strip()
+                   or _LOCAL_GROUP_DESC.get(ns, ""))
+    return out
+
+
+def _rank_tools(pool, query, top_k, index=None):
+    """Tools of `pool` that match `query`, best first, at most top_k; [] for an empty query or no match.
+
+    2026-11-19: ranking moved to tool_finder (concepts in Vietnamese and English, BM25, named sources,
+    spelling). The word count it replaces found the right tool for 20 of 55 everyday requests on a real
+    brain; see tool_finder's docstring for why."""
+    idx = index or tool_finder.Index(pool, _source_descs(pool))
+    res = idx.search(query)
+    if res["browse"]:
+        return []
+    return [t for t, _s in res["hits"][:top_k]]
 
 
 def _hidden_hint(hidden, only_ns=None):
@@ -1583,8 +1638,13 @@ _MO_TA_GON = 400
 # Whole answer of one tool search, in characters. Hits are listed in full (description + schema) while they fit;
 # the rest are named with one line each, and a search by exact name returns the schema of any of them. The best
 # hit is always given in full, whatever its size.
-_SEARCH_BUDGET_CHARS = 9000
+_SEARCH_BUDGET_CHARS = 6000
 _MO_TA_TEN = 160
+# After the top_k hits with arguments, this many more are named with one line each: cheap (about 250
+# characters each) and they turn "not in the list" into "one more search by exact name".
+_THEM_GON = 8
+# One line per tool when a search only names a source and gets the source's whole list.
+_MO_TA_LIET_KE = 90
 
 
 def _tool_chars(t) -> int:
@@ -1615,35 +1675,83 @@ def _lazy_tools_and_route(visible_tools, visible_route, pool, full_route, top_k,
     menu = _connector_menu(pool, ambient)
     by_fn = {t.get("fn"): t for t in pool} if pins_key else {}
 
+    index_box = []
+
+    def _index():
+        # Built on the first search of this tool list, not when the list is built: most turns never search.
+        if not index_box:
+            index_box.append(tool_finder.Index(pool, _source_descs(pool)))
+        return index_box[0]
+
+    def _src(t):
+        return str(t.get("label") or t.get("namespace") or "")
+
+    def _also(group):
+        # The same tool in other accounts of the same kind (three POS shops, three Zalo accounts): named once
+        # under the first, so the list has room for the second and third tool the request needs.
+        return [{"name": t.get("fn"), "source": _src(t)} for t in group[1:]]
+
     async def _search(args):
         q = (args or {}).get("query") or ""
         if pins_key:
             tool_pins.note_search(pins_key)
-        hits = _rank_tools(pool, q, top_k)
+        res = _index().search(q)
         amb = _match_ambient(ambient, q)
+        hits = res["hits"]
         if not hits and not amb:
             hint = _hidden_hint(hidden)
             return ("Không thấy tool khớp. Nguồn đang đấu: " + (menu or "(chưa có nguồn nào)")
-                    + f". Nêu rõ nguồn hoặc việc cần làm rồi gọi lại {_LAZY_SEARCH}."
+                    + f". Gọi lại {_LAZY_SEARCH} với TÊN NGUỒN (liệt kê mọi tool của nguồn đó) hoặc mô tả việc "
+                      "bằng từ khác, tiếng Việt hay tiếng Anh đều được."
                     + (" " + hint if hint else ""))
         payload = {}
-        hint = _hidden_hint(hidden, {t.get("namespace") for t in hits})
+        hint = _hidden_hint(hidden, {t.get("namespace") for t, _s in hits})
         if hint:
             payload["luu_y_quyen"] = hint
-        if hits:
+        if res["browse"]:
+            # The request named a source and nothing to do with it: list what that source has, by name, so
+            # the next search (or the run) can ask for the exact one.
+            labels = sorted({_src(t) for t, _s in hits})
+            listing, used = [], 0
+            for group in tool_finder.group_hits(hits):
+                t = group[0]
+                d = " ".join(str(t.get("description") or "").split())
+                item = {"name": t.get("fn"), "description": d[:_MO_TA_LIET_KE]}
+                if len(group) > 1:
+                    item["same_tool_in"] = _also(group)
+                size = len(json.dumps(item, ensure_ascii=False))
+                if used + size > _SEARCH_BUDGET_CHARS:
+                    item = {"name": t.get("fn")}
+                    size = len(t.get("fn") or "") + 12
+                    if used + size > _SEARCH_BUDGET_CHARS + 1500:
+                        break
+                listing.append(item)
+                used += size
+            payload["source_tools"] = listing
+            payload["source_note"] = (f"Mọi tool của {', '.join(labels)} ({len(listing)}/{len(hits)} nhóm). Gọi "
+                                      f"{_LAZY_SEARCH} với đúng tên một tool để lấy tham số của nó.")
+        elif hits:
             # Mô tả ĐẦY ĐỦ cho vài kết quả đầu, gọn cho phần còn lại. Cắt đồng loạt 400 ký tự
             # từng nuốt mất thông tin sống còn: mô tả COMPOSIO_SEARCH_TOOLS ghi "User has
             # manually connected the apps: gmail, googlecalendar..." ở quãng ký tự 1000, nên
             # model không bao giờ biết người dùng đã nối những app nào.
             full, brief, used = [], [], 0
-            for i, t in enumerate(hits):
-                item = {"name": t.get("fn"),
+            groups = tool_finder.group_hits(hits)
+            for i, group in enumerate(groups[:top_k + _THEM_GON]):
+                t = group[0]
+                item = {"name": t.get("fn"), "source": _src(t),
                         "description": (t.get("description") or "")[
                             :(_MO_TA_DAY_DU if i < _SO_KQ_DAY_DU else _MO_TA_GON)],
                         "schema": t.get("schema") or {"type": "object", "properties": {}}}
+                if len(group) > 1:
+                    item["same_tool_in"] = _also(group)
                 size = len(json.dumps(item, ensure_ascii=False))
-                if full and (brief or used + size > _SEARCH_BUDGET_CHARS):
-                    brief.append({"name": t.get("fn"), "description": (t.get("description") or "")[:_MO_TA_TEN]})
+                if full and (brief or i >= top_k or used + size > _SEARCH_BUDGET_CHARS):
+                    b = {"name": t.get("fn"), "source": _src(t),
+                         "description": " ".join(str(t.get("description") or "").split())[:_MO_TA_TEN]}
+                    if len(group) > 1:
+                        b["same_tool_in"] = _also(group)
+                    brief.append(b)
                     continue
                 full.append(item)
                 used += size
@@ -1652,6 +1760,24 @@ def _lazy_tools_and_route(visible_tools, visible_route, pool, full_route, top_k,
                 payload["more_tools"] = brief
                 payload["more_tools_note"] = (f"Also match, listed without their arguments. Call {_LAZY_SEARCH} "
                                               "with the exact name to get the schema of one.")
+            rest = tool_finder.group_hits(res.get("rest") or [])
+            shown = {g[0].get("fn") for g in groups[:len(full) + len(brief)]}
+            rest = [g for g in rest if g[0].get("fn") not in shown]
+            if rest:
+                # The request named a small source: the rest of it, one short line each, so a tool the words
+                # missed is still one exact-name search away.
+                payload["rest_of_source"] = [
+                    {"name": g[0].get("fn"),
+                     "description": " ".join(str(g[0].get("description") or "").split())[:_MO_TA_LIET_KE]}
+                    for g in rest]
+            if res["other"]:
+                payload["other_sources"] = [
+                    {"name": t.get("fn"), "source": _src(t),
+                     "description": " ".join(str(t.get("description") or "").split())[:_MO_TA_TEN]}
+                    for t, _s in res["other"]]
+            if any(len(g) > 1 for g in groups[:len(full) + len(brief)]):
+                payload["tai_khoan"] = ("Tool có same_tool_in tồn tại ở nhiều tài khoản/nguồn cùng loại. Chọn "
+                                        "đúng tài khoản người dùng nói tới; chưa rõ thì hỏi lại, đừng đoán.")
             payload["goi_the_nao"] = (f"Gọi tool bằng {_LAZY_RUN}(name=<name>, args={{...}}). "
                                      "Nếu cổng làm mất khoá trong args, dùng args_json là chuỗi JSON object thay args.")
         if amb:
@@ -1688,8 +1814,26 @@ def _lazy_tools_and_route(visible_tools, visible_route, pool, full_route, top_k,
         if name in (_LAZY_SEARCH, _LAZY_RUN):
             return f"ERROR: '{name}' là meta-tool, không gọi qua {_LAZY_RUN}."
         if name not in full_route:
-            return (f"ERROR: không có tool '{name}'. Dùng {_LAZY_SEARCH} để lấy đúng tên "
-                    "(phải khớp y hệt kết quả tìm).")
+            # A name without its source prefix ("zalo_get_history") or with a typo used to end here with
+            # "search again". When exactly one tool of this list carries that name, it is the one meant;
+            # otherwise name the candidates so the next call is the right one, not another search.
+            listed = {t.get("fn") for t in pool} | set(visible_route)
+            near = [f for f in tool_finder.suggest_names(name, [f for f in full_route if f in listed or not pool])
+                    if f not in (_LAZY_SEARCH, _LAZY_RUN)]
+            # Only auto-match a bare name without a namespace prefix; an explicit "ns__tool" must never
+            # silently dispatch to another account or connector.
+            same_tail = ([] if "__" in name else
+                         [f for f in near if f.lower().split("__")[-1] == name.lower().split("__")[-1]])
+            if len(same_tail) == 1:
+                name = same_tail[0]
+            else:
+                if near:
+                    src = {t.get("fn"): str(t.get("label") or t.get("namespace") or "") for t in pool}
+                    opts = "; ".join(f"{f}" + (f" ({src[f]})" if src.get(f) else "") for f in near)
+                    return (f"ERROR: không có tool '{name}'. Gần nhất: {opts}. Gọi lại {_LAZY_RUN} với đúng một "
+                            "tên ở trên (chọn đúng tài khoản người dùng nói tới).")
+                return (f"ERROR: không có tool '{name}'. Dùng {_LAZY_SEARCH} để lấy đúng tên "
+                        "(phải khớp y hệt kết quả tìm).")
         if name in by_fn:
             # One call that needed a search round first: the count that earns a tool its pin (tool_pins).
             tool_pins.note_run(pins_key, name, _tool_chars(by_fn[name]))
@@ -1727,7 +1871,9 @@ def _lazy_tools_and_route(visible_tools, visible_route, pool, full_route, top_k,
                                   f"tham số tool để gọi tiếp qua {_LAZY_RUN}; nếu khớp nguồn tài khoản "
                                   "Claude thì trả hướng dẫn gọi thẳng tool native mcp__<tên>__*."
                                   + (SCOUT_HINT.format(run=_LAZY_RUN)
-                                     if any(t.get("fn") == scout.TOOL for t in pool) else "")),
+                                     if any(t.get("fn") == scout.TOOL for t in pool) else "")
+                                  + (CODE_MODE_HINT.format(run=_LAZY_RUN)
+                                     if any(t.get("fn") == code_mode.TOOL for t in pool) else "")),
                   "schema": {"type": "object", "properties": {
                       "query": {"type": "string",
                                 "description": "Việc cần làm / nguồn / từ khoá, vd 'doanh thu POS hôm nay'"}},
@@ -1923,9 +2069,15 @@ async def discover_all(mode="full", vault_root=None, include_plugins=True, inclu
 
     tools_spec, route = [], {}
     hidden = {}          # conn_id -> {"perm", "ns", "tools"} - tool CÓ THẬT nhưng bị quyền lọc
+    # Once the browser has held one of the owner's sign-ins (naota_login op=browser), a customer bot
+    # gets no tool of that browser connection at all: whoever drives it browses as the owner.
+    import browser_login
+    owner_browser = for_bot and browser_login.in_use()
     for t in raw_tools:
         raw = raw_route.get(t["fn"])
         if not raw:
+            continue
+        if owner_browser and browser_login.is_browser_spec(raw.get("spec")):
             continue
         conn = raw["conn"]
         connector = mcp_catalog.get(conn.get("connector_id"))
@@ -1974,6 +2126,13 @@ async def discover_all(mode="full", vault_root=None, include_plugins=True, inclu
         q_entry["full_route"] = query_route      # every route behind the tool search too (job_recipes.replay)
         tools_spec.append(q_spec)
         route[q_spec["fn"]] = q_entry
+        # naota_code: a read-only script that chains several reads and returns only what it prints (code_mode.py).
+        # Same reach as naota_query (declared reads only, through the guarded routes), but it runs code the model
+        # wrote, so never for a customer bot.
+        if code_mode.enabled() and not for_bot:
+            c_spec, c_entry = code_mode.build(query_route, str(vault_root or ""))
+            tools_spec.append(c_spec)
+            route[c_spec["fn"]] = c_entry
     # naota_scout: a read-only run on the background model that returns only its findings (scout.py). Never for a
     # customer bot (it starts a run on the owner's background model), and absent when no runner is configured.
     # Not in OWNER_ONLY_TOOLS on purpose: that set lists tools every owner session HAS, and this one is optional.
@@ -1995,6 +2154,8 @@ async def discover_all(mode="full", vault_root=None, include_plugins=True, inclu
                     continue
                 tools_spec.append(t)
                 route[fn] = p_route[fn]
+                if route[fn].get("effect") == "danger" and route[fn].get("call"):
+                    route[fn]["call"] = _outside_plugin_call(fn, route[fn]["call"])
         # HOOK pre/post_tool_call: bọc MỌI tool call (chỉ khi có plugin đăng ký hook → 0 overhead khi không).
         if plugins_host.has_tool_hooks(vault_root):
             for fn in list(route):
@@ -2124,6 +2285,17 @@ def bo_cache_phien(sid: str) -> int:
     return len(bo)
 
 
+def drop_bot_cache() -> int:
+    """Forget the tool lists built for customer bots, so the next bot turn builds its list again. Called when the
+    browser first takes one of the owner's sign-ins (browser_login.py): a bot must lose that browser now, not when
+    the cache ages out. Unlike `invalidate_cache` this closes no session: the browser that was just signed in
+    keeps running. The key's tenth field is `for_bot` (see `discover_all`). Returns how many entries went."""
+    gone = [k for k in list(_cache) if isinstance(k, tuple) and len(k) > 9 and k[9] is True]
+    for k in gone:
+        _cache.pop(k, None)
+    return len(gone)
+
+
 def invalidate_cache():
     """Gọi sau khi thêm/sửa/xoá connection - làm mới tool list + đóng session cũ."""
     global _cache_epoch
@@ -2132,13 +2304,35 @@ def invalidate_cache():
     _STORE_MTIME.drop()
     _ambient_cache["ts"] = 0.0   # ép nạp lại danh sách connector tài khoản ở lần discover kế
     try:
+        keep = _single_socket_unchanged()
         for c in mcp_store.list_connections():
+            if c["id"] in keep:
+                continue
             # A session still in its first package download is closed as soon as its handshake
             # is over, not now: killing it mid-install leaves a half-installed npx folder that npx
             # reuses forever. The new credentials or the disabled state apply right after.
             mcp_client.pool.invalidate(c["id"], defer_if_starting=True)
     except Exception:
         pass
+
+
+def _single_socket_unchanged() -> set:
+    """Ids of live sessions that `invalidate_cache` leaves running: an account connector holding ONE live socket per
+    account (catalog `isolate_home`, i.e. personal Zalo), still enabled, its session started with exactly the spec it
+    has now. Signing in a second Zalo account used to restart the first one's naota-zalo two or three times (sign-in,
+    status poll, companion pack), and every restart is a fresh Zalo login during which messages are missed. A real
+    change still restarts it: a new spec makes `SessionPool._get` replace the session, a disabled connection is not in
+    the list, and a re-login closes the session itself (`/connect/relogin`)."""
+    keep = set()
+    try:
+        for r in mcp_store.resolved(enabled_only=True):
+            if (r.get("transport") or "") == "stdio" and (r.get("connector") or {}).get("isolate_home") \
+                    and mcp_client.pool.holds_spec(mcp_client._conn_spec(r)):
+                keep.add(r["id"])
+    except Exception as e:      # noqa: BLE001 - unsure means restart, as before
+        print(f"[mcp_hub] invalidate_cache keep: {type(e).__name__}: {e}", file=sys.stderr)
+        return set()
+    return keep
 
 
 # ============================================================
@@ -2328,11 +2522,14 @@ async def _handle_one(msg, mode, include_plugins=True, include_ambient=False, va
     method = msg.get("method") or ""
     params = msg.get("params") or {}
     if method == "initialize":
-        return {"jsonrpc": "2.0", "id": mid, "result": {
-            "protocolVersion": params.get("protocolVersion") or mcp_client.PROTOCOL,
-            "capabilities": {"tools": {}},
-            "serverInfo": {"name": "naota-hub", "version": "1.0"},
-        }}
+        res = {"protocolVersion": params.get("protocolVersion") or mcp_client.PROTOCOL,
+               "capabilities": {"tools": {}},
+               "serverInfo": {"name": "naota-hub", "version": "1.0"}}
+        if gate is not None:
+            # Naota Gate (20/11/2026): tells a coding agent to offer Naota Sync, so connecting Gate is the whole setup.
+            import chat_bridge
+            res["instructions"] = chat_bridge.GATE_INSTRUCTIONS
+        return {"jsonrpc": "2.0", "id": mid, "result": res}
     if method.startswith("notifications/"):
         return None
     if method == "ping":
@@ -2371,7 +2568,8 @@ async def _handle_one(msg, mode, include_plugins=True, include_ambient=False, va
             import chat_bridge
             if name in chat_bridge.TOOLS:
                 result = await chat_bridge.goi_tool(name, params.get("arguments") or {}, mode,
-                                                    (gate or {}).get("source") or "")
+                                                    (gate or {}).get("source") or "",
+                                                    base_url=str((gate or {}).get("base_url") or ""))
                 return {"jsonrpc": "2.0", "id": mid, "result": {
                     "content": [{"type": "text", "text": result}],
                     "isError": result.startswith("ERROR:"),
@@ -2381,6 +2579,8 @@ async def _handle_one(msg, mode, include_plugins=True, include_ambient=False, va
                                       **({"tool_allowlist": tool_allowlist} if tool_allowlist is not None else {}))
         with tool_result_shaper.for_model():
             result = str(await mcp_client.call_route(route, name, params.get("arguments") or {}))
+        # A CLI engine's tool loop is out of Naota's sight: compact JSON and per-turn repeat references happen here.
+        result = tool_result_reuse.lean_for_cli(result, name, params.get("arguments") or {})
         ghi_chu = _ghi_chu_brain(vault_nguon, vault_root, vault_header_hong)
         if ghi_chu:
             result += "\n\n" + ghi_chu
@@ -2432,7 +2632,10 @@ async def handle_http(request):
     # that turn issued; the header names nobody by itself, so a forged or stale key is just None.
     # ALWAYS bind, even to None: this request must never inherit a turn from whatever context
     # the server happens to run it in.
-    tok = turn_context.bind(turn_context.resolve_key(request.headers.get(turn_context.HEADER.lower())))
+    turn_key = request.headers.get(turn_context.HEADER.lower())
+    tok = turn_context.bind(turn_context.resolve_key(turn_key))
+    # The same key names this turn's record of repeated results (tool_result_reuse, CLI engines).
+    reuse_tok = tool_result_reuse.HUB_TURN.set(tool_result_reuse.turn_id_for_key(turn_key))
     # CLI engines also load skills natively from `.claude/skills`; an improvement overlay served only
     # through this tool would split one turn across two versions, so these requests see canonical skills.
     import improvement_activation
@@ -2443,6 +2646,7 @@ async def handle_http(request):
                                          raw_vault=request.headers.get("x-naota-vault"), for_bot=for_bot,
                                          **({"tool_allowlist": tool_allowlist} if tool_allowlist is not None else {}))
     finally:
+        tool_result_reuse.HUB_TURN.reset(reuse_tok)
         turn_context.reset(tok)
 
 

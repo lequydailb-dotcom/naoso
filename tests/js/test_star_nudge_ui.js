@@ -57,12 +57,12 @@ check("bước đăng nhập nhắc Continue with Google", /Continue with Google
 check("bước 2 nói đúng vị trí theo thiết bị", /dt \? "star\.step2_dt" : "star\.step2"/.test(SN));
 check("số sao đọc từ server, không viết cứng", /phanSo\(d\.count\)/.test(SN) && !/\b286\b/.test(SN));
 
-// 4. Linh vật là ngôi sao của linh vật Naota (NAOTA 1.0.0: logo thành chữ N, sao lấy từ pet.js)
+// 4. Linh vật là linh vật Naota: ô vuông bo góc của pet.js (từ 1.60.0, cùng dáng logo NAOTA; trước đó là ngôi sao)
 const PET = rd("dashboard/pet.js");
-const saoPet = (PET.match(/star:\s+\{ key: "pet\.shape\.star",\s+d: "([^"]+)"/) || [])[1];
+const saoPet = (PET.match(/square:\s+\{ key: "pet\.shape\.square",\s+d: "([^"]+)"/) || [])[1];
 const saoThe = (SN.match(/var SAO_NAOTA = ([\s\S]*?);\n/) || [])[1];
 const noiChuoi = saoThe ? saoThe.replace(/"\s*\+\s*"/g, "").replace(/^"|"$/g, "").trim() : "";
-check("đường hình sao trùng ngôi sao của linh vật", !!saoPet && noiChuoi === saoPet, noiChuoi.slice(0, 40));
+check("dáng linh vật trùng ô vuông của linh vật pet.js", !!saoPet && noiChuoi === saoPet, noiChuoi.slice(0, 40));
 check("màu thân và viền theo bảng Nắng (vàng thương hiệu)", /fill: #FCCB1D/.test(CSS) && /stroke: #F6E27E/.test(CSS));
 
 // 5. Chữ đủ to cho điện thoại, có chừa cho người tắt chuyển động

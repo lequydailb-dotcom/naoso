@@ -52,4 +52,13 @@ assert pet["size"] == "rat_lon" and pet["eyeSize"] == "to", pet
 pet = luu({"color": 'red"><script>', "eyeColor": "#12345", "size": True, "palette": "<b>"})
 assert pet["color"] == "#fa4f05" and pet["eyeColor"] == "#2a62b0", pet
 assert pet["size"] == "rat_lon" and pet["palette"] == "custom", pet
+# Đời bộ mặc định của linh vật (pet.js LOOK, 1.60.0): chỉ nhận số nguyên nhỏ.
+pet = luu({"look": 2})
+assert pet["look"] == 2, pet
+pet = luu({"look": "2"})
+assert pet["look"] == 2, pet
+pet = luu({"look": True})
+assert pet["look"] == 2, pet
+pet = luu({"look": 500})
+assert pet["look"] == 2, pet
 print("OK - pet settings: slider numbers, custom colors, clamping, legacy keys, junk rejection")

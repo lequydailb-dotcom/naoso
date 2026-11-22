@@ -83,7 +83,12 @@
   var _info = (function () { try { return localStorage.getItem(INFO_KEY) === "1"; } catch (e) { return false; } })();
   var _msheet = false;      // the phone's "who replies" sheet is open
   var _aiBusy = "";         // "ask" | "redo" | "send" | "now" while the A.I. writes or a draft goes out
+  // While the A.I. writes ("ask" / "redo"): the stage the server last reported, when it started, the order it got, and
+  // the one-second ticker that keeps the seconds and the stage line moving without redrawing the thread.
+  var _aiWork = null;       // {stage, start, order, conv}
+  var _aiTick = null;
   var _draftEdit = null;    // {ts, text}: the owner's edits to the waiting draft, kept across the 5-second redraws
+  var _draftLearn = null;   // {ts, on}: the owner's "Bot học câu này" tick on the waiting draft, kept the same way
   var _noteEdit = null;     // {id, text}: the note being typed in the Info panel, same reason
   var _toastT = null;
   var _tags = [];           // the owner's inbox tags [{id, name, color, count}], from the list endpoint
@@ -106,7 +111,9 @@
   var _cho = null;          // bộ lọc / tab chờ áp khi trang mở từ nơi khác (nút trên thẻ bot)
   var _dangGui = false;
 
-  var ic = function (n) { return window.ic ? window.ic(n) : ""; };
+  // Options pass through ({cls: "ic-spin"}): before 2026-11-18 they were dropped, so every "loader" here stood still.
+  var ic = function (n, o) { return window.ic ? window.ic(n, o) : ""; };
+  var spin = function () { return ic("loader", { cls: "ic-spin" }); };
   var LOC = function () { return (window.NaotaI18n && NaotaI18n.locale()) || "vi-VN"; };
 
   function esc(s) {
@@ -705,7 +712,7 @@
       // Hỏi Zalo một số có thể mất vài giây: người dùng đã gõ tiếp thì kết quả này cũ, không được đè lên kết quả mới hơn.
       if (hoi !== _q) return;
       if (!im || d.phone_lookup) veSdt(d.phone_lookup, false);
-      var dau = d.items || [];
+      var dau = (d.items || []).filter(function (it) { return !_gone[it.id]; });
       var duoi = im ? _items.slice(soDong) : [];       // phần đã tải sâu hơn nhịp hỏi: giữ nguyên
       _items = dau.concat(duoi);
       if (!duoi.length) _conDS = dau.length >= soDong;
@@ -1091,6 +1098,8 @@
     if (act === "copy") return menuCopy(id);
     if (act === "profile") { closeRowMenu(false); return showProfile(id); }
     if (act === "block") return menuBlock(id);
+    if (act === "unblock") return menuUnblock(id);
+    if (act === "leave") return menuLeave(id);
     if (act === "delete") return menuDelete(id);
     runRowAction(id, act);
   }
@@ -1138,10 +1147,20 @@
   // ---- View profile, Block, Delete ----
   function convName(c) { return (c && (c.title || c.customer_name || c.external_chat_id)) || ""; }
 
+  // The row in the list and the open chat are two objects: a Block, Unblock or Leave run from either place (the "..."
+  // menu or Info) is copied onto the other, and the open chat redraws its header and Info at once.
+  function syncOpen(id, c) {
+    if (!_conv || _conv.id !== id) return;
+    if (_conv !== c) { _conv.metadata = c.metadata; _conv.mode = c.mode; _conv.hidden = c.hidden; }
+    boCache(id);
+    _dauVetTin = "";
+    veThread();
+  }
+
   async function showProfile(id) {
     var c = rmItem(id) || (_conv && _conv.id === id ? _conv : null) || { id: id };
     var box = el('<div class="ht-modal"><div class="ht-form ht-prof" role="dialog" aria-label="' + esc(window.t("ht.rm_profile")) + '">' +
-      '<div class="ht-prof-body">' + ic("loader") + ' ' + esc(window.t("ht.prof_loading")) + '</div>' +
+      '<div class="ht-prof-body">' + spin() + ' ' + esc(window.t("ht.prof_loading")) + '</div>' +
       '<div class="ht-form-acts"><button class="s-btn-ghost ht-close" type="button">' + esc(window.t("common.close")) + '</button></div>' +
       '</div></div>');
     document.body.appendChild(box);
@@ -1169,15 +1188,70 @@
     var c = rmItem(id);
     if (!c) return closeRowMenu(false);
     closeRowMenu(false);
-    if (!confirm(window.t(window.NaotaConvFilters.chatKind(c) === "zalo_private" ? "ht.block_q_zalo" : "ht.block_q_fb", { ten: convName(c) }))) return;
+    var F = window.NaotaConvFilters, k = F.chatKind(c), remote = F.platformActs(c).indexOf("block") >= 0;
+    var q = !remote ? "ht.block_q_local" : k === "zalo_private" ? "ht.block_q_zalo" : "ht.block_q_fb";
+    if (!confirm(window.t(q, { ten: convName(c) }))) return;
     try {
       await api("/conversations/" + id + "/block", { method: "POST" });
       c.metadata = Object.assign({}, c.metadata || {}, { blocked: true });
       c.mode = "human";
-      alert(window.t("ht.blocked", { ten: convName(c) }));
+      c.hidden = 1;
+      if (!_q) _items = _items.filter(function (it) { return it.id !== id || _statusLoc === "hidden"; });
+      syncOpen(id, c);
+      alert(window.t(remote ? "ht.blocked" : "ht.blocked_local", { ten: convName(c) }));
     } catch (e) { alert(window.t("ht.rm_err", { err: e.message })); }
     _dauVet = "";
+    veDanhSach();
     tai(true);
+  }
+
+  async function menuUnblock(id) {
+    var c = rmItem(id);
+    if (!c) return closeRowMenu(false);
+    closeRowMenu(false);
+    if (!confirm(window.t("ht.unblock_q", { ten: convName(c) }))) return;
+    try {
+      var d = await api("/conversations/" + id + "/unblock", { method: "POST" });
+      var md = Object.assign({}, c.metadata || {});
+      delete md.blocked;
+      c.metadata = md;
+      c.hidden = 0;
+      if (d && d.conversation) c.mode = d.conversation.mode;
+      if (!_q && _statusLoc === "hidden") _items = _items.filter(function (it) { return it.id !== id; });
+      syncOpen(id, c);
+    } catch (e) { alert(window.t("ht.rm_err", { err: e.message })); }
+    _dauVet = "";
+    veDanhSach();
+    tai(true);
+  }
+
+  // A chat removed for good (Delete, or leaving its group): out of the list, the open chat and the quick-return cache.
+  // `_gone` keeps it out of a list answer that was already on its way when the delete went through (the 5-second
+  // refresh, or a request merged with one sent just before): without it the row came back until the next refresh.
+  var _gone = {};
+  function dropConv(id) {
+    _gone[id] = true;
+    _items = _items.filter(function (it) { return it.id !== id; });
+    if (_chon === id) dongThread();
+    boCache(id);
+    if (_conv && _conv.id === id) _conv = null;      // never the fallback of a later menu action
+    _dauVet = "";
+    veDanhSach();
+    tai(true);
+  }
+
+  // Leaving a group also removes its chat from Naota; the question says so before it happens.
+  async function menuLeave(id) {
+    var c = rmItem(id);
+    if (!c) return closeRowMenu(false);
+    closeRowMenu(false);
+    var ten = convName(c);
+    if (!confirm(window.t("ht.leave_q", { ten: ten }))) return;
+    try {
+      await api("/conversations/" + id + "/leave", { method: "POST" });
+    } catch (e) { return alert(window.t("ht.rm_err", { err: e.message })); }
+    dropConv(id);
+    toast(window.t("ht.left", { ten: ten }));
   }
 
   async function menuDelete(id) {
@@ -1188,16 +1262,13 @@
     var q = k === "fb_comment" ? "ht.del_q_fbc" : k === "ig_comment" ? "ht.del_q_igc" : k === "threads_comment" ? "ht.del_q_thc" :
       remote ? "ht.del_q_zalo" :
       (k === "messenger_dm" || k === "ig_dm") ? "ht.del_q_meta" : "ht.del_q_local";
-    if (!confirm(window.t(q, { ten: convName(c) }))) return;
+    var ten = convName(c);
+    if (!confirm(window.t(q, { ten: ten }))) return;
     try {
       await api("/conversations/" + id + "/delete", { method: "POST" });
     } catch (e) { return alert(window.t("ht.rm_err", { err: e.message })); }
-    _items = _items.filter(function (it) { return it.id !== id; });
-    if (_conv && _conv.id === id) dongThread();
-    boCache(id);
-    _dauVet = "";
-    veDanhSach();
-    tai(true);
+    dropConv(id);
+    toast(window.t("ht.deleted", { ten: ten }));
   }
 
   async function menuToggleTag(convId, tagId, btn) {
@@ -1401,7 +1472,7 @@
     var c = _conv || {}, u = _msgs[_msgs.length - 1] || {};
     return JSON.stringify([c.id, c.mode, c.bot_id, c.bot_name, c.title, c.customer_name, c.channel, c.chat_type, c.account_name,
       c.tags || [], c.contact || "", c.note || "", c.profile_at || 0, c.who, c.who_code, c.ai_allowed, c.ai_pending, c.draft || null, c.reply_when,
-      c.yield_min, _silence, _running, u.sender_type]);
+      c.yield_min, !!(c.metadata && c.metadata.blocked), !!(c.metadata && c.metadata.left), _silence, _running, u.sender_type]);
   }
 
   // Chèn tin mới vào cuối khung, trước dòng "Bot im" nếu có. Đang ở đáy thì trượt theo tin mới; đang đọc tin cũ thì đứng yên.
@@ -1552,7 +1623,17 @@
     if (dt) {
       var dr = c.draft || {};
       if (_draftEdit && _draftEdit.ts === dr.ts) dt.value = _draftEdit.text;
-      dt.oninput = function () { _draftEdit = { ts: dr.ts, text: dt.value }; };
+      // "Bot học câu này": shown when the draft carries the owner's order or the owner rewrote it (a person decided).
+      var lc = box.querySelector(".ib-dr-learn-c"), ll = box.querySelector(".ib-dr-learn");
+      var showLearn = function () {
+        if (ll) ll.hidden = !(String(dr.instruction || "").trim() || dt.value.trim() !== String(dr.text || "").trim());
+      };
+      if (lc) {
+        if (_draftLearn && _draftLearn.ts === dr.ts) lc.checked = _draftLearn.on;
+        lc.onchange = function () { _draftLearn = { ts: dr.ts, on: lc.checked }; };
+      }
+      showLearn();
+      dt.oninput = function () { _draftEdit = { ts: dr.ts, text: dt.value }; showLearn(); };
       if (suaDo) dt.focus();
       box.querySelector(".ib-dr-drop").onclick = function () { dropDraft(c); };
       box.querySelector(".ib-dr-redo").onclick = function () { aiReply(c, dr.instruction || "", "redo"); };
@@ -1687,7 +1768,7 @@
         '<div class="ht-tagrow"></div>' + (prof ? "" : noteBox) + '</div>' +
       profSec + ai +
       '<div class="ib-sec"><h4>' + ic("plug") + ' ' + esc(t("ib.i_channel")) + '</h4><div class="ib-line">' + logoKenh(c.channel) + ' <span>' +
-        esc(k.nhan) + (accLabel(c) ? ' · ' + esc(accLabel(c)) : "") + '</span></div></div>';
+        esc(k.nhan) + (accLabel(c) ? ' · ' + esc(accLabel(c)) : "") + '</span></div></div>' + infoActsHtml(c);
     veTagRow();
     var note = p.querySelector(".ib-notebox");
     note.value = _noteEdit && _noteEdit.id === c.id ? _noteEdit.text : (c.note || "");
@@ -1705,6 +1786,24 @@
     };
     var mk = p.querySelector(".ib-make-bot");
     if (mk) mk.onclick = function () { makeBot(c); };
+    p.querySelectorAll(".ib-acts .ht-rm-it").forEach(function (b) {
+      b.onclick = function () {
+        var act = b.dataset.act;
+        if (act === "block") menuBlock(c.id);
+        else if (act === "unblock") menuUnblock(c.id);
+        else if (act === "leave") menuLeave(c.id);
+        else if (act === "delete") menuDelete(c.id);
+      };
+    });
+  }
+
+  // Block / Unblock, Leave group, Delete at the foot of Info: the rows of the "..." menu (same labels, same second line
+  // saying whether it also happens on Zalo or the Page), run by the same functions. Plain buttons here, not menu items.
+  function infoActsHtml(c) {
+    var F = window.NaotaConvFilters;
+    var items = F && F.infoActItems ? F.infoActItems(c) : [];
+    if (!items.length) return "";
+    return '<div class="ib-sec ib-acts">' + F.rowMenuHtml(items, ic).replace(/ role="menuitem[a-z]*"/g, "") + '</div>';
   }
 
   async function saveNote(id) {
@@ -2048,17 +2147,26 @@
   // ORDER for the A.I. ("quote 20 cases wholesale, delivery Thursday"); an empty box lets it read the chat and write on its
   // own. The answer is always a draft in the dashed box (kept on the server), never sent by itself. "Rewrite" asks again
   // with the same order.
+  // A draft takes many seconds (the bot's whole turn: documents, the photo, the model). Owner 2026-11-18: with only a
+  // still button "khách hàng sốt ruột không biết có bị lỗi hay không". So the draft box becomes a live "A.I. is writing"
+  // box: what it is doing now (streamed by the server), the seconds so far, moving lines, and a calm word when it runs long.
   async function aiReply(c, lenh, kind) {
     if (_aiBusy) return;
     _aiBusy = kind;
     _actNote = null;
+    _aiWork = { stage: "", start: Date.now(), order: lenh || "", conv: c.id };
+    startAiTick();
     veThread();
     var d = {}, loi = "";
     try {
-      var r = await fetch("/conversations/" + c.id + "/ai-reply", { method: "POST", body: fd({ mode: "draft", instruction: lenh || "" }) });
-      try { d = await r.json(); } catch (e) { d = {}; }
-      if (!r.ok || d.ok === false) loi = (d && d.error) || window.t("cb.loi_ma", { ma: r.status });
+      var r = await fetch("/conversations/" + c.id + "/ai-reply", { method: "POST", body: fd({ mode: "draft", instruction: lenh || "", stream: "1" }) });
+      var res = await readAiStream(r, function (ev) {
+        if (ev.type === "stage" && _aiWork && ev.stage) { _aiWork.stage = String(ev.stage); paintAiWork(); }
+      });
+      d = res.body || {};
+      if (res.status !== 200 || d.ok === false) loi = (d && d.error) || window.t(res.lost ? "ib.aiw_lost" : "cb.loi_ma", { ma: res.status });
     } catch (e) { loi = e.message; }
+    stopAiTick();
     _aiBusy = "";
     if (!loi && !d.silent) {
       _draftEdit = null;
@@ -2068,15 +2176,70 @@
     refreshChat();
   }
 
+  // The streamed answer of /ai-reply (stream=1): `data:` lines of {type: "stage"} while it works, then one {type: "done",
+  // status, body}. Returns {status, body, lost}; `lost` = the stream ended without its answer (the connection dropped,
+  // the draft may still land with the next refresh). A server without streaming answers plain JSON: read that as is.
+  async function readAiStream(r, onEvent) {
+    var ct = (r.headers && r.headers.get("content-type")) || "";
+    if (ct.indexOf("text/event-stream") < 0 || !r.body || !r.body.getReader) {
+      var d = {};
+      try { d = await r.json(); } catch (e) { d = {}; }
+      return { status: r.status, body: d, lost: false };
+    }
+    var rd = r.body.getReader(), dec = new TextDecoder(), buf = "", fin = null;
+    var take = function (block) {
+      if (block.indexOf("data: ") !== 0) return;
+      var ev;
+      try { ev = JSON.parse(block.slice(6)); } catch (e) { return; }
+      if (ev && ev.type === "done") fin = ev;
+      else if (ev) { try { onEvent(ev); } catch (e) { /* a paint error must not end the read */ } }
+    };
+    for (;;) {
+      var x = await rd.read();
+      if (x.done) break;
+      buf += dec.decode(x.value, { stream: true });
+      var i;
+      while ((i = buf.indexOf("\n\n")) >= 0) { take(buf.slice(0, i)); buf = buf.slice(i + 2); }
+    }
+    if (buf.trim()) take(buf.trim());
+    return fin ? { status: Number(fin.status) || 200, body: fin.body || {}, lost: false } : { status: 0, body: {}, lost: true };
+  }
+
+  // What the "A.I. is writing" box shows now. Before the server's first stage arrives it is "reading the chat".
+  var AI_STAGES = { read: "ib.aiw_read", docs: "ib.aiw_docs", image: "ib.aiw_image", think: "ib.aiw_think",
+    tool: "ib.aiw_tool", write: "ib.aiw_write", send: "ib.aiw_send" };
+  var AI_SLOW_S = 25;     // past this the box adds a calm "taking a little longer, still writing"
+  function aiWorkView() {
+    var w = _aiWork || { stage: "", start: Date.now(), order: "" };
+    var s = Math.max(0, Math.floor((Date.now() - w.start) / 1000));
+    return { stage: window.t(AI_STAGES[w.stage || "read"] || "ib.aiw_think"), secs: window.t("ib.aiw_secs", { n: s }),
+      slow: s >= AI_SLOW_S, order: w.order || "" };
+  }
+  // Repaint only the box's moving parts, never the thread: the owner may be typing in the reply box meanwhile.
+  function paintAiWork() {
+    var box = _host && _host.querySelector(".ht-thread .ib-aiw");
+    if (!box) return;
+    var v = aiWorkView();
+    var st = box.querySelector(".ib-aiw-st"), sc = box.querySelector(".ib-aiw-s"), sl = box.querySelector(".ib-aiw-slow");
+    if (st && st.textContent !== v.stage) st.textContent = v.stage;
+    if (sc) sc.textContent = v.secs;
+    if (sl) sl.hidden = !v.slow;
+  }
+  function startAiTick() { if (_aiTick) clearInterval(_aiTick); _aiTick = setInterval(paintAiWork, 1000); }
+  function stopAiTick() { if (_aiTick) clearInterval(_aiTick); _aiTick = null; _aiWork = null; }
+
   async function sendDraft(c) {
     var t = _host && _host.querySelector(".ht-thread .ib-draft-t");
     var txt = t ? t.value.trim() : "";
     if (!txt || _aiBusy) return;
+    var lc = _host.querySelector(".ht-thread .ib-dr-learn-c"), ll = _host.querySelector(".ht-thread .ib-dr-learn");
+    var learn = lc && ll && !ll.hidden && lc.checked ? "1" : "0";
     _aiBusy = "send";
     veThread();
     try {
-      await api("/conversations/" + c.id + "/draft", { method: "POST", body: fd({ action: "send", text: txt }) });
-      _draftEdit = null; _actNote = null;
+      var r = await api("/conversations/" + c.id + "/draft", { method: "POST", body: fd({ action: "send", text: txt, learn: learn }) });
+      _draftEdit = null; _draftLearn = null; _actNote = null;
+      if (r && r.learned) toast(window.t("ib.t_learned"));
     } catch (e) { _actNote = { text: window.t("ht.act_fail", { err: e.message }), err: true }; }
     _aiBusy = "";
     refreshChat();
@@ -2124,7 +2287,7 @@
     var canAsk = c.ai_allowed && modeOf(c) === "ai" && _running && last && last.sender_type === "customer";
     return '<div class="ht-silent">' + ic("info") + ' <span>' + esc(window.t("ht.silent", { why: lyDo + diem })) + '</span>' +
       (RP ? ' <button type="button" class="ht-silent-why">' + esc(window.t("ht.silent_why")) + '</button>' : "") +
-      (canAsk ? ' <button type="button" class="ib-silent-ask"' + (_aiBusy ? " disabled" : "") + '>' +
+      (canAsk ? ' <button type="button" class="ib-silent-ask"' + (_aiBusy ? " disabled" : "") + '>' + (_aiBusy === "now" ? spin() + " " : "") +
         esc(window.t(_aiBusy === "now" ? "ib.ai_busy" : "ib.ask_ai_now")) + '</button>' : "") + '</div>';
   }
 
@@ -2159,7 +2322,7 @@
     return '<button type="button" class="s-btn-ghost ib-mic' + (st !== "idle" ? " is-rec" : "") + '" aria-pressed="' +
       (st === "listening" ? "true" : "false") + '" title="' + esc(lab) + '" aria-label="' + esc(lab) + '"' +
       (st === "transcribing" ? " disabled" : "") + '>' +
-      ic(st === "idle" ? "mic" : st === "transcribing" ? "loader" : "square") + '</button>';
+      (st === "idle" ? ic("mic") : st === "transcribing" ? spin() : ic("square")) + '</button>';
   }
 
   function replyBox() { return _host && _host.querySelector(".ht-thread .ib-cin textarea"); }
@@ -2271,18 +2434,21 @@
     var ph = ten ? t(laBot ? "ib.cin_ph_as_ai" : "ib.cin_ph_as", { ten: ten }) :
       t(laBot ? "ib.cin_ph_ai" : cham ? "ib.cin_ph_touch" : "ht.gui_ph");
     var busy = _aiBusy === "redo" || _aiBusy === "send" ? _aiBusy : "";
+    // While the A.I. writes for THIS chat, the live "A.I. is writing" box stands where the draft lands (a Rewrite
+    // replaces the old draft with it: the new one takes its place anyway).
+    var writing = (_aiBusy === "ask" || _aiBusy === "redo") && _aiWork && _aiWork.conv === c.id;
     var cmt = canPrivate(c), priv = cmt && _privFor === c.id;
     if (priv) ph = t("ht.priv_ph");
-    return '<div class="ht-compose' + (draft ? " has-draft" : "") + '">' + noteHtml() +
+    return '<div class="ht-compose' + (draft || writing ? " has-draft" : "") + '">' + noteHtml() +
       (cmt ? privToggleHtml(priv, c) : "") +
       '<div class="ib-cbox">' +
-      (draft && V ? V.draftHtml(draft, busy || (_aiBusy ? "x" : ""), ic) : "") +
+      (writing && V ? V.workingHtml(aiWorkView(), ic) : draft && V ? V.draftHtml(draft, busy || (_aiBusy ? "x" : ""), ic) : "") +
       '<div class="ib-cin">' +
         '<textarea rows="1" placeholder="' + esc(ph) + '" aria-label="' + esc(t("ib.cin_aria")) + '"></textarea>' +
         micHtml(c) +
         (laBot && !priv ? '<button type="button" class="s-btn-ghost ib-ask"' + (_aiBusy ? " disabled" : "") + ' title="' + esc(t("ib.ai_reply_t")) +
           '" aria-label="' + esc(t("ib.ai_reply")) + '">' +
-          ic(_aiBusy === "ask" ? "loader" : "sparkles") + '<span>' + esc(t(_aiBusy === "ask" ? "ib.ai_busy" : "ib.ai_reply")) + '</span></button>' : "") +
+          (_aiBusy === "ask" ? spin() : ic("sparkles")) + '<span>' + esc(t(_aiBusy === "ask" ? "ib.ai_busy" : "ib.ai_reply")) + '</span></button>' : "") +
         '<button type="button" class="s-btn ht-send" aria-label="' + esc(t("ht.gui")) + '">' + ic("send") + '<span>' + esc(t("ht.gui")) + '</span></button>' +
       '</div></div>' +
     '</div>';

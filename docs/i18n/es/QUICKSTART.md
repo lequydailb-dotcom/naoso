@@ -1,4 +1,4 @@
-<!-- translated-from: QUICKSTART.en.md sha256:c04efec7ce47 -->
+<!-- translated-from: QUICKSTART.en.md sha256:9f8b8e3a6d68 -->
 # NAOTA - Inicio rápido
 
 *[English](../../../QUICKSTART.en.md) · [Tiếng Việt](../../../QUICKSTART.md) · [简体中文](../zh/QUICKSTART.md) · **Español** · [日本語](../ja/QUICKSTART.md) · [हिन्दी](../hi/QUICKSTART.md) · [Português](../pt-BR/QUICKSTART.md) · [한국어](../ko/QUICKSTART.md) · [Русский](../ru/QUICKSTART.md) · [Deutsch](../de/QUICKSTART.md) · [Français](../fr/QUICKSTART.md) · [Bahasa Indonesia](../id/QUICKSTART.md)*
@@ -11,13 +11,29 @@ Pon NAOTA en marcha en pocos minutos. Guías completas: [docs/en/](../../../docs
 
 Instala Naota como cualquier otra app: descarga un archivo, ábrelo y tendrás un icono NAOTA para usar cada día. El instalador revisa qué le falta al equipo (Git, Python, Node, los cerebros de IA) e instala solo eso.
 
-- **Windows 10/11:** descarga [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), haz doble clic y pulsa Next hasta el final. Una ventana negra muestra el progreso (unos minutos). Al terminar hay un icono NAOTA en el Escritorio y en el menú Inicio.
-- **macOS 11 o posterior:** descarga [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), ábrelo, arrastra **NAOTA** a **Applications** y ábrelo desde Launchpad. La primera vez se abre Terminal para instalar (puede pedirte crear una cuenta de administrador de Naota y la contraseña del Mac una vez).
+- **Windows 10/11:** descarga [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), haz doble clic y pulsa Next hasta el final. El progreso de la instalación se muestra dentro de la propia ventana de Setup, paso a paso (unos minutos), sin una ventana negra aparte. Al terminar hay un icono NAOTA en el Escritorio y en el menú Inicio.
+- **macOS 11 o posterior:** abre **Terminal** (Launchpad, escribe Terminal), pega esta línea y pulsa Enter. Instalado así, macOS no muestra ninguna advertencia:
+  ```
+  curl -fsSL https://raw.githubusercontent.com/vuongtex/naota/main/packaging/macos/get-naota.sh | bash
+  ```
+  El comando descarga Naota, copia **NAOTA** en **Applications** y lo instala ahí mismo, en la ventana de Terminal (puede pedirte crear una cuenta de administrador de Naota y la contraseña del Mac una vez). Después, abre NAOTA desde Launchpad.
+
+  ¿Prefieres un archivo? Descarga [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), ábrelo, arrastra **NAOTA** a **Applications** y ábrelo desde Launchpad. Aún no está firmado con un Apple Developer ID, así que macOS bloquea la primera apertura: cómo permitirlo está más abajo, en el apartado de descargas bloqueadas.
 
 Al hacer clic en el icono, Naota se abre en su propia ventana (sin barra de direcciones), arranca con el equipo y el botón **Update** de la app funciona como siempre. Tus datos están en la carpeta `Naota` de tu carpeta de usuario; desinstalar la app conserva esa carpeta.
 
-Los dos instaladores aún no están firmados, así que el equipo pregunta una vez:
+**Windows: instalar sin la pantalla de advertencia (recomendado).** El instalador de Windows aún no está firmado, así que una descarga con el navegador se bloquea la primera vez. Pega una línea en su lugar y obtienes el mismo instalador con el logo de Naota, sin bloqueo: pulsa Inicio, escribe `PowerShell`, ábrelo, pega esta línea y pulsa Enter:
+```
+irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-naota.ps1 | iex
+```
+
+Si ya descargaste el archivo con el navegador y se bloqueó:
+- Edge o Chrome dice "Naota-Setup.exe isn't commonly downloaded" y no guarda el archivo: en el cuadro de Descargas, pasa el ratón por esa línea, haz clic en los tres puntos, elige **Keep**, luego **Show more** y **Keep anyway**.
 - Windows muestra "Windows protected your PC": pulsa **More info** y luego **Run anyway**.
+- Tu antivirus borra el archivo, o Windows lo bloquea sin botón **Run anyway** (Smart App Control está activado): instala sin el .exe. Instala [Git](https://git-scm.com/download/win), abre PowerShell, pega esta línea y pulsa Enter. Al terminar, Naota se abre en http://localhost:7777 y arranca con el equipo:
+  ```
+  git clone https://github.com/vuongtex/naota.git "$env:USERPROFILE\Naota"; cd "$env:USERPROFILE\Naota"; powershell -ExecutionPolicy Bypass -File install.ps1
+  ```
 - macOS dice que no puede abrir la app: ve a **System Settings → Privacy & Security**, baja y pulsa **Open Anyway**, y vuelve a abrir NAOTA.
 
 ## Opción 1 - VPS de Hostinger (Docker Manager, en un clic)

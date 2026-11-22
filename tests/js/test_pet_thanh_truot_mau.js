@@ -61,6 +61,23 @@ function hsl(h6) {
   return { h: h * 60, s, l };
 }
 
+// ---- 0. Ngôi sao mặc định cũ sang linh vật NAOTA (1.60.0), lựa chọn riêng thì giữ ----
+{
+  const { P } = napPet("light");
+  P.hydrate({ shape: "star", palette: "nang" });
+  let c = P.get();
+  check("ngôi sao vàng mặc định cũ thành ô vuông vàng NAOTA", c.shape === "square" && c.palette === "naota" && c.look === 2, c.shape + " " + c.palette);
+  P.hydrate({ shape: "star", palette: "cam" });
+  c = P.get();
+  check("ngôi sao cam cũ cũng thành ô vuông vàng NAOTA", c.shape === "square" && c.palette === "naota", c.shape + " " + c.palette);
+  P.hydrate({ shape: "star", palette: "nang", look: 2 });
+  c = P.get();
+  check("đã qua đời 2 mà chọn lại ngôi sao thì giữ ngôi sao", c.shape === "star" && c.palette === "nang", c.shape + " " + c.palette);
+  P.hydrate({ shape: "star", palette: "ruby" });
+  c = P.get();
+  check("ngôi sao màu tự chọn khác thì giữ nguyên", c.shape === "star" && c.palette === "ruby", c.shape + " " + c.palette);
+}
+
 // ---- 1. Cấu hình CŨ quy đổi đúng ----
 {
   const { P } = napPet("dark");
@@ -71,7 +88,7 @@ function hsl(h6) {
   check("mắt nâu cũ thành ô tự chọn mang đúng mã cũ", c.eye === "custom" && c.eyeColor === "#5a3a28", c.eye + " " + c.eyeColor);
   P.hydrate({ size: "khong-co", eyeSize: "la", eye: "<script>", palette: "khong-co" });
   const d = P.get();
-  check("giá trị rác rơi về mặc định", d.size === 72 && d.eyeSize === 1 && d.eye === "den" && d.palette === "nang" && d.shape === "star",
+  check("giá trị rác rơi về mặc định", d.size === 72 && d.eyeSize === 1 && d.eye === "den" && d.palette === "naota" && d.shape === "square",
     JSON.stringify(d));
 }
 

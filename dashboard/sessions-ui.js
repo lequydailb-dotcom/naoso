@@ -30,6 +30,31 @@
     var area = document.getElementById("chatArea");
     return !!(area && area.getClientRects().length);
   }
+  // 2026-11-20 (owner): "a chat still working, already read, keeps the folder dot on; it should show only once it has
+  // finished and is unread". A running chat shows its spinner, not a dot, and the chat on screen is being read, so
+  // both are left out of every unread count the server makes (the `skip` query of /projects and the rail).
+  function isRunning(sid) { return !!(sid && window.NaotaRunning && window.NaotaRunning.has(sid)); }
+  // 2026-11-20 (owner: "thêm nút đánh dấu chưa đọc thì sẽ hiện lại các phần chấm đỏ, dễ kiểm soát những việc chưa hoàn
+  // thành hơn"): "Mark as unread" also works on the chat open on screen. That chat is kept unread while it stays open,
+  // so its dot shows at once, and is read again only once the owner opens another chat and comes back, or a new turn
+  // starts in it.
+  var heldUnread = null;
+  function isHeldUnread(sid) {
+    if (!heldUnread) return false;
+    if (heldUnread !== currentId() || isRunning(heldUnread)) { heldUnread = null; return false; }
+    return sid === heldUnread;
+  }
+  function unreadSkipIds() {
+    var ids = [];
+    if (window.NaotaRunning) window.NaotaRunning.forEach(function (id) { if (id && ids.length < 50) ids.push(String(id)); });
+    var cur = currentId();
+    if (cur && chatOnScreen() && !isHeldUnread(cur) && ids.indexOf(cur) < 0) ids.push(cur);
+    return ids;
+  }
+  function unreadSkipQuery() {
+    var ids = unreadSkipIds();
+    return ids.length ? "&skip=" + encodeURIComponent(ids.join(",")) : "";
+  }
   // One timer per chat: a quick switch from chat A to chat B must still report A as read.
   var readTimers = {};
   function markRead(sid) {
@@ -42,7 +67,7 @@
   }
   function markCurrentRead() {
     var sid = currentId();
-    if (sid && chatOnScreen()) { markRead(sid); clearDot(sid); }
+    if (sid && chatOnScreen() && !isHeldUnread(sid)) { markRead(sid); clearDot(sid); }
   }
   // Drop the dot of one chat from the rows on screen and from the cached list, without reloading.
   function clearDot(sid) {
@@ -113,6 +138,8 @@
   var PROJ_KEY = "naota.chatside.project";
   var projects = [];      // [{id,name,icon,session_count}] của brain đang xem
   var projBar = null;
+  var ungroupedUnread = 0; // unread chats in no project (/projects ungrouped_unread), the dot on "Chưa xếp nhóm"
+  var projectRefreshTimer = null, projectRequest = 0;
 
   function projKey() { return PROJ_KEY + "." + brain(); }
   function curProject() {
@@ -127,6 +154,43 @@
   function projById(id) {
     for (var i = 0; i < projects.length; i++) if (projects[i].id === id) return projects[i];
     return null;
+  }
+  // The selected project's unread chats already have dots in the history. Only other projects need a folder alert.
+  function projectNeedsAttention(p) {
+    return p.id !== curProject() && Number(p.unread_count) > 0;
+  }
+  // 2026-11-20 (owner): chats in no project light "Chưa xếp nhóm" the same way, so they are easy to spot.
+  function ungroupedNeedsAttention() {
+    return curProject() !== "none" && ungroupedUnread > 0;
+  }
+  function anyNeedsAttention() {
+    return ungroupedNeedsAttention() || projects.some(projectNeedsAttention);
+  }
+  function rowNeedsAttention(id) {
+    if (id === "none") return ungroupedNeedsAttention();
+    var p = projById(id);
+    return !!(p && projectNeedsAttention(p));
+  }
+  function projectUnreadHtml(unread) {
+    var label = esc(window.t("sess.proj_unread"));
+    return '<span class="cs-proj-unread" role="img" title="' + label + '" aria-label="' + label + '"' +
+      (unread ? '' : ' hidden') + '></span>';
+  }
+  function updateProjectUnread() {
+    if (projBar) {
+      var dot = projBar.querySelector(".cs-proj-unread");
+      if (dot) dot.hidden = !anyNeedsAttention();
+    }
+    // Update an open picker in place so a reply or a read in another tab never closes it or steals focus.
+    if (menuEl) menuEl.querySelectorAll("[data-unread-project]").forEach(function (row) {
+      var dot = row.querySelector(".cs-proj-unread");
+      if (dot) dot.hidden = !rowNeedsAttention(row.getAttribute("data-unread-project"));
+    });
+  }
+  function refreshProjects() {
+    if (!projBar || kenhLoc) return;
+    clearTimeout(projectRefreshTimer);
+    projectRefreshTimer = setTimeout(function () { loadProjects(); }, 150);
   }
   // Nhãn project trả về HTML (icon là thẻ <svg>, không phải ký tự) nên phần CHỮ phải tự
   // escape ở đây - tên project do người dùng gõ.
@@ -151,17 +215,23 @@
   }
 
   async function loadProjects() {
+    var requestedBrain = brain(), request = ++projectRequest;
+    var previousLabel = projLabelHtml();
     try {
-      var d = await (await fetch("/projects?brain=" + encodeURIComponent(brain()))).json();
+      var d = await (await fetch("/projects?brain=" + encodeURIComponent(requestedBrain) + unreadSkipQuery())).json();
+      if (request !== projectRequest || requestedBrain !== brain()) return;
       projects = d.projects || [];
-    } catch (e) { projects = []; }
+      ungroupedUnread = Number(d.ungrouped_unread) || 0;
+    } catch (e) { return; }
     // Project đang mở vừa bị xoá (ở tab khác, hoặc brain khác) → về "Tất cả". Không có nhát
     // này thì danh sách rỗng trơn mà người dùng không hiểu vì sao.
     var cur = curProject();
     if (cur && cur !== "none" && !projById(cur)) setCurProject("");
-    renderProjBar();
+    // Most refreshes change only unread counts. Keep the selector node, its keyboard focus and the menu anchor.
+    if (previousLabel !== projLabelHtml() || (projBar && !projBar.querySelector(".cs-proj-cur"))) renderProjBar();
     renderProjChip();
     fillProjTags();
+    updateProjectUnread();
   }
 
   // each chat row carries a small folder tag with its project's name, so the owner sees which group a
@@ -186,6 +256,7 @@
     projBar.innerHTML =
       '<button class="cs-proj-cur" type="button" title="' + esc(window.t("sess.proj_pick_title")) + '">' +
         '<span class="cs-proj-name">' + projLabelHtml() + '</span>' +
+        projectUnreadHtml(anyNeedsAttention()) +
         '<span class="cs-proj-caret">' + ic("chevron-down") + '</span>' +
       '</button>' +
       (cur ? '<button class="cs-proj-x" type="button" title="' + esc(window.t("sess.proj_clear_title")) + '">' + ic("x") + '</button>' : '') +
@@ -209,7 +280,9 @@
     var cur = curProject();
     var rows = [
       { label: window.t("sess.proj_all"), icon: "layers", on: !cur, run: function () { chonProject(""); } },
-      { label: window.t("sess.proj_none"), icon: "circle", on: cur === "none", run: function () { chonProject("none"); } },
+      // projectId "none" puts the unread dot on this row too; no real project id is ever "none" (ids are uuid hex).
+      { label: window.t("sess.proj_none"), icon: "circle", on: cur === "none", projectId: "none",
+        unread: ungroupedNeedsAttention(), run: function () { chonProject("none"); } },
     ];
     if (projects.length) rows.push({ sep: true });
     projects.forEach(function (p) {
@@ -218,6 +291,8 @@
         icon: p.icon || "folder",
         right: String(p.session_count || 0),
         on: cur === p.id,
+        projectId: p.id,
+        unread: projectNeedsAttention(p),
         run: function () { chonProject(p.id); },
         pinIcon: p.pinned ? "pin" : "",
         // MỘT nút ba chấm thay cho bốn icon hiện-khi-rê-chuột. Ba
@@ -601,8 +676,10 @@
             '<button class="pd-hbtn pd-ren" type="button"></button>' +
             '<button class="pd-hbtn pd-x" type="button"></button>' +
           '</div>' +
-          '<div class="pd-scope" hidden></div>' +
+          // 2026-11-16: the tabs sit ABOVE the scope switch. "Of the assistant / only this chat" is a choice inside the
+          // Documents tab; the Learned tab belongs to the assistant alone and hides the switch.
           '<div class="pd-tabs"></div>' +
+          '<div class="pd-scope" hidden></div>' +
           '<div class="pd-body"></div>' +
         '</div>' +
       '</div>');
@@ -733,6 +810,9 @@
                     n: (p.files || []).length + (p.links || []).length + (pdCoRepo() ? (p.repos || []).length : 0) };
     // Hướng dẫn chỉ có ở project. Trợ lý đã có system prompt riêng trong trình sửa của nó,
     // bày thêm một ô hướng dẫn ở đây là hai chỗ nói cùng một việc.
+    // 2026-11-16 (owner): an assistant also has a Learned tab, what it learnt while working. Opened from the Cộng sự
+    // page it stays there on both scopes: the lessons belong to the assistant, whichever documents scope is showing.
+    if (laHocTroLy()) return [tabDocs, { k: "learned", ico: "brain", nhan: pdT("proj.tab_learned"), n: soBaiHoc() }];
     if (pdLaCuoc() || pdLaAgent()) return [tabDocs];
     // 2026-11-13: what Naota learnt about the project while working in it. Right after the instructions: both are
     // context that rides on every turn, one written by the owner and one mostly by Naota.
@@ -762,6 +842,7 @@
     pdDung();
     if (!giuCongSu) pdCongSu = null;
     pdCheDo = "cuoc";
+    resetListViews();       // a new drawer starts on page one, with no search left over
     pdOnboard = false;
     // Reset y như openProjDrawer: form tìm/tải còn mở từ lần trước là mở khung ra đã thấy
     // một ô nhập lạ, không rõ nó thuộc về cái gì.
@@ -801,6 +882,7 @@
     pdDung();
     if (!giuCongSu) pdCongSu = null;
     pdCheDo = "agent";
+    resetListViews();       // a new drawer starts on page one, with no search left over
     pdOnboard = false;
     pdFormFile = false; pdFileMode = "search";
     // Trợ lý không có tab Hướng dẫn, mà projTab có thể còn đứng ở "instr" từ lần mở project
@@ -809,6 +891,7 @@
     pdEl.classList.add("on");
     document.body.classList.add("pd-open");
     agentTS = { slug: slug, name: ten || slug, files: [], links: [], dangTai: true };
+    napHocVaVe(slug);
     veDrawer();
     await napAgentTS(slug, ten);
     veDrawer();
@@ -859,6 +942,9 @@
   async function openTaiLieuCongSu(slug, ten, phamVi) {
     if (!slug) return;
     pdCongSu = { slug: slug, name: ten || slug };
+    projTab = "files";        // the button opens on the documents; a tab left over from a project must not win
+    if (!agentHoc || agentHoc.slug !== slug) agentHoc = null;
+    napHocVaVe(slug);
     var pv = phamVi || phamViDaNho();
     if (pv === "cuoc" && !currentId()) pv = "agent";   // chưa có cuộc thì chưa có chỗ gắn
     // Nạp phạm vi KIA song song để công tắc hiện đúng số ngay từ đầu.
@@ -886,7 +972,7 @@
     if (!pdEl) return;
     var host = pdEl.querySelector(".pd-scope");
     if (!host) return;
-    if (!pdCongSu || !(pdLaAgent() || pdLaCuoc())) { host.hidden = true; host.innerHTML = ""; return; }
+    if (!pdCongSu || !(pdLaAgent() || pdLaCuoc()) || projTab === "learned") { host.hidden = true; host.innerHTML = ""; return; }
     host.hidden = false;
     var coCuoc = !!currentId();
     var nut = function (pv, ico, nhan, phu, n, tat) {
@@ -914,6 +1000,7 @@
     pdDung();
     pdCheDo = "project";
     pdCongSu = null;      // project không có công tắc phạm vi của trang Cộng sự
+    resetListViews();       // a new drawer starts on page one, with no search left over
     pdFormFile = false; pdFileMode = "search";
     pdEl.classList.add("on");
     document.body.classList.add("pd-open");
@@ -966,13 +1053,14 @@
     if (pdCongSu) pdEl.querySelector(".pd-ico").innerHTML = ic("bot");
     pdEl.querySelector(".pd-name").textContent = pdCongSu ? pdCongSu.name
       : laCuoc ? pdT("cts.title") : (p.name || "");
-    veThanhPhamVi();
     // Đổi tên chỉ có nghĩa với project. Cuộc trò chuyện đổi tên ở cột trái, trợ lý đổi tên
     // trong trình sửa của nó; bày lại ở đây là hai chỗ làm cùng một việc.
     pdEl.querySelector(".pd-ren").style.display = (laCuoc || pdLaAgent()) ? "none" : "";
     veThanhTab();
+    veThanhPhamVi();          // after the tab bar: it settles projTab, and the Learned tab hides the switch
     veNutGhimPhien();
     var body = pdEl.querySelector(".pd-body");
+    if (projTab === "learned" && laHocTroLy()) { body.innerHTML = paneHocTroLy(); wireHocTroLy(); return; }
     if (p.dangTai) { body.innerHTML = '<div class="pd-empty pg-loading">' + esc(pdT("proj.loading")) + "…</div>"; return; }
     if (p.loi) { body.innerHTML = '<div class="pd-empty">' + esc(pdT(pdK("err_load"))) + "</div>"; return; }
     body.innerHTML =
@@ -1078,36 +1166,165 @@
     }
   }
 
+  // ── Long lists in the drawer: search and pages (2026-11-19) ─────────────────
+  // Owner, 19/11/2026: "thêm phân trang giúp anh ở tài liệu và đã học nếu mà nó quá nhiều, hiển thị đẹp hơn". A project
+  // worked in for a while holds dozens of learned notes and documents, and the drawer became one long scroll. House rule
+  // for a long list (docs/dev/design-style.md, section 5): 20 rows a page, with a search box. The box shows from
+  // LIST_FIND_MIN rows up; the page buttons only when there is more than one page. Search ignores Vietnamese marks, so
+  // "su that" finds "sự thật".
+  var LIST_PAGE = 20;
+  var LIST_FIND_MIN = 10;
+  var listState = {};
+  function listView(key) { return listState[key] || (listState[key] = { page: 0, q: "", kind: "" }); }
+  function resetListViews() { listState = {}; }
+
+  /** Which rows page `page` shows out of `total`, the page pulled back into range (a removal can empty the last one). */
+  function pageSlice(total, page, size) {
+    size = size || LIST_PAGE;
+    var pages = Math.max(1, Math.ceil(total / size));
+    var p = Math.min(Math.max(0, page || 0), pages - 1);
+    return { page: p, pages: pages, from: p * size, to: Math.min(total, (p + 1) * size) };
+  }
+  function foldText(s) {
+    var v = String(s == null ? "" : s).toLowerCase();
+    try { v = v.normalize("NFD").replace(/[̀-ͯ]/g, ""); } catch (e) {}
+    return v.replace(/\u0111/g, "d");
+  }
+  /** Every word of the query appears somewhere in the row's text. */
+  function matchesQuery(q, parts) {
+    var words = foldText(q).trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return true;
+    var hay = foldText((parts || []).join(" "));
+    return words.every(function (w) { return hay.indexOf(w) >= 0; });
+  }
+
+  function pagerHtml(sl) {
+    if (sl.pages <= 1) return "";
+    return '<div class="pd-pager">' +
+      '<button class="pd-pg" type="button" data-step="-1" title="' + esc(pdT("proj.page_prev")) + '" aria-label="' +
+        esc(pdT("proj.page_prev")) + '"' + (sl.page > 0 ? "" : " disabled") + ">" + ic("chevron-left") + "</button>" +
+      '<span class="pd-pg-n">' + esc(pdT("proj.page_of", { page: sl.page + 1, pages: sl.pages })) + "</span>" +
+      '<button class="pd-pg" type="button" data-step="1" title="' + esc(pdT("proj.page_next")) + '" aria-label="' +
+        esc(pdT("proj.page_next")) + '"' + (sl.page < sl.pages - 1 ? "" : " disabled") + ">" + ic("chevron-right") + "</button>" +
+      "</div>";
+  }
+  function findShown(key, total) { return total >= LIST_FIND_MIN || !!listView(key).q; }
+  function findHtml(key, total, placeholder) {
+    return '<label class="pd-find"' + (findShown(key, total) ? "" : " hidden") + ">" + ic("search") +
+      '<input class="pd-find-in" type="search" enterkeyhint="search" value="' + esc(listView(key).q) + '" placeholder="' +
+        esc(placeholder) + '" aria-label="' + esc(placeholder) + '"></label>';
+  }
+  /** The row above a list: the search box (when the list is long) and the add button. The add button sits up here,
+   *  not under the list, so adding never means scrolling past twenty rows first. */
+  function listToolsHtml(find, add) { return '<div class="pd-ltools">' + find + add + "</div>"; }
+  /** Show or hide the search box after a redraw: an add or a removal can cross the LIST_FIND_MIN line. */
+  function syncFind(pane, key, total) {
+    var box = pane && pane.querySelector(".pd-find");
+    if (box) box.hidden = !findShown(key, total);
+  }
+  function wireListTools(pane, key, redraw) {
+    var inp = pane.querySelector(".pd-find-in");
+    if (inp) inp.oninput = function () { var v = listView(key); v.q = inp.value; v.page = 0; redraw(); };
+    pane.querySelectorAll(".pd-pg").forEach(function (b) {
+      b.onclick = function () {
+        listView(key).page += Number(b.dataset.step) || 0;
+        redraw();
+        var body = pdEl && pdEl.querySelector(".pd-body");
+        if (body) body.scrollTop = 0;
+      };
+    });
+  }
+  function noMatchHtml() { return '<div class="pd-empty">' + esc(pdT("proj.find_none")) + "</div>"; }
+
+  /** The one roomy box for writing or fixing a short text (text-edit-dialog.js). Falls back to prompt() only if the
+   *  script did not load, so editing never disappears. */
+  function editText(o) {
+    var E = window.NaotaTextEdit;
+    if (E && E.open) return E.open(o);
+    var text = prompt(o.title, o.value || "");
+    if (text == null) return Promise.resolve(false);
+    return Promise.resolve(o.save(text.trim(), o.kind || "")).then(function (err) {
+      if (err) alert(err);
+      return !err;
+    });
+  }
+  function errText(prefix, r) { return pdT(prefix) + ((r && r.error) ? ": " + r.error : ""); }
+
   // ── Tab "Đã học" (2026-11-13) ────────────────────────────────────────────────
   // What Naota learnt about the project while working in it: short notes (a fact, a settled decision, a term).
   // Naota writes most of them itself (tool naota_project); here the owner reads, edits, removes and adds. A note the
   // owner writes or edits becomes theirs: listed first and never dropped to make room.
+  // 2026-11-19: 20 notes a page with a search box and a filter by kind; the text shows up to four lines and a tap opens
+  // it whole in the edit box; adding and editing use that same box instead of an inline form and prompt().
   var NOTE_KINDS = ["fact", "decision", "term"];
   // Whole dictionary keys, never a key built from a prefix: a key the source does not spell out cannot be checked
   // against vi.json and en.json.
   var NOTE_KIND_KEY = { fact: "proj.kind_fact", decision: "proj.kind_decision", term: "proj.kind_term" };
   var PROJ_NOTE_MAX = 300;
+  var ASSET_DESC_MAX = 200;   // sessions.PROJECT_ASSET_NOTE_MAX and agent_assets.DESCRIPTION_MAX
 
-  function noteRowsHtml(p) {
-    var notes = (p.notes || []).slice().sort(function (a, b) {
+  function noteKinds() {
+    return NOTE_KINDS.map(function (k) { return { value: k, label: pdT(NOTE_KIND_KEY[k]) }; });
+  }
+  function noteKindOf(n) { return NOTE_KINDS.indexOf(n.kind) >= 0 ? n.kind : "fact"; }
+  function sortedNotes(p) {
+    return ((p || {}).notes || []).slice().sort(function (a, b) {
       if ((a.source === "owner") !== (b.source === "owner")) return a.source === "owner" ? -1 : 1;
       return (b.created_at || 0) - (a.created_at || 0);
     });
+  }
+
+  /** One learned row, shared by the project notes and the assistant lessons: the text (tap to open it whole in the
+   *  edit box), a meta line, a pencil and an x. */
+  function learnedRowHtml(id, textHtml, metaHtml, editTitle, removeTitle) {
+    return '<div class="pd-nrow" data-id="' + esc(id) + '">' +
+        '<span class="pd-nbody" title="' + esc(editTitle) + '">' +
+          '<span class="pd-ntext">' + textHtml + "</span>" +
+          '<span class="pd-nmeta">' + metaHtml + "</span>" +
+        "</span>" +
+        '<button class="pd-row-act pd-nedit" type="button" title="' + esc(editTitle) + '" aria-label="' + esc(editTitle) + '">' +
+          ic("pencil") + "</button>" +
+        '<button class="pd-row-act pd-go pd-ndel" type="button" title="' + esc(removeTitle) + '" aria-label="' +
+          esc(removeTitle) + '">' + ic("x") + "</button>" +
+      "</div>";
+  }
+
+  /** The kind chips above the notes: All, then each kind with its count. Only when the notes hold two kinds or more. */
+  function noteChipsHtml(notes) {
+    var v = listView("learned");
+    var counts = {};
+    notes.forEach(function (n) { var k = noteKindOf(n); counts[k] = (counts[k] || 0) + 1; });
+    var used = NOTE_KINDS.filter(function (k) { return counts[k]; });
+    if (used.length < 2 && !v.kind) return "";
+    var chip = function (k, label, n) {
+      var on = (v.kind || "") === k;
+      return '<button class="pd-chip' + (on ? " on" : "") + (k ? " k-" + k : "") + '" type="button" data-kind="' + k +
+        '" aria-pressed="' + on + '">' + esc(label) + ' <span class="pd-chip-n">' + n + "</span></button>";
+    };
+    return '<div class="pd-chips" role="group">' + chip("", pdT("proj.kind_all"), notes.length) +
+      used.map(function (k) { return chip(k, pdT(NOTE_KIND_KEY[k]), counts[k]); }).join("") + "</div>";
+  }
+
+  function noteRowsHtml(p) {
+    var notes = sortedNotes(p);
     if (!notes.length) return '<div class="pd-empty">' + esc(pdT("proj.learned_empty")) + "</div>";
-    return notes.map(function (n) {
-      var kind = NOTE_KINDS.indexOf(n.kind) >= 0 ? n.kind : "fact";
-      return '<div class="pd-nrow" data-id="' + esc(n.id) + '">' +
-          '<span class="pd-nbody">' +
-            '<span class="pd-ntext">' + esc(n.text) + "</span>" +
-            '<span class="pd-nmeta">' + esc(pdT(NOTE_KIND_KEY[kind])) + " · " +
-              esc(pdT(n.source === "owner" ? "proj.src_owner" : "proj.src_naota")) + "</span>" +
-          "</span>" +
-          '<button class="pd-row-act pd-nedit" type="button" title="' + esc(pdT("proj.note_edit")) + '">' +
-            ic("pencil") + "</button>" +
-          '<button class="pd-row-act pd-go pd-ndel" type="button" title="' + esc(pdT("proj.note_remove")) + '">' +
-            ic("x") + "</button>" +
-        "</div>";
-    }).join("");
+    var v = listView("learned");
+    if (v.kind && !notes.some(function (n) { return noteKindOf(n) === v.kind; })) v.kind = "";
+    var shown = notes.filter(function (n) {
+      return (!v.kind || noteKindOf(n) === v.kind) && matchesQuery(v.q, [n.text]);
+    });
+    var sl = pageSlice(shown.length, v.page);
+    v.page = sl.page;
+    return noteChipsHtml(notes) +
+      (shown.length ? shown.slice(sl.from, sl.to).map(function (n) {
+        var kind = noteKindOf(n);
+        return learnedRowHtml(n.id, esc(n.text),
+          '<span class="pd-ntag k-' + kind + '">' + esc(pdT(NOTE_KIND_KEY[kind])) + "</span>" +
+          '<span class="pd-nsrc' + (n.source === "owner" ? " own" : "") + '">' +
+            esc(pdT(n.source === "owner" ? "proj.src_owner" : "proj.src_naota")) + "</span>",
+          pdT("proj.note_edit"), pdT("proj.note_remove"));
+      }).join("") : noMatchHtml()) +
+      pagerHtml(sl);
   }
 
   function paneLearned(p) {
@@ -1117,18 +1334,10 @@
       '<div class="pd-learn-head"><span class="pd-hint">' + esc(pdT("proj.learned_hint")) + "</span>" +
         (info ? info.btn(pdT("info.more")) : "") + "</div>" +
       (info ? info.body(explain) : '<div class="pd-note">' + ic("info") + "<span>" + explain + "</span></div>") +
+      listToolsHtml(findHtml("learned", (p.notes || []).length, pdT("proj.find_notes")),
+        '<button class="pd-add pd-nadd" type="button">' + ic("plus") + " " + esc(pdT("proj.note_add")) + "</button>") +
       '<div class="pd-list">' + noteRowsHtml(p) + "</div>" +
-      '<div class="pd-form pd-nform">' +
-        '<textarea class="pd-in pd-nin" rows="2" maxlength="' + PROJ_NOTE_MAX + '" placeholder="' +
-          esc(pdT("proj.note_ph")) + '"></textarea>' +
-        '<div class="pd-frow">' +
-          '<select class="pd-in pd-nkind">' + NOTE_KINDS.map(function (k) {
-            return '<option value="' + k + '">' + esc(pdT(NOTE_KIND_KEY[k])) + "</option>";
-          }).join("") + "</select>" +
-          '<button class="pd-ok pd-nadd" type="button">' + esc(pdT("proj.add")) + "</button>" +
-        "</div>" +
-        '<div class="pd-fmsg pd-nmsg" role="status" hidden></div>' +
-      "</div>" +
+      '<div class="pd-fmsg pd-nmsg" role="status" hidden></div>' +
       "</div>";
   }
 
@@ -1140,15 +1349,31 @@
     box.textContent = text || "";
   }
 
-  /** Reload the project and redraw only the note list and the tab counts: the box being typed in stays as it is. */
-  async function reloadNotes() {
-    await napProjChiTiet((projChiTiet || {}).id || "");
+  /** Redraw only the list, its tools and the tab counts, from what is already loaded: the search box keeps its focus. */
+  function redrawLearned() {
     var pane = pdEl && pdEl.querySelector('[data-pane="learned"]');
     var box = pane && pane.querySelector(".pd-list");
-    if (!box || !projChiTiet) { veDrawer(); return; }
-    box.innerHTML = noteRowsHtml(projChiTiet);
-    wireNoteRows(pane);
+    if (!box) { veDrawer(); return; }
+    if (laHocTroLy()) {
+      var h = hocHienTai();
+      if (!h || h.loi) { veDrawer(); return; }
+      box.innerHTML = hocRowsHtml(h);
+      syncFind(pane, "learned", h.lessons.length);
+      wireHocRows(pane);
+    } else {
+      if (!projChiTiet) { veDrawer(); return; }
+      box.innerHTML = noteRowsHtml(projChiTiet);
+      syncFind(pane, "learned", (projChiTiet.notes || []).length);
+      wireNoteRows(pane);
+    }
+    wireListTools(box, "learned", redrawLearned);
     veSoTab();
+  }
+
+  /** Reload the project, then redraw the list. */
+  async function reloadNotes() {
+    await napProjChiTiet((projChiTiet || {}).id || "");
+    redrawLearned();
   }
 
   function wireNoteRows(pane) {
@@ -1156,8 +1381,12 @@
     pane.querySelectorAll(".pd-nrow").forEach(function (row) {
       var n = notes.filter(function (x) { return x.id === row.dataset.id; })[0];
       if (!n) return;
+      row.querySelector(".pd-nbody").onclick = function () { editNote(n); };
       row.querySelector(".pd-nedit").onclick = function () { editNote(n); };
       row.querySelector(".pd-ndel").onclick = function () { removeNote(n); };
+    });
+    pane.querySelectorAll(".pd-chip").forEach(function (b) {
+      b.onclick = function () { var v = listView("learned"); v.kind = b.dataset.kind || ""; v.page = 0; redrawLearned(); };
     });
   }
 
@@ -1165,12 +1394,8 @@
     var pane = pdEl.querySelector('[data-pane="learned"]');
     if (!pane) return;
     wireNoteRows(pane);
-    var box = pane.querySelector(".pd-nin");
+    wireListTools(pane, "learned", redrawLearned);
     pane.querySelector(".pd-nadd").onclick = function () { addNote(); };
-    // Enter saves, Shift+Enter breaks the line; a note is one short line, so Enter as "save" is the expected key.
-    box.onkeydown = function (e) {
-      if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); addNote(); }
-    };
   }
 
   function noteUrl(suffix) {
@@ -1178,23 +1403,36 @@
   }
 
   async function addNote() {
-    var pane = pdEl && pdEl.querySelector('[data-pane="learned"]');
-    var box = pane && pane.querySelector(".pd-nin");
-    var text = box ? box.value.trim() : "";
-    if (!text) { if (box) box.focus(); return; }
-    var r = await post(noteUrl(""), { text: text, kind: pane.querySelector(".pd-nkind").value });
-    if (!r || !r.ok) { noteMsg(pdT("proj.err_note") + ((r && r.error) ? ": " + r.error : "")); return; }
-    box.value = "";
+    var v = listView("learned");
+    var saved = await editText({
+      title: pdT("proj.note_add"), value: "", max: PROJ_NOTE_MAX, placeholder: pdT("proj.note_ph"),
+      kinds: noteKinds(), kind: v.kind || "fact", kindLabel: pdT("proj.note_kind"), saveLabel: pdT("proj.add"),
+      save: async function (text, kind) {
+        var r = await post(noteUrl(""), { text: text, kind: kind || "fact" });
+        return r && r.ok ? "" : errText("proj.err_note", r);
+      },
+    });
+    if (!saved) return;
+    // The new note is the owner's, so it sits at the top of the list: show page one, with no search hiding it.
+    v.page = 0; v.q = "";
+    var inp = pdEl && pdEl.querySelector('[data-pane="learned"] .pd-find-in');
+    if (inp) inp.value = "";
     noteMsg("");
     await reloadNotes();
-    box.focus();
   }
 
   async function editNote(n) {
-    var text = prompt(pdT("proj.note_edit_q"), n.text || "");
-    if (text == null || !text.trim() || text.trim() === n.text) return;
-    var r = await post(noteUrl("/" + encodeURIComponent(n.id) + "/update"), { text: text.trim() });
-    if (!r || !r.ok) { noteMsg(pdT("proj.err_note") + ((r && r.error) ? ": " + r.error : "")); return; }
+    var saved = await editText({
+      title: pdT("proj.note_edit"), value: n.text || "", max: PROJ_NOTE_MAX, placeholder: pdT("proj.note_ph"),
+      kinds: noteKinds(), kind: noteKindOf(n), kindLabel: pdT("proj.note_kind"),
+      save: async function (text, kind) {
+        var fields = { text: text };
+        if (kind && kind !== noteKindOf(n)) fields.kind = kind;
+        var r = await post(noteUrl("/" + encodeURIComponent(n.id) + "/update"), fields);
+        return r && r.ok ? "" : errText("proj.err_note", r);
+      },
+    });
+    if (!saved) return;
     noteMsg("");
     await reloadNotes();
   }
@@ -1205,19 +1443,166 @@
     await reloadNotes();
   }
 
+  // ── Tab "Đã học" of an ASSISTANT (2026-11-16) ─────────────────────────────────
+  // Owner, 16/11/2026: bring the project's self-learning into the Cộng sự page. An assistant already learns lessons on
+  // its own (NAOTA_LESSON); this tab shows the ones it uses and lets the owner edit, remove and add, like the project
+  // tab above. The server reads the same store the prompt reads (server/agent_learned.py), so the list is what the
+  // assistant really uses. No scopes to pick and no promote button: that is what the owner removed earlier.
+  // Same pages, search and edit box as the project tab.
+  var agentHoc = null;       // {slug, lessons, loi} of the assistant whose Learned tab is showing
+  var hocDangNap = null;     // {slug, p}: one load per assistant at a time
+  var AGENT_LESSON_MAX = 300;
+  var HOC_WHERE_KEY = { all: "ags.where_all", dm: "ags.where_dm", team: "ags.where_team" };
+  var HOC_SRC_KEY = { owner: "ags.src_owner", learnt: "ags.src_learnt", legacy: "ags.src_legacy" };
+
+  /** The drawer is about an assistant: its own drawer, or a chat of it opened from the Cộng sự page. */
+  function laHocTroLy() { return pdLaAgent() || (pdLaCuoc() && !!pdCongSu); }
+  function slugHoc() { return pdLaAgent() ? ((agentTS || {}).slug || "") : pdCongSu ? pdCongSu.slug : ""; }
+  function hocHienTai() { return agentHoc && agentHoc.slug === slugHoc() ? agentHoc : null; }
+  function soBaiHoc() { var h = hocHienTai(); return h && !h.loi ? h.lessons.length : 0; }
+
+  function napHoc(slug) {
+    if (hocDangNap && hocDangNap.slug === slug) return hocDangNap.p;
+    var p = (async function () {
+      var out;
+      try {
+        var d = await (await fetch("/agents/" + encodeURIComponent(slug) + "/learned?brain=" +
+                                   encodeURIComponent(brain()))).json();
+        out = (d && d.ok) ? { slug: slug, lessons: d.lessons || [] } : { slug: slug, lessons: [], loi: true };
+      } catch (e) { out = { slug: slug, lessons: [], loi: true }; }
+      agentHoc = out;
+      if (hocDangNap && hocDangNap.p === p) hocDangNap = null;
+    })();
+    hocDangNap = { slug: slug, p: p };
+    return p;
+  }
+
+  /** Load the lessons in the background; then the tab count, and the list when the tab is open, follow. */
+  function napHocVaVe(slug) {
+    if (!slug) return;
+    napHoc(slug).then(function () {
+      if (!pdEl || slugHoc() !== slug || !laHocTroLy()) return;
+      if (projTab === "learned") veDrawer(); else veSoTab();
+    });
+  }
+
+  function hocRowsHtml(h) {
+    if (!h.lessons.length) return '<div class="pd-empty">' + esc(pdT("ags.learned_empty")) + "</div>";
+    var v = listView("learned");
+    var shown = h.lessons.filter(function (n) { return matchesQuery(v.q, [n.text]); });
+    var sl = pageSlice(shown.length, v.page);
+    v.page = sl.page;
+    if (!shown.length) return noMatchHtml();
+    return shown.slice(sl.from, sl.to).map(function (n) {
+      var meta = '<span class="pd-nsrc' + (n.source === "owner" ? " own" : "") + '">' +
+        esc(pdT(HOC_SRC_KEY[n.source] || "ags.src_learnt")) + "</span>" +
+        (n.source === "legacy" ? "" : '<span class="pd-nsrc">' + esc(pdT(HOC_WHERE_KEY[n.where] || "ags.where_all")) + "</span>");
+      return learnedRowHtml(n.id, esc(n.text), meta, pdT("ags.lesson_edit"), pdT("ags.lesson_remove"));
+    }).join("") + pagerHtml(sl);
+  }
+
+  function paneHocTroLy() {
+    var h = hocHienTai();
+    if (!h) return '<div class="pd-empty pg-loading">' + esc(pdT("proj.loading")) + "…</div>";
+    if (h.loi) return '<div class="pd-empty">' + esc(pdT("ags.err_learned")) + "</div>";
+    var info = window.NaotaInfo;
+    var explain = esc(pdT("ags.learned_info"));
+    return '<div class="pd-pane" data-pane="learned">' +
+      '<div class="pd-learn-head"><span class="pd-hint">' + esc(pdT("ags.learned_hint")) + "</span>" +
+        (info ? info.btn(pdT("info.more")) : "") + "</div>" +
+      (info ? info.body(explain) : '<div class="pd-note">' + ic("info") + "<span>" + explain + "</span></div>") +
+      listToolsHtml(findHtml("learned", h.lessons.length, pdT("proj.find_notes")),
+        '<button class="pd-add pd-nadd" type="button">' + ic("plus") + " " + esc(pdT("ags.lesson_add")) + "</button>") +
+      '<div class="pd-list">' + hocRowsHtml(h) + "</div>" +
+      '<div class="pd-fmsg pd-nmsg" role="status" hidden></div>' +
+      "</div>";
+  }
+
+  function wireHocRows(pane) {
+    var h = hocHienTai();
+    if (!h) return;
+    pane.querySelectorAll(".pd-nrow").forEach(function (row) {
+      var n = h.lessons.filter(function (x) { return x.id === row.dataset.id; })[0];
+      if (!n) return;
+      row.querySelector(".pd-nbody").onclick = function () { suaBaiHoc(n); };
+      row.querySelector(".pd-nedit").onclick = function () { suaBaiHoc(n); };
+      row.querySelector(".pd-ndel").onclick = function () { xoaBaiHoc(n); };
+    });
+  }
+
+  function wireHocTroLy() {
+    var pane = pdEl.querySelector('[data-pane="learned"]');
+    if (!pane) return;
+    wireHocRows(pane);
+    wireListTools(pane, "learned", redrawLearned);
+    pane.querySelector(".pd-nadd").onclick = function () { themBaiHoc(); };
+  }
+
+  function hocUrl(suffix) { return "/agents/" + encodeURIComponent(slugHoc()) + "/learned" + (suffix || ""); }
+  function hocLoi(r) { noteMsg(errText("ags.err_lesson", r)); }
+
+  /** Reload, then redraw only the list and the tab count. */
+  async function napLaiHoc() {
+    await napHoc(slugHoc());
+    redrawLearned();
+  }
+
+  async function themBaiHoc() {
+    var saved = await editText({
+      title: pdT("ags.lesson_add"), value: "", max: AGENT_LESSON_MAX, placeholder: pdT("ags.lesson_ph"),
+      saveLabel: pdT("proj.add"),
+      save: async function (text) {
+        var r = await post(hocUrl(""), { text: text, brain: brain() });
+        return r && r.ok ? "" : errText("ags.err_lesson", r);
+      },
+    });
+    if (!saved) return;
+    var v = listView("learned");
+    v.page = 0; v.q = "";
+    var inp = pdEl && pdEl.querySelector('[data-pane="learned"] .pd-find-in');
+    if (inp) inp.value = "";
+    noteMsg("");
+    await napLaiHoc();
+  }
+
+  async function suaBaiHoc(n) {
+    var saved = await editText({
+      title: pdT("ags.lesson_edit"), value: n.text || "", max: AGENT_LESSON_MAX, placeholder: pdT("ags.lesson_ph"),
+      save: async function (text) {
+        var r = await post(hocUrl("/" + encodeURIComponent(n.id) + "/update"), { text: text, brain: brain() });
+        return r && r.ok ? "" : errText("ags.err_lesson", r);
+      },
+    });
+    if (!saved) return;
+    noteMsg("");
+    await napLaiHoc();
+  }
+
+  async function xoaBaiHoc(n) {
+    if (!confirm(pdT("ags.confirm_remove_lesson"))) return;
+    var r = await post(hocUrl("/" + encodeURIComponent(n.id) + "/delete"), { brain: brain() });
+    if (!r || !r.ok) { hocLoi(r); return; }
+    await napLaiHoc();
+  }
+
   /** One line saying what an attached file or link holds. Naota writes it when it attaches or reads the document;
-   *  the owner can write or fix it here. Empty removes it. A project and an assistant keep one; a plain chat does not. */
+   *  the owner can write or fix it here, in the same edit box as a note. Empty removes it. A project and an assistant
+   *  keep one; a plain chat does not. */
   async function editAssetDescription(m, isFile) {
-    var text = prompt(pdT("proj.desc_q"), m.description || "");
-    if (text == null || text.trim() === (m.description || "")) return;
-    // pdApi() + "/describe": /projects/<id>/describe or /agents/<slug>/assets/describe (pdPost adds the brain).
-    var r = await pdPost("/describe", { kind: isFile ? "file" : "link", ref: isFile ? m.path : m.url,
-                                       description: text.trim() });
-    if (!r || !r.ok) { alert(pdT("proj.err_desc") + ((r && r.error) ? ": " + r.error : "")); return; }
+    var saved = await editText({
+      title: pdT("proj.desc_edit"), value: m.description || "", max: ASSET_DESC_MAX, placeholder: pdT("proj.desc_ph"),
+      hint: m.label || m.name || m.url || m.path || "", allowEmpty: true,
+      save: async function (text) {
+        // pdApi() + "/describe": /projects/<id>/describe or /agents/<slug>/assets/describe (pdPost adds the brain).
+        var r = await pdPost("/describe", { kind: isFile ? "file" : "link", ref: isFile ? m.path : m.url,
+                                           description: text });
+        return r && r.ok ? "" : errText("proj.err_desc", r);
+      },
+    });
+    if (!saved) return;
     await napLaiChiTiet();
     veLaiDanhSach();
   }
-
 
   // ── Tab File ─────────────────────────────────────────────────────────────────
   // Trả về TÊN icon, không phải chuỗi <svg>: chỗ gọi lo dữ liệu, chỗ vẽ mới gọi ic().
@@ -1376,21 +1761,47 @@
                        sub: l.vai === "user" ? pdT("cts.from_you") : pdT("cts.from_naota"),
                        sao: l.url, saoTitle: pdT("common.copy_link") });
     };
+    var v = listView("files");
     var repoHtml = dsRepoHtml(p);
     if (!fs.length && !ls.length) return repoHtml || '<div class="pd-empty">' + esc(pdT(pdK("files_empty"))) + "</div>";
-    var hang = fs.filter(tay).map(function (f) { return { pinned: !!f.pinned, html: veFile(f) }; })
-      .concat(ls.filter(tay).map(function (l) { return { pinned: !!l.pinned, html: veLink(l) }; }));
+    // Every row in display order, each with the group it sits in. The search and the page cut this ONE list, and a
+    // group's title is drawn again at the top of a page that starts inside it, so page two still says what it shows.
+    var fileWords = function (f) { return [f.label, f.name, f.path, f.brain_path, f.description]; };
+    var linkWords = function (l) { return [l.label, l.url, l.description]; };
+    var hang = fs.filter(tay).map(function (f) {
+      return { id: f.id, pinned: !!f.pinned, words: fileWords(f), html: function () { return veFile(f); } };
+    }).concat(ls.filter(tay).map(function (l) {
+      return { id: l.id, pinned: !!l.pinned, words: linkWords(l), html: function () { return veLink(l); } };
+    }));
     var ghim = hang.filter(function (h) { return h.pinned; });
     var thuong = hang.filter(function (h) { return !h.pinned; });
-    var html = function (h) { return h.html; };
-    var ds = "";
-    if (ghim.length) ds += nhomHtml(pdT("proj.pinned_group")) + ghim.map(html).join("");
-    if (thuong.length) ds += (ghim.length || laCuoc
-      ? nhomHtml(pdT(laCuoc ? "cts.added_group" : "proj.other_group")) : "") + thuong.map(html).join("");
-    var tuDong = fs.filter(function (f) { return !tay(f); }).map(veTuDongFile)
-      .concat(ls.filter(function (l) { return !tay(l); }).map(veTuDongLink));
-    if (tuDong.length) ds += nhomHtml(pdT("cts.auto_group")) + tuDong.join("");
-    return repoHtml + ds;
+    var nhomThuong = ghim.length || laCuoc ? pdT(laCuoc ? "cts.added_group" : "proj.other_group") : "";
+    var all = ghim.map(function (h) { h.group = pdT("proj.pinned_group"); return h; })
+      .concat(thuong.map(function (h) { h.group = nhomThuong; return h; }))
+      .concat(fs.filter(function (f) { return !tay(f); }).map(function (f) {
+        return { group: pdT("cts.auto_group"), words: fileWords(f), html: function () { return veTuDongFile(f); } };
+      }))
+      .concat(ls.filter(function (l) { return !tay(l); }).map(function (l) {
+        return { group: pdT("cts.auto_group"), words: linkWords(l), html: function () { return veTuDongLink(l); } };
+      }));
+    var shown = all.filter(function (h) { return matchesQuery(v.q, h.words); });
+    fileOrder = shown.map(function (h) { return h.id || ""; });
+    var sl = pageSlice(shown.length, v.page);
+    v.page = sl.page;
+    if (!shown.length) return repoHtml || noMatchHtml();
+    var ds = "", nhom = null;
+    shown.slice(sl.from, sl.to).forEach(function (h) {
+      if (h.group !== nhom) { nhom = h.group; if (nhom) ds += nhomHtml(nhom); }
+      ds += h.html();
+    });
+    return (sl.page === 0 ? repoHtml : "") + ds + pagerHtml(sl);
+  }
+
+  /** Ids of the document rows the search lets through, in display order: nhayHang turns to the page of a row. */
+  var fileOrder = [];
+  function fileCount(p) {
+    p = p || {};
+    return (p.files || []).length + (p.links || []).length;
   }
 
   function nhomHtml(nhan) { return '<div class="pd-group">' + esc(nhan) + "</div>"; }
@@ -1407,7 +1818,9 @@
   function repoNames(p) { return ((p || {}).repos || []).map(function (r) { return r.full_name; }).filter(Boolean); }
 
   function dsRepoHtml(p) {
-    var names = pdCoRepo() ? repoNames(p) : [];
+    // The documents search also filters the repos, so a query never leaves an unrelated repo on top.
+    var q = listView("files").q;
+    var names = (pdCoRepo() ? repoNames(p) : []).filter(function (n) { return matchesQuery(q, [n]); });
     if (!names.length) return "";
     return nhomHtml(pdT("proj.repos_group")) + names.map(function (n) {
       var parts = String(n).split("/");
@@ -1479,9 +1892,10 @@
     // form tìm kiếm dựng lại từ đầu: mất chữ đã gõ, mất kết quả, muốn thêm file thứ hai phải
     // gõ lại từ đầu - đúng lỗi đã gặp.
     return '<div class="pd-pane" data-pane="files">' +
-      '<div class="pd-list">' + dsFileHtml(p) + "</div>" +
-      '<button class="pd-add" type="button">' + ic("plus") + " " + esc(pdT("proj.add_doc")) + "</button>" +
+      listToolsHtml(findHtml("files", fileCount(p), pdT("proj.find_docs")),
+        '<button class="pd-add" type="button">' + ic("plus") + " " + esc(pdT("proj.add_doc")) + "</button>") +
       (pdFormFile ? formFile() : "") +
+      '<div class="pd-list">' + dsFileHtml(p) + "</div>" +
       (coGhimDuoc(p)
         ? '<div class="pd-note">' + ic("info") + "<span>" + esc(pdT(pdK("pin_note"))) + "</span></div>"
         : "") +
@@ -1497,7 +1911,9 @@
     var box = pane && pane.querySelector(".pd-list");
     if (!box) { veDrawer(); return; }
     box.innerHTML = dsFileHtml(p);
+    syncFind(pane, "files", fileCount(p));
     noiHang(pane);
+    wireListTools(box, "files", veLaiDanhSach);
     veSoTab();
   }
 
@@ -1586,6 +2002,7 @@
     if (!pane) return;
     pane.querySelector(".pd-add").onclick = function () { pdFormFile = !pdFormFile; veDrawer(); };
     noiHang(pane);
+    wireListTools(pane, "files", veLaiDanhSach);
     pane.querySelectorAll(".pd-mode").forEach(function (b) {
       b.onclick = function () { pdFileMode = b.dataset.mode; veDrawer(); };
     });
@@ -1800,6 +2217,21 @@
 
   function nhayHang(id) {
     var row = pdEl && pdEl.querySelector('[data-pane="files"] .pd-row[data-id="' + id + '"]');
+    if (!row && id) {
+      // The row sits on another page, or the search hides it: clear the search, turn to its page, then light it up.
+      var v = listView("files");
+      if (fileOrder.indexOf(id) < 0 && v.q) {
+        v.q = "";
+        var inp = pdEl.querySelector('[data-pane="files"] .pd-find-in');
+        if (inp) inp.value = "";
+        veLaiDanhSach();
+      }
+      var at = fileOrder.indexOf(id);
+      if (at < 0) return;
+      v.page = Math.floor(at / LIST_PAGE);
+      veLaiDanhSach();
+      row = pdEl.querySelector('[data-pane="files"] .pd-row[data-id="' + id + '"]');
+    }
     if (!row) return;
     row.classList.remove("nhay");
     void row.offsetWidth;          // khởi động lại animation khi bấm lần nữa
@@ -1872,7 +2304,8 @@
       if (r.sep) { menuEl.appendChild(el('<div class="cs-menu-sep"></div>')); return; }
       // r.icon là TÊN icon Lucide, đi qua iconHtml (thẻ <svg>); r.label là chữ nên phải escape.
       var iHtml = r.icon ? iconHtml(r.icon) : "";
-      var row = el('<div class="cs-menu-row' + (r.on ? " on" : "") + '">' +
+      var row = el('<div class="cs-menu-row' + (r.on ? " on" : "") + '"' +
+        (r.projectId ? ' data-unread-project="' + esc(r.projectId) + '"' : '') + '>' +
         '<button class="cs-menu-main" type="button">' +
         (iHtml ? '<span class="cs-menu-ico">' + iHtml + '</span>' : '') +
         '<span class="cs-menu-lbl' + (r.wrap ? " nhieu-dong" : "") + '">' + esc(r.label) + '</span>' +
@@ -1880,6 +2313,7 @@
         // chuột). Ghim mà chỉ thấy được lúc rê chuột thì nhìn danh sách không biết vì sao
         // thứ tự lại như vậy.
         (r.pinIcon ? '<span class="cs-menu-pin">' + ic(r.pinIcon) + '</span>' : '') +
+        (r.projectId ? projectUnreadHtml(r.unread) : '') +
         (r.right ? '<span class="cs-menu-right">' + esc(r.right) + '</span>' : '') + '</button>' +
         '<span class="cs-menu-acts"></span></div>');
       row.querySelector(".cs-menu-main").onclick = function () { closeMenu(); r.run(); };
@@ -1970,7 +2404,7 @@
     var r = await fetch("/sessions?brain=" + encodeURIComponent(b) + "&limit=" + (shown + 1) +
                         (p ? "&project=" + encodeURIComponent(p) : "") +
                         (kenhLoc ? "&channel=" + encodeURIComponent(kenhLoc) + (kenhLoc.indexOf("agent:") === 0 ? "&bots=1" : "") : "") +
-                        (arch ? "&archived=1" : ""));
+                        (arch ? "&archived=1" : "") + "&unread_first=1");
     var data = await r.json();
     archCount = Number(data.archived_count) || 0;
     // `kenh` nằm trong khoá cache: thiếu nó thì lần mở trang Cộng sự kế tiếp vẽ tạm bằng danh
@@ -2096,17 +2530,19 @@
   function refresh() {
     if (!side) return;
     var b = brain();
+    var changedBrain = b !== lastBrain;
     if (b !== lastBrain) {
       lastBrain = b; shown = PAGE; archView = false;
       // Project gắn theo brain, nên đổi brain là danh sách project đổi theo. Không nạp lại thì
       // thanh trên đầu còn treo tên project của brain cũ mà bộ lọc lại đang trỏ vào id lạ.
-      if (projBar) { renderProjBar(); loadProjects(); }
+      if (projBar) { projects = []; renderProjBar(); loadProjects(); }
       // Cây Vault tự dựng lại khi đổi brain (console.js theo dõi #graphSource), nên ở đây
       // không phải làm gì thêm - đó chính là cái lợi của việc mượn node thay vì nuôi bản hai.
     }
     // debounce nhẹ: response + notifySessions có thể bắn sát nhau
     clearTimeout(refreshTimer);
     refreshTimer = setTimeout(function () {
+      if (projBar && !kenhLoc && !changedBrain) loadProjects();
       var q = searchEl && searchEl.value.trim();
       q ? doSearch(q) : loadList();
     }, 150);
@@ -2213,10 +2649,17 @@
     if (archView) listEl.appendChild(dauLuuTru());
     var cur = currentId(), lastGroup = null;
     var pins = items.filter(function (s) { return s.pinned; });
+    // 2026-11-19 (owner: "những tin chấm đỏ mà chưa đọc em sắp xếp kéo lên trên đầu"): unread chats form their own
+    // group right under the pinned ones. The server already puts them on the first page (unread_first=1); this pass
+    // only keeps the open chat, which counts as read, in its date group instead of under "Unread".
+    function laChuaDoc(s) { return !!s.unread && !isRunning(s.id) && !(s.id === cur && chatOnScreen() && !isHeldUnread(s.id)); }
+    items = pins.concat(items.filter(function (s) { return !s.pinned && laChuaDoc(s); }),
+                        items.filter(function (s) { return !s.pinned && !laChuaDoc(s); }));
     items.forEach(function (s) {
       // Mục ghim gom thành MỘT nhóm trên đầu, không xếp theo thời gian nữa - ghim chính là để
       // thoát khỏi thứ tự thời gian. Server đã sắp pinned trước nên chỉ cần đổi nhãn nhóm.
-      var g = s.pinned ? window.t("sess.grp_pinned") : groupOf(s.updated_at || 0);
+      var g = s.pinned ? window.t("sess.grp_pinned")
+        : laChuaDoc(s) ? window.t("sess.unread") : groupOf(s.updated_at || 0);
       if (g !== lastGroup) {
         var head = el('<div class="cside-group">' + g + '</div>');
         // The pinned group gets a Reorder button (two or more pinned chats).
@@ -2260,8 +2703,8 @@
       // already filtered to that very project, where every row would repeat the same name.
       var pid = (!kenhLoc && s.project_id && s.project_id !== curProject()) ? String(s.project_id) : "";
       var pTag = projById(pid);
-      var chuaDoc = !!s.unread;
-      if (chuaDoc && s.id === cur && chatOnScreen()) { chuaDoc = false; s.unread = false; markRead(s.id); }
+      var chuaDoc = !!s.unread && !isRun;   // still working: the spinner says so, the dot waits for the end
+      if (chuaDoc && s.id === cur && chatOnScreen() && !isHeldUnread(s.id)) { chuaDoc = false; s.unread = false; markRead(s.id); }
       // a pinned row shows a small pin before its title (no bar on the left any more); every other action
       // is in the row's "..." menu (moMenuDong).
       var item = el('<div class="cside-item' + (s.id === cur ? " active" : "") + (isRun ? " running" : "") + (s.pinned ? " ghim" : "") + (chuaDoc ? " has-unread" : "") + (s.archived ? " archived" : "") + '">' +
@@ -2506,7 +2949,7 @@
       smItem("share", "share-2", "sess.share_link") +
       smItem("export", "download", "sess.export_md");
     if (s.unread) h2 += smItem("read", "mail-open", "sess.mark_read");
-    else if (s.id !== currentId()) h2 += smItem("unread", "mail", "sess.mark_unread");
+    else if (!isRunning(s.id)) h2 += smItem("unread", "mail", "sess.mark_unread");
     h2 += smSep() + smItem("archive", "archive", "sess.archive") +
       smItem("delete", "trash-2", "common.delete", { danger: true });
     return h2;
@@ -2616,10 +3059,19 @@
       return;
     }
     if (act === "pin") { dongMenuDong(false); return togglePin(s, s.timKiem); }
-    if (act === "read") { dongMenuDong(false); markRead(s.id); clearDot(s.id); return; }
+    if (act === "read") {
+      dongMenuDong(false);
+      if (heldUnread === s.id) heldUnread = null;
+      markRead(s.id); clearDot(s.id); return;
+    }
     if (act === "unread") {
+      if (s.id === currentId()) heldUnread = s.id;
+      // A read still waiting in its timer would undo this the moment it lands.
+      if (readTimers[s.id]) { clearTimeout(readTimers[s.id]); delete readTimers[s.id]; }
       return ketQua(await post("/sessions/" + encodeURIComponent(s.id) + "/unread", {}).then(function (r) {
-        cached = null; taiLaiSau(s); return r;
+        cached = null; taiLaiSau(s); refreshProjects();
+        try { if (window.NaotaRailUnread) window.NaotaRailUnread.refresh(); } catch (e) {}
+        return r;
       }));
     }
     if (act === "archive") return ketQua(await luuTru(s, true));
@@ -2749,7 +3201,7 @@
     loadList();
   }
 
-  window.NaotaChatSide = { mount: mount, refresh: refresh, tab: chonTab,
+  window.NaotaChatSide = { mount: mount, refresh: refresh, tab: chonTab, unreadSkipQuery: unreadSkipQuery,
                            chip: renderProjChip, moKhung: openProjDrawer,
                            moKhungCuoc: openCuocDrawer,
                            // Trang Cộng sự mở đúng ngăn kéo này cho MỘT trợ lý (nút "File &
@@ -2791,6 +3243,7 @@
   window.addEventListener("naota:session-read", function (e) {
     var sid = e && e.detail && e.detail.session_id;
     if (sid) clearDot(sid);
+    refreshProjects();
   });
   // Chip phải tự sống KHÔNG phụ thuộc cột trái: refresh() thoát sớm khi chưa mount sidebar,
   // mà chip còn đứng ở màn Naota nơi cột đó chưa bao giờ mount. Đổi phiên là đổi project có

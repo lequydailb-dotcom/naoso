@@ -113,7 +113,7 @@
    },
    "steps": [
     {"text": "BEFORE YOU START, read this: this connection runs on the machine where Naota is installed, and the first tool call opens THAT MACHINE'S browser for you to approve. If Naota runs on a VPS with no screen, this route will not work."},
-    {"text": "If Google Workspace or another Google service is already connected, REUSE its key (the button below the input), and only do the enable-API step."},
+    {"text": "If Google Workspace or another Google service is already connected, REUSE its key (the Reuse key row at the top of this box), and only do the enable-API step."},
     {"text": "Create a project in Google Cloud (or use an existing one) and enable the Google Tasks API.", "link_label": "Enable Tasks API"},
     {"text": "OAuth consent screen: choose External, then add your Google email under Test users. Skip this and Google blocks the sign-in right away.", "link_label": "Open consent screen"},
     {"text": "Create an OAuth client of type 'Desktop app'. This type needs NO redirect URI at all, so an empty section is correct.", "link_label": "Create OAuth client"},
@@ -181,7 +181,7 @@
     "client_secret": {"label": "OAuth Client Secret", "placeholder": "e.g. GOCSPX-..."}
    },
    "steps": [
-    {"text": "If Google Calendar is already connected, REUSE its key (the button below the input) and only do step 2 for Gmail."},
+    {"text": "If Google Calendar is already connected, REUSE its key (the Reuse key row at the top of this box) and only do step 2 for Gmail."},
     {"text": "Enrol in the Google Workspace Developer Preview (free) with EXACTLY the Google account you will sign in with. Skip this and you get a 403 even after a successful sign-in.", "link_label": "Open enrolment page"},
     {"text": "Create a project in Google Cloud (or use an existing one) and enable BOTH APIs: Gmail API and Gmail MCP API.", "link_label": "Enable Gmail MCP API"},
     {"text": "OAuth consent screen: choose External and add your email under Test users.", "link_label": "Open consent screen"},
@@ -284,6 +284,47 @@
      {"label": "Install uv"}
     ]
    }
+  },
+ "asana": {
+  "description": "Tasks and projects in Asana through the official MCP (V2): find tasks, view projects, progress, assignees and due dates, create and update tasks, add comments. Sign in to Asana from the dashboard; works on a VPS too. Needs a one-time Asana MCP app (~5 minutes).",
+  "risk": "The Asana MCP works with the permissions of the Asana account you sign in with.\n\nRead-only: find and read tasks, projects, assignees, progress and comments. Nothing changes.\n\nDraft: also create tasks, edit tasks (name, due date, assignee, done state) and add comments. Teammates see it at once and may get notified.\n\nFull access: also DELETE tasks or projects and remove people from tasks. Asana moves deletions to the trash, but Naota cannot restore them for you.\n\nIn a busy workspace, start at Read-only and raise it step by step.",
+  "guide": "Asana only lets pre-created apps sign in to MCP V2, so you create your own MCP app once, about 5 minutes:\n1. Open Asana's Developer console (button below), press Create new app and choose the MCP app type.\n2. In the app's OAuth section, add exactly this redirect URL:\nhttp://localhost:7777/connect/oauth/callback\nOn a VPS, also add https://<your-domain>/connect/oauth/callback\nThe address must match character for character, port and trailing / included.\n3. Copy the app's Client ID and Client secret into the two boxes below, then press Connect.\n4. Asana's page opens: pick the workspace and press Allow.\n\nNaota sees and does exactly what your Asana account can, nothing more.\nTo let Naota only look, keep it at Read-only.\n\nIf you get 'redirect_uri does not match', check step 2 again: a missing https, a wrong port or an extra / makes Asana refuse.",
+  "fields": {
+   "client_id": {
+    "label": "Client ID (Asana MCP app)",
+    "placeholder": "For example: 1209876543210987"
+   },
+   "client_secret": {
+    "label": "Client secret",
+    "placeholder": "Paste the MCP app's client secret"
+   }
+  },
+  "steps": [
+   {
+    "text": "Open Asana's Developer console, press Create new app and choose the MCP app type.",
+    "link_label": "Open Developer console"
+   },
+   {
+    "text": "In the app's OAuth section, add the address below as a Redirect URL. It must match character for character, port and trailing / included."
+   },
+   {
+    "text": "Copy the app's Client ID and Client secret into the two boxes below, then press Connect."
+   },
+   {
+    "text": "Asana's page opens: pick the workspace and press Allow. If it says 'redirect_uri does not match', check step 2 again. For more detail, see Asana's MCP guide.",
+    "link_label": "Asana's MCP guide"
+   }
+  ],
+  "setup": {
+   "links": [
+    {
+     "label": "Open Asana's Developer console"
+    },
+    {
+     "label": "Asana's MCP guide"
+    }
+   ]
   }
+ }
  }
 }

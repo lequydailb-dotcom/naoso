@@ -329,7 +329,21 @@ check("kênh lạ trả rỗng chứ không vẽ dấu hỏi", /if \(!k\) return
 // bot TRỎ tới tài khoản kênh (một bot trực được nhiều tài khoản), kênh không còn là
 // một trường của bot. Thẻ hiện một chip cho MỖI tài khoản; huy hiệu ở icon chỉ khi có đúng một.
 check("kênh hiện trên thẻ bot (huy hiệu ở icon khi một tài khoản + chip cho từng tài khoản)",
-  /class="cb-ico-kenh"/.test(CB) && /function chipTK\(/.test(CB) && /\.map\(chipTK\)/.test(CB));
+  /class="cb-ico-kenh"/.test(CB) && /function chipTK\(/.test(CB) && /\.map\(function \(a\) \{ return chipTK\(a, b\); \}\)/.test(CB));
+// Chủ repo 19/11/2026: chip Fanpage hiện Page ID dạng số thay vì tên Trang. Chạy thật tenTK trên các ca.
+{
+  const m = CB.match(/function tenTK\(a, k, b\) \{[\s\S]*?\n  \}/);
+  const tenTK = m && new Function("return " + m[0])();
+  const MS = { nhan: "Messenger" }, TG = { nhan: "Telegram", tien_to_ten: "@" };
+  const bot = { name: "Khánh Ngân - Báo giá Zalo" };
+  check("chip Messenger hiện tên Trang thay vì Page ID", !!tenTK &&
+    tenTK({ external_id: "1312748711929369", label: "1312748711929369", meta: { bot_name: "Vĩnh Cửu" } }, MS, bot) === "Vĩnh Cửu" &&
+    tenTK({ external_id: "1312748711929369", label: bot.name, meta: { bot_name: "Vĩnh Cửu" } }, MS, bot) === "Vĩnh Cửu" &&
+    tenTK({ external_id: "1312748711929369", label: "VCSG Q7", meta: { bot_name: "Vĩnh Cửu" } }, MS, bot) === "VCSG Q7" &&
+    tenTK({ external_id: "1312748711929369", label: "1312748711929369" }, MS, bot) === "1312748711929369" &&
+    tenTK({ external_id: "mybot", label: "Shop" }, TG, bot) === "@mybot" &&
+    tenTK({ label: "Khánh Ngân Vcsg" }, { nhan: "Zalo" }, bot) === "Khánh Ngân Vcsg");
+}
 check("form hỏi KÊNH NGAY Ở ĐẦU, trước cả tên bot",
   tu("cb.lb_tai_khoan", "kênh") && CB.indexOf('window.t("cb.lb_tai_khoan")') > -1 &&
   CB.indexOf('window.t("cb.lb_tai_khoan")') < CB.indexOf('"cb2.s_ai"'));
@@ -438,6 +452,10 @@ check("chọn 'mọi cuộc chat' phải tick xác nhận rủi ro (server cũng
 check("ô chọn người/nhóm lấy danh sách từ Hộp thư qua /chatbots/chats, không bắt dán id",
   /\/chatbots\/chats\?account_ids=/.test(CB) && /id="cbPkQ"/.test(CB) && /id="cbPkAdd"/.test(CB) &&
   tu("cb2.pk_cho", "Chờ bạn cho phép"));
+check("the chosen-recipient picker defaults to private chats and requests the active chat type",
+  CB.includes('co ? ["private", "group"] : ["private"]') &&
+  CB.includes('"&chat_type=" + encodeURIComponent(pkTab)') &&
+  VI["cb2.pk_nguoi"] === "Nhắn riêng" && EN["cb2.pk_nguoi"] === "Private");
 check("kênh không có nhóm thì ẨN thẻ 'mọi cuộc chat' và đổi chữ hai thẻ còn lại",
   /aud_moi_t/.test(CB) && /aud_chon_ko_t/.test(CB));
 check("thẻ bot có một dòng 'Trả lời: ...' và menu '...' cho việc phụ",

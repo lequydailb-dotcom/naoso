@@ -436,7 +436,7 @@ const pause = () => new Promise((r) => setTimeout(r, WAIT * 4));   // longer tha
   check("no Tab chip on any screen: not made, not styled, no screen hands over its button row",
     !SRC.includes('textContent = "Tab"') && !/sug-tab/.test(SRC + cssTab) && !/chipHost/.test(SRC + app + teams));
   check("main chat: the buttons of the composer row are all still there",
-    ["plusBtn", "cpChips", "mbOpen"].every(id => html.includes('id="' + id + '"')) && html.includes('class="cp-gap"'));
+    ["plusBtn", "cpChips", "mbOpen", "cpRight", "cpUnder"].every(id => html.includes('id="' + id + '"')));
   // Owner, 2026-11-13, later: "ở phiên bản máy tính ... không có mũi tên >". The > is for every screen.
   const go = cssTab.slice(cssTab.indexOf("\n.sug-go { display: inline-flex;"));
   check("the > shows on a computer too (no media query hides it), with no border and no background, and takes a click",
@@ -485,6 +485,12 @@ const pause = () => new Promise((r) => setTimeout(r, WAIT * 4));   // longer tha
   const vi = JSON.parse(fs.readFileSync(path.join(D, "i18n", "vi.json"), "utf8"));
   const en = JSON.parse(fs.readFileSync(path.join(D, "i18n", "en.json"), "utf8"));
   check("labels in vi and en", ["sug.menu", "sug.on", "sug.off", "sug.use"].every(k => vi[k] && en[k]));
+  // Owner, 17/11/2026 (Teams screenshot: the grey suggestion over the "is typing" line): the layer is placed against the
+  // input's own row, made a positioned box first, so a line that shows up above the input cannot leave it behind.
+  const draw = SRC.slice(SRC.indexOf("function drawGhost("), SRC.indexOf("function hide()"));
+  check("the suggestion layer is placed against the input's own row, which is made a positioned box first",
+    draw.includes('if (host.style && getComputedStyle(host).position === "static") host.style.position = "relative";')
+    && draw.indexOf('host.style.position = "relative"') < draw.indexOf("ghost.style.top = (el.offsetTop + el.clientTop)"));
 
   if (fails) { console.log("\n" + fails + " FAIL"); process.exit(1); }
   console.log("\nOK - chat_suggest: all pass");

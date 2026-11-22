@@ -10,7 +10,7 @@ Trang này gộp luôn phần Chatbot: **một mục trên thanh bên, bốn tab
 
 Thanh điều hướng bên trái, nhóm **Năng lực**, mục **Chatbot**. Trong trang có bốn tab:
 
-- **Hội thoại**: mọi tin khách, ai đang lo cuộc chat nào, trả lời, nhờ A.I. soạn.
+- **Hội thoại**: mọi tin khách, ai đang lo cuộc chat nào, trả lời, nhờ Naota soạn.
 - **Bot**: nhân viên A.I. đứng trực các kênh. Kênh đã có bot hiện thành chip trên thẻ bot; bấm chip để sửa hoặc xoá kênh đó. Xem [Chatbot](25-chatbot.md).
 - **Kênh**: mọi nick và Page, bot nào trực, bật tắt A.I. từng nhóm hay người.
 - **Thống kê**: A.I. và bạn đã trả lời bao nhiêu, khách chờ bao lâu.
@@ -34,13 +34,13 @@ Bên dưới, mọi kênh đều đưa tin về **một khuôn chung** rồi và
 
 (Chatbot v5) máy tính chia **ba cột**: danh sách khách bên trái, khung chat ở giữa, bảng **Thông tin** bên phải. Bảng Thông tin **đóng sẵn** để khung chat rộng, bấm nút ⓘ ở góc phải đầu cuộc chat mới mở (Naota nhớ lựa chọn của bạn trên trình duyệt đó); màn hẹp hơn 1200px thì bảng trượt đè lên khung chat. Chữ trên máy tính cũng gọn lại: danh sách 14px, tin nhắn 15px, và tin nằm trong một cột giữa vừa tầm mắt.
 
-**Trên điện thoại**: không còn chữ "Chatbot" ở đầu trang, bốn tab chỉ còn icon (giữ ngón tay hay đọc màn hình vẫn nghe tên tab). Mở một cuộc chat là nó **chiếm cả màn hình**: một hàng đầu gồm nút quay lại, tên khách, kênh, và một **nút chế độ** màu tím (ví dụ "A.I. trả lời ▾"). Bấm nút đó là một bảng trượt từ dưới lên với ba chế độ, mỗi cái một dòng giải thích, cùng **Thông tin khách và cài đặt A.I.** Ô nhập một hàng, hai nút tròn: ✨ để A.I. soạn hộ, mũi tên để gửi.
+**Trên điện thoại**: không còn chữ "Chatbot" ở đầu trang, bốn tab chỉ còn icon (giữ ngón tay hay đọc màn hình vẫn nghe tên tab). Mở một cuộc chat là nó **chiếm cả màn hình**: một hàng đầu gồm nút quay lại, tên khách, kênh, và một **nút chế độ** màu tím (ví dụ "A.I. trả lời ▾"). Bấm nút đó là một bảng trượt từ dưới lên với ba chế độ, mỗi cái một dòng giải thích, cùng **Thông tin khách và cài đặt A.I.** Ô nhập một hàng, hai nút tròn: ✨ để Naota soạn hộ, mũi tên để gửi.
 
 **Ai đang lo cuộc chat này.** Server tính cho mỗi cuộc chat một trạng thái, mọi chỗ trên trang đọc đúng nó:
 
 | Màu | Tên | Khi nào |
 |---|---|---|
-| vàng | **Cần bạn** | khách chờ mà không ai lo, có người gọi A.I. ở nhóm chưa cho phép, A.I. soạn xong chờ bạn duyệt |
+| vàng | **Cần bạn** | khách chờ mà không ai lo, có người gọi A.I. ở nhóm chưa cho phép, Naota soạn xong chờ bạn duyệt |
 | tím | **A.I. đang xử lý** | A.I. được phép trả lời ở đây và bot đang chạy |
 | xanh | **Bạn đang xử lý** | bạn chọn Tôi trả lời và khách không chờ |
 | xám | **Chỉ ghi lại** | A.I. không trả lời ở đây (chưa cho phép, kênh chưa có bot, bot tắt) và không ai chờ |
@@ -66,7 +66,7 @@ Bấm một hội thoại là lịch sử tin hiện ở giữa: tin khách bên
 
 ## Ai trả lời: đầu cuộc chat và thanh màu
 
-**A.I. được phép trả lời ở đây**: ba chế độ **A.I. trả lời**, **A.I. soạn**, **Tôi trả lời** nằm ngay trên đầu cuộc chat, bên phải tên khách (trên điện thoại là nút chế độ mở bảng chọn). Rê chuột lên đó là đọc một câu nói chuyện gì đang xảy ra.
+**A.I. được phép trả lời ở đây**: ba chế độ **A.I. trả lời**, **Naota soạn**, **Tôi trả lời** nằm ngay trên đầu cuộc chat, bên phải tên khách (trên điện thoại là nút chế độ mở bảng chọn). Rê chuột lên đó là đọc một câu nói chuyện gì đang xảy ra.
 
 Ngay dưới tên khách là một **thanh mảnh** cùng màu với trạng thái, kèm **một câu** (ví dụ "A.I. đã soạn xong câu trả lời, chờ bạn duyệt"). Thanh này **chỉ hiện khi cần bạn** hoặc khi có việc để bật, còn lúc A.I. đang lo yên ổn thì ẩn đi cho khung chat rộng. Nút đi kèm hợp với lúc đó:
 
@@ -77,16 +77,18 @@ Ngay dưới tên khách là một **thanh mảnh** cùng màu với trạng th�
 
 Mọi thay đổi hiện một dòng báo ở đáy màn hình kèm **Hoàn tác**.
 
-**A.I. soạn, tôi duyệt**: lượt bot chạy như thường nhưng câu trả lời **không gửi**. Nó nằm ngay **trong khung ô nhập**, phía trên chỗ gõ, nền tím nhạt, cuộc chat chuyển sang Cần bạn. Bạn sửa chữ nếu cần rồi bấm **Gửi** (ghi vào hộp thư là lời A.I.), **Viết lại** (nhờ soạn lần nữa) hoặc **Bỏ**. Tin khách mới tới khi bản cũ chưa duyệt thì bản mới thay bản cũ. Đổi chế độ không xoá bản đang chờ; bạn tự gửi tay thì bản đó bỏ đi.
+**Naota soạn, tôi duyệt**: lượt bot chạy như thường nhưng câu trả lời **không gửi**. Nó nằm ngay **trong khung ô nhập**, phía trên chỗ gõ, nền tím nhạt, cuộc chat chuyển sang Cần bạn. Bạn sửa chữ nếu cần rồi bấm **Gửi** (ghi vào hộp thư là lời A.I.), **Viết lại** (nhờ soạn lần nữa) hoặc **Bỏ**. Tin khách mới tới khi bản cũ chưa duyệt thì bản mới thay bản cũ. Đổi chế độ không xoá bản đang chờ; bạn tự gửi tay thì bản đó bỏ đi.
 
 **Tắt A.I. ở riêng một cuộc chat**: chọn "Không cho A.I. trả lời ở đây" trong bảng Thông tin. Chỉ cuộc chat đó im; khách khác và nhóm khác vẫn như cũ.
 
-## Trả lời khách và nút "A.I. soạn"
+## Trả lời khách và nút "Naota soạn"
 
 Ô nhập có hai nút:
 
 - **Gửi**: gửi nguyên văn cho khách. Trên máy tính **Enter** để gửi, Shift+Enter xuống dòng. Trên điện thoại **Enter là xuống dòng** như khung chat chính, muốn gửi thì bấm nút gửi.
-- **A.I. soạn** (trước đây tên là "A.I. trả lời"): chữ trong ô là **lệnh cho A.I.**, ví dụ "báo giá sỉ 20 thùng, hẹn giao thứ 5". A.I. viết thành câu trả lời lịch sự ngay trong khung ô nhập, ghi rõ lệnh của bạn, kèm Bỏ / Viết lại / Gửi. Ô trống thì A.I. tự đọc cuộc chat mà soạn. **Không bao giờ tự gửi.** Lệnh chỉ A.I. đọc, không vào hộp thư.
+- **Naota soạn** (trước đây tên là "A.I. trả lời", rồi "A.I. soạn"): chữ trong ô là **lệnh cho Naota**, ví dụ "báo giá sỉ 20 thùng, hẹn giao thứ 5". Naota viết thành câu trả lời lịch sự ngay trong khung ô nhập, ghi rõ lệnh của bạn, kèm Bỏ / Viết lại / Gửi. Lệnh của bạn là lời mới nhất của chủ: nó thắng tài liệu và cả điều bot từng nói trước đó. Ví dụ bot từng nói "đang kiểm tra lịch", bạn gõ "lịch đã chốt 20h ngày 21" thì câu soạn báo đúng lịch đó. Bạn gõ "báo khách là đang kiểm tra" thì câu soạn nói đúng như vậy. Ô trống thì A.I. tự đọc cuộc chat mà soạn. Trong lúc chờ, chỗ bản nháp hiện khung "Naota đang viết" nói bước đang làm và số giây đã chờ. **Không bao giờ tự gửi.** Lệnh chỉ A.I. đọc, không vào hộp thư.
+
+**Bot học từ câu bạn xác nhận**: trên bản nháp có ô tick **Bot học câu này**, bật sẵn. Ô hiện khi bản nháp có lệnh của bạn, hoặc khi bạn sửa chữ của bản nháp. Bấm Gửi mà ô còn tick thì câu đó được ghi vào file `tri-thuc-chatbot/<tên-agent>.md` trong brain (câu khách hỏi, lệnh của bạn, câu đã gửi; mục mới nhất ở trên cùng, cùng một lệnh thì giữ một mục), và file được gắn vào mục **Tài liệu** của Agent. Lần sau khách khác hỏi chuyện tương tự, bot tìm thấy câu trả lời đã xác nhận trong tài liệu. Chuyện riêng của một khách (giảm giá riêng, hẹn giao) thì bỏ tick trước khi gửi. Muốn sửa hay xoá điều bot đã học, mở file đó ra sửa như mọi tài liệu khác.
 
 Dưới tin khách cuối có dòng **"Bot im: lý do"** khi bộ phán xử đã ghi lý do (ví dụ "Điểm thấp hơn ngưỡng (0.52 / 0.60)"), kèm nút **Vì sao** mở thẳng bảng Bộ phán xử của bot đó, và nút **Nhờ A.I. trả lời tin này**: A.I. trả lời ngay tin đó và gửi luôn, cuộc chat vẫn ở A.I. tự trả lời. Nếu đó đúng là tin bộ phán xử đã im, bot còn **học thêm một ca**: lần sau gặp tin giống vậy bot sẽ nói. Gửi hỏng mà A.I. đã soạn xong thì câu đó nằm trong ô nhập để bạn gửi tay.
 
@@ -99,6 +101,7 @@ Gửi tay ở một cuộc chat đang **A.I. tự trả lời** là bạn **ti�
 - **Khách**: tên, nick hay Page, số điện thoại hoặc email khách để lại, **thẻ** (thêm, bớt, tạo thẻ mới ngay tại chỗ) và, ở chat riêng, **hồ sơ khách hàng** (từ 12/11/2026, trước đó là ô ghi chú): A.I. tự ghi những gì cần nhớ về khách sau mỗi lần chat và bot đọc nó khi trả lời, bạn vẫn sửa hay ghi thêm được (lưu khi bạn bấm ra ngoài ô; hồ sơ theo khách, sang cuộc chat khác của cùng khách vẫn thấy). Chi tiết ở [Chatbot](25-chatbot.md), mục "Bot có nhớ khách lâu dài không?". Nhóm thì vẫn là ô **ghi chú** chỉ bạn thấy.
 - **A.I. ở cuộc chat này**: Ai trả lời (tắt ở đây, hoặc một trong ba chế độ); với nhóm thì **A.I. lên tiếng khi** (được gọi tên, khi thấy cần, mọi tin); **Bạn nhắn tay thì A.I. nhường** bao lâu. Hai ô sau là cài đặt chung của cả bot, bảng nói rõ điều này. Có lối **Mở cài đặt bot**.
 - **Kênh**: logo, tên kênh và nick hay Page.
+- **Chặn, Rời nhóm, Xoá hội thoại**: ba thao tác của menu "..." trên danh sách cũng nằm ở cuối bảng này, cùng chữ và cùng dòng nhỏ nói nó có làm trên Zalo hay Fanpage không. **Rời nhóm** (nhóm Zalo) rời trên Zalo rồi xoá luôn cuộc chat khỏi Naota. Cuộc chat đã xoá không quay lại vì tin cũ: chỉ một tin gửi SAU lúc xoá mới mở lại nó.
 
 Hai điều nên biết:
 

@@ -430,9 +430,18 @@ def provider_support(provider: str, *, codex_sandbox: Optional[str] = "workspace
         return {"ok": True, "approved_actions": True, "reason": ""}
     if p == CODEX:
         if codex_sandbox != "workspace-write":
+            # The stock Docker image sets NAOTA_CODEX_SANDBOX=off, and the old text gave a Docker + ChatGPT
+            # owner no way to keep Codex. It now names the setting that turns the sandbox back on.
+            from localefmt import chu  # lazy: this module keeps its imports light
             return {"ok": False, "approved_actions": False,
-                    "reason": ("Codex đang chạy không có sandbox riêng (NAOTA_CODEX_SANDBOX=off) nên Naota không chặn "
-                               "được lệnh máy của nó trước khi chạy")}
+                    "reason": chu("Codex đang chạy không có sandbox riêng (NAOTA_CODEX_SANDBOX=off, mặc định của ảnh "
+                                  "Docker) nên Naota không chặn được lệnh máy của nó trước khi chạy. Muốn giữ Codex "
+                                  "trên Docker: đặt NAOTA_CODEX_SANDBOX=auto và cho container chạy được sandbox, xem "
+                                  "tài liệu Cấu hình env",
+                                  "Codex runs without its own sandbox (NAOTA_CODEX_SANDBOX=off, the Docker image "
+                                  "default), so Naota cannot stop its shell commands before they run. To keep Codex on "
+                                  "Docker, set NAOTA_CODEX_SANDBOX=auto and let the container run the sandbox, see the "
+                                  "env configuration guide")}
         return {"ok": True, "approved_actions": True, "reason": ""}
     if p in api_providers:
         return {"ok": True, "approved_actions": True, "reason": ""}

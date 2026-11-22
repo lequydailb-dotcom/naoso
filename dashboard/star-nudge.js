@@ -62,17 +62,13 @@
     return false;
   }
 
-  // ── Linh vật: đúng ngôi sao cam của logo Naota (dashboard/logo.svg) ─────────────────────
-  // Lấy sao giống hình icon naota sẵn có. Cùng đường hình, cùng màu thân
-  // #FD6100 và viền #FBBA9C với logo; chỉ đổi nét mặt theo từng màn:
-  //   vui   - mắt cười ^^ y như logo (màn mời);
+  // ── Linh vật: ô vuông bo góc vàng NAOTA, cùng dáng logo (dashboard/logo.svg) và linh vật pet.js ─────
+  // Từ 1.60.0 thay ngôi sao của logo cũ bản nguồn. Chỉ đổi nét mặt theo từng màn:
+  //   vui   - mắt cười ^^ (màn mời);
   //   mong  - mắt tròn dài như linh vật đang sống, ngước lên chờ (màn "tặng xong chưa");
   //   thuong - mắt hình tim (màn cảm ơn).
-  // Sửa hình sao ở logo.svg / pet.js thì sửa luôn ở đây.
-  var SAO_NAOTA = "M145 81 Q160 59.4 175 81 L177.9 85.1 Q195.8 110.7 225.8 119.9 L230.6 121.3 Q255.7 128.9 239.8 149.8 "
-    + "L236.8 153.8 Q217.9 178.8 218.5 210.1 L218.6 215.1 Q219.1 241.4 194.3 232.8 L189.6 231.1 Q160 220.8 130.4 231.1 "
-    + "L125.7 232.8 Q100.9 241.4 101.4 215.1 L101.5 210.1 Q102.1 178.8 83.2 153.8 L80.2 149.8 Q64.3 128.9 89.4 121.3 "
-    + "L94.2 119.9 Q124.2 110.7 142.1 85.1 Z";
+  // Sửa dáng ô vuông ở pet.js (SHAPES.square) thì sửa luôn ở đây.
+  var SAO_NAOTA = "M111 85 H209 Q235 85 235 111 V209 Q235 235 209 235 H111 Q85 235 85 209 V111 Q85 85 111 85 Z";
   function timTai(x, y) {
     return '<path class="sn-tim" transform="translate(' + x + " " + y + ') scale(1.25)" '
       + 'd="M0 9C-3-1-15-1-13 -7C-11.5-12-4-12 0-5C4-12 11.5-12 13-7C15-1 3-1 0 9Z"/>';

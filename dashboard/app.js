@@ -45,11 +45,16 @@ let stopTag = null;        // tag phiên chat server phát qua message hello →
 
 function updateStopBtn() {
   const active = isProcessing || voice.isSpeaking();
-  stopBtn.style.display = active ? "flex" : "none";
-  // while Naota works, typed text can still go out (as an add-on to the running turn), so the send button
-  // comes back next to Stop as soon as there is something to send.
+  // while Naota works, typed text can still go out (as an add-on to the running turn).
+  // 2026-11-19 (owner: "khi gõ trong lúc 1 lệnh đang chạy thì anh muốn nút ngắt lệnh chuyển thành nút gửi thêm việc
+  // đang làm để không tốn thêm diện tích"): Stop and the add-on send share ONE spot. Text or an attachment in the box
+  // turns Stop into send; emptying the box brings Stop back.
   const boSung = coTheGuiBoSung();
-  // two buttons . An empty box shows the voice chat button; text or an attachment turns
+  stopBtn.style.display = active && !boSung ? "flex" : "none";
+  // With Stop gone, the send in its spot must be pressable: text that arrives without a keystroke (dictation, an
+  // attachment) only reaches this function, not syncActiveUI, so the lock is refreshed here too.
+  if (isProcessing) sendBtn.disabled = !boSung || (sendBtn.dataset || {}).wsLock === "1";
+  // two buttons. An empty box shows the voice chat button; text or an attachment turns
   // it into send. In a call the button stays the red hang-up and the dictate mic steps aside.
   const goi = handsFreeActive();
   const coNoiDung = coNoiDungGui();
@@ -1125,8 +1130,8 @@ function _baoDutVeMayChu() {
       .catch(() => {});
   } catch (e) {}
 }
-function _dropDeadSocket() {
-  _ghiDut("ping", false, _wsMoLuc);
+function _dropDeadSocket(why) {
+  _ghiDut(why || "ping", false, _wsMoLuc);
   _wsMoLuc = 0;
   const cu = ws;
   ws = null;
@@ -1183,6 +1188,13 @@ function _resumeSauNgu(force) {
   // Chỉ đồng bộ từ server khi socket đứt hoặc trang trở về từ bfcache.
   if (savedSessionId && (force || !socketConSong)) {
     try { openStoredSession(savedSessionId); } catch (e) {}
+  } else if (savedSessionId && turns[savedSessionId] && turns[savedSessionId].running) {
+    // Customer report, 17/11/2026: asked on the phone, locked the screen, came back and the answer never showed, with
+    // no reload button in the home-screen app. This page still believed the turn was running, so the last-message
+    // check below stood aside, and a frozen socket only got dropped after the pong wait (up to 20 s more). The turn
+    // may well have ended while the phone slept and its `turn_done` was lost with the socket: reconnect now, and
+    // `hello` brings the turns really running plus the answers finished meanwhile.
+    _dropDeadSocket("resume");
   } else if (savedSessionId) {
     // Socket "còn sống" trên giấy: iOS hay trả về một socket readyState OPEN mà thực ra đã
     // chết trong lúc app ngủ, tin tới lúc đó rơi mất. Từng gặp: hỏi một câu mà
@@ -1201,19 +1213,27 @@ function _resumeSauNgu(force) {
 function _chuanTinSo(s) {
   return String(s || "").replace(/<!--[\s\S]*?-->/g, "").replace(/\s+/g, " ").trim().slice(0, 80);
 }
-async function _dongBoNeuLech() {
+async function _dongBoNeuLech(isRetry) {
   const sid = savedSessionId;
   if (!sid || (turns[sid] && turns[sid].running)) return;
+  // A chat being opened meanwhile (the Partners page reopening its chat after a reload) wins: never redraw over it.
+  const seq = sessionOpenSeq;
   try {
     const s = await (await fetch(`/sessions/${encodeURIComponent(sid)}?limit=1`)).json();
-    if (sid !== savedSessionId || !s || s.error || (turns[sid] && turns[sid].running)) return;
+    if (sid !== savedSessionId || seq !== sessionOpenSeq || !s || s.error || (turns[sid] && turns[sid].running)) return;
     const m = (s.messages || []).slice(-1)[0];
     if (!m) return;
     const c = convo.length ? convo[convo.length - 1] : null;
     const cungVai = !!c && ((m.role === "assistant") === (c.role === "naota"));
     const chuSv = m.role === "user" ? chuNguoiGo(m.content || "") : (m.content || "");
     if (!cungVai || _chuanTinSo(chuSv) !== _chuanTinSo(c.text)) openStoredSession(sid);
-  } catch (e) {}
+    else _hideOpenNotice();   // what is on screen is current after all
+  } catch (e) {
+    // A phone just back from sleep often has no network for a second or two: ask once more instead of giving up.
+    if (!isRetry) setTimeout(() => _dongBoNeuLech(true), 2000);
+    // Customer report, 2026-11-20: giving up used to be silent, so the copy this browser kept looked current.
+    else if (sid === savedSessionId && seq === sessionOpenSeq && convo.length) _showOpenNotice(sid, "stale");
+  }
 }
 
 function handleMessage(data) {
@@ -1222,7 +1242,10 @@ function handleMessage(data) {
   if (data.type === "hello") {
     // Socket NỐI LẠI (không phải lần chào đầu): tin tới trong lúc đứt có thể đã rơi mất, ví dụ
     // câu trả lời của một lượt chạy xong khi điện thoại đang tắt màn hình. Đồng bộ nhẹ.
-    if (_daChao) setTimeout(_dongBoNeuLech, 300);
+    // Customer report, 17/11/2026: the FIRST hello checks too. A home-screen app that iOS closed in the background starts
+    // again from this browser's own copy of the chat (restoreSession), so an answer finished while it was closed never
+    // showed: only a reconnect used to ask the server. One cheap read of the last message, a reload only when it differs.
+    setTimeout(_dongBoNeuLech, 300);
     _baoDutVeMayChu();
     // Nhóm chat: gói team_message/team_replies lỡ trong lúc mất kết nối không được gửi lại, nên trang Nhóm
     // tự tải lại tin và kết cục lượt trả lời của nhóm đang mở khi socket nối lại.
@@ -1312,6 +1335,11 @@ function handleMessage(data) {
   if (sid && _luotDaDung[sid] != null && data.type !== "turn_done" && KHUNG_LUOT.includes(data.type)
       && t && t.id && t.id !== _luotDaDung[sid]) delete _luotDaDung[sid];
 
+  if (data.type === "turn_saved" || data.type === "chat_unread") {
+    // 19/11/2026: an answer was saved somewhere: the red dots on the rail (rail-unread.js) read their counts again.
+    try { window.dispatchEvent(new CustomEvent("naota:chat-activity", { detail: data })); } catch (e) {}
+    if (data.type === "chat_unread") return;
+  }
   if (data.type === "turn_saved" || data.type === "chat_reaction") {
     // T2: turn_saved mang mã tin của câu trả lời vừa lưu (bong bóng vừa chốt nhận data-mid, hiện nút thả cảm xúc);
     // chat_reaction vẽ lại reaction của tin đó ở mọi bong bóng đang mở, kể cả khi đổi ở tab khác. Không đụng lượt đang chạy
@@ -1430,7 +1458,8 @@ function handleMessage(data) {
         else window.NaotaInbox.refresh();
       }
     } catch (e) {}
-    try { if (window.NaotaStar) window.NaotaStar.moment("work"); } catch (e) {}   // việc nền vừa trả kết quả
+    // `cleared`: a notice turned read (approval answered), not new work.
+    if (!data.cleared) { try { if (window.NaotaStar) window.NaotaStar.moment("work"); } catch (e) {} }
     return;
   }
   if (data.type === "status") {
@@ -1627,6 +1656,8 @@ function handleMessage(data) {
     if (isActive) { hideActivity(); veKhoiBuoc(t, false); syncActiveUI(); runActions(turn.turnDone()); cum.reset(); }
     // T2: bong bóng hay mã tin còn chờ ghép của lượt này chỉ sống thêm một quãng ngắn (xem chat-reactions.js).
     try { if (window.NaotaChatReactions) window.NaotaChatReactions.turnDone(sid); } catch (e) {}
+    // Lượt vừa xong có thể đã tạo hay cài skill, agent, workflow: menu "/" lần tới nạp lại, không dùng bản cũ.
+    try { if (window.NaotaSlash && window.NaotaSlash.boCache) window.NaotaSlash.boCache(); } catch (e) {}
     if (sid) delete turns[sid];
     if (isActive && _tinChoLuot) guiTinCho();   // câu người dùng chen ngang: lượt cũ dừng hẳn rồi thì gửi
     if (isActive) guiCauChoLuot();               // câu nói lúc đang trả lời (cuộc gọi): gửi nếu loa đã im
@@ -1887,6 +1918,8 @@ function _drawUnacked(id, ds) {
 // bộ nhớ trang: tải lại trang là quên, và như vậy là đúng - lúc đó người dùng không còn đang
 // theo dõi cuộc gọi ấy nữa.
 const _gocCongSu = {};
+// Đang nạp lại danh sách lệnh "/" trước khi gửi một tin (xem sendMessage).
+let _choNapLenh = null;
 
 // `opts.wfRun`: tin này đến từ nút CHẠY của trang Cộng sự. Server dùng cờ đó để không
 // đoán lại ý người dùng (xem workflow_chat.quyet_dinh_luot): bấm đúng nút Chạy thì chạy,
@@ -1901,6 +1934,17 @@ function sendMessage(text, opts) {
   // bắt đầu bằng "/").
   const _slash = (opts && opts.prefix) ? { type: "prefix", prefix: opts.prefix, message: msg }
     : (window.NaotaSlash && msg) ? window.NaotaSlash.route(msg) : { type: "passthrough" };
+  // Tin có "/ten" giữa câu mà danh sách skill/agent/workflow trang đang nhớ chưa có (vừa cài giữa cuộc trò
+  // chuyện): nạp lại danh sách MỘT lần rồi định tuyến lại, thay vì lặng lẽ gửi như chat thường. Chủ repo báo
+  // 19/11/2026: cài giữa chừng thì không gọi được, chỉ gõ ở đầu tin mới ăn.
+  if (_slash.type === "passthrough" && !(opts && (opts.prefix || opts._lenhMoi)) && window.NaotaSlash
+      && window.NaotaSlash.lamMoi && window.NaotaSlash.coLenhLa(msg)) {
+    if (_choNapLenh) return;   // Enter lần nữa trong lúc đang nạp: tin đầu sẽ đi, không gửi đôi
+    const o = Object.assign({}, opts || {}, { _lenhMoi: true });
+    const tiep = () => { _choNapLenh = null; sendMessage(msg, o); };
+    _choNapLenh = Promise.resolve(window.NaotaSlash.lamMoi()).then(tiep, tiep);
+    return;
+  }
   if (_slash.type === "system") {
     // Lệnh hệ thống (chat-lenh.js): tự xử lý tại chỗ, không gửi gì cho model. /plan và /goal thì
     // tự gọi lại sendMessage với `opts.prefix` sau khi xin khối chỉ dẫn từ máy chủ.
@@ -1999,18 +2043,16 @@ function sendMessage(text, opts) {
   // endpoint() TRƯỚC khi gọi vào đây, mà lượt bị nuốt thì không bao giờ có turn_done để hạ nó,
   // nên orb đứng mãi ở "đang suy nghĩ" và người dùng không thấy tin mình vừa nói ở đâu cả.
   if ((turns[sid] && turns[sid].running) || (opts && opts.adaptive && _luotDaDung[sid]!=null)) {
-    // Ngoại lệ: đang chạy /goal thì người dùng gõ chữ CŨNG là chen ngang. Vòng tự động không phải lượt
-    // họ tự bấm gửi, nên "đợi nó xong rồi mới gõ được" là kẹt họ trong một vòng lặp họ không điều khiển.
-    // Dừng vòng hiện tại (stopCurrent cũng dừng /goal), tin của họ đi ngay sau khi lượt cũ dừng hẳn.
-    if (window.NaotaLenh && window.NaotaLenh.dangCoMucTieu() && !(_tuGiong || handsFree)) {
-      chatInput.value = ""; chatInput.style.height = "auto";
-      stopCurrent();
-      datTinCho(msg, opts);
-      return;
-    }
     // ("like Claude Code, type and send more while it works"): typed text goes to the
     // running turn. It reads it at its next step, or it runs right after the turn (server steer_inbox.py).
-    if (!(_tuGiong || handsFree)) { guiBoSung(msg, atts); return; }
+    // A /goal round is no longer stopped either. The message is a goal steer: the round reads it
+    // at its next step, and the goal keeps it for every later round (chat-lenh.js gopBoSung), so the goal goes on and
+    // adjusts to it instead of pausing.
+    if (!(_tuGiong || handsFree)) {
+      const _goal = !!(window.NaotaLenh && window.NaotaLenh.dangCoMucTieu());
+      if (guiBoSung(msg, atts, _goal) && _goal) { try { window.NaotaLenh.gopBoSung(sid, msg); } catch (e) {} }
+      return;
+    }
     // Đang gọi: KHÔNG dừng lượt đang chạy. Câu mới xếp hàng, gửi khi lượt cũ xong và
     // loa đọc xong. Đã gặp: nói chen một câu là "Đã dừng lượt này", mô hình bị
     // cắt liên tục nên không liền mạch; cuộc gọi chỉ được dừng khi bấm lại nút mic.
@@ -2059,12 +2101,12 @@ function sendMessage(text, opts) {
   const _goalRound = (_slash.type === "prefix" && window.NaotaLenh && window.NaotaLenh.docVong)
     ? window.NaotaLenh.docVong(_slash.prefix) : null;
   const userElement = _goalRound ? appendGoalRound(_goalRound, true) : appendUserMessage(msg, atts);
-  // /goal đang chạy: tin do vòng tự động gửi thì gắn nó vào phiên này; tin người dùng tự gõ thì
-  // dừng mục tiêu (lời của họ lên trước, không chạy tiếp vòng tự động dưới một câu họ vừa nói).
+  // /goal đang chạy: tin do vòng tự động gửi thì gắn nó vào phiên này; tin người dùng tự gõ thì gộp vào
+  // mục tiêu (2026-11-16: không tạm dừng nữa), vòng sau đi ngay sau lượt của tin này.
   try {
     if (window.NaotaLenh) {
       if (_slash.type === "prefix") window.NaotaLenh.daGui(sid, opts);
-      else window.NaotaLenh.chenNgang(sid);
+      else window.NaotaLenh.chenNgang(sid, msg);
     }
   } catch (e) {}
   // Lưu cả `url` (đường /upload/raw của file stage): thiếu nó thì F5 xong ảnh trong tin cũ
@@ -2314,7 +2356,8 @@ function restoreSession() {
   // Dựng lại bong bóng hội thoại
   const _traLoi = [];   // T2: các câu trả lời vừa dựng lại, để refresh() sửa reaction và gắn mã còn thiếu
   _dangDungLoat = true;   // one scroll at the end, not one per bubble (see chatScroll)
-  try { convo.forEach((t, i) => {
+  // 2026-11-20: each kept message on its own (_safeDraw), so one that fails no longer ends the restore there.
+  try { convo.forEach((t, i) => _safeDraw(() => {
     // t.ts vắng mặt ở tin lưu từ trước bản này -> truyền 0 để ẩn giờ thay vì hiện giờ F5.
     if (t.role === "user") {
       if (t.goalRound && window.NaotaLenh && window.NaotaLenh.vongHtml) { appendGoalRound(t.goalRound, false); return; }
@@ -2334,7 +2377,8 @@ function restoreSession() {
     if (t.pinned && t.mid != null) datGhim(el, true);
     // Chip chỉ sống lại ở tin CUỐI: có tin sau nó nghĩa là câu hỏi đã được trả lời rồi.
     if (t.ask) window.NaotaAsk.render(el, t.ask, i === convo.length - 1);
-  }); } finally { _dangDungLoat = false; }
+  }, { role: t.role === "user" ? "user" : "assistant", content: t.text, ts: (t.ts || 0) / 1000, id: t.mid,
+       content_sha: t.sha }, t.brain || s.brain)); } finally { _dangDungLoat = false; }
   // Bản lưu cục bộ có thể giữ reaction cũ (đổi ở máy khác) hay thiếu mã tin: hỏi lại đủ số tin vừa dựng (tối đa 200).
   try { if (window.NaotaChatReactions && savedSessionId) window.NaotaChatReactions.refresh(savedSessionId, _traLoi); } catch (e) {}
   if (convo.length) { scrollBottom(true); ghimDay(sessionOpenSeq); }
@@ -2357,6 +2401,45 @@ const TIN_MOI_LUOT = 30;
 // {sid, brain, ts, id, con, dangTai} - ts/id là con trỏ tới tin GIÀ NHẤT đang hiện.
 let _tinCu = null;
 let _moiTinCu = null, _quanSatMoi = null;
+
+// ---- One bad message must not cut a chat short (customer report, 2026-11-20) ----------------------------------
+// A customer saw an old last message on the computer for a week while the phone showed the new ones, and one chat of
+// 193 messages would not open at all. Drawing a chat ran every message inside one try/catch that swallowed errors: a
+// message the renderer choked on stopped the drawing there, so the screen ended on an older message, and nothing was
+// logged. Now each message is drawn on its own; one that fails is shown as plain text and reported to the Health page.
+function _reportCaught(where, err) {
+  try { if (window.NaotaLoiMayKhach && window.NaotaLoiMayKhach.report) window.NaotaLoiMayKhach.report(where, err); } catch (e) {}
+  try { console.error("[naota] " + where, err); } catch (e) {}
+}
+// A stored message as plain text: no markdown, no cards, hidden blocks removed. Returns its entry for convo.
+function _drawPlainMessage(m, brain) {
+  if (!m || (m.role !== "user" && m.role !== "assistant")) return null;
+  const ts = m.ts ? Math.round(m.ts * 1000) : 0;
+  const raw = String(m.content || "");
+  let text = raw;
+  try { text = (m.role === "user" ? chuNguoiGo(raw) : raw).replace(/<!--[\s\S]*?-->/g, "").trim(); } catch (e) {}
+  const div = document.createElement("div");
+  div.className = "msg " + (m.role === "user" ? "msg-user" : "msg-naota") + " msg-plain";
+  if (m.role === "user") div.dataset.text = text;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = text;
+  div.appendChild(bubble);
+  chatAppend(div);
+  return m.role === "user"
+    ? { role: "user", text, atts: [], ts }
+    : { role: "naota", text, atts: [], ts, brain, mid: m.id, sha: m.content_sha || "" };
+}
+// Draws one stored message through `draw`; if it throws, reports it and falls back to plain text (unless the bubble
+// already made it on screen and only an extra after it failed).
+function _safeDraw(draw, m, brain) {
+  const before = chatArea.querySelectorAll(".msg").length;
+  try { return draw(); } catch (e) {
+    _reportCaught("chat.message", e);
+    if (chatArea.querySelectorAll(".msg").length > before) return null;
+    try { return _drawPlainMessage(m, brain); } catch (e2) { return null; }
+  }
+}
 
 // Dựng lại MỘT tin đã lưu thành bong bóng, trả về mục tương ứng cho convo (null nếu bỏ qua).
 // Dùng chung cho lượt mở hội thoại và lượt chèn ngược, để hai đường không trôi lệch nhau.
@@ -2474,7 +2557,7 @@ async function taiTinCu() {
     _dangChenCu = true;
     _neoChenCu = _moiTinCu ? _moiTinCu.nextSibling : dauKhungChat();
     const them = [];
-    ngoaiAlpine(() => ds.forEach(m => { const t = veTinDaLuu(m, st.brain, st.sid); if (t) them.push(t); }));
+    ngoaiAlpine(() => ds.forEach(m => { const t = _safeDraw(() => veTinDaLuu(m, st.brain, st.sid), m, st.brain); if (t) them.push(t); }));
     _neoChenCu = null; _dangChenCu = false;
     convo = them.concat(convo);
     st.ts = ds[0].ts; st.id = ds[0].id; st.con = !!d.has_more;
@@ -2512,6 +2595,8 @@ const _WARM_FRESH_MS = 10 * 60 * 1000;        // ...unless a copy this fresh is 
 const _phienCache = new Map();               // id -> { sess, at }
 const _phienDangTai = new Map();             // id -> Promise<sess> (gộp các lượt hỏi trùng)
 let _phienMoLuc = null;                      // { id, len } - độ dài convo lúc mở, để biết cuộc đã đổi khi rời đi
+const _OPEN_SLOW_MS = 8000;                  // a chat's answer slower than this gets a line saying so
+let _openNoticeEl = null;                    // that line, while it is on screen (_showOpenNotice)
 // The copies kept by earlier visits, read once at start (oldest first, so the newest stay last in the LRU order).
 // openStoredSession waits for this read only while it races the server's answer.
 let _keptChatsLoading = null;
@@ -2602,6 +2687,7 @@ async function openStoredSession(id, stillCurrent, opts) {
   // brain switch end it. Outside a call this still cancels capture, as before.
   if (handsFree) boViecPhienCu(); else tatRanhTay();
   const ticket = ++sessionOpenSeq;
+  _hideOpenNotice();
   _quenPhienNeuDoi();
   const conHieuLuc = () => ticket === sessionOpenSeq && (!stillCurrent || stillCurrent());
   // Performance: a chat the caller has JUST created (Partners page, New conversation) has no messages,
@@ -2629,15 +2715,63 @@ async function openStoredSession(id, stillCurrent, opts) {
     _veLaiPhien(id, daCo.sess, ticket, false);
     veRoi = _vanTayPhien(daCo.sess);
   }
+  // Customer report, 2026-11-20: the server's answer could take forever (or fail) and nothing said so. The kept copy
+  // stayed on screen as if current, and a chat with no copy just did not open. Now a slow or failed answer shows one
+  // line under the chat, with a Retry button. A late answer still lands and removes the line.
+  const slow = setTimeout(() => { if (conHieuLuc()) _showOpenNotice(id, daCo ? "stale" : "slow"); }, _OPEN_SLOW_MS);
   try {
     const sess = await fresh;
-    if (!conHieuLuc() || !sess || sess.error) return;
+    if (!conHieuLuc()) return;
+    if (!sess || sess.error) {
+      if (sess && sess.error === "not found") {
+        _phienCache.delete(id);
+        try { if (window.NaotaChatCache) window.NaotaChatCache.del(id); } catch (e) {}
+      }
+      _showOpenNotice(id, daCo ? "stale" : "failed");
+      return;
+    }
+    _hideOpenNotice();
     // Bản mới y hệt bản đã vẽ: giữ nguyên màn (không nháy, không mất chỗ cuộn).
     if (veRoi && veRoi === _vanTayPhien(sess)) return;
     // Người dùng đã gửi tin trong lúc chờ (convo dài thêm): đừng xoá trắng lượt họ đang thấy.
     if (veRoi && _phienMoLuc && _phienMoLuc.id === id && convo.length !== _phienMoLuc.len) return;
     _veLaiPhien(id, sess, ticket, !!veRoi);
-  } catch (e) {}
+  } catch (e) {
+    // Network gone after fetch-gop.js's retries, or an HTML error page instead of JSON.
+    if (conHieuLuc()) _showOpenNotice(id, daCo ? "stale" : "failed");
+  } finally { clearTimeout(slow); }
+}
+
+// The line that says a chat could not be brought up to date (see openStoredSession). `kind`:
+//   "slow"   nothing drawn yet for the chat just picked, the server is taking long;
+//   "stale"  a copy kept in this browser is on screen, the newest messages are not loaded;
+//   "failed" the chat could not be loaded at all.
+function _hideOpenNotice() {
+  if (_openNoticeEl && _openNoticeEl.parentNode) _openNoticeEl.parentNode.removeChild(_openNoticeEl);
+  _openNoticeEl = null;
+}
+function _showOpenNotice(id, kind) {
+  _hideOpenNotice();
+  const el = document.createElement("div");
+  el.className = "msg msg-ghichu msg-open-notice";
+  el.setAttribute("role", "status");
+  const text = document.createElement("span");
+  const keys = { slow: "app.open_slow", stale: "app.open_stale", failed: "app.open_failed" };
+  text.textContent = window.t(keys[kind] || keys.failed);
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "older-btn";
+  btn.textContent = window.t("app.open_retry");
+  btn.onclick = () => {
+    _hideOpenNotice();
+    _phienDangTai.delete(id);   // the read that hung is not joined again: ask the server afresh
+    openStoredSession(id);
+  };
+  el.appendChild(text);
+  el.appendChild(btn);
+  chatAppend(el);
+  scrollBottom();
+  _openNoticeEl = el;
 }
 
 // `capNhat`: lượt vẽ LẠI cùng một cuộc vì bản mới khác bản trong bộ nhớ. Các phần ăn theo việc ĐỔI cuộc (báo danh
@@ -2651,7 +2785,7 @@ function _veLaiPhien(id, sess, ticket, capNhat) {
     chatArea.innerHTML = "";
     const ds = sess.messages || [];
     _dangDungLoat = true;
-    try { ngoaiAlpine(() => ds.forEach(m => { const t = veTinDaLuu(m, sess.brain, id); if (t) convo.push(t); })); }
+    try { ngoaiAlpine(() => ds.forEach(m => { const t = _safeDraw(() => veTinDaLuu(m, sess.brain, id), m, sess.brain); if (t) convo.push(t); })); }
     finally { _dangDungLoat = false; }
     _drawUnacked(id, ds);
     _tinCu = ds.length
@@ -2692,7 +2826,10 @@ function _veLaiPhien(id, sess, ticket, capNhat) {
     // Dải việc nền đánh dấu "việc CỦA hội thoại này" theo chat_id, nên đổi phiên là nó sai
     // ngay. Xoá rồi hỏi lại thay vì để chip của phiên trước nằm lại vài giây.
     try { if (window.NaotaBackground) window.NaotaBackground.reset(); } catch (e) {}
-  } catch (e) {}
+  } catch (e) {
+    // Still swallowed (one broken extra must not take the chat page down), but no longer silent.
+    try { _reportCaught("chat.open", e); } catch (e2) {}
+  }
 }
 // Xoá trắng khung chat về trạng thái "hội thoại mới" - dùng chung cho nút + Hội thoại mới
 // và lúc ĐỔI BRAIN (không focus input để đổi brain không bật bàn phím trên mobile).
@@ -2914,7 +3051,8 @@ function appendUserMessage(text, attachments, ts, via) {
 // what the server reports: read by the running turn, or waiting to run right after it.
 let _boSungSeq = 0;
 const _boSungEl = {};   // client_id or "s<steer_id>" -> the status line of that message
-function guiBoSung(msg, atts) {
+// `goal`: a /goal runs in this chat, so the message joins the goal (server never runs it as its own turn).
+function guiBoSung(msg, atts, goal) {
   const sid = savedSessionId;
   const tep = (atts || []).filter(a => a.path);
   let chu = String(msg || "");
@@ -2934,7 +3072,7 @@ function guiBoSung(msg, atts) {
     div.appendChild(note);
     _boSungEl[cid] = note;
   }
-  ws.send(JSON.stringify({ action: "steer", session_id: sid, message: chu, client_id: cid }));
+  ws.send(JSON.stringify({ action: "steer", session_id: sid, message: chu, client_id: cid, goal: !!goal }));
   syncActiveUI();
   return true;
 }
@@ -2943,8 +3081,10 @@ function trangThaiBoSung(data) {
   if (data.type === "steer_ack") {
     const el = _boSungEl[data.client_id];
     if (el && data.steer_id) _boSungEl["s" + data.steer_id] = el;
-    ghi(el, data.mode === "live" ? "app.steer_live" : "app.steer_after");
+    ghi(el, data.mode === "live" ? "app.steer_live" : data.mode === "goal" ? "app.steer_goal" : "app.steer_after");
   } else {
+    // The running /goal round read the owner's message: its verdict now covers it (chat-lenh.js boSungDaDoc).
+    if (data.type === "steer_read") { try { if (window.NaotaLenh) window.NaotaLenh.boSungDaDoc(data.session_id); } catch (e) {} }
     (data.ids || []).forEach(id => ghi(_boSungEl["s" + id], data.type === "steer_read" ? "app.steer_read" : "app.steer_turn"));
   }
 }

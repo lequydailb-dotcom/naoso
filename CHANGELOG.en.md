@@ -4,15 +4,259 @@
 
 NAOTA release history. Newest first.
 
-## [1.46.4] - 2026-11-19
+## [1.60.1] - 2026-11-22
+### Added
+- **All of the newest NAOTA release (1.47 to 1.60) is merged into NAOSO.** Every feature from those versions is in NAOSO, including the mascot in the new logo shape.
 ### Fixed
-- **The Update button now uses the NAOSO repo.** The app said a new version was out in the NAOSO repo, but pressing Update merged from a different repo and failed with a conflict. Everything now reads one shared repo address.
-- **Installs whose history differs from the repo no longer get stuck.** When git cannot merge, the app keeps the old code on a `backup/` branch and syncs straight to the new release. Your data and keys stay as they are.
-
-## [1.46.3] - 2026-11-18
+- **The Update button pulls from the NAOSO repo.** Every place now uses one release address, so it no longer merges from another repo and reports a conflict.
+- **Installs with a different git history are no longer stuck.** When git cannot merge, the app saves the old code to a `backup/` branch and syncs to the new release. Your data and keys stay as they are.
 ### Improved
-- **The 3D office has a numbers bar.** A row of tiles over the 3D view shows AI staff, runs, success rate, jobs in trouble and AI calls for the day you are viewing. Figures are counted from the app's real data, and a dash shows when there is nothing yet. Tap a tile to read what it means. On a phone, swipe sideways to see them all.
-- **Updates now come from the NAOSO repo.** This build merges everything new from NAOTA (1.46.2) and shows the name NAOSO; the app receives updates from the NAOSO repo.
+- **The display name is NAOSO everywhere**, while your data, keys and the internal NAOTA technical names stay unchanged.
+
+## [1.60.0] - 2026-11-22
+### Improved
+- **The mascot takes the NAOTA logo shape**: the old orange star becomes a rounded square in NAOTA yellow on the Tasks page, the mascot at the screen edge and the Give a star card. A device still on the default star switches after the update; anyone who picked another shape or colour keeps it. The star is still in Settings > Mascot.
+
+## [1.59.0] - 2026-11-22
+### Added
+- **Naota can click and fill forms with a stored cookie** (needs the Playwright connection). Each card on the Cookies page has its own switch, and older cookies stay read-only until you turn it on. Customer chatbots never get the signed-in browser.
+- **Naota can run read-only scripts (`naota_code`)** that chain read calls and return only the result, saving tokens. Isolated, at most 40 calls, off with `NAOTA_CODE_MODE=0`.
+### Fixed
+- **Background jobs no longer stall on steps only you can do** (listening, approving, a file too large for a tool). Those steps move to a **Left for you** section on the job card, with a ring.
+- **Team steps and Kanban jobs retry on their own after a brief network drop.** A tool call with a source prefix no longer falls back to another account, and the Hostinger install file is smaller so hPanel does not refuse it.
+
+## [1.58.0] - 2026-11-22
+### Added
+- **Block, Leave group and Delete right in a chat's Info panel**, like the "..." menu in the list. Leaving a Zalo group also deletes its chat from Naota, and a deleted chat no longer comes back by itself.
+- **The bot can step aside when staff answer from the Zalo OA app or the Page inbox.** Put minutes in the "Step aside after you type" box and the bot stays quiet that long, then answers again. Off by default.
+### Fixed
+- **The personal Zalo bot no longer says "no information" after you typed by hand**, and choosing who a bot replies to now opens on direct messages.
+- **Facebook Pages uses every connection that is on** and skips one that is off. Webhook instructions can be up to 5,000 characters, and `NAOTA_BOT_MAX_IMAGES` sets how many images a bot sends.
+
+## [1.57.0] - 2026-11-22
+### Improved
+- **The chat box is one row, like Claude.** Only +, the text box, the mic and send stay inside. Model, Effort and the usage ring move under the box on the right; the pinned folder and GitHub repos sit on the left. The box also sits closer to the bottom of the screen.
+### Fixed
+- **A clear X to remove a repo**, on the chat box, in the picker and on the Teams page. A stray tap on a repo row no longer drops it, and a new pick no longer "jumps back" to the old repo.
+- **The plan usage ring no longer stays red after switching models.** One model hitting its own limit no longer paints the whole plan red.
+- **Long chat answers ring the phone again** when you are not looking at that chat.
+
+## [1.56.0] - 2026-11-21
+### Added
+- **Connect Asana.** The Connections page has an Asana card on the official V2 MCP: Naota finds and reads tasks, projects and due dates, creates and updates tasks, and adds comments. Sign in from the dashboard; works on a VPS too.
+- You create an Asana MCP app once (about 5 minutes); the card walks you through it. It starts at Read-only.
+- **Two-way brain sync links through the signed-in GitHub account.** On the Self-learning page, press Connect GitHub, then Create a private repo or Pick an existing one. No token to make, no URL to paste.
+- **Linking syncs right away and turns automatic sync on.** A second machine that picks the same repo pulls the brain down.
+- **A pasted token keeps working as before,** with a button to move onto the signed-in account so the token never runs out.
+- **The Account page has a "Forgot your current password?" line** right under Change password. On Windows and Mac it opens the install folder with the reset file selected, so a double-click is all it takes. On a VPS, Docker or Hostinger it shows the reset steps.
+- **Mac gets `reset-auth.command`**, doing what `reset-auth.bat` does on Windows: clear the old password so you can set a new one.
+- **Claude Code and Codex sessions are saved into Naota automatically.** Each finished turn, your prompt and the agent's final answer, appears in History as "From Claude Code: ..." or "From Codex: ...", and feeds self-learning.
+- **Setup is one "yes".** Connect Claude Code or Codex to Naota Gate and it asks whether to turn on Naota Sync; say yes and it installs itself on that machine, no command to type and no token to copy.
+- **No quota spent, nothing lost.** Naota runs no model for it, API keys are masked before saving, and turns wait and resend when Naota is off. Its token can only save chats, nothing else.
+### Fixed
+- **Asking Naota to fix Naota's own code no longer ends in "cannot write to vuongtex/naota" on a user's install.** Every install used to clone the official repo, edit it for a whole turn and only fail at the push. Now an install without write access clones and edits nothing: Naota writes the bug report and suggested fix and hands you a link to a prefilled issue for the developer. Read it, press Submit, no token or extra access needed.
+- **Facebook cookie cards load pages again.** When a page is opened with a card from the Cookies page, Naota now sends the navigation headers a real browser sends (`Sec-Fetch-*`, `Accept`, `Upgrade-Insecure-Requests`). Before, Facebook answered 400 before it even read the cookies, so a live sign-in still showed "last load failed".
+- **The reset file no longer reopens the first-run wizard** (models, channels and API keys stay), and on a Mac the old password no longer comes back at the next start.
+### Improved
+- The Auto and Sync images switches take effect at once, no Save needed.
+- **The Plugins page is rebuilt in the Tasks page style.** A left column filters by status and source, All is one list sorted by name, and your own tools and Naota Store tools carry a tag.
+- **Each row shows only the name, one line of description, the permission in plain words and a switch.** Tap a row for its commands, version and Remove. Remove asks first on the page and can be undone.
+- **One "Add a tool" button gathers the three ways in:** Naota Store, asking Naota in chat, and a .zip file. The "Install from .zip" button still stands on its own beside it.
+- **The browser and the offline listener moved to "Software on this machine"**, and their Remove button is no longer solid colored. On a phone the left column becomes a row of chips with a round + in the corner.
+
+## [1.55.0] - 2026-11-21
+### Improved
+- **Messenger bots know which ad a customer came from.** A click-to-Messenger ad, an m.me link with a ref, or the chat box on a website: the bot sees the ad title or the link's ref, even when the customer reopens an old chat from an ad and types afterwards.
+- **The bot watches videos customers send** (a few frames, plus the speech when a speech-to-text key is set) instead of only receiving a link it cannot open.
+- **Stickers and the like button (👍) are understood as reactions**, no longer downloaded and described as a photo. On Instagram, the bot knows when a customer replies to the account's story or mentions it in theirs.
+- **When Messenger rate limits or has a temporary send failure, the bot waits and sends again** instead of losing the answer.
+- **Slack bots answer in the right thread.** Before, if someone wrote in another thread of the same channel while the bot was answering, the answer could land in that other thread. Every answer now goes back to the thread of its question.
+- **Customers continuing an old thread are still answered after Naota restarts**, instead of being treated as people talking to each other.
+- **The inbox shows Slack channel names** (for example #sales), and the bot reports being added to or removed from a channel, like Telegram. Text such as `a < b`, `@Kim` and links now reaches Naota exactly as typed.
+- **When Slack rate limits, the bot waits and sends again** instead of losing the rest of the answer. Apps made from the older guide keep working; for channel names, paste the new manifest and reinstall the app (docs/en/29-slack-whatsapp.md).
+- **In Telegram groups with topics, the bot answers in the topic the question was asked in** instead of piling everything into General. In a group the answer also quotes the message it answers, so a busy group can tell who it is for.
+- **When a customer sends several photos at once, the bot answers once** and looks at the whole set, instead of answering in two or three separate turns.
+- **The bot watches videos customers send** (a few frames, plus the speech when a speech-to-text key is set). Locations, contacts, stickers and polls also reach the bot; before, they were ignored.
+- **When Telegram rate limits, the bot waits and sends again**, long answers split at paragraph breaks, and videos the bot sends play right in the chat.
+- **WhatsApp bots read catalog orders.** Before, when a customer sent their cart the bot ignored the whole order. It now sees each product, the quantity, the total and the note. Shared contacts, WhatsApp Flow forms, and a location's name and address also reach the bot.
+- **The bot knows which ad the customer came from** (click-to-WhatsApp ads) and which catalog product they are asking about, so it can answer to the point.
+- **A paused bot, or one you have taken over, no longer shows the customer "typing..." and then says nothing.** The indicator only appears when the bot is really answering.
+- **When WhatsApp rate limits, the bot waits and sends again**, videos go out playable in the chat, and an image too large for WhatsApp goes as a document instead of failing.
+
+## [1.54.0] - 2026-11-21
+### Added
+- **Leave a Zalo group from the "..." menu of the Conversations page.** The chat history stays in Naota, under the Hidden filter.
+- **Block is offered on every channel.** Messenger and Zalo block on the platform; other channels block in Naota: the bot goes quiet, the chat is hidden and new messages do not bring it back.
+- **Unblock** for a blocked chat, which restores its previous reply mode.
+### Fixed
+- **Telegram bot chats (and every other bot channel) show again in the history of the partner the bot uses.** A bot whose record held another spelling of the same brain (a full path from an older version, a trailing slash, or a brain folder that moved) answered as usual, but its chats never reached the partner's History column. Naota now matches the brain the chats are actually stored in, and a partner name with Vietnamese accents matches even when its file was made on macOS.
+- **The chat folder's red dot shows only for a chat that has finished and is unread.** A chat still working shows its spinner and no longer lights the folder, the "Ungrouped" row, its own row or the side menu. The chat open on screen is not counted either. The dot appears once a run ends and you have not looked at it.
+- **Reopening a chat no longer shows an old copy silently.** When the server is slow or fails, the chat says it is showing the copy kept on this device, with a Retry button, instead of passing the old messages off as current.
+- **A chat that never finishes loading now says so.** After a few seconds Naota says the chat is taking long and offers Retry.
+- **One message that fails to draw no longer hides the ones after it.** It shows as plain text, the rest of the chat is complete, and the error is logged on the Health page.
+- **Self-learned profiles no longer say "shop owner".** A profile now calls the person in the chat the subject and describes them, for example how they are addressed and how they refer to themselves, which fits bots that are not used for business too. Existing profiles change at their next update.
+- **Connecting a second Zalo account no longer cuts the first one off.** Two reports on 19 and 20/11/2026: one bot per account in two brains, and right after the second account's QR was scanned the first bot's card read "Another session of this account keeps taking the Zalo connection" and the bot missed most messages, with no Zalo Web open anywhere.
+- **Scanning the QR with an account that is already connected is refused right away**, instead of adding a second connection. The message names the connection that holds that account. To connect another account, open the Zalo app signed in as it and scan again.
+- **The personal Zalo bot reads link cards.** A link someone sent (shown by Zalo as a card with a title and a picture) was filed as "other", so the bot skipped it, even when the sender tagged the bot. A link card is now read as a text message with its title, description and link.
+- **The inbox and the history keep the link.** A link card no longer shows only the page's description: the link itself is there too, also for messages brought back from the history.
+### Improved
+- **"Ungrouped" gets a red dot too.** A chat in no project with an unread reply now puts a red dot on Ungrouped in the project picker, just like a project. Reading it or moving it into a project clears the dot.
+- **Mark the open chat as unread.** The "..." menu of the chat you are reading now has this option too. The red dot shows at once and stays until you open another chat and come back, so unfinished work is easy to flag for later.
+
+## [1.53.0] - 2026-11-20
+### Added
+- **Ask Naota in chat to run a script on a schedule.** For example "run check_shop.py every minute": the job runs the script directly with no model, so it is cheap and can run every minute.
+- **A team job that waits for you can be answered, not only retried.** Press **Reply** next to Retry: "Go on" has the member do the step again with your answer, "Ask back" asks first and the job keeps waiting.
+- Both the answer and the question show in the team chat under a quote of why the job stopped, so it reads clearly later.
+- **A team's Info tab is short again, like Zalo.** Pictures, Files and Links each show only the newest few, with a **See all** button.
+- **Storage view:** See all opens right in the side panel, with Pictures, Files and Links tabs, a search box that ignores accents, rows grouped by day and 20 per page.
+- Each file shows a coloured tile with its extension, its size, and **File is gone** when it was deleted or moved. Teams with more than 200 files can now see all of them.
+### Fixed
+- **Codex model lists include newer installed versions.** Naota compares the Codex CLI on `PATH` with the version installed in the user directory so newer models are not missed.
+- **Approving a workflow step on the Tasks page runs the workflow on, with no second approval request.** Each answer used to start the workflow again from step one, so it stopped at the same step again. Now "Approve", "ok" or "yes" carries on from that step. A change request still makes the workflow redo the work with it, as before.
+- **Workflow jobs on the Tasks page wait for the plan to reset.** A step that hit an exhausted subscription used to retry at once, spend all three attempts in seconds and get stuck. The job now waits until the plan resets, and the wait does not count as an attempt.
+- **Naota no longer gets stuck dropping connections because a stray copy holds its port.** On a Mac the copy launchd manages now stops a stray Naota and takes over; any other extra copy exits at once, before its startup runs.
+- **Updates on a Mac always restart through launchd**, even when the launchd check fails, so they no longer leave a copy running outside launchd.
+- **Naota Store is no longer blank when no password is set.** Installing a pack needs a real sign-in, so the Store was shut with no reason given. It now says a password is needed, with a Set a password button that opens the Account page.
+### Improved
+- **A scheduled job keeps its whole result, no longer cut at 2,000 characters.** The next run still reads only the start, but now knows it was cut.
+- **A repeating job that skipped runs shows "N missed" on the Tasks page.** Before, when one run was late or long, the next ones were skipped and nobody knew.
+
+## [1.52.0] - 2026-11-20
+### Added
+- **Page videos post with a cover image.** The video tool takes a .jpg/.png thumbnail and can post as a Reel. The result says plainly whether the cover was set.
+- **Naota can message a customer straight from chat.** Ask "tell Lan size M is in stock" and it finds the chat in the inbox and sends through that chat's own Messenger Page, Instagram, Telegram or Zalo bot, as if you typed it in the inbox. Before, Naota said it had no Messenger send tool and asked you to paste the message yourself.
+- **The message is recorded as yours, and that chat's bot keeps running.** Only you can ask for this: a customer talking to a bot can never read or message other customers, and Naota sees only the chats of the brain in use.
+- **Links Naota sends on WhatsApp show a preview card** with the page's title and picture, instead of a bare link.
+- **The bot learns from replies you confirm.** The draft box in the Inbox has a "Bot learns this" tick, on by default. Sending a reply that carries your order, or one you rewrote, saves it to the Agent's documents (file `tri-thuc-chatbot/<agent>.md`). Next time another customer asks the same thing, the bot answers the way you confirmed. Untick it for something about one customer only.
+### Fixed
+- **Bot cards show the Facebook Page name instead of its numeric ID.** A Page added by pasting its token only stored the ID, so the channel chip showed a string of digits. Each time the bot starts, Naota now keeps the Page's real name and the chip shows it. A label you set yourself (a short name) still wins, and the ID shows when you hover the chip.
+- **The reply draft button follows the owner's order.** Type "schedule confirmed 8pm on the 21st and 22nd" and press draft: the reply gives that schedule instead of "I have no confirmed schedule yet" just because no document had it or the bot earlier said it was checking. The owner's order is the newest word, above the documents and the chat history, with no list of banned phrases. Rewrite follows it too.
+### Improved
+- **"AI draft" is now "Naota draft"** on the composer button, the mode above the chat and the lines of the draft.
+
+## [1.51.0] - 2026-11-20
+### Added
+- **Chat draws math formulas.** Formulas written as `$...$`, `$$...$$`, `\(...\)` or `\[...\]` now show as real fractions, roots and powers instead of raw code. KaTeX loads only the first time a formula appears; offline, the source text still shows. Money like "$5 and $10" is left alone.
+- **A link that opens one task.** An address like `#task=<id>` opens the Tasks page and then that item: one of your own tasks (`m:`), a reminder (`r:`) or a job Naota does (`k:`). An outside page such as a home-made dashboard can lead straight to a task instead of only to the Tasks page.
+### Fixed
+- **Calling `naota_team` no longer says "does not exist" when the hub runs in lazy mode.** With many tools the hub hides most behind its search tool, but assistants call them by name and got an error. A call by name now reaches the right tool, through the same permission layer. The quick reminder cancel works again in lazy mode too.
+- **/goal and /plan work at the end or in the middle of a message.** They used to work only at the start, so "...do it for me /goal" went out as a plain chat. The rest of the text becomes the goal.
+- **Skills, agents and workflows installed mid-conversation can be called with "/" mid-sentence right away.** The page reloads its list before sending when it meets an unknown name, instead of treating it as plain text.
+- **Agent and workflow names work without the prefix.** "/seo-pro" opens the seo-pro agent, same as "/agent-seo-pro".
+- **Punctuation right after a command no longer hides it.** "/viet-email," and "/goal." are still recognized.
+- **Zooming a chat image no longer pushes it to the left.** At actual size, a picture smaller than the screen stays centered, and a larger one opens at the spot you clicked.
+### Improved
+- **A much quieter bell.** Answers in chats, partner chats and teams no longer go to the bell. A **red dot** on Chat, Partners and Team in the menu shows them instead, like the dot already on each chat.
+- **Scheduled jobs no longer ring on every run.** The result still reaches its chat or Telegram; the bell rings only when the job fails for good, or when the run itself finds something you must act on.
+- **Readable notice titles.** Each run writes a short headline about its result instead of "Checking...", and the card no longer repeats the title below it.
+- **Unread chats move to the top of the history.** Every chat with a red dot now sits in an **Unread** group right under Pinned, even an old one that used to be on a later page. Once read, it goes back to its place by date.
+- **Typing while Naota works turns the Stop button into Send** in the same spot, saving room. Empty the box and Stop comes back.
+- **The Learned and Documents tabs now show 20 items a page.** A long list gets a search box (ignores Vietnamese marks) and the Add button sits at the top, so adding never means scrolling to the end.
+- **Learned notes are easier to scan.** Filter by Fact, Decision or Term; each kind has its own colour; your own notes carry an orange bar on the left.
+- **Edit notes, lessons and document descriptions in a roomy box.** It replaces the browser's one-line prompt: the whole text shows, with a character count, the note type, and Ctrl+Enter to save. On a phone it slides up from the bottom.
+- **Naota finds the right tool far more often when many sources are connected.** Everyday requests such as "today's POS revenue", "Zalo message history" or "Google Ads cost" now reach the right tool, even when tool descriptions are in English. On 55 real test requests, hits rose from 20 to 55.
+- **Naming a source lists its tools**, and several accounts of one kind (three POS shops, two Zalo accounts) share one line instead of crowding out other tools.
+- **Calling a tool without its source prefix or with a typo still works** when only one tool matches; with several matches Naota names them to pick from. Search results are also shorter, so tokens stay low.
+
+## [1.50.0] - 2026-11-19
+### Added
+- **Bots read the files staff send customers on Zalo OA and Fanpage.** A PDF, Word or Excel quote, or a photo, sent from the OA app or the Page inbox now shows in the Inbox (labelled Staff) and the bot knows what it says when the customer asks about it. Photos are read by a connected brain that can see.
+- **Bots read the PDF, Word and Excel files customers send**, instead of only knowing "there is a file".
+- **The Partners page has a Learned tab for each assistant.** The top bar button now reads "Documents & Learned". The new tab lists what the assistant worked out while working, exactly the lessons it uses, with where each applies (private chat, a team, everywhere). Edit, delete or add a lesson right there, like a project's Learned tab.
+- A lesson you add is used everywhere. A lesson you edit becomes yours and is never dropped when the list is full. Delete one and the assistant stops using it and does not learn those exact words again.
+- **Naota Store has an All tab.** It comes first, puts every assistant, skill, workflow, tool and connector in one grid, and the Store opens on it. Its search box covers the whole Store, and each card says which kind it is.
+- **A search that finds nothing in one tab offers to search All.** The button shows how many items match in the other tabs and keeps the words you typed.
+### Fixed
+- **An assistant's Jobs tab records each run it started on its own.** The Auto block could say "Worked on its own 1 times today" while the Jobs tab stayed empty, because the tab only read goals, team jobs, chat jobs and workflow runs. Each look around or self-review is now a card under the Auto source, with what it ended in: the work it did, a message to you, a job it proposed, or nothing that needed doing. Today's number and the cards always agree because both read the same ledger.
+- **Waiting icons on the Chatbot page spin again.** The "AI is writing..." button, the draft's Send button, the mic while transcribing and the customer profile card used to stand still.
+- **Playwright no longer says "browser not installed" right after Naota downloaded one.** Naota now hands Playwright the exact browser file it downloaded, so the two can run on different versions. A browser you chose yourself is left alone.
+- **The repository picker in a project and a team is no longer cut off.** The "Selected" section used to show as a thin strip, and the list under it could not scroll to the last repositories. Every row now shows in full and the list scrolls, in the documents of a project or an assistant, the create-team box and the team chat.
+- **A Store pack can be installed in several brains.** A pack installed in one brain used to show "Installed" in another brain with only Turn off and Uninstall, so its assistants and skills could never reach that brain. The card now offers "Install in this brain". Updating the pack brings every brain that has it to the new version, keeping what you edited. Uninstalling removes it from every brain, and the confirmation names each one.
+- **The Chatbot group picker no longer shows bare ids.** A ticked group hidden by the search box, or older than the 80 latest chats, used to show as a long number. Every group now keeps its real name from the inbox, and a group with no known name reads "Group …" with the end of its id.
+### Improved
+- **One step to turn it on:** for Zalo OA, enable the `oa_send_text`, `oa_send_image` and `oa_send_file` events in the app's Webhook section. For a Fanpage, click **Repair** on the checklist so Naota turns on `message_echoes`.
+- In the documents drawer of the Partners page the tabs sit above the "Of the assistant / Only this chat" switch, since that switch only belongs to the Documents tab.
+- **Reuse a Google key for every Google service.** The "Reuse this key" row now sits at the top of the form, shows on Google Ads, Analytics, Merchant Center and Search Console too, and borrows a key (service accounts included) saved for any other Google service. Google shows a client secret only once, when it is made, so the key kept in Naota is often the only copy left.
+- **Change a key right on the connection.** "Reconnect (sign in / change key)" on Gmail, Calendar, Analytics, Ads and the rest now opens a change-key form: pick a key saved for another service, or paste a new one, then sign in again.
+- **A warning before a key is lost.** Deleting the last connection that holds a Google key says so in the confirmation, with how to keep it.
+- **"AI reply" and "Rewrite" in the inbox now show what the AI is doing.** Where the draft will appear, an "AI is writing" box shows a pulsing icon, the current step (reading the chat, checking documents, looking at the customer's photo, writing the reply), the seconds so far and three moving lines. Past 25 seconds it calmly says the AI is still writing, so nobody thinks it broke.
+- **Drafts come a little faster:** the document lookup, the plugin context and the look at the customer's photo now run together instead of one after another.
+
+## [1.49.0] - 2026-11-19
+### Fixed
+- **The estimated saving on the Usage page now matches what is really sent.** Optimized used to count only the short rules and forgot the base that still goes with them (the chat channel rules included), so the page claimed 84% for every brain. Now an API-key brain sees the real figure, and a subscription plan (Claude Code, ChatGPT...) sees plainly that the full rules stay and only memory and skills load the relevant parts.
+- **The running total of tokens saved no longer counts every Max-level turn as a shortcut turn.** Only simple questions take the shortcut, so the total uses the Optimized price; the measured part of the page still shows what the shortcut really saved.
+### Improved
+- **Background jobs on an API-key engine send about 60% fewer fixed tokens.** Kanban jobs, loops and reminders that do work carry a short background rule set instead of the whole chat rule set in every tool call. Every rule about acting stays: do exactly the job within its permission level, never invent numbers, report to whoever assigned it, no empty promises, no jobs created unasked, new plugins always off. Tested with a real model on 7 sample background jobs: results on par with the full rules.
+- **Subscription engines are unchanged.** Claude Code, ChatGPT, Grok and Antigravity keep the full rules. It starts on about 10% of background jobs and follows the Off level.
+- **Long skills load selectively, chosen by Naota before loading.** For a menu-style skill such as the agent/loop/plugin builder, Naota loads only the part a request needs plus every rules section (and any part it says to create first, such as the agent template for a workflow), about 47-63% lighter. Measured with a real model on 7 kinds of request, answers as complete as with the whole skill.
+- **Every language alike.** The choice does not lean on Vietnamese or English: it reads every script (Chinese, Japanese, Korean and Thai included), matches words with inflected endings (Russian, German, Turkish, Korean), and finds filler words from the skill itself. When someone asks in another language than the skill, the model sums up the task in the skill's language so Naota picks the right part. When unsure it loads the whole skill as before, and a skill that is one procedure always loads whole.
+- **Learns from use.** A part the model keeps fetching is loaded up front next time. It starts on about 10% of chat sessions and follows the Off level.
+- **Long turns cost fewer tokens, on every brain.** When the model calls the same tool with the same arguments and the result is identical, it gets a one-line reference instead of the whole text again. The tool still runs every time, so changed data always reaches the model in full. For Claude Code and Codex this happens at the hub, and Naota forgets the turn's record whenever they compact their conversation.
+- **Leaner JSON.** Indented or escaped JSON results are written compactly with the same content. Files, terminal output, web pages and skills stay exactly as they are.
+- Choosing **Off** on the Usage page turns both savings off. What they save shows in the tool results line of that page.
+
+## [1.48.0] - 2026-11-19
+### Added
+- **An @ button in team chats.** When an assistant tags you and the message has scrolled out of view, a round @ button with the number of waiting messages shows at the bottom right. Tap it to jump to that message, tap again for the next; it hides once you have read them or replied.
+- **The Team tab shows each member's model.** Under each assistant's name is the engine and model it runs on, marked "Main model" when it has no model of its own, so the whole team is easy to keep an eye on.
+- **Answer an approval card in the team chat.** The card has two big buttons with icons: Approve and Reply. Reply opens a box inside the card with three choices: Ask (a question in the chat that quotes the card and calls the member who asked, the card keeps waiting), Change (asks for changes as before) and Reject. Each choice offers a few quick answers. The quote button on a line (Will do, Impact) asks about that exact line. Ctrl or Cmd + Enter sends, Esc closes. No more grey browser prompt.
+### Fixed
+- **Opening a team no longer hangs on "Loading the team's messages".** Each open used to add up every model call the team ever made, slower the older the team, although the page no longer shows those figures. Opening a team skips that now.
+- **The team Info tab no longer stays on "Loading...".** A team that opened on Jobs now shows its images, files and links as soon as you switch to Info.
+- **The / skill list in a team chat no longer overlaps.** Each skill shows one line of name and one of description, a long name ends in "...", and the list scrolls when long.
+- **The "Showing one job's messages" bar is one line** on a phone: the job's name, an icon for its acceptance and usage, an X to see every message again. It used to take three lines and push the chat down.
+- **Pressing a job's title or "Open the Jobs tab" in the job pill's details now opens it;** the details used to just close.
+- **A job you already answered no longer comes back on the pill** while you look at another job's messages. A job with no message yet says so in the chat.
+- **The reply suggestion no longer lands on top of the "is typing" line** when that line shows up above the input, on the Teams page and in the main chat.
+### Improved
+- **The team's settings tab is much shorter and saves itself.** Advanced is gone (acceptance, usage, limit numbers, the deputy's detailed rights, the limits table, the reply log): Naota keeps its automatic defaults, and the deputy's rights follow the three levels. Name and description save when you leave the field, pause is one switch, there is no Save button. Archive and Delete stand apart at the end in a red-edged box. The two "outside actions" choices are choice cards like the three levels.
+- **A reply stopped by a limit no longer offers "Open the team limits"**, since there are no numbers to open; Try again stays.
+- **A team no longer has a daily reply cap.** A team that used its 100 replies of the day used to stop every member with "The team has used up its replies", and "Open the team limits" only raised it a step at a time. There is no daily cap now, also for a team that saved a number before, through "Give more turns", or in the deputy's rights. The caps of one job stay. A job stopped by the daily cap goes on with "Give more turns" or "Try again".
+- **The button to tagged messages now sits at the top.** A round button with an up arrow and "@" plus the count under it, like Zalo, since the tagged messages are usually above. Showing or hiding it never moves the messages you are reading.
+- **A team loads only its latest messages, and older ones as you scroll up.** Near the top of the chat the next page loads by itself and you stay on the same message, like the main chat and the Chatbot page. A "Loading older messages..." line shows meanwhile.
+- **Team jobs run side by side.** Every job given to a team starts at once, jobs given to the whole team too (they used to wait for each other because they all counted as the deputy lead's).
+- **Waiting only where a result is needed:** parts of one job that come one after another still wait for each other, and a job you word as "after … is done" or "one by one" still waits for the jobs before it. Each assistant works through the parts given to them, in the order given.
+- **No cap on jobs per team (was 3) nor on teams at work (was 4).** A step waiting for an assistant busy with another job of the same team now waits its turn instead of stopping as "busy too long".
+- **The team Jobs tab now follows the Tasks page.** Each job is a card, and right under it you see what every member is doing: done, working or waiting its turn, with what they were asked to do. Jobs waiting for you come first.
+- **Icons replace text buttons.** Edit, acceptance, cancel, priority and move to Archive are icons; one text button is left, on a job that waits for you. The Info, Jobs and Team tabs have icons, and Jobs shows how many jobs are open.
+- **Press a finished job to read a summary:** when it ended, the result, who did what. Finished jobs and the Archive are paged, five jobs a page.
+- **The Archive is no longer cut at 30 jobs** and gets a search box once it is longer than one page. "Delete all" stands apart at the end.
+- **A message added in a team is read at once.** A member still writing the answer to the previous message stops and answers both together, the newest one first in priority. No more waiting for the earlier answer before the next message is read.
+- **A deputy busy with a step of a job reads the new message at its next step,** so the way of working can change mid-way. The status line says "Read mid-way".
+- **An answered approval request stops ringing.** Approve, Change, Reject or a Reply question on the card turns its notice in the bell read. A request that expires or is cancelled does too.
+- **The deputy stands out in the team settings:** right under the owner, on a tinted row with an accent edge and a star badge.
+- **Team jobs fold into one pill right above the composer,** like background work in the main chat. Press it for the details: why a job stopped, the button that resolves it, who is working.
+- **A job waiting for you leaves the pill once you have written in the chat after it stopped.** It stays in the Jobs tab until it is resolved.
+- **Team roles renamed:** you, who made the team, are the Team lead; the assistant who leads the team is the Deputy lead (was "Coordinator"). Role badges stay on one line, and the role of each step ("Planning", "Working") is a small tag.
+- **The Jobs tab comes first in the side panel** (Jobs, Info, Team). A team with jobs opens on Jobs, a team without any opens on Info.
+- **A tidier approval card.** The deadline reads "5 h left" at the top next to "Waiting for you"; evidence and calls fold into one line with a count, and a long path shows only its file name (the full path on hover). The acceptance and opportunity cards share the solid, 16px-rounded frame.
+
+## [1.47.0] - 2026-11-19
+### Added
+- **Background jobs can carry fixed done-criteria.** A job a script or workflow hands out every day keeps its wording and is checked against exactly those criteria, so it no longer passes one day and sticks the next.
+- **Notify every answer when you are not viewing that chat.** Turn on the new box under Push notifications in the bell: when Naota finishes an answer the phone rings if you switched to another app or opened another chat. Viewing that chat keeps it quiet. Tapping the notice opens the chat.
+### Fixed
+- **Locking the phone no longer hides the answer.** Ask on the phone, lock it, and when you come back Naota pulls in the answer that finished while you were away, no need to ask again or keep the screen on.
+- **A home-screen app that was closed shows the full answer when reopened.** The chat used to show only the old copy kept on the phone until you opened it again from History.
+- **A background job that answers `[SILENT]` finishes quietly**, like reminders: no more "nothing to report" messages on every run, and the automatic check no longer fails it.
+- **Editing a schedule changes its permission level, who gets the result and the spoken note.** Naota used to say "updated" while the old level stayed.
+- **Short wikilinks like `[[log]]` open** even when many files mention the word. When an approval team refuses ChatGPT on Docker, the message now says how to turn the sandbox back on.
+- **Text Naota writes before and after each tool call no longer runs together** (as in "needs a sign-in.Done with item 3"). Each new stretch starts on a new line, on Claude Code, Codex, Grok Build and Antigravity.
+- **The notes Naota writes while it works follow your language too**, instead of drifting into English halfway through code or logs.
+- **Playwright screenshots show right in the chat.** When Naota took a screenshot of a page with Playwright, the image reached the model as a long string of characters and nothing appeared in the chat. The image is now saved in the brain under `attachments/tool-images/` and Naota embeds it in its reply so you can preview it. Images returned by other tools (charts, designs) are handled the same way.
+### Improved
+- **Typing while a goal runs no longer pauses it.** Your message is added to the goal: the running round reads it at its next step and every later round carries it, so you can adjust or widen the goal while Naota works. Each such message gives one more round (10 at most). If a round reports the goal met before it read your message, Naota runs one more round for it. The Stop button still pauses the goal as before.
+- The project selector and project list show a red dot when another project has unread replies. The selected project uses its chat dots without a duplicate folder alert.
+- Opening a project keeps chats unread until they are opened. Badges update for new replies and reads in another tab.
+- **After an update, work in flight carries on by itself.** A team job cut in the middle continues with the step it was on, and a team reply that was being written is written again; no more pressing "Continue" or "Retry".
+- **A chat answer cut short is answered again** when the page comes back after the server restarts, in the main chat and in chats with an assistant.
+- **Background jobs go back to the queue at once** instead of waiting 90 seconds, and the cut no longer counts as a failed attempt.
+- **Nothing outside happens twice.** A step that had already sent a message, posted or created an order before the server stopped makes Naota stop and tell you instead of doing it again. A workflow run cut short no longer says "running" for ever.
+- **A partner's unread count sits on the bottom left of the avatar.** The time keeps the bottom right corner to itself, rows breathe on a phone, and the collapsed avatar strip on desktop now shows who has new messages.
+- **The "Add Naota to your Home Screen" prompt no longer pops up right after you sign in.** It used to show 12 seconds after the page opened, on top of the sign-in screen and the first-run setup. Now it shows only after about 3 minutes of real use (added up across visits), never while the sign-in screen, the setup or another dialog is open, and not while you are typing. The "Install on phone" button in the menu still opens the steps at any time.
+- **The long-turn notice is no longer swallowed while you are in another chat.** It used to stay quiet whenever Naota was open; now only when the screen shows that very chat.
 
 ## [1.46.2] - 2026-11-17
 ### Fixed

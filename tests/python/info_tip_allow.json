@@ -29,7 +29,6 @@
  "cs.oc_wa_need_https": "error: webhook not on HTTPS",
  "cs.ov_mig_confirm": "confirm: migrate brain layout",
  "cs.ov_upd_confirm": "confirm: update Naota",
- "cs.pl_del_confirm": "confirm: remove plugin",
  "cs.si_body_ph": "placeholder: loop body textarea",
  "cs.tfa_s1": "content: 2FA setup step after pressing Turn on",
  "cs.tfa_saved_note": "status: shown after enabling 2FA",
@@ -72,7 +71,6 @@
  "teams.chat_empty": "placeholder: empty chat area, replaced by first message",
  "teams.import_confirm": "confirm: confirm() on team import",
  "teams.pick.leader_dropped": "status: role=status line after unchecking the leader",
- "teams.remove_confirm": "confirm: confirm() before removing member",
  "teams.share_note": "status: shown after pressing share",
  "usage.muc.chua_chon": "status: the level was never picked",
  "usage.tk.chinh_tay": "status: why the number cannot be measured",
@@ -88,5 +86,6 @@
  "kanban.hint_msg": "content: the message sent to Naota in chat for the owner, never shown as page text",
  "bpick.delete_msg": "confirm: inline delete-brain confirmation under the row the user chose to delete",
  "bpick.default_msg": "confirm: inline make-default confirmation under the row the user starred",
- "bpick.import_lead": "content: the upload view the user opened from the brain picker"
+ "bpick.import_lead": "content: the upload view the user opened from the brain picker",
+ "lv.act_q": "confirm: asked before letting Naota click and fill forms with a stored sign-in"
 }

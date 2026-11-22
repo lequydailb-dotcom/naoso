@@ -179,6 +179,8 @@ check("zalo_send_file is in the danger group (it sends, like zalo_send_message)"
       "zalo_send_file" in zalo["tool_meta"]["danger"] and "zalo_send_message" in zalo["tool_meta"]["danger"])
 check("zalo_add_reaction is in the danger group too: the contact sees the reaction",
       "zalo_add_reaction" in zalo["tool_meta"]["danger"])
+check("zalo_send_link is in the danger group: it sends a message",
+      "zalo_send_link" in zalo["tool_meta"]["danger"])
 check("zalo_send_typing is in the danger group: the contact sees \"typing\"",
       "zalo_send_typing" in zalo["tool_meta"]["danger"])
 

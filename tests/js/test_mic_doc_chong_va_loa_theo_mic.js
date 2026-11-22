@@ -90,7 +90,8 @@ check("CANARY: thả Space KHÔNG tắt loa", !/NaotaTts/.test(keyup));
 // 11: chỗ thứ 11 là cú bấm Nghe trên thẻ cuộc gọi hẹn giờ (người bấm, không phải mic tự gửi).
 // 10: nút "Gửi lại câu này" thành nút Tua lại, chỉ đưa câu hỏi về ô nhập chứ không tự gửi.
 // 11: chỗ thứ 11 cũng HOÃN - câu đang nói dở lúc ChatGPT Live hết lượt, gửi qua đường Cơ bản (chuyenSangCoBan).
-check("có 11 chỗ (thêm câu dở khi Live hết lượt chuyển sang Cơ bản) gọi sendMessage", (app.match(/(?<!function )\bsendMessage\(/g) || []).length === 11,
+// 12: chỗ thứ 12 cũng HOÃN - tin có "/ten" lạ giữa câu, nạp lại danh sách skill/cộng sự rồi gửi.
+check("có 12 chỗ (thêm tin chờ nạp lại danh sách lệnh /) gọi sendMessage", (app.match(/(?<!function )\bsendMessage\(/g) || []).length === 12,
   (app.match(/(?<!function )\bsendMessage\(/g) || []).length);
 
 // ---- 5. Mic là công tắc DUY NHẤT (đã chốt: "không cần nút bật tắt loa nữa") ----

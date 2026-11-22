@@ -71,7 +71,10 @@
     pink:       { key: "pet.color.pink",       sun: ["#C67FAB", "#EDB9D6", "#F0DFE9"], moon: ["#D1A2BF", "#E4CCDB", "#2D1D27"] },
     slate:      { key: "pet.color.slate",      sun: ["#7B8794", "#B8C4CD", "#E0E4E8"], moon: ["#969EA7", "#B7BDC3", "#222528"] },
     cocoa:      { key: "pet.color.cocoa",      sun: ["#79604F", "#BFA38A", "#E8DFD5"], moon: ["#A89080", "#C0B0A5", "#2C241E"] },
-    // CAM là màu THƯƠNG HIỆU: trùng đúng logo (thân #FD6100, viền #FBBA9C, xem
+    // VÀNG NAOTA là màu THƯƠNG HIỆU (từ 1.60.0): đúng màu vàng #FCCB1D của logo NAOTA (ô đen bo góc, chữ N vàng,
+    // dashboard/logo.svg). Tông tối theo công thức chung: giữ sắc, bão hoà x0,88, sáng 60%.
+    naota:      { key: "pet.color.naota",      sun: ["#FCCB1D", "#FBDE74", "#FBF2D0"], moon: ["#F0CA42", "#EAD27B", "#2D291D"] },
+    // CAM là màu của logo ngôi sao CŨ (bản nguồn): thân #FD6100, viền #FBBA9C. Giữ làm một màu để chọn, xem
     // dashboard/logo.svg). Tông tối đặt tay rực hơn công thức chung (công thức ra #F59C65, nhạt
     // lệch hẳn logo) nhưng vẫn đúng luật test_pet_bang_mau: cùng sắc, không chói, không nhạt.
     cam:        { key: "pet.color.cam",        sun: ["#FD6100", "#FBBA9C", "#F6DBD0"], moon: ["#F76F1C", "#F2AD8D", "#2D221D"] },
@@ -140,10 +143,13 @@
   };
   // `color` / `eyeColor` là mã màu của ô TỰ CHỌN. Chúng nằm sẵn trong cấu hình kể cả khi đang
   // dùng màu có sẵn, để bấm lại ô tự chọn là ra đúng màu lần trước chứ không về một màu lạ.
-  // Mặc định là LINH VẬT CHÍNH THỨC: ngôi sao màu cam, trùng logo.
+  // Mặc định là LINH VẬT CHÍNH THỨC của NAOTA: ô vuông bo góc màu vàng NAOTA, cùng dáng logo (từ 1.60.0; trước đó
+  // là ngôi sao của logo cũ bản nguồn). `look` là số đời của bộ mặc định: cấu hình nào chưa mang LOOK mà còn đúng
+  // ngôi sao mặc định cũ thì chuanHoa() đổi sang hình mới, một lần, để máy đang chạy cũng thấy linh vật mới.
   // `image`: the owner's own picture (a name from the /avatars store, "" = the drawn face). `favicon`: also use that
   // picture as the browser tab icon, so several Naota open side by side tell apart at a glance.
-  var MAC_DINH = { enabled: true, shape: "star", palette: "nang", side: "right", pos: 0.62, size: 72, eye: "den", eyeSize: 1, color: "#f5d014", eyeColor: "#2a62b0", image: "", favicon: true };
+  var LOOK = 2;
+  var MAC_DINH = { enabled: true, shape: "square", palette: "naota", side: "right", pos: 0.62, size: 72, eye: "den", eyeSize: 1, color: "#fccb1d", eyeColor: "#2a62b0", image: "", favicon: true, look: LOOK };
   // Same name rule as server/avatar_upload.py: 20 hex characters of a content hash plus the real image type.
   var ANH_TEN = /^[0-9a-f]{20}\.(png|jpg|webp|gif)$/;
   function anhHopLe(v) { return typeof v === "string" && ANH_TEN.test(v); }
@@ -422,8 +428,21 @@
       })
       .catch(function () { return { ok: false, lech: [] }; });
   }
+  // A STORED look (localStorage, the server, the Settings page) laid over the one in use. Without `look` it was
+  // saved before LOOK existed, so the generation in use must not carry over and spare an old default star from
+  // chuanHoa(). setCfg() does not come here: a star the owner picks right now is a choice, never an old default.
+  function tronLuu(o) {
+    var b = Object.assign({}, cfg);
+    if (o && typeof o === "object" && !("look" in o)) delete b.look;
+    return Object.assign(b, o || {});
+  }
   function chuanHoa(o) {
     var c = Object.assign({}, MAC_DINH, o || {});
+    // Đời 2 (1.60.0): ngôi sao mặc định cũ (nắng hay cam) sang ô vuông vàng NAOTA. Ai đã tự chọn hình khác thì giữ.
+    if (!(o && Number(o.look) >= LOOK) && c.shape === "star" && (c.palette === "nang" || c.palette === "cam")) {
+      c.shape = "square"; c.palette = "naota";
+    }
+    c.look = LOOK;
     if (!SHAPES[c.shape]) c.shape = MAC_DINH.shape;
     c.color = hex(c.color) || MAC_DINH.color;
     c.eyeColor = hex(c.eyeColor) || MAC_DINH.eyeColor;
@@ -1130,8 +1149,11 @@
       _logoRieng = !!((j.branding || {}).logo_ext);
       var petMayChu = (j.dashboard || {}).pet;
       if (petMayChu) {
-        cfg = chuanHoa(Object.assign({}, cfg, petMayChu));
+        var cu = !("look" in petMayChu);
+        cfg = chuanHoa(tronLuu(petMayChu));
         ghiLocal(); apDung(); apDungTrangThai(); chay();
+        // Saved before LOOK: write the look back once, so it follows the owner to every device.
+        if (cu) ghiServer();
       }
       veDauAn();
       apFavicon();
@@ -1499,7 +1521,7 @@
     // lần mở đầu, máy chủ mới là nguồn theo NGƯỜI).
     hydrate: function (o) {
       if (!o || typeof o !== "object") return;
-      cfg = chuanHoa(Object.assign({}, cfg, o));
+      cfg = chuanHoa(tronLuu(o));
       ghiLocal();
       if (el) { apDung(); apDungTrangThai(); chay(); }
       veDauAn();

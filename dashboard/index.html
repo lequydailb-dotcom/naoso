@@ -40,8 +40,8 @@
   <!-- Biến --ic-* cho icon dùng trong content: của CSS. Phải đứng TRƯỚC style.css
        vì style.css tham chiếu các biến này. -->
   <link rel="stylesheet" href="/static/vendor/lucide-icons.css?v=1">
-  <link rel="stylesheet" href="/static/style.css?v=186">
-  <link rel="stylesheet" href="/static/console.css?v=169">
+  <link rel="stylesheet" href="/static/style.css?v=194">
+  <link rel="stylesheet" href="/static/console.css?v=176">
   <!-- Áp tông đã lưu TRƯỚC khi vẽ để không nháy tối rồi mới đổi sang sáng.
        Giá trị cũ "dim" (tông tối-nhạt, gỡ) quy về tối; theme.js sẽ ghi đè lại.
        Chưa chọn gì thì SÁNG (NAOSO 1.0.0). Chế độ "auto" (chỉ khi người dùng tự chọn) tính theo khung giờ "HH:MM-HH:MM", cùng quy tắc với
@@ -213,6 +213,8 @@
         <button class="noti-text-btn primary" id="notificationPushToggle" type="button" data-i18n="noti.push_on">Bật</button>
         <label class="noti-push-hide" id="notificationPushHideRow" hidden><input type="checkbox" id="notificationPushHide">
           <span data-i18n="noti.push_hide">Ẩn nội dung trên thông báo đẩy</span></label>
+        <label class="noti-push-hide" id="notificationPushEveryRow" hidden><input type="checkbox" id="notificationPushEvery">
+          <span data-i18n="noti.push_every">Báo mỗi câu trả lời khi bạn không xem hội thoại đó</span></label>
       </div>
       <div class="noti-foot">
         <button class="noti-text-btn" id="notificationRefresh" type="button" data-i18n="noti.refresh">↻ Làm mới</button>
@@ -618,8 +620,10 @@
     <div class="model-bar" id="modelBar"></div>
 
     <!-- ===== Composer: ONE rounded card in the style of Claude =====
-         Top: attached images and files. Middle: text box. Bottom: "+", model chip, effort chip,
-         Fast mode bolt, pinned folder chip, then mic and send. Popovers open just above that bottom row (2026-11-14).
+         The card is ONE row, "+", the text box, then mic and
+         send, all on one centre line (attached files above it). Under the card, outside its border, #cpUnder: the
+         pinned folder and the GitHub repos on the left (icons only on a phone when both are pinned), model, Effort
+         and the plan usage ring on the right. Popovers open just above the card (model-picker.js placePops).
          Phone (2026-11-11): ring, model and effort are drawn as one pill and open one sheet from the bottom. -->
     <div class="hud-voice" id="hudVoice">
       <button id="voiceFocusResume" class="voice-focus-resume" hidden></button>
@@ -631,6 +635,46 @@
                 title="Thêm file, lệnh, kết nối" data-i18n-title="cp.plus" aria-label="Thêm file, lệnh, kết nối" data-i18n-aria="cp.plus">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         </button>
+        <div class="cp-right" id="cpRight">
+          <!-- Dictation bar (composer-dictate.js): replaces +, chips, mic and voice chat while recording.
+               X drops the recording, the meter shows the mic level, the square stops and keeps the text to edit,
+               and the send button next to it stops and sends. -->
+          <div class="dict-bar" id="dictBar">
+            <button type="button" class="dict-cancel" id="dictCancel" title="Huỷ ghi âm" data-i18n-title="dict.cancel" aria-label="Huỷ ghi âm" data-i18n-aria="dict.cancel">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+            <canvas class="dict-wave" id="dictWave" aria-hidden="true"></canvas>
+            <span class="dict-busy" id="dictBusy" hidden data-i18n="dict.busy">Đang viết lại câu cho đúng...</span>
+            <span class="dict-time" id="dictTime" aria-live="off">0:00</span>
+            <button type="button" class="dict-stop" id="dictStop" title="Dừng ghi, giữ chữ để sửa" data-i18n-title="dict.stop" aria-label="Dừng ghi, giữ chữ để sửa" data-i18n-aria="dict.stop">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+            </button>
+          </div>
+          <!-- Two voice buttons: the mic records speech into the text box (nothing is sent by itself),
+               the sound-wave button is the live voice chat (#voiceBtn, unchanged behaviour). -->
+          <button type="button" class="mic-big dict-btn" id="dictBtn" title="Ghi âm thành chữ" data-i18n-title="dict.btn" aria-label="Ghi âm thành chữ" data-i18n-aria="dict.btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
+            </svg>
+          </button>
+          <button type="button" class="mic-big" id="voiceBtn" title="Đàm thoại: nói chuyện trực tiếp với NAOSO" data-i18n-title="bar.mic" aria-label="Đàm thoại: nói chuyện trực tiếp với NAOSO" data-i18n-aria="bar.mic">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3"/>
+            </svg>
+          </button>
+          <button type="button" class="stop-btn" id="stopBtn" title="Ngắt lệnh / dừng đọc (Esc)" data-i18n-title="bar.stop" style="display:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          </button>
+          <button type="button" class="send-btn" id="sendBtn" aria-label="Gửi" data-i18n-aria="bar.send">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          </button>
+        </div>
+      </div>
+      <!-- Under the card: what this chat works on (the pinned folder, then the GitHub repos; their
+           scripts fill #cpCtx) on the left, model, Effort and the plan usage ring on the right. -->
+      <div class="cp-under" id="cpUnder">
+        <div class="cp-ctx" id="cpCtx" hidden></div>
         <div class="cp-chips" id="cpChips">
           <button type="button" class="mb-chip" id="mbOpen" title="Đổi model / nhà cung cấp" data-i18n-title="mb.open">
             <span class="mb-dot"></span>
@@ -648,40 +692,6 @@
             <svg width="20" height="20" viewBox="0 0 36 36" aria-hidden="true"><circle class="lim-bg" cx="18" cy="18" r="14" pathLength="100"/><circle class="lim-fg" cx="18" cy="18" r="14" pathLength="100" stroke-dasharray="0 100"/></svg>
           </button>
         </div>
-        <span class="cp-gap"></span>
-        <!-- Dictation bar (composer-dictate.js): replaces +, chips, mic and voice chat while recording.
-             X drops the recording, the meter shows the mic level, the square stops and keeps the text to edit,
-             and the send button next to it stops and sends. -->
-        <div class="dict-bar" id="dictBar">
-          <button type="button" class="dict-cancel" id="dictCancel" title="Huỷ ghi âm" data-i18n-title="dict.cancel" aria-label="Huỷ ghi âm" data-i18n-aria="dict.cancel">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-          </button>
-          <canvas class="dict-wave" id="dictWave" aria-hidden="true"></canvas>
-          <span class="dict-busy" id="dictBusy" hidden data-i18n="dict.busy">Đang viết lại câu cho đúng...</span>
-          <span class="dict-time" id="dictTime" aria-live="off">0:00</span>
-          <button type="button" class="dict-stop" id="dictStop" title="Dừng ghi, giữ chữ để sửa" data-i18n-title="dict.stop" aria-label="Dừng ghi, giữ chữ để sửa" data-i18n-aria="dict.stop">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
-          </button>
-        </div>
-        <!-- Two voice buttons: the mic records speech into the text box (nothing is sent by itself),
-             the sound-wave button is the live voice chat (#voiceBtn, unchanged behaviour). -->
-        <button type="button" class="mic-big dict-btn" id="dictBtn" title="Ghi âm thành chữ" data-i18n-title="dict.btn" aria-label="Ghi âm thành chữ" data-i18n-aria="dict.btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
-          </svg>
-        </button>
-        <button type="button" class="mic-big" id="voiceBtn" title="Đàm thoại: nói chuyện trực tiếp với NAOSO" data-i18n-title="bar.mic" aria-label="Đàm thoại: nói chuyện trực tiếp với NAOSO" data-i18n-aria="bar.mic">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3"/>
-          </svg>
-        </button>
-        <button type="button" class="stop-btn" id="stopBtn" title="Ngắt lệnh / dừng đọc (Esc)" data-i18n-title="bar.stop" style="display:none">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-        </button>
-        <button type="button" class="send-btn" id="sendBtn" aria-label="Gửi" data-i18n-aria="bar.send">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-        </button>
       </div>
       <!-- Phone sheet (model-picker.js, 2026-11-11): on a phone the model chip, the Effort chip and the plan ring read as
            ONE pill, and tapping it opens ONE sheet from the bottom holding the three panels below (plan usage, Effort,
@@ -727,6 +737,8 @@
                       @click="$store.nav.go(it.id)" :title="it.railLabel" :data-page="it.id">
                 <span class="rail-ico" x-html="it.icon"></span>
                 <span class="rail-lbl" x-text="($store.nav.i18nTick, it.railLabel)"></span>
+                <span class="rail-dot" x-show="$store.nav.unread[it.id]" role="img"
+                      :aria-label="($store.nav.i18nTick, t('nav.unread'))" :title="($store.nav.i18nTick, t('nav.unread'))"></span>
               </button>
             </template>
           </div>
@@ -954,8 +966,9 @@
         <div class="auth-err" id="authErr"></div>
         <div class="auth-help"><span id="authForgot" data-i18n="auth.forgot">Quên mật khẩu?</span></div>
         <div class="auth-reset" id="authResetInfo" style="display:none">
-          <span data-i18n="auth.reset1">Mở file</span> <code>server/settings.json</code><span data-i18n="auth.reset2">, xóa khối</span> <code>"auth"</code> <span data-i18n="auth.reset3">(hoặc đặt rỗng), rồi chạy</span>
-          <code>stop-naota.bat</code> → <code>start-naota.vbs</code>. <span data-i18n="auth.reset4">Mở lại sẽ về bộ cài đặt để tạo tài khoản mới.</span>
+          <span data-i18n="auth.reset1">Trên máy tính chạy NAOSO, mở thư mục cài NAOSO rồi bấm đúp</span> <code>reset-auth.bat</code>
+          <span data-i18n="auth.reset2">(Mac:</span> <code>reset-auth.command</code><span data-i18n="auth.reset3">).</span>
+          <span data-i18n="auth.reset4">Mật khẩu cũ bị xoá, mở lại NAOSO rồi vào Tài khoản đặt mật khẩu mới.</span>
           <div class="auth-reset-srv" data-i18n="auth.reset_server">Chạy trên máy chủ (Docker, Hostinger): đổi NAOTA_ADMIN_PASSWORD trong Environment rồi Redeploy. NAOSO đặt lại mật khẩu theo giá trị mới, 2FA giữ nguyên.</div>
         </div>
       </div>
@@ -1050,7 +1063,7 @@
   <script src="/static/freshness.js"></script>
   <!-- Opened by IP on a Hostinger VPS: move to the verified https link of this VPS (auto-domain.js). -->
   <!-- Hộp đen lỗi giao diện (loi-may-khach.js): đứng sớm để bắt được lỗi của mọi file phía dưới. -->
-  <script src="/static/loi-may-khach.js?v=1"></script>
+  <script src="/static/loi-may-khach.js?v=2"></script>
   <!-- Gộp các lượt đọc trùng nhau lúc mở app (fetch-gop.js). Đứng trước mọi file gọi máy chủ. -->
   <script src="/static/fetch-gop.js?v=7"></script>
   <!-- Recently opened chats kept in this browser for an instant first paint (chat-cache.js). Before app.js. -->
@@ -1059,38 +1072,38 @@
        Nhóm nào trang nào cần: console.js renderPage. Trang rảnh thì nạp nốt ở nền theo đúng thứ tự dưới đây. -->
   <script id="naota-lazy" type="application/json">{
  "congviec": [
-  "/static/agent-jobs.js?v=7",
+  "/static/agent-jobs.js?v=8",
   "/static/agent-pulse.js?v=5",
   "/static/agent-lessons-ui.js?v=4",
   "/static/agent-judge-ui.js?v=2"
  ],
  "teams": [
-  "/static/team-github.js?v=3",
-  "/static/teams.js?v=35"
+  "/static/team-github.js?v=4",
+  "/static/teams.js?v=39"
  ],
  "packs": [
-  "/static/packs.js?v=8"
+  "/static/packs.js?v=10"
  ],
  "hoithoai": [
-  "/static/inbox-v5.css?v=13",
-  "/static/inbox-compact.css?v=7",
+  "/static/inbox-v5.css?v=16",
+  "/static/inbox-compact.css?v=10",
   "/static/date-range.css?v=1",
   "/static/chatbots-reply-policy.js?v=1",
   "/static/chatbots-try.js?v=1",
-  "/static/chatbots.js?v=22",
-  "/static/conversations-filters.js?v=7",
+  "/static/chatbots.js?v=25",
+  "/static/conversations-filters.js?v=9",
   "/static/date-range.js?v=1",
-  "/static/inbox-v5.js?v=4",
+  "/static/inbox-v5.js?v=6",
   "/static/inbox-channels.js?v=5",
   "/static/inbox-stats.js?v=4",
-  "/static/conversations.js?v=35"
+  "/static/conversations.js?v=39"
  ],
  "usage": [
   "/static/usage.js?v=4"
  ],
  "webhooks": [
   "/static/webhooks.css?v=1",
-  "/static/webhooks.js?v=9"
+  "/static/webhooks.js?v=10"
  ],
  "vanphong": [
   "/static/office.css?v=7",
@@ -1099,10 +1112,10 @@
  ],
  "nhiemvu": [
   "/static/date-range.css?v=1",
-  "/static/tasks.css?v=13",
+  "/static/tasks.css?v=14",
   "/static/date-range.js?v=1",
   "/static/tasks-stats.js?v=1",
-  "/static/tasks.js?v=15"
+  "/static/tasks.js?v=19"
  ]
 }</script>
   <script src="/static/nap-cham.js?v=2"></script>
@@ -1133,7 +1146,7 @@
   <script src="/static/voice.js?v=31"></script>
   <script src="/static/graph.js?v=18"></script>
   <script src="/static/pan-zoom.js?v=1"></script>
-  <script src="/static/chat-render.js?v=29"></script>
+  <script src="/static/chat-render.js?v=31"></script>
   <script src="/static/code-hl.js?v=1"></script>
   <script src="/static/dataview.js?v=2"></script>
   <!-- window.NaotaCopy: chép một chuỗi vào bảng nhớ tạm, có đường lui cho http trần. Đứng
@@ -1162,13 +1175,13 @@
   <script src="/static/note-images.js?v=1"></script>
   <script src="/static/chat-ask.js?v=2"></script>
   <script src="/static/limit-resume.js?v=2"></script>
-  <script src="/static/chat-slash.js?v=5"></script>
+  <script src="/static/chat-slash.js?v=6"></script>
   <!-- Lệnh "/" hệ thống (/status /model /compact /plan /goal ...): chạy lệnh mà chat-slash.js vừa nhận
        diện. Phải nạp TRƯỚC app.js (sendMessage gọi window.NaotaLenh) và SAU chat-slash.js (đọc menu). -->
-  <script src="/static/chat-goal.js?v=1"></script>
-  <script src="/static/chat-lenh.js?v=3"></script>
+  <script src="/static/chat-goal.js?v=2"></script>
+  <script src="/static/chat-lenh.js?v=4"></script>
   <script src="/static/chat-acts.js?v=7"></script>
-  <script src="/static/chat-suggest.js?v=3"></script>
+  <script src="/static/chat-suggest.js?v=4"></script>
   <!-- One POST /upload with progress and stall watch, shared by the main chat and the Team chat (app.js, teams.js). -->
   <script src="/static/chat-upload.js?v=1"></script>
   <!-- Stick to the latest message, the jump button and its "New messages" pill, shared by app.js and teams.js. -->
@@ -1205,7 +1218,7 @@
   <script src="/static/screen-awake.js?v=1"></script>
   <script src="/static/incoming-call.js?v=1"></script>
   <script src="/static/call-bar.js?v=1"></script>
-  <script src="/static/app.js?v=175"></script>
+  <script src="/static/app.js?v=179"></script>
   <!-- Sau app.js: dải việc nền đọc window.NaotaSessions (app.js dựng) để biết phiên + brain. -->
   <script src="/static/background-strip.js?v=4"></script>
   <!-- Thân bảng chọn model dùng chung: phải đứng TRƯỚC model-picker.js (thanh chat) và
@@ -1215,11 +1228,13 @@
   <!-- Models page usage order: drag, swap, popover placement. console.js calls window.NaotaModelsOrder. -->
   <script src="/static/models-order.js?v=2"></script>
   <script src="/static/provider-logos.js?v=2"></script>
-  <script src="/static/plan-limit.js?v=3"></script>
-  <script src="/static/model-picker.js?v=23"></script>
+  <script src="/static/plan-limit.js?v=4"></script>
+  <script src="/static/model-picker.js?v=24"></script>
   <script src="/static/composer-plus.js?v=4"></script>
-  <script src="/static/composer-folder.js?v=4"></script>
-  <script src="/static/github-connect.js?v=9"></script>
+  <script src="/static/composer-folder.js?v=5"></script>
+  <script src="/static/github-connect.js?v=11"></script>
+  <!-- Brain backup on the signed-in GitHub account: the top of the sync box on the Self-learning page. -->
+  <script src="/static/backup-link.js?v=1"></script>
   <script src="/static/branding.js?v=12"></script>
   <script src="/static/quick-settings.js?v=11"></script>
   <script src="/static/remote-access.js?v=2"></script>
@@ -1229,7 +1244,10 @@
   <script src="/static/brain-picker.js?v=8"></script>
   <!-- One Reorder box (drag or arrows) for projects, pinned chats and tags. Before sessions-ui.js. -->
   <script src="/static/reorder-dialog.js?v=3"></script>
-  <script src="/static/sessions-ui.js?v=35"></script>
+  <!-- One roomy box to write or fix a short text (notes, lessons, document descriptions). Before sessions-ui.js and
+       teams.js, which open it instead of prompt(). -->
+  <script src="/static/text-edit-dialog.js?v=1"></script>
+  <script src="/static/sessions-ui.js?v=39"></script>
   <link rel="stylesheet" href="/static/improvement-candidates.css?v=3">
   <script src="/static/improvement-experiments.js?v=1"></script>
   <script src="/static/improvement-candidates.js?v=3"></script>
@@ -1241,7 +1259,7 @@
   <script src="/static/pulse-seen.js?v=1"></script>
   <!-- Tag filter bar and tag picker shared by Cộng sự and Team: load BEFORE workspace.js and teams.js. -->
   <script src="/static/tag-picker.js?v=1"></script>
-  <script src="/static/workspace.js?v=45"></script>
+  <script src="/static/workspace.js?v=47"></script>
   <!-- Hộp chọn thành viên kiểu Zalo: nạp TRƯỚC teams.js, teams.js gọi window.NaotaTeamPicker. -->
   <script src="/static/team-picker.js?v=3"></script>
   <!-- Bộ phán xử nói / chờ / im của từng trợ lý: lịch sử quyết định và nút sửa. Nạp TRƯỚC teams.js
@@ -1268,23 +1286,24 @@
   <script src="/static/health-panel.js?v=1"></script>
   <!-- Watch tab of the Recurring work page: token-free web page watching (server/web_watch.py). -->
   <script src="/static/web-watch.js?v=3"></script>
-  <script src="/static/login-vault.js?v=2"></script>
+  <script src="/static/login-vault.js?v=3"></script>
   <script src="/static/messenger-connect.js?v=5"></script>
   <script src="/static/voice-catalog.js?v=1"></script>
-  <script src="/static/console.js?v=233"></script>
+  <script src="/static/console.js?v=239"></script>
   <script src="/static/mobile-chat.js?v=24"></script>
   <script src="/static/brain-view.js?v=1"></script>
-  <script src="/static/push.js?v=3"></script>
-  <script src="/static/install-nudge.js?v=3"></script>
+  <script src="/static/push.js?v=4"></script>
+  <script src="/static/install-nudge.js?v=4"></script>
   <!-- Mời tặng sao GitHub: thẻ hiện ở khoảnh khắc vui, xem server/star_nudge.py. -->
   <link rel="stylesheet" href="/static/star-nudge.css?v=6">
-  <script src="/static/star-nudge.js?v=4"></script>
-  <script src="/static/notifications.js?v=14"></script>
+  <script src="/static/star-nudge.js?v=5"></script>
+  <script src="/static/notifications.js?v=16"></script>
+  <script src="/static/rail-unread.js?v=2"></script>
   <!-- Linh vật ở mép màn hình. Nạp SAU app.js vì nó chỉ được app.js gọi vào
        (setOrbState -> NaotaPet.setState), và sau console.js để trang Cài đặt vẽ được thẻ chọn. -->
   <!-- Mascot menu the owner arranges (Settings > Mascot): load BEFORE pet.js, which builds its menu from it. -->
   <script src="/static/pet-menu.js?v=5"></script>
-  <script src="/static/pet.js?v=6"></script>
+  <script src="/static/pet.js?v=7"></script>
   <script src="/static/agent-avatar.js?v=4"></script>
   <!-- (Nút đổi tông TỐI ↔ SÁNG: theme.js đã nạp ở đầu khối script phía trên) -->
   <!-- Alpine self-host (dashboard/vendor): bản unpkg đo được 2.1s lúc first load + chết khi offline -->

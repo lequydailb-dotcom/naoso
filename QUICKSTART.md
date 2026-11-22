@@ -9,19 +9,20 @@ Chạy NAOTA trong vài phút. Chi tiết từng phần: [docs/](docs/README.md)
 Cài Naota như một ứng dụng bình thường: tải một file, bấm mở, xong thì có biểu tượng NAOTA để bấm vào mỗi ngày. Bộ cài tự kiểm tra máy còn thiếu gì (Git, Python, Node, các bộ não AI) và tự cài phần thiếu.
 
 - **Windows 10/11:** tải [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), bấm đúp, bấm Next tới hết. Tiến trình cài hiện ngay trong cửa sổ Setup, từng bước một (vài phút), không còn cửa sổ đen riêng. Xong thì có biểu tượng NAOTA trên Desktop và Start menu.
-- **macOS 11 trở lên:** tải [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), mở ra, kéo **NAOTA** vào **Applications**, rồi mở từ Launchpad. Lần đầu Terminal mở ra để cài (có thể hỏi đặt tài khoản quản trị Naota và mật khẩu máy Mac một lần).
-
-Bấm vào biểu tượng là Naota mở thành cửa sổ riêng (không thanh địa chỉ), Naota tự chạy cùng máy, nút **Cập nhật** trong app dùng được như thường. Dữ liệu nằm ở thư mục `Naota` trong thư mục người dùng; gỡ app không xoá thư mục này.
-
-**Cách cài không bị màn hình cảnh báo (khuyên dùng).** Hai bộ cài chưa ký số, nên tải bằng trình duyệt thì lần đầu máy sẽ chặn lại. Dán một dòng lệnh dưới đây thì không bị chặn, vẫn ra đúng bộ cài có logo Naota:
-- **Windows:** bấm Start, gõ `PowerShell`, mở lên, dán dòng này rồi Enter:
-  ```
-  irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-naota.ps1 | iex
-  ```
-- **macOS:** mở **Terminal** (Launchpad, gõ Terminal), dán dòng này rồi Enter:
+- **macOS 11 trở lên:** mở **Terminal** (Launchpad, gõ Terminal), dán dòng này rồi Enter. Cài cách này macOS không hiện cảnh báo:
   ```
   curl -fsSL https://raw.githubusercontent.com/vuongtex/naota/main/packaging/macos/get-naota.sh | bash
   ```
+  Lệnh này tải Naota về, chép **NAOTA** vào **Applications** rồi cài luôn trong cửa sổ Terminal đó (có thể hỏi đặt tài khoản quản trị Naota và mật khẩu máy Mac một lần). Xong thì mở NAOTA từ Launchpad.
+
+  Thích tải file hơn? Tải [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), mở ra, kéo **NAOTA** vào **Applications**, rồi mở từ Launchpad. File chưa ký bằng Apple Developer ID, nên lần mở đầu macOS sẽ chặn: cách mở nằm ở mục "bị chặn" bên dưới.
+
+Bấm vào biểu tượng là Naota mở thành cửa sổ riêng (không thanh địa chỉ), Naota tự chạy cùng máy, nút **Cập nhật** trong app dùng được như thường. Dữ liệu nằm ở thư mục `Naota` trong thư mục người dùng; gỡ app không xoá thư mục này.
+
+**Windows: cách cài không bị màn hình cảnh báo (khuyên dùng).** Bộ cài Windows chưa ký số, nên tải bằng trình duyệt thì lần đầu máy sẽ chặn lại. Dán một dòng lệnh thì không bị chặn, vẫn ra đúng bộ cài có logo Naota: bấm Start, gõ `PowerShell`, mở lên, dán dòng này rồi Enter:
+```
+irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-naota.ps1 | iex
+```
 
 Nếu đã tải file bằng trình duyệt và bị chặn:
 - Edge hoặc Chrome báo "Naota-Setup.exe isn't commonly downloaded" và không lưu file: trong ô Downloads, rê chuột vào dòng đó, bấm dấu ba chấm, chọn **Keep**, rồi **Show more** và **Keep anyway**.

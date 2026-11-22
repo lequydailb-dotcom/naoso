@@ -341,6 +341,7 @@ class TaskStore:
         max_attempts: int = 3,
         task_id: str = "",
         dedupe_title: bool = True,
+        metadata: Optional[dict] = None,
     ) -> str:
         root = str(brain_root)
         self.ensure_board(root)
@@ -378,14 +379,15 @@ class TaskStore:
                         id, brain_root, title, normalized_title, intent, route,
                         capability, execution_mode, priority, status, needs_approval,
                         created_by, chat_id, idempotency_key, max_attempts,
-                        created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        created_at, updated_at, metadata_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         tid, root, title, normalized, intent or title, route or "auto",
                         capability or "auto", execution_mode or "auto",
                         max(1, min(3, int(priority or 2))), safe_status,
                         int(bool(needs_approval)), created_by or "user", str(chat_id or ""),
                         idempotency_key or "", max(1, int(max_attempts or 3)), ts, ts,
+                        _json(metadata or {}),
                     ),
                 )
                 for dep in dict.fromkeys(str(d) for d in (deps or []) if str(d)):
@@ -611,6 +613,51 @@ class TaskStore:
                 (task_id,),
             ).fetchall()
         return [{"id": str(r["id"]), "title": str(r["title"])} for r in rows]
+
+    # A job that keeps being running when the server dies gets its attempt back this many times; after that a cut
+    # costs an attempt like any failure, so a job that brings the server down cannot run for ever.
+    BOOT_REFUNDS = 2
+
+    def reclaim_boot(self, brain_root: str) -> int:
+        """At process start no worker is alive, so every `running` job of this brain was cut by the restart (owner,
+        16/11/2026: work in flight carries on by itself after an update). It goes back to `ready` at once instead of
+        waiting out its lease (`reclaim_stale`, up to 90 s), and the attempt the dead run had taken is given back:
+        a restart is not the job's failure, and on Windows every update is a hard kill, so three updates in the
+        middle of a long job used to fail it. Outside actions of the dead run stay protected by once_ledger.py.
+        Team jobs (`team_running`) are not touched: the team runner recovers those."""
+        ts = now()
+        with self._lock:
+            self._tx()
+            try:
+                rows = self._db.execute(
+                    "SELECT id, attempts, current_run_id FROM tasks WHERE brain_root=? AND status='running'",
+                    (brain_root,),
+                ).fetchall()
+                for row in rows:
+                    tid = str(row["id"])
+                    run_id = str(row["current_run_id"] or "")
+                    before = self._db.execute(
+                        "SELECT COUNT(*) AS n FROM task_runs WHERE task_id=? AND status='stale' AND error='server restarted'",
+                        (tid,),
+                    ).fetchone()["n"]
+                    back = 1 if int(before) < self.BOOT_REFUNDS else 0
+                    self._db.execute(
+                        """UPDATE tasks SET status='ready', claimed_by='', claim_expires_at=0, current_run_id='',
+                           attempts=MAX(attempts-?, 0), updated_at=? WHERE id=? AND status='running'""",
+                        (back, ts, tid),
+                    )
+                    if run_id:
+                        self._db.execute(
+                            """UPDATE task_runs SET status='stale', finished_at=?, error='server restarted'
+                               WHERE id=? AND status='running'""",
+                            (ts, run_id),
+                        )
+                    self._event(tid, "reclaimed", "server restarted", run_id)
+                self._db.commit()
+                return len(rows)
+            except Exception:
+                self._db.rollback()
+                raise
 
     def reclaim_stale(self, brain_root: str, active_worker_ids: set[str]) -> int:
         ts = now()
@@ -1163,9 +1210,12 @@ class TaskStore:
 
     def ask(
         self, task_id: str, worker_id: str, question: str, result: str = "",
-        extra_meta: Optional[dict] = None,
+        extra_meta: Optional[dict] = None, qa_extra: Optional[dict] = None,
     ) -> Optional[dict]:
         """Chặn việc ở `needs_input` VÀ ghi câu hỏi vào `metadata.qa`.
+
+        `qa_extra`: thêm vào ĐÚNG mục hỏi này (vd `wf_wait` của một mốc duyệt workflow), để câu
+        trả lời gắn với đúng chỗ đang dừng chứ không với cả việc.
 
         Trước đây câu hỏi chỉ nằm lẫn trong `block_reason`, và đường duy nhất để gỡ là Thử lại:
         việc chạy lại từ đầu mà không ai nói cho nó câu trả lời, nên nó hỏi lại y hệt. Giờ mỗi
@@ -1181,6 +1231,7 @@ class TaskStore:
             "q": (question or "").strip()[:QA_TEXT_MAX],
             "asked_at": now(),
             "progress": (result or "").strip()[:QA_PROGRESS_MAX],
+            **(qa_extra or {}),
         })
         meta["qa"] = qa[-QA_KEEP:]
         meta.update(extra_meta or {})
@@ -1398,7 +1449,8 @@ class TaskStore:
                 raise
         return self.get_task(task_id), ""
 
-    def set_acceptance(self, task_id: str, state: str, why: str = "") -> Optional[dict]:
+    def set_acceptance(self, task_id: str, state: str, why: str = "",
+                       handoff: Optional[list] = None) -> Optional[dict]:
         """Record a re-check of a finished job. `state`: "checking" while it runs, "ai" when it passed,
         "failed" when it did not, "unverified" when the checker could not run again. Only a done or review job is
         touched. A failed re-check goes straight to the owner as `acceptance_failed` (fix and run again, or accept
@@ -1425,6 +1477,11 @@ class TaskStore:
                     self._event(task_id, "acceptance_failed", reason[:500])
                 else:
                     meta["acceptance_check"] = state
+                    if handoff:
+                        # Steps the checker moved to the owner ("Left for you") on a passing re-check.
+                        old = [str(x) for x in (meta.get("handoff") or []) if str(x).strip()]
+                        meta["handoff"] = (old + [str(x).strip() for x in handoff
+                                                  if str(x).strip() and str(x).strip() not in old])[:10]
                     self._db.execute("UPDATE tasks SET metadata_json=?, updated_at=? WHERE id=?",
                                      (_json(meta), now(), task_id))
                     if state != "checking":
@@ -1788,7 +1845,7 @@ class TaskStore:
             self._db.commit()
 
     def claim_team_next(
-        self, team_id: str, worker_id: str, lease_s: int = 90, max_running: int = 1, task_id: Optional[str] = None,
+        self, team_id: str, worker_id: str, lease_s: int = 90, max_running: Optional[int] = 1, task_id: Optional[str] = None,
     ) -> Optional[dict]:
         """Nhận việc đầu hàng của nhóm nếu nhóm còn chỗ chạy (mặc định một việc mỗi nhóm).
 
@@ -1811,7 +1868,8 @@ class TaskStore:
                     "SELECT COUNT(*) AS n FROM tasks WHERE lane='team' AND team_id=? AND status='team_running'",
                     (team_id,),
                 ).fetchone()["n"]
-                if int(running) >= max(1, int(max_running)):
+                # `max_running=None`: no cap on the jobs a team runs at once (team_runner, 17/11/2026).
+                if max_running is not None and int(running) >= max(1, int(max_running)):
                     self._db.rollback()
                     return None
                 if task_id:

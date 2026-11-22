@@ -41,6 +41,16 @@ thread. Sending uses the Page token: a direct message through `/<page id>/messag
 `/<comment id>/replies`, a private reply through `/<page id>/messages` with `recipient.comment_id` as on
 Facebook. Comments follow the Page's comment mode. The account meta keeps `ig_id`, `ig_username` and
 `instagram` ("on" / "off").
+
+Audit of 2026-11-20 (parity with WhatsApp, Telegram and Slack):
+  - Where the customer came from reaches the bot: a click-to-Messenger ad (its title), an m.me link with a
+    `ref`, a "Get started" with a referral. A referral that arrives on its own (an existing chat opened from an
+    ad) is kept for that person's next message. The Page now also subscribes `messaging_referrals`.
+  - A customer's VIDEO is watched (frames, plus speech with a speech-to-text key) through the same
+    `meta["video_url"]` path as Zalo, instead of the bot only receiving a link it cannot open.
+  - A sticker or the thumbs-up "like" is said in words instead of being downloaded as a photo to describe.
+  - Instagram: a reply to the account's story and a story mention are named as such.
+  - Rate limits and Meta's "temporary send failure" (HTTP 429, codes 613, 1200) wait and try again.
 """
 from __future__ import annotations
 
@@ -57,6 +67,7 @@ from pathlib import Path
 
 import httpx
 
+import chat_files
 import localefmt
 import stt
 from bot_gateway import HangLuot, dong_vet, parse_chat_ids, ten_tool
@@ -70,6 +81,20 @@ MAX_DEDUPE = 4000
 MAX_DOWNLOAD_MB = 20
 TYPING_EVERY = 15.0          # typing_on lasts about 20 s or until the next message
 SUBSCRIBED_FIELDS = "messages,messaging_postbacks"
+# Ad clicks and m.me links opening an EXISTING chat (2026-11-20). Same permission as messages, but tried with a fallback
+# like the other optional fields so an older setup never loses messages over it.
+REFERRAL_FIELD = "messaging_referrals"
+RETRY_CODES = (613, 1200)     # rate limit, temporary send failure: Meta did not send, a retry cannot double it
+RETRIES = 2
+MAX_REFERRALS = 2000
+# The thumbs-up "like" button sends one of these sticker ids (small, medium, large).
+LIKE_STICKERS = {"369239263222822", "369239343222814", "369239383222810"}
+# What the Page itself sends (a staff member in the Page inbox) comes back as an echo (2026-11-18): optional like `feed`,
+# so a setup without it still counts as receiving messages, it only misses the staff's files.
+ECHO_FIELD = "message_echoes"
+# Written on every message the bot sends; Meta returns it on the echo, so the bot's own sends are told from a person's.
+ECHO_TAG = "naota"
+CHANNEL = "messenger"
 FEED_FIELD = "feed"           # Page comments; optional, the bot works without it
 COMMENT_PREFIX = "cmt:"       # conversation id of a comment thread: cmt:<top-level comment id>
 IG_PREFIX = "ig:"             # Instagram direct message: ig:<Instagram-scoped user id>
@@ -154,6 +179,33 @@ def participant_name(conversations: dict, psid: str) -> str:
         for p in ((conv or {}).get("participants") or {}).get("data") or []:
             if str((p or {}).get("id") or "") == str(psid):
                 return str(p.get("name") or "").strip()
+    return ""
+
+
+def referral_note(ref: dict) -> str:
+    """Where the person came from, in one line for the model, or "" (2026-11-20).
+
+    `source` ADS: a click-to-Messenger ad (`ads_context_data.ad_title`); SHORTLINK: an m.me link, whose `ref` the
+    shop chose (e.g. "sale-11"); CUSTOMER_CHAT_PLUGIN: the chat box on a website."""
+    ref = ref if isinstance(ref, dict) else {}
+    if not ref:
+        return ""
+    src = str(ref.get("source") or "").upper()
+    ctx = ref.get("ads_context_data") or {}
+    title = str(ctx.get("ad_title") or "").strip()
+    tag = str(ref.get("ref") or "").strip()
+    if src == "ADS" or ref.get("ad_id"):
+        what = localefmt.chu("[Khách nhắn tới từ quảng cáo", "[The customer came from an ad")
+        what += f": {title}" if title else ""
+        what += f" (ref {tag})" if tag else ""
+        if ctx.get("product_id"):
+            what += localefmt.chu(f", sản phẩm {ctx['product_id']}", f", product {ctx['product_id']}")
+        return what + "]"
+    if src == "CUSTOMER_CHAT_PLUGIN":
+        return localefmt.chu("[Khách nhắn từ khung chat trên website", "[The customer wrote from the chat box on the website") + \
+            (f" (ref {tag})" if tag else "") + "]"
+    if tag:
+        return localefmt.chu(f"[Khách mở chat qua link m.me có mã: {tag}]", f"[The customer opened the chat from an m.me link with ref: {tag}]")
     return ""
 
 
@@ -285,8 +337,13 @@ async def handle_webhook(payload: dict) -> int:
         for ev in events:
             msg = ev.get("message") or {}
             if msg.get("is_echo"):
+                # The Page's own message: a staff member answering in the Page inbox, or the bot's own send.
+                asyncio.create_task(bot._safe_staff(ev))
+                n += 1
                 continue
             if not msg and not ev.get("postback"):
+                if ev.get("referral"):
+                    bot._remember_referral(ev)    # chat opened from an ad or m.me link, nothing typed yet
                 continue
             asyncio.create_task(bot._safe_event(ev))
             n += 1
@@ -315,6 +372,8 @@ def _handle_instagram(payload: dict) -> int:
             if msg.get("is_echo") or msg.get("is_deleted"):
                 continue
             if not msg and not ev.get("postback"):
+                if ev.get("referral"):
+                    bot._remember_referral(ev)
                 continue
             asyncio.create_task(bot._safe_event(ev, instagram=True))
             n += 1
@@ -364,27 +423,47 @@ class MessengerBot(HangLuot):
         self.feed_on = False
         self.ig_id = ""
         self.ig_username = ""
+        self._referrals: dict = {}      # sender id -> referral note waiting for their first message
+
+    def _remember_referral(self, ev):
+        sender = str((ev.get("sender") or {}).get("id") or "")
+        note = referral_note(ev.get("referral") or {})
+        if sender and note:
+            if len(self._referrals) > MAX_REFERRALS:
+                self._referrals.clear()
+            self._referrals[sender] = note
 
     # ---- HTTP -------------------------------------------------------------------------
     def _params(self):
         return {"access_token": self.token}
 
     async def _post_json(self, client, path, payload):
-        try:
-            r = await client.post(f"{GRAPH}/{path}", json=payload, params=self._params())
+        """POST to Graph. A rate limit or Meta's "temporary send failure" waits and tries again: Meta refused
+        the message, so the retry cannot deliver it twice. Any other failure returns at once."""
+        for attempt in range(RETRIES + 1):
+            try:
+                r = await client.post(f"{GRAPH}/{path}", json=payload, params=self._params())
+            except Exception as e:
+                return {"ok": False, "error": f"{type(e).__name__}: {e}", "net_error": True}
             try:
                 d = r.json() or {}
             except Exception:
                 d = {}
-            if r.status_code >= 300 or d.get("error"):
-                e = d.get("error") or {}
-                return {"ok": False, "code": e.get("code") or r.status_code,
-                        "error": _explain_error(e.get("code"), e.get("message") or f"HTTP {r.status_code}",
-                                                e.get("error_subcode"))}
-            d["ok"] = True
-            return d
-        except Exception as e:
-            return {"ok": False, "error": f"{type(e).__name__}: {e}", "net_error": True}
+            if r.status_code < 300 and not d.get("error"):
+                d["ok"] = True
+                return d
+            e = d.get("error") or {}
+            try:
+                code_i = int(e.get("code"))
+            except (TypeError, ValueError):
+                code_i = None
+            if (r.status_code == 429 or code_i in RETRY_CODES) and attempt < RETRIES:
+                await asyncio.sleep(2 * (attempt + 1))
+                continue
+            return {"ok": False, "code": e.get("code") or r.status_code,
+                    "error": _explain_error(e.get("code"), e.get("message") or f"HTTP {r.status_code}",
+                                            e.get("error_subcode"))}
+        return {"ok": False, "error": _explain_error(613)}
 
     async def _send_one(self, client, to, text):
         if str(to).startswith(IG_COMMENT_PREFIX):
@@ -406,9 +485,14 @@ class MessengerBot(HangLuot):
                     "the app may not reply to comments yet. Log in with Facebook again on the Messenger card and "
                     f"grant pages_manage_engagement ({d.get('code')})")
             return d
-        return await self._post_json(client, f"{self.page_id}/messages", {
-            "recipient": {"id": raw_chat_id(to)}, "messaging_type": "RESPONSE",
-            "message": {"text": text}})
+        chat_files.remember_sent(CHANNEL, raw_chat_id(to), text)
+        message = {"text": text}
+        if not str(to).startswith(IG_PREFIX):
+            message["metadata"] = ECHO_TAG      # Page chats only: Instagram echoes are not read
+        d = await self._post_json(client, f"{self.page_id}/messages", {
+            "recipient": {"id": raw_chat_id(to)}, "messaging_type": "RESPONSE", "message": message})
+        chat_files.remember_id(CHANNEL, str(d.get("message_id") or "") if d.get("ok") else "")
+        return d
 
     async def _send(self, client, chat, text, reply_markup=None):
         if not str(text or "").strip() and self.giau_trang_thai:
@@ -457,12 +541,14 @@ class MessengerBot(HangLuot):
             return False, localefmt.chu("bình luận Instagram chỉ nhận chữ", "an Instagram comment takes text only")
         if is_comment_chat(chat):
             return await self._comment_photo(str(chat)[len(COMMENT_PREFIX):], p.name, data, mime, kind, caption)
+        chat_files.remember_sent(CHANNEL, raw_chat_id(chat), kind="image" if kind == "image" else "file")
         async with httpx.AsyncClient(timeout=httpx.Timeout(300.0)) as c:
             try:
                 r = await c.post(f"{GRAPH}/{self.page_id}/messages", params=self._params(), data={
                     "recipient": json.dumps({"id": raw_chat_id(chat)}),
                     "messaging_type": "RESPONSE",
-                    "message": json.dumps({"attachment": {"type": kind, "payload": {"is_reusable": False}}}),
+                    "message": json.dumps({"attachment": {"type": kind, "payload": {"is_reusable": False}},
+                                           **({} if str(chat).startswith(IG_PREFIX) else {"metadata": ECHO_TAG})}),
                 }, files={"filedata": (p.name, data, mime)})
                 d = r.json() or {}
             except Exception as e:
@@ -512,6 +598,9 @@ class MessengerBot(HangLuot):
                 "recipient": {"comment_id": cid}, "message": {"text": text[:MAX_MSG]}})
         if not d.get("ok"):
             return {"ok": False, "error": d.get("error", ""), "code": d.get("code")}
+        # The person's id is only known now: remember the send so its echo is not filed as a staff message.
+        chat_files.remember_sent(CHANNEL, str(d.get("recipient_id") or ""), text[:MAX_MSG],
+                                 message_id=str(d.get("message_id") or ""))
         return {"ok": True, "recipient_id": str(d.get("recipient_id") or ""),
                 "message_id": str(d.get("message_id") or "")}
 
@@ -605,15 +694,28 @@ class MessengerBot(HangLuot):
             raise RuntimeError(f"larger than {MAX_DOWNLOAD_MB}MB")
         return r.content, str(r.headers.get("content-type") or "").split(";")[0].strip()
 
-    async def _attachment_text(self, client, att, chat) -> str:
+    async def _attachment_text(self, client, att, chat, found=None) -> str:
+        """One attachment as text for the bot. `found`, when given, collects what the runtime handles itself
+        (`video_url`)."""
         atype = str(att.get("type") or "")
         url = str((att.get("payload") or {}).get("url") or "")
+        sticker = str((att.get("payload") or {}).get("sticker_id") or "")
+        if sticker:
+            # A sticker is a picture of a feeling, not a photo to describe; the "like" button is one too.
+            return (localefmt.chu("[Khách bấm thích (👍)]", "[The customer sent a like (👍)]") if sticker in LIKE_STICKERS
+                    else localefmt.chu("[Khách gửi một sticker]", "[The customer sent a sticker]"))
+        if atype == "story_mention":
+            return localefmt.chu(f"[Khách nhắc tới tài khoản trong story của họ: {url}]",
+                                 f"[The customer mentioned the account in their story: {url}]")
         if atype == "location":
             co = (att.get("payload") or {}).get("coordinates") or {}
             return f"[location: {co.get('lat')}, {co.get('long')}]"
         if atype == "fallback" or not url:
             return str(att.get("title") or (url and f"[link: {url}]") or "").strip()
         if atype in ("video", "reel", "ig_reel"):
+            # The runtime watches it (frames, plus speech with a key) from `meta["video_url"]`, as for Zalo.
+            if found is not None and url.startswith("https://") and not found.get("video_url"):
+                found["video_url"] = url
             return localefmt.chu(f"[Người dùng gửi một video qua Messenger: {url}]",
                                  f"[The user sent a video on Messenger: {url}]")
         try:
@@ -646,15 +748,24 @@ class MessengerBot(HangLuot):
         return localefmt.chu(f"[Người dùng gửi file qua Messenger, đã tải về: {dest}]",
                              f"[The user sent a file on Messenger, downloaded to: {dest}]")
 
-    async def _event_text(self, client, ev, chat) -> str:
+    async def _event_text(self, client, ev, chat, found=None) -> str:
         pb = ev.get("postback")
         if pb:
-            return str(pb.get("title") or pb.get("payload") or "").strip()
+            note = referral_note(pb.get("referral") or {})
+            words = str(pb.get("title") or pb.get("payload") or "").strip()
+            return "\n".join(x for x in (note, words) if x).strip()
         msg = ev.get("message") or {}
         qr = (msg.get("quick_reply") or {}).get("payload")
         parts = []
+        note = referral_note(msg.get("referral") or {})
+        if note:
+            parts.append(note)
+        story = (msg.get("reply_to") or {}).get("story") or {}
+        if story:
+            parts.append(localefmt.chu(f"[Khách trả lời story của tài khoản: {story.get('url') or story.get('id') or ''}]",
+                                       f"[The customer replied to the account's story: {story.get('url') or story.get('id') or ''}]"))
         for att in msg.get("attachments") or []:
-            t = await self._attachment_text(client, att, chat)
+            t = await self._attachment_text(client, att, chat, found)
             if t:
                 parts.append(t)
         text = str(msg.get("text") or "").strip()
@@ -681,7 +792,7 @@ class MessengerBot(HangLuot):
         if instagram and not instagram_of(self.account_id).get("on"):
             return
         chat = (IG_PREFIX + sender) if instagram else sender
-        self.last_inbound = time.time()
+        received_at = self.last_inbound = time.time()
         client = self._client or httpx.AsyncClient(timeout=httpx.Timeout(60.0))
         self._client = client
         name = await (self._name_of(client, sender, True) if instagram else self._name_of(client, sender))
@@ -690,6 +801,9 @@ class MessengerBot(HangLuot):
             "user_name": name, "username": name, "user_id": chat,
             "message_id": mid, "bot_username": self.bot_username,
             "mentioned": False, "reply_to_bot": bool(msg.get("reply_to")),
+            # When the message reached Naota, before any download: `chatbot_runtime.staff_yielding` tells the Page's
+            # automatic reply to this message from a staff member's answer by it.
+            "received_at": received_at,
         }
         if instagram:
             meta["instagram"] = True
@@ -697,11 +811,80 @@ class MessengerBot(HangLuot):
             await self._send(client, chat, localefmt.chu(
                 "Bạn không có quyền dùng bot Naota này.", "You are not allowed to use this Naota bot."))
             return
-        text = await self._event_text(client, ev, chat)
+        found = {}
+        text = await self._event_text(client, ev, chat, found)
         if not text:
             return
+        if found.get("video_url"):
+            meta["video_url"] = found["video_url"]
+        waiting = self._referrals.pop(sender, "")
+        if waiting and waiting not in text:
+            text = waiting + "\n" + text
         await self._action(client, chat, "mark_seen")
         await self._dispatch(client, chat, text, meta)
+
+    # ---- What the Page itself sent (a staff member in the Page inbox), 2026-11-18 -----
+    async def _safe_staff(self, ev):
+        try:
+            await self._on_staff(ev)
+        except Exception as e:
+            print(f"[messenger staff message] {type(e).__name__}: {e}", file=sys.stderr)
+
+    async def _on_staff(self, ev):
+        """An echo (`message.is_echo`). The bot's own sends carry `ECHO_TAG` and are dropped (the
+        remembered id/text covers a send from an older version); anything else is a person writing
+        from the Page inbox: its words and files go to `event_fn("staff_sent", ...)`."""
+        msg = ev.get("message") or {}
+        mid = str(msg.get("mid") or "")
+        chat = str((ev.get("recipient") or {}).get("id") or "")
+        if self._stop or not chat or chat == self.page_id or not self.event_fn:
+            return
+        if str(msg.get("metadata") or "") == ECHO_TAG or chat_files.is_own_echo(CHANNEL, chat, message_id=mid):
+            return
+        if self._seen_before("out:" + mid if mid else ""):
+            return
+        text = str(msg.get("text") or "").strip()
+        atts = [a for a in (msg.get("attachments") or []) if isinstance(a, dict)]
+        kinds = [("image" if str(a.get("type") or "") == "image" else "file") for a in atts]
+        if atts:
+            if any(chat_files.is_own_echo(CHANNEL, chat, kind=k) for k in kinds):
+                return
+        elif chat_files.is_own_echo(CHANNEL, chat, text=text):
+            return
+        client = self._client or httpx.AsyncClient(timeout=httpx.Timeout(60.0))
+        self._client = client
+        files, notes = [], []
+        for att, kind in zip(atts, kinds):
+            atype = str(att.get("type") or "")
+            url = str((att.get("payload") or {}).get("url") or "")
+            if atype in ("image", "file") and url:
+                try:
+                    data, mime = await self._download(client, url)
+                except Exception as e:
+                    notes.append(f"[{atype}: {type(e).__name__}: {e}]")
+                    continue
+                ddir = self.download_dir(chat) if callable(self.download_dir) else self.download_dir
+                d = Path(ddir) if ddir else Path("messenger-inbox")
+                d.mkdir(parents=True, exist_ok=True)
+                ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp",
+                       "application/pdf": ".pdf"}.get(mime, "")
+                m = re.search(r"/([^/?]+)\.([A-Za-z0-9]{2,5})(?:\?|$)", url)
+                if not ext and m:
+                    ext = "." + m.group(2).lower()
+                dest = d / f"messenger_staff_{int(time.time() * 1000)}{ext}"
+                await asyncio.to_thread(dest.write_bytes, data)
+                name = (f"{m.group(1)}.{m.group(2)}" if m else "") or ("photo" if kind == "image" else "file")
+                files.append({"path": str(dest), "kind": kind, "name": name[:120]})
+            elif url:
+                notes.append(f"[{atype}: {url}]")
+            elif att.get("title"):
+                notes.append(str(att.get("title")))
+        words = "\n".join([t for t in notes if t] + ([text] if text else [])).strip()
+        if not words and not files:
+            return
+        await self.event_fn("staff_sent", {
+            "chat_id": chat, "account_id": self.account_id, "message_id": mid, "text": words, "files": files,
+            "platform": "messenger", "ts": time.time()})
 
     # ---- Page comments -------------------------------------------------------
     async def _safe_comment(self, com):
@@ -856,6 +1039,13 @@ class MessengerBot(HangLuot):
             "subscribed by hand in the Meta app (Messenger, Webhooks, Add Subscriptions) the bot still hears; "
             "otherwise subscribe it there.")
         self.bot_username = info.get("username", "")
+        # Keep the Page's real name on the account, so the bot card shows it instead of the numeric Page ID
+        # (a Page added by pasting its token only stored the id). Also follows a Page renamed on Facebook.
+        try:
+            import channel_accounts
+            channel_accounts.ghi_ten_that(str(self.account_id or ""), info.get("bot_name", ""))
+        except Exception as e:
+            print(f"[messenger] could not store the Page name: {e}", file=sys.stderr)
         self.feed_on = bool(sub.get("feed"))
         old = _REGISTRY.get(self.page_id)
         if old is not None and old is not self:
@@ -961,11 +1151,16 @@ async def subscribe_page(client, page_id, token) -> dict:
     healthy while hearing nothing. Calling it again is harmless. `feed` needs permissions an older
     token may lack, and Meta refuses the whole call then, so it is tried first and dropped on
     failure: messages must never be lost over comments."""
-    d = await _subscribe(client, page_id, token, SUBSCRIBED_FIELDS + "," + FEED_FIELD)
+    base = SUBSCRIBED_FIELDS + "," + ECHO_FIELD + "," + REFERRAL_FIELD
+    d = await _subscribe(client, page_id, token, base + "," + FEED_FIELD)
     if d.get("ok"):
         return {"ok": True, "feed": True}
     feed_err = d.get("error", "")
-    d = await _subscribe(client, page_id, token, SUBSCRIBED_FIELDS)
+    d = await _subscribe(client, page_id, token, base)
+    if not d.get("ok"):
+        d = await _subscribe(client, page_id, token, SUBSCRIBED_FIELDS + "," + ECHO_FIELD)
+    if not d.get("ok"):
+        d = await _subscribe(client, page_id, token, SUBSCRIBED_FIELDS)
     if d.get("ok"):
         return {"ok": True, "feed": False, "feed_error": feed_err}
     return {"ok": False, "feed": False, "error": d.get("error", "")}
@@ -1014,6 +1209,7 @@ _ERRORS = {
     10903: ("bình luận này không nhắn riêng được nữa (quá 7 ngày, hoặc đã bị xoá hay ẩn)",
             "this comment can no longer get a private message (older than 7 days, or deleted or hidden)"),
     613: ("vượt hạn mức gửi của Messenger, thử lại sau", "Messenger rate limit reached, try again later"),
+    1200: ("Messenger tạm thời không gửi được, thử lại sau", "Messenger could not send for now, try again later"),
 }
 
 

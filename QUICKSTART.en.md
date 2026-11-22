@@ -8,20 +8,21 @@ Get NAOTA running in a few minutes. Full guides: [docs/en/](docs/en/README.md).
 
 Install Naota like any other app: download one file, open it, and you get a NAOTA icon to click every day. The installer checks what the computer is missing (Git, Python, Node, the AI brains) and installs only that.
 
-- **Windows 10/11:** download [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), double-click it and press Next to the end. The install progress shows right inside the Setup window, step by step (a few minutes), with no separate black window. When it is done there is a NAOTA icon on the Desktop and in the Start menu.
-- **macOS 11 or newer:** download [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), open it, drag **NAOTA** into **Applications**, then open it from Launchpad. The first time, Terminal opens to install (it may ask you to set a Naota admin account and for your Mac password once).
-
-Clicking the icon opens Naota in its own window (no address bar), Naota starts with the computer, and the in-app **Update** button works as usual. Your data lives in the `Naota` folder in your user folder; uninstalling the app keeps that folder.
-
-**Install without the warning screen (recommended).** Both installers are not code-signed yet, so a browser download gets blocked the first time. Paste one line instead and you get the same installer with the Naota logo, unblocked:
-- **Windows:** press Start, type `PowerShell`, open it, paste this line and press Enter:
-  ```
-  irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-naota.ps1 | iex
-  ```
-- **macOS:** open **Terminal** (Launchpad, type Terminal), paste this line and press Enter:
+- **Windows 10/11:** download [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), double-click it and press Next to the end. The install progress shows inside the Setup window itself, step by step (a few minutes), with no separate black window. When it is done there is a NAOTA icon on the Desktop and in the Start menu.
+- **macOS 11 or newer:** open **Terminal** (Launchpad, type Terminal), paste this line and press Enter. Installed this way, macOS shows no warning:
   ```
   curl -fsSL https://raw.githubusercontent.com/vuongtex/naota/main/packaging/macos/get-naota.sh | bash
   ```
+  It downloads Naota, copies **NAOTA** into **Applications** and installs it right there in the Terminal window (it may ask you to set a Naota admin account and for your Mac password once). After that, open NAOTA from Launchpad.
+
+  Prefer a file? Download [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), open it, drag **NAOTA** into **Applications**, then open it from Launchpad. It is not signed with an Apple Developer ID yet, so macOS blocks the first open: how to allow it is under "blocked" below.
+
+Clicking the icon opens Naota in its own window (no address bar), Naota starts with the computer, and the in-app **Update** button works as usual. Your data lives in the `Naota` folder in your user folder; uninstalling the app keeps that folder.
+
+**Windows: install without the warning screen (recommended).** The Windows installer is not code-signed yet, so a browser download gets blocked the first time. Paste one line instead and you get the same installer with the Naota logo, unblocked: press Start, type `PowerShell`, open it, paste this line and press Enter:
+```
+irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-naota.ps1 | iex
+```
 
 If you already downloaded the file with the browser and it was blocked:
 - Edge or Chrome says "Naota-Setup.exe isn't commonly downloaded" and does not save the file: in the Downloads box, hover over that line, click the three dots, choose **Keep**, then **Show more** and **Keep anyway**.

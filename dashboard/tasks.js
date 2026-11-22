@@ -123,7 +123,9 @@
         var title = r.label || r.text || "";
         var mode = r.mode === "notify" ? "remind" : "do", rwho = whoOf("r:" + r.id, r.created_by, r.agent);
         if (rep) {
-          recurring.push({ id: "r:" + r.id, src: "reminder", ref: r.id, title: title, who: rwho, sc: rep, next: r.due_at || 0,
+          // Runs skipped because an earlier one was late or long show next to the schedule.
+          var sc = rep + (Number(r.missed_total) > 0 ? " · " + tw("nv.rep.missed", { n: Number(r.missed_total) }) : "");
+          recurring.push({ id: "r:" + r.id, src: "reminder", ref: r.id, title: title, who: rwho, sc: sc, next: r.due_at || 0,
             on: !paused, running: !!r.running, mode: mode, raw: r });
         }
         if (paused) return;
@@ -1309,6 +1311,13 @@
       : it.st === "done" ? (it.result || tw("nv.log.empty")) : it.st === "ask" ? (it.reason || tw("nv.st.ask")) : it.st === "calm" ? (it.reason || tw("nv.st.calm"))
       : it.st === "run" ? tw("nv.st.run") : it.st === "cancel" ? tw("nv.st.cancel") : it.st === "queue" ? tw("nv.prog.queue") : tw("nv.prog.sched");
     h += '<div class="nv-sec2"><div class="nv-cap">' + esc(it.st === "done" ? tw("nv.cap.result") : it.blockKind === "acceptance_failed" && it.st === "ask" ? tw("nv.acc.cap") : tw("nv.cap.progress")) + '</div><div class="nv-res">' + esc(prog) + "</div>" + (acts ? '<div class="nv-acts">' + acts + "</div>" : "") + "</div>";
+    // Steps only the owner can do (listen, approve, upload a file past a tool's cap), set aside by the
+    // specifier or the checker instead of failing the job over them.
+    var left = !isRep && it.src === "kanban" ? ((it.raw && it.raw.metadata) || {}).handoff : null;
+    if (left && left.length) {
+      h += '<div class="nv-sec2"><div class="nv-cap">' + esc(tw("nv.handoff.cap")) + '</div><ul class="nv-left">'
+        + left.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>";
+    }
     if (!isRep && it.src === "kanban" && it.st === "ask" && it.blockKind === "needs_input") {
       h += '<form class="nv-sec2 nv-answer" data-answer="' + esc(it.id) + '"><label class="nv-cap" for="nvAns">' + esc(tw("nv.answer")) + '</label><textarea id="nvAns" class="nv-ta" required></textarea><div class="nv-acts"><button type="submit" class="nv-btn pri">' + esc(tw("nv.send")) + "</button></div></form>";
     }
@@ -1475,8 +1484,9 @@
   }
 
   // ---------- habits: list head, mascot, checkbox, streak card ----------
-  // The mascot is Naota's own star (dashboard/pet.js): all feeling sits in the eyes, no mouth.
-  var PET_STAR = "M145 81 Q160 59.4 175 81 L177.9 85.1 Q195.8 110.7 225.8 119.9 L230.6 121.3 Q255.7 128.9 239.8 149.8 L236.8 153.8 Q217.9 178.8 218.5 210.1 L218.6 215.1 Q219.1 241.4 194.3 232.8 L189.6 231.1 Q160 220.8 130.4 231.1 L125.7 232.8 Q100.9 241.4 101.4 215.1 L101.5 210.1 Q102.1 178.8 83.2 153.8 L80.2 149.8 Q64.3 128.9 89.4 121.3 L94.2 119.9 Q124.2 110.7 142.1 85.1 Z";
+  // The mascot is Naota's own (dashboard/pet.js): the rounded square of the NAOTA logo in NAOTA yellow. All feeling
+  // sits in the eyes, no mouth.
+  var PET_BODY = "M111 85 H209 Q235 85 235 111 V209 Q235 235 209 235 H111 Q85 235 85 209 V111 Q85 85 111 85 Z", PET_FILL = "#fccb1d";
   var PET_EYES = {
     neutral: '<ellipse rx="7.2" ry="17.5"/>', curious: '<ellipse cy="-2" rx="8.4" ry="21"/>', excited: '<ellipse cy="-1" rx="9.2" ry="22.5"/>',
     happy: '<path class="pl" d="M-9 6 Q0 -7 9 6"/>', sleepy: '<path class="pl" d="M-9 6 H9"/>',
@@ -1486,15 +1496,15 @@
     love: '<path d="M0 11 C-15 0 -13 -13 -5.5 -13 C-2 -13 0 -10 0 -7.5 C0 -10 2 -13 5.5 -13 C13 -13 15 0 0 11 Z"/>',
     gang: ['<path class="pl" d="M-8 -9 L6 0 L-8 9"/>', '<path class="pl" d="M8 -9 L-6 0 L8 9"/>']
   };
-  // Naota's own star, small and still ("Naota" in the add form shows the star, not an avatar).
+  // Naota's own mascot, small and still ("Naota" in the add form shows the mascot, not an avatar).
   function jmini() {
-    return '<svg class="nv-jmini" viewBox="56 50 208 200" aria-hidden="true"><path d="' + PET_STAR + '" fill="#fd6100"/><g fill="#201e1e"><ellipse cx="145" cy="156" rx="9" ry="20"/><ellipse cx="175" cy="156" rx="9" ry="20"/></g></svg>';
+    return '<svg class="nv-jmini" viewBox="56 50 208 200" aria-hidden="true"><path d="' + PET_BODY + '" fill="' + PET_FILL + '"/><g fill="#201e1e"><ellipse cx="145" cy="156" rx="9" ry="20"/><ellipse cx="175" cy="156" rx="9" ry="20"/></g></svg>';
   }
   function jstar(mood) {
     var e = PET_EYES[mood] || PET_EYES.neutral, L = typeof e === "string" ? e : e[0], R = typeof e === "string" ? e : e[1];
     // Eyes centred on the star, with a light glance (4px) toward the bubble when they are open; lines stay centred.
     var flat = /sleepy|love/.test(mood), dx = flat || mood === "suspicious" ? 0 : 4, dy = flat ? 6 : mood === "suspicious" ? 1 : -4;
-    return '<svg class="nv-star m-' + mood + '" viewBox="56 50 208 200" aria-hidden="true"><path d="' + PET_STAR + '" fill="#fd6100"/><g class="je"><g transform="translate(' + (145 + dx) + " " + (160 + dy) + ')">' + L + '</g><g transform="translate(' + (175 + dx) + " " + (160 + dy) + ')">' + R + "</g></g>"
+    return '<svg class="nv-star m-' + mood + '" viewBox="56 50 208 200" aria-hidden="true"><path d="' + PET_BODY + '" fill="' + PET_FILL + '"/><g class="je"><g transform="translate(' + (145 + dx) + " " + (160 + dy) + ')">' + L + '</g><g transform="translate(' + (175 + dx) + " " + (160 + dy) + ')">' + R + "</g></g>"
       // Sleepy: a small "z Z" drifting up over the head.
       + (mood === "sleepy" ? '<g class="zz"><text class="z1" x="206" y="100">z</text><text class="z2" x="226" y="72">Z</text></g>' : "") + "</svg>";
   }
@@ -2286,7 +2296,7 @@
     if (calm()) return;
     var c = document.createElement("canvas"), dpr = window.devicePixelRatio || 1;
     c.className = "nv-confetti"; document.body.appendChild(c);
-    var W = c.width = innerWidth * dpr, H = c.height = innerHeight * dpr, ctx = c.getContext("2d"), P = [], cols = ["#f97316", "#eab308", "#22c55e", "#3b82f6", "#ec4899", "#fd6100"];
+    var W = c.width = innerWidth * dpr, H = c.height = innerHeight * dpr, ctx = c.getContext("2d"), P = [], cols = ["#f97316", "#eab308", "#22c55e", "#3b82f6", "#ec4899", "#fccb1d"];
     for (var i = 0; i < 150; i++) P.push({ x: W / 2 + (Math.random() - 0.5) * W * 0.25, y: H * 0.38, vx: (Math.random() - 0.5) * 17 * dpr, vy: (-Math.random() * 15 - 5) * dpr, s: (5 + Math.random() * 5) * dpr, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.35, c: cols[i % cols.length] });
     var t0 = performance.now();
     (function f(t) {
@@ -2547,15 +2557,22 @@
   }
 
   // Naota opens a Kanban job on screen (ui-actions.js, action open_task): Naota tab, details of that job.
-  async function show(ref) {
+  function show(ref) { return openItem("k:" + String(ref || "").replace(/^k:/, "")); }
+  // A `#task=<id>` link (console.js runDeepLink) opens one item: a Kanban job (k:), a reminder (r:) or one of the
+  // owner's own tasks (m:). It picks the tab the item lives on, reloads once when the item is not in the lists yet
+  // (made a moment ago), and answers false when this brain has no such item.
+  async function openItem(id) {
     if (!S || !S.ai) return false;
-    var id = "k:" + String(ref || "").replace(/^k:/, "");
-    if (S.tab !== "ai") setTab("ai");
+    id = String(id || "");
+    var tab = id.indexOf("m:") === 0 ? "me" : "ai";
+    if (S.tab !== tab) setTab(tab);
     if (!find(id)) { await load(); if (!S) return false; }
     if (!find(id)) return false;
+    // The morning sheet setTab("me") may have raised would sit on top of the item the link asked for.
+    if (S.sheet && S.sheet.kind === "morning") S.sheet = null;
     openDetail(id);
     return true;
   }
 
-  window.NaotaTasks = { mount: mount, unmount: unmount, show: show, ready: function () { return !!(S && S.ai); }, morning: function (force) { return morning(force); }, _model: model_ };
+  window.NaotaTasks = { mount: mount, unmount: unmount, show: show, ready: function () { return !!(S && S.ai); }, openItem: openItem, morning: function (force) { return morning(force); }, _model: model_ };
 })();

@@ -210,12 +210,18 @@
     // Recommended (formerly "Recommended repos"): not a kind but a tab of its own, listing every Store entry that follows
     // its author's GitHub repo (`upstream`), whatever its kind. It only shows when the Store has one.
     repo:      { nhan: "store.kind.repo",      icon: "git-branch", trang: "" },
+    // All (owner, 2026-11-16: "the Store must have an All tab, to see every app, skill and workflow, easy to
+    // search"): not a kind either. Always the first tab, it lists every pack, so its search box covers the whole
+    // Store and nobody has to guess a pack's kind before looking for it.
+    all:       { nhan: "store.kind.all",       icon: "package",    trang: "" },
   };
   const THU_TU_LOAI = ["agent", "skill", "workflow", "tool", "connector"];
   const theoGoc = g => !!(g && g.upstream && g.upstream.repo);
-  const trongTab = (g, loai) => loai === "repo" ? theoGoc(g) : (g.kind || "bundle") === loai;
-  // The tabs to draw for this catalog, in screen order: Recommended first and Bundle last, each only when it has a pack.
-  const tabKinds = ds => (ds.some(theoGoc) ? ["repo"] : []).concat(THU_TU_LOAI,
+  const trongTab = (g, loai) => loai === "all" ? true
+    : loai === "repo" ? theoGoc(g) : (g.kind || "bundle") === loai;
+  // The tabs to draw for this catalog, in screen order: All always first, then Recommended, and Bundle last, those
+  // two only when they have a pack.
+  const tabKinds = ds => ["all"].concat(ds.some(theoGoc) ? ["repo"] : [], THU_TU_LOAI,
     ds.some(g => trongTab(g, "bundle")) ? ["bundle"] : []);
 
   // Trần dung lượng tệp .zip, do server nói (`/packs` trả `max_mb`). Giữ ở module để hộp thoại
@@ -437,6 +443,7 @@
     tuy = tuy || {};
     let ds;
     try { ds = await (await fetch("/packs/store" + brainQuery("?"))).json(); } catch (e) { ds = null; }
+    if (ds && ds.need_password) return "need_password";   // no sign-in password yet: say so, not "not found"
     const g = ((ds && ds.packs) || []).find(x => x && x.id === id && x.nguon !== "app");
     if (!g || !g.download || !g.download.url) return "khong_co";
     if (g.installed) return g.enabled === false ? "da_tat" : "da_cai";
@@ -558,6 +565,10 @@
       return { nhan: tw("store.btn.update_to", { ver: esc(g.version) }),
                lop: "kho-btn kho-btn-chinh", act: "cai" };
     }
+    // Installed in another brain, nothing of it in this one (16/11/2026): install it here too.
+    if (g.installed && g.add_to_brain) {
+      return { nhan: tw("store.btn.add_to_brain"), lop: "kho-btn kho-btn-chinh", act: "addbrain", tat: true };
+    }
     if (g.installed) {
       return { nhan: tw("store.btn.uninstall"), lop: "kho-btn kho-btn-go", act: "go", tat: true };
     }
@@ -586,7 +597,7 @@
       + tw("store.installed_latest", { ver: esc(g.installed_version) }) + '</div>' + dongBrainKhac(g);
   }
 
-  // Installed for the machine, but the pack's assistants and skills are in another brain than the one open.
+  // Installed for the machine, but the pack's assistants and skills are only in another brain.
   function dongBrainKhac(g) {
     return g.items_brain
       ? '<div class="kho-daicai">' + ic("info") + ' '
@@ -604,7 +615,8 @@
       + (u.synced ? ' · ' + esc(tw("store.upstream_synced", { ngay: u.synced })) : "") + '</div>';
   }
 
-  function theKho(g) {
+  // `showKind`: the card says its kind. Only the All tab asks for it, the one place where the open tab does not.
+  function theKho(g, showKind) {
     const lo = LOAI[g.kind] || LOAI.bundle;
     const n = nutThe(g);
     // Số hiệu KHÔNG nằm ở đây khi gói đã cài. Dòng meta lấy `g.version` (số của KHO), nên thẻ
@@ -627,6 +639,8 @@
       + '<div class="kho-dau">' + veAvatar(g)
       + '<span class="kho-chips">'
       + (g.tier === "code" ? '<span class="kho-chip-ma">' + tw("store.tier.code") + '</span>' : "")
+      // A pack with no group already shows its kind in the group chip below: not twice.
+      + (showKind === true && g.nhom ? '<span class="kho-nhom">' + esc(tw(lo.nhan)) + '</span>' : "")
       + '<span class="kho-nhom">' + esc(g.nhom ? nhanNhom(g.nhom) : tw(lo.nhan)) + '</span>'
       + '</span></div>'
       + '<div class="kho-ten">' + esc(nn(g.name, g.id))
@@ -652,7 +666,8 @@
 
   // Trạng thái lưới kho. Để ở module vì mọi lần bấm tab, bấm nhóm hay đổi trang đều chỉ VẼ LẠI
   // từ dữ liệu đã tải, không gọi lại mạng.
-  let _kho = { dl: null, loai: "connector", nhom: "Tất cả", trang: 1, tim: "", sap: "" };
+  // Opens on All unless the caller asks for a kind (`moKho`).
+  let _kho = { dl: null, loai: "all", nhom: "Tất cả", trang: 1, tim: "", sap: "" };
   // Sort box (owner). Only orders that need no server: install counts and stars wait for
   // a central server (later, with the business edition). The choice is a
   // per-device convenience, so it lives in localStorage and the page works without it.
@@ -686,6 +701,11 @@
     let d;
     try { d = await (await fetch("/packs/store" + (lamMoi ? "?refresh=1" + brainQuery("&") : brainQuery("?")))).json(); }
     catch (e) { d = { ok: false, error: String(e) }; }
+    if (d && d.need_password) {
+      host.innerHTML = '<div class="mp-empty">' + esc(d.error || "") + '</div>';
+      showNeedPassword(host);
+      return;
+    }
     if (!d || !d.ok) {
       // Kho không tới được thì KHÔNG phải là hỏng cả trang: cài từ tệp vẫn chạy như thường.
       host.innerHTML = '<div class="mp-empty">'
@@ -786,13 +806,17 @@
     const laMoi = _kho.nhom === "Có bản mới";
     const q = _kho.tim.trim().toLowerCase();
     if (!SAP[_kho.sap]) _kho.sap = docSap();
+    const matches = g => !q || (nn(g.name, g.id) + " " + nn(g.description) + " " + g.id).toLowerCase().includes(q);
     const hop = sapXep(cungLoai, _kho.sap).filter(g =>
       (_kho.nhom === "Tất cả"
         || (laDaCai ? g.installed
             : laMoi ? coBanMoi(g)
             : laCongDong ? !g.verified
             : (g.nhom || "Khác") === _kho.nhom))
-      && (!q || (nn(g.name, g.id) + " " + nn(g.description) + " " + g.id).toLowerCase().includes(q)));
+      && matches(g));
+    // Typed words that find nothing here but would on the All tab: the empty grid offers that search, with the
+    // count, instead of leaving the user to think the Store does not have it.
+    const elsewhere = (q && !hop.length && _kho.loai !== "all") ? ds.filter(matches).length : 0;
 
     let gioLay = "";
     try {
@@ -812,8 +836,10 @@
     const chonLoai = dsLoai.map(k => {
       const trong = ds.filter(g => trongTab(g, k));
       const nMoi = trong.filter(coBanMoi).length;
+      // On a phone this select sits beside the group select, whose first option is also "All": two boxes reading
+      // the same word. So here the All tab is spelled out as "All kinds".
       return '<option value="' + k + '"' + (k === _kho.loai ? " selected" : "") + '>'
-        + esc(tw(LOAI[k].nhan)) + ' (' + trong.length + ')'
+        + esc(tw(k === "all" ? "store.kind.all_kinds" : LOAI[k].nhan)) + ' (' + trong.length + ')'
         + (nMoi ? ' · ' + esc(tw("store.tab_new_count", { count: nMoi })) : "") + '</option>';
     }).join("");
     const tabLoai = dsLoai.map(k => {
@@ -906,11 +932,16 @@
          : laCongDong ? tw("store.count_community", { count: hop.length })
          : tw("store.count_items", { count: hop.length })) + '</span>'
       + '</div>'
-      + '<div class="cat-grid" id="pkGrid">' + hienThi.map(theKho).join("") + '</div>'
+      + '<div class="cat-grid" id="pkGrid">' + hienThi.map(g => theKho(g, _kho.loai === "all")).join("") + '</div>'
       + (hienThi.length ? "" : '<div class="mp-empty">'
           + (laDaCai ? tw("store.empty_installed", { loai: esc(tw(LOAI[_kho.loai].nhan)) })
              : laMoi ? tw("store.empty_updates", { loai: esc(tw(LOAI[_kho.loai].nhan)) })
-             : tw("store.empty_filter")) + '</div>')
+             : tw("store.empty_filter"))
+          + (elsewhere
+              ? '<div class="kho-search-all"><button class="kho-btn kho-btn-phu" data-kho-search-all="1">'
+                + esc(tw("store.search_all", { count: elsewhere })) + '</button></div>'
+              : "")
+          + '</div>')
       + (soTrang > 1
           ? '<div class="kho-trang"><span class="prov-meta">'
             + tw("store.paging", { tu: ((trang - 1) * MOI_TRANG + 1),
@@ -938,7 +969,11 @@
     traConTro(host, nhoConTro);
 
     const lai = () => veLuoi(el, host);
-    const doiLoai = (k) => { _kho.loai = k; _kho.nhom = "Tất cả"; _kho.trang = 1; _kho.tim = ""; lai(); };
+    const doiLoai = (k, keepSearch) => {
+      _kho.loai = k; _kho.nhom = "Tất cả"; _kho.trang = 1;
+      if (keepSearch !== true) _kho.tim = "";
+      lai();
+    };
     host.querySelectorAll("[data-kho-loai]").forEach(b => b.onclick = () => doiLoai(b.dataset.khoLoai));
     const sl = host.querySelector ? host.querySelector("#pkLoai") : null;
     if (sl) sl.onchange = () => doiLoai(sl.value);
@@ -950,6 +985,8 @@
       _kho.loai = b.dataset.khoMoi; _kho.nhom = "Có bản mới";
       _kho.trang = 1; _kho.tim = ""; lai();
     });
+    // Same typed words, on the All tab.
+    host.querySelectorAll("[data-kho-search-all]").forEach(b => b.onclick = () => doiLoai("all", true));
     host.querySelectorAll("[data-kho-trang]").forEach(b => b.onclick = () => {
       _kho.trang = Number(b.dataset.khoTrang); lai(); lenDauLuoi(host);
     });
@@ -992,6 +1029,16 @@
       const act = b.dataset.khoAct;
       if (act === "cai") return tuUrl(el, g.download.url, g.download.sha256, g);
       if (act === "go") return hopGo(el, g.id);
+      if (act === "addbrain") {
+        b.disabled = true;
+        return postJson("/packs/add-to-brain", {
+          id: g.replaces_installed || g.id,
+          brain: (typeof currentBrainPath === "function" ? currentBrainPath() : "") || "brain",
+        }).then(r => {
+          if (r && r.ok) veKho(el, host, false, _kho.loai);
+          else { b.disabled = false; alert((r && r.error) || tw("store.add_to_brain_failed")); }
+        });
+      }
       if (act === "tat") {
         return postJson("/packs/toggle", { id: g.id, enabled: g.enabled === false }).then(r => {
           if (r && r.ok) veKho(el, host, false, _kho.loai);
@@ -1318,6 +1365,25 @@
     };
   }
 
+  // A local install with no password: every other page is open, but the Store needs a real session and
+  // none can exist until a password is set (owner report 2026-11-17). The server says so with
+  // `need_password`; this adds the one button that fixes it, straight to the Account page.
+  function showNeedPassword(box) {
+    const btn = document.createElement("button");
+    btn.className = "mp-btn primary";
+    btn.type = "button";
+    btn.id = "pkSetPassword";
+    btn.style.marginTop = "12px";
+    btn.textContent = tw("store.set_password");
+    btn.onclick = () => {
+      const s = window.Alpine && Alpine.store("nav");
+      if (s && s.go) s.go("account");
+    };
+    const msg = box.firstElementChild || box;
+    msg.appendChild(document.createElement("br"));
+    msg.appendChild(btn);
+  }
+
   // console.js gọi hàm này MỖI LẦN điều hướng vào trang kho, và chỉ lúc đó. Nên đây là chỗ
   // đúng để chốt đường về của lượt mới: lấy thứ `moKho` vừa đặt (nếu vào bằng tab), hoặc
   // không có gì (nếu vào từ thanh bên).
@@ -1337,6 +1403,7 @@
     }
     if (d && d.error) {
       el.innerHTML = '<div class="cview-placeholder">' + esc(d.error) + '</div>';
+      if (d.need_password) showNeedPassword(el);
       return;
     }
     // Bộ lọc loại thì lấy rồi XOÁ NGAY: nó là ý định của MỘT lần bấm tab. Giữ lại thì lần sau
@@ -1402,5 +1469,6 @@
                         coBanMoi: coBanMoi, nutThe: nutThe, theKho: theKho,
                         ghiConTro: ghiConTro, traConTro: traConTro, veKho: veKho,
                         caiGoiKho: caiGoiKho, caiPluginZip: caiPluginZip,
+                        showNeedPassword: showNeedPassword,
                         pluginZipView: pluginZipView };
 })();

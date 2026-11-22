@@ -138,6 +138,11 @@
 .ib-v5 .ib-draft-h { font-size: 13px; margin-bottom: 4px; }
 .ib-v5 .ib-draft .ib-draft-t { font-size: 15px; min-height: 60px; border: 0; background: none; box-shadow: none; padding: 2px 0; resize: none; }
 .ib-v5 .ib-draft-a button { font-size: 13px; }
+/* "Bot học câu này" at the size of the buttons beside it (2026-11-19). */
+.ib-v5 .ib-dr-learn { font-size: 13px; min-height: 32px; }
+.ib-v5 .ib-dr-learn input { width: 16px; height: 16px; }
+/* The "A.I. is writing" box: its order line and its calm note at the draft header's size (2026-11-18). */
+.ib-v5 .ib-aiw-o, .ib-v5 .ib-aiw-slow { font-size: 13px; }
 .ib-v5 .ib-cin { padding: 6px; gap: 6px; }
 .ib-v5 .ib-cin textarea { border: 0; background: none; padding: 9px 10px; font-size: 15px; min-height: 40px; max-height: 200px; resize: none;
   outline: none; }
@@ -161,6 +166,11 @@
 .ib-v5 .ib-kh small, .ib-v5 .ib-hint { font-size: 12.5px; }
 .ib-v5 .ib-notebox, .ib-v5 .ib-fld select { font-size: 14px; }
 .ib-v5 .ht-info .ht-tag, .ib-v5 .ht-info .ht-tag-add { font-size: 13px; }
+/* Block / Leave group / Delete at the foot of Info: the row menu's rows at the panel's own type scale. */
+.ib-v5 .ib-sec.ib-acts { padding: 6px; gap: 2px; }      /* 6 + the row's 8 = the 14px left edge of every other section */
+.ib-v5 .ib-acts .ht-rm-it { font-size: 14px; padding: 6px 8px; }
+.ib-v5 .ib-acts .ht-rm-t small { font-size: 12.5px; }
+.ib-v5 .ib-acts .ht-rm-ic svg { width: 17px; height: 17px; }
 
 /* ---- the phone's "who replies" sheet, inside the chat column ---- */
 .ib-msheet { position: absolute; inset: 0; z-index: 40; }
@@ -194,6 +204,8 @@
   .ib-mchip { display: inline-flex; }
   .ht-head:has(.ib-mchip) .ib-info-btn { display: none; }
   .ib-htags { display: none; }
+  /* "Bot học câu này" on its own row, so Discard / Rewrite / Send stay one row (2026-11-19). */
+  .ib-dr-learn { flex-basis: 100%; margin-right: 0; }
 }
 
 /* ---- phones ---- */

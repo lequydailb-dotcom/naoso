@@ -1,8 +1,3 @@
-@echo off
-chcp 65001 >nul
-title Reset dang nhap Naota
-cd /d "%~dp0"
-echo ==========================================
 echo   RESET DANG NHAP NAOTA
 echo   (Xoa tai khoan/mat khau -> ve bo cai dat)
 echo ==========================================
@@ -12,5 +7,21 @@ echo.
 echo Da reset. Bay gio:
 echo   1) Chay stop-naota.bat roi start-naota.vbs (hoac de nguyen cung duoc).
 echo   2) Mo lai trang -> se ra bo cai dat de tao tai khoan moi.
+echo.
+pause
+=======
+@echo off
+chcp 65001 >nul
+title Xoa mat khau Naota
+cd /d "%~dp0"
+REM Xoa mat khau dang nhap Naota de dat lai tu dau (trang Tai khoan). Logic nam trong tools\reset_auth.py,
+REM dung chung voi reset-auth.command cua macOS. Giu setup_done nen khong mo lai bo cai dat lan dau.
+if not exist ".venv\Scripts\python.exe" (
+  echo Khong thay .venv\Scripts\python.exe - hay cai Naota xong truoc.
+  echo .venv\Scripts\python.exe not found - finish installing Naota first.
+  pause
+  exit /b 1
+)
+".venv\Scripts\python.exe" "tools\reset_auth.py"
 echo.
 pause

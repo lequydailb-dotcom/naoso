@@ -1410,6 +1410,13 @@ def claude_engine(system_prompt=None, cwd=None, tag="chat", allowed_tools=None, 
     except Exception as e:  # noqa: BLE001 - reported, never a broken turn
         print(f"[write scope] Claude hook not installed: {type(e).__name__}: {e}", file=sys.stderr)
     try:
+        # 2026-11-17: Claude Code compacting its conversation drops the turn's record of repeated tool results
+        # (tool_result_reuse). Installed BEFORE the secret hook, which must stay the outermost wrapper of _options.
+        import claude_result_reuse
+        claude_result_reuse.install()
+    except Exception as e:  # noqa: BLE001 - reported, never a broken turn
+        print(f"[result reuse] Claude hook not installed: {type(e).__name__}: {e}", file=sys.stderr)
+    try:
         # every Claude turn refuses tool calls on Naota's secret files (secret_guard.py).
         import claude_secret_hook
         claude_secret_hook.install()
@@ -1591,13 +1598,12 @@ def find_codex_cli() -> Optional[str]:
         Path(os.environ.get("APPDATA", "")) / "npm" / "codex.cmd",
         Path(os.environ.get("APPDATA", "")) / "npm" / "codex.exe",
         home / ".codex" / ".sandbox-bin" / "codex",
+        home / ".local" / "bin" / "codex",
     ]
-    # Windows Store có thể đặt app-execution alias ``codex.exe`` lên PATH nhưng
-    # service/tiến trình nền không được quyền chạy alias đó (WinError 5), nên alias
-    # đó chỉ là đường lui cuối. POSIX vẫn tôn trọng PATH trước như thông lệ.
+    # Windows Store có thể đặt app-execution alias ``codex.exe`` lên PATH nhưng service/tiến trình nền không được
+    # quyền chạy alias đó (WinError 5), nên alias đó chỉ là đường lui cuối. Since PR 1608 the PATH binary on
+    # Mac/Linux no longer wins outright either: it joins the candidates below and the newest one is asked.
     cli = tim_binary("codex")
-    if cli and os.name != "nt":
-        return cli
     co = []
     if cli and "windowsapps" not in cli.lower():
         co.append(cli)
@@ -1607,16 +1613,17 @@ def find_codex_cli() -> Optional[str]:
                 co.append(str(p))
         except Exception:
             pass
-    # Một máy Windows hay có NHIỀU bản Codex cùng lúc: Codex Desktop xuất một bản vào
-    # ~/.codex/.sandbox-bin và không phải lúc nào cũng cập nhật nó, npm đặt bản khác. Trước
-    # bản đứng đầu danh sách thắng, và đã đo: sandbox-bin kẹt ở 0.147
-    # (tháng 8) trong khi npm đã 0.160, nên `model/list` chỉ trả đời GPT-5.6 và trang Models
-    # không có GPT-6.1-Sol. Danh sách model là lời của CHÍNH binary được hỏi, nên phải hỏi bản
-    # MỚI NHẤT. Không đọc được số phiên bản thì giữ thứ tự cũ.
+    # Một máy hay có NHIỀU bản Codex cùng lúc: Codex Desktop xuất một bản vào ~/.codex/.sandbox-bin và không phải lúc
+    # nào cũng cập nhật nó, npm đặt bản khác. Trước 0.71.1 bản đứng đầu danh sách thắng, và chủ repo đo 03/10/2026:
+    # sandbox-bin kẹt ở 0.147 (tháng 8) trong khi npm đã 0.160, nên `model/list` chỉ trả đời GPT-5.6 và trang Models
+    # không có GPT-6.1-Sol. Danh sách model là lời của CHÍNH binary được hỏi, nên phải hỏi bản MỚI NHẤT. PR 1608
+    # (2026-11-19): the same holds on Mac/Linux (PATH, npm, ~/.local/bin). A binary whose version cannot be read is
+    # skipped; when none can be read, the old search order stands.
     if len(co) > 1:
-        best = max(co, key=lambda p: _codex_version(p) or ())
-        if _codex_version(best):
-            return best
+        versioned = [(p, _codex_version(p)) for p in co]
+        versioned = [(p, version) for p, version in versioned if version is not None]
+        if versioned:
+            return max(versioned, key=lambda item: item[1])[0]
     if co:
         return co[0]
     if cli:
@@ -2337,6 +2344,10 @@ class CodexCLI:
         final_text = ""
         messages = []   # this turn's agent messages, joined into `final_text` when the turn ends (codex_answer_text)
         sandbox_hong = False
+        # 2026-11-16: each agent message is its own paragraph in the live chat, as on the app-server path
+        # (codex_steer); they used to reach the chat glued together ("...xong.Bước tiếp...").
+        import text_breaks
+        shown = text_breaks.Joiner()
         while True:
             item = await queue.get()
             if item is SENTINEL:
@@ -2386,6 +2397,10 @@ class CodexCLI:
             elif t == "item.completed":
                 it = ev.get("item") or {}
                 itype = it.get("type")
+                if itype in ("context_compaction", "contextCompaction"):
+                    # Codex summarised the thread: earlier tool results may be gone (tool_result_reuse).
+                    import tool_result_reuse
+                    tool_result_reuse.forget_current_turn()
                 if itype == "agent_message":
                     # Bóc dấu trích dẫn nội bộ của OpenAI TRƯỚC khi text đi bất cứ đâu. Nếu
                     # để lọt, ba ký tự vô hình đó hiện thành ô vuông giữa câu trả lời, VÀ đi
@@ -2395,7 +2410,8 @@ class CodexCLI:
                     if txt.strip():
                         # Shown live as before; the answer (`final`) leaves lead-ins out (codex_answer_text).
                         messages.append({"text": txt, "phase": it.get("phase")})
-                        yield {"type": "text", "content": txt}
+                        shown.tool()   # a new message: a new paragraph after earlier text
+                        yield {"type": "text", "content": shown.text(txt)}
                 elif itype in _CODEX_TOOL_ITEMS:
                     codex_mark_step(messages)
                     # Câu lệnh đi kèm trong `item` để tool_label.chi_tiet rút ra khi cần.

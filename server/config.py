@@ -252,7 +252,9 @@ _DEFAULT = {
     # không đòi lại dung lượng. Dùng nhiều máy chung repo thì bật trên MỌI máy (dù đã có rào
     # chống máy tắt xoá chéo ảnh của máy bật - xem git_brain._sync_mirror). Khi bật, máy dọn
     # media tự BỎ QUA attachments/ để ảnh vừa backup không bị dọn rồi lệnh xoá lan đi các máy.
-    "backup": {"enabled": False, "repo_url": "", "token": "", "branch": "main",
+    # use_github: the sync rides on the GitHub connection (Connections page) instead of a pasted token
+    # (backup_github.py, 20/11/2026).
+    "backup": {"enabled": False, "repo_url": "", "token": "", "branch": "main", "use_github": False,
                "interval_hours": 6, "sync_images": False,
                "last_backup": 0.0, "last_status": ""},
     "dashboard": {
@@ -1754,6 +1756,11 @@ TOKEN_PREFIX = "nts_"
 # Đường mà token scope `chat` được đi. Danh sách TRẮNG, khớp theo tiền tố: thiếu tên nào thì
 # token đó bị từ chối chứ không lọt - fail-closed, đúng nếp của mọi hàng rào khác trong Naota.
 TOKEN_SCOPE_CHAT = ("/chat", "/version", "/health", "/sessions")
+# Scope `sync` (20/11/2026): only saves Claude Code / Codex transcripts (POST /chat/external, see chat_bridge
+# `log_transcript`). Naota Gate mints one when the owner turns Naota Sync on from an outside AI, so connecting Gate is
+# all the setup there is. It can do what naota_chat_note already does and nothing else: no chat turn, no reading.
+TOKEN_SCOPE_SYNC = ("/chat/external",)
+TOKEN_SCOPES = ("full", "chat", "sync")
 
 
 def _load_tokens():
@@ -1788,7 +1795,7 @@ def create_api_token(name: str, scope: str = "full") -> dict:
     item = {
         "id": "tok_" + secrets.token_hex(6),
         "name": (str(name or "").strip() or "không tên")[:60],
-        "scope": "chat" if str(scope) == "chat" else "full",
+        "scope": str(scope) if str(scope) in TOKEN_SCOPES else "full",
         "hash": _token_hash(raw),
         "prefix": raw[:12],
         "created_at": _time.time(),
@@ -1828,6 +1835,8 @@ def verify_api_token(raw: str, path: str = ""):
     h = _token_hash(raw)
     for x in _load_tokens():
         if secrets.compare_digest(str(x.get("hash") or ""), h):
+            if str(x.get("scope")) == "sync" and str(path) not in TOKEN_SCOPE_SYNC:
+                return None
             if str(x.get("scope")) == "chat" and path:
                 # 2026-11-05 audit: a bare startswith let "/chat" match "/chatbots*" (create, edit, delete bots,
                 # read their logs). A listed path matches itself and what lies under it, nothing that merely
