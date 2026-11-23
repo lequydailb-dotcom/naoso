@@ -206,7 +206,7 @@ check("Delete and Leave both drop the chat: list, open chat, cache, and a list a
   /if \(_chon === id\) dongThread\(\);/.test(DC) && /boCache\(id\);/.test(DC) && (DC.match(/dropConv\(id\);/g) || []).length === 2 &&
   /\(d\.items \|\| \[\]\)\.filter\(function \(it\) \{ return !_gone\[it\.id\]; \}\)/.test(CV));
 check("Leave says before it happens that the chat is deleted from Naota; both end with a toast, not a second dialog",
-  /Naota/.test(VI["ht.leave_q"]) && /xoá/.test(VI["ht.leave_q"]) && /delete/.test(EN["ht.leave_q"]) &&
+  /NAOSO/.test(VI["ht.leave_q"]) && /xoá/.test(VI["ht.leave_q"]) && /delete/.test(EN["ht.leave_q"]) &&
   /toast\(window\.t\("ht\.left", \{ ten: ten \}\)\)/.test(DC) && /toast\(window\.t\("ht\.deleted", \{ ten: ten \}\)\)/.test(DC) &&
   !!VI["ht.deleted"] && !!EN["ht.deleted"] && !/alert\(window\.t\("ht\.left"/.test(CV));
 

@@ -126,7 +126,7 @@ check("khoá có ở cả vi và en", keys.every((k) => VI[k] && EN[k]), keys.fi
 check("the old two buttons and their keys are gone", !/renderActions|onAction\(|setActionNote|ht\.act_answer|ht\.act_draft"|ht\.why_/.test(CV) &&
   ["ht.act_answer", "ht.act_draft", "ht.act_back", "ht.why_human", "ht.act_overwrite"].every((k) => !(k in VI) && !(k in EN)));
 check("Vietnamese says A.I. with dots on these buttons; the draft button is named Naota (owner 2026-11-19)",
-  VI["ib.ai_reply"] === "Naota soạn" && /A\.I\./.test(VI["ib.ask_ai_now"]));
+  VI["ib.ai_reply"] === "NAOSO soạn" && /A\.I\./.test(VI["ib.ask_ai_now"]));
 check("không dùng em dash trong test này", fs.readFileSync(__filename, "utf8").indexOf(String.fromCharCode(0x2014)) < 0);
 
 if (fails.length) { console.log("\nĐỎ: " + fails.length + ": " + fails.join(" | ")); process.exit(1); }

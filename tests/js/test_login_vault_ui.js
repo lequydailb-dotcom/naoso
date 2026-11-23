@@ -60,7 +60,7 @@ check("the risk line fits in the open, its detail sits behind (i)", VI["lv.risk"
   && /infoPair\(riskMoreHtml\(\), tw\("lv\.risk_more"\)\)/.test(D("login-vault.js")));
 check("the risk says who carries it and that Naota acts for real", /tự chịu/.test(VI["lv.risk"]) && /risk is yours/.test(EN["lv.risk"])
   && /không hoàn tác/.test(VI["lv.risk_act_h"]) && /khoá tài khoản/.test(VI["lv.risk_lock"])
-  && /tài khoản riêng cho Naota/.test(VI["lv.risk_key"]));
+  && /tài khoản riêng cho NAOSO/.test(VI["lv.risk_key"]));
 check("update form does not repeat the risk", !LV.pasteFormHtml(false).includes("lv-risk"));
 h = LV.cardHtml(Object.assign({}, base, { allow_act: true, in_browser: true }), NOW);
 check("card has a second switch for clicking and filling forms", /data-act="toggle-act" checked/.test(h) && h.includes("Cho bấm và điền form"));

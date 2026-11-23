@@ -7907,5 +7907,16 @@
   "sec.d_wrong_pw": "wrong password",
   "sec.d_pw": "with password",
   "sec.d_pw_2fa": "password + 2FA",
-  "sec.d_setup": "first setup"
+  "sec.d_setup": "first setup",
+  "office.st_today": "Today",
+  "office.st_staff": "AI staff",
+  "office.st_staff_n": "Digital staff in the departments",
+  "office.st_runs": "Runs",
+  "office.st_runs_n": "All runs of every automated job that day",
+  "office.st_rate": "Success rate",
+  "office.st_rate_n": "Successful runs divided by all runs",
+  "office.st_red": "Jobs in trouble",
+  "office.st_red_n": "Jobs with a red lamp: failed or paused itself",
+  "office.st_turns": "AI calls",
+  "office.st_turns_n": "How many times the assistant called AI that day"
 }

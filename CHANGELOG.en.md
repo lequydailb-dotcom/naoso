@@ -4,6 +4,10 @@
 
 NAOTA release history. Newest first.
 
+## [1.60.2] - 2026-11-23
+### Fixed
+- **The 3D office numbers bar shows proper labels.** It used to show raw keys like `office.st_today`.
+
 ## [1.60.1] - 2026-11-22
 ### Added
 - **All of the newest NAOTA release (1.47 to 1.60) is merged into NAOSO.** Every feature from those versions is in NAOSO, including the mascot in the new logo shape.

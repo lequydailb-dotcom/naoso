@@ -6,6 +6,10 @@ Lịch sử phiên bản NAOTA. Bản mới nhất ở trên cùng. Xem ngay tro
 
 Định dạng: mỗi phiên bản là một khối `## [x.y.z] - ngày`, bên dưới nhóm thay đổi theo `### Thêm mới / Sửa lỗi / Cải thiện / Bảo mật`.
 
+## [1.60.2] - 2026-11-23
+### Sửa lỗi
+- **Thanh số liệu của Văn phòng 3D hiện đúng tiếng Việt.** Trước đó nó hiện chữ thô như `office.st_today`.
+
 ## [1.60.1] - 2026-11-22
 ### Thêm mới
 - **Gộp toàn bộ bản NAOTA mới nhất (1.47 đến 1.60) vào NAOSO.** Mọi tính năng của các bản đó đều có trong NAOSO, gồm linh vật mang dáng logo mới.
