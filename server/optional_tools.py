@@ -1,8 +1,8 @@
-"""Công cụ TUỲ CHỌN: thứ Naota dùng được nhưng không nhét sẵn vào bản cài.
+"""Công cụ TUỲ CHỌN: thứ NAOSO dùng được nhưng không nhét sẵn vào bản cài.
 
 Vì sao có tầng này
 ------------------
-Trình duyệt để Naota tự kiểm thử giao diện nặng cả trăm MB, mà phần lớn người dùng Naota không
+Trình duyệt để NAOSO tự kiểm thử giao diện nặng cả trăm MB, mà phần lớn người dùng NAOSO không
 lập trình và không bao giờ cần tới. Nhét sẵn vào ảnh Docker là bắt tất cả mọi người trả tiền
 băng thông và ổ đĩa cho một tính năng của thiểu số, mỗi lần cập nhật một lần. Bỏ hẳn thì người
 cần lại không có đường nào lấy.
@@ -12,7 +12,7 @@ SÁCH CÓ TÊN các công cụ tuỳ chọn, bỏ qua lúc đầu được, cài
 
 Ranh giới không lách được
 -------------------------
-Trong Docker, Naota chạy bằng user `naota` (uid 10001), mã nguồn để chỉ đọc. Nên phần nào cần
+Trong Docker, NAOSO chạy bằng user `naota` (uid 10001), mã nguồn để chỉ đọc. Nên phần nào cần
 `apt-get` thì PHẢI nằm sẵn trong ảnh (Dockerfile lo, xem lớp WITH_BROWSER_DEPS); ở đây chỉ làm
 được phần tải về thư mục ghi được. Chia đúng như vậy thì ảnh chỉ nặng thêm phần thư viện, còn
 bản thân trình duyệt chỉ tải khi có người bấm.
@@ -26,9 +26,9 @@ Default download on first start
 A browser is part of the basic experience (mbasic is gone,
 so reading pages and the Facebook plugins need a real one), so the button is no longer the only
 way in: `auto_install_browser()` runs once per server start and downloads the same headless
-shell in the background when the machine has nothing Naota can drive. It still stays out of the
+shell in the background when the machine has nothing NAOSO can drive. It still stays out of the
 Docker image: in STATE_DIR it survives updates. The download no longer has to match the Playwright
-version the MCP runs: since 16/11/2026 Naota hands the MCP the exact file (`executable_env()`),
+version the MCP runs: since 16/11/2026 NAOSO hands the MCP the exact file (`executable_env()`),
 because the two drifted apart and broke every Playwright call. It skips when a system Chrome/Edge exists, when the user pressed Remove
 (marker file), when NAOTA_SKIP_BROWSER is set, and when the image was built without the system
 libraries (NAOTA_BROWSER_DEPS=0), since the download could not run there anyway.
@@ -77,9 +77,9 @@ def _mo_ta_trinh_duyet() -> dict:
     return {
         "id": "browser",
         "ten": localefmt.chu("Trình duyệt (Chromium)", "Browser (Chromium)"),
-        "mo_ta": localefmt.chu("Cho Naota tự mở trang, chụp màn hình và kiểm thử giao diện sau khi sửa code. "
+        "mo_ta": localefmt.chu("Cho NAOSO tự mở trang, chụp màn hình và kiểm thử giao diện sau khi sửa code. "
                                "Cần cho kết nối Playwright.",
-                               "Lets Naota open pages, take screenshots and test the interface after editing code. "
+                               "Lets NAOSO open pages, take screenshots and test the interface after editing code. "
                                "Needed for the Playwright connection."),
         "dung_luong_uoc": localefmt.chu("khoảng 100 MB", "about 100 MB"),
     }
@@ -139,7 +139,7 @@ def _chrome_he_thong() -> str:
 # Đây là gốc của một lỗi đã gặp: `_da_tai()` cũ trả về thư mục ĐẦU TIÊN mà `iterdir()`
 # đưa ra (thứ tự trên đĩa, không đoán trước được), rồi chỗ dò file chạy chỉ tìm mỗi tên
 # `chrome`. Rơi vào thư mục headless_shell là không thấy gì, nên trang Công cụ báo "Sẵn sàng"
-# còn chỗ dùng thật báo "Chưa có trình duyệt nào Naota lái được" - cùng một máy, hai câu trả
+# còn chỗ dùng thật báo "Chưa có trình duyệt nào NAOSO lái được" - cùng một máy, hai câu trả
 # lời ngược nhau.
 # Đường dẫn QUEN, thử trước vì nó nhanh (vài lần `is_file`). Bản đầy đủ trước, bản headless
 # rút gọn sau, ba hệ điều hành trong cùng một danh sách - một thư mục build chỉ chứa đúng một
@@ -220,9 +220,9 @@ def _binary_trong(thu_muc: Path) -> str:
 
 
 def chan_doan_trinh_duyet() -> str:
-    """Một câu nói Naota đã tìm Ở ĐÂU và thấy GÌ. Rỗng khi không có gì đáng nói.
+    """Một câu nói NAOSO đã tìm Ở ĐÂU và thấy GÌ. Rỗng khi không có gì đáng nói.
 
-    Vì sao đáng có: "Chưa có trình duyệt nào Naota lái được" là câu cụt - người đọc đã bấm tải
+    Vì sao đáng có: "Chưa có trình duyệt nào NAOSO lái được" là câu cụt - người đọc đã bấm tải
     và thấy báo xong rồi, nên câu đó chỉ nói họ sai mà không nói sai ở đâu. Người dùng mắc kẹt ở
     đúng câu này qua hai phiên bản, và mỗi vòng hỏi lại tốn một lần cập nhật. Câu chẩn
     đoán biến một ảnh chụp màn hình thành đủ dữ kiện để sửa.
@@ -281,7 +281,7 @@ def duong_dan_chrome() -> str:
 
 
 def _da_tai() -> str:
-    """Thư mục bản Chromium Naota đã tải, rỗng nếu chưa có.
+    """Thư mục bản Chromium NAOSO đã tải, rỗng nếu chưa có.
 
     CỐ Ý không đòi thư mục phải có file chạy: hàm này còn trả lời câu "có gì để gỡ không" và
     "tính dung lượng ở đâu". Một lần tải hỏng dở dang vẫn phải gỡ được bằng nút, không thì
@@ -340,8 +340,8 @@ def _trang_thai_browser(d: dict, viec: dict) -> dict:
         tt, ly_do = "dang_cai", localefmt.chu("Đang tải trình duyệt về, việc này mất vài phút.",
                                                "Downloading the browser, this takes a few minutes.")
     elif tu_tai:
-        tt, ly_do = "san_sang", localefmt.chu("Naota đã tải sẵn một bản Chromium riêng.",
-                                               "Naota has downloaded its own copy of Chromium.")
+        tt, ly_do = "san_sang", localefmt.chu("NAOSO đã tải sẵn một bản Chromium riêng.",
+                                               "NAOSO has downloaded its own copy of Chromium.")
     elif chay_duoc:
         tt, ly_do = "san_sang", localefmt.chu(f"Dùng trình duyệt có sẵn trên máy: {chay_duoc}",
                                                f"Using the browser already on this machine: {chay_duoc}")
@@ -352,11 +352,11 @@ def _trang_thai_browser(d: dict, viec: dict) -> dict:
                                                "broke midway. Press Remove, then download again. ")
                                  + chan_doan_trinh_duyet())
     else:
-        tt, ly_do = "chua_cai", localefmt.chu("Máy này chưa có trình duyệt nào Naota lái được.",
-                                               "This machine has no browser Naota can drive yet.")
+        tt, ly_do = "chua_cai", localefmt.chu("Máy này chưa có trình duyệt nào NAOSO lái được.",
+                                               "This machine has no browser NAOSO can drive yet.")
     d.update({
         "trang_thai": tt, "ly_do": ly_do,
-        "go_duoc": bool(tai_ve),           # chỉ gỡ được thứ CHÍNH NAOTA tải về
+        "go_duoc": bool(tai_ve),           # chỉ gỡ được thứ CHÍNH NAOSO tải về
         "duong_dan": chay_duoc or tai_ve,
         "dung_luong": doc_mb(_dung_luong(BROWSERS_DIR)) if tai_ve else "",
     })
@@ -507,7 +507,7 @@ def bat_dau_cai(cong_cu: str = "browser") -> dict:
 
 
 def go(cong_cu: str = "browser") -> dict:
-    """Xoá bản Naota tự tải. KHÔNG bao giờ đụng tới trình duyệt có sẵn của máy."""
+    """Xoá bản NAOSO tự tải. KHÔNG bao giờ đụng tới trình duyệt có sẵn của máy."""
     if cong_cu not in CONG_CU:
         return {"ok": False, "error": localefmt.chu(f"không có công cụ tên {cong_cu!r}", f"no tool named {cong_cu!r}")}
     if cong_cu == "local_ear":
@@ -518,8 +518,8 @@ def go(cong_cu: str = "browser") -> dict:
         return local_stt.remove()
     goc = BROWSERS_DIR
     if not _da_tai():
-        return {"ok": False, "error": localefmt.chu("Không có bản nào do Naota cài để gỡ.",
-                                                    "There is no copy installed by Naota to remove.")}
+        return {"ok": False, "error": localefmt.chu("Không có bản nào do NAOSO cài để gỡ.",
+                                                    "There is no copy installed by NAOSO to remove.")}
     try:
         shutil.rmtree(goc, ignore_errors=True)
         _viec.pop(cong_cu, None)
@@ -599,7 +599,7 @@ def env_playwright() -> dict:
 
 ENV_EXECUTABLE = "PLAYWRIGHT_MCP_EXECUTABLE_PATH"
 # Ways a user points the Playwright MCP at a browser of their own choosing. Any one of them present
-# means Naota keeps its hands off: a CDP endpoint, the browser extension or a config file all make
+# means NAOSO keeps its hands off: a CDP endpoint, the browser extension or a config file all make
 # an executable path meaningless or wrong.
 _OWN_BROWSER_ENV = (ENV_EXECUTABLE, "PLAYWRIGHT_MCP_CDP_ENDPOINT", "PLAYWRIGHT_MCP_ENDPOINT",
                     "PLAYWRIGHT_MCP_EXTENSION", "PLAYWRIGHT_MCP_CONFIG")
@@ -610,10 +610,10 @@ _SHELL_NAMES = ("headless_shell", "headless_shell.exe", "chrome-headless-shell",
 
 
 def downloaded_executable() -> str:
-    """Runnable file of the browser Naota downloaded into BROWSERS_DIR, empty when there is none.
+    """Runnable file of the browser NAOSO downloaded into BROWSERS_DIR, empty when there is none.
 
     Unlike `duong_dan_chrome()` this never falls back to a system Chrome: it answers "what did
-    Naota itself put on this machine", which is the only file Naota may hand to the MCP unasked.
+    NAOSO itself put on this machine", which is the only file NAOSO may hand to the MCP unasked.
     """
     for d in _cac_ban_da_tai():
         if (path := _binary_trong(d)):
@@ -639,13 +639,13 @@ def executable_env(env: dict, args=()) -> dict:
     `chromium_headless_shell-1255` with Playwright 1.65.1, and that install garbage-collected
     1254. The MCP looks only for its own revision and never falls back to a headless shell, so
     it died with "Browser chrome-for-testing is not installed". Matching the two versions is a race
-    Naota cannot win for good; naming the file is not. With this variable the same MCP navigated
+    NAOSO cannot win for good; naming the file is not. With this variable the same MCP navigated
     and took screenshots on the 1255 headless shell.
 
     `env` is the connection's env as already resolved (the user's values first), `args` its
     command arguments. Returns `{}` whenever the user chose a browser themselves (another
     browser, their own path, a CDP endpoint, the extension, a config file, a flag in the args),
-    when Naota downloaded nothing, and when the only download is a headless shell but the user
+    when NAOSO downloaded nothing, and when the only download is a headless shell but the user
     asked to see the window, which a headless shell cannot show.
     """
     if any(str(env.get(k) or "").strip() for k in _OWN_BROWSER_ENV):
@@ -667,7 +667,7 @@ def trinh_duyet_mac_dinh() -> str:
     """Giá trị `browser` hợp lý cho connector Playwright trên máy này.
 
     Máy cá nhân có Chrome thì dùng luôn Chrome (không phải tải gì). Máy chủ Linux thì phải là
-    `chromium` - bản Naota tải về. Đặt sai chỗ này là connector đi tìm Google Chrome trên một
+    `chromium` - bản NAOSO tải về. Đặt sai chỗ này là connector đi tìm Google Chrome trên một
     container Debian và chết với câu lỗi không ai đoán ra.
     """
     if _da_tai():

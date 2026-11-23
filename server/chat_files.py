@@ -79,7 +79,7 @@ def remember_id(channel: str, message_id: str) -> None:
 
 
 def is_own_echo(channel: str, chat: str, text: str = "", kind: str = "text", message_id: str = "") -> bool:
-    """True when this outgoing message of the OA/Page is the echo of something Naota sent. A match is used up, so the bot
+    """True when this outgoing message of the OA/Page is the echo of something NAOSO sent. A match is used up, so the bot
     saying "Dạ" twice and a staff member saying "Dạ" once are told apart."""
     now = time.time()
     with _lock:

@@ -1,8 +1,8 @@
 """Security log of the owner account: who signed in, from where, and every change to the account.
 
-The username, password and 2FA of a VPS Naota were changed by someone who edited
+The username, password and 2FA of a VPS NAOSO were changed by someone who edited
 settings.json on the server. Nothing recorded when it happened or from where: container logs are lost on every update
-and the only log Naota kept (auth_audit.jsonl) covered API token probes. This module is the missing record.
+and the only log NAOSO kept (auth_audit.jsonl) covered API token probes. This module is the missing record.
 
 - One JSON line per event in STATE_DIR/security_log.jsonl. STATE_DIR is a volume on Docker/Hostinger, so the log
   survives updates and redeploys. Rotated at MAX_BYTES into security_log.1.jsonl (one old file kept).

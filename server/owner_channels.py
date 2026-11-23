@@ -1,6 +1,6 @@
 """The owner's control channels on Slack, WhatsApp, Discord and Lark/Feishu.
 
-"Control channel" = the owner talks to Naota itself (full brain, tools, background work), the
+"Control channel" = the owner talks to NAOSO itself (full brain, tools, background work), the
 way the Telegram and Zalo control bots work. Customer-facing bots live elsewhere
 (`chatbot_runtime` + `channels/`).
 
@@ -94,9 +94,9 @@ class OwnerChannel:
 
     def _refusal(self, code: str) -> str:
         return localefmt.chu(
-            f"Bạn chưa được cấp quyền dùng Naota này.\nMã ghép nối của bạn: {code}\n"
+            f"Bạn chưa được cấp quyền dùng NAOSO này.\nMã ghép nối của bạn: {code}\n"
             "Đưa mã này cho chủ máy để họ cho phép ở trang Kênh Admin.",
-            f"You are not allowed to use this Naota yet.\nYour pairing code: {code}\n"
+            f"You are not allowed to use this NAOSO yet.\nYour pairing code: {code}\n"
             "Give this code to the owner so they can allow you on the Admin channels page.")
 
     def _queue(self, meta) -> str:

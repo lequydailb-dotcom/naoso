@@ -1,12 +1,12 @@
-# Phong cách thiết kế Naota: đọc trước khi làm giao diện
+# Phong cách thiết kế NAOSO: đọc trước khi làm giao diện
 
 File này gom các lần sửa giao diện của bản nguồn (28/06 đến 15/11/2026: commit, `CHANGELOG.md`, chú thích trong mã),
-lấy về NAOTA ở bản 1.43.0. Lời trích trong ngoặc kép là lời chủ bản nguồn lúc sửa.
+lấy về NAOSO ở bản 1.43.0. Lời trích trong ngoặc kép là lời chủ bản nguồn lúc sửa.
 
-**NAOTA thắng khi ngược nhau.** Luật riêng của NAOTA đứng trên file này:
-- Không tự bỏ tính năng: bỏ bất kỳ nút, dòng, hiệu ứng nào cũng phải hỏi chủ NAOTA trước. NAOTA giữ nút Lịch sử và nút
-  reset ở thanh trên cùng (mục 11 ghi bản nguồn đã bỏ hai nút đó; NAOTA không theo).
-- Thanh bên, tên trang và màu thương hiệu của NAOTA giữ như đang có.
+**NAOSO thắng khi ngược nhau.** Luật riêng của NAOSO đứng trên file này:
+- Không tự bỏ tính năng: bỏ bất kỳ nút, dòng, hiệu ứng nào cũng phải hỏi chủ NAOSO trước. NAOSO giữ nút Lịch sử và nút
+  reset ở thanh trên cùng (mục 11 ghi bản nguồn đã bỏ hai nút đó; NAOSO không theo).
+- Thanh bên, tên trang và màu thương hiệu của NAOSO giữ như đang có.
 
 Áp cho: dashboard (`dashboard/`), trang HTML của gói trong kho `naota-store`, và mọi trang HTML làm cho chủ xem. Luật
 cứng đã có test thì vẫn nằm ở `docs/quy-uoc-dev.md`; file này dẫn sang chứ không chép lại.
@@ -19,7 +19,7 @@ Gặp hai luật ngược nhau: cái có ngày mới hơn thắng (xem mục 11)
 
 Chạy hết danh sách này trước khi báo xong một việc có giao diện:
 
-1. **Màn mới hoặc thiết kế lại:** đã có bản HTML cho chủ duyệt chưa? Bản đó dựng từ HTML đang có của Naota, không vẽ
+1. **Màn mới hoặc thiết kế lại:** đã có bản HTML cho chủ duyệt chưa? Bản đó dựng từ HTML đang có của NAOSO, không vẽ
    lại từ đầu. Chỉ bỏ bước này khi chủ bảo làm thẳng.
 2. **Chụp ảnh thật:** khổ điện thoại 390px và máy tính, giao diện sáng và tối. Không tràn ngang, không chữ nào bị cắt,
    bị đè, hay nằm chồng lên ảnh.
@@ -46,7 +46,7 @@ Chạy hết danh sách này trước khi báo xong một việc có giao diện
   - Zalo: nhắn tin, thả cảm xúc;
   - Facebook: bình luận mở popup, ảnh bìa;
   - Skool: phần đầu trang cộng đồng.
-- **Trong Naota, trang Nhiệm vụ là mẫu phong cách.** Webhook, Link chia sẻ, GitHub, Models đều được làm lại "giống phong
+- **Trong NAOSO, trang Nhiệm vụ là mẫu phong cách.** Webhook, Link chia sẻ, GitHub, Models đều được làm lại "giống phong
   cách trang nhiệm vụ".
 - **Đẹp, hiện đại, mượt.** Chê thẳng font "xấu và trông không được hiện đại", nét "răng cưa", icon "méo". Icon nào đang
   đẹp thì giữ ("nhớ giữ icon đẹp đấy nhé").
@@ -154,8 +154,8 @@ Chủ thử trên iPhone, iPad và app thêm vào màn hình chính, thường g
 - **Tới 3 hành động thì hiện thẳng 3 icon,** không gom vào "...". Nhiều hơn thì một nút "..." cho cả hàng; hàng
   trong danh sách hội thoại cũng dùng một nút "..." như app Claude.
 - **Số đứng bên phải icon của nó.**
-- **Bộ icon:** Lucide (`dashboard/icons.js`), cộng hai icon riêng của Naota (ngôi sao linh vật, mạng nơ-ron). Biểu tượng
-  của Naota là ngôi sao.
+- **Bộ icon:** Lucide (`dashboard/icons.js`), cộng hai icon riêng của NAOSO (ngôi sao linh vật, mạng nơ-ron). Biểu tượng
+  của NAOSO là ngôi sao.
 - **Danh sách:**
   - nút X để bỏ một mục;
   - kéo để đổi chỗ;
@@ -187,11 +187,11 @@ Chủ thử trên iPhone, iPad và app thêm vào màn hình chính, thường g
   - Mạng nơ-ron (không gọi đồ thị);
   - Node, Link;
   - Tags;
-  - "Của Naota" và "Của tôi";
+  - "Của NAOSO" và "Của tôi";
   - Claude, Codex, Grok (không viết CLI hay tên nội bộ);
   - Tài khoản bot;
-  - **Naota soạn** cho nút và chế độ để Naota viết sẵn câu trả lời khách (không gọi "A.I. soạn", 19/11: "đổi luôn chữ
-    A.I. Soạn thành Naota Soạn").
+  - **NAOSO soạn** cho nút và chế độ để NAOSO viết sẵn câu trả lời khách (không gọi "A.I. soạn", 19/11: "đổi luôn chữ
+    A.I. Soạn thành NAOSO Soạn").
 - **Đặt tên theo lợi ích người dùng thấy** ("Tiết kiệm token", không gọi "Chẩn đoán").
 - **Xưng hô theo người dùng.** Chủ là "anh", đừng gọi "chị".
 - **Ngôn ngữ giao diện:** chỉ tiếng Việt và tiếng Anh, qua i18n (`docs/quy-uoc-dev.md`, mục "Chữ hiện lên màn hình").
@@ -230,7 +230,7 @@ Chủ thử trên iPhone, iPad và app thêm vào màn hình chính, thường g
   ("Em kiểm tra..."), dòng dưới không lặp lại tiêu đề.
 - **Tạo động lực:** trang Nhiệm vụ có chuỗi ngày, sao, gợi ý việc khi trống (kiểu trò chơi, 04/11).
 
-## 9. Trang HTML của gói trong Naota Store
+## 9. Trang HTML của gói trong NAOSO Store
 
 Mẫu là trang của gói `naota.gate` 2.2.2 (`packs/naota.gate/plugins/naota-gate/plugin.py`, hàm `_trang_cai_dat`). Thứ
 tự trên trang:
@@ -260,7 +260,7 @@ Mọi giải thích nằm sau nút (i), đóng sẵn.
 - **Tự phản biện trước:** liệt kê chỗ chưa ổn của màn hiện tại, rồi mới đề xuất. Chủ hay giao việc theo kiểu "tự phản
   biện và thiết kế lại".
 - **Duyệt trước, code sau:** màn mới hoặc thiết kế lại thì làm bản HTML cho chủ duyệt trước ("quên không bảo em thiết kế
-  html trước đã, rồi mới code", 05/11). Dựng từ HTML hiện có của Naota, không vẽ lại từ đầu.
+  html trước đã, rồi mới code", 05/11). Dựng từ HTML hiện có của NAOSO, không vẽ lại từ đầu.
 - **Gửi ảnh trước và sau** ở khổ điện thoại, kèm danh sách ngắn những gì đã đổi.
 - **Không thiết kế lại thứ đã có:** "độ sâu suy nghĩ có thiết kế rồi mà đừng thiết kế lại nó nữa". Cái gì có rồi thì
   dùng lại, đừng bê nguyên một bản sao.

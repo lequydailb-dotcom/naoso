@@ -9,15 +9,15 @@ so before anyone clicks:
     name, Zalo name, avatar and phone when the person shares it (`naota-zalo friend info`). Groups have no profile.
   - Block (offered on EVERY channel since the owner asked on 2026-11-20: "chặn thì ở các kênh luôn"). Messenger: the
     Page's block list (`POST /<page>/blocked` with the PSID). Zalo personal account: `naota-zalo friend block`. Every
-    other chat (Instagram, comments, Telegram, a Zalo group...) has no block in its API, so it is blocked in Naota only:
+    other chat (Instagram, comments, Telegram, a Zalo group...) has no block in its API, so it is blocked in NAOSO only:
     the bot stays quiet, the chat is hidden and new messages never bring it back or count as unread (`unblock` undoes
     it, and on Messenger and Zalo also lifts the block on the platform).
   - Leave (2026-11-20, owner: "nút rời nhóm ở zalo"). A Zalo group the account is in: `naota-zalo group leave`.
   - Delete. A Facebook or Instagram comment thread: the top-level comment is deleted on the platform (its replies go
     with it). A Threads reply cannot be deleted by anyone but its author, so it is hidden under the post. Zalo personal
     account: the conversation is deleted on Zalo (`naota-zalo conv delete`). Messenger and
-    Instagram direct messages: Meta lets no app delete them, so only the copy in Naota goes. In every case the
-    conversation then leaves the Naota inbox. When the platform refuses, nothing is deleted in Naota either, so the
+    Instagram direct messages: Meta lets no app delete them, so only the copy in NAOSO goes. In every case the
+    conversation then leaves the NAOSO inbox. When the platform refuses, nothing is deleted in NAOSO either, so the
     owner can retry instead of losing the record of something still online.
 
 Each function takes a conversation as `conversations.chi_tiet` returns it and never raises: errors come back as text.
@@ -58,7 +58,7 @@ def kind(c: dict) -> str:
 
 
 # What each kind of chat can do on its platform. The dashboard reads the same table (`capabilities`). BLOCK here means
-# blocked ON THE PLATFORM; every other chat can still be blocked in Naota only (see `block`).
+# blocked ON THE PLATFORM; every other chat can still be blocked in NAOSO only (see `block`).
 _CAN = {
     "messenger_dm": {PROFILE, BLOCK},
     "ig_dm": {PROFILE},
@@ -76,8 +76,8 @@ def capabilities(c: dict) -> list:
 
 
 def _no(what: str) -> dict:
-    return {"ok": False, "error": localefmt.chu(f"Kênh này không cho {what} qua Naota",
-                                                f"This channel does not allow {what} from Naota")}
+    return {"ok": False, "error": localefmt.chu(f"Kênh này không cho {what} qua NAOSO",
+                                                f"This channel does not allow {what} from NAOSO")}
 
 
 def _messenger_creds(c: dict) -> dict:
@@ -167,7 +167,7 @@ async def profile(c: dict) -> dict:
 async def block(c: dict) -> dict:
     """Block the person of a chat on the platform when it allows it. {"ok", "remote": bool} or {"ok": False, "error"}.
 
-    `remote` False: the platform has no block, so the caller blocks in Naota only (never an error: the owner asked for
+    `remote` False: the platform has no block, so the caller blocks in NAOSO only (never an error: the owner asked for
     Block on every channel)."""
     k = kind(c)
     if BLOCK not in _CAN.get(k, set()):

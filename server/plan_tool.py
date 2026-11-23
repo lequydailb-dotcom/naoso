@@ -6,7 +6,7 @@ Anthropic API, Gemini, Groq, DeepSeek, Ollama) had no such tool, so the card nev
 
 It does nothing but answer "saved": the list reaches the dashboard through the `tool_call` event the engine already
 sends (turn_plan reads `naota_plan` like TodoWrite). Cost: the name, description and schema are 545 characters, about
-180-200 tokens per request at the 3 characters per token Naota estimates with (cached by most providers), plus one short
+180-200 tokens per request at the 3 characters per token NAOSO estimates with (cached by most providers), plus one short
 tool round each time the model updates the list, which it is told to do only for jobs of three steps or more. The
 owner can switch it off in the composer "+" menu (`settings.chat.plan_tool`).
 

@@ -1,5 +1,5 @@
 """
-NAOTA MCP HUB - điểm đấu DUY NHẤT cho mọi engine.
+NAOSO MCP HUB - điểm đấu DUY NHẤT cho mọi engine.
 - Claude Code / Codex thấy hub như MỘT MCP server http tên "naota" (config 1 entry).
 - Engine API (OpenRouter/OpenAI/Anthropic) gọi in-process qua discover_all().
 Hub lo trọn: gộp tool mọi connection (namespaced), ENFORCE quyền 3 mức + mode loop
@@ -139,7 +139,7 @@ def hub_url():
 def hide_hub_token(text):
     """`text` without the hub bearer (security fix, 2026-11-10).
 
-    Engine configs that Naota writes carry the bearer, and some of them live inside a brain (`.grok/config.toml`,
+    Engine configs that NAOSO writes carry the bearer, and some of them live inside a brain (`.grok/config.toml`,
     `.agents/mcp_config.json`). A file tool that returned one of them handed the model, and whoever steers it, the key
     of the whole hub. The tools still read those files; the key itself never leaves in a tool result."""
     if not isinstance(text, str) or not text:
@@ -201,7 +201,7 @@ OWNER_ONLY_TOOLS = frozenset({"naota_reply_policy", "naota_reply_policy_tune", "
                               "naota_watch", "naota_login",
                               # changes which notices reach the owner. A customer must never mute the owner.
                               "naota_notify",
-                              # renames Naota Core in the owner's brain. Not a customer's call.
+                              # renames NAOSO Core in the owner's brain. Not a customer's call.
                               "naota_core_name",
                               # 2026-11-10: steers which model background jobs run on. Not a customer's call.
                               "naota_tune",
@@ -490,7 +490,7 @@ def _shaped_call(call, ent, fn, scope):
             # A recurring job's read calls are what its recipe replays (job_recipes.py). No job, no recording.
             job = str((turn_context.current() or {}).get("job") or "")
             if job:
-                # only a call that is plainly a read may ever be repeated by Naota (tool_result_tools.is_plain_read)
+                # only a call that is plainly a read may ever be repeated by NAOSO (tool_result_tools.is_plain_read)
                 if tool_result_tools.is_plain_read(ent, args):
                     job_recipes.note_call(job, fn, args, ok=not text.lstrip().startswith("ERROR:"), ref=shaped.ref)
         return shaped.text if shaped.kind in tool_result_shaper.CHANGED_KINDS else result
@@ -549,12 +549,12 @@ def _guard(ent, fn, mode):
                        "args_keys": sorted((args or {}).keys()), **team_gate.audit_fields()})
         # Lỗi từ dịch vụ trả về NGUYÊN VĂN tiếng Anh thì model phải tự đoán, và nó đoán sai:
         # vụ từng gặp: Google trả "The caller does not have permission", model kết luận là hub
-        # của Naota chặn quyền rồi đi sửa nhầm tầng. GẮN THÊM chẩn đoán (không thay thế - giữ
+        # của NAOSO chặn quyền rồi đi sửa nhầm tầng. GẮN THÊM chẩn đoán (không thay thế - giữ
         # nguyên văn để còn lần ra manh mối) khi nhận ra họ lỗi quen mặt.
         if str(result).startswith("ERROR:"):
             chan_doan = chan_doan_loi(str(result).split("ERROR:", 1)[1].strip(), conn["id"])
             if chan_doan:
-                return f"{result}\n\n[Naota chẩn đoán] {chan_doan}"
+                return f"{result}\n\n[NAOSO chẩn đoán] {chan_doan}"
         return result
 
     return _call
@@ -809,7 +809,7 @@ def _connections_json(include_ambient=False, hidden=None, bo_qua=None, owner_cha
     # này" rồi còn ghi điều đó vào bộ nhớ dài hạn. KHÔNG có khái niệm ấy: hub dựng tool từ
     # mcp_store.resolved() cho MỌI vault như nhau. Không thấy tool chỉ có hai lý do thật -
     # nguồn đang tắt, hoặc nguồn đang hỏng lúc dò - và cả hai đều phải nói ra ở đây.
-    out = [{"ghi_chu": ("Kết nối là của CẢ Naota, dùng chung cho MỌI brain. Không có chuyện "
+    out = [{"ghi_chu": ("Kết nối là của CẢ NAOSO, dùng chung cho MỌI brain. Không có chuyện "
                         "'gắn nguồn vào brain' - đừng bao giờ nói vậy. Nguồn có mặt ở danh sách "
                         "này mà không thấy tool của nó thì xem trang_thai: đang TẮT (bật lại ở "
                         "trang Kết nối) hoặc đang HỎNG lúc dò (bảo người dùng bấm Kiểm tra ở "
@@ -837,7 +837,7 @@ def _connections_json(include_ambient=False, hidden=None, bo_qua=None, owner_cha
             rec["tool_bi_an_do_quyen"] = sorted(h["tools"])[:15]
             rec["cach_mo"] = (f"Các tool này CÓ THẬT nhưng bị ẩn vì kết nối đang ở mức "
                               f"'{h.get('perm')}'. Muốn dùng thì bảo user tự nâng mức ở trang "
-                              "Kết nối - Naota KHÔNG tự nâng quyền.")
+                              "Kết nối - NAOSO KHÔNG tự nâng quyền.")
         out.append(rec)
     # Connector đấu vào TÀI KHOẢN Claude (Drive/Gmail/lịch...): engine Claude đã có sẵn dưới dạng
     # tool native mcp__<server>__* → chỉ model gọi THẲNG, KHÔNG bọc qua naota_run_tool/hub.
@@ -856,7 +856,7 @@ def _connections_json(include_ambient=False, hidden=None, bo_qua=None, owner_cha
                         "dung_duoc_o_luot_nay": False,
                         "ly_do": ("Kết nối này gắn với TÀI KHOẢN Claude của chủ, chỉ có khi model chat là Claude "
                                   "Code. Model đang chạy bằng API key nên không gọi được. Nói đúng lý do đó, rồi "
-                                  "chỉ hai cách: nối nguồn này ở trang Kết nối của Naota (mọi model đều dùng "
+                                  "chỉ hai cách: nối nguồn này ở trang Kết nối của NAOSO (mọi model đều dùng "
                                   "được), hoặc đổi model chat sang Claude Code.")})
     # Compact: a model reads this list on every engine; indent=1 made a sample list of six connections 17% longer.
     return json.dumps(out, ensure_ascii=False, separators=(",", ":"))
@@ -989,7 +989,7 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
             "health": "healthy",
         }
 
-    add("naota_connections", "Liệt kê các nguồn dữ liệu (connector/tài khoản MCP) đang đấu vào Naota, "
+    add("naota_connections", "Liệt kê các nguồn dữ liệu (connector/tài khoản MCP) đang đấu vào NAOSO, "
         "kèm mức quyền, trạng thái sống/hỏng, và các tool đang bị mức quyền ẩn (tool_bi_an_do_quyen). "
         "Kết nối DÙNG CHUNG cho mọi brain - không có khái niệm gắn nguồn vào brain. Gồm cả connector đấu "
         "vào TÀI KHOẢN Claude (Drive/Gmail/lịch...) - loại source='claude_account' gọi THẲNG qua "
@@ -1017,7 +1017,7 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
                         f"tương đối so với một trong số đó, hoặc file vừa đính kèm vào khung "
                         f"chat.")
             return (f"ERROR: '{rel}' nằm ngoài bộ não đang làm việc nên tool này không đọc "
-                    f"được. Naota khoá tool file trong brain để một lượt chat không đọc lung "
+                    f"được. NAOSO khoá tool file trong brain để một lượt chat không đọc lung "
                     f"tung trên máy. Đọc được: đường dẫn tương đối trong brain, và file người "
                     f"dùng vừa đính kèm vào khung chat.")
         if not p.is_file():
@@ -1063,7 +1063,7 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
     async def _kiem_ghi(args, ten_tool="naota_write_file"):  # noqa: C901
         """(đường dẫn đã duyệt, lỗi). Mọi rào trước khi GHI, dùng chung cho ghi và sửa file."""
         if mcp_catalog.effective_perm("full", mode) == "readonly":
-            # Câu này phải NÓI RÕ ĐÂY LÀ QUYỀN CỦA NAOTA, không phải lỗi máy. Bản cũ chỉ ghi
+            # Câu này phải NÓI RÕ ĐÂY LÀ QUYỀN CỦA NAOSO, không phải lỗi máy. Bản cũ chỉ ghi
             # "chế độ hiện tại (suggest/chỉ đọc) không được ghi file", và model đọc xong tự
             # dựng ra một nguyên nhân nghe hợp lý mà sai hoàn toàn - người dùng thật nhận
             # được câu "môi trường filesystem đang lỗi quyền sandbox" rồi đi tìm lỗi ổ đĩa,
@@ -1088,7 +1088,7 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
                         f"trong số đó.")
             return None, (f"ERROR: '{(args or {}).get('path')}' nằm ngoài bộ não đang làm việc nên "
                     f"tool này không ghi được. Dùng đường dẫn tương đối trong brain.")
-        # (Naota Core spec 13, 14): the learning switch and the forgotten list are the person's, never the
+        # (NAOSO Core spec 13, 14): the learning switch and the forgotten list are the person's, never the
         # model's; and with learning off nothing new is written under memory/.
         try:
             import memory_control
@@ -1098,7 +1098,7 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
                 return None, "ERROR: công tắc ghi nhớ và danh sách đã quên do người dùng quản lý, tool không ghi được."
             if (rp == mem or mem in rp.parents) and not memory_control.learning_enabled(mem):
                 return None, ("ERROR: người dùng đã TẮT việc lưu ghi nhớ mới cho brain này nên không ghi vào memory/. "
-                        "Nói với người dùng rằng ghi nhớ đang tắt (bật lại ở Naota Core > Trí nhớ).")
+                        "Nói với người dùng rằng ghi nhớ đang tắt (bật lại ở NAOSO Core > Trí nhớ).")
         except Exception:
             pass
         loi_bao_ve = _ghi_vung_bao_ve(p, vault_root, workspace_root, mode, for_bot)
@@ -1409,7 +1409,7 @@ def _builtin_tools(mode, vault_root, include_ambient=False, hidden=None, lang=""
             "Terminal thật (bash) trong thư mục làm việc của phiên: pipe, &&, cd đều được, nhớ thư mục "
             "và biến export giữa các lệnh. Dev server hay lệnh chạy mãi thì background=true rồi xem bằng "
             "naota_process. timeout mặc định 180 giây, tối đa 600 (xin lâu hơn thì tự chạy nền). workdir: "
-            "thư mục con chỉ cho lệnh này. Trước lệnh thay đổi file Naota tự tạo mốc khôi phục.",
+            "thư mục con chỉ cho lệnh này. Trước lệnh thay đổi file NAOSO tự tạo mốc khôi phục.",
             {"command": {"type": "string"}, "background": {"type": "boolean"},
              "timeout": {"type": "number"}, "workdir": {"type": "string"}},
             ["command"], _terminal, effect="full")
@@ -1453,7 +1453,7 @@ _WORD_RE = re.compile(r"[^\W_]{2,}", re.UNICODE)   # từ khoá ≥2 ký tự (g
 #   1. Schema NHỎ và CỐ ĐỊNH, không lớn lên theo số thứ user cắm thêm.
 #   2. Cần cho hầu hết mọi lượt, nên bắt model tìm trước khi dùng là lỗ vốn.
 #
-# Vì sao naota_use_skill KHÔNG ở đây dù skill là thứ trung tâm của Naota: mô tả của nó nhúng
+# Vì sao naota_use_skill KHÔNG ở đây dù skill là thứ trung tâm của NAOSO: mô tả của nó nhúng
 # nguyên danh sách skill (tới SKILL_LIST_MAX mục × SKILL_DESC_MAX ký tự), tức là chính cái
 # số hạng lớn theo N. Cho nó vào pool thì danh sách chỉ vào ngữ cảnh khi model tìm thứ khớp
 # một skill, mà _rank_tools đọc description nên tìm "viết email" vẫn trúng nó như thường.
@@ -2346,7 +2346,7 @@ def _rpc_error(mid, code, message):
 # Brain (vault) của một lượt gọi hub
 # ============================================================
 # Sự cố từng gặp: hub chỉ biết brain qua header `X-Naota-Vault`, mà chỗ DUY NHẤT ghi header
-# đó là khi CHÍNH Naota khởi động tiến trình engine (`codex_vault_override` nhét vào argv `-c`,
+# đó là khi CHÍNH NAOSO khởi động tiến trình engine (`codex_vault_override` nhét vào argv `-c`,
 # Claude/Antigravity/Grok ghi file cấu hình riêng từng lượt). Profile dùng chung
 # `~/.codex/<tên>.config.toml` thì CỐ Ý không mang header, vì nhét vào file dùng chung sẽ race
 # khi hai brain chạy đồng thời. Hệ quả không ai lường: mọi phiên Codex NGƯỜI DÙNG tự mở đều tới
@@ -2489,7 +2489,7 @@ def _ghi_chu_brain(nguon, vault_root, header_hong):
     """Dòng gắn vào kết quả tool để người dùng luôn biết lượt đó chạy trên brain nào."""
     if nguon not in _NGUON_CHU:
         return ""
-    ra = (f"(Naota đang làm việc trên brain \"{_ten_hien_brain(vault_root)}\" - {vault_root}. "
+    ra = (f"(NAOSO đang làm việc trên brain \"{_ten_hien_brain(vault_root)}\" - {vault_root}. "
           f"Lượt gọi này tới hub không kèm header X-Naota-Vault nên hub lấy "
           f"{_NGUON_CHU[nguon]}. Muốn brain khác thì đổi brain trên dashboard, hoặc thêm "
           f"header X-Naota-Vault vào cấu hình MCP của client.)")
@@ -2506,12 +2506,12 @@ def _chan_doan_thieu_brain(header_hong):
     if header_hong:
         dau = (f"Header X-Naota-Vault có gửi nhưng trỏ vào \"{header_hong}\", đường dẫn này "
                f"không có thật trên máy chủ. ")
-    return ("\n\n(CHẨN ĐOÁN: " + dau + "lượt gọi này tới hub không mang brain nào, và Naota "
+    return ("\n\n(CHẨN ĐOÁN: " + dau + "lượt gọi này tới hub không mang brain nào, và NAOSO "
             "cũng chưa suy ra được brain đang mở (chưa có cuộc trò chuyện nào, mà thư mục "
             f"{_brains_dir()} đang có nhiều hơn một brain nên hub không đoán bừa). Thiếu header "
-            "là chuyện của cấu hình MCP phía client: Naota chỉ tự gắn X-Naota-Vault khi CHÍNH "
+            "là chuyện của cấu hình MCP phía client: NAOSO chỉ tự gắn X-Naota-Vault khi CHÍNH "
             "nó khởi động engine, còn phiên Codex do người dùng tự mở thì dùng profile chung "
-            "vốn không mang header. Cách chữa: chat một lượt ở dashboard để Naota biết brain "
+            "vốn không mang header. Cách chữa: chat một lượt ở dashboard để NAOSO biết brain "
             "đang mở, hoặc thêm \"X-Naota-Vault\" = \"<đường dẫn brain>\" vào http_headers của "
             "server naota trong cấu hình MCP.)")
 
@@ -2526,7 +2526,7 @@ async def _handle_one(msg, mode, include_plugins=True, include_ambient=False, va
                "capabilities": {"tools": {}},
                "serverInfo": {"name": "naota-hub", "version": "1.0"}}
         if gate is not None:
-            # Naota Gate (20/11/2026): tells a coding agent to offer Naota Sync, so connecting Gate is the whole setup.
+            # NAOSO Gate (20/11/2026): tells a coding agent to offer NAOSO Sync, so connecting Gate is the whole setup.
             import chat_bridge
             res["instructions"] = chat_bridge.GATE_INSTRUCTIONS
         return {"jsonrpc": "2.0", "id": mid, "result": res}
@@ -2549,7 +2549,7 @@ async def _handle_one(msg, mode, include_plugins=True, include_ambient=False, va
                                       for_bot=for_bot, **({"tool_allowlist": tool_allowlist}
                                                          if tool_allowlist is not None else {}))
         if gate is not None:
-            # Naota Gate: bốn tool chat CHỈ có ở cửa cho AI bên ngoài (chat_bridge.py).
+            # NAOSO Gate: bốn tool chat CHỈ có ở cửa cho AI bên ngoài (chat_bridge.py).
             import chat_bridge
             tools = chat_bridge.tool_specs(mode) + list(tools)
         if tool_allowlist is not None:
@@ -2671,12 +2671,12 @@ async def tra_loi_jsonrpc(request, mode, include_plugins=True, include_ambient=F
     và chỉ khác lớp xác thực phía trước. Hai bản chép của cùng một vòng xử lý là hai chỗ để
     lệch nhau.
 
-    `gate`: cửa Naota Gate truyền `{"source": "<tên AI>"}` để có thêm bốn tool chat của
+    `gate`: cửa NAOSO Gate truyền `{"source": "<tên AI>"}` để có thêm bốn tool chat của
     `chat_bridge` (tìm, đọc, gửi vào hội thoại, đọc kết quả). None (mặc định) thì không có, nên
-    Claude Code, Codex và mọi engine của chính Naota không bao giờ thấy chúng.
+    Claude Code, Codex và mọi engine của chính NAOSO không bao giờ thấy chúng.
     """
     vault_root, vault_nguon, vault_header_hong = resolve_vault(raw_vault)
-    # "read_docs" opens documents of ONE brain, the bot's, named by the X-Naota-Vault header Naota
+    # "read_docs" opens documents of ONE brain, the bot's, named by the X-Naota-Vault header NAOSO
     # writes into the bot's config. Without a valid header `resolve_vault` would fall back to the
     # brain the owner has open, i.e. hand a stranger the owner's documents. No header, no tools.
     if (mode or "").strip().lower() == chatbot_doc_tools.MODE and vault_nguon != "header":
@@ -2810,7 +2810,7 @@ def _toml_str(s):
 def codex_profile_name():
     """Tên profile Codex của BẢN NÀY (file `~/.codex/<tên>.config.toml`).
 
-    Vì sao không phải hằng số "naota": nhiều bản Naota cài native trên cùng một VPS chạy chung
+    Vì sao không phải hằng số "naota": nhiều bản NAOSO cài native trên cùng một VPS chạy chung
     một user, tức chung `$HOME`. Tên cố định là bản khởi động sau ghi đè profile của bản trước,
     mà profile đó chứa URL + token của hub, nên Codex của bản A quay sang gọi hub của bản B - sai
     im lặng, không lỗi nào hiện ra. Gắn cổng vào tên là hết đụng (Docker thì mỗi container một
@@ -2827,7 +2827,7 @@ def codex_profile_path():
 
 
 def codex_profile(mode="full"):
-    """Ghi ~/.codex/<profile>.config.toml 1 entry hub → `codex exec -p <profile>` thấy MỌI MCP của Naota."""
+    """Ghi ~/.codex/<profile>.config.toml 1 entry hub → `codex exec -p <profile>` thấy MỌI MCP của NAOSO."""
     path = codex_profile_path()
     try:
         # Hub còn cung cấp plugin nội bộ (naota_schedule, datetime-vn...) ngay cả khi user chưa
@@ -3016,7 +3016,7 @@ def _extract_label(text, paths):
 # Nên "đăng nhập lại mà không thấy ô tick nào" là đúng cơ chế, không phải hỏng - đường duy
 # nhất để tick lại từ đầu là gỡ ứng dụng ở trang quyền của tài khoản Google.
 REVOKE_HINT = (" Đăng nhập lại mà Google không hiện ô tick quyền nào là bình thường: quyền đã"
-               " cấp thì nó cho qua thẳng. Muốn tick lại từ đầu thì gỡ Naota tại"
+               " cấp thì nó cho qua thẳng. Muốn tick lại từ đầu thì gỡ NAOSO tại"
                " https://myaccount.google.com/permissions rồi Kết nối lại.")
 
 
@@ -3041,9 +3041,9 @@ def chan_doan_loi(err, conn_id=""):
     Vì sao tách riêng khỏi _friendly_tool_error: bộ dịch này trước đây chỉ cắm vào nút Test,
     trong khi 99% lần người dùng gặp lỗi là lúc GỌI TOOL THẬT - và ở đó model chỉ nhận được
     nguyên văn tiếng Anh của Google rồi tự suy diễn. Vụ từng gặp: Google trả "The caller does
-    not have permission", Naota đọc xong kết luận nhầm là "hub chặn quyền" và đi sửa tầng
+    not have permission", NAOSO đọc xong kết luận nhầm là "hub chặn quyền" và đi sửa tầng
     permission, trong khi hub không hề chặn (mức full thì allowed() cho qua ngay, và thông báo
-    chặn của Naota là tiếng Việt chứ không phải tiếng Anh).
+    chặn của NAOSO là tiếng Việt chứ không phải tiếng Anh).
 
     conn_id (tuỳ chọn): có thì nhánh thiếu scope nói luôn THIẾU CÁI GÌ, không bắt người dùng đoán."""
     e = (err or "").strip()
@@ -3061,11 +3061,11 @@ def chan_doan_loi(err, conn_id=""):
         return "API này chưa được bật trong project Google Cloud của bạn." + link + extra
     if "insufficient authentication scopes" in low or "access_token_scope_insufficient" in low:
         # Đây KHÔNG phải lỗi hỏng key: token đúng nhưng thiếu đúng một phạm vi quyền. Xoá đi cài
-        # lại không chữa được nếu bản Naota đang chạy xin thiếu scope (vụ suggest_time cần
+        # lại không chữa được nếu bản NAOSO đang chạy xin thiếu scope (vụ suggest_time cần
         # calendar.events.freebusy) - nên phải nói rõ là đăng nhập LẠI sau khi cập nhật.
         return ("Tài khoản đã kết nối nhưng token chưa đủ phạm vi quyền cho tool này."
                 + _missing_scope_note(conn_id) +
-                " Bấm Đăng nhập lại và tick chọn đầy đủ các quyền. Nếu vừa cập nhật Naota thì"
+                " Bấm Đăng nhập lại và tick chọn đầy đủ các quyền. Nếu vừa cập nhật NAOSO thì"
                 " BẮT BUỘC đăng nhập lại: token cũ chỉ mang những quyền xin ở bản trước, xoá"
                 " kết nối rồi tạo lại cũng không thêm được quyền mới." + REVOKE_HINT)
     if ("missing required authentication credential" in low or "unauthenticated" in low
@@ -3078,7 +3078,7 @@ def chan_doan_loi(err, conn_id=""):
     # phải ghi danh lại - đúng bẫy của người dùng khi chuyển từ gmail cá nhân sang mail tên miền.
     if "caller does not have permission" in low or "permission_denied" in low:
         return ("Google từ chối chính TÀI KHOẢN đang đăng nhập (403 PERMISSION_DENIED). Đây KHÔNG"
-                " phải Naota chặn: mức quyền của kết nối chặn thì Naota báo bằng tiếng Việt kèm chữ"
+                " phải NAOSO chặn: mức quyền của kết nối chặn thì NAOSO báo bằng tiếng Việt kèm chữ"
                 " 'bị chặn'. Với server MCP của Google, lỗi này thường do 1 trong 2: tài khoản đó"
                 " chưa ghi danh Google Workspace Developer Preview Program, hoặc project chưa bật"
                 " API MCP riêng. Ghi danh tính theo TỪNG tài khoản Google, nên vừa đổi sang tài"
@@ -3132,7 +3132,7 @@ async def validate_connection(conn_id):
                             + ". Press Sign in again and tick every permission box."
                             " If Google shows no permission boxes when you sign in again, that is"
                             " normal: permissions already granted are passed straight through. To"
-                            " tick them again from scratch, remove Naota at"
+                            " tick them again from scratch, remove NAOSO at"
                             " https://myaccount.google.com/permissions and then Connect again.")}
         except Exception as e:
             print(f"[hub scope] {e}", file=sys.stderr)

@@ -2,7 +2,7 @@
 
 Danh sách hội thoại, lịch sử tin, đánh dấu đã đọc, `mode` để người thật TIẾP QUẢN một cuộc
 chat (bot im) và trả lại cho AI (phần chạy thật nằm ở `chatbot_runtime`, xem `che_do`), và từ
-`reply`: chủ trả lời khách NGAY TỪ NAOTA qua năng lực gửi của kênh (sổ `channels`).
+`reply`: chủ trả lời khách NGAY TỪ NAOSO qua năng lực gửi của kênh (sổ `channels`).
 
 Kênh và tài khoản kênh có API riêng ở `routes/channels.py`; hai đường cũ
 `/conversations/channels` và `/conversations/zalo/{id}/watch` giữ làm bí danh cho bookmark cũ.
@@ -71,7 +71,7 @@ _DEPS: "ConversationsDeps" = None   # type: ignore
 
 
 # After the owner leaves a group, its platform posts "X left the group" there a moment later. That notice (and anything
-# else of the same minutes) must not reopen the chat the leave just removed from Naota.
+# else of the same minutes) must not reopen the chat the leave just removed from NAOSO.
 LEAVE_QUIET_S = 120
 
 
@@ -91,7 +91,7 @@ async def _gui_tin(c: dict, txt: str, tieng_vong: bool = False, reply_to: Option
 
     `tieng_vong=True`: trên Zalo cá nhân phải nhớ câu vừa gửi TRƯỚC khi gửi, y như `Transport._gui`, không thì vòng đọc thấy nó
     quay về như tin của chính chủ (bot tưởng chủ vừa nhắn tay nên im cả quãng) hoặc như tin của một khách (bot tự trả lời chính
-    mình trong nhóm). Câu CHỦ gõ ở Hộp thư cũng bật cờ này: Naota đã tự ghi câu đó, và từ naota-zalo 1.3.0 tin của
+    mình trong nhóm). Câu CHỦ gõ ở Hộp thư cũng bật cờ này: NAOSO đã tự ghi câu đó, và từ naota-zalo 1.3.0 tin của
     chính tài khoản quay về vòng đọc kèm `isSelf`, nên không nhớ thì Hộp thư hiện câu chủ gõ HAI lần.
 
     `reply_to` (tin khách bot đang trả lời): trong nhóm Zalo cá nhân, câu của bot tag đúng người gửi tin đó, y như bot tự trả lời."""
@@ -132,7 +132,7 @@ async def owner_reply(conv_id: int, text: str, sender_name: str = "Bạn", via: 
     """Send `text` into conversation `conv_id` as the owner, on whatever channel it lives (Messenger, Instagram,
     Telegram, Zalo...), the same path as typing in the inbox. Records it as a `human` message and takes the chat over
     from its bot. `via` marks who sent it (`"tool"` when an engine called `inbox_reply`). `take_over=False` (the
-    `inbox_reply` tool) leaves the bot running: the owner asked Naota to pass on one message, not to mute the bot for
+    `inbox_reply` tool) leaves the bot running: the owner asked NAOSO to pass on one message, not to mute the bot for
     that customer. Returns a dict with `ok`."""
     c = conversations.chi_tiet(int(conv_id or 0))
     if not c:
@@ -659,7 +659,7 @@ def register(app, deps: ConversationsDeps):
 
     @router.post("/conversations/{conv_id}/block")
     async def conversations_block(conv_id: int):
-        """Block on the platform where it allows it (Messenger, a Zalo personal chat), else in Naota only. Either way
+        """Block on the platform where it allows it (Messenger, a Zalo personal chat), else in NAOSO only. Either way
         the bot stays quiet here, the chat leaves the inbox and new messages from it stay out of sight."""
         import conversation_actions as ca
         c = conversations.chi_tiet(conv_id)
@@ -695,7 +695,7 @@ def register(app, deps: ConversationsDeps):
 
     @router.post("/conversations/{conv_id}/leave")
     async def conversations_leave(conv_id: int):
-        """Leave the group on its platform (a Zalo group), then remove the chat from Naota for good (before,
+        """Leave the group on its platform (a Zalo group), then remove the chat from NAOSO for good (before,
         it stayed, marked and hidden). When the platform refuses, nothing is deleted here either."""
         import conversation_actions as ca
         c = conversations.chi_tiet(conv_id)

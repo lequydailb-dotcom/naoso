@@ -19,7 +19,7 @@ set -u
 
 PERSIST_ROOT="${NAOTA_HOME_PERSIST:-/data/home}"
 
-# ~/.gemini: `agy` để cấu hình MCP (~/.gemini/config/mcp_config.json - chỗ Naota đấu hub
+# ~/.gemini: `agy` để cấu hình MCP (~/.gemini/config/mcp_config.json - chỗ NAOSO đấu hub
 # vào) và token OAuth của MCP ở đó. Thiếu nó thì mỗi lần cập nhật là mất hết kết nối MCP
 # người dùng tự thêm, dù đăng nhập Google vẫn còn.
 #

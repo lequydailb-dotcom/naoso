@@ -39,7 +39,7 @@ def doc_wikilink(text: str):
         if ten:
             yield ten
 
-# Màu mặc định theo thư mục gốc (giao diện tô lại theo danh mục): vàng, xanh thương hiệu NAOTA + vài tông phụ
+# Màu mặc định theo thư mục gốc (giao diện tô lại theo danh mục): vàng, xanh thương hiệu NAOSO + vài tông phụ
 FOLDER_COLORS = {
     "00": "#fccb1d", "01": "#33b5f0", "02": "#3fdc9a", "03": "#f0a24a",
     "04": "#ff7a9c", "05": "#e07ad1", "06": "#5ad1c4", "07": "#7ed957",

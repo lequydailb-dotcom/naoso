@@ -1,7 +1,7 @@
 """Live push from naota-zalo: read a personal Zalo account when a message arrives, not on a timer (2026-11-10).
 
 Owner, 10/11/2026: "when a message arrives, send it over; do not scan on a timer, some days there is no message at
-all." naota-zalo receives a message from Zalo in real time, but Naota only learned about it by calling
+all." naota-zalo receives a message from Zalo in real time, but NAOSO only learned about it by calling
 `zalo_get_messages` every 20 seconds, per account, all day.
 
 How it works (naota-zalo 1.10.0, `src/mcp/live-push.js`):
@@ -16,7 +16,7 @@ How it works (naota-zalo 1.10.0, `src/mcp/live-push.js`):
 
 What makes an account "pushing" is proof, not configuration: a wake-up that arrived from the MCP session that is
 alive right now (`note` stores that session's epoch). An older naota-zalo ignores the variables and never calls, a
-process that died no longer matches the live session, a Naota bound to an address 127.0.0.1 cannot reach never gets
+process that died no longer matches the live session, a NAOSO bound to an address 127.0.0.1 cannot reach never gets
 the first call: in each case the account simply keeps the timer it has today.
 
 The token is made per server process. A naota-zalo left over from an earlier lifetime carries the old one and is
@@ -45,7 +45,7 @@ def enabled() -> bool:
 
 
 def _port() -> int:
-    # Same source as mcp_hub.hub_port, read here so this module imports nothing of Naota (mcp_store imports it).
+    # Same source as mcp_hub.hub_port, read here so this module imports nothing of NAOSO (mcp_store imports it).
     try:
         return int(os.getenv("NAOTA_PORT", "7777"))
     except ValueError:

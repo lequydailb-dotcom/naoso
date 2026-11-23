@@ -58,7 +58,7 @@
   // answered at once from the copy the last visit left (up to SWR_MAX_AGE_MS old) while the server is asked again;
   // console.js draws the page again when the answer differs. Later reads on the same visit (polling, a refresh button)
   // go to the server as before, so nothing stays one step behind. Any write clears every copy (except the bookkeeping
-  // posts in NO_CHANGE_POSTS), and so does the end of every chat turn (app.js): Naota may have just changed a skill, a
+  // posts in NO_CHANGE_POSTS), and so does the end of every chat turn (app.js): NAOSO may have just changed a skill, a
   // connection or a setting.
   var SWR_MAX_AGE_MS = 10 * 60 * 1000;
   var SWR = new RegExp("^/(settings|agents|skills|workflows|brains|plugins|tools/optional|packs|logins|share/list|"
@@ -154,7 +154,7 @@
   // Mã trả về cho thấy máy chủ CHƯA tới được (đang khởi động, đường hầm chập chờn), không phải lỗi của chính yêu cầu.
   function maTam(status) { return status === 502 || status === 503 || status === 504 || (status >= 520 && status <= 530); }
 
-  // Lời gọi này có được tự thử lại không: GET tới chính máy chủ Naota, không phải file tĩnh, không tự lo việc chờ.
+  // Lời gọi này có được tự thử lại không: GET tới chính máy chủ NAOSO, không phải file tĩnh, không tự lo việc chờ.
   function thuLaiDuoc(input, init, goc) {
     if (typeof input !== "string") return false;
     if (laGet(init) !== "GET" || (init && init.body)) return false;
@@ -432,7 +432,7 @@
     page = String(id || ""); readThisVisit = {}; visitAt = Date.now();
     api.visit("page:" + page);
   };
-  // Forget every kept copy (a chat turn ended: Naota may have changed what the pages show).
+  // Forget every kept copy (a chat turn ended: NAOSO may have changed what the pages show).
   api.forget = function () { copies = {}; nho = {}; };
 
   window.fetch = function (input, init) {

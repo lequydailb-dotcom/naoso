@@ -1,6 +1,6 @@
 /* Timezone picker, shared by the first-run setup and the Settings page.
  *
- * Before this, the timezone only showed up through the `datetime-vn` plugin, with no place to set it. Naota reads
+ * Before this, the timezone only showed up through the `datetime-vn` plugin, with no place to set it. NAOSO reads
  * `locale.tz` for "today", "yesterday", "tomorrow", reminders and report periods, so the owner picks it once, at setup, and can
  * change it in Settings.
  *
@@ -14,7 +14,7 @@
  *   NaotaTz.nowIn(name)            "21:34" in that timezone, for a "time there now" confirmation line
  */
 (function () {
-  // Used only when the browser cannot list timezones (old Safari). Enough to cover the people Naota serves today.
+  // Used only when the browser cannot list timezones (old Safari). Enough to cover the people NAOSO serves today.
   var FALLBACK = ["Asia/Ho_Chi_Minh", "Asia/Bangkok", "Asia/Jakarta", "Asia/Singapore", "Asia/Kuala_Lumpur", "Asia/Manila",
     "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Taipei", "Asia/Seoul", "Asia/Tokyo", "Asia/Kolkata", "Asia/Dubai",
     "Australia/Sydney", "Europe/London", "Europe/Paris", "Europe/Berlin", "Europe/Moscow", "America/New_York",
@@ -23,7 +23,7 @@
     "America/New_York", "America/Los_Angeles", "UTC"];
 
   // Browsers list CLDR's canonical names, which are often the OLD IANA spellings ("Asia/Saigon", "Asia/Calcutta",
-  // "Europe/Kiev"), and report the device's own zone that way too. Naota stores the current IANA name (its default is
+  // "Europe/Kiev"), and report the device's own zone that way too. NAOSO stores the current IANA name (its default is
   // "Asia/Ho_Chi_Minh"), so a Vietnamese owner would otherwise see "Saigon" next to a saved "Ho Chi Minh" as two choices.
   var CURRENT = { "Asia/Saigon": "Asia/Ho_Chi_Minh", "Asia/Calcutta": "Asia/Kolkata", "Asia/Katmandu": "Asia/Kathmandu",
     "Asia/Rangoon": "Asia/Yangon", "Europe/Kiev": "Europe/Kyiv", "America/Godthab": "America/Nuuk",

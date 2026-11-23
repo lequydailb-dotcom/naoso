@@ -20,7 +20,7 @@ import re
 from urllib.parse import quote
 
 # Hộp cách ly. `sandbox` không kèm `allow-same-origin` nghĩa là trang nhận một GỐC RỖNG: script
-# trong đó không đọc được cookie đăng nhập Naota, không gọi được API của app dưới danh nghĩa
+# trong đó không đọc được cookie đăng nhập NAOSO, không gọi được API của app dưới danh nghĩa
 # người đang mở. Đây là điều kiện để dám phục vụ HTML do người dùng viết trên cùng tên miền với
 # dashboard - thiếu nó thì chính chủ bấm vào link của mình lúc đang đăng nhập là trao toàn
 # quyền cho nội dung file.
@@ -450,14 +450,14 @@ def json_an_toan(o) -> str:
 # ---------------------------------------------------------------- trang HỘI THOẠI
 #
 # Một đoạn chat được chia sẻ công khai. Server tự dựng, KHÔNG có script, cùng khung với trang
-# markdown nên cùng CSP_TINH. Chỉ hiện câu người hỏi và câu Naota trả lời: tool, khối ngữ cảnh
+# markdown nên cùng CSP_TINH. Chỉ hiện câu người hỏi và câu NAOSO trả lời: tool, khối ngữ cảnh
 # máy chèn vào đầu tin (file đính kèm, file đang ghim, ngữ cảnh giao diện, lệnh /plan) và khối
-# điều khiển ẩn của Naota đều bị gỡ. Đó là chữ của máy, người đọc link không cần, và khối file
+# điều khiển ẩn của NAOSO đều bị gỡ. Đó là chữ của máy, người đọc link không cần, và khối file
 # đính kèm còn chứa đường dẫn trên máy chủ.
 
 # Khớp `_KHOI_NGU_CANH` của dashboard/app.js (chuNguoiGo): khối đầu tin do giao diện tự chèn.
-KHOI_NGU_CANH = ("[FILE ĐANG MỞ trong trình sửa của Naota:", "[File đính kèm", "[NGỮ CẢNH GIAO DIỆN:",
-                 "[SKILL: ", "[CHẾ ĐỘ KẾ HOẠCH:", "[MỤC TIÊU:", "[GỬI QUA NAOTA GATE:")
+KHOI_NGU_CANH = ("[FILE ĐANG MỞ trong trình sửa của NAOSO:", "[File đính kèm", "[NGỮ CẢNH GIAO DIỆN:",
+                 "[SKILL: ", "[CHẾ ĐỘ KẾ HOẠCH:", "[MỤC TIÊU:", "[GỬI QUA NAOSO GATE:")
 _COMMENT_RE = re.compile(r"<!--[\s\S]*?-->")
 
 
@@ -476,7 +476,7 @@ def chu_nguoi_go(text: str) -> str:
 
 
 def chu_naota_hien(text: str) -> str:
-    """Câu Naota hiện ra: bỏ HTML comment (khối điều khiển NAOTA_* luôn vô hình)."""
+    """Câu NAOSO hiện ra: bỏ HTML comment (khối điều khiển NAOTA_* luôn vô hình)."""
     return _COMMENT_RE.sub("", str(text or "")).strip()
 
 

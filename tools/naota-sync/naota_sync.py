@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
-"""Naota Sync: save every Claude Code and Codex conversation into Naota, automatically.
+"""NAOSO Sync: save every Claude Code and Codex conversation into NAOSO, automatically.
 
-The Naota Gate tools only save what an outside AI chooses to send, and a coding agent busy writing code almost
+The NAOSO Gate tools only save what an outside AI chooses to send, and a coding agent busy writing code almost
 never calls them. This script runs on the machine where Claude Code or Codex runs:
 
 - as a Claude Code **Stop hook**: after each answer it reads the session transcript and sends the turns it has not
   sent yet (the owner's prompt and the agent's final answer, not the tool calls in between);
 - as the Codex **notify** program: Codex calls it after each turn with the prompt and the last answer.
 
-Each turn goes to `POST /chat/external` on Naota, which saves it into one Naota conversation per session
+Each turn goes to `POST /chat/external` on NAOSO, which saves it into one NAOSO conversation per session
 ("From Claude Code: <project>: <first prompt>"), through the normal save path: History, memory/conversations and the
-learning queue. Naota runs no model for it.
+learning queue. NAOSO runs no model for it.
 
 Setup, once per machine (Python 3.8+, standard library only):
 
     python3 naota_sync.py install --url https://your-naota.example.com --token jvs_...
 
-The token comes from Naota: Integrations page, tab API tokens (scope "chat" is enough). `install` copies this file
+The token comes from NAOSO: Integrations page, tab API tokens (scope "chat" is enough). `install` copies this file
 to ~/.naota-sync/, saves the URL and token there (file mode 600), adds the Stop hook to ~/.claude/settings.json and
 the notify line to ~/.codex/config.toml (an existing Codex notify program keeps running: it is chained). Other
 commands: `status`, `uninstall`. Skip one shell: NAOTA_SYNC_OFF=1. Skip folders: "exclude" in the config file.
 
 A hook must never break the agent: every failure is logged to ~/.naota-sync/sync.log and the script exits 0. Turns
-that could not be sent are kept and sent on the next run; Naota skips any turn it already has.
+that could not be sent are kept and sent on the next run; NAOSO skips any turn it already has.
 """
 from __future__ import annotations
 
@@ -46,10 +46,10 @@ CODEX_CONFIG = Path(os.environ.get("NAOTA_SYNC_CODEX_CONFIG")
                     or (Path(os.environ.get("CODEX_HOME") or (Path.home() / ".codex")) / "config.toml"))
 
 TIMEOUT_S = 5            # per request; a hook must not hold the agent up
-BACKOFF_S = 60           # after a failed send, skip the network for this long (Naota down = no 5 s wait per turn)
+BACKOFF_S = 60           # after a failed send, skip the network for this long (NAOSO down = no 5 s wait per turn)
 BATCH = 50               # turns per request (server limit)
 MAX_TEXT = 8000          # the server cuts at the same length; cutting here keeps requests small
-MAX_PENDING = 300        # Codex turns kept while Naota is unreachable
+MAX_PENDING = 300        # Codex turns kept while NAOSO is unreachable
 MAX_LOG_BYTES = 200_000
 MARK = "naota_sync.py"   # how install/uninstall recognise our own hook entries
 
@@ -119,7 +119,7 @@ def project_name(cwd: str) -> str:
     return os.path.basename(os.path.normpath(cwd or "")) or ""
 
 
-# ─────────────────────────── talking to Naota ───────────────────────────
+# ─────────────────────────── talking to NAOSO ───────────────────────────
 
 class SendError(Exception):
     pass
@@ -128,7 +128,7 @@ class SendError(Exception):
 def post(cfg: dict, body: dict) -> dict:
     url = str(cfg.get("url") or "").rstrip("/")
     if not url:
-        raise SendError("no Naota URL configured (run: naota_sync.py install --url ... --token ...)")
+        raise SendError("no NAOSO URL configured (run: naota_sync.py install --url ... --token ...)")
     headers = {"Content-Type": "application/json", "User-Agent": "naota-sync/1"}
     if cfg.get("token"):
         headers["Authorization"] = "Bearer " + str(cfg["token"])
@@ -149,7 +149,7 @@ def post(cfg: dict, body: dict) -> dict:
 
 
 def send_turns(cfg: dict, state: dict, source: str, session: str, project: str, turns: list) -> bool:
-    """Send turns in batches. True when Naota has all of them (saved now or before)."""
+    """Send turns in batches. True when NAOSO has all of them (saved now or before)."""
     if not turns:
         return True
     if time.time() - float(state.get("last_fail") or 0) < BACKOFF_S:
@@ -158,7 +158,7 @@ def send_turns(cfg: dict, state: dict, source: str, session: str, project: str, 
         for i in range(0, len(turns), BATCH):
             out = post(cfg, {"source": source, "session": session, "project": project, "turns": turns[i:i + BATCH]})
             if not out.get("ok"):
-                raise SendError(str(out.get("error") or "Naota refused the turns"))
+                raise SendError(str(out.get("error") or "NAOSO refused the turns"))
     except SendError as e:
         state["last_fail"] = time.time()
         log(f"{source} {session[:12]}: {e}")
@@ -251,7 +251,7 @@ def run_claude(cfg: dict) -> None:
     mine = sessions.get(session) or {}
     offset = int(mine.get("offset") or 0)
     size = path.stat().st_size
-    if offset > size:   # the file was rewritten: start over, Naota skips what it has
+    if offset > size:   # the file was rewritten: start over, NAOSO skips what it has
         offset = 0
     with path.open("rb") as f:
         f.seek(offset)
@@ -399,7 +399,7 @@ def install_codex(cfg: dict) -> str:
     if old_argv and not any(MARK in a for a in old_argv):
         cfg["codex_chain"] = old_argv
     argv = [_python(), INSTALLED_SCRIPT.as_posix(), "codex"]
-    new = "notify = [" + ", ".join(json.dumps(a) for a in argv) + "]  # Naota Sync"
+    new = "notify = [" + ", ".join(json.dumps(a) for a in argv) + "]  # NAOSO Sync"
     if CODEX_CONFIG.exists():
         shutil.copy2(CODEX_CONFIG, CODEX_CONFIG.with_name(CODEX_CONFIG.name + ".bak"))
     CODEX_CONFIG.parent.mkdir(parents=True, exist_ok=True)
@@ -468,7 +468,7 @@ def cmd_install(argv: list) -> int:
     if want_codex:
         report.append(install_codex(cfg))
     write_json(CONFIG, cfg, private=True)
-    report.append("Done. From the next answer on, each Claude Code / Codex turn appears in Naota History as "
+    report.append("Done. From the next answer on, each Claude Code / Codex turn appears in NAOSO History as "
                   "'From Claude Code: ...' or 'From Codex: ...'. Open sessions pick the hook up after a restart.")
     print("\n".join(report))
     return 0

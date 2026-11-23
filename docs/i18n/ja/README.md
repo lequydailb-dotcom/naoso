@@ -1,9 +1,9 @@
 <!-- translated-from: README.en.md sha256:a4092d38f233 -->
 <div align="center">
 
-<img src="../../../dashboard/logo.svg" width="88" alt="NAOTA のロゴ">
+<img src="../../../dashboard/logo.svg" width="88" alt="NAOSO のロゴ">
 
-# NAOTA
+# NAOSO
 
 ### 頭脳を差し替えられるセルフホスト型 AI エージェントと、毎日賢くなる Second Brain。
 
@@ -35,18 +35,18 @@
 
 [🇬🇧 English](../../../README.en.md) · [🇻🇳 Tiếng Việt](../vi/README.md) · [🇨🇳 简体中文](../zh/README.md) · [🇪🇸 Español](../es/README.md) · 🇯🇵 **日本語** · [🇮🇳 हिन्दी](../hi/README.md) · [🇧🇷 Português](../pt-BR/README.md) · [🇰🇷 한국어](../ko/README.md) · [🇷🇺 Русский](../ru/README.md) · [🇩🇪 Deutsch](../de/README.md) · [🇫🇷 Français](../fr/README.md) · [🇮🇩 Bahasa Indonesia](../id/README.md) · [🌍 翻訳に協力する](../../../CONTRIBUTING.md#translations)
 
-[クイックスタート](#-クイックスタート) · [Naota を選ぶ理由](#-naota-を選ぶ理由) · [頭脳](#-12-の頭脳ひとつのツールキット) · [機能](#-機能) · [インストール](#-インストール) · [ドキュメント](../../../docs/en/README.md)
+[クイックスタート](#-クイックスタート) · [NAOSO を選ぶ理由](#-naota-を選ぶ理由) · [頭脳](#-12-の頭脳ひとつのツールキット) · [機能](#-機能) · [インストール](#-インストール) · [ドキュメント](../../../docs/en/README.md)
 
 
 </div>
 
-> 🌍 このページは英語版 README の自動翻訳です。Naota 自体は、あなたが書いた言語でそのまま返答します。インターフェースは現在、英語とベトナム語で提供されています。詳しいドキュメントは英語版（[docs/en](../../../docs/en/README.md)）をご覧ください。翻訳の修正はいつでも歓迎します（[CONTRIBUTING](../../../CONTRIBUTING.md#translations)）。
+> 🌍 このページは英語版 README の自動翻訳です。NAOSO 自体は、あなたが書いた言語でそのまま返答します。インターフェースは現在、英語とベトナム語で提供されています。詳しいドキュメントは英語版（[docs/en](../../../docs/en/README.md)）をご覧ください。翻訳の修正はいつでも歓迎します（[CONTRIBUTING](../../../CONTRIBUTING.md#translations)）。
 
 ---
 
 ## ⚡ クイックスタート
 
-**いちばん簡単な方法：手元の AI にインストールさせる。** お使いのマシンの Claude Code か Codex にこのリポジトリのリンクを渡し、*「NAOTA をインストールして」* と頼んでください。必要なのはコマンドひとつだけです。
+**いちばん簡単な方法：手元の AI にインストールさせる。** お使いのマシンの Claude Code か Codex にこのリポジトリのリンクを渡し、*「NAOSO をインストールして」* と頼んでください。必要なのはコマンドひとつだけです。
 
 | マシン | コマンドひとつで全部インストール |
 |---|---|
@@ -57,17 +57,17 @@
 あとは **http://localhost:7777** を開くだけです。インストーラーは Python、サブスクリプションで動く 4 つの CLI 頭脳（`claude`、`codex`、`agy`、`grok`）と `.env` をセットアップし、サーバーを起動します。各頭脳へのサインインは **ダッシュボードの Models ページ** で行えるので、もうコマンドを打つ必要はありません。
 
 > [!NOTE]
-> Naota の起動 **後に** CLI を追加でインストールした場合は、**Naota を再起動してください。** 実行中のプロセスは起動時の PATH を保持しているため、あとからインストールした CLI は見えません。
+> NAOSO の起動 **後に** CLI を追加でインストールした場合は、**NAOSO を再起動してください。** 実行中のプロセスは起動時の PATH を保持しているため、あとからインストールした CLI は見えません。
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/install-terminal.svg" width="100%" alt="アニメーションするターミナル：1 行のインストーラーが Python、4 つのサブスクリプション CLI 頭脳、.env を準備し、Naota が http://localhost:7777 で動作中であることを表示します">
+<img src="../../../docs/assets/diagrams/install-terminal.svg" width="100%" alt="アニメーションするターミナル：1 行のインストーラーが Python、4 つのサブスクリプション CLI 頭脳、.env を準備し、NAOSO が http://localhost:7777 で動作中であることを表示します">
 </p>
 
 ---
 
-## 🤔 Naota を選ぶ理由
+## 🤔 NAOSO を選ぶ理由
 
-NAOTA はチャットボット **ではありません**。自分のマシンや VPS で動く **セルフホスト型のエージェント AI** です。ファイルを読み書きし、MCP 経由でツールを呼び出し、Skill を実行し、バックグラウンド作業をキューに積み、自分でスケジュールを組みます。これらすべてが **音声で操作できるダッシュボード** と、時間とともに知識を蓄積する **Second Brain**（メモリ + Wiki）の上にまとまっています。
+NAOSO はチャットボット **ではありません**。自分のマシンや VPS で動く **セルフホスト型のエージェント AI** です。ファイルを読み書きし、MCP 経由でツールを呼び出し、Skill を実行し、バックグラウンド作業をキューに積み、自分でスケジュールを組みます。これらすべてが **音声で操作できるダッシュボード** と、時間とともに知識を蓄積する **Second Brain**（メモリ + Wiki）の上にまとまっています。
 
 ### 誰も警告してくれないロックイン
 
@@ -82,9 +82,9 @@ AI アプリをひとつ選んで、1 年間毎日使ってみてください。
 
 こうしてあなたは留まります。古いモデルが今でも一番だからではなく、離れればゼロからやり直しになるからです。そしてベンダーが値上げをしたり、利用制限を厳しくしたり、モデルを廃止したり、アカウントを停止したりしても、代わりの手立てはありません。
 
-### Naota はそれを逆転させます：モデルは借りて、Brain は自分で持つ
+### NAOSO はそれを逆転させます：モデルは借りて、Brain は自分で持つ
 
-Naota では、モデルは交換できる部品にすぎません。あなたが積み上げたものはすべて、自分で開けるファイルとして手元に残ります。
+NAOSO では、モデルは交換できる部品にすぎません。あなたが積み上げたものはすべて、自分で開けるファイルとして手元に残ります。
 
 | 積み上げるもの | 保存場所 | 形式 |
 |---|---|---|
@@ -99,13 +99,13 @@ Naota では、モデルは交換できる部品にすぎません。あなた�
 
 - **新しいモデルが出ましたか？ Models ページで切り替えて、そのまま続けられます。** 同じ記憶を読み、同じ Skill、Agent、Workflow を実行し、MCP Hub を通じて同じ接続を呼び出します。移行も作り直しも要りません。
 - **複数の頭脳を同時に使えます。** 会話には強力なモデル、バックグラウンド作業には安価なモデル、プライベートなメモにはローカルの Ollama モデル。どれも同じ Brain の上で働きます。
-- **Naota がなくても読めます。** Brain は Markdown のフォルダなので、Obsidian でもどんなエディタでも開けます。明日 Naota がなくなっても、あなたの知識はプレーンテキストのまま残ります。
+- **NAOSO がなくても読めます。** Brain は Markdown のフォルダなので、Obsidian でもどんなエディタでも開けます。明日 NAOSO がなくなっても、あなたの知識はプレーンテキストのまま残ります。
 - **バージョン管理でき、持ち運べます。** 学習の 1 回 1 回が git コミットなのでワンタップで取り消せます。Brain 全体を自分のプライベートな GitHub リポジトリに同期して、ノート PC と VPS で共有することもできます。
-- **データは自分のハードウェアから出ません。** 間に Naota のクラウドはありません。リクエストはあなたがそのために選んだモデルプロバイダーにだけ送られ、ローカルの Ollama モデルならマシンの外に出ることすらありません。
+- **データは自分のハードウェアから出ません。** 間に NAOSO のクラウドはありません。リクエストはあなたがそのために選んだモデルプロバイダーにだけ送られ、ローカルの Ollama モデルならマシンの外に出ることすらありません。
 
-### Naota と一般的なチャットボットの比較
+### NAOSO と一般的なチャットボットの比較
 
-| | 一般的なチャットボット | **NAOTA** |
+| | 一般的なチャットボット | **NAOSO** |
 |---|---|---|
 | **頭脳** | ひとつのモデルに固定。メッセージごとに状態を持たない API 呼び出しが 1 回 | **差し替え可能**：12 のプロバイダー。どれもツール、MCP、Skill、セッションをフルに使え、Ollama 経由で自分のマシン上のモデルも動かせる |
 | **記憶** | セッションが終わるたびに忘れる | あなたのことを覚え、会話のたびに厚みを増す **生きた Second Brain** |
@@ -115,20 +115,20 @@ Naota では、モデルは交換できる部品にすぎません。あなた�
 | **あなたの成果** | ベンダーのサーバー上に、ベンダーの形式のまま残る | **自分のマシン上のプレーンなファイル**：履歴、記憶、Skill、Agent、Workflow をどの新しいモデルにも引き継げる |
 | **デプロイ** | 誰かのクラウド | **セルフホスト**：ワンクリックの [Hostinger](https://www.hostinger.com?REFERRALCODE=VUONGTEX)、Docker、または任意の VPS |
 
-> 💡 **設計思想：能力はモデルではなく Naota に宿る。** どの頭脳も、ひとつの共有接続ハブ（MCP Hub）を通じて同じツール一式を受け取ります。Claude から Gemini に切り替えても失うものはありません。例外はシェルアクセスだけで、これは CLI エンジンにしかありません。
+> 💡 **設計思想：能力はモデルではなく NAOSO に宿る。** どの頭脳も、ひとつの共有接続ハブ（MCP Hub）を通じて同じツール一式を受け取ります。Claude から Gemini に切り替えても失うものはありません。例外はシェルアクセスだけで、これは CLI エンジンにしかありません。
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/chat-to-action.svg" width="100%" alt="アニメーション図：チャットのメッセージが Naota に入り、Naota はその仕事を終えられる最小のツールを選びます。直接回答からタスクのキュー登録、Agent、Workflow、リマインダー、Loop の作成まで">
+<img src="../../../docs/assets/diagrams/chat-to-action.svg" width="100%" alt="アニメーション図：チャットのメッセージが NAOSO に入り、NAOSO はその仕事を終えられる最小のツールを選びます。直接回答からタスクのキュー登録、Agent、Workflow、リマインダー、Loop の作成まで">
 </p>
 
 ---
 
 ## 🧠 12 の頭脳、ひとつのツールキット
 
-頭脳は **Models** ページで選び、いつでも好きなときに変更できます。Naota は現在 **12 のプロバイダー** に対応しています。
+頭脳は **Models** ページで選び、いつでも好きなときに変更できます。NAOSO は現在 **12 のプロバイダー** に対応しています。
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/swappable-brain.svg" width="100%" alt="アニメーション図：中央に Naota のコア、周囲にツールキット（MCP Hub、Skills、Second Brain、Tasks、Schedules、Plugins）。12 の頭脳が順番に接続され、ツールはずっと点灯したまま">
+<img src="../../../docs/assets/diagrams/swappable-brain.svg" width="100%" alt="アニメーション図：中央に NAOSO のコア、周囲にツールキット（MCP Hub、Skills、Second Brain、Tasks、Schedules、Plugins）。12 の頭脳が順番に接続され、ツールはずっと点灯したまま">
 </p>
 
 | 頭脳 | 支払い方法 | シェル、Web、サブエージェント |
@@ -137,15 +137,15 @@ Naota では、モデルは交換できる部品にすぎません。あなた�
 | **ChatGPT**（Codex 経由） | お使いの ChatGPT プラン | ✅ |
 | **Grok Build** | お使いの SuperGrok または X Premium+ プラン | ✅ |
 | **Antigravity CLI** | お使いの Google プラン（Antigravity IDE と同じモデル構成で、Claude も含む） | シェル ✅ |
-| **OpenRouter** | API キー（ひとつのキーで数百のモデル） | Naota のツール経由 |
-| **OpenAI API** · **Anthropic API** · **Google Gemini** · **Groq** | API キー | Naota のツール経由 |
-| **Ollama Cloud** · **このマシン上の Ollama** | API キー、または自前のハードウェアなら無料 | Naota のツール経由 |
-| **任意の OpenAI 互換エンドポイント** | そのエンドポイントが求めるもの | Naota のツール経由 |
+| **OpenRouter** | API キー（ひとつのキーで数百のモデル） | NAOSO のツール経由 |
+| **OpenAI API** · **Anthropic API** · **Google Gemini** · **Groq** | API キー | NAOSO のツール経由 |
+| **Ollama Cloud** · **このマシン上の Ollama** | API キー、または自前のハードウェアなら無料 | NAOSO のツール経由 |
+| **任意の OpenAI 互換エンドポイント** | そのエンドポイントが求めるもの | NAOSO のツール経由 |
 
 どの頭脳も、接続済みの MCP サーバーを呼び出し、Brain を読み書きし、Skill を実行し、Kanban の作業をキューに積み、Agent、Workflow、Loop、リマインダーを作成できます。CLI エンジンはそれに加えて **シェルコマンドの実行**、**Web の取得と検索**、**並列サブエージェントの起動** ができます。
 
 > [!WARNING]
-> **サブスクリプションにバックグラウンド作業をさせる前の注意点。** Anthropic は Claude Pro/Max の対象を、Claude Code の **通常の個人利用** に限定しています。継続的なバックグラウンド実行（Loop、リマインダー、Kanban ジョブ、チャットボット）、VPS 上での実行、複数人での 1 アカウント共有はいずれもその範囲外のため、**アカウントがロックされる** リスクがあります。ただし、これまで Naota で確認された事例はありません。万一起きた場合は [Issues](https://github.com/vuongtex/naota/issues/new/choose) から開発者にお知らせください。Naota はあなたのログイントークンを読み取りません。本物の `claude` バイナリを実行しますが、だからといって 24 時間体制のバックグラウンド利用が正当になるわけではありません。安全を期すなら、Models ページで Claude Code を **API キー** で動かすよう設定するか、**バックグラウンド作業用モデル** を別のプロバイダーに向けてください。xAI のプランにも同じ注意が当てはまります。`server/claude_auth.py` を参照してください。
+> **サブスクリプションにバックグラウンド作業をさせる前の注意点。** Anthropic は Claude Pro/Max の対象を、Claude Code の **通常の個人利用** に限定しています。継続的なバックグラウンド実行（Loop、リマインダー、Kanban ジョブ、チャットボット）、VPS 上での実行、複数人での 1 アカウント共有はいずれもその範囲外のため、**アカウントがロックされる** リスクがあります。ただし、これまで NAOSO で確認された事例はありません。万一起きた場合は [Issues](https://github.com/vuongtex/naota/issues/new/choose) から開発者にお知らせください。NAOSO はあなたのログイントークンを読み取りません。本物の `claude` バイナリを実行しますが、だからといって 24 時間体制のバックグラウンド利用が正当になるわけではありません。安全を期すなら、Models ページで Claude Code を **API キー** で動かすよう設定するか、**バックグラウンド作業用モデル** を別のプロバイダーに向けてください。xAI のプランにも同じ注意が当てはまります。`server/claude_auth.py` を参照してください。
 
 ---
 
@@ -160,15 +160,15 @@ Naota では、モデルは交換できる部品にすぎません。あなた�
 <td width="50%" valign="top">
 
 ### 🗣️ 話しかける
-- **ハンズフリー音声**：話すと Naota が聞き取り、声で答えます（デフォルトは無料の Edge TTS、ほかに OpenAI と ElevenLabs も利用可能）。
+- **ハンズフリー音声**：話すと NAOSO が聞き取り、声で答えます（デフォルトは無料の Edge TTS、ほかに OpenAI と ElevenLabs も利用可能）。
 - **チャットセッション** は保存、再開、全文検索ができます。長いセッションは途中で切られるのではなく、要約に圧縮されます。
-- **Telegram、Slack、WhatsApp、Zalo、CLI、Web ダッシュボード** のどれからでも、同じ Naota と話せます（[Slack と WhatsApp の設定](../../../docs/en/29-slack-whatsapp.md)）。
-- **どの言語でも**：Naota はあなたが書いた言語で返答します。インターフェースは英語とベトナム語で提供されています。
+- **Telegram、Slack、WhatsApp、Zalo、CLI、Web ダッシュボード** のどれからでも、同じ NAOSO と話せます（[Slack と WhatsApp の設定](../../../docs/en/29-slack-whatsapp.md)）。
+- **どの言語でも**：NAOSO はあなたが書いた言語で返答します。インターフェースは英語とベトナム語で提供されています。
 
 ### 🧠 すべてを記憶する
 - **Second Brain**：長期記憶、Wiki、生の Sources を備えた Markdown の Vault（Obsidian 互換）。
 - `[[wikilink]]` でつながったノートの **ナレッジグラフ** を、オフラインでも動く明るいキャンバスに表示します。
-- **自己学習**：会話のたびに Naota が記憶、Wiki の知識、Skill を抽出します。学習の 1 回 1 回が git コミットなので、**ワンタップで取り消せます**。
+- **自己学習**：会話のたびに NAOSO が記憶、Wiki の知識、Skill を抽出します。学習の 1 回 1 回が git コミットなので、**ワンタップで取り消せます**。
 - **GitHub へのバックアップ**：すべての Brain をプライベートリポジトリと双方向に同期し、ノート PC と VPS で共有できます。
 
 </td>
@@ -181,7 +181,7 @@ Naota では、モデルは交換できる部品にすぎません。あなた�
 - **チャットボット**：Agent を専用の Telegram、Slack、WhatsApp や Zalo ボットとして顧客の前に立たせ、共有受信箱からいつでも対応を引き継げます。
 
 ### 🔌 何でもつなぐ
-- **MCP 接続ストア**：サービスごとに複数アカウントを持て、3 段階の権限レベルを Naota が **強制** します。
+- **MCP 接続ストア**：サービスごとに複数アカウントを持て、3 段階の権限レベルを NAOSO が **強制** します。
 - **Skill と Plugin**：フォルダを置くだけで、すべてのエンジン向けにノウハウ（Skill）やネイティブな Python ツール（Plugin）を追加できます。
 - **画像生成**：すでにサインイン済みの ChatGPT プランで行います。
 - **使用量の追跡**：日別、プロバイダー別のトークン数とコストを、あなたが入力した分と自動で動いた分に分けて表示します。
@@ -202,10 +202,10 @@ flowchart LR
     subgraph You
         W[Web dashboard<br>voice + graph]
         T[Telegram]
-        C[Naota CLI]
+        C[NAOSO CLI]
         Z[Zalo / bot channels]
     end
-    subgraph Naota["NAOTA (FastAPI, self-hosted)"]
+    subgraph NAOSO["NAOSO (FastAPI, self-hosted)"]
         R[Engine router]
         H[MCP Hub<br>shared toolbox]
         B[(Second Brain<br>Memory + Wiki + Sources)]
@@ -232,12 +232,12 @@ flowchart LR
 ## 🚀 インストール
 
 > [!IMPORTANT]
-> Naota はマシン上で **フル権限** を持つ AI 頭脳を動かします。公開環境（Docker、VPS、Hostinger）で動かす場合、Naota は **自動的にログインを必須にします**。アプリを開くとアカウント作成またはサインイン画面が表示され、パスワードなしでは誰も操作できません。
+> NAOSO はマシン上で **フル権限** を持つ AI 頭脳を動かします。公開環境（Docker、VPS、Hostinger）で動かす場合、NAOSO は **自動的にログインを必須にします**。アプリを開くとアカウント作成またはサインイン画面が表示され、パスワードなしでは誰も操作できません。
 
 <details open>
 <summary><b>方法 1：Hostinger Docker Manager（ドメイン + HTTPS、ワンクリック）</b></summary>
 
-> 🛒 **VPS をまだお持ちでない方へ：** [Hostinger VPS はこちら](https://www.hostinger.com?REFERRALCODE=VUONGTEX)。Docker Manager が標準搭載なので、Naota はワンクリックで入ります。準備ができたら下の手順に戻ってください。
+> 🛒 **VPS をまだお持ちでない方へ：** [Hostinger VPS はこちら](https://www.hostinger.com?REFERRALCODE=VUONGTEX)。Docker Manager が標準搭載なので、NAOSO はワンクリックで入ります。準備ができたら下の手順に戻ってください。
 
 Hostinger VPS → **Docker Manager → Compose → URL** → Hostinger 用のファイルを貼り付けて **Deploy** を押します。
 
@@ -245,7 +245,7 @@ Hostinger VPS → **Docker Manager → Compose → URL** → Hostinger 用のフ
 https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.yml
 ```
 
-**Environment** 欄に必要なのは `DOMAIN_NAME`、`NAOTA_ADMIN_USER`、`NAOTA_ADMIN_PASSWORD` の 3 項目だけです。任意で `NAOTA_AUTO_UPDATE` も指定できます（`true` にすると Naota が毎日自動でアップデートします）。
+**Environment** 欄に必要なのは `DOMAIN_NAME`、`NAOTA_ADMIN_USER`、`NAOTA_ADMIN_PASSWORD` の 3 項目だけです。任意で `NAOTA_AUTO_UPDATE` も指定できます（`true` にすると NAOSO が毎日自動でアップデートします）。
 
 Hostinger の Traefik が HTTPS 証明書を発行できるよう、`DOMAIN_NAME` を設定します。
 - **無料のリンク**（ドメイン購入不要）：`DOMAIN_NAME=naota.<vps-hostname>.hstgr.cloud`（ホスト名は hPanel → VPS で確認できます。例：`naota.srv1234567.hstgr.cloud`）。
@@ -292,7 +292,7 @@ chmod +x install.sh && ./install.sh
 
 スクリプトが Python、Node、CLI 頭脳をインストールし、venv を作成し、起動時に立ち上がるサービスを登録して、アクセス先のアドレスを表示します。
 
-🍎 **macOS でアプリのように開く：** `NAOTA.app`（または `Start NAOTA.command`）をダブルクリックします。ログイン時に起動するには：`./bin/naota-autostart.sh install`。詳細：[bin/README.md](../../../bin/README.md)。
+🍎 **macOS でアプリのように開く：** `NAOSO.app`（または `Start NAOSO.command`）をダブルクリックします。ログイン時に起動するには：`./bin/naota-autostart.sh install`。詳細：[bin/README.md](../../../bin/README.md)。
 
 </details>
 
@@ -313,12 +313,12 @@ Stop:                                  stop-naota.bat
 Dashboard:                             http://localhost:7777
 ```
 
-🪟 **アプリのように開く：** 初回の実行後は **`NAOTA.bat`** をダブルクリックします。サーバーがバックグラウンドで起動し、ダッシュボードが **専用のウィンドウ** で、タスクバーにも独立して表示されます。ログイン時に起動するには：`naota-autostart.bat install`（解除は `uninstall`）。
+🪟 **アプリのように開く：** 初回の実行後は **`NAOSO.bat`** をダブルクリックします。サーバーがバックグラウンドで起動し、ダッシュボードが **専用のウィンドウ** で、タスクバーにも独立して表示されます。ログイン時に起動するには：`naota-autostart.bat install`（解除は `uninstall`）。
 
 </details>
 
 <details>
-<summary><b>1 台の VPS で複数の Naota を動かす</b></summary>
+<summary><b>1 台の VPS で複数の NAOSO を動かす</b></summary>
 
 Brain、設定、アカウントはインスタンスごとに完全に分離されます。インスタンス間で異なるのは `NAOTA_NAME`、`NAOTA_HOST_PORT`、`DOMAIN_NAME` の 3 つの値だけです。
 
@@ -332,16 +332,16 @@ Brain、設定、アカウントはインスタンスごとに完全に分離さ
 
 ### 🎬 初回起動
 
-Naota を開くと、セットアップウィザードがブラウザの言語で案内してくれます。
+NAOSO を開くと、セットアップウィザードがブラウザの言語で案内してくれます。
 
 1. **管理者アカウント**：公開環境で動かす場合は必須です。部外者を締め出すためです。
 2. **頭脳を選ぶ**：サブスクリプションで一度サインインするか、API キーを貼り付けます。Claude Code のカードには、サインイン済みのプランと Anthropic API キーを切り替える **「Runs on」** スイッチがあります。
 3. **モデルを選ぶ**：あとでプロバイダーを切り替えても機能は失われません（CLI エンジンにしかないシェルコマンドを除きます）。
-4. **接続をつなぐ**（任意）：**Connections**（接続）を開き、サービスを選んでキーを貼り付けるか QR コードを読み取ります。以降、Naota はそこから得た実際の数値をもとに報告します。
+4. **接続をつなぐ**（任意）：**Connections**（接続）を開き、サービスを選んでキーを貼り付けるか QR コードを読み取ります。以降、NAOSO はそこから得た実際の数値をもとに報告します。
 
 ---
 
-## 📖 Naota の使い方
+## 📖 NAOSO の使い方
 
 左側のナビゲーションは、ページを **6 つのグループ** にまとめています。各ページのガイドは [docs/en/](../../../docs/en/README.md) にあります（英語）。
 
@@ -351,23 +351,23 @@ Naota を開くと、セットアップウィザードがブラウザの言語�
 | **Code** | Terminal、Coding | [コードターミナル](../../../docs/en/27-code-terminal.md) |
 | **Capabilities** | Partners（Agent と Workflow）、Chatbot、Skills、Plugins | [Agent と Workflow](../../../docs/en/07-agents-and-workflows.md) · [チャットボット](../../../docs/en/25-chatbots.md) · [顧客との会話](../../../docs/en/28-customer-conversations.md) · [Skill](../../../docs/en/06-skills.md) · [Plugin](../../../docs/en/20-plugins.md) |
 | **Work** | Tasks、Scheduled | [タスク（Kanban）](../../../docs/en/21-kanban-work.md) · [定期ジョブとリマインダー](../../../docs/en/08-recurring-jobs.md) |
-| **Connections** | Connections、Naota Store、Channels、Models | [接続とビジネスデータ](../../../docs/en/09-connections-and-business-data.md) · [Telegram](../../../docs/en/11-telegram.md) · [Zalo](../../../docs/en/12-zalo-agent-mcp.md) · [モデルとエンジン](../../../docs/en/10-models-and-engines.md) |
-| **System** | Settings、Share links、Account | [はじめに](../../../docs/en/01-getting-started.md) · [セキュリティとアカウント](../../../docs/en/14-security-and-accounts.md) · [使用量とコスト](../../../docs/en/23-usage-and-cost.md) · [Naota CLI](../../../docs/en/24-cli.md) |
+| **Connections** | Connections、NAOSO Store、Channels、Models | [接続とビジネスデータ](../../../docs/en/09-connections-and-business-data.md) · [Telegram](../../../docs/en/11-telegram.md) · [Zalo](../../../docs/en/12-zalo-agent-mcp.md) · [モデルとエンジン](../../../docs/en/10-models-and-engines.md) |
+| **System** | Settings、Share links、Account | [はじめに](../../../docs/en/01-getting-started.md) · [セキュリティとアカウント](../../../docs/en/14-security-and-accounts.md) · [使用量とコスト](../../../docs/en/23-usage-and-cost.md) · [NAOSO CLI](../../../docs/en/24-cli.md) |
 
 その他：[Second Brain：メモリ、Wiki と INGEST](../../../docs/en/13-second-brain.md) · [GitHub へのバックアップ](../../../docs/en/18-github-backup.md) · [ノート内のタスクと Dataview](../../../docs/en/19-tasks-and-dataview.md) · [ブランディングと独自ドメイン](../../../docs/en/15-branding-and-domains.md) · [トラブルシューティング](../../../docs/en/17-troubleshooting.md)
 
 ### 試してみたいこと
 
-- **数字を聞く：** *「今日の売上は昨日と比べてどう？」* Naota が適切な接続を呼び出し、実際の数値と提案を添えて答えます。
-- **知識を取り込む：** ファイルやノートを放り込むだけ。Naota が要約し、洞察を抽出して Wiki に書き込み、タスクを提案します。
+- **数字を聞く：** *「今日の売上は昨日と比べてどう？」* NAOSO が適切な接続を呼び出し、実際の数値と提案を添えて答えます。
+- **知識を取り込む：** ファイルやノートを放り込むだけ。NAOSO が要約し、洞察を抽出して Wiki に書き込み、タスクを提案します。
 - **バックグラウンド作業を任せる：** **Tasks** → **+ Assign goal** → *「今週の売上をまとめて、動きの鈍い在庫を見つけ、それを売り込むキャプションを 3 案書いて」*。AI が仕様を立てて実行し、結果を報告します。
 - **予定を組む：** *「平日は毎朝 8:30 に広告予算を確認するようリマインドして」*。チャットからでも **Scheduled** ページからでも設定できます。
-- **声を使う：** マイクを押して（またはハンズフリーをオンにして）話すと、Naota が声で答えます。
+- **声を使う：** マイクを押して（またはハンズフリーをオンにして）話すと、NAOSO が声で答えます。
 
 
 ## ⚙️ 設定（`.env`）
 
-どの行も空のままで Naota は動きます。`env.example` → `.env` にコピーし、必要なものを追加してください。各変数の説明付きの完全な一覧は [docs/en/16-env-configuration.md](../../../docs/en/16-env-configuration.md) にあります。
+どの行も空のままで NAOSO は動きます。`env.example` → `.env` にコピーし、必要なものを追加してください。各変数の説明付きの完全な一覧は [docs/en/16-env-configuration.md](../../../docs/en/16-env-configuration.md) にあります。
 
 | 変数 | 意味 | デフォルト |
 |---|---|---|
@@ -406,7 +406,7 @@ Naota を開くと、セットアップウィザードがブラウザの言語�
 
 | 症状 | 対処 |
 |---|---|
-| CLI はインストール済みなのに、Models ページに未インストールと表示される | **Naota を再起動してください**：実行中のプロセスは起動時の PATH を保持しています。 |
+| CLI はインストール済みなのに、Models ページに未インストールと表示される | **NAOSO を再起動してください**：実行中のプロセスは起動時の PATH を保持しています。 |
 | ポート 7777 が使用中で、新しいビルドが起動しない | 先に古いプロセスを停止し（`stop-naota.bat`、または PID を kill）、もう一度起動します。 |
 | Hostinger がイメージを取得できない | GHCR パッケージを **Public** にし、GitHub Action のビルド完了を待ちます。 |
 | 頭脳がサインインしていないと言う | **Models** → そのプロバイダーのカード → サインイン。 |
@@ -428,7 +428,7 @@ naota/
 ├── tests/           # Python + JS test suite (python tests/run.py)
 ├── install.sh · install.ps1 · update.sh
 ├── Dockerfile · docker-compose*.yml
-└── CLAUDE.md        # The system prompt Naota runs on
+└── CLAUDE.md        # The system prompt NAOSO runs on
 ```
 
 ---
@@ -437,7 +437,7 @@ naota/
 
 | 対象 | 現在の対応言語 |
 |---|---|
-| **Naota の返答** | どの言語でも：あなたが書いた言語、または Settings で固定した言語で答えます |
+| **NAOSO の返答** | どの言語でも：あなたが書いた言語、または Settings で固定した言語で答えます |
 | **ダッシュボードとサーバーのメッセージ** | 🇬🇧 English · 🇻🇳 Tiếng Việt。デバイスごとに設定され、言語を選ぶまでは各ブラウザの言語が使われます |
 | **接続ストア、Plugin、新しい Brain の初期ファイル** | 🇬🇧 English · 🇻🇳 Tiếng Việt |
 | **README とクイックスタート** | 🇬🇧 English · 🇻🇳 Tiếng Việt · 🇨🇳 简体中文 · 🇪🇸 Español · 🇯🇵 日本語 · 🇮🇳 हिन्दी · 🇧🇷 Português · 🇰🇷 한국어 · 🇷🇺 Русский · 🇩🇪 Deutsch · 🇫🇷 Français · 🇮🇩 Bahasa Indonesia |
@@ -459,7 +459,7 @@ naota/
 
 [行動規範](../../../CODE_OF_CONDUCT.md) を守ってください。また、セキュリティ上の問題は [SECURITY.md](../../../SECURITY.md) の説明に従って非公開で報告してください。
 
-Naota が役に立ったら、リポジトリに ⭐ を付けていただけると、ほかの人が見つけやすくなります。
+NAOSO が役に立ったら、リポジトリに ⭐ を付けていただけると、ほかの人が見つけやすくなります。
 
 [![Star History Chart](https://api.star-history.com/svg?repos=vuongtex/naota&type=Date)](https://star-history.com/#vuongtex/naota&Date)
 
@@ -468,12 +468,12 @@ Naota が役に立ったら、リポジトリに ⭐ を付けていただける
 ## 🙏 クレジット
 
 - **頭脳：** [Claude Code](https://claude.com/claude-code) と [Claude Agent SDK](https://docs.claude.com/en/api/agent-sdk/overview)（Anthropic）、[Codex CLI](https://developers.openai.com/codex/cli)（OpenAI）、[Grok Build](https://x.ai)（xAI）、[Antigravity](https://antigravity.google)（Google）、さらに [OpenRouter](https://openrouter.ai)、OpenAI、[Google Gemini](https://ai.google.dev)、Anthropic、[Groq](https://groq.com)、[Ollama](https://ollama.com) の各 API。
-- **ツールの標準規格：** [Model Context Protocol](https://modelcontextprotocol.io)。Naota の接続ストアは全面的にこれの上で動いています。
+- **ツールの標準規格：** [Model Context Protocol](https://modelcontextprotocol.io)。NAOSO の接続ストアは全面的にこれの上で動いています。
 - Second Brain とデジタル Bullet Journal の手法。
 
 ## 📄 ライセンス
 
-© 2026 Hoàng Ngọc Vương ([vuong.ai](https://vuong.ai))。無断転載を禁じます。NAOTA コミュニティのメンバーは NAOTA を無料でダウンロード、インストール、利用できます。[LICENSE](../../../LICENSE) を参照してください。
+© 2026 Hoàng Ngọc Vương ([vuong.ai](https://vuong.ai))。無断転載を禁じます。NAOSO コミュニティのメンバーは NAOSO を無料でダウンロード、インストール、利用できます。[LICENSE](../../../LICENSE) を参照してください。
 
 
 <div align="center">

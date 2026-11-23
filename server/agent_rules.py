@@ -15,7 +15,7 @@ This module holds the pieces both paths now share:
 - `extract_rules`: pull `NAOTA_RULE: ...` lines out of an agent's output (the owner-rule twin
   of `NAOTA_LESSON`). The model proposes, code writes.
 - `missing_owner_lines`: the guard. Every line the owner wrote (anything outside the sections
-  Naota manages itself) must still be present after a write, or the write is refused.
+  NAOSO manages itself) must still be present after a write, or the write is refused.
 
 Section names stay Vietnamese: they are content inside the user's brain, read by people and
 models, not identifiers.
@@ -46,7 +46,7 @@ def _section_end(lines: List[str], i0: int) -> int:
     """Index just past the managed section whose header is `lines[i0]`.
 
     The section is the header, any blank lines right under it, then ONE run of contiguous
-    `- ` bullets: exactly what Naota writes. It ends at the first line that is anything else,
+    `- ` bullets: exactly what NAOSO writes. It ends at the first line that is anything else,
     including a blank line after the bullets.
 
     It used to run to the next `## ` heading and only its bullets were kept, so an owner

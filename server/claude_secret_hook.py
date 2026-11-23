@@ -16,7 +16,7 @@ _MARK = "_naota_secret_hook"
 
 
 async def secret_guard_hook(input_data, tool_use_id, context):
-    """PreToolUse: deny a call that reads or writes a secret file of Naota. Fails open on an error inside the guard
+    """PreToolUse: deny a call that reads or writes a secret file of NAOSO. Fails open on an error inside the guard
     itself: it is a tripwire on top of the other rails, never the only one."""
     try:
         import secret_guard

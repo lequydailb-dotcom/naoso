@@ -5,7 +5,7 @@ across the stores (measured with strace: telemetry rows, the two chat messages, 
 loop. On the fast disk of a dev machine that is a millisecond; on a small VPS or a spinning disk an fsync costs 2 to
 20 ms, so a turn paid 50 to 500 ms for it.
 
-`synchronous=NORMAL` in WAL mode syncs at checkpoints instead. A crash of Naota loses nothing. A power cut or kernel
+`synchronous=NORMAL` in WAL mode syncs at checkpoints instead. A crash of NAOSO loses nothing. A power cut or kernel
 crash can lose the last few commits, and never corrupts the database (SQLite's own guarantee for WAL + NORMAL). That is
 the trade `task_store` has made since the Kanban store was written. It is only safe in WAL mode, so it is applied only
 when the database really is in WAL mode: a filesystem that refuses WAL keeps FULL.

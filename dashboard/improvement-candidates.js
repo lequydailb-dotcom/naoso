@@ -587,7 +587,7 @@
     s.status.tabIndex = -1; s.status.focus();
     return s;
   }
-  // Self-learning run for this skill: examples next to the skill, Naota proposes, tests and picks; the owner applies.
+  // Self-learning run for this skill: examples next to the skill, NAOSO proposes, tests and picks; the owner applies.
   // Independent of the context section below, whose reloads bump s.version: it only checks that the panel lives.
   async function selfLearning(s) {
     let data;
@@ -653,7 +653,7 @@
       box.append(apply);
     } else if (run.applied_at) box.append(node("p", tr("loop_applied"), "loop-applied"));
   }
-  // Automatic learning from chat: what Naota changed on its own, brain-wide, with undo. Nothing to start.
+  // Automatic learning from chat: what NAOSO changed on its own, brain-wide, with undo. Nothing to start.
   async function autoLearned(s) {
     let data;
     try { data = await request(s, "/auto-learning"); }

@@ -1,28 +1,28 @@
 <!-- translated-from: QUICKSTART.en.md sha256:9f8b8e3a6d68 -->
-# NAOTA - Mulai cepat
+# NAOSO - Mulai cepat
 
 *[English](../../../QUICKSTART.en.md) · [Tiếng Việt](../../../QUICKSTART.md) · [简体中文](../zh/QUICKSTART.md) · [Español](../es/QUICKSTART.md) · [日本語](../ja/QUICKSTART.md) · [हिन्दी](../hi/QUICKSTART.md) · [Português](../pt-BR/QUICKSTART.md) · [한국어](../ko/QUICKSTART.md) · [Русский](../ru/QUICKSTART.md) · [Deutsch](../de/QUICKSTART.md) · [Français](../fr/QUICKSTART.md) · **Bahasa Indonesia***
 
 > Ini adalah terjemahan otomatis dari panduan mulai cepat berbahasa Inggris.
 
-Jalankan NAOTA dalam beberapa menit. Panduan lengkap: [docs/en/](../../../docs/en/README.md).
+Jalankan NAOSO dalam beberapa menit. Panduan lengkap: [docs/en/](../../../docs/en/README.md).
 
 ## Komputer pribadi (Windows, macOS) - unduh penginstal
 
-Pasang Naota seperti aplikasi biasa: unduh satu file, buka, lalu Anda punya ikon NAOTA untuk diklik setiap hari. Penginstal memeriksa apa yang belum ada di komputer (Git, Python, Node, otak AI) dan hanya memasang itu.
+Pasang NAOSO seperti aplikasi biasa: unduh satu file, buka, lalu Anda punya ikon NAOSO untuk diklik setiap hari. Penginstal memeriksa apa yang belum ada di komputer (Git, Python, Node, otak AI) dan hanya memasang itu.
 
-- **Windows 10/11:** unduh [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), klik dua kali, lalu tekan Next sampai selesai. Kemajuan pemasangan tampil di dalam jendela Setup itu sendiri, langkah demi langkah (beberapa menit), tanpa jendela hitam terpisah. Setelah selesai ada ikon NAOTA di Desktop dan menu Start.
+- **Windows 10/11:** unduh [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), klik dua kali, lalu tekan Next sampai selesai. Kemajuan pemasangan tampil di dalam jendela Setup itu sendiri, langkah demi langkah (beberapa menit), tanpa jendela hitam terpisah. Setelah selesai ada ikon NAOSO di Desktop dan menu Start.
 - **macOS 11 atau lebih baru:** buka **Terminal** (Launchpad, ketik Terminal), tempel baris ini lalu tekan Enter. Dengan cara ini macOS tidak menampilkan peringatan:
   ```
   curl -fsSL https://raw.githubusercontent.com/vuongtex/naota/main/packaging/macos/get-naota.sh | bash
   ```
-  Perintah ini mengunduh Naota, menyalin **NAOTA** ke **Applications**, dan memasangnya langsung di jendela Terminal itu (mungkin meminta Anda membuat akun admin Naota dan kata sandi Mac sekali). Setelah itu, buka NAOTA dari Launchpad.
+  Perintah ini mengunduh NAOSO, menyalin **NAOSO** ke **Applications**, dan memasangnya langsung di jendela Terminal itu (mungkin meminta Anda membuat akun admin NAOSO dan kata sandi Mac sekali). Setelah itu, buka NAOSO dari Launchpad.
 
-  Lebih suka file? Unduh [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), buka, seret **NAOTA** ke **Applications**, lalu buka dari Launchpad. File ini belum ditandatangani dengan Apple Developer ID, jadi macOS memblokir saat pertama dibuka: cara mengizinkannya ada di bagian unduhan yang diblokir di bawah.
+  Lebih suka file? Unduh [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), buka, seret **NAOSO** ke **Applications**, lalu buka dari Launchpad. File ini belum ditandatangani dengan Apple Developer ID, jadi macOS memblokir saat pertama dibuka: cara mengizinkannya ada di bagian unduhan yang diblokir di bawah.
 
-Mengklik ikon membuka Naota di jendelanya sendiri (tanpa bilah alamat), Naota berjalan bersama komputer, dan tombol **Update** di aplikasi berfungsi seperti biasa. Data Anda ada di folder `Naota` dalam folder pengguna; mencopot aplikasi tetap menyimpan folder itu.
+Mengklik ikon membuka NAOSO di jendelanya sendiri (tanpa bilah alamat), NAOSO berjalan bersama komputer, dan tombol **Update** di aplikasi berfungsi seperti biasa. Data Anda ada di folder `Naota` dalam folder pengguna; mencopot aplikasi tetap menyimpan folder itu.
 
-**Windows: pasang tanpa layar peringatan (disarankan).** Penginstal Windows belum ditandatangani kode, jadi unduhan lewat browser diblokir pada kali pertama. Tempel satu baris saja dan Anda mendapat penginstal yang sama dengan logo Naota, tanpa diblokir: tekan Start, ketik `PowerShell`, buka, tempel baris ini lalu tekan Enter:
+**Windows: pasang tanpa layar peringatan (disarankan).** Penginstal Windows belum ditandatangani kode, jadi unduhan lewat browser diblokir pada kali pertama. Tempel satu baris saja dan Anda mendapat penginstal yang sama dengan logo NAOSO, tanpa diblokir: tekan Start, ketik `PowerShell`, buka, tempel baris ini lalu tekan Enter:
 ```
 irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-naota.ps1 | iex
 ```
@@ -30,15 +30,15 @@ irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-
 Jika Anda sudah mengunduh file lewat browser dan diblokir:
 - Edge atau Chrome menampilkan "Naota-Setup.exe isn't commonly downloaded" dan tidak menyimpan file: di kotak Downloads, arahkan kursor ke baris itu, klik tiga titik, pilih **Keep**, lalu **Show more** dan **Keep anyway**.
 - Windows menampilkan "Windows protected your PC": klik **More info**, lalu **Run anyway**.
-- Antivirus menghapus file, atau Windows memblokirnya tanpa tombol **Run anyway** (Smart App Control aktif): pasang tanpa file .exe. Pasang [Git](https://git-scm.com/download/win), buka PowerShell, tempel baris ini lalu tekan Enter. Setelah selesai, Naota terbuka di http://localhost:7777 dan berjalan bersama komputer:
+- Antivirus menghapus file, atau Windows memblokirnya tanpa tombol **Run anyway** (Smart App Control aktif): pasang tanpa file .exe. Pasang [Git](https://git-scm.com/download/win), buka PowerShell, tempel baris ini lalu tekan Enter. Setelah selesai, NAOSO terbuka di http://localhost:7777 dan berjalan bersama komputer:
   ```
-  git clone https://github.com/vuongtex/naota.git "$env:USERPROFILE\Naota"; cd "$env:USERPROFILE\Naota"; powershell -ExecutionPolicy Bypass -File install.ps1
+  git clone https://github.com/vuongtex/naota.git "$env:USERPROFILE\NAOSO"; cd "$env:USERPROFILE\NAOSO"; powershell -ExecutionPolicy Bypass -File install.ps1
   ```
-- macOS bilang tidak bisa membuka aplikasi: buka **System Settings → Privacy & Security**, gulir ke bawah, klik **Open Anyway**, lalu buka NAOTA lagi.
+- macOS bilang tidak bisa membuka aplikasi: buka **System Settings → Privacy & Security**, gulir ke bawah, klik **Open Anyway**, lalu buka NAOSO lagi.
 
 ## Opsi 1 - VPS Hostinger (Docker Manager, sekali klik)
 
-> 🛒 **Belum punya VPS?** [Sewa VPS Hostinger di sini](https://www.hostinger.com?REFERRALCODE=VUONGTEX). Docker Manager sudah tersedia, jadi Naota terpasang sekali klik. Setelah siap, kembali ke langkah di bawah.
+> 🛒 **Belum punya VPS?** [Sewa VPS Hostinger di sini](https://www.hostinger.com?REFERRALCODE=VUONGTEX). Docker Manager sudah tersedia, jadi NAOSO terpasang sekali klik. Setelah siap, kembali ke langkah di bawah.
 
 1. hPanel → VPS → **Docker Manager** → **Compose** → **Compose from URL**.
 2. Tempel URL ini:

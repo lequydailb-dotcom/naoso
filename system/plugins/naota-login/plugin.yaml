@@ -4,7 +4,7 @@ slug: naota-login
 version: 1.1.0
 description: Mở trang web cần đăng nhập bằng phiên chủ đã cất ở trang Cookies, đọc hoặc bấm và điền form trong trình duyệt. Không bao giờ trả cookie.
 description_en: "Opens a web page that needs a sign-in, using a sign-in the owner stored on the Cookies page: read it, or click and fill forms in the browser. Never returns the cookies."
-author: Naota (bundled)
+author: NAOSO (bundled)
 enabled: true
 min_mode: readonly
 tools:

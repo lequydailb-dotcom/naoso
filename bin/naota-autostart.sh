@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# NAOTA - macOS auto-start (LaunchAgent) installer
+# NAOSO - macOS auto-start (LaunchAgent) installer
 #   ./bin/naota-autostart.sh install     # start at login (default)
 #   ./bin/naota-autostart.sh uninstall    # remove
 #
@@ -29,7 +29,7 @@ if [ "${ACTION}" = "uninstall" ]; then
   launchctl unload "${PLIST}" 2>/dev/null || true
   launchctl unload "${OPEN_PLIST}" 2>/dev/null || true
   rm -f "${PLIST}" "${OPEN_PLIST}"
-  echo "NAOTA auto-start removed."
+  echo "NAOSO auto-start removed."
   exit 0
 fi
 
@@ -73,7 +73,7 @@ PLISTEOF
 
 launchctl unload "${PLIST}" 2>/dev/null || true
 launchctl load "${PLIST}"
-echo "NAOTA auto-start installed -> http://127.0.0.1:${PORT}"
+echo "NAOSO auto-start installed -> http://127.0.0.1:${PORT}"
 
 launchctl unload "${OPEN_PLIST}" 2>/dev/null || true
 if [ "${NAOTA_AUTOSTART_OPEN:-1}" = "0" ]; then

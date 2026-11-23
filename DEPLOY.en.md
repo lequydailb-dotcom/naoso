@@ -1,12 +1,12 @@
-# Installing NAOTA on a server / VPS
+# Installing NAOSO on a server / VPS
 
 *[Tiếng Việt](DEPLOY.md) · **English***
 
-NAOTA is a personal AI agent plus a Second Brain. Its "brain" is the **Claude Code CLI**
+NAOSO is a personal AI agent plus a Second Brain. Its "brain" is the **Claude Code CLI**
 (sign in once, no API key needed). There are 3 ways to run it, pick one.
 
-> ⚠️ **Safety:** Naota runs Claude with full power on the machine. When running public
-> (Docker/VPS/Hostinger), Naota **turns forced login on by itself**, so opening the app gives the
+> ⚠️ **Safety:** NAOSO runs Claude with full power on the machine. When running public
+> (Docker/VPS/Hostinger), NAOSO **turns forced login on by itself**, so opening the app gives the
 > **create admin / sign in** screen and nobody can drive it before a password exists. (To turn that
 > off for internal use: `NAOTA_REQUIRE_LOGIN=0`.)
 
@@ -14,7 +14,7 @@ NAOTA is a personal AI agent plus a Second Brain. Its "brain" is the **Claude Co
 
 ## Way 1 - Hostinger Docker Manager (1-click, the fastest) ⚡
 
-> 🛒 **No VPS yet?** [Get a Hostinger VPS here](https://www.hostinger.com?REFERRALCODE=VUONGTEX). Docker Manager comes built in, so Naota installs in one click. Once it is ready, come back to the steps below.
+> 🛒 **No VPS yet?** [Get a Hostinger VPS here](https://www.hostinger.com?REFERRALCODE=VUONGTEX). Docker Manager comes built in, so NAOSO installs in one click. Once it is ready, come back to the steps below.
 
 On the Hostinger VPS go to **Docker Manager → Compose → URL**, paste the link and **Deploy**:
 ```
@@ -65,7 +65,7 @@ To build from source instead of pulling: `curl -O .../docker-compose.build.yml` 
 
 Everyday commands:
 ```bash
-docker compose logs -f     # see what Naota is doing
+docker compose logs -f     # see what NAOSO is doing
 docker compose restart     # restart
 docker compose down        # stop
 docker compose build --pull && docker compose up -d   # update
@@ -119,10 +119,10 @@ you **must set a `DOMAIN_NAME` variable**:
 > stay empty. The gateway reads the VPS name (`srvXXXX.hstgr.cloud`) and issues HTTPS for both
 > `naota.srvXXXX.hstgr.cloud` and `srvXXXX.hstgr.cloud` itself (whichever points at the machine gets a
 > certificate). **Settings → Domain** says whether the link works yet or is still waiting for its certificate. **Open** reaches
-> `http://<ip>:7777`, and the page moves to that HTTPS link as soon as it works and answers as this Naota. Add
+> `http://<ip>:7777`, and the page moves to that HTTPS link as soon as it works and answers as this NAOSO. Add
 > `?stay=1` to the IP link to stay. Apps installed from Hostinger's Catalog (e.g. `omniroute-xxxx.srv....hstgr.cloud`)
 > are told the VPS name at install time; a "Compose from URL" deploy is not, so the Open button cannot carry that link.
-> On the Ubuntu 24 template with Traefik, set `DOMAIN_NAME` once: open Naota by IP → **Settings → Domain** shows
+> On the Ubuntu 24 template with Traefik, set `DOMAIN_NAME` once: open NAOSO by IP → **Settings → Domain** shows
 > the line to copy.
 >
 > **Hostinger VPS on Ubuntu 26 (or any plain OS without Traefik):** paste the SAME link, nothing to
@@ -138,7 +138,7 @@ you **must set a `DOMAIN_NAME` variable**:
 
 > Without `DOMAIN_NAME` it still deploys (running temporarily on `:7777` with no HTTPS), and the
 > **Open** button goes to `http://<vps-ip>:7777` instead of `localhost` (Open follows the domain in the Traefik
-> label, which used to say `localhost`). Don't know the VPS hostname? Open Naota by IP → **Settings → Domain**: Naota
+> label, which used to say `localhost`). Don't know the VPS hostname? Open NAOSO by IP → **Settings → Domain**: NAOSO
 > looks it up and shows the line `DOMAIN_NAME=naota.srvXXXX.hstgr.cloud` with a copy button. No Environment box?
 > Click **Manage → edit the .yaml** and change the two label lines to `- traefik.enable=true` and
 > `- traefik.http.routers.naota.rule=Host(\`naota.srv1234567.hstgr.cloud\`)`.
@@ -171,9 +171,9 @@ You no longer set `DOMAIN` at run time; enable Caddy once then declare the domai
 
 ---
 
-## 🏢 Running SEVERAL Naota instances on one VPS (each with its own link)
+## 🏢 Running SEVERAL NAOSO instances on one VPS (each with its own link)
 
-One VPS can run any number of Naota instances, each on its own subdomain with its own data store,
+One VPS can run any number of NAOSO instances, each on its own subdomain with its own data store,
 and no instance sees another's brain or accounts.
 
 **Three things must DIFFER between instances.** Whichever one collides is what breaks:
@@ -273,16 +273,16 @@ connections, the background work, and **the Claude/ChatGPT login token** (each i
 
 ### 🌐 Remote access (Hostinger / any VPS) with a Cloudflare Tunnel
 
-Open the Naota interface from another machine with NO open ports and NO domain:
+Open the NAOSO interface from another machine with NO open ports and NO domain:
 
-1. **Set a password FIRST (mandatory):** open Naota (through the SSH tunnel in step 5) → Dashboard →
-   **Account** → set the admin password. Naota runs Claude with full power on the machine, so it must
+1. **Set a password FIRST (mandatory):** open NAOSO (through the SSH tunnel in step 5) → Dashboard →
+   **Account** → set the admin password. NAOSO runs Claude with full power on the machine, so it must
    NEVER be exposed to the Internet without a password. (The server also prints a warning when running
    public without one.)
 2. Start the tunnel: `docker compose --profile tunnel up -d`
 3. Get the URL: `docker compose logs tunnel | grep trycloudflare`, then open
    `https://<random>.trycloudflare.com` in any browser and sign in with the password. Now you can view
-   and drive Naota remotely.
+   and drive NAOSO remotely.
 
 **A stable URL (your own domain, `*.hstgr.cloud` style):** create a *named tunnel* in Cloudflare Zero
 Trust (free), take the token, put `TUNNEL_TOKEN=...` into `.env`, change the `tunnel` service's
@@ -321,7 +321,7 @@ Stop it with `stop-naota.bat`. Open http://localhost:7777
 |---|---|---|
 | `NAOTA_HOST` | The listening address. `127.0.0.1` = this machine only; `0.0.0.0` = everywhere (Docker sets this itself) | `127.0.0.1` |
 | `NAOTA_PORT` | The port | `7777` |
-| `NAOTA_STATE_DIR` | Where Naota writes state (settings, sessions, loop configuration) | `server/` (Docker: `/data/state`) |
+| `NAOTA_STATE_DIR` | Where NAOSO writes state (settings, sessions, loop configuration) | `server/` (Docker: `/data/state`) |
 | `OBSIDIAN_VAULT_PATH` | The main Second Brain vault | `vault/` in the repo (Docker: `/data/vault`) |
 | `BRAIN_PATH` | The brain folder | `brain/` in the repo (Docker: `/data/brain`) |
 | `CLAUDE_CWD` | Fallback folder for the Claude CLI (chat runs inside the brain folder) | the repo root |
@@ -330,7 +330,7 @@ Stop it with `stop-naota.bat`. Open http://localhost:7777
 
 ## 🔄 Updating when new code lands
 
-> **The fastest, right in the app:** open **Updates** (the left rail) and the **NAOTA** panel shows
+> **The fastest, right in the app:** open **Updates** (the left rail) and the **NAOSO** panel shows
 > the running version and checks GitHub for a newer one. When there is one, click **⬆ Update now** and
 > the app pulls the new version and restarts (~20-40s), with no terminal needed.
 > - **Docker/VPS:** the button runs through the **watchtower** service, and it
@@ -344,7 +344,7 @@ Stop it with `stop-naota.bat`. Open http://localhost:7777
 >   ```
 >   Not ready to swap the compose file? Starting it on its own works too:
 >   `docker compose --profile update up -d`.
->   Only Watchtower is granted Docker access (the socket); the Naota app is NOT, which is what makes it
+>   Only Watchtower is granted Docker access (the socket); the NAOSO app is NOT, which is what makes it
 >   safe. Going without it is fine too, and the panel then only *reports a new version* and explains how
 >   to update by hand.
 > - **The button is there but does nothing, and `naota-watchtower` keeps Restarting:** a stack
@@ -355,7 +355,7 @@ Stop it with `stop-naota.bat`. Open http://localhost:7777
 >   `ghcr.io/nicholas-fedor/watchtower:1`, which negotiates the API version with Docker.
 > - **You press update and stay on the old version, and `image:` in the compose file is an odd name**
 >   (for example `naota-cwi:pc-1.0.0`, with no `ghcr.io/...`): this is a self-built image, common when
->   an AI moved Naota from a computer to a VPS with `docker save` then `docker load`. It lives in no
+>   an AI moved NAOSO from a computer to a VPS with `docker save` then `docker load`. It lives in no
 >   registry, so pulling or Redeploying brings back the same old version (the Updates page
 >   says so). Switch to the official image ONCE; your data stays because it lives in the mounted folders:
 >   ```bash

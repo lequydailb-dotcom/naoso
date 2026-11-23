@@ -17,7 +17,7 @@ Differences from exec handled here, each found by trying it:
   `--dangerously-bypass-approvals-and-sandbox`, so model, sandbox and approval go in `thread/start`;
 - app-server refuses `-p <profile>`, so the profile file is flattened into `-c key=value` overrides;
 - items arrive in camelCase (`commandExecution`, `aggregatedOutput`): `exec_item` turns them into the exec shape the
-  rest of Naota reads (tool labels, file paths, `aggregated_output`).
+  rest of NAOSO reads (tool labels, file paths, `aggregated_output`).
 
 Chat-turn speed (toc-do-luot-chat-spec):
 - the answer streams as Codex writes it (`item/agentMessage/delta`) instead of one block per finished message;
@@ -125,7 +125,7 @@ _STATUS = {"inProgress": "in_progress", "completed": "completed", "failed": "fai
 
 
 def exec_item(it: dict) -> dict:
-    """An app-server ThreadItem in the shape `codex exec --json` prints, which the rest of Naota reads."""
+    """An app-server ThreadItem in the shape `codex exec --json` prints, which the rest of NAOSO reads."""
     t = str(it.get("type") or "")
     iid = str(it.get("id") or "")
     st = _STATUS.get(str(it.get("status") or ""), it.get("status"))
@@ -257,7 +257,7 @@ async def _call(rpc: _Rpc, method: str, params: dict, deadline: float, seen: lis
                 raise Fallback(f"{method}: {(m.get('error') or {}).get('message')}")
             return m.get("result") or {}
         if "method" in m and "id" in m:
-            rpc.reply(m["id"], "Naota does not grant requests from a chat turn")
+            rpc.reply(m["id"], "NAOSO does not grant requests from a chat turn")
             continue
         seen.append(line)
 
@@ -269,7 +269,7 @@ def _thread_params(cli, start: bool = False) -> dict:
         p["model"] = cli.model
     if start and (cli.instructions or "").strip():
         # Once per thread. A resumed thread already carries them: from its own thread/start, or, for a thread
-        # an older Naota or `codex exec` opened, in front of its first message.
+        # an older NAOSO or `codex exec` opened, in front of its first message.
         p["developerInstructions"] = cli.instructions.strip()
     return p
 
@@ -346,7 +346,7 @@ def mark_instructions(thread_id: str) -> None:
 
 
 def carries_instructions(thread_id: str) -> bool:
-    """False for a thread an older Naota or `codex exec` opened: its rules are only in its first message, which
+    """False for a thread an older NAOSO or `codex exec` opened: its rules are only in its first message, which
     Codex's own compaction may summarise away, so such a thread keeps getting them in front of every message."""
     return bool(thread_id) and thread_id in _instr_threads()
 
@@ -360,7 +360,7 @@ def _stat(p) -> str:
 
 
 def _codex_account(home: str) -> str:
-    """Who Codex is signed in as, without the file's stat: Naota rewrites auth.json on every turn when it holds the
+    """Who Codex is signed in as, without the file's stat: NAOSO rewrites auth.json on every turn when it holds the
     ChatGPT tokens (openai_oauth.write_codex_auth stamps last_refresh), and a refreshed token is the same account."""
     try:
         with open(os.path.join(home, "auth.json"), encoding="utf-8") as f:
@@ -625,7 +625,7 @@ async def run(cli, prompt: str) -> AsyncIterator[dict]:
                     steer_inbox.INBOX.requeue(sid, items)   # the turn ended first: they run as the next turn
                 continue
             if method and "id" in m:
-                rpc.reply(m["id"], "Naota does not grant requests from a chat turn")
+                rpc.reply(m["id"], "NAOSO does not grant requests from a chat turn")
                 continue
             p = m.get("params") or {}
             if p.get("threadId") not in (None, thread_id):
@@ -772,7 +772,7 @@ def _recipe(cli, args: List[str], acct_home, thread_id: str):
     import turn_context
     # Match the turn header ONLY. The flattened hub profile also puts `...http_headers.Authorization=` (and
     # `X-Naota-Mode`, `X-Naota-Vault`) in args, ahead of the turn key: matching the bare `http_headers.` prefix swapped
-    # the hub Bearer for the lane key, so every prewarmed process got 401 from /hub/mcp and ran without Naota tools.
+    # the hub Bearer for the lane key, so every prewarmed process got 401 from /hub/mcp and ran without NAOSO tools.
     lane_arg = next((a for a in args if a.startswith(turn_context.CODEX_HEADER_KEY + "=")), None)
 
     async def _open() -> CodexHandle:

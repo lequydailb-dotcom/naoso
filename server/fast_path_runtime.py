@@ -44,7 +44,7 @@ def stable_bucket(session_id: str, salt: str, buckets: int = 10_000) -> int:
     return int.from_bytes(digest[:8], "big") % max(1, int(buckets or 10_000))
 
 
-# pure small talk ("chào em", "cảm ơn em nhé", "hi Naota") takes the fast path on every
+# pure small talk ("chào em", "cảm ơn em nhé", "hi NAOSO") takes the fast path on every
 # engine, whatever the saving level. On Claude Code the full path costs ~48k tokens for a greeting;
 # the lean fast path costs a few hundred. The match is deliberately strict: EVERY word must be a
 # greeting, a thanks, or an address/particle word, so "chào em, doanh thu hôm nay?" or "ok làm đi"
@@ -92,7 +92,7 @@ class FastIntentClassifier:
         if len(text) > max(1, int(max_chars or 12_000)):
             return IntentDecision(False, "oversized", "objective_too_large", 1.0)
 
-        # Bộ từ vựng theo ĐÚNG ngôn ngữ người dùng đang viết, không phải ngôn ngữ Naota được
+        # Bộ từ vựng theo ĐÚNG ngôn ngữ người dùng đang viết, không phải ngôn ngữ NAOSO được
         # lệnh trả lời: cổng này đọc câu HỎI, nên nó phải hiểu ngôn ngữ của câu hỏi.
         # `lang` do nơi gọi truyền xuống (đã có ngữ cảnh phiên) được tin hơn là tự dò.
         ma = lang_registry.chuan_hoa(lang) or lang_mod.detect(text)[0]
@@ -290,7 +290,7 @@ class FastPathCanary:
 
     def prepare(self, trace: context_runtime.TurnTrace | None, objective: str, brain: str,
                 # `lang`        = ngôn ngữ của CÂU HỎI, dùng để chọn bộ từ vựng cho cổng.
-                # `lang_tra_loi` = ngôn ngữ Naota phải TRẢ LỜI, đi vào hợp đồng đầu ra.
+                # `lang_tra_loi` = ngôn ngữ NAOSO phải TRẢ LỜI, đi vào hợp đồng đầu ra.
                 # Hai cái này KHÁC nhau khi user ghim ngôn ngữ trả lời, và lẫn chúng chính là
                 # con bệnh đã đo được: cổng chấm câu tiếng Việt bằng bộ từ vựng tiếng Anh.
                 channel: str, provider: str, model: str, provider_kind: str,
@@ -450,9 +450,9 @@ class FastPathCanary:
                 policy_version=policy.version,
                 rejection_message=localefmt.chu(
                     "Request này vượt ngân sách context đã xác minh của model hiện tại. "
-                    "Naota chưa gửi request; bạn hãy rút gọn nội dung hoặc đổi model/provider.",
+                    "NAOSO chưa gửi request; bạn hãy rút gọn nội dung hoặc đổi model/provider.",
                     "This request exceeds the verified context budget of the current model. "
-                    "Naota did not send it; shorten the content or switch model/provider."
+                    "NAOSO did not send it; shorten the content or switch model/provider."
                 ),
             )
         if report.get("path") != "fast" or report.get("preflight_decision") != "would_allow":
@@ -478,9 +478,9 @@ class FastPathCanary:
                 policy_version=policy.version,
                 rejection_message=localefmt.chu(
                     "Request này quá sát hard limit của model sau khi cộng biên an toàn. "
-                    "Naota chưa gửi request; bạn hãy rút gọn nội dung hoặc đổi model/provider.",
+                    "NAOSO chưa gửi request; bạn hãy rút gọn nội dung hoặc đổi model/provider.",
                     "This request is too close to the model's hard limit once the safety margin is added. "
-                    "Naota did not send it; shorten the content or switch model/provider."
+                    "NAOSO did not send it; shorten the content or switch model/provider."
                 ),
             )
         admission = self.runtime.admit_quota(
@@ -495,9 +495,9 @@ class FastPathCanary:
                 policy_version=policy.version,
                 rejection_message=localefmt.chu(
                     "Model hiện tại đã hết ngân sách token trong cửa sổ quota. "
-                    "Naota chưa gửi request; bạn chờ hết cửa sổ hoặc đổi model/provider.",
+                    "NAOSO chưa gửi request; bạn chờ hết cửa sổ hoặc đổi model/provider.",
                     "The current model has used up its token budget for this quota window. "
-                    "Naota did not send the request; wait for the window to reset or switch model/provider."
+                    "NAOSO did not send the request; wait for the window to reset or switch model/provider."
                 ),
             )
         rendered = compiled.capsule.rendered_request

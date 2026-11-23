@@ -1,6 +1,6 @@
 """Read-only document tools for a dedicated bot at the "read_docs" level.
 
-Why this level exists. At the "suggest" level a bot has no tools: Naota searches the bot's brain
+Why this level exists. At the "suggest" level a bot has no tools: NAOSO searches the bot's brain
 by keyword BEFORE the turn and pastes the best chunks into the prompt. That keeps the bot honest,
 but it misses whenever the customer's words differ from the document's ("đổi trả" vs "hoàn trả").
 The "auto" level fixes that by handing the bot the hub's file tools, and with them write access and
@@ -13,7 +13,7 @@ So this module is the WHOLE tool set of that level, and it is deliberately tiny:
    set and nothing else for the mode, so no engine (API or Claude Code via the hub) sees more.
 2. **Same document set as the pre-turn search, minus a little.** A document is readable only if
    `chatbot_grounding.ds_tai_lieu` lists it: `inbox/` (customer uploads), `memory/`, skills,
-   plugins, Naota' own convention files and the data cache are already excluded there, and this
+   plugins, NAOSO' own convention files and the data cache are already excluded there, and this
    module also drops `agents/` and `workflows/` (the owner's internal instructions). The tools
    therefore never reveal anything the keyword search could not already put in a prompt.
 3. **The path a customer types never touches the filesystem.** `docs_read` matches it against

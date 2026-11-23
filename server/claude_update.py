@@ -1,18 +1,18 @@
-"""Giữ Claude Code trên máy luôn ở bản mới, để model mới tự hiện trong Naota.
+"""Giữ Claude Code trên máy luôn ở bản mới, để model mới tự hiện trong NAOSO.
 
 Danh sách model của gói Claude Code đọc từ CHÍNH binary `claude` (`claude_cli.list_models`),
-nên Naota chỉ thấy model mới khi Claude Code đã lên bản biết model đó. Lỗi thật đã gặp: Sonnet 5.5 ra rồi mà Naota không có. Binary trên máy đứng ở 2.1.232 suốt
+nên NAOSO chỉ thấy model mới khi Claude Code đã lên bản biết model đó. Lỗi thật đã gặp: Sonnet 5.5 ra rồi mà NAOSO không có. Binary trên máy đứng ở 2.1.232 suốt
 nhiều tuần, vì:
 
-- Claude Code chỉ tự cập nhật khi người ta mở nó gõ tay. Naota gọi nó chạy ngầm, nên không
-  bao giờ kích hoạt được đường đó. Máy chỉ dùng Claude qua Naota là kẹt vĩnh viễn.
+- Claude Code chỉ tự cập nhật khi người ta mở nó gõ tay. NAOSO gọi nó chạy ngầm, nên không
+  bao giờ kích hoạt được đường đó. Máy chỉ dùng Claude qua NAOSO là kẹt vĩnh viễn.
 - `~/.claude.json` có thể mang `autoUpdates: false`, và app Claude Desktop đặt
   `DISABLE_AUTOUPDATER=1` cho các tiến trình nó đẻ ra.
 
-Nên Naota tự chạy `claude update` mỗi ngày một lần, và có nút bấm để chạy ngay.
+Nên NAOSO tự chạy `claude update` mỗi ngày một lần, và có nút bấm để chạy ngay.
 
 Bản Docker KHÔNG đi đường này: CLI cài bằng `npm -g` dưới quyền root trong ảnh, tiến trình
-Naota chạy bằng user `naota` nên không ghi đè được. Ở đó Claude Code mới tới theo ảnh Naota mới
+NAOSO chạy bằng user `naota` nên không ghi đè được. Ở đó Claude Code mới tới theo ảnh NAOSO mới
 (CI ép lấy bản mới nhất mỗi lần build, xem `.github/workflows/docker-publish.yml`).
 """
 from __future__ import annotations
@@ -115,9 +115,9 @@ def cap_nhat(ly_do: str = "tay") -> dict:
     now = time.time()
     if deploy_info.deploy_mode() == "docker":
         return {"ok": False, "docker": True,
-                "error": localefmt.chu("Bản Docker nhận Claude Code mới theo mỗi bản cập nhật Naota, "
+                "error": localefmt.chu("Bản Docker nhận Claude Code mới theo mỗi bản cập nhật NAOSO, "
                                        "không cập nhật riêng được.",
-                                       "The Docker build gets a new Claude Code with each Naota update; "
+                                       "The Docker build gets a new Claude Code with each NAOSO update; "
                                        "it cannot be updated on its own.")}
     cli = claude_cli.find_claude_cli()
     if not cli:

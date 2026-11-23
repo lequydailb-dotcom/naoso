@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# NAOTA - publish the desktop installers on the fixed "desktop" release.
+# NAOSO - publish the desktop installers on the fixed "desktop" release.
 #
 #   bash packaging/publish-desktop.sh <folder holding Naota-Setup.exe and Naota-macOS.dmg>
 #
@@ -65,14 +65,14 @@ else
   echo "Naota-Setup.exe: publishing the build from ${v}"
 fi
 
-notes="Desktop installers for NAOTA. They install the newest Naota on first run.
+notes="Desktop installers for NAOSO. They install the newest NAOSO on first run.
 
 - Windows 10/11: Naota-Setup.exe (built from ${exe_v})
 - macOS 11+: Naota-macOS.dmg (built from ${v})
 
 Steps: QUICKSTART.md (Tiếng Việt) or QUICKSTART.en.md (English)."
 if [ "$exists" = 0 ]; then
-  gh release create desktop --title "NAOTA - Windows & macOS installers" --notes "$notes" --latest=false
+  gh release create desktop --title "NAOSO - Windows & macOS installers" --notes "$notes" --latest=false
 else
   gh release edit desktop --notes "$notes"
 fi

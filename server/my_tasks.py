@@ -33,7 +33,7 @@ Daily pulse: a task may carry `star` (a priority of its day, at most 3 a day, th
 and a repeat `skip_dates` ({date: epoch}: times skipped on purpose, they count as handled but never as done). The store
 keeps `clean` = {days: {date: "c"|"i"|"x"|"e"}, over_clears: n}, see `judge_clean_days`.
 
-Habit coach: once a day the background model ("Naota Core") writes the habit lines the page and the
+Habit coach: once a day the background model ("NAOSO Core") writes the habit lines the page and the
 reminders use, into <brain>/Naota/habit-coach.json, and learns which style of nudge was followed by the habit
 being done that day (see `coach_prompt`). No model, or a bad answer: the fixed lines stay.
 """
@@ -382,7 +382,7 @@ def usual_time(task: dict, tz=None) -> str:
 
 
 def nudge_time(task: dict, state: dict, tz=None) -> str:
-    """When today's reminder goes out: the set time, or for "Naota reminds" half an hour after the usual time
+    """When today's reminder goes out: the set time, or for "NAOSO reminds" half an hour after the usual time
     (earlier while frozen, so there is room to thaw it)."""
     hb = task.get("habit") or {}
     if hb.get("remind") == "time":
@@ -541,7 +541,7 @@ def coach_prompt(habits: list, stats: dict, vi: bool) -> str:
         f"last14={h['last14']}" for h in habits)
     rates = "\n".join(f"- {s}: sent {v['sent']}, done after {v['done']}" for s, v in stats.items())
     lang = "Vietnamese, addressing the user as \"bạn\" and yourself as \"mình\"" if vi else "English"
-    return f"""You are Naota, a small star mascot coaching the user's daily habits. Write today's short lines in {lang}.
+    return f"""You are NAOSO, a small star mascot coaching the user's daily habits. Write today's short lines in {lang}.
 
 Habits today:
 {rows}
@@ -796,7 +796,7 @@ class MyTasks:
             return _err("không thấy việc này", "task not found")
         data["tasks"] = [t for t in data["tasks"] if t.get("id") != tid]
         if handoff:
-            # "Give to Naota": the stats count how many tasks the owner handed over.
+            # "Give to NAOSO": the stats count how many tasks the owner handed over.
             log = data.setdefault("log", {})
             log["handoffs"] = (list(log.get("handoffs") or []) + [_now()])[-2000:]
         self.save(brain, data)

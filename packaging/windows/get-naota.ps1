@@ -1,5 +1,5 @@
 # ============================================================
-# NAOTA - one-line install for Windows, no red SmartScreen screen
+# NAOSO - one-line install for Windows, no red SmartScreen screen
 #
 #   irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-naota.ps1 | iex
 #
@@ -20,7 +20,7 @@
   $url = "https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe"
   $out = Join-Path $env:TEMP "Naota-Setup.exe"
   Write-Host ""
-  Write-Host "  NAOTA: dang tai bo cai... (downloading the installer)" -ForegroundColor Cyan
+  Write-Host "  NAOSO: dang tai bo cai... (downloading the installer)" -ForegroundColor Cyan
   try {
     Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
   } catch {
@@ -28,10 +28,10 @@
     Write-Host "  Kiem tra mang Internet roi chay lai lenh." -ForegroundColor Red
     return
   }
-  Write-Host "  Da tai xong, dang mo trinh cai dat NAOTA... (opening the setup wizard)" -ForegroundColor Green
+  Write-Host "  Da tai xong, dang mo trinh cai dat NAOSO... (opening the setup wizard)" -ForegroundColor Green
   Start-Process -FilePath $out
-  # The rest happens inside the NAOTA Setup window, progress included. Say so, or people keep
+  # The rest happens inside the NAOSO Setup window, progress included. Say so, or people keep
   # watching this console and think the install is stuck.
-  Write-Host "  Moi thu tiep theo hien trong cua so NAOTA Setup. Co the dong cua so nay." -ForegroundColor Cyan
-  Write-Host "  (Everything else shows in the NAOTA Setup window. You can close this one.)" -ForegroundColor Cyan
+  Write-Host "  Moi thu tiep theo hien trong cua so NAOSO Setup. Co the dong cua so nay." -ForegroundColor Cyan
+  Write-Host "  (Everything else shows in the NAOSO Setup window. You can close this one.)" -ForegroundColor Cyan
 }

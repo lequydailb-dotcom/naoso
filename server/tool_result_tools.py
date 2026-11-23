@@ -138,11 +138,11 @@ _READ_NAME_RE = re.compile(
 
 
 def is_plain_read(ent: dict, args: dict) -> bool:
-    """Is this call a read that Naota may repeat BY ITSELF (paging, a recipe replay)?
+    """Is this call a read that NAOSO may repeat BY ITSELF (paging, a recipe replay)?
 
     Stricter than the hub's permission class. `mcp_catalog.classify` answers "read" for any tool nobody
     described that has no write word in its name (`trigger_workflow`, `apply_migration`, `checkout`), which is the
-    right default for a call a model makes once under the owner's eyes, and the wrong one for a call Naota makes
+    right default for a call a model makes once under the owner's eyes, and the wrong one for a call NAOSO makes
     again on its own. So on top of the hub's class, the read must be DECLARED: the catalogue lists the tool or
     this argument value as a read, or the tool's own name says so (get, list, search, report...)."""
     conn = ent.get("conn")

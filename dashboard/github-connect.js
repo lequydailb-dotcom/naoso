@@ -1,7 +1,7 @@
 /* github-connect.js - GitHub inside chat, phase G1 (github-trong-chat-spec).
  *
  * Three pieces, one module:
- *   1. The GitHub card on the Connections page. It is built into Naota : always shown, connected
+ *   1. The GitHub card on the Connections page. It is built into NAOSO : always shown, connected
  *      or not, no Store pack. Connect with a token, or reuse the brain-backup token after the server checks it.
  *      The card also lists the repos cloned in this brain, each with "Remove from brain" (the clone only; GitHub
  *      is never touched, and the server refuses while work would be lost).
@@ -59,7 +59,7 @@
   // The git step before connecting: one answer of /github/git -> what the dialog shows.
   //   ready      git is here, go on to the sign-in form
   //   installing / wait_user (macOS: Apple's dialog waits for a press on Install)
-  //   failed     Naota tried and could not; manual  Naota cannot install here (Linux without root or sudo)
+  //   failed     NAOSO tried and could not; manual  NAOSO cannot install here (Linux without root or sudo)
   function gitPhase(g) {
     if (!g || g.ok === false) return "error";
     if (g.has_git) return "ready";
@@ -141,7 +141,7 @@
         : "";
     }
     // Like every other connection card: the account as a chip with a green dot. Repos are picked
-    // in the chat box, so "Pick repos for Naota" only shows while the app is on no account at all, when the chat list
+    // in the chat box, so "Pick repos for NAOSO" only shows while the app is on no account at all, when the chat list
     // would be empty.
     var acts = '<div class="conn-accounts">' + (st.connected
       ? '<span class="conn-chip gh-acc"><span class="cdot hok">●</span> ' + esc(st.login ? "@" + st.login : "GitHub") + "</span>" +
@@ -281,7 +281,7 @@
       }).join("");
     });
   }
-  // Cross review of one repo: off by default; on = Naota reviews each green commit before merging.
+  // Cross review of one repo: off by default; on = NAOSO reviews each green commit before merging.
   async function openReview(name, rec, back) {
     var M = window.NaotaConnModal;
     if (!M) return;
@@ -395,7 +395,7 @@
     form.querySelector('[data-f="skip"]').onclick = function () { then(null); };
   }
 
-  // The connect dialog: "Sign in with GitHub" first (the device flow of the NAOTA GitHub App, no token to
+  // The connect dialog: "Sign in with GitHub" first (the device flow of the NAOSO GitHub App, no token to
   // make or copy), a pasted token below it for whoever prefers that, and the brain-backup token when there is one.
   // `git`: the answer of the git step when it ran; "git x.y is installed" heads the form when this visit installed it.
   function connectForm(st, git) {
@@ -437,7 +437,7 @@
   }
 
   // Device flow, step by step in the same dialog: get a code, show it with "Open GitHub" and "Copy", poll until the
-  // person presses Authorize, then offer "Pick repos for Naota" when the app is not installed anywhere yet.
+  // person presses Authorize, then offer "Pick repos for NAOSO" when the app is not installed anywhere yet.
   async function signIn() {
     var M = window.NaotaConnModal;
     if (!M) return;
@@ -695,7 +695,7 @@
   }
   // Status read when the panel opened: tells the repo list whether "add repos on GitHub" applies.
   var ghStatus = null;
-  // Signed in with the NAOTA app, a repo shows in the chat list only once the app may see it. The shortcut opens the
+  // Signed in with the NAOSO app, a repo shows in the chat list only once the app may see it. The shortcut opens the
   // app's page on GitHub to tick more repos; a pasted token already sees every repo, so it does not
   // get one.
   function addReposUrl() {
@@ -1015,7 +1015,7 @@
           " · " + esc(c.conclusion || "") + "</li>";
       }).join("");
       var canMerge = !r.merging && (r.integ === "ready") && (r.ci === "green" || r.ci === "no_ci");
-      // A push or PR that failed after green local checks: Naota retries on its own, this is the shortcut.
+      // A push or PR that failed after green local checks: NAOSO retries on its own, this is the shortcut.
       var canPush = !!(r.gate && r.gate.ship_failed);
       // Cross review is the person's call: Review now on an open PR, and Fix / Skip on its findings.
       var found = r.review_open || [];

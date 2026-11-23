@@ -1,4 +1,4 @@
-/* chat-viec.js - the viec nen (viec ngam) trong khung chat Naota.
+/* chat-viec.js - the viec nen (viec ngam) trong khung chat NAOSO.
 
    Van de ("man hinh hien thi cua tao viec ngam trong luc chat trong
    rat chan va tho ket"): ket qua viec nen quay ve khung chat chi la mot bong bong chu tron,

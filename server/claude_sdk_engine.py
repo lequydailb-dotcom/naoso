@@ -87,8 +87,8 @@ def tran_watchdog(bien: str, mac_dinh: str):
     "bao lâu rồi chưa nhận được message từ SDK" rồi coi đó là treo. Phép đo ấy sai ở một ca
     rất thường gặp - SDK chỉ phát message khi model KẾT THÚC một khối, nên suốt lúc model suy
     nghĩ ở mức nỗ lực cao, hoặc lúc nó soạn nội dung một file dài để đưa vào tool Write, kênh
-    im hoàn toàn dù mọi thứ đang chạy đúng. Đã gặp đúng ca đó: bảo Naota
-    "thiết kế cho anh file .md", Naota nói "viết file luôn" rồi bị chém ở giây thứ 180 giữa
+    im hoàn toàn dù mọi thứ đang chạy đúng. Đã gặp đúng ca đó: bảo NAOSO
+    "thiết kế cho anh file .md", NAOSO nói "viết file luôn" rồi bị chém ở giây thứ 180 giữa
     lúc đang soạn file.
 
     Cắt một lượt đang chạy tốt tệ hơn hẳn để nó chạy lâu: người dùng luôn bấm Dừng được, và
@@ -113,7 +113,7 @@ def ap_tran_khoi_dong():
 
     Vì sao cần: lúc initialize, `claude` phải đấu XONG mọi MCP server rồi mới nhận việc, mà SDK
     chờ đúng 60 giây rồi ném `Control request timeout: initialize`. Máy đấu nhiều nguồn (hub
-    Naota + connector tài khoản Claude) vượt 60s là chuyện thường, và người dùng nhận về một
+    NAOSO + connector tài khoản Claude) vượt 60s là chuyện thường, và người dùng nhận về một
     dòng tiếng Anh trần trụi sau khi ngồi chờ - đúng ca đã gặp.
 
     SDK chỉ đọc trần này qua env `CLAUDE_CODE_STREAM_CLOSE_TIMEOUT` (mili giây, sàn cứng 60s)
@@ -132,7 +132,7 @@ def ap_tran_khoi_dong():
     return giay
 
 
-_HUB_SLOW_S = 30.0   # giây - cổng công cụ của Naota trả lời lâu hơn mức này thì coi là chậm
+_HUB_SLOW_S = 30.0   # giây - cổng công cụ của NAOSO trả lời lâu hơn mức này thì coi là chậm
 
 
 def _init_limit_label(tran_init):
@@ -180,38 +180,38 @@ def _init_timeout_text(n, cd):
     cham = max([x for x in (hub.get("init_s"), hub.get("list_s")) if x is not None] or [0.0])
     list_s = hub.get("list_s")
     if not cd.get("hub_attached", True):
-        vi = ("lượt này không đấu cổng công cụ của Naota nên hub không phải thủ phạm. Nếu máy có đấu "
+        vi = ("lượt này không đấu cổng công cụ của NAOSO nên hub không phải thủ phạm. Nếu máy có đấu "
               "connector của chính Claude Code (claude.ai, cài đặt người dùng) thì kiểm tra chúng; "
               "không thì " + login_vi[0].lower() + login_vi[1:])
-        en = ("this run did not attach the Naota tool hub, so the hub is not the culprit. If the machine "
+        en = ("this run did not attach the NAOSO tool hub, so the hub is not the culprit. If the machine "
               "attaches Claude Code's own connectors (claude.ai, user settings) check those; otherwise "
               + login_en[0].lower() + login_en[1:])
     elif not hub.get("called"):
-        vi = ("nó chưa hề gọi tới cổng công cụ của Naota, nên KHÔNG phải do nguồn MCP. Nó kẹt từ trước "
+        vi = ("nó chưa hề gọi tới cổng công cụ của NAOSO, nên KHÔNG phải do nguồn MCP. Nó kẹt từ trước "
               "đó, thường vì đăng nhập Claude hết hạn, máy không ra được mạng hoặc đang tự cập nhật. "
               + login_vi)
-        en = ("it never reached the Naota tool hub, so it is NOT a data source (MCP). It got stuck "
+        en = ("it never reached the NAOSO tool hub, so it is NOT a data source (MCP). It got stuck "
               "before that, usually an expired Claude sign-in, no network or a self-update. " + login_en)
     elif hub.get("pending") and hub.get("pending_s", 0.0) >= _HUB_SLOW_S:
-        vi = (f"cổng công cụ của Naota nhận yêu cầu {_giay(hub['pending_s'])} trước mà chưa trả lời. "
+        vi = (f"cổng công cụ của NAOSO nhận yêu cầu {_giay(hub['pending_s'])} trước mà chưa trả lời. "
               + mcp_vi)
-        en = (f"the Naota tool hub got a request {_giay(hub['pending_s'])} ago and has not answered. "
+        en = (f"the NAOSO tool hub got a request {_giay(hub['pending_s'])} ago and has not answered. "
               + mcp_en)
     elif cham >= _HUB_SLOW_S:
-        vi = f"cổng công cụ của Naota trả quá chậm (mất {_giay(cham)} mới trả lời). " + mcp_vi
-        en = f"the Naota tool hub answered far too slowly ({_giay(cham)} to reply). " + mcp_en
+        vi = f"cổng công cụ của NAOSO trả quá chậm (mất {_giay(cham)} mới trả lời). " + mcp_vi
+        en = f"the NAOSO tool hub answered far too slowly ({_giay(cham)} to reply). " + mcp_en
     elif list_s is not None:
-        vi = (f"cổng công cụ của Naota trả lời bình thường (liệt kê công cụ mất {_giay(list_s)}), nên "
+        vi = (f"cổng công cụ của NAOSO trả lời bình thường (liệt kê công cụ mất {_giay(list_s)}), nên "
               "không phải do nguồn MCP. Claude Code kẹt ở bước khác, thường là đăng nhập hết hạn hoặc "
               "mạng. " + login_vi)
-        en = (f"the Naota tool hub answered normally (listing tools took {_giay(list_s)}), so it is not "
+        en = (f"the NAOSO tool hub answered normally (listing tools took {_giay(list_s)}), so it is not "
               "a data source (MCP). Claude Code is stuck on something else, usually an expired sign-in "
               "or the network. " + login_en)
     else:
-        vi = ("cổng công cụ của Naota đã nhận kết nối nhưng Claude Code chưa hỏi tới danh sách công cụ, "
+        vi = ("cổng công cụ của NAOSO đã nhận kết nối nhưng Claude Code chưa hỏi tới danh sách công cụ, "
               "nên chưa tới bước dò nguồn MCP. Nó kẹt ở bước khác, thường là đăng nhập hết hạn hoặc "
               "mạng. " + login_vi)
-        en = ("the Naota tool hub accepted the connection but Claude Code never asked for the tool "
+        en = ("the NAOSO tool hub accepted the connection but Claude Code never asked for the tool "
               "list, so the data sources (MCP) were not even reached. It is stuck on something else, "
               "usually an expired sign-in or the network. " + login_en)
     tail = [str(x).strip()[:120] for x in (cd.get("stderr") or []) if str(x).strip()][-2:]
@@ -367,10 +367,10 @@ def map_message(msg):
             events.append({"type": "error", "resume_failed": True,
                            "content": localefmt.chu(
                                "Phiên Claude cũ không còn trên máy (mạch hội thoại phía "
-                               "Claude Code đã mất). Naota mở mạch mới và mồi lại từ "
+                               "Claude Code đã mất). NAOSO mở mạch mới và mồi lại từ "
                                "lịch sử đã lưu.",
                                "The old Claude session is no longer on this machine (Claude Code lost "
-                               "the conversation thread). Naota opens a new thread and primes it from "
+                               "the conversation thread). NAOSO opens a new thread and primes it from "
                                "the saved history.")})
         elif msg.is_error and not (msg.result or "").strip():
             events.append({"type": "error",
@@ -538,7 +538,7 @@ class ClaudeSDK:
         # Vài chục dòng cuối `claude` in ra stderr, để câu báo lỗi hết giờ khởi động trích được
         # lý do nó kẹt. Xoá ở đầu mỗi query.
         self._stderr_tail = collections.deque(maxlen=40)
-        # `_options` đặt: lượt này có đấu cổng công cụ của Naota không (None = chưa biết).
+        # `_options` đặt: lượt này có đấu cổng công cụ của NAOSO không (None = chưa biết).
         self._hub_attached = None
 
     def _on_stderr(self, line):
@@ -756,7 +756,7 @@ class ClaudeSDK:
         # báo kèm log đầy đủ; cùng ca đó dính mọi kernel < 3.17: NAS đời cũ, VPS nhân
         # cổ, vài môi trường CI.
         #
-        # Nên ưu tiên NGƯỢC LẠI SDK. Điều này cũng hợp với phần còn lại của Naota: mọi chỗ khác
+        # Nên ưu tiên NGƯỢC LẠI SDK. Điều này cũng hợp với phần còn lại của NAOSO: mọi chỗ khác
         # (auth, MCP native, kiểm tra trạng thái) đều gọi đúng binary `claude` của máy, để bản
         # đóng gói làm dự phòng cho máy chưa cài CLI.
         #
@@ -787,7 +787,7 @@ class ClaudeSDK:
                 pass
         # System prompt đẩy qua FILE (--append-system-prompt-file) thay vì nhét vào THAM SỐ dòng lệnh.
         # Trên Windows tổng dòng lệnh > 32767 ký tự thì CreateProcess CHẾT: Python báo FileNotFoundError,
-        # SDK dán nhãn nhầm "Claude Code not found at ...\\_bundled\\claude.exe". System prompt của Naota
+        # SDK dán nhãn nhầm "Claude Code not found at ...\\_bundled\\claude.exe". System prompt của NAOSO
         # (CLAUDE.md + bộ nhớ brain nhiều note) dễ vượt ngưỡng -> đây là gốc lỗi đó. Đọc qua file thì
         # không còn giới hạn độ dài. SDK cũ không có extra_args thì fallback nhét inline (chỉ hợp prompt ngắn).
         if self.system_prompt and self.system_prompt_raw:
@@ -824,7 +824,7 @@ class ClaudeSDK:
             kw["model"] = self.model
         # Độ sâu suy nghĩ đi bằng CỜ THẬT của Claude Code (`--effort`), không phải bằng mấy từ
         # khoá "think harder" nhét vào prompt như bản cũ. Ba cái lợi: thang của SDK trùng khít
-        # thang của Naota (low|medium|high|xhigh|max) nên hai mức trên cùng khác nhau THẬT chứ
+        # thang của NAOSO (low|medium|high|xhigh|max) nên hai mức trên cùng khác nhau THẬT chứ
         # không cùng ra "ultrathink"; không tốn token nhắc trong mỗi prompt; và không có câu
         # tiếng Việt lạ dính vào cuối tin nhắn người dùng.
         #
@@ -841,7 +841,7 @@ class ClaudeSDK:
         if self.session_id:
             kw["resume"] = self.session_id
         servers, strict = self._mcp_servers()
-        # Nhớ lượt này có đấu hub Naota không: lỗi hết giờ khởi động cần biết để khỏi đổ cho hub
+        # Nhớ lượt này có đấu hub NAOSO không: lỗi hết giờ khởi động cần biết để khỏi đổ cho hub
         # khi hub vốn không được đấu. Chuỗi (đường dẫn thô) coi như có đấu vì không đọc được.
         self._hub_attached = True if isinstance(servers, str) else bool(servers) and "naota" in servers
         if servers is not None:
@@ -849,7 +849,7 @@ class ClaudeSDK:
             if strict:
                 kw["strict_mcp_config"] = True
         _deny = list(self.disallowed_tools or [])
-        # (Naota Core spec 13, 14): the learning switch is a hard rule for Claude Code too. It writes files
+        # (NAOSO Core spec 13, 14): the learning switch is a hard rule for Claude Code too. It writes files
         # natively (not through the hub), so the memory guard goes in as deny rules on its own tools.
         try:
             import memory_control
@@ -965,7 +965,7 @@ class ClaudeSDK:
             return {"ok": False, "reason": f"{type(e).__name__}: {e}"}
 
         async def _deny(tool_name, input_data, context):
-            return PermissionResultDeny(message="Naota keep-warm ping: no tools")
+            return PermissionResultDeny(message="NAOSO keep-warm ping: no tools")
 
         client = None
         try:

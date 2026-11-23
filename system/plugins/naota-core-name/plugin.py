@@ -1,15 +1,15 @@
-"""Bundled plugin: tool `naota_core_name`, the name and style of Naota Core in one brain.
+"""Bundled plugin: tool `naota_core_name`, the name and style of NAOSO Core in one brain.
 
-The owner wants people to make Naota Core their own: on the first chat it asks what to call it, then keeps that name
+The owner wants people to make NAOSO Core their own: on the first chat it asks what to call it, then keeps that name
 and the way of talking the person likes. The data lives in `<brain>/Naota/core.json` through `server/naota_core.py`
-(`identity`, `set_identity`), the same agent file the Naota Core editor on the Partners page saves (name), plus `Naota/core.json` (style).
+(`identity`, `set_identity`), the same agent file the NAOSO Core editor on the Partners page saves (name), plus `Naota/core.json` (style).
 
 Owner only: `mcp_hub.OWNER_ONLY_TOOLS` lists it, so a customer-facing bot can never rename the owner's assistant.
 
 Four ops:
 - get: the current name (or none), style and whether the name was already asked.
-- set name=... style=...: save a new name and/or style (name "" = back to "Naota Core").
-- asked: note that Naota Core asked for a name, so it does not ask again in later chats.
+- set name=... style=...: save a new name and/or style (name "" = back to "NAOSO Core").
+- asked: note that NAOSO Core asked for a name, so it does not ask again in later chats.
 - reset: drop the own name and style.
 """
 from __future__ import annotations
@@ -26,7 +26,7 @@ def _root(ctx) -> str:
 
 def _chay(args, ctx) -> str:
     if naota_core is None:
-        return "ERROR: Naota Core chưa sẵn sàng trên máy chủ này."
+        return "ERROR: NAOSO Core chưa sẵn sàng trên máy chủ này."
     root = _root(ctx)
     if not root:
         return "ERROR: lượt này không gắn với brain nào, không lưu được tên."
@@ -34,7 +34,7 @@ def _chay(args, ctx) -> str:
     op = str(a.get("op") or "").strip().lower()
     if op == "get":
         me = naota_core.identity(root)
-        return (f"Tên: {me['name'] or 'chưa đặt (đang là Naota Core)'}. "
+        return (f"Tên: {me['name'] or 'chưa đặt (đang là NAOSO Core)'}. "
                 f"Phong cách: {me['style'] or 'chưa thống nhất'}. "
                 f"Đã hỏi tên: {'rồi' if me['asked'] else 'chưa'}.")
     if op == "set":
@@ -46,7 +46,7 @@ def _chay(args, ctx) -> str:
         me = naota_core.set_identity(root, name=name, style=a.get("style") if "style" in a else None)
         out = []
         if name is not None:
-            out.append(f"Đã đổi tên thành {me['name']}." if me["name"] else "Đã trả lại tên Naota Core.")
+            out.append(f"Đã đổi tên thành {me['name']}." if me["name"] else "Đã trả lại tên NAOSO Core.")
         if "style" in a:
             out.append(f"Đã lưu phong cách: {me['style']}." if me["style"] else "Đã bỏ phong cách riêng.")
         return " ".join(out)
@@ -55,16 +55,16 @@ def _chay(args, ctx) -> str:
         return "Đã ghi nhận là đã hỏi tên. Các chat sau không hỏi lại."
     if op == "reset":
         naota_core.set_identity(root, name="", style="")
-        return "Đã trả lại tên Naota Core và bỏ phong cách riêng."
+        return "Đã trả lại tên NAOSO Core và bỏ phong cách riêng."
     return "ERROR: op phải là get, set, asked hoặc reset."
 
 
 def register(ctx):
     ctx.register_tool(
         "naota_core_name",
-        "Tên riêng và phong cách nói chuyện của Naota Core trong brain này, do NGƯỜI DÙNG chọn. Tên hiện trên trang "
-        "Cộng sự và Naota Core tự xưng bằng tên đó. op=get: xem. op=set name=... (và/hoặc style=..., một câu ngắn "
-        "mô tả giọng điệu người dùng thích): lưu; name rỗng = về lại Naota Core. op=asked: ghi nhận đã hỏi tên để "
+        "Tên riêng và phong cách nói chuyện của NAOSO Core trong brain này, do NGƯỜI DÙNG chọn. Tên hiện trên trang "
+        "Cộng sự và NAOSO Core tự xưng bằng tên đó. op=get: xem. op=set name=... (và/hoặc style=..., một câu ngắn "
+        "mô tả giọng điệu người dùng thích): lưu; name rỗng = về lại NAOSO Core. op=asked: ghi nhận đã hỏi tên để "
         "không hỏi lại. op=reset: bỏ tên và phong cách riêng. Chỉ đổi khi người dùng chọn hoặc đồng ý, không tự đặt.",
         _chay,
         schema={

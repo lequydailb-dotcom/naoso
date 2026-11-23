@@ -133,7 +133,7 @@
       });
     }
 
-    // Sign-ins Naota may use (Login vault). /logins needs a dashboard session; any error just hides the field.
+    // Sign-ins NAOSO may use (Login vault). /logins needs a dashboard session; any error just hides the field.
     (async function () {
       var d = await api("/logins");
       var list = (d && d.ok && d.logins || []).filter(function (x) { return x.allow_ai; });

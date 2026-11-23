@@ -1,16 +1,16 @@
-"""Giữ Antigravity CLI (`agy`) trên máy luôn ở bản mới, để model mới tự hiện trong Naota.
+"""Giữ Antigravity CLI (`agy`) trên máy luôn ở bản mới, để model mới tự hiện trong NAOSO.
 
 Danh sách model của Antigravity đọc thẳng từ `agy models` (`antigravity_cli.list_models`), nên
-Naota chỉ thấy model mới khi `agy` đã lên bản biết model đó. Ví dụ: Gemini 4 Argon
-ra rồi mà trình chọn model của Naota không có.
+NAOSO chỉ thấy model mới khi `agy` đã lên bản biết model đó. Ví dụ: Gemini 4 Argon
+ra rồi mà trình chọn model của NAOSO không có.
 
 Cùng bệnh với Claude Code (`claude_update`): `agy` chỉ tự cập nhật khi người ta mở nó gõ tay, còn
-Naota gọi nó chạy ngầm. Bản Docker còn kẹt nặng hơn: container cài `agy` MỘT LẦN vào thư mục người
+NAOSO gọi nó chạy ngầm. Bản Docker còn kẹt nặng hơn: container cài `agy` MỘT LẦN vào thư mục người
 dùng trên ổ dữ liệu (`docker/entrypoint.sh`), sống qua mọi lần cập nhật image, và từ đó không ai
 cập nhật nó nữa.
 
-Nên Naota tự chạy `agy update` mỗi ngày một lần. Khác Claude Code, đường này chạy được cả trong
-Docker: `agy` nằm ở `~/.local/bin` của chính user chạy Naota, nên ghi đè được. Tắt bằng
+Nên NAOSO tự chạy `agy update` mỗi ngày một lần. Khác Claude Code, đường này chạy được cả trong
+Docker: `agy` nằm ở `~/.local/bin` của chính user chạy NAOSO, nên ghi đè được. Tắt bằng
 NAOTA_AGY_AUTO_UPDATE=0.
 """
 from __future__ import annotations

@@ -44,7 +44,7 @@ _cache = {"sig": None, "by_id": {}, "path": None}
 # connection of every tool list (mcp_hub.discover_all), for every Zalo message and every bot list, and each run used to
 # stat the catalog, the removed list and every pack folder. On the owner's VPS the disk sometimes took seconds per stat,
 # and all of that ran on the event loop: `packs.signature` under `load()` was the top freeze, 53 s in 15 minutes.
-# Changes made through Naota (installing or removing a pack, removing a connector) call `invalidate()` and show at once;
+# Changes made through NAOSO (installing or removing a pack, removing a connector) call `invalidate()` and show at once;
 # a hand edit of the files shows within this many seconds.
 CHECK_S = 2.0
 
@@ -59,7 +59,7 @@ def _da_go():
 
     Import lazy và bọc try/except có chủ ý: `mcp_catalog` là module nền mà nửa server phụ
     thuộc vào, nên một file JSON lạ trong STATE_DIR không được phép làm nó ngừng nạp. Suy biến
-    nghiêng về "thấy đủ năng lực" chứ không phải "Naota trống rỗng"."""
+    nghiêng về "thấy đủ năng lực" chứ không phải "NAOSO trống rỗng"."""
     try:
         import core_off
         return core_off.da_go("connectors")
@@ -236,7 +236,7 @@ def public_catalog():
                        "link_label": s.get("link_label", ""), "copy": s.get("copy", "")}
                       for s in (auth.get("steps") or [])],
             "risk": c.get("risk", ""), "default_perm": c.get("default_perm", "readonly"),
-            # Có kho token riêng ngoài Naota → UI hiện nút "Đăng nhập lại Google (xoá quyền cũ)".
+            # Có kho token riêng ngoài NAOSO → UI hiện nút "Đăng nhập lại Google (xoá quyền cũ)".
             # Chỉ trả CÓ hay KHÔNG (bool), không lộ tên biến môi trường ra frontend.
             "cred_dir": bool(c.get("cred_dir")),
             # Nguồn: connector do GÓI cấp không bao giờ được trông y hệt hàng chính chủ.
@@ -416,7 +416,7 @@ def build_env(connector, secrets):
     Thứ hạng: ô đăng nhập user gõ > env tĩnh catalog; và env user tự đặt ở connection
     thắng cả hai (mcp_store.resolved đặt env connection trước rồi mới setdefault).
     Có khối này để KHỎI đẻ thêm ô nhập bắt user gõ URL kỹ thuật, cũng khỏi bắt user chạy
-    lệnh login ngoài Naota."""
+    lệnh login ngoài NAOSO."""
     env = {}
     for k, v in ((connector or {}).get("env") or {}).items():
         if k and v not in (None, ""):
@@ -557,7 +557,7 @@ def classify(connector, tool, args=None):
 
     # TOOL CỔNG (vd COMPOSIO_MULTI_EXECUTE_TOOL): một tool chạy HÀNG LOẠT hành động con, mỗi cái
     # một tên riêng nằm trong args (tools[].tool_slug). Phân loại theo tên tool cổng thì chỉ có
-    # hai lựa chọn tệ: coi là nguy hiểm (mức Chỉ đọc không đọc được gì, vụ từng gặp: Naota chỉ còn
+    # hai lựa chọn tệ: coi là nguy hiểm (mức Chỉ đọc không đọc được gì, vụ từng gặp: NAOSO chỉ còn
     # công cụ tìm kiếm của Composio nên không đọc nổi lịch dù đã nối) hoặc coi là đọc (lọt lệnh
     # gửi mail). Luật `call_rules` phân loại TỪNG hành động con rồi lấy mức nặng nhất.
     cr = call_rule(c, tool)

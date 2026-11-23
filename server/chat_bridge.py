@@ -1,10 +1,10 @@
-"""Naota Gate: một AI bên ngoài (ChatGPT, Claude...) đọc và nhắn vào hội thoại của Naota như chủ gõ tay.
+"""NAOSO Gate: một AI bên ngoài (ChatGPT, Claude...) đọc và nhắn vào hội thoại của NAOSO như chủ gõ tay.
 
 Vì sao có module này
 ------------------------------
-Gói "Naota trong ChatGPT" (nay là Naota Gate) cho ChatGPT gọi tool của Naota qua MCP. Khi ChatGPT
-muốn Naota LÀM một việc, đường duy nhất là `naota_task`: việc rơi vào Kanban và chạy ngầm. Người
-dùng báo (02/11): không biết việc đó đang chạy, đã dừng hay vẫn sống, và Naota không học được gì
+Gói "NAOSO trong ChatGPT" (nay là NAOSO Gate) cho ChatGPT gọi tool của NAOSO qua MCP. Khi ChatGPT
+muốn NAOSO LÀM một việc, đường duy nhất là `naota_task`: việc rơi vào Kanban và chạy ngầm. Người
+dùng báo (02/11): không biết việc đó đang chạy, đã dừng hay vẫn sống, và NAOSO không học được gì
 vì trao đổi giữa hai bên không đi qua khung chat, mà vòng tự học chỉ đọc khung chat.
 
 Module này cho cửa Gate bốn tool: tìm hội thoại, đọc hội thoại, GỬI tin vào một hội thoại, và chờ
@@ -15,36 +15,36 @@ kho phiên, ghi `memory/conversations` và vào hàng đợi tự học. Không 
 Ranh giới
 ---------
 - Bốn tool chỉ hiện ở cửa Gate (`mcp_hub.tra_loi_jsonrpc(gate=...)`), không bao giờ ở danh sách
-  tool của chính Naota: Naota tự nhắn vào hội thoại của mình là vòng lặp, không phải tính năng.
+  tool của chính NAOSO: NAOSO tự nhắn vào hội thoại của mình là vòng lặp, không phải tính năng.
 - Tool GỬI chỉ có ở mức Toàn quyền: một lượt chat của chủ chạy với quyền của chủ, nên mức Chỉ đọc
   hay Ghi nháp mà gửi được là đi vòng qua chính mức quyền đó.
 - Chỉ gửi vào hội thoại của CHỦ (khung Trò chuyện, chat với Cộng sự). Không đọc, không gửi vào
   hội thoại của khách (bot chuyên trách) hay phiên nhóm.
-- Tin gửi vào mang khối `[GỬI QUA NAOTA GATE: <nguồn>...]` ở đầu, cùng quy ước với các khối ngữ
+- Tin gửi vào mang khối `[GỬI QUA NAOSO GATE: <nguồn>...]` ở đầu, cùng quy ước với các khối ngữ
   cảnh khác: model biết tin từ đâu tới, giao diện gỡ khối ra và hiện nhãn "từ ChatGPT".
 
 Ghi chép
 ------------------
-Chủ dự án 02/11: "chat ở bên nào thì cũng copy hội thoại đấy vào Naota để có ngữ cảnh". Naota không
+Chủ dự án 02/11: "chat ở bên nào thì cũng copy hội thoại đấy vào NAOSO để có ngữ cảnh". NAOSO không
 đọc được lịch sử chat của ChatGPT hay Claude (chúng chỉ gửi sang thứ chúng tự truyền vào lúc gọi
 tool), nên tool thứ năm `naota_chat_note` để AI bên ngoài tự ghi lại phần đáng giữ: chủ hỏi gì, đã
-chốt gì, vì sao. Ghi chép KHÔNG chạy lượt nào của Naota (không tốn hạn mức bộ não), nhưng đi qua đúng
+chốt gì, vì sao. Ghi chép KHÔNG chạy lượt nào của NAOSO (không tốn hạn mức bộ não), nhưng đi qua đúng
 đường lưu lượt chat (`main._persist_turn`): vào Lịch sử, `memory/conversations` và vòng tự học. Mỗi
 cuộc chat bên ngoài có một hội thoại riêng "Từ ChatGPT: <tên>", hoặc ghi thẳng vào một hội thoại có
-sẵn của Naota khi AI đưa `id`.
+sẵn của NAOSO khi AI đưa `id`.
 
 Model, effort và báo khi xong (owner, 14/11/2026)
 -------------------------------------------------
-1. "ChatGPT gửi lệnh cho Naota thì đổi được model và effort ngay trong câu lệnh." `naota_chat_send` nhận `model`
+1. "ChatGPT gửi lệnh cho NAOSO thì đổi được model và effort ngay trong câu lệnh." `naota_chat_send` nhận `model`
    (ghim cho hội thoại đó, y như chủ chọn trên thanh model của khung chat, nên chip thấy và chủ đổi lại được) và
    `effort` (CHỈ cho tin này, không ghi gì vào cài đặt: effort của khung chat là của cả thẻ model, ChatGPT đổi nó là
    đổi luôn mọi hội thoại khác). `naota_chat_models` liệt kê model của các thẻ đã kết nối và thang effort.
-2. "Việc lâu thì ChatGPT không đợi được, Naota xong thì báo để nó đọc." ChatGPT và Claude KHÔNG cho máy ngoài đánh
+2. "Việc lâu thì ChatGPT không đợi được, NAOSO xong thì báo để nó đọc." ChatGPT và Claude KHÔNG cho máy ngoài đánh
    thức một cuộc chat (11/2026 chưa có đường chính thức nào), nên làm phần làm được:
    - mỗi tin gửi qua Gate vào một sổ nhỏ (`SO_VIEC`); AI bên ngoài đọc được câu trả lời là đánh dấu đã đọc;
-   - lượt chat kết thúc mà sau `CHO_DOC_S` giây AI đó vẫn chưa đọc (nó đã thôi chờ), Naota để câu trả lời vào chuông,
+   - lượt chat kết thúc mà sau `CHO_DOC_S` giây AI đó vẫn chưa đọc (nó đã thôi chờ), NAOSO để câu trả lời vào chuông,
      chuông đẩy về điện thoại, kèm câu chủ chỉ cần nhắn sang ChatGPT;
-   - `naota_chat_updates` trả mọi việc AI đó giao mà chưa đọc, nên câu "xem kết quả Naota" chạy được cả ở một cuộc
+   - `naota_chat_updates` trả mọi việc AI đó giao mà chưa đọc, nên câu "xem kết quả NAOSO" chạy được cả ở một cuộc
      chat MỚI bên ChatGPT, không cần nó còn giữ `after_id`;
    - lời nhắc của `naota_chat_result` bảo AI chờ tiếp trong cùng lượt (tới khoảng 10 phút) thay vì bỏ cuộc sau 25 giây.
 """
@@ -60,13 +60,13 @@ from typing import Any, Callable, Dict, List, Optional
 from config import STATE_DIR
 import localefmt
 
-KHOI_GATE = "[GỬI QUA NAOTA GATE:"
+KHOI_GATE = "[GỬI QUA NAOSO GATE:"
 MAX_TIN = 7000            # steer_inbox.MAX_CHARS là 8000, chừa chỗ cho khối nguồn
 MAX_CHU_MOT_TIN = 4000    # mỗi tin khi đọc hội thoại
 MAX_TRA_VE = 14000        # tổng chữ một lần trả về cho AI bên ngoài
 CHO_MAC_DINH = 25         # giây; client MCP không chờ một lần gọi quá lâu
 CHO_TOI_DA = 50
-_NGUON_RE = re.compile(r"^\s*\[GỬI QUA NAOTA GATE: ([^.\]\n]{1,40})")
+_NGUON_RE = re.compile(r"^\s*\[GỬI QUA NAOSO GATE: ([^.\]\n]{1,40})")
 MAX_GHI_CHEP = 4000       # mỗi trường của một ghi chép
 SO_GHI_CHEP = STATE_DIR / "gate-notes.json"   # {"<nguồn>|<tên cuộc chat đã gập>": mã hội thoại}
 SO_VIEC = STATE_DIR / "gate-jobs.json"        # việc AI bên ngoài giao mà nó chưa đọc kết quả, xem `_ghi_viec`
@@ -75,8 +75,8 @@ MAX_MODEL_MOT_THE = 40    # OpenRouter có hàng trăm model: naota_chat_models 
 CHO_DOC_S = 60            # giây sau khi lượt xong mà AI vẫn chưa đọc thì rung chuông: nó đã thôi chờ
 GIU_VIEC_S = 7 * 24 * 3600
 MAX_VIEC = 100
-CHO_KHUYEN_S = 600        # lời khuyên cho AI: chờ trong cùng lượt tới chừng này rồi mới bảo chủ "Naota sẽ báo"
-# Tên effort hay gặp ngoài thang của Naota: "max" của Claude Code/Codex là nấc "ultra" của Naota.
+CHO_KHUYEN_S = 600        # lời khuyên cho AI: chờ trong cùng lượt tới chừng này rồi mới bảo chủ "NAOSO sẽ báo"
+# Tên effort hay gặp ngoài thang của NAOSO: "max" của Claude Code/Codex là nấc "ultra" của NAOSO.
 _EFFORT_KHAC = {"max": "ultra", "maximum": "ultra", "none": "off", "minimal": "low", "med": "medium"}
 _THEO_CHINH = {"default", "main", "auto", "mac dinh", "theo mac dinh"}
 
@@ -131,7 +131,7 @@ def khoi_ghi_chep(nguon: str) -> str:
     """Khối đầu của một ghi chép: cùng tiền tố với `khoi` (giao diện gỡ khối, hiện nhãn nguồn), nhưng nói rõ
     với model đây là ghi chép để nắm ngữ cảnh, không phải yêu cầu làm gì."""
     n = ten_nguon(nguon)
-    return (f"{KHOI_GATE} {n}. Ghi chép từ cuộc chat của chủ trên {n}, để Naota nắm ngữ cảnh và nhớ "
+    return (f"{KHOI_GATE} {n}. Ghi chép từ cuộc chat của chủ trên {n}, để NAOSO nắm ngữ cảnh và nhớ "
             f"quyết định của chủ; không phải yêu cầu làm việc.]\n\n")
 
 
@@ -208,7 +208,7 @@ def muc_effort() -> tuple:
 
 
 def chuan_effort(v: Any) -> Optional[str]:
-    """"" = không đổi, một nấc của thang Naota, hoặc None khi không nhận ra. Nhận cả tên nấc của nhà khác ("max") và
+    """"" = không đổi, một nấc của thang NAOSO, hoặc None khi không nhận ra. Nhận cả tên nấc của nhà khác ("max") và
     vài chữ tiếng Việt ("cao"), vì AI bên ngoài chép lời chủ."""
     e = _gap(v)
     if not e:
@@ -318,7 +318,7 @@ def _ghi_viec(ds: List[dict]) -> None:
 
 
 def _them_viec(row: dict, after_id: int, nguon: str) -> str:
-    """Ghi một việc vào sổ, trả mã của dòng đó (để gỡ lại nếu Naota không nhận tin)."""
+    """Ghi một việc vào sổ, trả mã của dòng đó (để gỡ lại nếu NAOSO không nhận tin)."""
     ma = f"{time.time():.6f}-{len(_doc_viec())}"
     ds = _doc_viec()
     ds.append({"ma": ma, "sid": row["id"], "after_id": int(after_id or 0), "nguon": ten_nguon(nguon),
@@ -336,7 +336,7 @@ def _bo_viec(ma: str) -> None:
 
 
 def _da_doc(sid: str, after_id: int) -> None:
-    """AI bên ngoài vừa nhận mọi câu Naota viết sau tin `after_id`: các việc gửi từ đó trở đi không cần báo nữa."""
+    """AI bên ngoài vừa nhận mọi câu NAOSO viết sau tin `after_id`: các việc gửi từ đó trở đi không cần báo nữa."""
     ds = _doc_viec()
     doi = False
     for x in ds:
@@ -362,8 +362,8 @@ def noi_dung_bao(nguon: str, ten: str, tra_loi: str) -> str:
     """Mẩu chuông khi việc xong mà AI bên ngoài không còn chờ. Dòng đầu là tiêu đề thông báo trên điện thoại."""
     n = ten_nguon(nguon)
     dau = localefmt.chu(f"Naota đã xong việc {n} giao: {ten}", f"Naota finished the task from {n}: {ten}")
-    cuoi = localefmt.chu(f"{n} không tự đọc được. Mở {n} và nhắn: \"xem kết quả Naota\".",
-                         f"{n} cannot pick this up by itself. Open {n} and say: \"check Naota results\".")
+    cuoi = localefmt.chu(f"{n} không tự đọc được. Mở {n} và nhắn: \"xem kết quả NAOSO\".",
+                         f"{n} cannot pick this up by itself. Open {n} and say: \"check NAOSO results\".")
     return f"{dau}\n\n{_cat(tra_loi.strip(), MAX_CHU_BAO)}\n\n{cuoi}"
 
 
@@ -551,7 +551,7 @@ def _ma_cuoi(st, sid: str) -> int:
 
 async def gui(sid: str, text: str, nguon: str, model: Any = None, effort: Any = "") -> dict:
     """Đưa một tin vào hội thoại như chủ gõ. Phiên đang trả lời thì tin thành tin GÕ THÊM (lượt đang
-    chạy đọc nó, hoặc nó chạy ngay sau lượt đó), y như chủ gõ thêm trong lúc Naota đang làm.
+    chạy đọc nó, hoặc nó chạy ngay sau lượt đó), y như chủ gõ thêm trong lúc NAOSO đang làm.
 
     `model`: ghim cho hội thoại (như thanh model của khung chat). `effort`: chỉ cho tin này. Cả hai chỉ đổi được
     giữa hai lượt: lượt đang chạy đã chọn model và effort từ lúc bắt đầu."""
@@ -577,12 +577,12 @@ async def gui(sid: str, text: str, nguon: str, model: Any = None, effort: Any = 
     truoc = _ma_cuoi(st, row["id"])
     dang_chay = _dang_chay(row["id"])
     if dang_chay and (doi_model or eff):
-        return {"ok": False, "error": "Naota is answering in this conversation right now; model and effort only change "
+        return {"ok": False, "error": "NAOSO is answering in this conversation right now; model and effort only change "
                                       "between turns. Wait with naota_chat_result, then send again, or send without "
                                       "model and effort to add the message to the turn that is running."}
     if doi_model:
         if "models" not in _HOST or "ghim" not in _HOST:
-            return {"ok": False, "error": "changing the model is not available on this Naota"}
+            return {"ok": False, "error": "changing the model is not available on this NAOSO"}
         chon = chon_model(model, _HOST["models"]().get("providers") or [])
         if not chon.get("ok"):
             return {"ok": False, "error": chon["error"]}
@@ -612,7 +612,7 @@ async def gui(sid: str, text: str, nguon: str, model: Any = None, effort: Any = 
         return {"ok": False, "error": str(loi.get("content") or "rejected")}
     if not dang_chay and not _dang_chay(row["id"]) and _ma_cuoi(st, row["id"]) <= truoc:
         _bo_viec(ma_viec)
-        return {"ok": False, "error": "Naota did not take the message"}
+        return {"ok": False, "error": "NAOSO did not take the message"}
     out = {"ok": True, "id": row["id"], "title": row.get("title") or "",
            "mode": "queued" if dang_chay else "started", "after_id": truoc}
     if (doi_model or eff) and "model_cua" in _HOST:
@@ -624,7 +624,7 @@ async def gui(sid: str, text: str, nguon: str, model: Any = None, effort: Any = 
 
 
 async def ket_qua(sid: str, after_id: int = 0, cho: float = CHO_MAC_DINH) -> dict:
-    """Chờ tối đa `cho` giây cho lượt xong, rồi trả các câu Naota viết sau tin `after_id`."""
+    """Chờ tối đa `cho` giây cho lượt xong, rồi trả các câu NAOSO viết sau tin `after_id`."""
     st = _store()
     row = st.get_session(str(sid or ""))
     if not row or not doc_duoc(row.get("channel")):
@@ -652,7 +652,7 @@ async def ket_qua(sid: str, after_id: int = 0, cho: float = CHO_MAC_DINH) -> dic
         out = {"ok": True, "status": "running", "answer_so_far": chu, "writing_now": dang_viet,
                "hint": (f"Naota is still working. Call naota_chat_result again now with the same after_id, and keep "
                         f"waiting in this reply for up to about {CHO_KHUYEN_S // 60} minutes in total. Past that, tell "
-                        "the owner Naota carries on by itself and will notify their phone when it is done; when they "
+                        "the owner NAOSO carries on by itself and will notify their phone when it is done; when they "
                         "ask, call naota_chat_updates.")}
         gui_luc = [float(x.get("gui") or 0) for x in _doc_viec()
                    if x["sid"] == row["id"] and int(x.get("after_id") or 0) >= after_id]
@@ -716,7 +716,7 @@ def noi_dung_ghi_chep(nguon: str, hoi: str, tra_loi: str, chot: str) -> str:
 
 async def ghi_chep(nguon: str, ten: str = "", hoi: str = "", tra_loi: str = "", chot: str = "",
                    sid: str = "") -> dict:
-    """Lưu một ghi chép của AI bên ngoài vào Naota. KHÔNG chạy lượt nào của Naota."""
+    """Lưu một ghi chép của AI bên ngoài vào NAOSO. KHÔNG chạy lượt nào của NAOSO."""
     if "luu" not in _HOST:
         return {"ok": False, "error": "chat notes are not ready"}
     hoi, tra_loi, chot = (str(x or "").strip() for x in (hoi, tra_loi, chot))
@@ -761,10 +761,10 @@ async def ghi_chep(nguon: str, ten: str = "", hoi: str = "", tra_loi: str = "", 
 # ─────────────────────────── coding-agent transcripts ───────────────────────────
 # Owner, 20/11/2026: "hook tự động cho cả Claude Code và Codex". The Gate tools only save what the outside AI chooses
 # to send, and a coding agent busy writing code almost never calls naota_chat_note, so its sessions never reached
-# Naota. `tools/naota-sync/naota_sync.py` runs as a Claude Code Stop hook and as Codex's `notify` program and posts
+# NAOSO. `tools/naota-sync/naota_sync.py` runs as a Claude Code Stop hook and as Codex's `notify` program and posts
 # each finished turn (the owner's prompt, the agent's final answer) to POST /chat/external, which lands here. Nothing
 # runs on Naota's side: each turn goes through the same save path as a Gate note (History, memory/conversations, the
-# learning queue), one Naota conversation per outside session, titled "From Claude Code: <project>: <first prompt>".
+# learning queue), one NAOSO conversation per outside session, titled "From Claude Code: <project>: <first prompt>".
 
 TRANSCRIPT_SOURCES = {"claude-code": "Claude Code", "codex": "Codex"}
 TRANSCRIPT_BOOK = STATE_DIR / "gate-transcripts.json"   # {"<source>|<session>": {"sid": ..., "seen": [turn ids]}}
@@ -779,8 +779,8 @@ def transcript_block(source: str) -> str:
     """Head of a saved transcript prompt: the same prefix as `khoi` (the dashboard strips it and shows "from Claude
     Code"), and it tells the model the answer under it was the outside agent's, not Naota's."""
     n = ten_nguon(source)
-    return (f"{KHOI_GATE} {n}. Transcript of the owner's own {n} session, saved so Naota keeps the context. The reply "
-            f"saved under this message was written by {n}, not by Naota. Not a request to act.]\n\n")
+    return (f"{KHOI_GATE} {n}. Transcript of the owner's own {n} session, saved so NAOSO keeps the context. The reply "
+            f"saved under this message was written by {n}, not by NAOSO. Not a request to act.]\n\n")
 
 
 def _transcript_book() -> Dict[str, dict]:
@@ -816,7 +816,7 @@ def _transcript_title(name: str, project: str, first_prompt: str) -> str:
 
 
 async def log_transcript(source: str, session: str, turns: Any, project: str = "") -> dict:
-    """Save finished turns of an outside coding agent's session into its own Naota conversation. Runs no Naota turn.
+    """Save finished turns of an outside coding agent's session into its own NAOSO conversation. Runs no NAOSO turn.
 
     `turns`: [{"id": unique per turn, "user": the owner's prompt, "assistant": the agent's final answer}], oldest
     first. A turn whose id was saved before is skipped, so the hook can resend after a timeout. Answers
@@ -904,16 +904,16 @@ _URL_RE = re.compile(r"^https?://[A-Za-z0-9.-]+(:\d{1,5})?(/[^\s'\"]*)?$")
 # Gate cannot see the outside chat (MCP only shows it the tool calls), so a coding agent with a shell sets up the hook
 # itself, after one yes from the owner.
 GATE_INSTRUCTIONS = (
-    "This server is the owner's Naota, their personal assistant. Naota keeps context from the owner's other AI chats. "
+    "This server is the owner's NAOSO, their personal assistant. NAOSO keeps context from the owner's other AI chats. "
     "If you are a coding agent with a shell (Claude Code, Codex) and the file ~/.naota-sync/config.json does not exist "
-    "on this machine, ask the owner once, in their language, whether to turn on Naota Sync (every turn of this coding "
-    "agent saved into Naota automatically). If they agree, call naota_sync_setup and run the command it returns. Do not "
-    "ask again in this session if they decline. Without Naota Sync, call naota_chat_note when the owner settles "
+    "on this machine, ask the owner once, in their language, whether to turn on NAOSO Sync (every turn of this coding "
+    "agent saved into NAOSO automatically). If they agree, call naota_sync_setup and run the command it returns. Do not "
+    "ask again in this session if they decline. Without NAOSO Sync, call naota_chat_note when the owner settles "
     "something worth remembering.")
 
 
 def sync_setup(source: str, naota_url: str = "", system: str = "", gate_url: str = "") -> dict:
-    """Naota Gate: mint a `sync` API token and give the outside AI the one command that installs Naota Sync on its
+    """NAOSO Gate: mint a `sync` API token and give the outside AI the one command that installs NAOSO Sync on its
     machine. The token reaches only POST /chat/external, which saves transcripts: what naota_chat_note does already.
 
     Address order: `naota_url` from the AI, then `gate_url` (the public address the Gate package answered on, the one
@@ -927,14 +927,14 @@ def sync_setup(source: str, naota_url: str = "", system: str = "", gate_url: str
             url = ""
     if not url:
         return {"ok": False, "error": (
-            "Naota does not know its public address. Call naota_sync_setup again with naota_url = the scheme and host "
+            "NAOSO does not know its public address. Call naota_sync_setup again with naota_url = the scheme and host "
             "of this MCP server's URL in your own MCP config (for example https://naota.example.com).")}
     if not _URL_RE.match(url):
         return {"ok": False, "error": "naota_url must look like https://naota.example.com"}
     mine = [t for t in cfgmod.list_api_tokens() if t.get("scope") == "sync"]
     if len(mine) >= MAX_SYNC_TOKENS:
         return {"ok": False, "error": (
-            f"Naota already has {len(mine)} Naota Sync tokens. Ask the owner to revoke unused ones on the Integrations "
+            f"Naota already has {len(mine)} NAOSO Sync tokens. Ask the owner to revoke unused ones on the Integrations "
             "page, API tokens tab, then try again.")}
     tok = cfgmod.create_api_token(f"Naota Sync ({ten_nguon(source)})", "sync")["token"]
     win = str(system or "").strip().lower().startswith("win")
@@ -947,7 +947,7 @@ def sync_setup(source: str, naota_url: str = "", system: str = "", gate_url: str
     return {"ok": True, "command": cmd, "shell": "powershell" if win else "sh",
             "how": ("Run the command in a shell on THIS machine (it adds a Claude Code Stop hook and a Codex notify "
                     "line, with backups, and tests the connection first), then tell the owner in one or two "
-                    "sentences that Naota Sync is on and sessions show up in Naota History as 'From Claude Code: ...' "
+                    "sentences that NAOSO Sync is on and sessions show up in NAOSO History as 'From Claude Code: ...' "
                     "or 'From Codex: ...' after the agent restarts. Do not repeat the token in chat.")}
 
 
@@ -959,7 +959,7 @@ TOOLS: Dict[str, dict] = {
     "naota_chat_find": {
         "muc": "doc",
         "description": (
-            "Find the owner's Naota conversations by title (accents ignored) or by words in their messages. "
+            "Find the owner's NAOSO conversations by title (accents ignored) or by words in their messages. "
             "Empty query lists the most recent chats. Use this first when the owner names a chat "
             "(for example 'the Viet Web chat')."),
         "schema": {"type": "object", "properties": {
@@ -969,31 +969,31 @@ TOOLS: Dict[str, dict] = {
     "naota_chat_read": {
         "muc": "doc",
         "description": (
-            "Read the last messages of one Naota conversation, oldest first, so you can advise the owner "
-            "on what to do next. 'running' tells whether Naota is answering right now."),
+            "Read the last messages of one NAOSO conversation, oldest first, so you can advise the owner "
+            "on what to do next. 'running' tells whether NAOSO is answering right now."),
         "schema": {"type": "object", "required": ["id"], "properties": {
             "id": _ID, "last": {"type": "integer", "description": "How many recent messages, 1-60 (default 20)."}}},
     },
     "naota_chat_send": {
         "muc": "full",
         "description": (
-            "Post a message into a Naota conversation as if the owner typed it there, so Naota does the work "
-            "in that chat: the owner watches it live, can press Stop, and Naota learns from it. Only send "
+            "Post a message into a NAOSO conversation as if the owner typed it there, so NAOSO does the work "
+            "in that chat: the owner watches it live, can press Stop, and NAOSO learns from it. Only send "
             "after the owner agreed. Start the message with one line on what the owner approved and why, "
             "then the instruction. model and effort: set them when the owner asks for a model or an effort, or "
             "agreed to the one you proposed (naota_chat_models lists them); the model stays pinned on that "
             "conversation as if the owner picked it in the chat's model bar, the effort counts for this message "
-            "only. Waits up to wait_seconds for the reply; if Naota is still working, call naota_chat_result with "
+            "only. Waits up to wait_seconds for the reply; if NAOSO is still working, call naota_chat_result with "
             "the returned after_id. Prefer this over naota_task for work in a chat."),
         "schema": {"type": "object", "required": ["id", "message"], "properties": {
             "id": _ID,
-            "message": {"type": "string", "description": "The instruction for Naota, in the owner's language."},
+            "message": {"type": "string", "description": "The instruction for NAOSO, in the owner's language."},
             "model": {"type": "string", "description": (
                 "Optional. The model this conversation runs on from now: '<provider>/<model id>' from "
                 "naota_chat_models, a model id, a provider for its default model, or 'default' to follow Naota's "
                 "main model. Leave out to keep the current one.")},
             "effort": {"type": "string", "enum": ["off", "low", "medium", "high", "xhigh", "ultra"],
-                       "description": ("Optional. How hard Naota thinks, for this message only. 'ultra' is the "
+                       "description": ("Optional. How hard NAOSO thinks, for this message only. 'ultra' is the "
                                        "engine's maximum. Leave out to keep the conversation's own level.")},
             "wait_seconds": {"type": "integer",
                              "description": f"Seconds to wait for the reply, 0-{CHO_TOI_DA} (default {CHO_MAC_DINH})."}}},
@@ -1001,9 +1001,9 @@ TOOLS: Dict[str, dict] = {
     "naota_chat_models": {
         "muc": "doc",
         "description": (
-            "List the models Naota can run on (its connected providers, each with its models) and the effort "
+            "List the models NAOSO can run on (its connected providers, each with its models) and the effort "
             "levels; with id, also the model and effort that conversation uses now. Use it before naota_chat_send "
-            "with model or effort, or when the owner asks which models Naota has."),
+            "with model or effort, or when the owner asks which models NAOSO has."),
         "schema": {"type": "object", "properties": {
             "id": {"type": "string", "description": "Optional: a conversation id, to see its current model and effort."},
             "query": {"type": "string", "description": "Optional: words to filter models by, e.g. 'opus' or 'gpt'."}}},
@@ -1011,36 +1011,36 @@ TOOLS: Dict[str, dict] = {
     "naota_chat_updates": {
         "muc": "doc",
         "description": (
-            "Results of the work YOU sent Naota with naota_chat_send that you have not read yet, across all "
-            "conversations: finished ones with Naota's answer, unfinished ones with how long Naota has been at it. "
-            "Call it when the owner asks what Naota finished, for example 'check Naota results', 'xem kết quả "
-            "Naota', 'Naota xong chưa', 'xem tiếp', also in a new chat where you no longer have an after_id. Naota "
+            "Results of the work YOU sent NAOSO with naota_chat_send that you have not read yet, across all "
+            "conversations: finished ones with Naota's answer, unfinished ones with how long NAOSO has been at it. "
+            "Call it when the owner asks what NAOSO finished, for example 'check NAOSO results', 'xem kết quả "
+            "Naota', 'NAOSO xong chưa', 'xem tiếp', also in a new chat where you no longer have an after_id. NAOSO "
             "notifies the owner's phone when such work finishes while you are not waiting."),
         "schema": {"type": "object", "properties": {}},
     },
     "naota_chat_note": {
         "muc": "ghi",
         "description": (
-            "Save a note of THIS chat into Naota so Naota keeps the context and remembers the owner's decisions. "
-            "It does not run Naota and costs Naota nothing. Call it whenever the owner settles something (a "
+            "Save a note of THIS chat into NAOSO so NAOSO keeps the context and remembers the owner's decisions. "
+            "It does not run NAOSO and costs NAOSO nothing. Call it whenever the owner settles something (a "
             "decision, a choice, a plan, a fact about their business), and when a useful chat ends; not after "
             "every message. asked: what the owner said, in their own words where it matters. answered: your "
             "answer in 1-5 sentences. decided: what the owner agreed or chose, and why. title: a short name for "
             "this chat, the SAME every time in this chat so notes land together. To note into one existing "
-            "Naota chat instead (for example the chat this work belongs to), pass its id."),
+            "NAOSO chat instead (for example the chat this work belongs to), pass its id."),
         "schema": {"type": "object", "required": ["asked"], "properties": {
             "title": {"type": "string", "description": "Short name of this chat on your side, stable across calls."},
             "asked": {"type": "string", "description": "What the owner said or asked."},
             "answered": {"type": "string", "description": "Your answer, short."},
             "decided": {"type": "string", "description": "What the owner decided, and why. Empty if nothing yet."},
-            "id": {"type": "string", "description": "Optional: a Naota conversation id to note into instead."}}},
+            "id": {"type": "string", "description": "Optional: a NAOSO conversation id to note into instead."}}},
     },
     "naota_sync_setup": {
         "muc": "ghi",
         "description": (
-            "Turn on Naota Sync on this machine: every Claude Code / Codex turn (the owner's prompt and your final "
-            "answer) then saves into Naota automatically, through a Stop hook / notify program. Call it when the owner "
-            "agrees to Naota Sync or asks for it, then run the returned command in your shell. Pass naota_url only if "
+            "Turn on NAOSO Sync on this machine: every Claude Code / Codex turn (the owner's prompt and your final "
+            "answer) then saves into NAOSO automatically, through a Stop hook / notify program. Call it when the owner "
+            "agrees to NAOSO Sync or asks for it, then run the returned command in your shell. Pass naota_url only if "
             "the tool asks for it; system='windows' on Windows."),
         "schema": {"type": "object", "properties": {
             "naota_url": {"type": "string", "description": "Optional: Naota's address, e.g. https://naota.example.com."},
@@ -1052,7 +1052,7 @@ TOOLS: Dict[str, dict] = {
             "Wait for and return Naota's reply after naota_chat_send. status: done (answer), running (call again), "
             "no_answer (stopped or failed). While it is running, call it again straight away with the same after_id "
             f"and keep waiting in this same reply for up to about {CHO_KHUYEN_S // 60} minutes (working_for_s says "
-            "how long Naota has been at it). Past that, tell the owner Naota carries on by itself and will notify "
+            "how long NAOSO has been at it). Past that, tell the owner NAOSO carries on by itself and will notify "
             "their phone when it is done; when they ask, call naota_chat_updates."),
         "schema": {"type": "object", "required": ["id", "after_id"], "properties": {
             "id": _ID,
@@ -1065,7 +1065,7 @@ TOOLS: Dict[str, dict] = {
 
 def _du_quyen(mode: str, muc: str = "full") -> bool:
     """Mức của cửa Gate có đủ cho mức tool không. `doc`: mọi mức. `ghi` (lưu ghi chép, không làm việc ra ngoài):
-    Ghi nháp và Toàn quyền. `full` (để Naota LÀM việc): chỉ Toàn quyền."""
+    Ghi nháp và Toàn quyền. `full` (để NAOSO LÀM việc): chỉ Toàn quyền."""
     m = str(mode or "").strip().lower()
     if muc == "doc":
         return True
@@ -1095,8 +1095,8 @@ async def goi_tool(ten: str, args: Optional[dict], mode: str, nguon: str, base_u
         return f"ERROR: unknown tool {ten}"
     if not _du_quyen(mode, t["muc"]):
         can = "Full access" if t["muc"] == "full" else "the Draft or Full access level"
-        return (f"ERROR: {ten} needs {can}. The owner can raise it on the Naota Gate page in Naota "
-                "(Plugins, Naota Gate, Open page).")
+        return (f"ERROR: {ten} needs {can}. The owner can raise it on the NAOSO Gate page in NAOSO "
+                "(Plugins, NAOSO Gate, Open page).")
     try:
         if ten == "naota_chat_find":
             kq = tim(a.get("query") or "", _so(a.get("limit"), 10))

@@ -2,7 +2,7 @@
 
 *[Tiếng Việt](../23-muc-dung-token.md) · **English***
 
-The **Usage** page answers two questions that go together: *how many tokens you burned* and *how to burn fewer*. Naota measures these numbers itself from the real logs on the machine rather than asking the provider, so you also see the part Claude and ChatGPT never reveal: what Naota's own background runs consumed.
+The **Usage** page answers two questions that go together: *how many tokens you burned* and *how to burn fewer*. NAOSO measures these numbers itself from the real logs on the machine rather than asking the provider, so you also see the part Claude and ChatGPT never reveal: what Naota's own background runs consumed.
 
 At the very top of the page is the **Token saving mode** block with three buttons. It used to be a separate "Saving" page on the sidebar; the two were merged because when they were apart, people read the whole bill and never saw the switch.
 
@@ -10,7 +10,7 @@ This page covers choosing the saving level, then reading each card, each chart a
 
 ## What this feature is
 
-Naota sees the input and output tokens of **every** answer, whichever engine ran it (Claude Code, ChatGPT/Codex, OpenRouter, OpenAI, Anthropic). So the numbers here are consistent, **regardless of whether the provider exposes quotas at all**.
+NAOSO sees the input and output tokens of **every** answer, whichever engine ran it (Claude Code, ChatGPT/Codex, OpenRouter, OpenAI, Anthropic). So the numbers here are consistent, **regardless of whether the provider exposes quotas at all**.
 
 Two things to remember before reading any number:
 
@@ -19,7 +19,7 @@ Two things to remember before reading any number:
 
 The page gives you: a filter of 8 periods and 4 providers, summary cards with a comparison against the previous period, a per-day token chart, three breakdown bar charts (consumption source / activity / provider), two ranking tables (models and projects), and an auto-generated list of saving suggestions.
 
-## Where to open it in Naota
+## Where to open it in NAOSO
 
 Open the dashboard (default port 7777). On the left navigation rail, open the **System** group (pinned at the bottom of the rail), then choose **Settings → Usage**.
 
@@ -27,7 +27,7 @@ The **Usage** tab contains the filters, token statistics and costs.
 
 ## Token saving mode (the block at the top)
 
-Every time you chat, Naota has to send the model a pile of background information: who it is, which tools it has, what it remembers about you, what was said before. That pile costs money and eats quota. The three buttons here decide how big it is.
+Every time you chat, NAOSO has to send the model a pile of background information: who it is, which tools it has, what it remembers about you, what was said before. That pile costs money and eats quota. The three buttons here decide how big it is.
 
 - **Off** - the Full mode. Everything, every turn. The safest, the most expensive.
 - **Optimised** - only what relates to the question just asked: selective memory, skills loaded on demand.
@@ -39,7 +39,7 @@ If the brain you are running does not support a level, that level's button says 
 
 Once enough turns have run in both modes within 24 hours, a **measured** number block appears right under the three buttons: tokens per turn in Full mode, tokens per turn while saving, and the percentage saved. Those are real numbers, not estimates.
 
-**A level change takes effect immediately**, no restart needed. If Naota starts answering worse, clicking **Off** returns it to how it was at once.
+**A level change takes effect immediately**, no restart needed. If NAOSO starts answering worse, clicking **Off** returns it to how it was at once.
 
 ### Why the default is Ultra-saving
 
@@ -47,13 +47,13 @@ Previously the default was **Off**, and almost nobody turned it on, meaning most
 
 This is a safe default rather than a gamble: every path in this mode is **fail-closed**. Missing a prerequisite makes that turn drop back to Full mode rather than answering wrong.
 
-If you **ever clicked a level yourself**, Naota pins that choice and no update changes it again, even when you deliberately clicked **Off**. The line under the three buttons tells you whether you are on the default or on your own choice.
+If you **ever clicked a level yourself**, NAOSO pins that choice and no update changes it again, even when you deliberately clicked **Off**. The line under the three buttons tells you whether you are on the default or on your own choice.
 
 ## How to use it (step by step)
 
 ### Step 1: Open the page and wait for the first scan
 
-On arrival, the page reads "Building the token index...". The first opening makes Naota **re-scan the logs** before drawing, so it can take a few seconds if you have used it for months. Later filter changes do not scan again, only reading the index, so they are very fast.
+On arrival, the page reads "Building the token index...". The first opening makes NAOSO **re-scan the logs** before drawing, so it can take a few seconds if you have used it for months. Later filter changes do not scan again, only reading the index, so they are very fast.
 
 If the page reports "Could not load token data", the server has not returned anything, see Common problems.
 
@@ -100,7 +100,7 @@ The horizontal axis shows days of the month. Hovering a bar shows a tooltip like
 
 Below the chart are three horizontal bar charts, the most important part of the page:
 
-- **Consumption source (you vs Naota)** - two rows: "You typing" and "Naota (running itself)".
+- **Consumption source (you vs NAOSO)** - two rows: "You typing" and "NAOSO (running itself)".
 - **Activity** - four rows: "Chat", "Background (loop/schedule)", "Subagent", "Manual".
 - **Provider** - "Claude Code", "ChatGPT/Codex", "API (OpenRouter...)".
 
@@ -109,11 +109,11 @@ The meaning of each label is in [Consumption source and activity type](#consumpt
 Next are two ranking tables, each showing at most 8 rows:
 
 - **Hungriest models**: the Model, Tokens and Converted columns. Model names are shortened to fit (dropping the `claude-` / `gpt-` prefix, trimming long tails). The Converted column shows "-" when that model is not in the price table.
-- **Hungriest projects**: the Project, Tokens and Sessions columns. "Project" is the brain name when Naota recognises which brain the session belonged to, otherwise the working folder name.
+- **Hungriest projects**: the Project, Tokens and Sessions columns. "Project" is the brain name when NAOSO recognises which brain the session belonged to, otherwise the working folder name.
 
 ### Step 7: Read the Suggestions section
 
-When the figures cross a threshold, Naota generates suggestion cards at the bottom of the page. An ⚠️ card with an orange border is something you should do, a 💡 card with a blue border is a hint. Threshold details are in [Saving suggestions](#saving-suggestions).
+When the figures cross a threshold, NAOSO generates suggestion cards at the bottom of the page. An ⚠️ card with an orange border is something you should do, a 💡 card with a blue border is a hint. Threshold details are in [Saving suggestions](#saving-suggestions).
 
 No cards at all means every metric is within normal bounds, not that something is broken.
 
@@ -142,21 +142,21 @@ This is where you learn **what is eating your quota**, and it is exactly what th
 
 | Label | What it means |
 |---|---|
-| **You typing** | Sessions where you opened `claude` in a terminal yourself, not through Naota |
-| **Naota (running itself)** | Sessions Naota started through the Agent SDK: dashboard chat, Telegram chat, background work, workflows |
+| **You typing** | Sessions where you opened `claude` in a terminal yourself, not through NAOSO |
+| **NAOSO (running itself)** | Sessions NAOSO started through the Agent SDK: dashboard chat, Telegram chat, background work, workflows |
 
 **Activity** splits in four:
 
 | Label | What it means |
 |---|---|
 | **Chat** | Turns tied to a real conversation session in your history |
-| **Background (loop/schedule)** | Turns Naota ran with no conversation session attached: recurring jobs, reminders, Kanban work, digesting sources, self-learning |
+| **Background (loop/schedule)** | Turns NAOSO ran with no conversation session attached: recurring jobs, reminders, Kanban work, digesting sources, self-learning |
 | **Subagent** | Turns from a child agent the engine spawned for a side job |
-| **Manual** | Turns from sessions you typed yourself outside Naota |
+| **Manual** | Turns from sessions you typed yourself outside NAOSO |
 
 A swelling **Background (loop/schedule)** bar is the clearest sign you have loops running too often. Review them on the **Recurring jobs** page ([Recurring jobs and reminders](08-recurring-jobs.md)) or the **Work** page ([Work / Kanban](21-kanban-work.md)).
 
-One limitation to know: **this split is only accurate for Claude Code.** For ChatGPT/Codex, Naota cannot yet separate background from chat, so every turn falls into "Naota (running itself)" + "Chat". The API branch is the same.
+One limitation to know: **this split is only accurate for Claude Code.** For ChatGPT/Codex, NAOSO cannot yet separate background from chat, so every turn falls into "NAOSO (running itself)" + "Chat". The API branch is the same.
 
 ## Converted cost and real money
 
@@ -164,7 +164,7 @@ The **Converted cost** card and the **Converted** column in the model table are 
 
 So the converted figure is always an estimate, and always lower than reality if you use a model not in the price table. For more accuracy, edit that file by hand and restart the server.
 
-**OpenRouter's real balance** is the one thing on this page that is real money. The "OpenRouter left" card only appears once you have saved an OpenRouter key on the **Models** page (the System group). Naota asks OpenRouter directly how much credit was added and used, then shows the remainder with the line "real money spent $...". With no key there is no card, and no other provider exposes an equivalent figure.
+**OpenRouter's real balance** is the one thing on this page that is real money. The "OpenRouter left" card only appears once you have saved an OpenRouter key on the **Models** page (the System group). NAOSO asks OpenRouter directly how much credit was added and used, then shows the remainder with the line "real money spent $...". With no key there is no card, and no other provider exposes an equivalent figure.
 
 ## Saving suggestions
 
@@ -182,13 +182,13 @@ Each card carries a specific suggested action, for example the low-cache suggest
 
 ## Most-used tools are pinned
 
-When a brain has many sources connected, Naota hides most tools and looks one up only when needed, so each question stays light. The price: a tool you use every day costs one extra "search, then call" round each time.
+When a brain has many sources connected, NAOSO hides most tools and looks one up only when needed, so each question stays light. The price: a tool you use every day costs one extra "search, then call" round each time.
 
-From this version Naota counts which tools each brain calls most and **pins** a few of them (up to 4 by default; Naota Core widens that up to 8 when needed). A pinned tool is called directly, one round fewer each time. Background work such as loops gains the most.
+From this version NAOSO counts which tools each brain calls most and **pins** a few of them (up to 4 by default; NAOSO Core widens that up to 8 when needed). A pinned tool is called directly, one round fewer each time. Background work such as loops gains the most.
 
 - Nothing to set up. The first pins and every added pin get a notice in the bell.
 - A tool you stop using leaves the list on its own. One brain's list changes at most once a day.
-- Ask Naota "which tools are pinned" to see them. Say "stop pinning tools" to turn it off.
+- Ask NAOSO "which tools are pinned" to see them. Say "stop pinning tools" to turn it off.
 - Permissions do not change: a pinned tool still follows the permission level of its connection and of the job running.
 
 ## Large tool results: stored whole, the model reads only what it needs
@@ -206,14 +206,14 @@ Three features come with it:
 
 - **Scout (`naota_scout`).** The main model can hand a read across several sources to the **background model** you chose on the Models page. A scout can only read, and only its findings return to the chat. If it cannot run, the main model does the reading itself as before.
 - **Read-only scripts (`naota_code`).** The model writes a short Python script that chains several read calls (paging, looking up each order, joining two sources), computes, and prints only the result. The raw data never passes through the chat. The script runs in its own process with no keys, no files and no network, and can call only plainly read-only tools.
-- **Recipes for recurring jobs.** After the same run on two different days, Naota fetches the data itself before the model starts. It does so only when every reading of the dates gives the same result that day; otherwise the job runs as before. Only calls that are plainly reads are repeated, and a job whose period is not written as `YYYY-MM-DD` (a month `2026-11`, a week number, `01/11/2026`) is never turned into a recipe. If the model still has to call a source again after the data was fetched for it, the recipe is dropped after two such runs. Each recipe is a file in `<brain>/Naota/recipes/`; delete the file to forget it.
+- **Recipes for recurring jobs.** After the same run on two different days, NAOSO fetches the data itself before the model starts. It does so only when every reading of the dates gives the same result that day; otherwise the job runs as before. Only calls that are plainly reads are repeated, and a job whose period is not written as `YYYY-MM-DD` (a month `2026-11`, a week number, `01/11/2026`) is never turned into a recipe. If the model still has to call a source again after the data was fetched for it, the recipe is dropped after two such runs. Each recipe is a file in `<brain>/Naota/recipes/`; delete the file to forget it.
 
 In a long turn, two more savings take nothing away from the model:
 
-- **Repeated results.** When the model calls the same tool with the same arguments and the result is identical (it reads a file again, lists the same data again), it gets a one-line reference to the copy it already holds instead of the whole text again. The tool still runs every time, so changed data reaches the model in full. When a turn grows long enough that Naota trims old results, the full text goes back into the newest reference. Claude Code and Codex keep a conversation Naota cannot see, so for them this happens at the hub, for Naota's tools and connections: a call right after a reference gets the full text, and when they compact their conversation Naota forgets that turn's record. Claude Code handles re-reading an unchanged file itself.
+- **Repeated results.** When the model calls the same tool with the same arguments and the result is identical (it reads a file again, lists the same data again), it gets a one-line reference to the copy it already holds instead of the whole text again. The tool still runs every time, so changed data reaches the model in full. When a turn grows long enough that NAOSO trims old results, the full text goes back into the newest reference. Claude Code and Codex keep a conversation NAOSO cannot see, so for them this happens at the hub, for Naota's tools and connections: a call right after a reference gets the full text, and when they compact their conversation NAOSO forgets that turn's record. Claude Code handles re-reading an unchanged file itself.
 - **Compact JSON.** A JSON result with indentation, or with Vietnamese letters written as `\u1ec7`, is written compactly with the same content. File reads, terminal output, web pages and skills stay exactly as they are, because the model may need to copy them exactly to edit.
 
-A long skill built as a "menu" (each request needs one part, like `naota-builder`: an agent OR a loop OR a plugin) is loaded **selectively**. Naota chooses what to load before loading it: it scores each section against the request, in any language (Latin script, Cyrillic, Arabic, Hindi, Chinese, Japanese, Korean, Thai...), always includes the rules and process sections, adds any part the chosen one says to create first (a workflow brings the agent template), and lists the rest so the model can fetch one in a single call. When it is not sure, it loads the whole skill as before. A skill that is one continuous procedure always loads whole, because a general request needs all of it. Naota learns from use: a section the model keeps fetching is loaded up front next time. It starts on about 10% of the owner's chat sessions and follows the **Off** level; see `NAOTA_SKILL_SECTIONS` in [Environment configuration](16-env-configuration.md).
+A long skill built as a "menu" (each request needs one part, like `naota-builder`: an agent OR a loop OR a plugin) is loaded **selectively**. NAOSO chooses what to load before loading it: it scores each section against the request, in any language (Latin script, Cyrillic, Arabic, Hindi, Chinese, Japanese, Korean, Thai...), always includes the rules and process sections, adds any part the chosen one says to create first (a workflow brings the agent template), and lists the rest so the model can fetch one in a single call. When it is not sure, it loads the whole skill as before. A skill that is one continuous procedure always loads whole, because a general request needs all of it. NAOSO learns from use: a section the model keeps fetching is loaded up front next time. It starts on about 10% of the owner's chat sessions and follows the **Off** level; see `NAOTA_SKILL_SECTIONS` in [Environment configuration](16-env-configuration.md).
 
 Background jobs (Kanban jobs, loops, reminders that do work) on an **API-key** engine carry a **short background rule set** instead of the whole CLAUDE.md, so the fixed part sent with every tool call is about 60% smaller. The rule set keeps every rule about acting: do exactly the job within its permission level, never invent numbers, report to whoever assigned the job, no empty promises, no jobs created unasked, new plugins always off. Subscription engines (Claude Code, ChatGPT, Grok, Antigravity) keep the full rules because they are not billed per token. It starts on about 10% of background jobs and follows the **Off** level; see `NAOTA_BG_LEAN_PROMPT` in [Environment configuration](16-env-configuration.md).
 
@@ -221,7 +221,7 @@ The **Suggestions** section at the bottom has a line saying what share of tool r
 
 ## Where these figures come from
 
-Naota calls no provider API for statistics. It **re-reads the raw logs on your own machine** then builds its own index:
+NAOSO calls no provider API for statistics. It **re-reads the raw logs on your own machine** then builds its own index:
 
 | Source | Where | What it gives |
 |---|---|---|
@@ -236,7 +236,7 @@ The scan is **incremental**: a file whose size and modification time are unchang
 
 The API branch has no raw log to read, so it only has figures **from the moment you upgraded to the version with this feature**. Claude and Codex have history back to when you started using them, because their logs were already on the machine.
 
-If the install cannot read raw logs (typically the Docker build on a VPS, where your `~/.claude` folder is not in the container), Naota builds the figures from the internal journal instead, so the page still shows numbers rather than the zeros it used to. On a day with both sources, the raw log wins so nothing is double counted. The tell: in the "Hungriest projects" table, a row named `(events)` was built from the internal journal, and an `(api)` row is a turn through an API provider.
+If the install cannot read raw logs (typically the Docker build on a VPS, where your `~/.claude` folder is not in the container), NAOSO builds the figures from the internal journal instead, so the page still shows numbers rather than the zeros it used to. On a day with both sources, the raw log wins so nothing is double counted. The tell: in the "Hungriest projects" table, a row named `(events)` was built from the internal journal, and an `(api)` row is a turn through an API provider.
 
 ## Quick reference of buttons and states
 
@@ -256,25 +256,25 @@ If the install cannot read raw logs (typically the Docker build on a VPS, where 
 ## Tips
 
 - Open **This month** first to see the trend, then click **Today** to inspect a specific day. Reading it the other way round is alarming, because a single day always looks abnormal.
-- Suspecting loops run too often, filter to **Claude Code** then look at the "Background (loop/schedule)" bar in the Activity section. It is the one number that tells you outright how much Naota spends while you are not at the machine.
+- Suspecting loops run too often, filter to **Claude Code** then look at the "Background (loop/schedule)" bar in the Activity section. It is the one number that tells you outright how much NAOSO spends while you are not at the machine.
 - A low cache hit with high total tokens means the problem is session length, not the number of chat turns. Splitting the session is the cheapest way to bring it down.
 - The "Hungriest projects" table is the quick way to see which brain costs most when you use several.
 - Only click **↻ Refresh** when you just finished something big and want to see it now. Ordinarily opening the page already scans.
 
 ## Common problems
 
-- **The page shows all zeros.** Usually the install cannot read the raw logs, most commonly on Docker/VPS because your `~/.claude` and `~/.codex` folders are not inside the container. In recent builds Naota uses the internal journal as a fallback so figures still appear, but only from your upgrade onwards. If it is still zero after upgrading, no chat turn has been recorded since, so chat a few messages then click **↻ Refresh**.
-- **The numbers are far lower than they feel.** Check whether a provider filter is on, and check the selected period. Also, the "You typing" share can only be counted when you run Claude Code on the **same machine** as Naota.
+- **The page shows all zeros.** Usually the install cannot read the raw logs, most commonly on Docker/VPS because your `~/.claude` and `~/.codex` folders are not inside the container. In recent builds NAOSO uses the internal journal as a fallback so figures still appear, but only from your upgrade onwards. If it is still zero after upgrading, no chat turn has been recorded since, so chat a few messages then click **↻ Refresh**.
+- **The numbers are far lower than they feel.** Check whether a provider filter is on, and check the selected period. Also, the "You typing" share can only be counted when you run Claude Code on the **same machine** as NAOSO.
 - **A Google Gemini key is attached but the API column does not move.** Gemini turns are written into the internal journal, but the index builder currently only accepts OpenRouter, OpenAI and Anthropic into the API column, so the Gemini share does not reach this chart yet.
 - **There is no "OpenRouter left" card.** The card only appears when an OpenRouter key is in the model settings and OpenRouter responds. Go to the **Models** page (the System group) and check the key, see [Models and engines](10-models-and-engines.md).
 - **The page shows a simple "Today / Cumulative total" table instead of the period filter.** That is the fallback interface, appearing when the new interface file could not load. Reload the page, clearing the browser cache if needed.
 - **The converted cost shows "-" for the model you use.** That model is not in the `server/usage_pricing.json` price table. It is maintained by hand, so add a row for your model then restart the server.
-- **You just upgraded Naota but the page has not changed.** This page has a backend component, so after an update you need to **restart the server** before reloading the page.
+- **You just upgraded NAOSO but the page has not changed.** This page has a backend component, so after an update you need to **restart the server** before reloading the page.
 
 ## Related
 
 - [Models and engines](10-models-and-engines.md) - switching models, attaching an OpenRouter key, understanding where each engine records its figures.
 - [Recurring jobs and reminders](08-recurring-jobs.md) - where to turn loops down when the "Background (loop/schedule)" bar swells.
-- [Work / Kanban](21-kanban-work.md) - background work also counts into the "Naota (running itself)" share.
+- [Work / Kanban](21-kanban-work.md) - background work also counts into the "NAOSO (running itself)" share.
 - [.env configuration](16-env-configuration.md) - the `NAOTA_STATE_DIR` variable decides where the token index lives.
 - [Troubleshooting and FAQ](17-troubleshooting.md) - general dashboard errors.

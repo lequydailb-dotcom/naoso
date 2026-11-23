@@ -289,7 +289,7 @@ chmod +x install.sh && ./install.sh
 
 The script installs Python, Node and the CLI brains, creates a venv, registers a service that starts at boot, and prints the address.
 
-🍎 **macOS, open it like an app:** double-click `NAOTA.app` (or `Start NAOTA.command`). `./install.sh` makes NAOSO start at login and open the dashboard (turn off: `./bin/naota-autostart.sh uninstall`). Details: [bin/README.md](bin/README.md).
+🍎 **macOS, open it like an app:** double-click `NAOSO.app` (or `Start NAOSO.command`). `./install.sh` makes NAOSO start at login and open the dashboard (turn off: `./bin/naota-autostart.sh uninstall`). Details: [bin/README.md](bin/README.md).
 
 </details>
 
@@ -310,7 +310,7 @@ Stop:                                  stop-naota.bat
 Dashboard:                             http://localhost:7777
 ```
 
-🪟 **Open it like an app:** after the first run, double-click **`NAOTA.bat`**. The server starts in the background and the dashboard opens in **its own window** with its own taskbar entry. The installer makes NAOSO start at login and open the dashboard (turn off: `naota-autostart.bat uninstall` or the button in Settings).
+🪟 **Open it like an app:** after the first run, double-click **`NAOSO.bat`**. The server starts in the background and the dashboard opens in **its own window** with its own taskbar entry. The installer makes NAOSO start at login and open the dashboard (turn off: `naota-autostart.bat uninstall` or the button in Settings).
 
 </details>
 

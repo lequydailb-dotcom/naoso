@@ -746,7 +746,7 @@
     } else if (mine && meta.as_job) {
       head.push('<span class="tm-tag tm-tag-new">' + ic("list-todo") + esc(tw("teams.as_job")) + "</span>");
     }
-    // a job Naota Core gave the team on the owner's behalf (naota_team op=dispatch).
+    // a job NAOSO Core gave the team on the owner's behalf (naota_team op=dispatch).
     if (mine && meta.via_core) head.push('<span class="tm-role">' + esc(tw("teams.via_core")) + "</span>");
     if (meta.job_result) head.push('<span class="tm-result">' + esc(tw("teams.job_result")) + "</span>");
     var late = !mine && LATE.indexOf(meta.status) >= 0;
@@ -3611,7 +3611,7 @@
     });
   }
 
-  // Nhóm đang mở vừa bị xoá (Naota xoá bằng công cụ naota_team, hay tab khác bấm xoá): đóng khung chat về trạng
+  // Nhóm đang mở vừa bị xoá (NAOSO xoá bằng công cụ naota_team, hay tab khác bấm xoá): đóng khung chat về trạng
   // thái trống thay vì giữ một nhóm không còn, ô soạn vẫn mở mà gửi tin nào cũng lỗi.
   function closeGone(id) {
     if (!S || S.activeId !== id) return;
@@ -4107,7 +4107,7 @@
       }).catch(function () {}).then(loadRepos);
   }
 
-  // GitHub repos attached to the team chat (team-github.js). Work/Help steps edit them and Naota pushes once a
+  // GitHub repos attached to the team chat (team-github.js). Work/Help steps edit them and NAOSO pushes once a
   // job is done, like a private chat.
   function loadRepos() {
     var sid = sessionId(), G = window.NaotaTeamGithub;
@@ -4328,7 +4328,7 @@
     });
   }
 
-  // 2026-11-13: one line saying what a team document holds, read by every member turn. Naota writes it (tool
+  // 2026-11-13: one line saying what a team document holds, read by every member turn. NAOSO writes it (tool
   // naota_project team=...), the owner writes or fixes it with the pencil. Only a document attached to the team (with an
   // id) has a row to describe.
   function descLine(x) {

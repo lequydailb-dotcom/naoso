@@ -654,7 +654,7 @@ def own_messages_without_id(channel: str, account_id: str, external_chat_id: str
     """Messages this account sent in a chat (the bot, or the owner from the inbox) since `since` that still have no
     channel message id, newest first: `[{id, text}]`. Never raises.
 
-    Naota writes those rows before Zalo gives the message an id; the id comes back with the message's echo in the read
+    NAOSO writes those rows before Zalo gives the message an id; the id comes back with the message's echo in the read
     loop (`zalo_personal_channel.attach_echo_id`). A customer's reaction names the message by that id, so without
     it a heart on the bot's price quote could not be told apart from a heart on anything else."""
     try:
@@ -797,7 +797,7 @@ def set_zalo_delivery(message_id: int, state: str, error: str = "", reason: str 
     'accepted' means the channel reported success, NOT that a recipient read it.
     Idempotent: no later call can overwrite a settled receipt.
 
-    `error` is what the gateway said, word for word. `reason` is one of ZALO_DELIVERY_REASONS, for an outcome Naota
+    `error` is what the gateway said, word for word. `reason` is one of ZALO_DELIVERY_REASONS, for an outcome NAOSO
     itself decided; anything else is dropped.
     """
     if state not in ("accepted", "failed", "unknown", "cancelled"):
@@ -1899,7 +1899,7 @@ def chu_thich_anh(text: str) -> str:
 
     MCP của naota-zalo chuẩn hoá tin không phải chữ bằng `extractMessageText` (src/utils/extract-message-text.js; bản 1.6.2 cũ là
     `content.title || content.href || "[<msgType>]"`). Với ảnh hai bản ra cùng kết quả vì ảnh có `description` rỗng: ảnh CÓ chú thích
-    thì `text` là chú thích; ảnh trơn thì `text` là đường dẫn ảnh, hoặc "[chat.photo]". Naota
+    thì `text` là chú thích; ảnh trơn thì `text` là đường dẫn ảnh, hoặc "[chat.photo]". NAOSO
     cũng tự thay chữ trống bằng "[Zalo cá nhân: khách gửi image]". Cả ba loại "nền" đó không phải lời của người gửi nên trả rỗng."""
     t = " ".join(str(text or "").split())
     return "" if (not t or _NEN_ANH.match(t)) else t

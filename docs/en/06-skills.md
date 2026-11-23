@@ -2,13 +2,13 @@
 
 *[Tiếng Việt](../06-skills.md) · **English***
 
-A skill is a packaged capability for Naota: a written instruction that makes the AI do one kind of job your way (writing sales emails, building a sales page, deep research). When you say something matching the skill's description, Naota pulls that instruction in by itself, so you never paste the procedure again.
+A skill is a packaged capability for NAOSO: a written instruction that makes the AI do one kind of job your way (writing sales emails, building a sales page, deep research). When you say something matching the skill's description, NAOSO pulls that instruction in by itself, so you never paste the procedure again.
 
-This page covers managing skills in the dashboard: browsing by group, searching, enabling and disabling, adding, editing, deleting, exporting and importing, calling one by hand from the command menu, and asking Naota to write a skill for you.
+This page covers managing skills in the dashboard: browsing by group, searching, enabling and disabling, adding, editing, deleting, exporting and importing, calling one by hand from the command menu, and asking NAOSO to write a skill for you.
 
 ## What this feature is
 
-A skill in Naota is a folder containing a `SKILL.md` file at `skills/<slug>/SKILL.md` inside the selected brain (Naota mirrors it into `.claude/skills` so Claude Code can load it natively; older brains that keep skills in `.claude/skills` are migrated into `skills/` automatically). That file has 3 important frontmatter fields:
+A skill in NAOSO is a folder containing a `SKILL.md` file at `skills/<slug>/SKILL.md` inside the selected brain (NAOSO mirrors it into `.claude/skills` so Claude Code can load it natively; older brains that keep skills in `.claude/skills` are migrated into `skills/` automatically). That file has 3 important frontmatter fields:
 
 - `name`: the display name of the skill.
 - `description`: a short summary, and this is the **trigger** that decides WHEN the skill activates. This field has its own rules, so read the section below before filling it in.
@@ -16,13 +16,13 @@ A skill in Naota is a folder containing a `SKILL.md` file at `skills/<slug>/SKIL
 
 The rest of the file is the detailed instruction the AI follows when the skill runs.
 
-The canonical copy lives at `skills/<slug>/SKILL.md`, which is exactly what the dashboard shows and what Naota loads through the router. Naota also keeps a **mirror** at `.claude/skills/<slug>` for Claude Code's native loading. The mirror is identical except for one thing: if `description` is longer than 150 characters, the mirror is trimmed to 150 with an ellipsis (the copy in `skills/` keeps your full text). That only happens with skills imported from an external package or written by hand through the Files page, because skills saved through the form are blocked earlier.
+The canonical copy lives at `skills/<slug>/SKILL.md`, which is exactly what the dashboard shows and what NAOSO loads through the router. NAOSO also keeps a **mirror** at `.claude/skills/<slug>` for Claude Code's native loading. The mirror is identical except for one thing: if `description` is longer than 150 characters, the mirror is trimmed to 150 with an ellipsis (the copy in `skills/` keeps your full text). That only happens with skills imported from an external package or written by hand through the Files page, because skills saved through the form are blocked earlier.
 
 ## The `description` rules (read before creating a skill)
 
 This is where people get stuck without knowing why. When you click **💾 Save**, the server checks `description` and **refuses to save** if it breaks either rule:
 
-**1. At most 150 characters.** This is not cosmetic. Naota truncates the description at exactly 150 characters when injecting it into the system prompt and into the `naota_use_skill` tool description, so the excess is lost silently and the skill cannot be routed. The rejection message says exactly that, and tells you to move trigger examples into a `## When to use` section in the body.
+**1. At most 150 characters.** This is not cosmetic. NAOSO truncates the description at exactly 150 characters when injecting it into the system prompt and into the `naota_use_skill` tool description, so the excess is lost silently and the skill cannot be routed. The rejection message says exactly that, and tells you to move trigger examples into a `## When to use` section in the body.
 
 **2. No hollow opening phrases.** Blocked openings include "Activate when...", "Use this skill when...", "This skill is used for..." and their Vietnamese equivalents. Every skill opens the same way, so that phrase burns character budget without distinguishing anything. The rejection message suggests the right shape: state the capability directly, for example "Summarise meeting minutes into a task list."
 
@@ -32,11 +32,11 @@ These rules apply both to the dashboard form and to skills proposed by the **Sel
 
 ## How triggering works
 
-A skill activates on its `description` (and you can also call it by hand, see the next section). When you type or say a request, Naota matches it against the `description` of every enabled skill and loads the matching instruction. On Claude Code that is a native load; on other engines Naota injects the skill list into the system prompt and loads through the `naota_use_skill` tool.
+A skill activates on its `description` (and you can also call it by hand, see the next section). When you type or say a request, NAOSO matches it against the `description` of every enabled skill and loads the matching instruction. On Claude Code that is a native load; on other engines NAOSO injects the skill list into the system prompt and loads through the `naota_use_skill` tool.
 
 So a skill's quality depends heavily on how you write `description`. A description that states the capability and the right keywords fires at the right time. A vague description either never fires or fires on the wrong thing.
 
-Note: skills work on **every engine**. Claude Code loads natively; ChatGPT/Codex, OpenRouter and the OpenAI/Anthropic/Google Gemini APIs use skills through the router (Naota injects the skill list into the system prompt) plus the `naota_use_skill` tool. See [Models & engines](10-models-and-engines.md) for the per-engine details.
+Note: skills work on **every engine**. Claude Code loads natively; ChatGPT/Codex, OpenRouter and the OpenAI/Anthropic/Google Gemini APIs use skills through the router (NAOSO injects the skill list into the system prompt) plus the `naota_use_skill` tool. See [Models & engines](10-models-and-engines.md) for the per-engine details.
 
 ## Calling a skill by hand: the "/" command menu
 
@@ -47,27 +47,27 @@ You do not always have to wait for the trigger. Typing **`/`** in the chat opens
 
 How to use it: keep typing to narrow the list (slug matches first, then names), use **arrow up/down** to move, **Enter** or **Tab** to confirm, **Esc** to close. Clicking a row works too.
 
-Picking a skill fills the chat box with `/slug ` and leaves the cursor waiting; type the request and press Enter. Naota turns that into a prompt: "Use the skill `<slug>` for this request: ... If no skill by that name exists, just handle my request normally." Picking a session command runs it immediately, with no Enter.
+Picking a skill fills the chat box with `/slug ` and leaves the cursor waiting; type the request and press Enter. NAOSO turns that into a prompt: "Use the skill `<slug>` for this request: ... If no skill by that name exists, just handle my request normally." Picking a session command runs it immediately, with no Enter.
 
-On Telegram, sending `/<slug>` (with content after it if needed) produces the same shape. One exception: while the engine is OpenRouter, Naota replies that skills need the Claude CLI engine and tells you to send /cli first.
+On Telegram, sending `/<slug>` (with content after it if needed) produces the same shape. One exception: while the engine is OpenRouter, NAOSO replies that skills need the Claude CLI engine and tells you to send /cli first.
 
 ## The router's 20-skill ceiling
 
-The skill list Naota injects into the system prompt and into the `naota_use_skill` tool description is **cut at 20 skills**. The rest collapses into a single line: "…(+N more skills, see `Naota/index.md`)".
+The skill list NAOSO injects into the system prompt and into the `naota_use_skill` tool description is **cut at 20 skills**. The rest collapses into a single line: "…(+N more skills, see `Naota/index.md`)".
 
 The consequence: if your brain enables more than 20 skills, skills 21 and beyond are **not in the router**, so on router-based engines (ChatGPT/Codex, OpenRouter, OpenAI/Anthropic/Google Gemini API) they will not self-activate. They are still intact and still loadable: calling `/slug` by hand works normally, because the `naota_use_skill` tool accepts any enabled slug, not just the 20 listed.
 
-The fix: turn off skills you do not use so the 20 router slots go to the ones you actually want Naota to catch on its own.
+The fix: turn off skills you do not use so the 20 router slots go to the ones you actually want NAOSO to catch on its own.
 
 ## System skills versus your skills
 
-Naota has 2 kinds of skill:
+NAOSO has 2 kinds of skill:
 
-- **System skills** (cards labelled "system"): default NAOTA features, currently 7:
+- **System skills** (cards labelled "system"): default NAOSO features, currently 7:
 
   | Slug | What it does |
   |---|---|
-  | `naota-builder` | Create or edit a Naota capability: agent, skill, workflow, loop, plugin |
+  | `naota-builder` | Create or edit a NAOSO capability: agent, skill, workflow, loop, plugin |
   | `ingest-source` | Digest a raw source into the Second Brain, distilled into wiki knowledge |
   | `query-wiki` | Mine knowledge in the Second Brain, answering with citations |
   | `lint-wiki` | Audit wiki health and return a list of issues |
@@ -75,10 +75,10 @@ Naota has 2 kinds of skill:
   | `html-to-webcake` | Turn an HTML page into a `.pke` file that opens in the Webcake page builder |
   | `security-audit` | Security review of source code using Cloudflare's workflow: evidence-backed findings, independent verification, a report with fixes |
 
-  The originals live in the app installation folder, not in the brain, so they are **present in every brain** and **update themselves when you update NAOTA**. They cannot be deleted from the dashboard (deleting the files by hand only makes them reinstall on the next start); to stop using one, **disable** it like any skill, and that disabled state survives every update.
+  The originals live in the app installation folder, not in the brain, so they are **present in every brain** and **update themselves when you update NAOSO**. They cannot be deleted from the dashboard (deleting the files by hand only makes them reinstall on the next start); to stop using one, **disable** it like any skill, and that disabled state survives every update.
 - **Your skills**: created with + Skill, through chat, imported from a `.zip`, or proposed by the Self-learning page. These are brain data: switching brains switches the skill set, and app updates never touch them.
 
-You can still **Edit** a system skill. When you do, the copy in the brain becomes yours: Naota keeps your edit and stops updating over it. To go back to the standard version (with automatic updates), delete that skill folder from the brain's `skills/` (through the Files page) and restart; the newest system version is reinstalled clean.
+You can still **Edit** a system skill. When you do, the copy in the brain becomes yours: NAOSO keeps your edit and stops updating over it. To go back to the standard version (with automatic updates), delete that skill folder from the brain's `skills/` (through the Files page) and restart; the newest system version is reinstalled clean.
 
 ## How a Skill differs from a Plugin
 
@@ -93,7 +93,7 @@ These two are easy to confuse because both sit in the **Capabilities** group in 
 
 How to choose: if you need **instructions** for working with existing tools, write a Skill. If you need a **specific Python action** no source covers (a computation, a data transformation, a simple API call), write a Plugin. And if it is an external data source that already has a server, connect an MCP on the Connections page rather than writing a plugin. Details in [Plugins](20-plugins.md) and [Connections & business data](09-connections-and-business-data.md).
 
-## Where to find it in Naota
+## Where to find it in NAOSO
 
 Open the dashboard (port 7777 by default), look at the left navigation, open the **Capabilities** group and click **Skills**. That group has 4 items: Agents, Skills, Workflows, Plugins.
 
@@ -121,18 +121,18 @@ Disabled skills render dimmed. Hovering a card reveals action buttons on the rig
 
 ### The "used N times" and "no usage seen" line
 
-At the end of the group · slug line, Naota shows one of two labels:
+At the end of the group · slug line, NAOSO shows one of two labels:
 
 - **"used N times, last on <date>"** when the skill has been loaded at least once.
 - **"no usage seen"** (dim, italic) when 30 days have passed with no usage signal.
 
-This is a **one-way positive signal** and needs to be read correctly so a skill is not condemned unfairly: Naota can only count loads that go through the `naota_use_skill` tool. Claude Code loading a skill natively through `.claude/skills` does **not** pass the counter. So "used N times" is certainly true, while "no usage seen" only means there is no evidence, **not** that the skill is useless. Hovering the label shows this explanation. Nothing is disabled or deleted based on this label; you decide.
+This is a **one-way positive signal** and needs to be read correctly so a skill is not condemned unfairly: NAOSO can only count loads that go through the `naota_use_skill` tool. Claude Code loading a skill natively through `.claude/skills` does **not** pass the counter. So "used N times" is certainly true, while "no usage seen" only means there is no evidence, **not** that the skill is useless. Hovering the label shows this explanation. Nothing is disabled or deleted based on this label; you decide.
 
 The figures are stored in `Naota/skill-usage.json` in the brain, separate from `SKILL.md`, so using a skill does not create junk changes in the brain's git history.
 
 ## Searching skills
 
-Type into the **Find a skill…** box at the top of the list. Naota filters as you type, matching the keyword against the name, description and slug. The search filter stacks on the group filter: while a specific group is selected, the search only runs inside it; click **All** first to search everything.
+Type into the **Find a skill…** box at the top of the list. NAOSO filters as you type, matching the keyword against the name, description and slug. The search filter stacks on the group filter: while a specific group is selected, the search only runs inside it; click **All** first to search everything.
 
 ## Enabling and disabling one skill
 
@@ -140,11 +140,11 @@ Type into the **Find a skill…** box at the top of the list. Naota filters as y
 2. Find the skill you want to change.
 3. Click the checkbox at the start of its card. Ticked is on, unticked is off.
 
-When you disable a skill, Naota moves its folder into a separate place named `.disabled` (the path becomes `skills/.disabled/<slug>`) and removes the mirror in `.claude/skills`. That is a **real** disable: a skill inside `.disabled` is no longer loaded by any engine, so Naota stops using it. Enabling moves the folder back to `skills/<slug>` and mirrors it again for Claude's native path.
+When you disable a skill, NAOSO moves its folder into a separate place named `.disabled` (the path becomes `skills/.disabled/<slug>`) and removes the mirror in `.claude/skills`. That is a **real** disable: a skill inside `.disabled` is no longer loaded by any engine, so NAOSO stops using it. Enabling moves the folder back to `skills/<slug>` and mirrors it again for Claude's native path.
 
 Enabling and disabling never deletes content. You can turn a skill off temporarily and back on at any time without losing what you wrote.
 
-If something goes wrong, Naota reports that the state could not be changed, along with the reason.
+If something goes wrong, NAOSO reports that the state could not be changed, along with the reason.
 
 ## Adding a skill (step by step)
 
@@ -153,10 +153,10 @@ If something goes wrong, Naota reports that the state could not be changed, alon
    - **Skill name**: something memorable, for example "Write sales emails".
    - **Group**: type a group name, for example "Marketing". This field suggests groups you already use, so you can click one and stay consistent. Do not leave it empty (it would land in "Chung").
    - **Description (decides when the skill activates)**: one sentence stating what the skill does, **under 150 characters**, not opening with "Activate when..." (see "The `description` rules" above). Breaking the rules makes the server refuse and the skill is not saved.
-   - **Content (SKILL.md, the instructions for the AI)**: write the detailed instruction the AI follows (steps, templates, rules). This is where the `## When to use` section with full trigger examples belongs. Leave it empty and Naota generates a minimal body from the name and description.
+   - **Content (SKILL.md, the instructions for the AI)**: write the detailed instruction the AI follows (steps, templates, rules). This is where the `## When to use` section with full trigger examples belongs. Leave it empty and NAOSO generates a minimal body from the name and description.
 3. Click **💾 Save**. To abandon it, click **Cancel**.
 
-On save, Naota derives the **slug** from the name: lowercase, Vietnamese accents removed, spaces replaced by hyphens (so "Viết email" becomes `viet-email`). An accent-free ASCII slug makes skill loading more reliable on every engine. The `skills/<slug>/SKILL.md` folder is created automatically; you never create files by hand.
+On save, NAOSO derives the **slug** from the name: lowercase, Vietnamese accents removed, spaces replaced by hyphens (so "Viết email" becomes `viet-email`). An accent-free ASCII slug makes skill loading more reliable on every engine. The `skills/<slug>/SKILL.md` folder is created automatically; you never create files by hand.
 
 ## Editing a skill
 
@@ -167,7 +167,7 @@ On save, Naota derives the **slug** from the name: lowercase, Vietnamese accents
 
 Editing keeps the slug and folder and only overwrites `SKILL.md`. This is where you tune `description` so the skill triggers more accurately, or add a step to the instructions.
 
-Editing a **disabled** skill keeps it disabled after saving; Naota does not switch it on.
+Editing a **disabled** skill keeps it disabled after saving; NAOSO does not switch it on.
 
 ## Changing a skill's group
 
@@ -176,7 +176,7 @@ The simplest way: click **Edit**, change the **Group** field, then **💾 Save**
 ## Deleting a skill
 
 1. Hover the skill card and click **Delete**.
-2. Naota asks to confirm: `Delete skill "<name>"? The whole skills/<slug> folder will be removed.`
+2. NAOSO asks to confirm: `Delete skill "<name>"? The whole skills/<slug> folder will be removed.`
 3. Agree to delete.
 
 Deletion is final: the whole skill folder is removed from disk, with no recycle bin. If you only want to stop using it for now, **disable** it instead. System skills have no Delete button.
@@ -184,24 +184,24 @@ Deletion is final: the whole skill folder is removed from disk, with no recycle 
 ## Exporting and importing skills
 
 - **⤓ Export** (on each skill card): downloads a `.zip` of that skill to send to someone else. **System** skills have no such button because every brain already has them.
-- **⤒ Import** (top of the page, next to + Skill): pick a file to bring into the selected brain. It accepts `.zip` (a Naota package), a single `.md`, or a Claude `.skill` package (Naota recognises the `SKILL.md` inside and files it correctly). Naota asks first: "If an agent/skill/workflow with the SAME NAME exists, OVERWRITE it with the new one?" Click OK to overwrite, Cancel to keep the old ones and only import what is missing. Afterwards Naota lists what was imported and what was skipped.
+- **⤒ Import** (top of the page, next to + Skill): pick a file to bring into the selected brain. It accepts `.zip` (a NAOSO package), a single `.md`, or a Claude `.skill` package (NAOSO recognises the `SKILL.md` inside and files it correctly). NAOSO asks first: "If an agent/skill/workflow with the SAME NAME exists, OVERWRITE it with the new one?" Click OK to overwrite, Cancel to keep the old ones and only import what is missing. Afterwards NAOSO lists what was imported and what was skipped.
 
 Note: skill content is instructions the AI follows, so only import packages from sources you trust. Details on packaging with dependencies are in [Agents & Workflows](07-agents-and-workflows.md).
 
-## Recommended in the Naota Store
+## Recommended in the NAOSO Store
 
-The first tab of the **Naota Store** is **Recommended**: skills copied **word for word** from the author's own GitHub repo (Remotion's official skills, for example, or Lemo-Opuscar for short films made in code). Nothing is translated or changed: you read exactly what the author wrote.
+The first tab of the **NAOSO Store** is **Recommended**: skills copied **word for word** from the author's own GitHub repo (Remotion's official skills, for example, or Lemo-Opuscar for short films made in code). Nothing is translated or changed: you read exactly what the author wrote.
 
 - Each card has an **Updated from the author** line linking to the GitHub repo, with the day the latest version was taken.
-- Every day the store compares them with the source repo. When the author changes a skill, the pack gets a new version, Naota tells you in the bell and you press **Update** (through the usual confirm screen).
+- Every day the store compares them with the source repo. When the author changes a skill, the pack gets a new version, NAOSO tells you in the bell and you press **Update** (through the usual confirm screen).
 - Skills you have edited yourself are kept when you update, never overwritten.
-- When a skill ships its own files (`scripts/`, `references/`...), Naota tells the model the skill's folder when it loads the skill, so those files can be found.
+- When a skill ships its own files (`scripts/`, `references/`...), NAOSO tells the model the skill's folder when it loads the skill, so those files can be found.
 
-## Asking Naota to create a skill in words
+## Asking NAOSO to create a skill in words
 
-You do not have to fill in the form. You can open the chat and ask Naota to create the skill, for example: "Create me a skill for writing Facebook captions for a cosmetics shop, triggering when I ask for sales captions." Naota writes `SKILL.md` and saves it in `skills/`. Chat basics are in [Chat & voice](02-chat-and-voice.md).
+You do not have to fill in the form. You can open the chat and ask NAOSO to create the skill, for example: "Create me a skill for writing Facebook captions for a cosmetics shop, triggering when I ask for sales captions." NAOSO writes `SKILL.md` and saves it in `skills/`. Chat basics are in [Chat & voice](02-chat-and-voice.md).
 
-When creating a new skill, Naota is instructed to file it in the right group: it reads existing skills to see which groups you use, then picks the closest. Only when none fits does it create a new group, with a short domain name (Marketing, Sales, Content, Operations, Finance, AI, Productivity, Personal). That way new skills do not scatter into "Chung".
+When creating a new skill, NAOSO is instructed to file it in the right group: it reads existing skills to see which groups you use, then picks the closest. Only when none fits does it create a new group, with a short domain name (Marketing, Sales, Content, Operations, Finance, AI, Productivity, Personal). That way new skills do not scatter into "Chung".
 
 ## Skills and Agents
 
@@ -240,10 +240,10 @@ On the **Agents** page, creating or editing an agent shows a **Skills** section 
 ## Common problems
 
 - **You clicked 💾 Save but the skill does not appear in the list:** almost certainly `description` broke a rule (over 150 characters, or opening with "Activate when..."). The server refused to save and the page simply returned to the list without showing the error. Click **+ Skill** again, shorten the description under 150 characters, drop the hollow opening, and save again.
-- **You created a skill but Naota never uses it:** check three things in order. One, is it **enabled** (card not dimmed, checkbox ticked). Two, does `description` state the capability. Three, does the brain have more than 20 skills enabled; if so, yours may have fallen outside the router, so disable some others or call it by hand with `/slug`.
+- **You created a skill but NAOSO never uses it:** check three things in order. One, is it **enabled** (card not dimmed, checkbox ticked). Two, does `description` state the capability. Three, does the brain have more than 20 skills enabled; if so, yours may have fallen outside the router, so disable some others or call it by hand with `/slug`.
 - **The list is empty although you created skills:** make sure you are looking at the right brain. The source is the selected brain's `skills/`; switching brains switches the list.
 - **Toggling reports that the state could not be changed:** usually folder write permissions or a locked folder. See [Troubleshooting & FAQ](17-troubleshooting.md).
-- **A skill reads "no usage seen" although you know it runs:** that is normal. Naota can only count loads through `naota_use_skill`; Claude Code's native loading bypasses the counter. Do not delete a skill over that label.
+- **A skill reads "no usage seen" although you know it runs:** that is normal. NAOSO can only count loads through `naota_use_skill`; Claude Code's native loading bypasses the counter. Do not delete a skill over that label.
 - **A skill card has no Delete button:** it is a system skill. To stop using it, disable it.
 - **You deleted one by accident:** deletion is final and cannot be recovered from the dashboard. Next time, disable rather than delete when you only want a pause.
 - **The group fell into "Chung":** the Group field was empty when you saved. Click **Edit** and fill it in.
@@ -253,6 +253,6 @@ On the **Agents** page, creating or editing an agent shows a **Skills** section 
 - [Agents & Workflows](07-agents-and-workflows.md) - assigning skills to agents, building step chains, exporting and importing with dependencies.
 - [Plugins](20-plugins.md) - when you need a tool that runs real code rather than an instruction.
 - [Models & engines](10-models-and-engines.md) - skills run on every engine; see the difference between native (Claude Code) and router (`naota_use_skill`).
-- [Chat & voice](02-chat-and-voice.md) - asking Naota to create a skill in words, and the "/" command menu.
-- [Self-learning](22-self-learning.md) - where Naota proposes new skills from past conversations.
+- [Chat & voice](02-chat-and-voice.md) - asking NAOSO to create a skill in words, and the "/" command menu.
+- [Self-learning](22-self-learning.md) - where NAOSO proposes new skills from past conversations.
 - [Second Brain: memory, Wiki, INGEST](13-second-brain.md) - understanding the brain that stores skills.

@@ -1,13 +1,13 @@
 #!/bin/bash
 # ============================================================
-# Build dist/Naota-macOS.dmg: "NAOTA.app" plus a shortcut to Applications, so the
+# Build dist/Naota-macOS.dmg: "NAOSO.app" plus a shortcut to Applications, so the
 # person drags the app across like any other Mac app.
 #
 #   bash packaging/macos/build-dmg.sh          # needs macOS (hdiutil)
 #   NO_DMG=1 bash packaging/macos/build-dmg.sh # any OS: only assemble the .app (tests use it)
 #
 # The app stays tiny: launcher.sh + bootstrap.sh + icon. The first launch clones the newest
-# Naota into ~/Naota (see bootstrap.sh), so this .dmg never goes stale.
+# NAOSO into ~/Naota (see bootstrap.sh), so this .dmg never goes stale.
 # Not signed with an Apple Developer ID: macOS asks once to allow it under
 # System Settings > Privacy & Security > Open Anyway (QUICKSTART explains it).
 # ============================================================
@@ -33,8 +33,8 @@ cat > "${APP}/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key><string>NAOTA</string>
-    <key>CFBundleDisplayName</key><string>NAOTA</string>
+    <key>CFBundleName</key><string>NAOSO</string>
+    <key>CFBundleDisplayName</key><string>NAOSO</string>
     <key>CFBundleIdentifier</key><string>ai.vuong.naota</string>
     <key>CFBundleVersion</key><string>${VERSION}</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
@@ -58,7 +58,7 @@ fi
 codesign --force --deep --sign - "${APP}" || echo "codesign skipped"
 
 ln -s /Applications "${STAGE}/Applications"
-# The Naota star as the icon of the mounted disk (Finder sidebar and desktop) instead of the
+# The NAOSO star as the icon of the mounted disk (Finder sidebar and desktop) instead of the
 # generic drive. Needs the volume's "custom icon" flag, which can only be set on a writable
 # image: build read-write, flag it, then compress. Missing SetFile only loses the icon.
 cp "${ROOT}/packaging/assets/naota.icns" "${STAGE}/.VolumeIcon.icns"

@@ -10,8 +10,8 @@
 #   3) Trỏ DNS (bản ghi A: ten-mien → <ip-vps>) theo hướng dẫn hiện trong app.
 #   4) Mở https://ten-mien-cua-ban → chứng chỉ tự cấp + tự gia hạn. Xong.
 #
-# CHỈ DÙNG CHO MÁY CHẠY MỘT BẢN NAOTA. Caddy ở đây nằm CHUNG project với Naota, mà một máy chỉ
-# có một cổng 443 - dựng bản Naota thứ hai kèm file này là hai Caddy tranh cổng và con sau chết.
+# CHỈ DÙNG CHO MÁY CHẠY MỘT BẢN NAOSO. Caddy ở đây nằm CHUNG project với NAOSO, mà một máy chỉ
+# có một cổng 443 - dựng bản NAOSO thứ hai kèm file này là hai Caddy tranh cổng và con sau chết.
 # Nhiều bản, mỗi bản một tên miền → dùng docker-compose.proxy.yml + docker-compose.multi.yml
 # (proxy đứng ngoài, chạy một lần cho cả VPS, tự phát hiện bản mới qua nhãn Docker).
 #

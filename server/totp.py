@@ -1,4 +1,4 @@
-"""Mã xác thực 2 lớp (TOTP - RFC 6238) cho cổng đăng nhập Naota.
+"""Mã xác thực 2 lớp (TOTP - RFC 6238) cho cổng đăng nhập NAOSO.
 
 Module này CỐ Ý thuần tuý: chỉ toán và chuỗi, không đọc/ghi cấu hình, không import `config`.
 Nơi lưu secret và mã khôi phục là `config.py`; nơi ráp vào cổng đăng nhập là `main.py`. Tách

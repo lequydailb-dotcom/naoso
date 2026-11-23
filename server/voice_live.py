@@ -22,7 +22,7 @@ Ba nhà cung cấp:
   bằng `conversation.item.truncate` (trình duyệt báo số ms đã phát).
 - GPTLive (`wss://api.openai.com/v1/live/sessions`, 09/2026): song công toàn phần, model tự
   quyết ngắt lời, KHÔNG có sự kiện interrupted / turn_done; ủy nhiệm kiểu `client`: model phát
-  `session.delegation.created`, Naota chạy bộ não chính rồi trả kết quả bằng
+  `session.delegation.created`, NAOSO chạy bộ não chính rồi trả kết quả bằng
   `session.commentary.append` (model tự thuật lại), tiến độ bằng `session.thinking.append`.
   Khuôn sự kiện lấy từ SDK openai 3.13 (`openai/types/live/*`). CHƯA chạy thật.
 
@@ -72,7 +72,7 @@ PROVIDERS = {
 
 ASK_NAOTA_TOOL = {
     "name": "ask_naota",
-    "description": ("Hỏi bộ não chính của Naota khi cần dữ liệu thật (số liệu kinh doanh, lịch, email, file, "
+    "description": ("Hỏi bộ não chính của NAOSO khi cần dữ liệu thật (số liệu kinh doanh, lịch, email, file, "
                     "ghi chú, ký ức), giao việc, nhắc hẹn, mở trang hay app, hoặc bất cứ hành động nào ra "
                     "ngoài. Truyền yêu cầu đầy đủ bằng ngôn ngữ người dùng. Kết quả trả về là chữ, hãy "
                     "thuật lại ngắn gọn."),
@@ -80,7 +80,7 @@ ASK_NAOTA_TOOL = {
 }
 
 SYSTEM_PROMPT = (
-    "Bạn là Naota, trợ lý cá nhân, đang nói chuyện trực tiếp bằng giọng. "
+    "Bạn là NAOSO, trợ lý cá nhân, đang nói chuyện trực tiếp bằng giọng. "
     "Nói ngắn, tự nhiên. Không bịa dữ liệu: cần dữ liệu "
     "thật hay hành động thì gọi tool ask_naota "
     "rồi thuật lại kết quả. Đang được ngắt lời thì dừng ngay và nghe. "
@@ -123,7 +123,7 @@ def turn_preset(value) -> str:
 
 # GPT-Live không có tool: nó ỦY NHIỆM. Prompt hội thoại ngắn, nói rõ khi nào giao việc.
 GPT_LIVE_PROMPT = (
-    "Bạn là Naota, trợ lý cá nhân, đang nói chuyện bằng giọng. Nói ngắn và "
+    "Bạn là NAOSO, trợ lý cá nhân, đang nói chuyện bằng giọng. Nói ngắn và "
     "tự nhiên. Chuyện phiếm, hỏi đáp thường thì trả lời ngay. Câu nào cần dữ liệu thật (số liệu "
     "kinh doanh, lịch, email, file, ghi chú, ký ức), cần làm việc, nhắc hẹn, mở trang hay app, hay "
     "bất cứ hành động nào ra ngoài thì GIAO cho bộ não chính (delegate), nói một câu ngắn như 'để "
@@ -732,10 +732,10 @@ class OpenAIRealtime(LiveProvider):
 
 
 class GPTLive(LiveProvider):
-    """OpenAI GPT-Live, ủy nhiệm kiểu client: Naota là backend.
+    """OpenAI GPT-Live, ủy nhiệm kiểu client: NAOSO là backend.
 
     Không có tool theo nghĩa cũ: model tự quyết giao việc và phát `session.delegation.created`
-    (chỉ có metadata, KHÔNG có nội dung việc), nên Naota dựng yêu cầu từ chữ người dùng vừa nói.
+    (chỉ có metadata, KHÔNG có nội dung việc), nên NAOSO dựng yêu cầu từ chữ người dùng vừa nói.
     Trả kết quả bằng `session.commentary.append` (model tự thuật lại), tiến độ bằng
     `session.thinking.append`. Không có sự kiện interrupted (model tự quyết ngắt lời) lẫn
     turn_done; turn_done được suy ra khi người dùng bắt đầu nói mà trợ lý đang có chữ dở.
@@ -877,9 +877,9 @@ class GPTLive(LiveProvider):
 
 
 # ChatGPT Live (voice-call-spec mục 3.3): model nói chuyện của OpenAI lo chuyện
-# trò, việc cần dữ liệu thì GIAO cho bộ não Naota. Xưng hô theo người dùng, không ép cố định.
+# trò, việc cần dữ liệu thì GIAO cho bộ não NAOSO. Xưng hô theo người dùng, không ép cố định.
 CHATGPT_LIVE_PROMPT = (
-    "Bạn là Naota, trợ lý cá nhân, đang nói chuyện với người dùng qua cuộc gọi bằng giọng nói. "
+    "Bạn là NAOSO, trợ lý cá nhân, đang nói chuyện với người dùng qua cuộc gọi bằng giọng nói. "
     "Nói tự nhiên như người qua điện thoại, ngắn 1 đến 2 câu. Xưng hô đúng theo cách người dùng đang "
     "xưng với bạn (phần bộ nhớ bên dưới cho biết nếu có), không tự đổi. Chuyện trò, hỏi thăm, giải "
     "thích kiến thức chung thì trả lời thẳng. Mọi câu cần dữ liệu thật hay hành động (doanh thu, đơn "
@@ -905,7 +905,7 @@ MEMORY_CHARS = 4000
 # chẳng có gì mới. Không còn xếp hàng: trước đó mọi câu nói thêm chờ cả việc dài xong, nên
 # hỏi "xong chưa" giữa chừng im re mấy phút rồi các câu trả lời cũ bị đọc dồn một lượt.
 FOLLOWUP_NOOP = "NAOTA_NOOP"
-# Việc chạy lâu thì Naota tự lên tiếng cho người dùng (đang không nhìn màn hình) biết còn sống.
+# Việc chạy lâu thì NAOSO tự lên tiếng cho người dùng (đang không nhìn màn hình) biết còn sống.
 STATUS_FIRST_S = 60.0    # việc chạy quá chừng này thì bắt đầu nói
 STATUS_EVERY_S = 90.0    # rồi cách chừng này mới nói lại
 STATUS_TICK_S = 5.0      # nhịp kiểm tra của vòng nền
@@ -1147,7 +1147,7 @@ class ChatGPTLive(LiveProvider):
         self._user_last = ""
         self._user_last_at = 0.0
         self._interrupt_turns: List[str] = []
-        self._held: List[dict] = []   # lời Naota tới lúc người dùng còn đang nói, chờ câu người dùng chốt
+        self._held: List[dict] = []   # lời NAOSO tới lúc người dùng còn đang nói, chờ câu người dùng chốt
         self._bg: set = set()
         self._speaking = False        # model đang có một lượt nói chưa xong (theo transcript)
         self._last_delta_at = 0.0
@@ -1269,7 +1269,7 @@ class ChatGPTLive(LiveProvider):
         # Chỉ thông báo `transcript/done` của người dùng mới tạo bong bóng chốt. Đo trên dashboard thật
         # Model hay BẮT ĐẦU trả lời trước khi chữ cuối của người dùng về ("... có khỏe" rồi
         # mới tới " không"), và handoff tới trước cả done. Chốt sớm theo những mốc đó sinh bong bóng
-        # cụt, bong bóng lặp và đảo thứ tự. Nên lời Naota tới lúc người dùng còn đang nói thì GIỮ
+        # cụt, bong bóng lặp và đảo thứ tự. Nên lời NAOSO tới lúc người dùng còn đang nói thì GIỮ
         # lại, phát ra ngay sau câu người dùng đã chốt.
         if method == "thread/realtime/transcript/delta":
             delta = str(p.get("delta") or "")
@@ -1297,7 +1297,7 @@ class ChatGPTLive(LiveProvider):
                 self._held = []
                 return out
             self._speaking, self._pushed_at, self._quiet_since = False, 0.0, time.monotonic()
-            # Naota nói xong mà câu người dùng vẫn chưa có done (hiếm): chốt phần đã nghe rồi mới nhả.
+            # NAOSO nói xong mà câu người dùng vẫn chưa có done (hiếm): chốt phần đã nghe rồi mới nhả.
             out = self._flush_user() + self._held + [{"type": "turn_done"}]
             self._held = []
             return out
@@ -1309,7 +1309,7 @@ class ChatGPTLive(LiveProvider):
                      "args": {"request": self._handoff_request(item.get("input_transcript"))},
                      "said": self._recent_speech()}]
         if method == "turn/started":
-            # Mỗi lần giao việc Codex TỰ mở một lượt agent: chặn ngay, việc thật do bộ não Naota làm.
+            # Mỗi lần giao việc Codex TỰ mở một lượt agent: chặn ngay, việc thật do bộ não NAOSO làm.
             tid = str(((p.get("turn") or {}).get("id")) or p.get("turnId") or "")
             if tid:
                 self._interrupt_turns.append(tid)
@@ -1371,7 +1371,7 @@ class ChatGPTLive(LiveProvider):
     async def send_tool_result(self, call_id: str, name: str, result: str):
         """Xếp lời đọc kết quả vào hàng, trả về ngay (route không phải đứng chờ model đọc xong)."""
         # Câu tiến độ còn kẹt trong hàng là câu cũ ngay khi kết quả thật về: đọc nó SAU câu trả lời
-        # ("em vẫn đang làm" rồi mới "xong rồi") nghe như Naota lú.
+        # ("em vẫn đang làm" rồi mới "xong rồi") nghe như NAOSO lú.
         self._speech_q[:] = [t for t in self._speech_q if not isinstance(t, _Status)]
         self._enqueue_speech(speakable(result) or "Em chưa có kết quả.")
 
@@ -1485,7 +1485,7 @@ def make_provider(cfg: dict, system: str = "", recognition_lang: str = "vi-VN", 
     """Dựng nhà cung cấp Live từ settings. Ném RuntimeError có câu người đọc hiểu được.
 
     `persona`: (name, identity block) of the partner the call talks to (a call from a partner's chat, see
-    voice_persona). The provider's own prompt then speaks as that partner instead of plain Naota."""
+    voice_persona). The provider's own prompt then speaks as that partner instead of plain NAOSO."""
     # Partner calls have their own instructions and agent memory in persona[1].
     # Do not append the entire main Brain memory index: it can contain unrelated
     # business context and pull the first voice response outside the agent's remit.

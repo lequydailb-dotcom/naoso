@@ -1,6 +1,6 @@
-"""ElevenLabs voice for Naota: speech for read-aloud, the Basic call path and voice notes.
+"""ElevenLabs voice for NAOSO: speech for read-aloud, the Basic call path and voice notes.
 
-ElevenLabs was missing as a voice for Naota. The provider existed since the
+ElevenLabs was missing as a voice for NAOSO. The provider existed since the
 first settings page, but three things kept it out of reach:
 
 - The default model `eleven_multilingual_v2` has no Vietnamese (its 29 languages leave it out;

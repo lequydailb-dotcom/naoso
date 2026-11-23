@@ -1,8 +1,8 @@
 // ============================================
-// NAOTA - Bộ đổi tông: TỐI ↔ SÁNG, chọn tay hoặc tự động theo giờ
+// NAOSO - Bộ đổi tông: TỐI ↔ SÁNG, chọn tay hoặc tự động theo giờ
 // ============================================
 // Chế độ lưu ở localStorage "naota.theme" với 3 giá trị: "dark" | "light" | "auto".
-// Máy chưa từng chọn (không có khoá) dùng tông SÁNG từ NAOTA 1.0.0 (anh Vương chốt 31/10/2026).
+// Máy chưa từng chọn (không có khoá) dùng tông SÁNG từ NAOSO 1.0.0 (anh Vương chốt 31/10/2026).
 // Ai đã bấm chọn tay thì khoá đã có giá trị, nên không bị đổi theo.
 // "auto" đọc thêm khung giờ ở "naota.theme.schedule" dạng "06:00-18:00": từ giờ
 // đầu tới trước giờ sau là tông sáng, còn lại là tông tối. Cả hai là lựa chọn THEO THIẾT BỊ
@@ -42,7 +42,7 @@
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function fromMin(n) { return pad(Math.floor(n / 60)) + ":" + pad(n % 60); }
 
-  // NAOTA 1.0.0 (anh Vương thích nền sáng): máy chưa từng chọn dùng tông SÁNG, không còn
+  // NAOSO 1.0.0 (anh Vương thích nền sáng): máy chưa từng chọn dùng tông SÁNG, không còn
   // tự đổi theo giờ. "auto" chỉ chạy khi người dùng tự chọn nó (setMode ghi đúng chữ "auto").
   function mode() {
     var v = read(KEY);
@@ -206,7 +206,7 @@
     });
     window.addEventListener("focus", tick);
 
-    // Mở Naota ở nhiều tab: đổi tông hay khung giờ ở tab này thì tab kia đổi theo.
+    // Mở NAOSO ở nhiều tab: đổi tông hay khung giờ ở tab này thì tab kia đổi theo.
     window.addEventListener("storage", function (e) {
       if (e.key === KEY || e.key === KEY_SCHED) paint(wantLight(), true);
     });

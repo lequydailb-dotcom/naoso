@@ -1,5 +1,5 @@
 """
-Telegram bot cho Naota - long-polling getUpdates, whitelist theo chat_id (MỘT hoặc NHIỀU ID).
+Telegram bot cho NAOSO - long-polling getUpdates, whitelist theo chat_id (MỘT hoặc NHIỀU ID).
 - Trả lời chạy ở BACKGROUND task → vẫn nhận /stop giữa chừng.
 - Lệnh /...: command_fn(cmd, arg, chat, meta) -> {"reply": str} | {"ask": str} | None
   (chat = chat_id người gõ → /reset //stop /retry chỉ tác động PHIÊN của họ).
@@ -69,7 +69,7 @@ BOT_COMMANDS = [
     {"command": "notes", "description": "Lưu tin nhắn (kèm ảnh) vào Sources của brain"},
     {"command": "agents", "description": "Liệt kê agent + việc đang chạy"},
     # Pick the agent (partner) that answers this chat; `@<agent name> ...` does it for one message.
-    {"command": "agent", "description": "Chọn cộng sự trả lời chat này (/agent off: về Naota)"},
+    {"command": "agent", "description": "Chọn cộng sự trả lời chat này (/agent off: về NAOSO)"},
     {"command": "workflows", "description": "Liệt kê workflow"},
     {"command": "model", "description": "Xem hoặc đổi model"},
     {"command": "brain", "description": "Xem hoặc đổi brain (vault) của phiên này"},
@@ -80,8 +80,8 @@ BOT_COMMANDS = [
     {"command": "plan", "description": "Chỉ lập kế hoạch, chưa làm gì ra ngoài"},
     {"command": "stop", "description": "Dừng câu đang trả lời"},
     {"command": "reset", "description": "Bắt đầu hội thoại mới"},
-    {"command": "cli", "description": "Engine Claude Code (MCP Naota + lệnh máy)"},
-    {"command": "or", "description": "Engine OpenRouter (MCP Naota, không lệnh máy)"},
+    {"command": "cli", "description": "Engine Claude Code (MCP NAOSO + lệnh máy)"},
+    {"command": "or", "description": "Engine OpenRouter (MCP NAOSO, không lệnh máy)"},
 ]
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
@@ -101,7 +101,7 @@ RETRY_MAX_WAIT = 30
 # Lỗi đã gặp trong một nhóm Telegram: bot chuyên trách đang nói chuyện như
 # một người, rồi giữa cuộc nói chuyện hiện ra "⏳ Đang xử lý câu trước. Gửi /stop để dừng rồi
 # hỏi lại." trước mặt cả nhóm. Một câu như vậy là khai ngay đây là máy, và còn dạy người lạ
-# một lệnh quản trị. Yêu cầu: ẩn các phần trạng thái của Naota để giống người thật nói chứ không phải bot.
+# một lệnh quản trị. Yêu cầu: ẩn các phần trạng thái của NAOSO để giống người thật nói chứ không phải bot.
 #
 # Ở chế độ này, thứ THAY THẾ tin trạng thái là chấm "đang nhập…" của chính Telegram - đúng thứ
 # một người thật để lại khi họ đang gõ. Và tin nhắn tới lúc bot đang bận thì XẾP HÀNG rồi trả
@@ -109,7 +109,7 @@ RETRY_MAX_WAIT = 30
 # trạng thái.
 TYPING_MOI_GIAY = 4.0   # Telegram tắt chấm "đang nhập" sau ~5 giây, phải nhắc lại trước đó
 # Hàng đợi lượt, luật /stop, cổng precheck và dòng vết công cụ nằm ở `bot_gateway`: chúng là
-# luật hành vi của Naota, không phải chi tiết của Telegram, nên kênh Zalo dùng chung y hệt.
+# luật hành vi của NAOSO, không phải chi tiết của Telegram, nên kênh Zalo dùng chung y hệt.
 
 # Câu xin lỗi CŨ khi một lượt gãy ở chế độ người thật. Nay không kênh nào gửi nó nữa:
 # quy ước trục trặc kỹ thuật là việc của chủ, khách không nhận gì (xem
@@ -261,7 +261,7 @@ class TelegramBot(HangLuot):
                  download_dir=None, commands=None, precheck_fn=None, event_fn=None,
                  giau_trang_thai=False, stt_fn=None):
         self.token = token
-        # Giấu MỌI tin trạng thái/kỹ thuật của Naota, để cuộc trò chuyện đọc như người thật.
+        # Giấu MỌI tin trạng thái/kỹ thuật của NAOSO, để cuộc trò chuyện đọc như người thật.
         # Bot của CHỦ để False (chủ cần thấy "đang gọi công cụ…", cần lệnh /stop); bot chuyên
         # trách nói với khách thì True. Xem khối chú thích ở đầu file.
         self.giau_trang_thai = bool(giau_trang_thai)
@@ -290,7 +290,7 @@ class TelegramBot(HangLuot):
         self.download_dir = download_dir    # str | callable(chat) -> str: nơi lưu file user gửi lên
         # Nghe tin thoại: async (bytes, tên file) -> dict như `stt.groq_nghe`. None = chưa đấu
         # (gửi tin thoại sẽ được trả lời là cần dán API key Groq ở trang Models). Nhận qua tham
-        # số chứ không tự đọc settings: module này cố ý không biết gì về config của Naota.
+        # số chứ không tự đọc settings: module này cố ý không biết gì về config của NAOSO.
         self.stt_fn = stt_fn
         self._task = None
         # ĐA PHIÊN: mỗi chat_id có lượt trả lời RIÊNG → các tài khoản chạy song song,
@@ -313,8 +313,8 @@ class TelegramBot(HangLuot):
         # ĐÃ TẮT riêng tư ở BotFather, bot nhận mọi tin trong nhóm. False = còn bật (mặc định),
         # trong nhóm bot chỉ nhận tin nhắc tên nó, tin trả lời vào nó, và lệnh.
         #
-        # Cần phơi ra vì nó im lặng vô hiệu hoá một tuỳ chọn của Naota: đặt bot "trả lời mọi
-        # tin trong nhóm" mà riêng tư còn bật thì Telegram chặn từ trước khi Naota nhìn thấy,
+        # Cần phơi ra vì nó im lặng vô hiệu hoá một tuỳ chọn của NAOSO: đặt bot "trả lời mọi
+        # tin trong nhóm" mà riêng tư còn bật thì Telegram chặn từ trước khi NAOSO nhìn thấy,
         # và trang Chatbot cứ hiện xanh trong khi bot điếc một nửa.
         self.doc_moi_tin_nhom = False
         # getMe hỏng thì bot KHÔNG biết @username của chính nó, và lúc đó `_co_nhac_ten` trả
@@ -532,7 +532,7 @@ class TelegramBot(HangLuot):
     async def _giu_typing(self, client, chat, thread_id=None):
         """Giữ chấm "đang nhập…" sáng suốt cả lượt trả lời (chế độ người thật).
 
-        Đây là thứ THAY THẾ tin "🤔 Naota đang xử lý…": người đang chờ vẫn thấy đầu kia có
+        Đây là thứ THAY THẾ tin "🤔 NAOSO đang xử lý…": người đang chờ vẫn thấy đầu kia có
         động tĩnh, nhưng thấy đúng cái một người thật để lại chứ không phải một tin nhắn máy.
         Telegram tự tắt chấm sau ~5 giây nên phải nhắc lại đều.
         """
@@ -545,7 +545,7 @@ class TelegramBot(HangLuot):
         """Gửi 1 tin trạng thái (plain, không markdown) → trả message_id để sửa sau.
 
         `disable_notification` là phần quan trọng chứ không phải chi tiết làm đẹp. Trước đây
-        mỗi lượt hỏi nổ HAI thông báo lên điện thoại: một cái "🤔 Naota đang xử lý…" hoàn toàn
+        mỗi lượt hỏi nổ HAI thông báo lên điện thoại: một cái "🤔 NAOSO đang xử lý…" hoàn toàn
         vô nghĩa, rồi mới tới câu trả lời. Tin này chỉ để NHÌN trong lúc chờ, không phải để
         gọi người ta ra xem, nên nó đi im. Sửa tin (`editMessageText`) vốn không nổ thông báo,
         nên cả lượt chỉ còn đúng một tiếng chuông: lúc câu trả lời thật được gửi.
@@ -706,7 +706,7 @@ class TelegramBot(HangLuot):
         return False
 
     async def _bao_su_kien(self, msg):
-        """Tin DỊCH VỤ của nhóm - thứ Naota nghe được BẤT KỂ chế độ riêng tư của Telegram.
+        """Tin DỊCH VỤ của nhóm - thứ NAOSO nghe được BẤT KỂ chế độ riêng tư của Telegram.
 
         Ba loại đáng quan tâm, cả ba đều là lúc "im lặng" nghĩa là hỏng:
 
@@ -766,7 +766,7 @@ class TelegramBot(HangLuot):
     async def _nghe_tin_thoai(self, client, media, caption):
         """Trả chuỗi đưa vào lượt chat. `stt_fn` do main.py cấp: async (bytes, tên) -> dict.
 
-        Chưa cấu hình `stt_fn`, chưa đấu key, nghe hỏng: mọi ngả đều trả một dòng DẶN Naota
+        Chưa cấu hình `stt_fn`, chưa đấu key, nghe hỏng: mọi ngả đều trả một dòng DẶN NAOSO
         nói gì, không phải câu nói sẵn - kênh nào cũng đi qua engine nên giọng còn hợp ngữ
         cảnh (chủ hay khách). Im lặng nuốt tin thoại là ngả duy nhất không được phép.
         """
@@ -805,7 +805,7 @@ class TelegramBot(HangLuot):
         if thoai:
             # Tin thoại có đường đi RIÊNG: nghe thành chữ rồi chạy như một câu hỏi, chứ không
             # tải về đĩa rồi báo "đã tải về path" như file thường - người ta ghi âm để RA LỆNH,
-            # không phải để gửi Naota một file .ogg.
+            # không phải để gửi NAOSO một file .ogg.
             return await self._nghe_tin_thoai(client, thoai, caption)
         if doc:
             kind = "file"
@@ -859,7 +859,7 @@ class TelegramBot(HangLuot):
         fsize = media.get("file_size") or 0
         if fsize and fsize > MAX_DOWNLOAD_MB * 1024 * 1024:
             return _with_cap(f"[Người dùng gửi video ({fsize // (1024 * 1024)}MB) nhưng Telegram bot chỉ cho tải file "
-                             f"dưới {MAX_DOWNLOAD_MB}MB, Naota không xem được. Hãy nhờ người dùng gửi đoạn ngắn hơn hoặc "
+                             f"dưới {MAX_DOWNLOAD_MB}MB, NAOSO không xem được. Hãy nhờ người dùng gửi đoạn ngắn hơn hoặc "
                              "tả lại bằng chữ.]")
         data, loi = await self._tai_ve_ram(client, media.get("file_id"))
         if loi:
@@ -896,7 +896,7 @@ class TelegramBot(HangLuot):
         if self.giau_trang_thai:
             giu = asyncio.create_task(self._giu_typing(client, chat, thread))
         else:
-            status_mid = await self._send_status(client, chat, "🤔 Naota đang xử lý…", thread, quote)
+            status_mid = await self._send_status(client, chat, "🤔 NAOSO đang xử lý…", thread, quote)
         _last = [0.0]
         t0 = time.monotonic()
         tools = []          # tên công cụ đã gọi trong lượt, giữ thứ tự, không trùng
@@ -1028,7 +1028,7 @@ class TelegramBot(HangLuot):
                         # chuyện phải biết kể cả (nhất là) khi nhóm đó chưa được cho phép.
                         await self._bao_su_kien(msg)
                         if self.chat_ids and chat not in self.chat_ids:
-                            await self._send(client, chat, "Bạn không có quyền dùng bot Naota này.")
+                            await self._send(client, chat, "Bạn không có quyền dùng bot NAOSO này.")
                             continue
                         if msg.get("is_topic_message") and msg.get("message_thread_id"):
                             self._topic[chat] = msg["message_thread_id"]

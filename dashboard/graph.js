@@ -13,7 +13,7 @@ function graphTw(khoa, bien) {
 }
 
 // ============================================
-// NAOTA - Knowledge graph "Tinh vân bộ não" (force-graph / d3-force, kiểu Obsidian)
+// NAOSO - Knowledge graph "Tinh vân bộ não" (force-graph / d3-force, kiểu Obsidian)
 // Engine d3-force. Thiết kế: node = sao phát sáng, TÔ MÀU THEO DANH MỤC
 // (thư mục cha, khớp nhãn PERSONAL/BUSINESS...), hover = rọi đèn vùng liên quan (synapse), thở nhẹ
 // lúc nghỉ, nhãn chỉ hiện khi hover / zoom sát / vài hub lớn.
@@ -24,7 +24,7 @@ function graphTw(khoa, bien) {
 // chàm vẫn là chàm, lục vẫn là lục - chỉ đổi độ đậm cho hợp nền.
 // Tối: màu rực để nổi trên nền đen. Sáng: mực sẫm cùng hue, đều đạt >=4.5:1 trên
 // giấy ngà - bê nguyên bảng rực sang nền trắng thì chấm nào cũng nhợt như nhau.
-// Hai màu đầu là vàng và xanh thương hiệu: danh mục đầu tiên (thường đông nhất) mang màu NAOTA.
+// Hai màu đầu là vàng và xanh thương hiệu: danh mục đầu tiên (thường đông nhất) mang màu NAOSO.
 const CAT_COLORS_DARK = ["#fccb1d", "#33b5f0", "#3fdc9a", "#f0a24a", "#ff7a9c", "#8b93ff",
   "#b98cff", "#5ad1c4", "#e07ad1", "#7ed957", "#ff9f6b", "#9fb0cf"];
 const CAT_COLORS_LIGHT = ["#96760a", "#006b9e", "#0f8f63", "#b46a10", "#c93b62", "#4a52c9",
@@ -834,7 +834,7 @@ class NaotaGraph {
       if (!dup) d.links.push({ source: node.id, target: tid });
     });
     // One note joined a graph that is already laid out: no warm-up (it ran 24 steps over EVERY dot in one go, a
-    // freeze on a large brain each time Naota wrote a note), only a short settle.
+    // freeze on a large brain each time NAOSO wrote a note), only a short settle.
     this._physicsFor(d.nodes.length, "settle");
     this.graph.graphData({ nodes: d.nodes, links: d.links });
     return { created: !!isNew };

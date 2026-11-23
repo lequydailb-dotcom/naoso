@@ -10,7 +10,7 @@ thì chỉ là đoán. Bộ này chấm trên cùng một bộ câu (corpus.py) 
   - terms: số thuật ngữ nghe đúng (tên công cụ, tên người, số liệu quảng cáo).
   - commands_full: số câu lệnh đúng TRỌN mọi thuật ngữ, tức là chạy được ngay không cần hỏi lại.
 
-Tai Groq chạy qua ĐÚNG đường của Naota (voice_ear.transcribe_upload: mồi từ vựng, lọc câu bịa,
+Tai Groq chạy qua ĐÚNG đường của NAOSO (voice_ear.transcribe_upload: mồi từ vựng, lọc câu bịa,
 sửa tên trợ lý), nên số đo là số người dùng nhận được, không phải số của model trần.
 
 Dữ liệu KHÔNG lên git, nằm ở <NAOTA_STATE_DIR>/stt_bench/:

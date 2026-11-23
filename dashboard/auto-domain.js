@@ -3,7 +3,7 @@
 // Goal: the install should come with a ready link for the customer to open (like a Hostinger
 // catalog app that opens on <app>.srv<id>.hstgr.cloud). A pasted compose cannot learn the VPS name at install time, so
 // hPanel's Open button lands on http://<ip>:7777. This page then asks /domain/auto; the server answers with the https
-// link only when that link already answers as THIS Naota over a valid certificate (routes/domain.py), so the move never
+// link only when that link already answers as THIS NAOSO over a valid certificate (routes/domain.py), so the move never
 // lands on a dead or foreign page. Only from a bare IP over http, never on localhost or a domain. Add ?stay=1 to stay.
 (function () {
   "use strict";

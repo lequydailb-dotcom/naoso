@@ -1,6 +1,6 @@
 """Điểm vào của lệnh `naota`.
 
-Naota CLI là CLIENT MỎNG: nó KHÔNG chứa Naota bên trong, chỉ nói chuyện với một máy chủ Naota
+NAOSO CLI là CLIENT MỎNG: nó KHÔNG chứa NAOSO bên trong, chỉ nói chuyện với một máy chủ NAOSO
 đang chạy (trên máy này hoặc trên VPS). Mọi năng lực - brain, MCP, skill, loop, việc - nằm ở
 máy chủ đó. Xem cli-spec để biết vì sao lại thiết kế như vậy.
 """
@@ -15,7 +15,7 @@ from .client import LoiNaota
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="naota",
-        description="Nói chuyện với NAOTA từ terminal. Cần một máy chủ Naota đang chạy.",
+        description="Nói chuyện với NAOSO từ terminal. Cần một máy chủ NAOSO đang chạy.",
         epilog="Gõ nhanh:  naota \"doanh thu tuần này thế nào\"")
     p.add_argument("--profile", default="", help="hồ sơ kết nối (mặc định: hồ sơ default)")
     p.add_argument("--brain", default="", help="brain dùng cho lệnh này")
@@ -36,7 +36,7 @@ def _parser() -> argparse.ArgumentParser:
     s.add_argument("--project", default=argparse.SUPPRESS, metavar="ID_OR_NAME",
                    help="put the conversation in this project of the brain (its rules apply)")
 
-    s = sub.add_parser("login", help="lưu địa chỉ + token của một Naota")
+    s = sub.add_parser("login", help="lưu địa chỉ + token của một NAOSO")
     s.add_argument("url")
     s.add_argument("--token", default="")
     s.add_argument("--name", default="", help="tên hồ sơ (mặc định: mac-dinh)")
@@ -45,7 +45,7 @@ def _parser() -> argparse.ArgumentParser:
     sub.add_parser("status", help="phiên bản, bộ não, mức tiết kiệm")
     sub.add_parser("profiles", help="các hồ sơ đã lưu")
 
-    s = sub.add_parser("up", help="bật Naota đã cài trên máy này rồi gắn vào")
+    s = sub.add_parser("up", help="bật NAOSO đã cài trên máy này rồi gắn vào")
     s.add_argument("--port", type=int, default=7777)
     s.add_argument("--url", default="")
 

@@ -35,7 +35,7 @@ containers of the same stack can reach it. An installer who wants their own toke
 
 **The published port (security incident 2026-11-09).** `7777` is the fallback entry: hPanel's Open
 button and `http://<ip>:7777`. Once `DOMAIN_NAME` is set, the port listens on `127.0.0.1` only.
-Traefik reaches Naota over the Docker network and the Caddy gateway over `127.0.0.1`, so HTTPS
+Traefik reaches NAOSO over the Docker network and the Caddy gateway over `127.0.0.1`, so HTTPS
 keeps working, while the unencrypted `http://<ip>:7777` path, where the password travels in the
 clear, is closed. With `DOMAIN_NAME` empty the port stays open to the outside, because it is the
 only way in. If the domain has no HTTPS yet and access is urgent: clear `DOMAIN_NAME` and Redeploy,
@@ -70,7 +70,7 @@ that the app calls. It is pinned to major `:1` so that a v2, which drops the old
 variables, cannot arrive on its own and kill the button again. Do not patch the old image with
 `DOCKER_API_VERSION=1.40`: Docker keeps raising its minimum.
 
-What does not change: Naota runs normally even when Watchtower is broken. It is a separate
+What does not change: NAOSO runs normally even when Watchtower is broken. It is a separate
 container, so a failure costs only the button. On "Partially running", read the log of the
 `naota-watchtower` container; if it cannot be fixed, update with Redeploy as before. The Updates
 page in the app says the same.
@@ -79,7 +79,7 @@ Settings worth knowing:
 
 - `WATCHTOWER_HTTP_API_PERIODIC_POLLS: ${NAOTA_AUTO_UPDATE:-false}` is the fourth Environment
   field and the only `${...}` added for Watchtower. It is an installer's choice, not a technical
-  default: when on, Naota restarts whenever a new version exists, cutting background work and open
+  default: when on, NAOSO restarts whenever a new version exists, cutting background work and open
   chats. Empty means off, and updates happen through the button.
 - `WATCHTOWER_HTTP_API_UPDATE_TIMEOUT: 30m`: the default 10 minutes ran out on a slow disk.
 - No `traefik.*` routing labels: it is an internal container with nothing to expose.
@@ -90,16 +90,16 @@ Settings worth knowing:
 
 Owner question 2026-10-24: Hostinger's "Ubuntu 24 + Docker" template ships Traefik on ports 80 and
 443 and issues SSL through the `traefik.*` labels, while the plain Ubuntu 26 template has no
-Traefik at all. Before that, pasting the compose link on Ubuntu 26 gave a running Naota whose
+Traefik at all. Before that, pasting the compose link on Ubuntu 26 gave a running NAOSO whose
 `DOMAIN_NAME` never got HTTPS, since nothing read the labels, and the installer had to know how to
 add a Caddy file by hand. Now one link serves both:
 
 - Another proxy holds 80/443 (Hostinger's Traefik): the gateway stays idle and Traefik issues SSL.
 - Ports 80/443 are free (Ubuntu 26, an empty VPS): the gateway runs Caddy, which requests and
-  renews a Let's Encrypt certificate for `DOMAIN_NAME` and forwards to Naota on the instance's
+  renews a Let's Encrypt certificate for `DOMAIN_NAME` and forwards to NAOSO on the instance's
   host port.
 - `DOMAIN_NAME` is empty: the gateway uses the VPS's own name (`srv<id>.hstgr.cloud`) when there
-  is one, otherwise it stays idle and Naota is reached at `http://<ip>:7777`.
+  is one, otherwise it stays idle and NAOSO is reached at `http://<ip>:7777`.
 
 **Why `network_mode: host` and not published ports.** Publishing `80:80` and `443:443` while
 Traefik holds them makes Docker report "port is already allocated" and the whole stack fails to
@@ -116,7 +116,7 @@ Let's Encrypt rate limit.
 `NAOTA_NAME`, which already exist.
 
 **The status volume.** The gateway writes what it is doing (idle, busy or serving, plus
-the names it serves) into `gateway-status`. Naota mounts it read-only, so the page opened by IP
+the names it serves) into `gateway-status`. NAOSO mounts it read-only, so the page opened by IP
 can redirect to a name Caddy really holds a certificate for, and Settings, Domain can say which
 step the gateway is at. The notes inside the gateway script explain why it stopped guessing the
 name through DNS later.

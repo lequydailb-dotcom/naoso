@@ -3,7 +3,7 @@
 
 Ở Việt Nam khách nhắn qua Zalo cá nhân nhiều hơn mọi kênh khác, và không phải ai bán hàng cũng
 có Zalo OA. Nên tài khoản Zalo đã quét QR ở trang Kết nối phải là một KÊNH của Hộp thư, không
-phải một tool mà chỉ khi chủ hỏi Naota mới đọc.
+phải một tool mà chỉ khi chủ hỏi NAOSO mới đọc.
 
 Cách làm: vòng lặp nền, mỗi `NHIP` giây gọi `zalo_get_messages` với cursor lần trước, chuẩn hoá
 từng tin về sự kiện chung rồi `conversations.ghi_su_kien`. Cursor lưu ở `sync_state` của kho,
@@ -13,9 +13,9 @@ Ba quyết định đáng ghi lại:
 
   1. **Chỉ ghi khi chủ BẬT cho từng tài khoản** (trang Hộp thư, mục Kênh). Vòng lặp này giữ
      tiến trình MCP sống liên tục (mỗi lần gọi là một lần chạm phiên), tức tài khoản Zalo đăng
-     nhập 24/7 qua API không chính thức. Đó là lựa chọn của chủ tài khoản, không phải của Naota.
+     nhập 24/7 qua API không chính thức. Đó là lựa chọn của chủ tài khoản, không phải của NAOSO.
   2. **Không gọi `zalo_mark_read`.** Cursor của kho là cursor của kho; bộ đệm của MCP để nguyên
-     cho chủ hỏi Naota "có tin Zalo mới không" như trước. Tool này là tool ĐỌC, không đụng quyền.
+     cho chủ hỏi NAOSO "có tin Zalo mới không" như trước. Tool này là tool ĐỌC, không đụng quyền.
   3. **Không đồng bộ lịch sử cũ.** Lần đầu bật chỉ lấy tin từ lúc bật trở đi (bộ đệm MCP vốn
      chỉ giữ tin từ khi tiến trình chạy), đúng luật của kho: lưu từ lúc kênh được nối.
 
@@ -144,7 +144,7 @@ def tai_khoan() -> List[dict]:
             "theo_doi": bool(cfg.get(c["id"])),
             "lan_cuoi": tt.get("lan_cuoi") or 0, "loi": tt.get("loi") or "",
             "so_tin": int(tt.get("so_tin") or 0),
-            # True: naota-zalo tells Naota when a message arrives, so "last read" is not a heartbeat any more.
+            # True: naota-zalo tells NAOSO when a message arrives, so "last read" is not a heartbeat any more.
             "push": push_active(c["id"]),
         })
     return out
@@ -475,9 +475,9 @@ def cau_bao_xin_vao(conn: dict, chat_title: str, names: List[str]) -> str:
     nhom = chat_title or localefmt.chu("một nhóm", "a group")
     tk = conn.get("label") or "Zalo"
     return localefmt.chu(
-        f"Zalo ({tk}): {ai} đang xin vào nhóm \"{nhom}\". Nhắn Naota \"duyệt\" hoặc \"từ chối\" để xử lý "
+        f"Zalo ({tk}): {ai} đang xin vào nhóm \"{nhom}\". Nhắn NAOSO \"duyệt\" hoặc \"từ chối\" để xử lý "
         f"(tài khoản này phải là trưởng hoặc phó nhóm).",
-        f"Zalo ({tk}): {ai} asked to join the group \"{nhom}\". Tell Naota \"approve\" or \"reject\" to handle it "
+        f"Zalo ({tk}): {ai} asked to join the group \"{nhom}\". Tell NAOSO \"approve\" or \"reject\" to handle it "
         f"(this account must be the group's owner or a deputy).")
 
 
@@ -609,7 +609,7 @@ def chuan_hoa_tin(conn: dict, msg: dict, ten: Dict[str, dict]) -> Optional[dict]
 # ============================================================
 # Nhập tin cũ
 # ============================================================
-# Đăng nhập Zalo vào Naota lần đầu thì Hộp thư trống trơn, dù điện thoại có cả trăm cuộc chat. naota-zalo
+# Đăng nhập Zalo vào NAOSO lần đầu thì Hộp thư trống trơn, dù điện thoại có cả trăm cuộc chat. naota-zalo
 # (từ 1.1.0) tự kéo tin cũ về mỗi lần kết nối, khoảng 2 tuần gần nhất theo cửa sổ phát lại của Zalo, rồi giữ trong kho lịch sử của
 # nó (`zalo_search_history`). Vòng đọc ở dưới không dùng kho đó: nó chỉ đọc bộ đệm tin MỚI (`zalo_get_messages`), đúng như quyết
 # định 3 ở đầu file. Nút "Nhập tin cũ" là lựa chọn riêng của chủ, không chạy tự động.
@@ -1131,12 +1131,12 @@ SIGNED_OUT_BELL_GAP_S = 6 * 3600
 # Lỗi chết của tiến trình naota-zalo (src/commands/mcp.js) mà người dùng tự xử được, dịch ra lời thường.
 _LOI_ZALO = (
     (re.compile(r"duplicate zalo web session", re.I),
-     "Zalo đã ngắt phiên của Naota vì tài khoản này vừa được mở ở nơi khác: Zalo Web trên trình duyệt "
-     "(chat.zalo.me) hoặc một máy Naota khác cũng đăng nhập tài khoản này. Mỗi tài khoản chỉ giữ được một "
-     "phiên như vậy. Đóng nơi kia đi; Naota tự nối lại sau khoảng 2 phút.",
+     "Zalo đã ngắt phiên của NAOSO vì tài khoản này vừa được mở ở nơi khác: Zalo Web trên trình duyệt "
+     "(chat.zalo.me) hoặc một máy NAOSO khác cũng đăng nhập tài khoản này. Mỗi tài khoản chỉ giữ được một "
+     "phiên như vậy. Đóng nơi kia đi; NAOSO tự nối lại sau khoảng 2 phút.",
      "Zalo closed Naota's session because this account was just opened somewhere else: Zalo Web in a "
-     "browser (chat.zalo.me) or another Naota machine signed in to the same account. An account keeps only "
-     "one such session. Close the other one; Naota reconnects by itself in about 2 minutes."),
+     "browser (chat.zalo.me) or another NAOSO machine signed in to the same account. An account keeps only "
+     "one such session. Close the other one; NAOSO reconnects by itself in about 2 minutes."),
     (_SIGNED_OUT_RE,
      "Phiên đăng nhập Zalo của tài khoản này đã hết hạn hoặc bị đăng xuất. Vào trang Kết nối, đăng nhập "
      "lại Zalo bằng mã QR.",
@@ -1399,7 +1399,7 @@ async def _idle_turn(conn: dict, tt: dict, now: float) -> None:
 # Another session evicting ours
 # ============================================================
 # Zalo keeps ONE live socket per account. When a second session of the same account is up (an `mcp start` an earlier
-# server lifetime left behind, Zalo Web of this nick in a browser, another Naota or Claude client), ours is evicted
+# server lifetime left behind, Zalo Web of this nick in a browser, another NAOSO or Claude client), ours is evicted
 # right after every re-login and naota-zalo backs off up to five minutes. Reading still "works" (the buffer answers),
 # so the bot card stayed green while the bot heard only the few seconds after each reconnect (three hours of tags in two groups unanswered). naota-zalo prints each close as
 # "Connection closed (code: N). Re-login in Ss... (reconnect #R, rapid #K)"; K counts closes that came before the
@@ -1454,17 +1454,17 @@ def _soi_tranh_phien(conn: dict) -> None:
         tt["tranh_phien_bao"] = time.time()
         conversations.ghi_trang_thai(f"zalo_thrash_bell:{cid}", str(tt["tranh_phien_bao"]))
         tk = conn.get("label") or "Zalo"
-        don = (localefmt.chu(f" Naota đã tắt {len(killed)} bản Zalo cũ còn chạy trên máy này.",
-                             f" Naota stopped {len(killed)} old Zalo copy(ies) still running on this machine.")
+        don = (localefmt.chu(f" NAOSO đã tắt {len(killed)} bản Zalo cũ còn chạy trên máy này.",
+                             f" NAOSO stopped {len(killed)} old Zalo copy(ies) still running on this machine.")
                if killed else "")
         cau = localefmt.chu(
             f"Zalo ({tk}) đang bị một phiên khác của cùng nick giành kết nối: bot chỉ nghe được tin vài giây sau mỗi lần "
             f"nối lại, tin tag và tin nhắn riêng ở giữa bị lỡ.{don} Nếu vẫn tiếp diễn: đóng Zalo Web (chat.zalo.me) của "
-            "nick này trên mọi trình duyệt, tắt Naota hoặc Claude khác đang dùng cùng nick, rồi bấm Kiểm tra ở trang "
+            "nick này trên mọi trình duyệt, tắt NAOSO hoặc Claude khác đang dùng cùng nick, rồi bấm Kiểm tra ở trang "
             "Kết nối.",
             f"Zalo ({tk}) is being evicted by another session of the same account: the bot only hears messages for a few "
             f"seconds after each reconnect, and tags and private messages in between are missed.{don} If it goes on: "
-            "close Zalo Web (chat.zalo.me) for this account in every browser, stop any other Naota or Claude client "
+            "close Zalo Web (chat.zalo.me) for this account in every browser, stop any other NAOSO or Claude client "
             "using it, then click Check on the Connections page.")
         loop = asyncio.get_running_loop()
         t = loop.create_task(NOTIFY_OWNER("", cau, kind="system", label="Zalo", source="zalo"))
@@ -1692,7 +1692,7 @@ def _nap_danh_tinh() -> None:
     Trước đây `_ID_MINH` chỉ sống trong bộ nhớ: khởi động lại server là quên, và nick chưa tự gửi
     tin nào sau đó thì bot không biết tên Zalo của chính mình. Tag "@<tên Zalo>" trong nhóm khi ấy
     không khớp gì (nhãn kết nối thường đặt khác tên Zalo), bot coi là "không ai gọi" và im - lỗi
-    chủ đã gặp ngày 03/11/2026 với nhãn "Naota Cường", tên Zalo "Tly Hoàng Ngọc Vương"."""
+    chủ đã gặp ngày 03/11/2026 với nhãn "NAOSO Cường", tên Zalo "Tly Hoàng Ngọc Vương"."""
     global _ID_MINH_NAP
     if _ID_MINH_NAP:
         return
@@ -1845,8 +1845,8 @@ def anh_duoc_quote(conn_id: str, thread: str, md: dict) -> str:
     Case: in a group someone quoted a product photo and tagged the bot to look at it; the bot only
     got the text and said it could not see the photo, so the owner's workaround was "send the photo, then tag the bot
     within 3 minutes". The quote carries the photo's message id (`replyTo.msgId`, Zalo's global id, the same id the
-    photo was stored under when Naota read it), so the stored photo message gives the link. A link inside the quote
-    payload is the fallback, for a photo sent before Naota started reading this account."""
+    photo was stored under when NAOSO read it), so the stored photo message gives the link. A link inside the quote
+    payload is the fallback, for a photo sent before NAOSO started reading this account."""
     rt = (md or {}).get("replyTo")
     if not isinstance(rt, dict):
         return ""
@@ -2433,7 +2433,7 @@ def lay_bo_do(conn_id: str, thread: str, now: Optional[float] = None) -> dict:
 # this only when the bot's yield minutes were saved explicitly (`yield_explicit`): a direct tag is answered at once,
 # other messages are held until the window ends and then answered one turn per person, through the bot's group
 # rules (judge, "reply when"). Without the setting groups stay silent for the whole window.
-# Hàng chờ chỉ nằm trong RAM: Naota khởi động lại thì mất, tệ nhất là một tin không được trả lời thay, không bao giờ
+# Hàng chờ chỉ nằm trong RAM: NAOSO khởi động lại thì mất, tệ nhất là một tin không được trả lời thay, không bao giờ
 # là trả lời hai lần.
 CHO_CHU_TRA_LOI = 600   # giây chờ chủ trả lời tin khách tới lúc chủ đang nhắn tay; 0 = tắt (bỏ tin như trước đây)
 _CHO_CHU: Dict[tuple, dict] = {}    # (conn_id, thread) -> {"evs": [...], "dau": giờ tin khách đầu tiên chưa ai trả lời}
@@ -2495,7 +2495,7 @@ def gop_cho_chu(evs: List[dict], cho: int = 0, tay: float = 0) -> dict:
         cho_chu = f"chủ nick nhắn tay lần cuối lúc {gio_tay} rồi {phut} phút không nhắn thêm gì nên tới lượt bạn"
     else:
         cho_chu = f"chủ nick chưa trả lời sau {phut} phút nên tới lượt bạn"
-    ghi = (f"[Ghi chú của Naota, không phải lời khách: khách nhắn lúc {gio}, " + cho_chu
+    ghi = (f"[Ghi chú của NAOSO, không phải lời khách: khách nhắn lúc {gio}, " + cho_chu
            + (f"; khách gửi kèm {', '.join(kem)}" if kem else "") + ".]")
     md = dict(ev.get("metadata") or {})
     md["sau_chu_im"] = True

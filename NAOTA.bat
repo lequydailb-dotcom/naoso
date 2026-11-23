@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 >nul
-title NAOTA
+title NAOSO
 cd /d "%~dp0"
 
 REM ============================================================
-REM  NAOTA - mo nhu mot app tren Windows (ban sao cua "NAOTA.app" ben Mac).
+REM  NAOSO - mo nhu mot app tren Windows (ban sao cua "NAOSO.app" ben Mac).
 REM  Double-click: server tu chay nen (khong cua so den) roi dashboard tu mo
 REM  thanh CUA SO RIENG (Edge/Chrome che do --app: khong thanh dia chi, co o
 REM  rieng tren taskbar). Tu khoi dong cung may: naota-autostart.bat install.
@@ -19,7 +19,7 @@ REM Chi mo cua so.
 curl -sf -m 2 -o nul %URL%/health 2>nul
 if %errorlevel%==0 goto :open
 
-echo Dang bat NAOTA (chay nen, log o server\naota.log)...
+echo Dang bat NAOSO (chay nen, log o server\naota.log)...
 wscript //nologo start-naota.vbs
 
 REM Cho server len (toi da ~45 giay) roi moi mo - mo som chi thay trang trang.

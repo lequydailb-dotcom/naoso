@@ -1,20 +1,20 @@
-"""Naota Core: the built-in system assistant pinned in every brain.
+"""NAOSO Core: the built-in system assistant pinned in every brain.
 
 One definition for the whole platform, `system/agents/naota-core.md`, shipped with the app and read
 from there. It is never copied into a brain, so a release updates every brain at once, and nothing a
 person keeps in a brain (memory, lessons, chats) is touched by that update.
 
-Naota Core is not a persona agent. A chat with it is a normal Naota turn (CLAUDE.md, the brain's
+NAOSO Core is not a persona agent. A chat with it is a normal NAOSO turn (CLAUDE.md, the brain's
 MEMORY.md, every tool) plus one short block with its role (`prompt_block`). Its sessions live on the
 channel `agent:naota-core` so the Partners page, the inbox and the chat history treat them like an
 assistant's chats, while `workflow_chat.persona_cua_phien` reports no persona for that channel.
 
-Each brain has one DEFAULT Naota Core chat, the place reports without a target chat land in. The
+Each brain has one DEFAULT NAOSO Core chat, the place reports without a target chat land in. The
 pointer to it is kept in `STATE_DIR/naota_core.json` ({brain_key: session_id}). When that chat is
 deleted or archived, the next call makes a new empty one: deleted content is not brought back, and a
 new report never lands in a chat the person put away.
 
-Naota Core has no account of its own and grants no rights. Its turns run with the rights of the turn
+NAOSO Core has no account of its own and grants no rights. Its turns run with the rights of the turn
 that called it, like any other chat.
 """
 from __future__ import annotations
@@ -29,10 +29,10 @@ import fastyaml
 
 SLUG = "naota-core"
 CHANNEL = "agent:" + SLUG
-NAME = "Naota Core"
+NAME = "NAOSO Core"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFINITION_PATH = PROJECT_ROOT / "system" / "agents" / f"{SLUG}.md"
-BLOCK_TITLE = "NAOTA CORE"
+BLOCK_TITLE = "NAOSO CORE"
 
 _lock = threading.RLock()
 _def_cache: Dict[str, Any] = {"mtime": None, "value": None}
@@ -81,8 +81,8 @@ def definition() -> Dict[str, str]:
 
 
 def prompt_block(root: Any = None) -> str:
-    """The role block added to a Naota Core turn. With `root` (the brain the turn runs in) the instructions, name and
-    skills come from that brain's Naota Core file, else from the platform definition. Empty when
+    """The role block added to a NAOSO Core turn. With `root` (the brain the turn runs in) the instructions, name and
+    skills come from that brain's NAOSO Core file, else from the platform definition. Empty when
     there are no instructions at all."""
     if not root:
         body = definition()["body"]
@@ -97,8 +97,8 @@ def prompt_block(root: Any = None) -> str:
 
 def list_entry(last_chat_at: float = 0.0, root: Any = None) -> Dict[str, Any]:
     """The row GET /agents puts first. Same shape as a brain agent, plus the system flags. With `root` the name, role,
-    skills and avatar come from that brain's Naota Core file. The caller picks the role text for the screen language
-    (`role_text`). `system_name` is always "Naota Core"."""
+    skills and avatar come from that brain's NAOSO Core file. The caller picks the role text for the screen language
+    (`role_text`). `system_name` is always "NAOSO Core"."""
     d = definition()
     meta = read_core(root)[0] if root else {}
     me = identity(root) if root else {"name": "", "style": ""}
@@ -142,7 +142,7 @@ def _usable(row: Optional[dict], brain_key: str, same_brain: Callable[[str, str]
 
 def default_session(store: Any, brain_key: str, *, title: str = NAME,
                     same_brain: Optional[Callable[[str, str], bool]] = None) -> str:
-    """The id of this brain's default Naota Core chat, made when missing. Safe to call concurrently:
+    """The id of this brain's default NAOSO Core chat, made when missing. Safe to call concurrently:
     the check and the create run under one lock, so two callers never make two chats."""
     brain_key = str(brain_key or "")
     same = same_brain or (lambda a, b: a == b)
@@ -165,12 +165,12 @@ def current_default(brain_key: str) -> str:
     return _read_map().get(str(brain_key or ""), "")
 
 
-# ── Naota Core as a brain agent file ──────────────────────────────────────────────────────────
+# ── NAOSO Core as a brain agent file ──────────────────────────────────────────────────────────
 #
-# "keep Naota Core exactly like the other agents; it is only the system one you cannot remove, it
+# "keep NAOSO Core exactly like the other agents; it is only the system one you cannot remove, it
 # starts with the system prompt I wrote, and Auto is on and cannot be turned off. Picture, name, skills and documents
 # change like any agent." So each brain gets a real `agents/naota-core.md`, seeded from the platform definition and
-# edited with the same agent editor. Its turns stay full Naota turns (CLAUDE.md, memory, every tool); only the role
+# edited with the same agent editor. Its turns stay full NAOSO turns (CLAUDE.md, memory, every tool); only the role
 # block below them comes from this file.
 #
 # While the body is still the seeded one (`seed_sha` matches), an app update of the definition reaches it. Once the
@@ -261,7 +261,7 @@ def ensure_file(root: Any) -> Optional[Path]:
 
 
 def read_core(root: Any):
-    """(meta, body) of the brain's Naota Core file, made when missing. ({}, definition body) without a brain."""
+    """(meta, body) of the brain's NAOSO Core file, made when missing. ({}, definition body) without a brain."""
     path = ensure_file(root)
     if path is None:
         return {}, definition()["body"]
@@ -302,7 +302,7 @@ def _read_extra(root: Any) -> Dict[str, Any]:
 
 
 def identity(root: Any) -> Dict[str, Any]:
-    """{'name', 'style', 'asked'} of Naota Core in the brain at `root`. Empty name = still called Naota Core."""
+    """{'name', 'style', 'asked'} of NAOSO Core in the brain at `root`. Empty name = still called NAOSO Core."""
     out: Dict[str, Any] = {"name": "", "style": "", "asked": False}
     if not str(root or "").strip():
         return out
@@ -352,12 +352,12 @@ def identity_block(root: Any) -> str:
     lines = []
     if me["name"]:
         lines.append(f"Your name in this brain: **{me['name']}** (set by the user). Call yourself by this name; "
-                     "\"Naota Core\" is now only the name of the system role.")
+                     "\"NAOSO Core\" is now only the name of the system role.")
     elif not me["asked"]:
         lines.append("You have NO name of your own yet. In your first answer, finish what the user asked (if "
                      "anything), then ask ONE short, friendly question: what they would like to call you, with 2-3 "
                      "suggested names that suit them. Call `naota_core_name` op=asked in that same turn. If they pick "
-                     "a name, save it with op=set name=...; if they skip it, keep the name Naota Core and do not ask "
+                     "a name, save it with op=set name=...; if they skip it, keep the name NAOSO Core and do not ask "
                      "again.")
     else:
         lines.append("You have no name of your own yet. Whenever the user gives you one, save it with "

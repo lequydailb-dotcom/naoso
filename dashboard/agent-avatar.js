@@ -100,7 +100,7 @@
     if (v.palette === "custom") f.avatar_color = v.color;
     if (v.eye) f.avatar_eye = v.eye;
     if (v.eye === "custom") f.avatar_eye_color = v.eyeColor;
-    // Luôn gửi: "none" là gỡ ảnh tự tải (về hình Naota), có tên là dùng ảnh đó. Không gửi chuỗi rỗng: FastAPI coi ô
+    // Luôn gửi: "none" là gỡ ảnh tự tải (về hình NAOSO), có tên là dùng ảnh đó. Không gửi chuỗi rỗng: FastAPI coi ô
     // form rỗng là không gửi, nên gỡ ảnh sẽ không ăn.
     f.avatar_image = anhHopLe(v.image) ? v.image : "none";
     return f;
@@ -110,7 +110,7 @@
   const LIEC = { trai_duoi: { liecX: -16, liecY: 9 } };
   function html(agent, size = 40, state = "idle", opts) {
     const a = of(agent);
-    // Ảnh tự tải lên thay hình Naota ở MỌI chỗ vẽ trợ lý (danh sách, đầu khung chat, ảnh ghép của nhóm). Không có mắt
+    // Ảnh tự tải lên thay hình NAOSO ở MỌI chỗ vẽ trợ lý (danh sách, đầu khung chat, ảnh ghép của nhóm). Không có mắt
     // để chớp hay liếc nên không mang các biến đó; lớp has-img để vòng vẽ lại theo chủ đề bỏ qua.
     if (a.image) {
       return '<span class="agent-avatar has-img" data-state="' + esc(state) + '" style="--avatar-size:' + Number(size) + 'px">' +
@@ -164,7 +164,7 @@
         draw(true); host.querySelector('[data-random]').focus(); onChange({...value});
       };
       bindUpload(host, (img) => {
-        // Có ảnh: giữ hình Naota bên dưới (gỡ ảnh là về đúng hình đó). Gỡ ảnh: bỏ khoá image.
+        // Có ảnh: giữ hình NAOSO bên dưới (gỡ ảnh là về đúng hình đó). Gỡ ảnh: bỏ khoá image.
         value = img ? {...value, image: img} : gon({...value, image: ""});
         draw(false); onChange({...value});
       });
@@ -224,7 +224,7 @@
     if (!r.ok || !j.ok || !anhHopLe(j.image)) throw new Error(j.error || t("ws.avatar_upload_fail"));
     return j.image;
   }
-  // Hàng nút "Tải ảnh lên" / "Dùng hình Naota" dùng chung cho trợ lý và nhóm. `coAnh`: đang dùng ảnh tự tải.
+  // Hàng nút "Tải ảnh lên" / "Dùng hình NAOSO" dùng chung cho trợ lý và nhóm. `coAnh`: đang dùng ảnh tự tải.
   function uploadRowHtml(coAnh, labelNaota) {
     return '<div class="aa-upload"><button type="button" class="ws-btn" data-aa-upload>' +
       (typeof window.ic === "function" ? window.ic("image") : "") + esc(t("ws.avatar_upload")) + '</button>' +

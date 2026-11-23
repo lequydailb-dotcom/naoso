@@ -87,10 +87,10 @@ _READ_VERBS = ("get", "list", "search", "read", "fetch", "query", "find", "descr
                "download", "export", "suggest")
 
 BLOCK_NOTE = ("ERROR: Hành động này ra ngoài phạm vi nên cần chủ nhóm duyệt trước (nhóm đang ở quyền 'cần duyệt'). "
-              "Naota đã ghi lại ĐÚNG lời gọi này thành yêu cầu duyệt, chưa có gì được thực hiện. Đừng tìm cách khác để làm "
+              "NAOSO đã ghi lại ĐÚNG lời gọi này thành yêu cầu duyệt, chưa có gì được thực hiện. Đừng tìm cách khác để làm "
               "cùng việc. Làm xong phần trong phạm vi rồi kết thúc bước, nêu ngắn gọn vì sao cần hành động này.")
 NO_GATE_NOTE = ("ERROR: Hành động ra ngoài của nhóm cần chủ nhóm duyệt, mà lời gọi này không gắn với bước nào đang mở nên "
-                "Naota không ghi được yêu cầu. Chưa có gì được thực hiện.")
+                "NAOSO không ghi được yêu cầu. Chưa có gì được thực hiện.")
 
 
 class Gate:
@@ -435,11 +435,11 @@ def provider_support(provider: str, *, codex_sandbox: Optional[str] = "workspace
             from localefmt import chu  # lazy: this module keeps its imports light
             return {"ok": False, "approved_actions": False,
                     "reason": chu("Codex đang chạy không có sandbox riêng (NAOTA_CODEX_SANDBOX=off, mặc định của ảnh "
-                                  "Docker) nên Naota không chặn được lệnh máy của nó trước khi chạy. Muốn giữ Codex "
+                                  "Docker) nên NAOSO không chặn được lệnh máy của nó trước khi chạy. Muốn giữ Codex "
                                   "trên Docker: đặt NAOTA_CODEX_SANDBOX=auto và cho container chạy được sandbox, xem "
                                   "tài liệu Cấu hình env",
                                   "Codex runs without its own sandbox (NAOTA_CODEX_SANDBOX=off, the Docker image "
-                                  "default), so Naota cannot stop its shell commands before they run. To keep Codex on "
+                                  "default), so NAOSO cannot stop its shell commands before they run. To keep Codex on "
                                   "Docker, set NAOTA_CODEX_SANDBOX=auto and let the container run the sandbox, see the "
                                   "env configuration guide")}
         return {"ok": True, "approved_actions": True, "reason": ""}
@@ -450,7 +450,7 @@ def provider_support(provider: str, *, codex_sandbox: Optional[str] = "workspace
         # turn can rewrite to full while this step runs, and its own Write is not limited to the step folders.
         return {"ok": False, "approved_actions": False,
                 "reason": ("Grok Build đọc mức quyền từ một file cấu hình dùng chung cho cả bộ não và ghi file không giới "
-                           "hạn thư mục, nên Naota không bảo đảm chặn được trước khi chạy")}
+                           "hạn thư mục, nên NAOSO không bảo đảm chặn được trước khi chạy")}
     if p == ANTIGRAVITY:
         return {"ok": False, "approved_actions": False,
                 "reason": "Antigravity CLI không có cách chặn công cụ của chính nó trước khi chạy ở mức này"}

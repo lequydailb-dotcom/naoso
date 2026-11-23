@@ -70,8 +70,8 @@ def _git_env(ws: str, index: Path) -> Dict[str, str]:
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     env.update({
         "GIT_DIR": str(KHO), "GIT_WORK_TREE": str(ws), "GIT_INDEX_FILE": str(index),
-        "GIT_AUTHOR_NAME": "Naota", "GIT_AUTHOR_EMAIL": "naota@localhost",
-        "GIT_COMMITTER_NAME": "Naota", "GIT_COMMITTER_EMAIL": "naota@localhost",
+        "GIT_AUTHOR_NAME": "NAOSO", "GIT_AUTHOR_EMAIL": "naota@localhost",
+        "GIT_COMMITTER_NAME": "NAOSO", "GIT_COMMITTER_EMAIL": "naota@localhost",
         "GIT_TERMINAL_PROMPT": "0", "GIT_CONFIG_NOSYSTEM": "1", "LC_ALL": "C",
     })
     return env

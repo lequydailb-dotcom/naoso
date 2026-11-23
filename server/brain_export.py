@@ -5,7 +5,7 @@ gets an Export button (GET /brains/export) and the panel gets "Upload a brain" (
 
 What goes into the file is the brain's knowledge: notes, images, agents, skills, workflows, memory. What stays out is
 what must not travel in a file someone may forward: the brain's own git folder, raw chat logs and run logs, learned
-files carrying customer chat text, and the config files Naota writes with a hub token in them. The list follows the
+files carrying customer chat text, and the config files NAOSO writes with a hub token in them. The list follows the
 backup's (git_brain._BACKUP_SKIP_SUBSTR), so the two never disagree about what is private, plus a few names that are
 secrets anywhere (.env, private keys, .mcp.json).
 
@@ -59,7 +59,7 @@ _SECRET_PREFIXES = ("id_rsa", "id_dsa", "id_ecdsa", "id_ed25519")
 _SECRET_SUFFIXES = (".tmp", ".pem", ".key", ".p12", ".pfx")
 _SKIP_DIRS = {".git", ".trash"}
 # Import only (2026-11-10). These hold what an engine RUNS, not knowledge: hooks and permissions in .claude/settings*.json,
-# MCP servers and commands in the other engines' folders. Naota writes its own copies when it needs them, so a brain file
+# MCP servers and commands in the other engines' folders. NAOSO writes its own copies when it needs them, so a brain file
 # from somebody else never brings one in. Skills kept under those folders (`.claude/skills`, `.agents/skills`) and the
 # rest of `.claude` are content and stay.
 _ENGINE_CONFIG_DIRS = {".codex", ".grok", ".agents", ".gemini", ".antigravity", ".antigravitycli", ".naota"}
@@ -409,7 +409,7 @@ def import_zip(fileobj, brains_dir, filename: str = "", label: str = "", work_di
                 members.append((i, rel))
         if not members:
             raise BadFile("empty")
-        # One folder at the top (what Naota writes, and what zipping a folder by hand gives): strip it.
+        # One folder at the top (what NAOSO writes, and what zipping a folder by hand gives): strip it.
         tops = {rel.split("/", 1)[0] for _i, rel in members}
         prefix = ""
         if len(tops) == 1 and all("/" in rel for _i, rel in members):
@@ -628,8 +628,8 @@ def upload_chunk(work, uid: str, offset: int, data: bytes) -> int:
 
 
 def bad_file_text() -> str:
-    return localefmt.chu("File này không phải bộ não Naota xuất ra (cần file .zip có ghi chú bên trong).",
-                         "This is not a brain file exported by Naota (a .zip with notes inside).")
+    return localefmt.chu("File này không phải bộ não NAOSO xuất ra (cần file .zip có ghi chú bên trong).",
+                         "This is not a brain file exported by NAOSO (a .zip with notes inside).")
 
 
 _IMPORTS: dict = {}

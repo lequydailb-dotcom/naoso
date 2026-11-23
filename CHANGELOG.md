@@ -6,6 +6,11 @@ Lịch sử phiên bản NAOTA. Bản mới nhất ở trên cùng. Xem ngay tro
 
 Định dạng: mỗi phiên bản là một khối `## [x.y.z] - ngày`, bên dưới nhóm thay đổi theo `### Thêm mới / Sửa lỗi / Cải thiện / Bảo mật`.
 
+## [1.60.4] - 2026-11-23
+### Sửa lỗi
+- **Đổi tên hiển thị NAOTA thành NAOSO ở mọi nơi người dùng thấy:** giao diện, thông báo, bong bóng chat, lệnh xuất, tài liệu, tên trên thông báo trình duyệt và nhãn trợ năng.
+- **Tên kỹ thuật được giữ nguyên** để dữ liệu và cấu hình cũ không hỏng: biến môi trường `NAOTA_*`, thư mục `Naota/` trong bộ não, tên công cụ `naota_*`, tên mục khởi động cùng máy.
+
 ## [1.60.3] - 2026-11-23
 ### Sửa lỗi
 - **Chân trang giữ đúng tên anh.** Dòng "by Lê Quý Đại" và số Zalo hiện lại, không còn tên tác giả cũ.

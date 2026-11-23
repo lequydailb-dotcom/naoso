@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# NAOTA - first install on a Mac (NAOTA.app opens Terminal on this file).
+# NAOSO - first install on a Mac (NAOSO.app opens Terminal on this file).
 #
 #   bash bootstrap.sh            # installs into ~/Naota (NAOTA_HOME to change it)
 #
@@ -8,10 +8,10 @@
 #   1. Git: Apple's Command Line Tools. macOS shows its own "Install" dialog for them.
 #   2. Python >= 3.10: macOS only ships 3.9, so if none is found, uv (astral.sh) downloads a
 #      standalone Python 3.12 into the home folder. No admin rights, nothing system wide.
-#   3. Clones Naota into ~/Naota. A clone, not a copy, because the Update button in the app
+#   3. Clones NAOSO into ~/Naota. A clone, not a copy, because the Update button in the app
 #      updates with git (server/updater.py).
 #   4. install.sh does the rest: Node (nodejs.org build when there is no brew), the four CLI
-#      brains, the venv, .env, the admin account, the login auto-start, then opens Naota.
+#      brains, the venv, .env, the admin account, the login auto-start, then opens NAOSO.
 # Running it again is safe: every step that is already done is skipped.
 # ============================================================
 set -u
@@ -27,8 +27,8 @@ warn() { echo -e "    ${YELLOW}[!]${NC} $*"; }
 fail() {
   echo -e "    ${RED}[LOI]${NC} $*"
   echo ""
-  echo "Cai dat chua xong. Sua xong thi mo lai NAOTA, cac buoc da xong se duoc bo qua."
-  echo "Setup did not finish. Fix the line above, then open NAOTA again."
+  echo "Cai dat chua xong. Sua xong thi mo lai NAOSO, cac buoc da xong se duoc bo qua."
+  echo "Setup did not finish. Fix the line above, then open NAOSO again."
   exit 1
 }
 
@@ -36,7 +36,7 @@ export PATH="$HOME/.local/bin:$HOME/.naota/node/bin:/opt/homebrew/bin:/usr/local
 
 echo ""
 echo " =========================================="
-echo "  NAOTA - kiem tra va cai nhung gi may con thieu"
+echo "  NAOSO - kiem tra va cai nhung gi may con thieu"
 echo "  Thu muc cai: $NAOTA_HOME"
 echo " =========================================="
 
@@ -52,7 +52,7 @@ if ! xcode-select -p >/dev/null 2>&1 || ! git --version >/dev/null 2>&1; then
     sleep 5
   done
 fi
-git --version >/dev/null 2>&1 || fail "Chua co Git. Chay: xcode-select --install, cai xong roi mo lai NAOTA."
+git --version >/dev/null 2>&1 || fail "Chua co Git. Chay: xcode-select --install, cai xong roi mo lai NAOSO."
 ok "$(git --version)"
 
 # ---------------------------------------------------------------- [B] python
@@ -66,7 +66,7 @@ have_py() {
   return 1
 }
 if ! have_py; then
-  warn "Chua co Python 3.10+ (macOS chi kem 3.9). Dang tai Python 3.12 rieng cho Naota (uv)..."
+  warn "Chua co Python 3.10+ (macOS chi kem 3.9). Dang tai Python 3.12 rieng cho NAOSO (uv)..."
   if ! command -v uv >/dev/null 2>&1; then
     curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh >/dev/null 2>&1 || true
   fi
@@ -79,22 +79,22 @@ if ! have_py; then
     fi
   fi
 fi
-have_py || fail "Chua cai duoc Python 3.12. Tai o https://www.python.org/downloads/macos/ roi mo lai NAOTA."
+have_py || fail "Chua cai duoc Python 3.12. Tai o https://www.python.org/downloads/macos/ roi mo lai NAOSO."
 for c in python3.12 python3.11 python3.13 python3.10 python3; do
   if command -v "$c" >/dev/null 2>&1 && py_ok "$c"; then ok "$("$c" --version) ($(command -v "$c"))"; break; fi
 done
 
 # ---------------------------------------------------------------- [C] source
-step C "Tai Naota ve may"
+step C "Tai NAOSO ve may"
 if [ -d "$NAOTA_HOME/.git" ]; then
-  ok "Da co ban Naota o $NAOTA_HOME, giu nguyen (cap nhat bang nut Cap nhat trong app)"
+  ok "Da co ban NAOSO o $NAOTA_HOME, giu nguyen (cap nhat bang nut Cap nhat trong app)"
 else
   if [ -e "$NAOTA_HOME" ] && [ -n "$(ls -A "$NAOTA_HOME" 2>/dev/null)" ]; then
-    fail "Thu muc $NAOTA_HOME da co file nhung khong phai ban Naota tai bang git. Doi ten no roi mo lai NAOTA."
+    fail "Thu muc $NAOTA_HOME da co file nhung khong phai ban NAOSO tai bang git. Doi ten no roi mo lai NAOSO."
   fi
   # blob:none keeps every commit (the updater merges and rolls back on them) and downloads
   # file contents only when needed.
-  git clone --filter=blob:none --branch "$BRANCH" "$REPO" "$NAOTA_HOME" || fail "Khong tai duoc Naota (kiem tra mang Internet)."
+  git clone --filter=blob:none --branch "$BRANCH" "$REPO" "$NAOTA_HOME" || fail "Khong tai duoc NAOSO (kiem tra mang Internet)."
   ok "Da tai ve $NAOTA_HOME"
 fi
 
@@ -104,5 +104,5 @@ cd "$NAOTA_HOME" || fail "Khong vao duoc $NAOTA_HOME"
 bash ./install.sh || fail "install.sh bao loi, doc cac dong phia tren."
 
 echo ""
-ok "Xong. Lan sau mo Naota bang NAOTA trong Launchpad hoac thu muc Applications."
-echo "    Done. Next time, open NAOTA from Launchpad or Applications. You can close this window."
+ok "Xong. Lan sau mo NAOSO bang NAOSO trong Launchpad hoac thu muc Applications."
+echo "    Done. Next time, open NAOSO from Launchpad or Applications. You can close this window."

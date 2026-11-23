@@ -27,7 +27,7 @@ Luật chọn danh sách (mã thuần, `tool_pins.pick`):
 - Danh sách của một brain đổi nhiều nhất một lần mỗi ngày, giữ nguyên thứ tự cũ, cái mới xếp cuối. Lý do: danh sách
   công cụ nằm ở đầu prompt, mỗi lần đổi là một lần nhà cung cấp phải đọc lại phần đã lưu đệm.
 
-Luật của núm (`tool_pins.limit_rule`, chạy trong vòng của Naota Core, mỗi ngày nhiều nhất một bước):
+Luật của núm (`tool_pins.limit_rule`, chạy trong vòng của NAOSO Core, mỗi ngày nhiều nhất một bước):
 
 - Có brain đang có công cụ "chờ chỗ" thì thêm một chỗ (tối đa 8).
 - Núm đang trên mặc định mà không brain nào dùng hết chỗ thì bớt một chỗ.
@@ -51,14 +51,14 @@ mức nhất vẫn vừa.
 Không có màn hình hay ô cài đặt mới.
 
 - **Chuông.** Khi một brain có công cụ mới được ghim: một thông báo mức thấp nêu brain, tên công cụ và câu để tắt.
-- **Nói với Naota.** "Đang ghim công cụ nào" (`naota_tune op=status`, mục `pinned_tools`: danh sách ghim, số lượt gọi
+- **Nói với NAOSO.** "Đang ghim công cụ nào" (`naota_tune op=status`, mục `pinned_tools`: danh sách ghim, số lượt gọi
   thẳng, số lượt còn phải tìm trước). "Đừng ghim công cụ nữa" (`naota_tune op=set knob=tools.pin_limit value=0`).
 - Giá trị chủ đặt thì luật để yên 30 ngày (luật mới của vòng, áp cho mọi núm).
 
 ## 5. Hiệu năng
 
 - Một lượt gọi công cụ thêm một phép cộng trong bộ nhớ. Không ghi đĩa trong lượt gọi.
-- `tool_pins.tick` chạy 10 phút một lần ở luồng phụ, cùng nhịp với vòng của Naota Core; chỉ ghi một tệp JSON nhỏ
+- `tool_pins.tick` chạy 10 phút một lần ở luồng phụ, cùng nhịp với vòng của NAOSO Core; chỉ ghi một tệp JSON nhỏ
   (`STATE_DIR/tool-pins.json`) khi có gì đổi. Mỗi brain theo dõi tối đa 120 công cụ.
 - Đọc danh sách ghim ở lượt chat là tra một dict trong bộ nhớ. Danh sách ghim nằm trong khoá cache của hub, nên đổi
   ghim không phải xoá cache hay đóng kết nối MCP.

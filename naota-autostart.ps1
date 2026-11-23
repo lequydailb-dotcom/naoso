@@ -1,19 +1,19 @@
 # ============================================================
-# NAOTA - tu khoi dong cung Windows (ban sao cua bin/naota-autostart.sh ben Mac).
+# NAOSO - tu khoi dong cung Windows (ban sao cua bin/naota-autostart.sh ben Mac).
 # Goi qua naota-autostart.bat, dung goi truc tiep tru khi biet minh dang lam gi.
 #
 # Cach lam: ghi DUNG muc ma dashboard bat/tat (HKCU\...\Run, ten "Naota",
 # khong can quyen admin), tro vao `wscript start-naota.vbs /open`: dang nhap may la server
 # tu chay NEN roi tu mo dashboard trong cua so rieng. install.ps1 goi file nay mac dinh.
 # File nay khong dat shortcut trong thu muc Startup vi dashboard da ghi Run key: hai
-# muc cung bat thi luc dang nhap hai ban Naota gianh nhau cong 7777. Gio chi con Run key,
+# muc cung bat thi luc dang nhap hai ban NAOSO gianh nhau cong 7777. Gio chi con Run key,
 # shortcut cu bi xoa khi install/uninstall.
 # ============================================================
 param([string]$Action = "status")
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Startup = [Environment]::GetFolderPath("Startup")
-$Lnk = Join-Path $Startup "NAOTA.lnk"          # muc cu, chi de don
+$Lnk = Join-Path $Startup "NAOSO.lnk"          # muc cu, chi de don
 $RunKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
 $Approved = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"
 $Name = "Naota"                                  # khop _AUTOSTART_NAME trong server/main.py
@@ -22,7 +22,7 @@ switch ($Action.ToLower()) {
   "install" {
     $vbs = Join-Path $Root "start-naota.vbs"
     if (-not (Test-Path $vbs)) {
-      Write-Host "Khong thay start-naota.vbs canh script nay - dat naota-autostart.ps1 o goc thu muc Naota."
+      Write-Host "Khong thay start-naota.vbs canh script nay - dat naota-autostart.ps1 o goc thu muc NAOSO."
       exit 1
     }
     # Cung chuoi voi _autostart_command() trong server/main.py, de dashboard bao "Bat" chu khong bao "duong dan cu".
@@ -37,7 +37,7 @@ switch ($Action.ToLower()) {
       }
     } catch { }
     if (Test-Path $Lnk) { Remove-Item $Lnk -Force }
-    Write-Host "Da bat tu khoi dong cung Windows: dang nhap may la Naota tu chay va tu mo dashboard."
+    Write-Host "Da bat tu khoi dong cung Windows: dang nhap may la NAOSO tu chay va tu mo dashboard."
     Write-Host "Tat: naota-autostart.bat uninstall (hoac nut trong dashboard, trang Cai dat)."
   }
   "uninstall" {

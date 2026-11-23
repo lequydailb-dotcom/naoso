@@ -5,7 +5,7 @@
 
 Writes packaging/assets/naota.ico (Windows installer and shortcuts) and
 packaging/assets/naota.icns (macOS app bundle and the .dmg volume icon), plus a copy of
-the .icns inside the in-repo "NAOTA.app", and the Windows setup wizard pictures:
+the .icns inside the in-repo "NAOSO.app", and the Windows setup wizard pictures:
 wizard-<pct>.bmp (the tall panel on the first and last page) and wizard-small-<pct>.bmp
 (the corner logo on the pages between), one per display scale Inno Setup picks from.
 The outputs are committed, so CI and users never need Pillow for this; rerun it only when
@@ -68,7 +68,7 @@ def main() -> None:
     img = Image.open(SRC).convert("RGBA")
     img.save(OUT / "naota.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
     img.save(OUT / "naota.icns")
-    res = ROOT / "NAOTA.app" / "Contents" / "Resources"
+    res = ROOT / "NAOSO.app" / "Contents" / "Resources"
     res.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(OUT / "naota.icns", res / "naota.icns")
     for pct in SCALES:

@@ -1,4 +1,4 @@
-// Naota UI sounds and their on/off switch ("nút tích nghe thật đã tai, nút phá băng cũng vậy",
+// NAOSO UI sounds and their on/off switch ("nút tích nghe thật đã tai, nút phá băng cũng vậy",
 // then "để bật tắt âm thanh vào chỗ gần với chỗ sáng tối, không cần có volume chỉnh chỉ cần nút thôi").
 // Sounds are made on the spot with Web Audio, no sound file: a crisp click and a bright ding for a tick, a rising
 // sparkle for a priority, a whoosh into a warm chord when a habit lights, ice cracking then glass chimes when it thaws,

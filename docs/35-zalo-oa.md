@@ -12,12 +12,12 @@ Kênh này khác hai kênh Zalo có sẵn:
 
 | | Zalo OA |
 |---|---|
-| Naota kết nối thế nào | Webhook: Zalo gọi vào Naota, **cần tên miền HTTPS** |
+| NAOSO kết nối thế nào | Webhook: Zalo gọi vào NAOSO, **cần tên miền HTTPS** |
 | Nhóm | Không, chỉ chat riêng với OA |
 | File | Nhận ảnh, file, tin thoại. Gửi ảnh JPG/PNG/GIF (tối đa 1MB) và PDF, DOC, DOCX (tối đa 5MB) |
 | Tin thoại | Chép thành chữ (cần key Groq ở trang Models) |
 | Trả lời | Bằng "tin tư vấn", chỉ trong khung thời gian Zalo cho phép sau tin cuối của khách |
-| Định dạng | Chữ thường: Zalo không hiện Markdown, Naota tự bỏ ký hiệu |
+| Định dạng | Chữ thường: Zalo không hiện Markdown, NAOSO tự bỏ ký hiệu |
 
 ## 1. Tạo app trên Zalo for Developers (một lần)
 
@@ -29,20 +29,20 @@ Kênh này khác hai kênh Zalo có sẵn:
 
 Zalo chỉ gửi tin vào một địa chỉ HTTPS trên tên miền đã xác thực.
 
-1. Mở Naota **bằng tên miền HTTPS**, vào **Chatbot**, tab **Bot**, bấm **Thêm kênh**, chọn **Zalo OA**. Form hiện **Địa chỉ webhook** và ô **Mã xác thực tên miền Zalo**.
-2. Trên Zalo, mục **Xác thực tên miền**, nhập tên miền của Naota, chọn cách xác thực bằng **file HTML**. Zalo cho tên file dạng `zalo_verifier<mã>.html`.
-3. Dán tên file đó (hoặc thẻ meta Zalo đưa) vào ô của Naota, bấm **Lưu mã**. Naota bắt đầu phục vụ đúng file đó. Quay lại Zalo bấm **Xác thực**.
-4. Vào mục **Webhook** của app, dán **Địa chỉ webhook** Naota hiện (dạng `https://<tên miền>/zalo-oa/webhook`), bật các sự kiện **user_send_text**, **user_send_image**, **user_send_file**, **user_send_audio**, **user_send_sticker**, **user_send_location**. Bật thêm **oa_send_text**, **oa_send_image**, **oa_send_file** để bot thấy tin và file nhân viên gửi cho khách từ app OA (xem mục dưới).
-5. Ở mục Webhook có **OA secret key** (khóa bí mật của OA). Chép lại: Naota dùng nó để kiểm chữ ký từng tin, tin không đúng chữ ký bị bỏ.
+1. Mở NAOSO **bằng tên miền HTTPS**, vào **Chatbot**, tab **Bot**, bấm **Thêm kênh**, chọn **Zalo OA**. Form hiện **Địa chỉ webhook** và ô **Mã xác thực tên miền Zalo**.
+2. Trên Zalo, mục **Xác thực tên miền**, nhập tên miền của NAOSO, chọn cách xác thực bằng **file HTML**. Zalo cho tên file dạng `zalo_verifier<mã>.html`.
+3. Dán tên file đó (hoặc thẻ meta Zalo đưa) vào ô của NAOSO, bấm **Lưu mã**. NAOSO bắt đầu phục vụ đúng file đó. Quay lại Zalo bấm **Xác thực**.
+4. Vào mục **Webhook** của app, dán **Địa chỉ webhook** NAOSO hiện (dạng `https://<tên miền>/zalo-oa/webhook`), bật các sự kiện **user_send_text**, **user_send_image**, **user_send_file**, **user_send_audio**, **user_send_sticker**, **user_send_location**. Bật thêm **oa_send_text**, **oa_send_image**, **oa_send_file** để bot thấy tin và file nhân viên gửi cho khách từ app OA (xem mục dưới).
+5. Ở mục Webhook có **OA secret key** (khóa bí mật của OA). Chép lại: NAOSO dùng nó để kiểm chữ ký từng tin, tin không đúng chữ ký bị bỏ.
 
 ## 3. Khai báo Callback URL cho OAuth v4 (một lần)
 
-Zalo đã chuyển việc cấp quyền OA sang **OAuth v4** (mã cấp quyền kèm PKCE). Naota làm đúng luồng đó nên bạn không phải lấy refresh token tay nữa.
+Zalo đã chuyển việc cấp quyền OA sang **OAuth v4** (mã cấp quyền kèm PKCE). NAOSO làm đúng luồng đó nên bạn không phải lấy refresh token tay nữa.
 
-1. Ở form **Thêm kênh**, **Zalo OA**, Naota hiện **Callback URL** dạng `https://<tên miền>/zalo-oa/oauth/callback`.
+1. Ở form **Thêm kênh**, **Zalo OA**, NAOSO hiện **Callback URL** dạng `https://<tên miền>/zalo-oa/oauth/callback`.
 2. Trên developers.zalo.me, trong app, mục **Official Account**, dán địa chỉ đó vào ô **Callback URL** rồi lưu. Tên miền phải là tên miền đã xác thực ở bước 2.
 
-## 4. Thêm tài khoản Zalo OA trong Naota
+## 4. Thêm tài khoản Zalo OA trong NAOSO
 
 ### Cách nhanh: Cấp quyền bằng Zalo (OAuth v4)
 
@@ -54,12 +54,12 @@ Zalo đã chuyển việc cấp quyền OA sang **OAuth v4** (mã cấp quyền 
 
    Muốn chắc thứ tự hai khoá ngắn thì ghi tên: `app_secret=...` và `oa_secret=...`.
 2. Bấm **Cấp quyền bằng Zalo**. Một tab Zalo mở ra: chọn đúng OA, bấm **Cho phép**. Tab tự đóng.
-3. Naota đổi mã cấp quyền lấy cặp access token và refresh token, đọc tên OA rồi tự lưu kênh. Không cần bấm Kiểm tra hay Lưu.
+3. NAOSO đổi mã cấp quyền lấy cặp access token và refresh token, đọc tên OA rồi tự lưu kênh. Không cần bấm Kiểm tra hay Lưu.
 4. Vào **Chatbot**, **Bot** để tạo bot hoặc gắn bot có sẵn cho kênh này. Bot bật lên là bắt đầu trả lời khách nhắn OA.
 
-Access token chỉ sống khoảng 25 giờ, refresh token khoảng 3 tháng và mỗi cái chỉ dùng **một lần**. Naota tự làm mới và lưu ngay cặp mới vào kho tài khoản đã mã hoá, nên bot chạy đều thì không bao giờ phải cấp quyền lại.
+Access token chỉ sống khoảng 25 giờ, refresh token khoảng 3 tháng và mỗi cái chỉ dùng **một lần**. NAOSO tự làm mới và lưu ngay cặp mới vào kho tài khoản đã mã hoá, nên bot chạy đều thì không bao giờ phải cấp quyền lại.
 
-**Cấp quyền lại:** nếu refresh token chết (Naota tắt quá 3 tháng, hoặc bạn thu hồi quyền của app), mở **Sửa** kênh Zalo OA, bấm **Cấp quyền lại bằng Zalo**. Naota dùng khoá đã lưu, ô Token để trống cũng được. Bot đang trực tự chạy lại với cặp token mới.
+**Cấp quyền lại:** nếu refresh token chết (NAOSO tắt quá 3 tháng, hoặc bạn thu hồi quyền của app), mở **Sửa** kênh Zalo OA, bấm **Cấp quyền lại bằng Zalo**. NAOSO dùng khoá đã lưu, ô Token để trống cũng được. Bot đang trực tự chạy lại với cặp token mới.
 
 ### Cách cũ: dán refresh token từ API Explorer
 
@@ -67,16 +67,16 @@ Vẫn dùng được nếu bạn chưa khai báo Callback URL.
 
 1. Mở **API Explorer** trên developers.zalo.me (mục Công cụ), chọn loại **OA Access Token**, đúng app và OA, bấm lấy token, cho phép app truy cập OA, chép **Refresh token**.
 2. Ở ô Token, dán bốn thứ: `<App ID> <App secret key> <OA secret key> <Refresh token>`.
-3. Bấm **Kiểm tra** rồi bấm **Lưu** ngay sau đó. Lúc kiểm tra, refresh token vừa dán đã bị dùng mất; cặp mới nằm chờ trong Naota khoảng 30 phút và được ghi vào tài khoản khi bạn lưu.
+3. Bấm **Kiểm tra** rồi bấm **Lưu** ngay sau đó. Lúc kiểm tra, refresh token vừa dán đã bị dùng mất; cặp mới nằm chờ trong NAOSO khoảng 30 phút và được ghi vào tài khoản khi bạn lưu.
 
 ## 5. Khi bot im lặng
 
-- **Bot báo thiếu OA secret key:** Naota không cho bot chạy khi thiếu khoá này, vì mọi tin sẽ bị từ chối chữ ký mà không ai biết. Sửa kênh, dán lại đủ khoá.
-- **Trang Zalo báo sai redirect_uri / callback:** Callback URL trên app Zalo phải đúng y địa chỉ Naota hiện ở form (bước 3), và bạn phải mở Naota bằng chính tên miền đó.
+- **Bot báo thiếu OA secret key:** NAOSO không cho bot chạy khi thiếu khoá này, vì mọi tin sẽ bị từ chối chữ ký mà không ai biết. Sửa kênh, dán lại đủ khoá.
+- **Trang Zalo báo sai redirect_uri / callback:** Callback URL trên app Zalo phải đúng y địa chỉ NAOSO hiện ở form (bước 3), và bạn phải mở NAOSO bằng chính tên miền đó.
 - **"Zalo không làm mới được token":** refresh token sai, đã dùng rồi, hoặc quá 3 tháng. Mở Sửa kênh, bấm **Cấp quyền lại bằng Zalo**.
 - **Lỗi -230 hoặc báo khách lâu không nhắn:** Zalo chỉ cho OA trả lời trong một khung thời gian sau tin cuối của khách. Khách nhắn lại là mở lại.
 - **Lỗi -224:** gói dịch vụ của OA chưa cho dùng tính năng này qua API. Kiểm tra gói ở [oa.zalo.me](https://oa.zalo.me).
 - **Bot không biết báo giá nhân viên vừa gửi:** bật các sự kiện oa_send_text, oa_send_image, oa_send_file ở mục Webhook của app. Từ đó tin nhân viên gửi từ app OA hiện trong Hộp thư (nhãn Nhân viên), và bot đọc được nội dung file: PDF, Word, Excel đọc thẳng, ảnh thì nhờ một bộ não đã kết nối có mắt (model chính, gói ChatGPT hoặc Claude Code) đọc hộ. Bot chỉ ghi nhận, không tự trả lời tin của nhân viên.
-- **Không có tin nào tới:** kiểm tra webhook đúng địa chỉ HTTPS của Naota và đã bật sự kiện user_send_*. Zalo bỏ webhook nếu Naota không trả lời nhiều lần liền, khi đó bật lại ở trang app.
+- **Không có tin nào tới:** kiểm tra webhook đúng địa chỉ HTTPS của NAOSO và đã bật sự kiện user_send_*. Zalo bỏ webhook nếu NAOSO không trả lời nhiều lần liền, khi đó bật lại ở trang app.
 
-Naota không đọc lại được tin nhắn cũ của OA trước lúc nối: Hộp thư bắt đầu từ tin đầu tiên tới qua webhook.
+NAOSO không đọc lại được tin nhắn cũ của OA trước lúc nối: Hộp thư bắt đầu từ tin đầu tiên tới qua webhook.

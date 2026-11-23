@@ -2,12 +2,12 @@
 
 Spec viết ngày 10/11/2026, đi tiếp sau `2026-11-naota-nhe-token-spec.md`. Chủ repo chốt hướng bằng ba câu:
 
-- "Naota là hệ thống tự học, tự cải tiến cả cách nó tự học nữa."
+- "NAOSO là hệ thống tự học, tự cải tiến cả cách nó tự học nữa."
 - "Nó phải tự điều chỉnh các model nền cho được việc hoặc tiết kiệm token theo ý định của người dùng, chứ không thể
   cố định theo khung anh nghĩ được."
 - "Nhớ tối ưu performance, và tối giản nhất cho người dùng, không cần phải cài đặt nhiều."
 
-Vì vậy không ai gán model cho việc nền nữa, kể cả mã. Mã chỉ đưa cho Naota ba thứ: ý định của chủ, một cái thang, và
+Vì vậy không ai gán model cho việc nền nữa, kể cả mã. Mã chỉ đưa cho NAOSO ba thứ: ý định của chủ, một cái thang, và
 một cuốn sổ điểm.
 
 Mục 1 đến 6 là phần ĐÃ LÀM trong cùng PR. Mục 7 là phần chưa làm, xếp theo thứ tự đáng làm.
@@ -16,7 +16,7 @@ Mục 1 đến 6 là phần ĐÃ LÀM trong cùng PR. Mục 7 là phần chưa l
 
 | Thành phần | Là gì | Nằm ở đâu |
 |---|---|---|
-| **Ý định** | Điều chủ muốn, nói trong chat: `save` (tiết kiệm), `balanced` (để Naota tự cân, mặc định), `sure` (chắc ăn). Áp cho mọi việc nền hoặc riêng một việc | `job_scorecard.intent`, `set_intent`; tool `naota_tune` |
+| **Ý định** | Điều chủ muốn, nói trong chat: `save` (tiết kiệm), `balanced` (để NAOSO tự cân, mặc định), `sure` (chắc ăn). Áp cho mọi việc nền hoặc riêng một việc | `job_scorecard.intent`, `set_intent`; tool `naota_tune` |
 | **Thang** | Các model chat của nhà cung cấp, xếp từ nhẹ tới model của MAIN. Model chính đọc danh sách của chính nhà đó rồi xếp một lần; chỉ xếp lại khi danh sách đổi. Không có bảng tên model trong mã | `auto_background.build_prompt`, `parse` (khoá `ladder`) |
 | **Sổ điểm** | Mỗi lần chạy của một việc để lại một dòng: model nào, được việc không, tốn bao nhiêu. Từ đó việc tự leo hay tự hạ bậc | `server/job_scorecard.py`, `STATE_DIR/scorecard.sqlite3` |
 
@@ -41,7 +41,7 @@ Hai luật chắn:
 - Sổ điểm **không bao giờ chạy lại** một việc. Việc đã gửi tin hay tạo đơn thì không gửi lần hai; bậc chỉ đổi cho
   lần chạy kế tiếp.
 
-Bậc khởi đầu của một việc chưa có lịch sử: việc Naota tự làm bắt đầu ở đáy thang, việc chủ giao bắt đầu ở bậc model
+Bậc khởi đầu của một việc chưa có lịch sử: việc NAOSO tự làm bắt đầu ở đáy thang, việc chủ giao bắt đầu ở bậc model
 chính đã chỉ làm "điểm giữa" khi xếp thang. `save` kéo việc chủ giao xuống một bậc, `sure` đẩy mọi việc lên một bậc.
 
 ## 3. Tín hiệu "được việc" của từng loại việc
@@ -59,17 +59,17 @@ Chỗ ghi: `learn.LearnFeature.run_once`, `self_improve` (quanh `_run_cycle_inne
 chính model yếu vừa làm việc đó.
 
 **Model nào thật sự trả lời.** Việc nền chạy qua một chuỗi dự phòng (`aux_engine._FallbackChain`). Chuỗi giờ báo cho
-sổ điểm mắt nào đã trả lời và mắt nào hỏng vì sao. Nếu model Naota chọn bị nhà cung cấp từ chối và model của MAIN
+sổ điểm mắt nào đã trả lời và mắt nào hỏng vì sao. Nếu model NAOSO chọn bị nhà cung cấp từ chối và model của MAIN
 làm thay, việc vẫn xong nhưng bậc đó bị tính một lần hỏng; nếu nó chỉ hết hạn mức thì không tính.
 
 ## 4. Người dùng thấy gì
 
 Không có màn hình và không có ô cài đặt nào mới.
 
-- **Nói với Naota.** "Tiết kiệm token giúp anh", "việc gửi báo cáo phải thật chắc", "báo cáo sáng nay sai rồi", "việc
+- **Nói với NAOSO.** "Tiết kiệm token giúp anh", "việc gửi báo cáo phải thật chắc", "báo cáo sáng nay sai rồi", "việc
   nền đang chạy model gì". Model chat gọi tool `naota_tune` (plugin hệ thống `naota-tune`, chỉ phiên của chủ thấy):
   `status`, `intent {level, job?}`, `feedback {job, good}`, `undo {id}`. Tên việc lấy theo lời chủ; nhiều việc khớp
-  thì Naota hỏi lại.
+  thì NAOSO hỏi lại.
 - **Chuông.** Mỗi lần một việc đổi model có một thông báo mức thấp: việc nào, từ model nào sang model nào, vì sao,
   và câu để hoàn lại.
 - **Trang Models.** Vẫn một khối "Model việc nền", ghi "Tự động". Chọn tay một model ở đó thì toàn bộ cơ chế này
@@ -90,12 +90,12 @@ Không có màn hình và không có ô cài đặt nào mới.
 - **Phân loại lỗi của chuỗi** (`aux_engine.cooldown_for`): tách "hết hạn mức, mất quyền, sập" khỏi lỗi về chính model.
 - **Bước tự kiểm của loop và bước nghiệm thu của Kanban**: đã có, giờ thành tín hiệu cho sổ điểm.
 - **Khuôn plugin hệ thống chỉ-của-chủ** (`naota-memory`, `OWNER_ONLY_TOOLS`): cho `naota_tune`.
-- **Kênh thông báo của Naota Core** (`_notify_owner`, nhóm `cost`, mức `info`).
+- **Kênh thông báo của NAOSO Core** (`_notify_owner`, nhóm `cost`, mức `info`).
 
 ## 7. Chưa làm, theo thứ tự đáng làm
 
 Cập nhật: mục 2 dưới đây và phần luật bằng mã của mục 1 đã làm ở bước kế, xem
-`2026-11-vong-cai-tien-naota-core-spec.md`. Phần Naota Core suy xét bằng model mạnh vẫn chưa làm.
+`2026-11-vong-cai-tien-naota-core-spec.md`. Phần NAOSO Core suy xét bằng model mạnh vẫn chưa làm.
 
 1. **Vòng tự soát bằng model mạnh cho CÁCH HỌC**, theo đúng khuôn `chatbot_reply_policy_review.py`: gom báo cáo từ sổ
    điểm và nhật ký học, hỏi model chính, nhận tối đa vài thay đổi từ một danh sách núm đóng (thời gian chờ yên, học

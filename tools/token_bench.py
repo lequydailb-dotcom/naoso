@@ -13,7 +13,7 @@ Owner, 17/11/2026: save tokens without hurting answers, and show numbers before 
      conversation, so this is what input tokens follow). One scenario has data that changes between two identical
      calls: its saving must stay 0, which shows that no stale result is ever reused.
   2. machine: read-only figures from this machine's own logs, to compare one week with the next: input tokens per
-     turn by provider (runtime.db, the turns Naota itself measured) and what the tool result meter kept out of the
+     turn by provider (runtime.db, the turns NAOSO itself measured) and what the tool result meter kept out of the
      conversation (tool_result_sizes.jsonl). Nothing is written.
   3. skills: how large the installed skills are, and how many are over the 12,000-character limit of the on-demand
      skill path (those fall back to the full skill list and are loaded whole). Input for the next saving step.

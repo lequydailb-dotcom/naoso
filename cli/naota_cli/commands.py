@@ -1,7 +1,7 @@
 """Từng lệnh của CLI. Mỗi hàm trả mã thoát (0 = xong).
 
 Nguyên tắc xuyên suốt: CLI chỉ gọi endpoint SẴN CÓ của máy chủ. Không lệnh nào ở đây được tự
-tính toán thay server, vì làm vậy là bắt đầu nuôi một bản Naota thứ hai trong terminal.
+tính toán thay server, vì làm vậy là bắt đầu nuôi một bản NAOSO thứ hai trong terminal.
 """
 import json
 import os
@@ -86,9 +86,9 @@ def _in_ket_qua(d: dict) -> int:
 
 
 def chat(args) -> int:
-    """Phiên tương tác. Giữ NGUYÊN một mã phiên cho cả phiên terminal, nên Naota nhớ mạch."""
+    """Phiên tương tác. Giữ NGUYÊN một mã phiên cho cả phiên terminal, nên NAOSO nhớ mạch."""
     sid = getattr(args, "session", "") or "t" + uuid.uuid4().hex[:8]
-    r.tieu_de("Naota - gõ câu hỏi, Ctrl+D hoặc /thoat để ra. Phiên: " + sid)
+    r.tieu_de("NAOSO - gõ câu hỏi, Ctrl+D hoặc /thoat để ra. Phiên: " + sid)
     while True:
         try:
             cau = input("› ").strip()
@@ -123,7 +123,7 @@ def login(args) -> int:
     d = c.get("/version")           # thử thật, không lưu một cấu hình chưa bao giờ chạy được
     ten = args.name or "mac-dinh"
     cfgmod.luu(ten, url, token, args.brain or "")
-    r.tieu_de(f"Đã lưu hồ sơ '{ten}' -> {url} (Naota v{d.get('current', '?')})")
+    r.tieu_de(f"Đã lưu hồ sơ '{ten}' -> {url} (NAOSO v{d.get('current', '?')})")
     r.trang_thai("Cấu hình: " + str(cfgmod.DUONG_DAN))
     return 0
 
@@ -234,7 +234,7 @@ def _dang_chay(url: str) -> bool:
 
 
 def _tim_naota() -> Path:
-    """Tìm bản cài Naota trên máy này. Chỉ nhận chỗ có `server/main.py` THẬT.
+    """Tìm bản cài NAOSO trên máy này. Chỉ nhận chỗ có `server/main.py` THẬT.
 
     Không đoán bừa: `naota up` mà bật nhầm thứ gì đó là kiểu hỏng khó lần nhất.
     """
@@ -253,25 +253,25 @@ def _tim_naota() -> Path:
 
 
 def up(args) -> int:
-    """Bật Naota trên chính máy này rồi gắn CLI vào.
+    """Bật NAOSO trên chính máy này rồi gắn CLI vào.
 
     Vẫn MỘT server, MỘT brain - CLI chỉ là thứ khởi động nó. Gói CLI KHÔNG chứa server, nên
-    lệnh này chỉ chạy khi máy đã có bản cài Naota; không có thì nói thẳng chứ không giả vờ.
+    lệnh này chỉ chạy khi máy đã có bản cài NAOSO; không có thì nói thẳng chứ không giả vờ.
     """
     url = (getattr(args, "url", "") or "http://127.0.0.1:7777").rstrip("/")
     if _dang_chay(url):
-        r.tieu_de("Naota đã chạy sẵn ở " + url)
+        r.tieu_de("NAOSO đã chạy sẵn ở " + url)
     else:
         goc = _tim_naota()
         if not goc:
-            r.loi("Không thấy bản cài Naota trên máy này.\n"
-                  "naota up chỉ khởi động Naota đã cài sẵn - nó KHÔNG chứa server bên trong.\n"
-                  "Cách xử lý: đặt NAOTA_HOME trỏ tới thư mục Naota, hoặc chạy lệnh này từ trong "
-                  "thư mục đó, hoặc dùng `naota login <địa-chỉ>` để nối tới một Naota đang chạy "
+            r.loi("Không thấy bản cài NAOSO trên máy này.\n"
+                  "naota up chỉ khởi động NAOSO đã cài sẵn - nó KHÔNG chứa server bên trong.\n"
+                  "Cách xử lý: đặt NAOTA_HOME trỏ tới thư mục NAOSO, hoặc chạy lệnh này từ trong "
+                  "thư mục đó, hoặc dùng `naota login <địa-chỉ>` để nối tới một NAOSO đang chạy "
                   "ở nơi khác.")
             return 1
         py = shutil.which("python3") or shutil.which("python") or sys.executable
-        r.tieu_de(f"Đang bật Naota từ {goc} ...")
+        r.tieu_de(f"Đang bật NAOSO từ {goc} ...")
         try:
             subprocess.Popen(
                 [py, "-m", "uvicorn", "main:app", "--app-dir", "server",
@@ -286,9 +286,9 @@ def up(args) -> int:
                 break
             time.sleep(0.5)
         else:
-            r.loi("Bật rồi nhưng máy chủ chưa trả lời sau 30 giây. Xem log trong thư mục Naota.")
+            r.loi("Bật rồi nhưng máy chủ chưa trả lời sau 30 giây. Xem log trong thư mục NAOSO.")
             return 1
-        r.tieu_de("Naota đã sẵn sàng ở " + url)
+        r.tieu_de("NAOSO đã sẵn sàng ở " + url)
 
     # Lưu hồ sơ localhost nếu chưa có, để lần sau `naota "..."` là chạy luôn.
     p = cfgmod.ho_so()

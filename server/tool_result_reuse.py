@@ -19,13 +19,13 @@ agent never pays twice for a result it already holds).
    output, web pages, skills) are never touched, because a reformatted view would make an exact edit miss.
 
 3. CLI engines (`lean_for_cli`, 2026-11-17). Claude Code, Codex and the other CLI engines run their own tool loop, so
-   Naota cannot see their conversation. What it does see is every call they make to Naota's tools and connections
+   NAOSO cannot see their conversation. What it does see is every call they make to Naota's tools and connections
    through the hub over HTTP, with the turn's X-Naota-Turn key. There the same compact JSON applies, and repeats are
    kept per turn (`CliRepeatResults`) with a rule that does not need to see the conversation: a repeat right after a
    reference always comes back whole, because a model that asks again may have lost the earlier copy, and the record
    of a turn is dropped when the engine compacts its conversation (Claude Code's PreCompact hook through
    claude_result_reuse, Codex's contextCompaction item). Not touched: Claude Code's in-process plugin tools (their
-   result could only be replaced through a hook whose expected shape Naota cannot check), Claude Code's own re-read
+   result could only be replaced through a hook whose expected shape NAOSO cannot check), Claude Code's own re-read
    of an unchanged file (it already answers "File unchanged since last read"), and terminal output.
 
 All of it follows the owner's saving level: choosing Off ("send everything") on the Usage page turns it off, like tool
@@ -58,7 +58,7 @@ CONTENT_TOOLS = frozenset({
     "naota_query",
 })
 
-REFERENCE_MARK = "[Naota: identical to another result"
+REFERENCE_MARK = "[NAOSO: identical to another result"
 REFERENCE = (REFERENCE_MARK + " of this same {tool} call (same arguments) in this turn, which is kept in full in "
              "this conversation. Not repeated, to save tokens: use that result.]")
 
@@ -250,7 +250,7 @@ class RepeatResults:
 
 # ───────────────────────── CLI engines (part 3 of the module docstring) ─────────────────────────
 class CliRepeatResults:
-    """Repeats within one turn of an engine whose conversation Naota cannot see.
+    """Repeats within one turn of an engine whose conversation NAOSO cannot see.
 
     Per result (same tool, same arguments, same text): the first copy goes out whole, a repeat becomes a reference,
     and a repeat right after a reference goes out whole again. So a model that lost the earlier copy (its engine
@@ -348,7 +348,7 @@ def cli_text_for(turn_id, tool: str, args, text: str) -> str:
 
 
 def lean_for_cli(text, tool: str, args, turn_id=None) -> str:
-    """What a CLI engine gets for one result of a Naota tool: compact JSON, then the per-turn repeat check.
+    """What a CLI engine gets for one result of a NAOSO tool: compact JSON, then the per-turn repeat check.
     `turn_id` defaults to the turn of the hub request being served."""
     tool = str(tool or "")
     text = compact_json(str(text), tool)

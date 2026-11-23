@@ -9,7 +9,7 @@
 
    2. **THƯ MỤC chứ không phải REPO.** Bản đầu bắt phải có `.git`, không có thì từ chối kèm
       câu "chạy git init trước đi" - bắt người dùng làm việc vặt cho vừa mô hình dữ liệu của
-      Naota. Nay nhận mọi thư mục; git là thứ ĐỌC RA, và ba chip phụ thuộc git (nhánh,
+      NAOSO. Nay nhận mọi thư mục; git là thứ ĐỌC RA, và ba chip phụ thuộc git (nhánh,
       worktree, điểm hồi) chỉ hiện khi thư mục đó thật sự là repo.
 
    3. **Cột trái là DANH SÁCH PHIÊN, không phải danh sách repo.** Câu hỏi người ta mở trang
@@ -116,7 +116,7 @@
       ra += chip("worktree", (wt ? ic("check") : ic("folder-tree")) + " worktree", wt ? " on" : "");
       ra += chip("diemhoi", ic("history") + " " + esc(t("coding.chip_ckpt")));
     }
-    // Hoàn tác về mốc TỰ ĐỘNG. Không phụ thuộc git của thư mục (kho bóng của Naota lo),
+    // Hoàn tác về mốc TỰ ĐỘNG. Không phụ thuộc git của thư mục (kho bóng của NAOSO lo),
     // nên có ở mọi thư mục đã gắn.
     ra += chip("hoantac", ic("undo-2") + " " + esc(t("coding.chip_undo")));
     return ra + chipQuyen();

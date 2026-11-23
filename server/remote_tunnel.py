@@ -1,6 +1,6 @@
-"""Remote access through a Cloudflare Tunnel that Naota runs itself.
+"""Remote access through a Cloudflare Tunnel that NAOSO runs itself.
 
-Goal: someone who runs Naota on a Windows or macOS computer should reach it from anywhere by
+Goal: someone who runs NAOSO on a Windows or macOS computer should reach it from anywhere by
 filling in a form in Settings. No VPS, no open port, no router setup and no terminal. The Caddy wizard in
 routes/domain.py cannot do that: it needs a public IP with ports 80/443 open, which a home computer behind a router
 almost never has. A tunnel works the other way round: `cloudflared` dials out to Cloudflare, and Cloudflare forwards
@@ -11,11 +11,11 @@ Three modes, picked in Settings:
   domain needed, but the address changes every time the tunnel restarts.
 - token: a named tunnel the owner creates in Cloudflare Zero Trust. They paste its token (or the whole install command
   Cloudflare shows, we pick the token out of it), and the public hostname they set there stays fixed.
-- tailscale: the owner installs Tailscale and signs in themselves; Naota asks the local tailscaled to proxy
+- tailscale: the owner installs Tailscale and signs in themselves; NAOSO asks the local tailscaled to proxy
   https://<machine>.<tailnet>.ts.net to this server (`tailscale serve`). Only devices in the owner's tailnet can open
   it, so nothing is exposed to the Internet at all.
 
-Naota downloads the right `cloudflared` build for the machine on first use (Windows x64/ARM, macOS Intel/Apple
+NAOSO downloads the right `cloudflared` build for the machine on first use (Windows x64/ARM, macOS Intel/Apple
 Silicon, Linux), keeps it in <state>/bin, starts it with the server and restarts it when it drops.
 
 Safety rails, because a tunnel puts a dashboard that can run shell commands on the Internet:
@@ -141,7 +141,7 @@ def local_binary() -> Path:
 
 
 def find_binary() -> str:
-    """The copy Naota downloaded first (known to work), then one the owner installed (brew, winget, apt)."""
+    """The copy NAOSO downloaded first (known to work), then one the owner installed (brew, winget, apt)."""
     p = local_binary()
     if p.is_file():
         return str(p)
@@ -253,7 +253,7 @@ def parse_ingress(line: str):
 
 
 def service_points_here(service: str) -> bool:
-    """Whether an ingress service such as http://localhost:7777 reaches this Naota."""
+    """Whether an ingress service such as http://localhost:7777 reaches this NAOSO."""
     m = re.match(r"^https?://(\[[^\]]+\]|[^/:]+)(?::(\d+))?", (service or "").strip().lower())
     if not m:
         return False
@@ -288,7 +288,7 @@ def _looks_like_cloudflared(pid: int) -> bool:
 
 
 def kill_stray() -> bool:
-    """Kill the cloudflared an earlier Naota left behind (crash, killed from Task Manager).
+    """Kill the cloudflared an earlier NAOSO left behind (crash, killed from Task Manager).
 
     A child survives its parent on every OS, so without this a restart would leave two connectors running: the old
     quick tunnel keeps a dead address alive, and the old named-tunnel connector keeps using a token the owner may
@@ -318,9 +318,9 @@ def kill_stray() -> bool:
 
 
 # ---------------------------------------------------------------- Tailscale
-# Tailscale needs a system service and an account sign-in, so Naota never installs it; it only drives the CLI of an
+# Tailscale needs a system service and an account sign-in, so NAOSO never installs it; it only drives the CLI of an
 # install the owner made. `tailscale serve --bg` stores the proxy in tailscaled itself, so it keeps working while
-# Naota restarts and Naota has no process to supervise, only a config to switch on and off.
+# NAOSO restarts and NAOSO has no process to supervise, only a config to switch on and off.
 
 TS_SERVE_TIMEOUT = 25
 TS_ENABLE_RE = re.compile(r"https://login\.tailscale\.com/\S+")
@@ -401,7 +401,7 @@ def tailscale_serve_on(binary: str, target: str) -> dict:
 
 
 def tailscale_serve_off(binary: str) -> bool:
-    """Remove only the :443 handler Naota added, never the owner's other serve or funnel entries (`serve reset` would)."""
+    """Remove only the :443 handler NAOSO added, never the owner's other serve or funnel entries (`serve reset` would)."""
     rc, _ = _ts_run(binary, ["serve", "--https=443", "off"], timeout=15)
     return rc == 0
 
@@ -542,9 +542,9 @@ class TunnelManager:
                                        "Cloudflare rejected this token. Paste it again or create a new tunnel.")
         elif "failed to request quick tunnel" in low or "failed to unmarshal quick tunnel" in low:
             self.error = localefmt.chu("Cloudflare chưa cấp được link nhanh (mạng chặn hoặc Cloudflare bận), "
-                                       "Naota sẽ thử lại.",
+                                       "NAOSO sẽ thử lại.",
                                        "Cloudflare could not hand out a quick link (network blocked or Cloudflare "
-                                       "busy); Naota will retry.")
+                                       "busy); NAOSO will retry.")
 
     def _command(self, binary: str, sec: dict):
         env = dict(os.environ)
@@ -567,8 +567,8 @@ class TunnelManager:
             self.mode = sec.get("mode") if sec.get("mode") in MODES else "quick"
             if not cfgmod.auth_enabled():
                 self.state = "error"
-                self.error = localefmt.chu("Cần đặt mật khẩu đăng nhập trước khi mở Naota ra Internet.",
-                                           "Set a login password before opening Naota to the Internet.")
+                self.error = localefmt.chu("Cần đặt mật khẩu đăng nhập trước khi mở NAOSO ra Internet.",
+                                           "Set a login password before opening NAOSO to the Internet.")
                 return
             if self.mode == "tailscale":
                 self._run_tailscale(stop)
@@ -665,9 +665,9 @@ class TunnelManager:
             if info.get("backend") != "Running":
                 self.state = "waiting"
                 self.error = localefmt.chu("Tailscale trên máy này chưa đăng nhập hoặc đang tắt. Mở app Tailscale "
-                                           "để đăng nhập, Naota tự thử lại.",
+                                           "để đăng nhập, NAOSO tự thử lại.",
                                            "Tailscale on this computer is signed out or off. Open the Tailscale app "
-                                           "to sign in; Naota retries on its own.")
+                                           "to sign in; NAOSO retries on its own.")
                 if self._wait(stop, TS_RETRY_EVERY) or not self._still_allowed():
                     return
                 continue
@@ -683,9 +683,9 @@ class TunnelManager:
                 if self.enable_url:
                     self.state = "waiting"
                     self.error = localefmt.chu("Tailscale cần bật HTTPS cho mạng của bạn (làm một lần). Mở link "
-                                               "bên dưới, bấm Enable, Naota tự thử lại.",
+                                               "bên dưới, bấm Enable, NAOSO tự thử lại.",
                                                "Tailscale needs HTTPS switched on for your network (once). Open the "
-                                               "link below, click Enable, and Naota retries on its own.")
+                                               "link below, click Enable, and NAOSO retries on its own.")
                 else:
                     tail = res["output"].splitlines()[-1] if res["output"] else ""
                     self.state = "error"

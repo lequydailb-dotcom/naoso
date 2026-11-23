@@ -1,4 +1,4 @@
-"""Hòm thư của Naota - nơi MỌI kết quả chạy nền tìm được đường về với người dùng.
+"""Hòm thư của NAOSO - nơi MỌI kết quả chạy nền tìm được đường về với người dùng.
 
 Vì sao có file này
 ==================
@@ -50,9 +50,9 @@ _LOCK = threading.RLock()
 MAX_ITEMS = 300
 
 # Loại thư. Chia làm hai nhóm ở giao diện: "Của tôi" (answer/report) và "Tin tức" (system).
-#   answer  - Naota trả lời một việc BẠN giao (task Kanban, câu hỏi chạy nền)
+#   answer  - NAOSO trả lời một việc BẠN giao (task Kanban, câu hỏi chạy nền)
 #   report  - báo cáo định kỳ tự chạy (loop, nhắc hẹn) - bạn không hỏi lúc đó
-#   system  - Naota tự nói (lỗi việc nền, cảnh báo hết hạn mức...)
+#   system  - NAOSO tự nói (lỗi việc nền, cảnh báo hết hạn mức...)
 KINDS = ("answer", "report", "system")
 
 # Tiêu đề cắt ngắn cho vừa một dòng thẻ; thân thư cắt cho vừa cái xem trước.
@@ -99,7 +99,7 @@ def _tieu_de(text: str) -> str:
     nhãn chung chung kiểu "Việc nền đã xong" cho mọi thứ.
 
     Bỏ dấu nhấn markdown ở CẢ HAI ĐẦU chứ không riêng đầu dòng: tiêu đề này đi thẳng ra
-    thông báo đẩy của hệ điều hành, nơi không ai dịch markdown cả. Câu trả lời của Naota hay
+    thông báo đẩy của hệ điều hành, nơi không ai dịch markdown cả. Câu trả lời của NAOSO hay
     mở đầu bằng "**Nhắc bạn:** ..." nên cắt kiểu cũ (chỉ lstrip) để lại đúng cái đuôi "**"
     lơ lửng giữa tiêu đề trên màn hình khoá điện thoại.
     """
@@ -111,7 +111,7 @@ def _tieu_de(text: str) -> str:
         if s:
             return s[:MAX_TITLE]
     import localefmt
-    return localefmt.chu("Naota vừa gửi một tin", "Naota just sent a message")
+    return localefmt.chu("NAOSO vừa gửi một tin", "NAOSO just sent a message")
 
 
 def _same_line(a: str, b: str) -> bool:
@@ -159,7 +159,7 @@ def add(text: str, *, kind: str = "answer", session_id: str = "", brain: str = "
     # `dedup`: a retried report (a reminder sent again after a crash, a job reported twice) carries the
     # same key; the first item stands and the caller learns it was a repeat (`duplicate`), so no channel rings twice.
     # `routing`: why the report could not be delivered to a chat ("no_target": no chat and no source brain),
-    # kept so the owner sees it in the bell instead of Naota guessing a recipient.
+    # kept so the owner sees it in the bell instead of NAOSO guessing a recipient.
     # 2026-11-19: one plain line under the title (the run's own NAOTA_NOTIFY line, or the first reporting line of the
     # text). The card shows it instead of the raw start of the text, which often repeated the title word for word.
     summary = " ".join(str(summary or "").split())[:MAX_SUMMARY]
@@ -174,7 +174,7 @@ def add(text: str, *, kind: str = "answer", session_id: str = "", brain: str = "
         item["dedup"] = str(dedup)[:200]
     if routing:
         item["routing"] = str(routing)[:40]
-    # (notify_policy): what the notice is about, how serious it is, its kind, and whether Naota Core's rules kept
+    # (notify_policy): what the notice is about, how serious it is, its kind, and whether NAOSO Core's rules kept
     # it out of the main list ("filtered", shown under "Filtered" in the bell, always already read).
     if group:
         item["group"] = str(group)[:20]

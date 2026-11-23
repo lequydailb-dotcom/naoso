@@ -319,10 +319,10 @@ def account_for_key(m: dict, provider: str, key: str, key_field: str = ""):
 
 # ---------------------------------------------------------------- background chain
 
-# Automatic background model. `auxiliary.auto` true = Naota picks: the background
+# Automatic background model. `auxiliary.auto` true = NAOSO picks: the background
 # provider follows MAIN, and the model is one of two picks stored per provider in `auto_background`
 # (auto_background.py chooses them from the provider's own model list):
-#   light - work Naota starts on its own (self-learning, next-message suggestion, judges, triage);
+#   light - work NAOSO starts on its own (self-learning, next-message suggestion, judges, triage);
 #   mid   - work the owner handed over (reminders, loops, Kanban, workflows).
 # A provider with no pick yet runs MAIN's own model, which is what background work did before.
 TIERS = ("light", "mid")
@@ -451,7 +451,7 @@ def migrate(m: dict, *, connected_ids, defaults: dict, key_fields: dict, telegra
         aux.update({"provider": o[0], "model": d["model"], "reasoning": d["reasoning"]})
     elif aux.get("reasoning") not in LEVELS:
         aux["reasoning"] = "off"
-    # The shared Telegram pin becomes a pin of every Telegram chat Naota knows, then goes away.
+    # The shared Telegram pin becomes a pin of every Telegram chat NAOSO knows, then goes away.
     tg = m.get("telegram") or {}
     if tg.get("provider"):
         for k in _uniq(telegram_chat_keys):

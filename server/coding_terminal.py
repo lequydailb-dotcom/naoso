@@ -6,14 +6,14 @@ Vì sao có file này
 lệnh, không chạy nền, và chặn cả `rm`, `curl`, `chmod`, `kill` ở mọi mức. Đủ cho mức Tự động
 (chạy test, đọc repo), nhưng không đủ để LẬP TRÌNH: không `cd` được, không pipe được, không
 bật được dev server để thử, không cài được gói. Claude Code, Codex và Hermes Agent đều có
-terminal thật; engine API của Naota thì không, nên cùng một model mà làm kém hẳn.
+terminal thật; engine API của NAOSO thì không, nên cùng một model mà làm kém hẳn.
 
 File này cho mức Toàn quyền một terminal thật, học thiết kế từ Hermes Agent
 (github.com/NousResearch/hermes-agent, MIT): `tools/terminal_tool.py`, `tools/environments/
 base.py` (mỗi lệnh một bash mới nhưng nhớ cwd và biến môi trường qua file snapshot),
 `tools/process_registry.py` (chạy nền, xem log, dừng), `tools/approval_detection.py` (rào cứng
 cho lệnh phá cả máy), `tools/tool_output_truncate.py` (cắt 40% đầu, 60% đuôi). Viết lại theo
-kiểu Naota.
+kiểu NAOSO.
 
 Ranh giới an toàn, nói thẳng
 ----------------------------
@@ -27,11 +27,11 @@ Ranh giới an toàn, nói thẳng
        sudo/su. Quét cả lớp `bash -c '...'` và `eval`.
     2. Mốc khôi phục trước lượt có lệnh thay đổi (`coding_checkpoint`), nên lỡ hỏng thì bấm
        Hoàn tác trên trang Coding là về.
-    3. Môi trường lệnh KHÔNG thừa kế env của máy chủ (trong đó có API key của Naota): dựng từ
+    3. Môi trường lệnh KHÔNG thừa kế env của máy chủ (trong đó có API key của NAOSO): dựng từ
        danh sách trắng, rồi lọc thêm mọi tên trông như bí mật.
     4. Output che bí mật (`secret_redact`) trước khi đưa model đọc.
     5. Mọi lệnh ghi nhật ký (mcp_hub ghi vào mcp_audit.jsonl).
-  Trên VPS Naota chạy trong Docker, nên "cả máy" ở đây là container.
+  Trên VPS NAOSO chạy trong Docker, nên "cả máy" ở đây là container.
 
 Windows: không có bash thì chạy PowerShell, chỉ nhớ được thư mục (không nhớ biến môi trường),
 và việc nền không có thông báo tự động khi xong (tien_trinh_nen chỉ chạy trên POSIX).
@@ -201,7 +201,7 @@ def _chuan_dich(t: str) -> str:
 
 
 def _secret_hit(cmd: str) -> str:
-    """Refusal text when a command touches a secret file of Naota (secret_guard.py), at every permission level."""
+    """Refusal text when a command touches a secret file of NAOSO (secret_guard.py), at every permission level."""
     try:
         import secret_guard
         hit = secret_guard.check_text(cmd)
@@ -534,7 +534,7 @@ def chay(command: str, sid: str, goc: List[str], timeout: Optional[float] = None
         return bi_mat
     ly_do = kiem_rao_cung(cmd)
     if ly_do:
-        return (f"ERROR: chặn cứng: {ly_do}. Naota không cho model chạy lệnh có thể phá cả máy, ở "
+        return (f"ERROR: chặn cứng: {ly_do}. NAOSO không cho model chạy lệnh có thể phá cả máy, ở "
                 f"mọi mức quyền. Cần thật thì chủ máy tự chạy trong tab Terminal.")
     nen = can_chay_nen(cmd)
     if nen:
@@ -705,7 +705,7 @@ def chay_nen(command: str, sid: str, goc: List[str], workdir: str = "", brain_ro
         return bi_mat
     ly_do = kiem_rao_cung(cmd)
     if ly_do:
-        return (f"ERROR: chặn cứng: {ly_do}. Naota không cho model chạy lệnh có thể phá cả máy, ở "
+        return (f"ERROR: chặn cứng: {ly_do}. NAOSO không cho model chạy lệnh có thể phá cả máy, ở "
                 f"mọi mức quyền.")
     _don_nen()
     with _NEN_KHOA:
@@ -715,7 +715,7 @@ def chay_nen(command: str, sid: str, goc: List[str], workdir: str = "", brain_ro
         return (f"ERROR: phiên này đã có {len(cua_phien)} tiến trình nền đang chạy (trần "
                 f"{NEN_MOI_PHIEN}). Dừng bớt bằng naota_process action=kill.")
     if len(tong) >= NEN_TOAN_HE:
-        return f"ERROR: cả máy đã có {len(tong)} tiến trình nền của Naota (trần {NEN_TOAN_HE})."
+        return f"ERROR: cả máy đã có {len(tong)} tiến trình nền của NAOSO (trần {NEN_TOAN_HE})."
     cwd, _ = _cwd_phien(sid, goc)
     if str(workdir or "").strip():
         w = str(workdir).strip()
@@ -758,8 +758,8 @@ def chay_nen(command: str, sid: str, goc: List[str], workdir: str = "", brain_ro
     time.sleep(0.3)
     tt.cap_nhat()
     trang = "đã thoát ngay" if tt.rc is not None else "đang chạy"
-    them = ("Xong là Naota tự báo vào khung chat này." if job_id else
-            "Naota không tự báo khi nó xong; dùng naota_process action=wait hoặc poll để biết.")
+    them = ("Xong là NAOSO tự báo vào khung chat này." if job_id else
+            "NAOSO không tự báo khi nó xong; dùng naota_process action=wait hoặc poll để biết.")
     out = [f"Đã bật nền: {tt.id} ({trang}, pid {p.pid}). Log: {tt.log}",
            f"Xem: naota_process action=log process_id={tt.id}. Dừng: action=kill. {them}"]
     if tt.rc is not None:
@@ -888,7 +888,7 @@ def don_neu_ranh(sid: str) -> bool:
 
 @atexit.register
 def _tat_het() -> None:
-    """Naota tắt: tiến trình nền chạy nhóm riêng nên sẽ sống sót nếu không dọn. Dọn."""
+    """NAOSO tắt: tiến trình nền chạy nhóm riêng nên sẽ sống sót nếu không dọn. Dọn."""
     with _NEN_KHOA:
         ds = list(_NEN.values())
     for v in ds:

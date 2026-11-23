@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# NAOTA - macOS launcher (start)
+# NAOSO - macOS launcher (start)
 # Starts the FastAPI server (if not already running) and opens
 # the dashboard in the default browser. No Docker required.
 #

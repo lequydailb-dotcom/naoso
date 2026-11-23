@@ -36,8 +36,8 @@ _main_loop = None       # the event loop `start()` ran on; a worker thread hands
 _EN = {
     "Hết phiên đăng nhập - bấm Kết nối lại để đăng nhập lại.":
         "Signed out - click Reconnect to sign in again.",
-    "Không khởi động được trình kết nối trên máy chạy Naota.":
-        "Could not start the connector on the machine running Naota.",
+    "Không khởi động được trình kết nối trên máy chạy NAOSO.":
+        "Could not start the connector on the machine running NAOSO.",
     "Dịch vụ không phản hồi - có thể do mạng hoặc máy chủ dịch vụ.":
         "The service is not responding - possibly the network or the service's server.",
     "Lỗi không rõ": "Unknown error",
@@ -61,16 +61,16 @@ _EN = {
         "Still starting (a first run may be downloading its package) - not an error yet. Wait a "
         "moment, then click Check.",
     "Gói cài đặt của trình kết nối bị thiếu file (cài dở). Chờ khoảng hai phút rồi bấm Kiểm tra "
-    "để Naota dọn bản hỏng và cài lại.":
+    "để NAOSO dọn bản hỏng và cài lại.":
         "The connector's installed package is missing files (an interrupted install). Wait about "
-        "two minutes, then click Check and Naota removes the broken copy and installs it again.",
-    "Composio từ chối consumer key mà Naota đang dùng. Vào Composio "
+        "two minutes, then click Check and NAOSO removes the broken copy and installs it again.",
+    "Composio từ chối consumer key mà NAOSO đang dùng. Vào Composio "
     "For You → Connect my agent, lấy key ck_*, nhập vào thẻ Composio "
-    "trong Naota rồi bấm Kết nối hoặc Kết nối lại. Kết nối lại riêng "
+    "trong NAOSO rồi bấm Kết nối hoặc Kết nối lại. Kết nối lại riêng "
     "Calendar không thay đổi key này.":
-        "Composio rejected the consumer key Naota is using. In Composio go to "
+        "Composio rejected the consumer key NAOSO is using. In Composio go to "
         "For You → Connect my agent, get a ck_* key, enter it on the Composio card "
-        "in Naota, then click Connect or Reconnect. Reconnecting only "
+        "in NAOSO, then click Connect or Reconnect. Reconnecting only "
         "Calendar does not change this key.",
 }
 
@@ -127,9 +127,9 @@ def classify_error(err: str, conn=None) -> tuple[str, str]:
     low = (err or "").lower()
     if (conn or {}).get("connector_id") == "composio" and (
             _has_status(low, "401") or "bearer token rejected" in low):
-        message = ("Composio từ chối consumer key mà Naota đang dùng. Vào Composio "
+        message = ("Composio từ chối consumer key mà NAOSO đang dùng. Vào Composio "
                    "For You → Connect my agent, lấy key ck_*, nhập vào thẻ Composio "
-                   "trong Naota rồi bấm Kết nối hoặc Kết nối lại. Kết nối lại riêng "
+                   "trong NAOSO rồi bấm Kết nối hoặc Kết nối lại. Kết nối lại riêng "
                    "Calendar không thay đổi key này.")
         return "auth", message
     if _has_status(low, "401") or any(s in low for s in _AUTH_HINTS):
@@ -141,9 +141,9 @@ def classify_error(err: str, conn=None) -> tuple[str, str]:
         # "Wait about two minutes": npx_cache leaves a folder touched in the last QUIET_SECONDS
         # alone (it may still be mid-install), so a Check right away would repair nothing.
         return "install", ("Gói cài đặt của trình kết nối bị thiếu file (cài dở). Chờ khoảng hai "
-                           "phút rồi bấm Kiểm tra để Naota dọn bản hỏng và cài lại.")
+                           "phút rồi bấm Kiểm tra để NAOSO dọn bản hỏng và cài lại.")
     if any(s in low for s in _SPAWN_HINTS):
-        return "spawn", "Không khởi động được trình kết nối trên máy chạy Naota."
+        return "spawn", "Không khởi động được trình kết nối trên máy chạy NAOSO."
     if _has_status(low, *_NET_STATUS) or any(s in low for s in _NET_HINTS):
         return "net", "Dịch vụ không phản hồi - có thể do mạng hoặc máy chủ dịch vụ."
     return "unknown", (err or "Lỗi không rõ").strip()[:160]
@@ -180,12 +180,12 @@ async def check_one(conn, pool=None) -> dict:
                 rec.update(kind="auth",
                            message="Thiếu quyền: " + ", ".join(oauth_mcp.short_scopes(missing))
                                    + " - bấm Kết nối lại và tick đủ mọi ô quyền. Google không"
-                                   " hiện ô tick nào (quyền cũ đã cấp) thì gỡ Naota tại"
+                                   " hiện ô tick nào (quyền cũ đã cấp) thì gỡ NAOSO tại"
                                    " myaccount.google.com/permissions rồi kết nối lại.",
                            message_en="Missing permissions: "
                                       + ", ".join(oauth_mcp.short_scopes(missing))
                                       + " - click Reconnect and tick every permission box. If Google"
-                                      " shows no boxes (old permissions already granted), remove Naota at"
+                                      " shows no boxes (old permissions already granted), remove NAOSO at"
                                       " myaccount.google.com/permissions and reconnect.")
                 _state[conn["id"]] = rec
                 return rec
@@ -303,12 +303,12 @@ ENGINE_FIX = {
     "claude": "Vào trang Models để kết nối lại.",
     "codex": "Vào trang Models để kết nối lại ChatGPT.",
 }
-ENGINE_FIX_DEFAULT = "Vào trang Models để kết nối và sử dụng Naota."
+ENGINE_FIX_DEFAULT = "Vào trang Models để kết nối và sử dụng NAOSO."
 ENGINE_FIX_EN = {
     "claude": "Go to the Models page to reconnect.",
     "codex": "Go to the Models page to reconnect ChatGPT.",
 }
-ENGINE_FIX_DEFAULT_EN = "Go to the Models page to connect and use Naota."
+ENGINE_FIX_DEFAULT_EN = "Go to the Models page to connect and use NAOSO."
 
 
 _ENGINE_NOTICE_FILE = "engine_down_notified.json"   # in STATE_DIR
@@ -322,7 +322,7 @@ def _engine_notice_path():
 
 def _engine_notified_saved() -> dict:
     """{engine name: time} of the down notices already sent and not yet followed by a recovery. Kept on disk
-    so a restart while an engine is still down does not send the same "Naota is not usable" notice again."""
+    so a restart while an engine is still down does not send the same "NAOSO is not usable" notice again."""
     try:
         d = json.loads(_engine_notice_path().read_text(encoding="utf-8"))
         return d if isinstance(d, dict) else {}
@@ -333,7 +333,7 @@ def _engine_notified_saved() -> dict:
 def _engine_notified_set(name: str, on: bool) -> None:
     # Under a lock and written whole (2026-11-13): the periodic probe now runs on a worker thread while a chat turn
     # can report an engine on the event loop, and a half-written file read by the other one would send the same
-    # "Naota is not usable" notice twice.
+    # "NAOSO is not usable" notice twice.
     with _notice_lock:
         d = _engine_notified_saved()
         if bool(d.get(name)) == on:
@@ -369,7 +369,7 @@ def _set_engine(name, ok, message="", source="probe"):
     if not ok and not rec["notified"] and on_engine_down:
         # Chỉ báo Telegram khi bộ não này ĐANG là Main Model. Đèn của bộ não khác (vd lượt
         # chạy việc nền bằng Claude phát hiện mất đăng nhập trên máy Main Codex) vẫn được
-        # ghi lại, nhưng câu "Naota chưa dùng được" là SAI với người dùng đó - việc nền đã
+        # ghi lại, nhưng câu "NAOSO chưa dùng được" là SAI với người dùng đó - việc nền đã
         # tự chạy tiếp bằng bộ não chat (_FallbackChain).
         try:
             if name not in engines_in_use():
@@ -379,15 +379,15 @@ def _set_engine(name, ok, message="", source="probe"):
         rec["notified"] = True
         _engine_notified_set(name, True)
         try:
-            # Nói theo góc NGƯỜI DÙNG: với họ chỉ có một sự thật là chưa dùng được Naota,
+            # Nói theo góc NGƯỜI DÙNG: với họ chỉ có một sự thật là chưa dùng được NAOSO,
             # và một việc phải làm. Tên engine để trong ngoặc cho ai cần đi tra, không đặt
             # lên đầu câu.
             import localefmt
             coro = on_engine_down(localefmt.chu(
-                "⚠ Naota chưa dùng được: chưa kết nối được Model AI. "
+                "⚠ NAOSO chưa dùng được: chưa kết nối được Model AI. "
                 + ENGINE_FIX.get(name, ENGINE_FIX_DEFAULT)
                 + f" (chi tiết: {name} - {message})",
-                "⚠ Naota is not usable yet: no AI model is connected. "
+                "⚠ NAOSO is not usable yet: no AI model is connected. "
                 + ENGINE_FIX_EN.get(name, ENGINE_FIX_DEFAULT_EN)
                 + f" (details: {name} - {_EN.get(message) or message})"))
             if asyncio.iscoroutine(coro):
@@ -418,7 +418,7 @@ def flag_engine_auth_error(name, raw) -> bool:
 
     Only a short error line counts (`looks_like_error_line`). The engine passes the result of every turn, so
     a normal answer that quoted "not logged in" or "invalid api key" used to light the red light and tell the owner
-    that Naota is not usable. The check lives here, not in the engine: `claude_sdk_engine.py` is part of the pinned
+    that NAOSO is not usable. The check lives here, not in the engine: `claude_sdk_engine.py` is part of the pinned
     improvement profile (`improvement_claude.PROFILE_SOURCES`)."""
     if not looks_like_error_line(raw):
         return False
@@ -507,7 +507,7 @@ def engines_in_use() -> set:
 
     Model việc nền KHÔNG soi ở đây nữa. Việc nền có _FallbackChain:
     Claude không sẵn sàng thì nó tự chạy bằng chính bộ não chat - tức 'model việc nền
-    chưa đăng nhập' KHÔNG còn nghĩa là 'Naota chưa dùng được'. Trong khi đó banner đọc
+    chưa đăng nhập' KHÔNG còn nghĩa là 'NAOSO chưa dùng được'. Trong khi đó banner đọc
     đúng nghĩa đen như vậy, và trong một ngày đã hai lần bắt oan máy Main Model
     Codex chỉ vì cấu hình việc nền còn trỏ một model Claude (bản đầu lọc mỗi ca
     'anthropic-cli + model rỗng' của nút Về mặc định - vẫn sót ca chọn hẳn haiku theo
@@ -726,9 +726,9 @@ async def startup_smoke(version: str = "", pool=None, retry_after: float | None 
                            for f in failed[:5])
             try:
                 coro = notify(localefmt.chu(
-                    f"⚠ Sau khi Naota khởi động lại{ban}, {len(failed)} kết nối chưa chạy: {vi}. "
+                    f"⚠ Sau khi NAOSO khởi động lại{ban}, {len(failed)} kết nối chưa chạy: {vi}. "
                     "Mở trang Kết nối và bấm Kiểm tra.",
-                    f"⚠ After Naota restarted{ver}, {len(failed)} connection(s) are not working: "
+                    f"⚠ After NAOSO restarted{ver}, {len(failed)} connection(s) are not working: "
                     f"{en}. Open the Connections page and click Check."))
                 if asyncio.iscoroutine(coro):
                     await coro

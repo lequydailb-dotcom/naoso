@@ -1,7 +1,7 @@
 /* Tasks page, list "Stats" on both tabs.
  *
  * "My tasks": what the owner finished over the period, day by day, a 12-week map, the hours they finish most, habits,
- * projects and the tasks they keep moving. "Naota's tasks": how much of the work Naota carried next to the owner, the
+ * projects and the tasks they keep moving. "NAOSO's tasks": how much of the work NAOSO carried next to the owner, the
  * time it gave back (minutes per kind of job, editable; no money, time only), what it did, which
  * assistant did it, when, how reliably, and what it could take over next.
  *
@@ -184,14 +184,14 @@
       + tile(tw("nv.sta.ai_done"), things(num(ai.done)), ai.prev_done == null ? "" : tw(ai.done >= ai.prev_done ? "nv.sta.more_prev" : "nv.sta.less_prev", { n: things(Math.abs(ai.done - ai.prev_done)) }), "")
       + tile(tw("nv.sta.night"), things(num(ai.night)), tw("nv.sta.night_sub"), "")
       + tile(tw("nv.sta.ok"), okPct == null ? "-" : okPct + "%", ai.rel.ask ? tw("nv.sta.ask_n", { n: ai.rel.ask }) : "", okPct != null && okPct >= 90 ? "ok" : "") + "</div>";
-    // 8 weeks, you and Naota.
+    // 8 weeks, you and NAOSO.
     var W = d.weeks.map(function (w, i) {
       var s = w.me + w.ai ? Math.round(w.ai * 100 / (w.me + w.ai)) : 0;
       return { x: i === 7 ? tw("nv.sta.this_week") : "T" + (i + 1), parts: [["c-me", w.me], ["c-ai", w.ai]], top: w.me + w.ai ? s + "%" : "", side: true, tip: dmy(w.from) + " - " + dmy(w.to) + ": " + w.me + " / " + w.ai };
     });
     var wmax = Math.max.apply(null, d.weeks.map(function (w) { return Math.max(w.me, w.ai); }).concat([1]));
     var share0 = d.weeks[0].me + d.weeks[0].ai ? Math.round(d.weeks[0].ai * 100 / (d.weeks[0].me + d.weeks[0].ai)) : 0, share7 = d.weeks[7].me + d.weeks[7].ai ? Math.round(d.weeks[7].ai * 100 / (d.weeks[7].me + d.weeks[7].ai)) : 0;
-    h += '<div class="ts-grid2 wide">' + card("", h3(tw("nv.sta.weeks_vs"), '<span class="ts-lg"><i class="c-me"></i>' + esc(tw("nv.sta.you")) + '</span><span class="ts-lg"><i class="c-ai"></i>Naota</span>')
+    h += '<div class="ts-grid2 wide">' + card("", h3(tw("nv.sta.weeks_vs"), '<span class="ts-lg"><i class="c-me"></i>' + esc(tw("nv.sta.you")) + '</span><span class="ts-lg"><i class="c-ai"></i>NAOSO</span>')
       + '<div class="ts-bars side">' + W.map(function (b) {
         return '<div class="ts-bar" title="' + esc(b.tip) + '"><span class="ts-bv">' + esc(b.top) + '</span><div class="ts-pair"><i class="c-me" style="height:' + Math.round(b.parts[0][1] * 150 / wmax) + 'px"></i><i class="c-ai" style="height:' + Math.round(b.parts[1][1] * 150 / wmax) + 'px"></i></div></div>';
       }).join("") + '</div><div class="ts-xl">' + W.map(function (b) { return "<span>" + esc(b.x) + "</span>"; }).join("") + "</div>"
@@ -213,14 +213,14 @@
         return '<div class="ts-kv"><span><i class="ts-dot" style="background:' + KIND_COLOR[k] + '"></i>' + esc(tw(KIND_KEYS[k])) + "</span><b>" + ai.by_kind[k].n + '</b><span class="ts-note">' + esc(fmtHours(ai.by_kind[k].minutes)) + "</span></div>";
       }).join("") + "</div></div>" : '<p class="ts-note">' + esc(tw("nv.sta.nothing_yet")) + "</p>"));
     h += card("", h3(tw("nv.sta.agents"), '<span class="ts-note">' + esc(tw("nv.sta.agents_sub")) + "</span>") + (ai.agents.length ? ai.agents.map(function (a) {
-      var name = a.key === "core" ? "Naota Core" : (a.name || a.key), all = a.ok + a.fail;
+      var name = a.key === "core" ? "NAOSO Core" : (a.name || a.key), all = a.ok + a.fail;
       return '<div class="ts-agent">' + (a.key === "core" ? LOGO : ctx.avatar(a.key, 30)) + '<span class="ts-rt">' + esc(name) + "</span><b>" + a.n + '</b><span class="ok">' + (all ? Math.round(a.ok * 100 / all) + "%" : "-") + '</span><span class="ts-note">' + esc(fmtHours(a.minutes)) + "</span></div>";
     }).join("") : '<p class="ts-note">' + esc(tw("nv.sta.nothing_yet")) + "</p>")) + "</div>";
     // When, how reliably.
     var hmax = Math.max.apply(null, ai.hours.concat(me.hours).concat([1]));
     var strip = function (L, cls) { return L.map(function (v, i) { return '<i class="ts-hr ' + cls + '" style="opacity:' + (v ? (0.25 + 0.75 * v / hmax).toFixed(2) : 1) + (v ? "" : ";background:var(--ts-empty)") + '" title="' + i + "h: " + v + '"></i>'; }).join(""); };
     h += '<div class="ts-grid2 wide">' + card("", h3(tw("nv.sta.day24")) + '<p class="ts-note">' + esc(tw("nv.sta.day24_sub")) + "</p>"
-      + '<div class="ts-24"><span class="me">' + esc(tw("nv.sta.you")) + "</span>" + strip(me.hours, "c-me") + '<span class="ai">Naota</span>' + strip(ai.hours, "c-ai")
+      + '<div class="ts-24"><span class="me">' + esc(tw("nv.sta.you")) + "</span>" + strip(me.hours, "c-me") + '<span class="ai">NAOSO</span>' + strip(ai.hours, "c-ai")
       + "<span></span>" + ai.hours.map(function (_, i) { return "<small>" + (i % 3 === 0 ? i + "h" : "") + "</small>"; }).join("") + "</div>"
       + (ai.night ? '<div class="ts-tip ai">' + ic("moon") + esc(tw("nv.sta.night_tip", { n: ai.night })) + "</div>" : ""));
     var R = ai.rel, rt = Math.max(1, R.ok + R.retry + R.ask + R.fail);

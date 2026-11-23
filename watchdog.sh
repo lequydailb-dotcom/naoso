@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# NAOTA - watchdog cho Mac chạy dưới launchd.
+# NAOSO - watchdog cho Mac chạy dưới launchd.
 #
 # Vì sao có file này: vụ treo. Server SỐNG (vẫn giữ cổng 7777, kernel vẫn nhận
 # TCP) nhưng event loop đông cứng - /health không trả lời, SIGTERM bị phớt, phải kill -9.
@@ -19,7 +19,7 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-# Đọc .env như update.sh: nhiều bản Naota trên một máy thì mỗi bản một cổng/nhãn riêng.
+# Đọc .env như update.sh: nhiều bản NAOSO trên một máy thì mỗi bản một cổng/nhãn riêng.
 # Env truyền vào thắng .env (`:=` chỉ gán khi biến chưa đặt).
 if [ -f .env ]; then
   _env() { sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" .env | tail -1; }

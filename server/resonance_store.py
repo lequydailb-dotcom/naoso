@@ -1,4 +1,4 @@
-"""Kho mục tiêu của Naota Resonance: SQLite riêng `NAOTA_STATE_DIR/resonance.sqlite3`.
+"""Kho mục tiêu của NAOSO Resonance: SQLite riêng `NAOTA_STATE_DIR/resonance.sqlite3`.
 
 Nguồn chuẩn cho bản ghi ý định, mục tiêu, revision, sự kiện và outbox (spec mục 12). Mọi thao tác
 đi qua một `Principal` và kiểm đúng brain: đường dẫn hay id do model đưa ra không đủ làm quyền đọc.
@@ -423,7 +423,7 @@ _WAKE_TEXT = {
     "handoff_wait": "chờ bàn giao lượt chat", "handoff_done": "bàn giao lượt chat", "resumed": "người dùng cho tiếp tục",
     "agent_enabled": "trợ lý được bật", "agent_recheck": "kiểm lại công tắc trợ lý",
     "agent_changed": "xét lại đầu ra theo quyền hiện tại", "guard_recheck": "kiểm lại guard chưa xác định",
-    "review": "xem lại định kỳ", "deadline": "kiểm hạn chót", "drift_recheck": "kiểm lại file bị sửa ngoài Naota",
+    "review": "xem lại định kỳ", "deadline": "kiểm hạn chót", "drift_recheck": "kiểm lại file bị sửa ngoài NAOSO",
     "guard_observe": "quan sát guard", "action_recovery": "đối soát hành động dở",
     "method_trial": "thử một cách làm khác khi bế tắc", "method_followup": "làm sản phẩm bằng cách làm vừa học",
     "trial_recovery": "đối soát phép thử dở",
@@ -1848,7 +1848,7 @@ class GoalStore:
 
     def observe_source(self, p: Principal, goal_id: str, path: str, sha256: str, verdict: str,
                        now: Optional[float] = None) -> bool:
-        """Mốc QUAN SÁT file sản phẩm bị sửa ngoài Naota (thiết kế mục 5), tách khỏi mốc được phép thay file
+        """Mốc QUAN SÁT file sản phẩm bị sửa ngoài NAOSO (thiết kế mục 5), tách khỏi mốc được phép thay file
         (`published`, không đụng tới ở đây). Trả True khi đây là hash chưa từng thấy."""
         now = time.time() if now is None else float(now)
         with self._Tx(self) as c:

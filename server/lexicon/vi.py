@@ -49,7 +49,7 @@ DENY = (
         r"\b(web|internet|google|drive|gmail|calendar|github|repository|repo|database|"
         r"api|mcp|tool|vault|obsidian|slack|notion|airtable|facebook|tiktok|zalo|telegram)\b"
     )),
-    # Trỏ vào CHÍNH BỘ NÃO hoặc CHÍNH NĂNG LỰC của Naota. Đường tắt không phát tool, không
+    # Trỏ vào CHÍNH BỘ NÃO hoặc CHÍNH NĂNG LỰC của NAOSO. Đường tắt không phát tool, không
     # đọc vault, không chạy skill/workflow - nên mấy câu này đi tắt là ra một lời từ chối
     # ("chưa có dữ liệu dự án đó", "chưa được cấp công cụ") ngay trên cái brain đang có đủ
     # thứ nó vừa nói là không có. Đã gặp đúng ca này trên một brain thật.
@@ -79,7 +79,7 @@ DENY = (
         r"execute|run|check my|look up|search for|fetch|open my)\b"
     )),
     # CÂU NỐI: nghĩa của nó nằm ở lượt TRƯỚC, không nằm trong chính nó. "uh, vậy viết bài
-    # đi" khớp ALLOW `viet` rồi đi tắt, mà đường tắt không đọc lịch sử, nên Naota hỏi lại
+    # đi" khớp ALLOW `viet` rồi đi tắt, mà đường tắt không đọc lịch sử, nên NAOSO hỏi lại
     # "bạn muốn viết về chủ đề gì?" ngay sau khi vừa bàn xong chủ đề đó.
     #
     # Hư từ mở câu phải đi kèm DẤU hoặc một ĐỘNG TỪ, không bắt trần: "vang" bỏ dấu là cả

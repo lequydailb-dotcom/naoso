@@ -4,6 +4,11 @@
 
 NAOTA release history. Newest first.
 
+## [1.60.4] - 2026-11-23
+### Fixed
+- **The display name NAOTA is now NAOSO everywhere users see it:** the interface, notifications, chat bubbles, exports, docs, the browser notification title and accessibility labels.
+- **Technical names are unchanged** so existing data and settings keep working: `NAOTA_*` environment variables, the `Naota/` folder in the brain, `naota_*` tool names, and the startup entry name.
+
 ## [1.60.3] - 2026-11-23
 ### Fixed
 - **The footer keeps your own name.** "by Lê Quý Đại" and the Zalo number are back instead of the old author line.

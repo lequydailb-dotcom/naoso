@@ -143,7 +143,7 @@ def render_capability_summary(c: dict, latest_workflow_line: str = "") -> str:
     """Render already observed capabilities; never discover or load plugins here."""
     if not any(c.values()):
         return ""
-    parts = ["\n\n# === NĂNG LỰC NAOTA HIỆN CÓ (current capabilities: details and triggers in `Naota/index.md`) ==="]
+    parts = ["\n\n# === NĂNG LỰC NAOSO HIỆN CÓ (current capabilities: details and triggers in `Naota/index.md`) ==="]
     if c["agents"]:
         parts.append("Agents: " + ", ".join(a["name"] for a in c["agents"][:30]))
     if c["skills"]:
@@ -200,9 +200,9 @@ def render_usage_block(today_total: dict) -> str:
     _t = today_total
     if _t.get("in") or _t.get("out"):
         _c = f", ~${_t.get('cost', 0):.4f}" if _t.get("cost") else ""
-        return (f"\n\n# === MỨC DÙNG HÔM NAY (today's usage, measured by Naota) ===\n"
+        return (f"\n\n# === MỨC DÙNG HÔM NAY (today's usage, measured by NAOSO) ===\n"
                 f"{_t.get('in', 0):,} tokens in + {_t.get('out', 0):,} tokens out over "
-                f"{_t.get('turns', 0)} turns{_c}. Naota MEASURES these tokens ITSELF; they are NOT the "
+                f"{_t.get('turns', 0)} turns{_c}. NAOSO MEASURES these tokens ITSELF; they are NOT the "
                 f"subscription plan's quota (most providers do not expose account quotas through the "
                 f"API). Per-provider detail is in the 'Usage' panel of the dashboard.")
     return ""

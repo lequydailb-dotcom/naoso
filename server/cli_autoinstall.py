@@ -3,7 +3,7 @@
 `docker/entrypoint.sh` installs Antigravity CLI (`agy`) and Grok Build (`grok`) in the background
 when they are missing, and writes one line per CLI into `<NAOTA_HOME_PERSIST>/.cli-auto-install/<bin>`:
 `installing <epoch>`, `ok <epoch>` or `failed <epoch>`. This module only READS those files, so the
-Models page can say "Naota is installing it" instead of handing a Hostinger user a command they have
+Models page can say "NAOSO is installing it" instead of handing a Hostinger user a command they have
 no terminal to type into.
 
 Outside Docker the folder does not exist and every answer is "" (nothing to say), which leaves the

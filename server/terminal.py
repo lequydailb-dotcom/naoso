@@ -3,7 +3,7 @@
 
 Vì sao có file này
 ------------------
-Naota chạy phần lớn trên VPS. Rất nhiều việc vặt của chủ máy (kéo code mới, xem log, chạy
+NAOSO chạy phần lớn trên VPS. Rất nhiều việc vặt của chủ máy (kéo code mới, xem log, chạy
 `agy` để đăng nhập Antigravity, cài một CLI) vẫn phải mở SSH ở một cửa sổ khác. Tab Code đưa
 đúng cái terminal đó vào trong dashboard.
 
@@ -106,7 +106,7 @@ def shell_argv() -> list[str]:
 
 
 def _khong_co_trinh_duyet() -> bool:
-    """Máy chạy Naota có mở nổi một trình duyệt mà NGƯỜI DÙNG NHÌN THẤY không.
+    """Máy chạy NAOSO có mở nổi một trình duyệt mà NGƯỜI DÙNG NHÌN THẤY không.
 
     Câu hỏi này quyết định luồng đăng nhập OAuth của mọi CLI chạy trong tab Code, xem `_env`.
 
@@ -136,11 +136,11 @@ def _env(extra: dict | None = None) -> dict:
     # dấu hỏi. Chỉ setdefault - máy nào đã khai locale riêng thì giữ nguyên.
     if not IS_WINDOWS:
         e.setdefault("LANG", "C.UTF-8")
-    # Dấu để script biết mình đang chạy trong terminal của Naota (vd muốn né tự cập nhật).
+    # Dấu để script biết mình đang chạy trong terminal của NAOSO (vd muốn né tự cập nhật).
     e["NAOTA_IN_TERMINAL"] = "1"
     # PATH của server (systemd/Docker) thường CỤT - thiếu ~/.local/bin, đúng chỗ installer
     # chính chủ thả binary (agy, uv...). Hệ quả thật: người dùng cài agy xong, gõ
-    # `agy` trong terminal của Naota nhận "command not found", tưởng cài hỏng, không đăng
+    # `agy` trong terminal của NAOSO nhận "command not found", tưởng cài hỏng, không đăng
     # nhập nổi Antigravity. Bù các ngăn quen thuộc, chỉ thêm ngăn ĐANG TỒN TẠI và chưa có
     # trong PATH - không phát minh PATH mới, chỉ vá chỗ server nghèo hơn shell thường.
     try:
@@ -158,7 +158,7 @@ def _env(extra: dict | None = None) -> dict:
         pass
     # ĐĂNG NHẬP OAUTH TRONG TAB CODE: nói thẳng với CLI rằng người dùng đang ngồi ở MÁY KHÁC.
     #
-    # Sự cố từng gặp (Naota chạy Docker, trình duyệt trên máy Mac): gõ `agy` trong tab
+    # Sự cố từng gặp (NAOSO chạy Docker, trình duyệt trên máy Mac): gõ `agy` trong tab
     # Code, màn hình in link Google rồi ĐỨNG IM - không có ô nào để dán mã về, đăng nhập tắc ở
     # đó. Nguyên nhân không nằm ở bàn phím của terminal (pty thật, gõ được) mà ở chỗ `agy` chọn
     # đường đăng nhập THEO MÔI TRƯỜNG:
@@ -166,7 +166,7 @@ def _env(extra: dict | None = None) -> dict:
     #     lại URL callback (kèm mã) vào terminal.
     #   - Không thấy -> coi trình duyệt cùng máy: chỉ mở một cổng loopback
     #     `localhost:<cổng>/oauth-callback` rồi nằm chờ, và KHÔNG hỏi gì cả.
-    # Terminal của Naota là pty thật ngay trên máy chủ nên chẳng có biến SSH nào -> luôn rơi
+    # Terminal của NAOSO là pty thật ngay trên máy chủ nên chẳng có biến SSH nào -> luôn rơi
     # vào đường thứ hai. Trình duyệt lại ở máy Mac, nên Google trả về localhost CỦA MAC, chỗ đó
     # không có ai nghe: mã không bao giờ về tới `agy`, mà cũng không có chỗ nào để gõ nó vào.
     # Cùng một bệnh với mọi CLI đăng nhập kiểu loopback khi máy chủ không có màn hình.
@@ -175,7 +175,7 @@ def _env(extra: dict | None = None) -> dict:
     # thật. Cố ý không đặt `SSH_TTY`: giá trị của nó là đường dẫn tty, bịa ra một đường không
     # tồn tại còn hại hơn là thiếu.
     if _khong_co_trinh_duyet() and not e.get("SSH_CONNECTION"):
-        # Định dạng thật: "<ip khách> <cổng khách> <ip máy chủ> <cổng máy chủ>". Naota không
+        # Định dạng thật: "<ip khách> <cổng khách> <ip máy chủ> <cổng máy chủ>". NAOSO không
         # biết IP của trình duyệt (WebSocket có thể qua proxy), và không CLI nào đọc mấy số
         # này - chúng chỉ hỏi "biến có hay không". Điền loopback cho đúng dạng.
         e["SSH_CONNECTION"] = "127.0.0.1 0 127.0.0.1 22"
@@ -195,7 +195,7 @@ def _lenh_moi_dau() -> str:
     Windows mặc định trả output theo codepage OEM của máy (tiếng Việt hay là cp1258/cp437),
     trong khi ở đây output được giải mã bằng UTF-8. Không bảo nó đổi thì mọi dòng có dấu về
     tới trình duyệt là một mớ ký tự lạ - hỏng lặng lẽ, và hỏng đúng với người dùng chính của
-    Naota. Một dòng lệnh chữa được, nên chữa.
+    NAOSO. Một dòng lệnh chữa được, nên chữa.
 
     Chưa chạy thử được trên Windows từ môi trường này. Nếu bản PowerShell nào không nuốt được
     câu lệnh, người dùng thấy MỘT dòng lỗi ở đầu màn hình rồi mọi thứ chạy tiếp - lộ ra chứ
@@ -523,7 +523,7 @@ class Phien:
 
         Đây là câu hỏi phải hỏi trước mỗi `killpg`, và nó không thừa: lúc viết test cho nhánh
         ống trên Linux, `killpg` đã bắn SIGHUP vào nhóm của chính tiến trình gọi và giết luôn
-        cả lượt chạy test. Trong Naota thật thì nhánh POSIX luôn setsid nên chuyện đó không
+        cả lượt chạy test. Trong NAOSO thật thì nhánh POSIX luôn setsid nên chuyện đó không
         tới được - nhưng "không tới được" mà sai thì mất cả server, nên chốt bằng điều kiện
         chứ không bằng niềm tin."""
         try:

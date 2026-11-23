@@ -56,7 +56,7 @@ server/connector-home/
 server/connector-files/
 server/connector-cred/
 server/purge-trash/
-# Công cụ Naota tự cài ngầm lúc chạy (bản ghim của CLI Zalo naota-zalo, chạy thẳng bằng Node). Sinh ra lúc chạy, có node_modules nặng.
+# Công cụ NAOSO tự cài ngầm lúc chạy (bản ghim của CLI Zalo naota-zalo, chạy thẳng bằng Node). Sinh ra lúc chạy, có node_modules nặng.
 server/tools/
 # cloudflared that Remote access downloads on first use (remote_tunnel.py): a 40 MB binary per machine.
 server/bin/
@@ -215,7 +215,7 @@ server/stt_bench/
 # Loop watchdog heartbeat and restart log (server/loop_watch.py): runtime state written to the default state dir server/.
 server/loop_beat.json
 server/loop_restarts.json
-# Naota Core's notice rules and the engine-down notice state (STATE_DIR defaults to server/).
+# NAOSO Core's notice rules and the engine-down notice state (STATE_DIR defaults to server/).
 server/notify_policy.json
 server/engine_down_notified.json
 server/client_errors.json

@@ -19,13 +19,13 @@ if exist "brain" if not exist "Brain Default" (
 )
 
 REM 2. Lam phang cau truc ben trong (chi move khi dich chua ton tai)
-if exist "Brain Default\Naota\agents" if not exist "Brain Default\agents" (
-  echo   - Move: Naota\agents  ->  agents
-  move "Brain Default\Naota\agents" "Brain Default\agents" >nul
+if exist "Brain Default\NAOSO\agents" if not exist "Brain Default\agents" (
+  echo   - Move: NAOSO\agents  ->  agents
+  move "Brain Default\NAOSO\agents" "Brain Default\agents" >nul
 )
-if exist "Brain Default\Naota\workflows" if not exist "Brain Default\workflows" (
-  echo   - Move: Naota\workflows  ->  workflows
-  move "Brain Default\Naota\workflows" "Brain Default\workflows" >nul
+if exist "Brain Default\NAOSO\workflows" if not exist "Brain Default\workflows" (
+  echo   - Move: NAOSO\workflows  ->  workflows
+  move "Brain Default\NAOSO\workflows" "Brain Default\workflows" >nul
 )
 if exist "Brain Default\Memory" if not exist "Brain Default\memory" (
   echo   - Move: Memory  ->  memory

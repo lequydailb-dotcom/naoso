@@ -83,7 +83,7 @@ def _khoa_gia(model: str, prices: dict) -> str:
     # Model FREE cua OpenRouter co hau to ':free' va gia bang 0. Khong loai no ra thi
     # 'deepseek/deepseek-r1:free' khop khoa 'deepseek-r1' roi bi tinh 0,55$ moi trieu token -
     # tien BIA hoan toan, va no chay thang vao o "tien mat thang nay" va vao phanh ngan sach.
-    # Nghia la Naota co the tu phanh viec nen vi mot hoa don khong ton tai.
+    # Nghia la NAOSO co the tu phanh viec nen vi mot hoa don khong ton tai.
     if ":free" in str(model or ""):
         memo[model] = ""
         return ""
@@ -162,7 +162,7 @@ def parse_claude_line(obj: dict, chat_sessions: set, session_brains: dict = None
 
     Bo qua: khong phai type=assistant, model synthetic/thieu, khong co usage, tong token = 0.
 
-    session_brains: {session_id: duong_dan_brain} tu session_brain.py. Moi engine Naota chay
+    session_brains: {session_id: duong_dan_brain} tu session_brain.py. Moi engine NAOSO chay
     voi cwd = goc project nen 'project' suy tu cwd gop het ve mot cho ('naota' / 'app');
     phien nao tra duoc brain thi lay TEN BRAIN lam nhan dung hon. Khong tra duoc -> cwd nhu cu.
     """

@@ -1,5 +1,5 @@
 # ============================================================
-# NAOTA - CAI MOT LAN TREN WINDOWS
+# NAOSO - CAI MOT LAN TREN WINDOWS
 #
 #   powershell -ExecutionPolicy Bypass -File install.ps1
 #
@@ -16,8 +16,8 @@
 #   2. Cai CLI xong ma PATH cua PHIEN HIEN TAI chua co -> buoc tong ket bao "chua cai" cho
 #      mot CLI vua cai xong. Refresh-Path doc lai PATH tu registry sau moi lan cai.
 #
-# QUAN TRONG: Naota doc PATH LUC NO BAT. Cai them CLI sau khi server dang chay thi phai
-# khoi dong lai Naota moi thay (stop-naota.bat roi start-naota.vbs).
+# QUAN TRONG: NAOSO doc PATH LUC NO BAT. Cai them CLI sau khi server dang chay thi phai
+# khoi dong lai NAOSO moi thay (stop-naota.bat roi start-naota.vbs).
 #
 # KHONG DUOC DUNG CHO BAN PHIM: Naota-Setup.exe chay file nay AN (khong co cua so den) va
 # hien tung dong ngay trong man hinh Setup. Moi chuong trinh ngoai (winget, npm, pip, script
@@ -54,7 +54,7 @@ function Refresh-Path {
   $env:PATH = (@($m, $u) | Where-Object { $_ }) -join ";"
   # Where the vendor installers drop agy and grok when they do not (or not yet) write PATH.
   # The server searches the same folders (antigravity_cli.py, grok_cli.py), so the summary
-  # below should not call a CLI "missing" that Naota will find anyway.
+  # below should not call a CLI "missing" that NAOSO will find anyway.
   foreach ($d in @((Join-Path $env:USERPROFILE ".local\bin"),
                    (Join-Path $env:LOCALAPPDATA "agy\bin"),
                    (Join-Path $env:LOCALAPPDATA "Programs\antigravity"),
@@ -115,7 +115,7 @@ function Winget-Install($id, $extra) {
 
 Line ""
 Line " =========================================="
-Line "  NAOTA - cai dat tren Windows"
+Line "  NAOSO - cai dat tren Windows"
 Line " =========================================="
 
 # ---------------------------------------------------------------- [1] Python
@@ -309,19 +309,19 @@ foreach ($it in @(
 }
 Line ""
 Line "  Dang nhap tung bo nao NGAY TRONG trang Models cua dashboard - khong can go lenh."
-Line "  Cai them CLI sau nay thi phai KHOI DONG LAI Naota (stop-naota.bat roi start-naota.vbs),"
+Line "  Cai them CLI sau nay thi phai KHOI DONG LAI NAOSO (stop-naota.bat roi start-naota.vbs),"
 Line "  vi tien trinh dang chay giu PATH cua luc no bat."
 Line ""
 
 # ---------------------------------------------------------------- [5b] tu khoi dong
 # Mac dinh cai naota tren Windows hoac Mac thi cai khoi dong cung trinh duyet.
-# Dang nhap may la Naota tu chay nen roi tu mo dashboard. Tat: -NoAutostart, naota-autostart.bat uninstall,
+# Dang nhap may la NAOSO tu chay nen roi tu mo dashboard. Tat: -NoAutostart, naota-autostart.bat uninstall,
 # hoac nut trong trang Cai dat.
 if (-not $NoAutostart) {
   $as = Join-Path $Root "naota-autostart.ps1"
   if (Test-Path $as) {
     $asCode = Invoke-Capped -File (Join-Path $PSHOME "powershell.exe") -Arguments "-NoProfile -ExecutionPolicy Bypass -File `"$as`" install" -Minutes 2 -Quiet
-    if ($asCode -eq 0) { Ok "Tu khoi dong cung Windows: BAT (dang nhap may la Naota tu mo)" }
+    if ($asCode -eq 0) { Ok "Tu khoi dong cung Windows: BAT (dang nhap may la NAOSO tu mo)" }
     else { Warn "Chua bat duoc tu khoi dong. Bat sau: naota-autostart.bat install" }
   }
 }
@@ -331,7 +331,7 @@ if ($NoStart) {
   Line "  Cai xong. Bat server: start-naota.vbs (chay nen) hoac setup.bat (hien cua so)."
   exit 0
 }
-Step 6 "Bat Naota"
+Step 6 "Bat NAOSO"
 $vbs = Join-Path $Root "start-naota.vbs"
 if (Test-Path $vbs) {
   # /open: cho server len roi mo dashboard luon.

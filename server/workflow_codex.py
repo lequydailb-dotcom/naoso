@@ -47,7 +47,7 @@ def build(*, cwd, model, instructions, allowed, mode, apply_hub, extra_servers):
         raise ValueError("ChatGPT workflow requires the Codex CLI")
     apply_hub(cli, cwd)
     if not cli.profile or not cli.hub_turn:
-        raise ValueError("Restricted ChatGPT workflow requires the Naota MCP Hub")
+        raise ValueError("Restricted ChatGPT workflow requires the NAOSO MCP Hub")
     import mcp_hub
     cli.sandbox = "read-only"
     mcp_hub.dat_codex_mode(cli.extra_config, mode)

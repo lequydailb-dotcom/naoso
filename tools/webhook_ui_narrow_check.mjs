@@ -2,7 +2,7 @@
 //
 //   node tools/webhook_ui_narrow_check.mjs http://127.0.0.1:7791 /tmp/shots
 //
-// Start a LOCAL Naota first with a temporary state folder and outgoing calls refused, then create one hook and send it a
+// Start a LOCAL NAOSO first with a temporary state folder and outgoing calls refused, then create one hook and send it a
 // few events (docs/webhook-platform/staging-pilot-pack.md, "UI check"). The script opens the Webhooks page and the first
 // hook's popup, takes the four parts (Configuration, Events with one event opened, Health, the test-send
 // preview) as PNG files, and fails when the page scrolls sideways or throws. It never presses Send, Stop receiving,

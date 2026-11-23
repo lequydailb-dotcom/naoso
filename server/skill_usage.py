@@ -2,7 +2,7 @@
 skill_usage.py - Sidecar TELEMETRY cho skill: đo skill nào THẬT SỰ được dùng.
 
 Vị trí: <brain>/Naota/skill-usage.json. Đặt cạnh Naota/loop-state.json theo đúng quy ước
-đã có của Naota ("STATE runtime tách riêng, server sở hữu" - xem self_improve.py). KHÔNG
+đã có của NAOSO ("STATE runtime tách riêng, server sở hữu" - xem self_improve.py). KHÔNG
 nhét vào frontmatter SKILL.md: brain là git repo, mỗi lần dùng skill sẽ đẻ một commit rác
 và tạo áp lực xung đột lên file do người viết.
 

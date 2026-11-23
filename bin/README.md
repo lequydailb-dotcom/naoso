@@ -1,6 +1,6 @@
-# NAOTA - macOS launchers
+# NAOSO - macOS launchers
 
-Portable helpers to run NAOTA natively on macOS (no Docker), so you can
+Portable helpers to run NAOSO natively on macOS (no Docker), so you can
 start it like a normal app.
 
 ## Prereqs (once)
@@ -14,10 +14,10 @@ start it like a normal app.
 
 ## Run
 
-- **`NAOTA.app`** (repo root) - double-click in Finder to start the server and
+- **`NAOSO.app`** (repo root) - double-click in Finder to start the server and
   open `http://127.0.0.1:7777`. Keep the `.app` inside the repo folder (it finds
   the repo relative to its own location).
-- **`Start NAOTA.command`** / **`Stop NAOTA.command`** - double-clickable
+- **`Start NAOSO.command`** / **`Stop NAOSO.command`** - double-clickable
   Finder alternatives.
 - **`bin/naota-start.sh`** / **`bin/naota-stop.sh`** - the underlying scripts.
 - **`bin/naota-autostart.sh [install|uninstall]`** - run the server at login via a

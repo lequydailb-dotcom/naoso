@@ -42,7 +42,7 @@ def install(lib, model, model_dir):
 
 
 def transcribe(lib, model, model_dir, path, lang, threads):
-    # Lower priority than the Naota server, so a long clip never makes the dashboard or /health wait.
+    # Lower priority than the NAOSO server, so a long clip never makes the dashboard or /health wait.
     try:
         os.nice(10)
     except (AttributeError, OSError):

@@ -7,7 +7,7 @@ job any more. Three things replace the setting:
   intent     what the owner said they want, in three words: "save", "balanced", "sure". Said in chat (the
              `naota_tune` tool), for everything or for one job. No switch on any page.
   ladder     the provider's chat models from lightest to MAIN's model, ordered once by the main brain from the
-             provider's own list (auto_background.py). Naota holds no table of model names.
+             provider's own list (auto_background.py). NAOSO holds no table of model names.
   scorecard  every run of a job leaves one row: which model, did it get the job done, what it cost. A job that
              failed because of the model climbs one rung for its next run. A job that keeps succeeding tries one
              rung lower; if that try fails it goes back up and remembers the floor.

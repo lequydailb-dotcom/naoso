@@ -166,7 +166,7 @@ def _make_router() -> APIRouter:
     async def gh_checks_set(brain: str = Form(""), full_name: str = Form(...), commands: str = Form(""),
                             reset: str = Form("")):
         """`commands`: one command per line (a line ending in a backslash continues). `reset=1` goes back to the
-        commands Naota suggests from the repo's CI."""
+        commands NAOSO suggests from the repo's CI."""
         if str(reset).strip() in ("1", "true"):
             return await _call(github_repos.set_checks, brain, full_name, None)
         lines, buf = [], ""
@@ -212,7 +212,7 @@ def _make_router() -> APIRouter:
 
     @r.post("/github/session/{sid}/merge")
     async def gh_merge(sid: str, full_name: str = Form(...)):
-        """A person presses Merge (auto-merge off, no CI, or a change Naota would not merge alone).
+        """A person presses Merge (auto-merge off, no CI, or a change NAOSO would not merge alone).
 
         The merge runs as its own task: if this request is dropped (panel or tab closed), it still finishes."""
         import github_work
@@ -223,7 +223,7 @@ def _make_router() -> APIRouter:
 
     @r.post("/github/session/{sid}/push")
     async def gh_push(sid: str, full_name: str = Form(...)):
-        """A person presses "Push again" after a failed push. Naota also retries on its own; this is the shortcut."""
+        """A person presses "Push again" after a failed push. NAOSO also retries on its own; this is the shortcut."""
         import github_work
         try:
             row = await github_work.retry_ship(sid, full_name, by_person=True)

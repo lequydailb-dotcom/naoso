@@ -74,7 +74,7 @@ check("tên có khoảng trắng được mã hoá trong url",
 
 // Khối GHIM đứng trước khối đính kèm (file đang mở trong trình sửa + dán thêm ảnh).
 const tinGhim =
-  "[FILE ĐANG MỞ trong trình sửa của Naota: /brain/wiki/a.md\nĐọc nó trước khi trả lời.]\n\n"
+  "[FILE ĐANG MỞ trong trình sửa của NAOSO: /brain/wiki/a.md\nĐọc nó trước khi trả lời.]\n\n"
   + "[File đính kèm (đường dẫn), Sources=\"/x/Sources\", Attachments=\"/x/attachments\":\n- /tmp/up/hinh.jpg]\n\n"
   + "/notes lưu lại";
 a = fn.docDinhKem(tinGhim);
@@ -82,7 +82,7 @@ check("khối ghim đứng trước không che khối đính kèm phía sau", a.
 check("khối ghim KHÔNG bị đọc thành file", !a.some(x => /a\.md/.test(x.name)), JSON.stringify(a));
 check("biến thể khối của lệnh skill (/notes) cũng đọc được", a[0] && a[0].kind === "image");
 
-check("tin thường không có khối -> rỗng", fn.docDinhKem("chào Naota").length === 0);
+check("tin thường không có khối -> rỗng", fn.docDinhKem("chào NAOSO").length === 0);
 check("null/undefined -> rỗng, không nổ", fn.docDinhKem(null).length === 0 && fn.docDinhKem(undefined).length === 0);
 check("khối không có chỗ kết thúc -> rỗng, không đoán",
   fn.docDinhKem("[File đính kèm để ĐỌC:\n- /x/y.png\nkhông có dấu đóng").length === 0);

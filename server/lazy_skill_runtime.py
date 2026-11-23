@@ -195,7 +195,7 @@ class LazySkillSource:
         picked = None
         if raw.strip() and len(raw) > max(1000, int(max_body_chars)) and session_key:
             # 2026-11-18: a long skill built as a menu brings the parts this objective needs, chosen before loading
-            # (section_select); when Naota is not sure the old fallback below applies.
+            # (section_select); when NAOSO is not sure the old fallback below applies.
             try:
                 import section_select
                 picked = section_select.for_skill(slug, raw, "", question=query, session=session_key,

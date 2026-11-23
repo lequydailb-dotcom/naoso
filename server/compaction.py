@@ -82,14 +82,14 @@ SYNC_COMPACT_TAIL = 24
 
 # ── Mạch hội thoại của engine gói thuê bao (Claude Code, Codex) ──────────────────────────
 #
-# Hai engine này tự quản mạch: Naota chỉ đưa `--resume <id>` rồi chúng gửi lại toàn bộ
+# Hai engine này tự quản mạch: NAOSO chỉ đưa `--resume <id>` rồi chúng gửi lại toàn bộ
 # transcript ở phía chúng. Nghĩa là phần TO NHẤT của mỗi lượt nằm ngoài tầm với của mọi cơ
 # chế tiết kiệm ngữ cảnh - Phase 8 gọt bộ luật xuống còn vài trăm token thì mạch cũ vẫn kéo
 # theo hàng trăm nghìn. Số đo thật: lượt đầu hội thoại 36k, cùng hội thoại đó
 # vài lượt sau đã 191k, có lượt chạm 412k. Bộ luật + bộ nhớ + mô tả tool của brain đó chỉ khoảng
-# 10.6k, tức phần Naota gọt được chưa tới 3% của lượt nặng nhất.
+# 10.6k, tức phần NAOSO gọt được chưa tới 3% của lượt nặng nhất.
 #
-# Naota không chèn được vào giữa mạch của chúng, nhưng làm được một việc: khi mạch đã phình
+# NAOSO không chèn được vào giữa mạch của chúng, nhưng làm được một việc: khi mạch đã phình
 # quá ngưỡng thì THÔI resume, mở mạch MỚI và mồi lại bằng transcript đã nén trong SQLite
 # (codex_bootstrap_prompt ở dưới). Đổi lại là mất phần ngữ cảnh ngầm mà engine tự giữ, nên
 # ngưỡng phải đủ cao để chỉ chạm tới khi mạch thật sự đã quá dài.
@@ -110,7 +110,7 @@ SUBSCRIPTION_THREAD_MAX_TOKENS = 1_000_000
 # model nhiều vòng, mỗi vòng gửi lại toàn bộ ngữ cảnh đã tích. Số đo thật cho
 # thấy đúng điều đó - model chỉ viết ra 266 tới 1.496 token trong khi đọc vào 35k tới 412k.
 # Nghĩa là một lượt NẶNG có thể nặng vì công việc, không phải vì mạch dài. Xoay mạch trong ca
-# đó không giúp gì cả: lượt sau vẫn nặng, lại xoay tiếp, và mỗi lần xoay là một lần Naota
+# đó không giúp gì cả: lượt sau vẫn nặng, lại xoay tiếp, và mỗi lần xoay là một lần NAOSO
 # quên mất phần ngữ cảnh ngầm mà engine đang giữ. Mốc này bắt buộc phải có tiến triển thật
 # (thêm hai lượt hỏi-đáp) mới cho xoay lần nữa.
 SUBSCRIPTION_ROTATE_MIN_MSGS = 4
@@ -162,7 +162,7 @@ def bootstrap_prompt(raw_msgs, current_prompt: str,
     """Gói transcript trong SQLite thành MỘT prompt để mồi lại một mạch hội thoại mới.
 
     Dùng cho mọi engine tự quản mạch (Codex, Claude Code), ở ba tình huống: phiên cũ chưa có
-    thread id, rollout cũ bị mất trên máy, và mạch đã phình quá ngưỡng nên Naota chủ động mở
+    thread id, rollout cũ bị mất trên máy, và mạch đã phình quá ngưỡng nên NAOSO chủ động mở
     mạch mới. Sau khi engine phát thread mới thì các lượt kế tiếp resume native, không resend
     transcript này nữa.
 
@@ -184,7 +184,7 @@ def bootstrap_prompt(raw_msgs, current_prompt: str,
     # and SUMMARY_HEADER is how a stored summary is told apart. Only the sentence for the model is English (2026-11-15).
     header = (
         "[KHÔI PHỤC NGỮ CẢNH HỘI THOẠI]\n"
-        "The parts below are the real history of this same Naota conversation. "
+        "The parts below are the real history of this same NAOSO conversation. "
         "Continue the thread; do not treat them as new requests to redo. Every question in the "
         "history HAS already been answered; answer only the " + CURRENT_REQUEST_MARKER + " part at the end.\n"
     )
@@ -195,7 +195,7 @@ def bootstrap_prompt(raw_msgs, current_prompt: str,
     blocks = []
     truncated = False
     for m in reversed(usable):
-        who = "User" if m.get("role") == "user" else "Naota"
+        who = "User" if m.get("role") == "user" else "NAOSO"
         block = f"\n<{who}>\n{m.get('content') or ''}\n</{who}>\n"
         if len(block) <= budget:
             blocks.append(block)
@@ -278,9 +278,9 @@ async def _summarize(old, chunk, prov, api_key, model, api_stream):
         c = m.get("content") or ""
         if len(c) > _MSG_CLIP:
             c = c[:_MSG_CLIP] + " (...)"
-        lines.append(("User: " if m.get("role") == "user" else "Naota: ") + c)
+        lines.append(("User: " if m.get("role") == "user" else "NAOSO: ") + c)
     prompt = (
-        "Bạn đang nén lịch sử hội thoại giữa User và trợ lý Naota để tiết kiệm context.\n\n"
+        "Bạn đang nén lịch sử hội thoại giữa User và trợ lý NAOSO để tiết kiệm context.\n\n"
         f"TÓM TẮT HIỆN CÓ (các phần trước đó nữa):\n{old or '(chưa có)'}\n\n"
         "ĐOẠN HỘI THOẠI MỚI CẦN GỘP THÊM:\n" + "\n\n".join(lines) + "\n\n"
         "Viết TÓM TẮT MỚI gộp cả hai (tối đa ~350 từ), giữ lại: chủ đề chính, quyết định đã chốt, "

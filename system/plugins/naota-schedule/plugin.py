@@ -372,7 +372,7 @@ async def _post_reminder(payload: dict, brain_name: str = "") -> str:
     if not data.get("ok"):
         if data.get("can_force"):
             # THIẾU ĐIỀU KIỆN, không phải lỗi cú pháp. Model TUYỆT ĐỐI không được tự vượt rào:
-            # phải nói thiếu gì rồi để user quyết. Đây đúng cái khách phàn nàn - Naota dựng cron
+            # phải nói thiếu gì rồi để user quyết. Đây đúng cái khách phàn nàn - NAOSO dựng cron
             # "báo qua Telegram" trong khi Telegram còn chưa đấu, rồi im lặng không nói gì.
             return (f"ERROR: {data.get('error')}\n"
                     "→ BÁO LẠI CHO USER đúng thứ còn thiếu ở trên và HỎI: đấu Telegram trước, "
@@ -397,8 +397,8 @@ async def _post_reminder(payload: dict, brain_name: str = "") -> str:
     if data.get("speak"):
         ra += " Kết quả sẽ kèm tin thoại đọc thành tiếng."
     if data.get("call"):
-        ra += (" Tới giờ Naota sẽ GỌI ĐẾN trên trang Naota đang mở: bấm Nghe là vào cuộc gọi và Naota đọc"
-               " kết quả; không mở Naota thì kết quả vẫn tới như tin nhắn thường.")
+        ra += (" Tới giờ NAOSO sẽ GỌI ĐẾN trên trang NAOSO đang mở: bấm Nghe là vào cuộc gọi và NAOSO đọc"
+               " kết quả; không mở NAOSO thì kết quả vẫn tới như tin nhắn thường.")
     return ra
 
 
@@ -446,7 +446,7 @@ def _turn_origin(vault_root: str) -> tuple:
     """(chat, assistant) of the turn creating the job, read from what the host set, never from the model.
 
     `chat` is `web:<session id>` on a dashboard turn, so the result goes back to the chat that asked. A partner chat
-    never sees the channel block that teaches the model this id, and the job used to land in Naota Core, success and
+    never sees the channel block that teaches the model this id, and the job used to land in NAOSO Core, success and
     failure alike. With no turn at all (an engine that cannot carry it yet), the running-turn ledger names the chat
     when exactly one chat of this brain is running (same rule as naota_task, 0.64.49). Any other turn (Kanban, a
     chatbot, Telegram) keeps what the model passed. `assistant` is the slug of the Partners-page assistant of that
@@ -756,7 +756,7 @@ def register(ctx) -> None:
             "ĐỦ ĐIỀU KIỆN MỚI TẠO: trước khi op=create, tự hỏi việc này tới giờ chạy có ĐỦ thứ "
             "cần không (nguồn dữ liệu đã đấu chưa, kênh báo kết quả đã có chưa). Thiếu thì NÓI "
             "THẲNG thiếu gì và hỏi user, KHÔNG tạo trước rồi im lặng để nó chạy thất bại mỗi ngày. "
-            "CHỈ GỌI khi user ra lệnh rõ ràng với lịch tự động của Naota; KHÔNG gọi chỉ vì câu có "
+            "CHỈ GỌI khi user ra lệnh rõ ràng với lịch tự động của NAOSO; KHÔNG gọi chỉ vì câu có "
             "'đặt lịch', booking, tư vấn 1-1, cuộc hẹn, hoặc đang bàn về sản phẩm/UX/marketing. "
             "Trong các trường hợp đó phải trả lời hội thoại bình thường, không op=list/create/cancel. "
             "Tool TỰ CHỌN kho: lịch "
@@ -809,8 +809,8 @@ def register(ctx) -> None:
                 "speak": {"type": "boolean",
                           "description": "true = tới giờ gửi kèm TIN THOẠI đọc kết quả thành tiếng (user muốn nghe)."},
                 "call": {"type": "boolean",
-                         "description": ("true = tới giờ Naota GỌI ĐẾN như cuộc gọi trên trang Naota đang mở, user bấm "
-                                         "Nghe thì Naota đọc kết quả và nói chuyện tiếp (\"7h gọi đọc báo cáo cho anh\").")},
+                         "description": ("true = tới giờ NAOSO GỌI ĐẾN như cuộc gọi trên trang NAOSO đang mở, user bấm "
+                                         "Nghe thì NAOSO đọc kết quả và nói chuyện tiếp (\"7h gọi đọc báo cáo cho anh\").")},
                 "remember_last": {"type": "boolean",
                                   "description": ("true = mỗi lần chạy nhận lại kết quả lần trước (theo dõi, "
                                                   "báo cái mới). Chỉ cho nhắc hẹn tự làm, không cho loop.")},

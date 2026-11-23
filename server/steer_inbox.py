@@ -1,8 +1,8 @@
-"""Send more while Naota is working.
+"""Send more while NAOSO is working.
 
 Before this, a message typed while a turn was running was silently dropped by the dashboard (and refused by the
 server). Claude Code folds a message sent mid-turn into the work at its next step; Codex calls it "steer" (Enter) and
-also has "queue" (Tab, runs after). Naota does both, whatever brain is in use:
+also has "queue" (Tab, runs after). NAOSO does both, whatever brain is in use:
 
 - A turn that can take input mid-way (Claude Code: after each tool call, through a PostToolUse hook; the API engines:
   before the next model round, appended to the last tool result) reads the pending messages at its next step.
@@ -36,7 +36,7 @@ def note_for(texts: List[str], goal: bool = False) -> str:
     goal_line = ("Đây là lời bổ sung cho mục tiêu đang theo đuổi (khối [MỤC TIÊU:] của lượt này): gộp nó vào điều "
                  "kiện mục tiêu, làm tiếp mục tiêu theo hướng đã chỉnh, và khi báo dòng NAOTA_GOAL thì tính cả phần "
                  "bổ sung này.\n") if goal else ""
-    return ("\n\n[Naota] Người dùng vừa gửi thêm "
+    return ("\n\n[NAOSO] Người dùng vừa gửi thêm "
             + ("một tin" if len(texts) == 1 else f"{len(texts)} tin")
             + " trong lúc bạn đang làm. Đây là lời của chính họ:\n" + body + "\n" + goal_line +
             "Nếu đó là sửa hướng hay bổ sung cho việc đang làm, áp dụng ngay từ bước kế tiếp. Nếu là một việc mới, "
@@ -48,9 +48,9 @@ def followup_prompt(texts: List[str]) -> str:
     """The message of the turn that runs the leftovers after a turn ended. Model prompt: Vietnamese."""
     body = "\n\n".join(texts)
     if len(texts) == 1:
-        return ("[Naota] Tin dưới đây người dùng gửi trong lúc lượt trước còn đang chạy; lượt trước đã xong. "
+        return ("[NAOSO] Tin dưới đây người dùng gửi trong lúc lượt trước còn đang chạy; lượt trước đã xong. "
                 "Giờ làm theo tin này:\n\n" + body)
-    return (f"[Naota] {len(texts)} tin dưới đây người dùng gửi trong lúc lượt trước còn đang chạy; lượt trước đã xong. "
+    return (f"[NAOSO] {len(texts)} tin dưới đây người dùng gửi trong lúc lượt trước còn đang chạy; lượt trước đã xong. "
             "Giờ làm theo các tin này, theo đúng thứ tự:\n\n" + body)
 
 

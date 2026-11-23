@@ -1,7 +1,7 @@
 /* chat-suggest.js - the suggested next message in an empty chat box.
  *
  * after Claude answers, its empty chat box shows a likely next message in grey ("ok làm theo đề xuất
- * cho cả 2 PR đi") and Tab puts it in the box. Naota does the same:
+ * cho cả 2 PR đi") and Tab puts it in the box. NAOSO does the same:
  *   - when a turn ends the screen calls ctl.request(context); the server (POST /chat/suggest, server/next_prompt.py)
  *     guesses the owner's next message on the background model;
  *   - the guess shows as the placeholder of the EMPTY box, never as text in it, so nothing is sent by accident;

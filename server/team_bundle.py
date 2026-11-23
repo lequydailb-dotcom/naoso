@@ -7,7 +7,7 @@ members' partner files and their skills, plus one more entry, `naota-team.json`:
     {"format": "naota-team", "version": 1, "name", "description", "tags", "leader", "members": [slugs],
      "instructions": [pinned team messages, as text]}
 
-Older Naota versions open the same file as a plain bundle (they ignore the extra entry and import
+Older NAOSO versions open the same file as a plain bundle (they ignore the extra entry and import
 the partners), so a team file never breaks an old install.
 
 What NEVER travels: chat history, keys and passwords, model choices, Auto switches, memory. Text that

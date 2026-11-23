@@ -1,6 +1,6 @@
 """The owner's side of the background scorecard, from chat (tool `naota_tune`, 10/11/2026).
 
-There is no settings page for how background jobs pick their model: the owner says what they want and Naota
+There is no settings page for how background jobs pick their model: the owner says what they want and NAOSO
 adjusts (job_scorecard.py). This module turns those sentences into four operations and answers in JSON the chat
 model words for the owner. Owner only (mcp_hub.OWNER_ONLY_TOOLS).
 """
@@ -13,7 +13,7 @@ import job_scorecard
 import tool_pins
 
 OPS = ("status", "intent", "feedback", "teach", "set", "undo")
-# Set by main.py: how to store and list the lessons about learning that Naota Core holds for a brain.
+# Set by main.py: how to store and list the lessons about learning that NAOSO Core holds for a brain.
 _TEACH = [None]
 _LESSONS = [None]
 
@@ -47,7 +47,7 @@ def run(args: dict, vault_root: str = "") -> str:
         st["intent_label"] = _INTENT_WORDS.get(st["intent"], st["intent"])
         st["ok"] = True
         st["note"] = ("Mỗi việc nền tự tìm model nhẹ nhất làm được việc: hỏng do model thì lần sau leo một bậc, chạy tốt "
-                      "nhiều lần thì thử xuống một bậc. `fails` chỉ đếm lần hỏng do model. `knobs` là các núm Naota "
+                      "nhiều lần thì thử xuống một bậc. `fails` chỉ đếm lần hỏng do model. `knobs` là các núm NAOSO "
                       "Core tự chỉnh; mã thay đổi dạng k12 hay số đều hoàn lại được bằng op=undo.")
         st.update(core_loop.status())
         st["pinned_tools"] = tool_pins.status()

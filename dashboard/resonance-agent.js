@@ -64,7 +64,7 @@
   function supportHtml(support) {
     var s = support || {};
     if (s.goal === false) return '<div class="rsa-warn">' + esc(tw("resonance.a1_engine_no_goal")) + "</div>";
-    // A4 (mục 6.1): engine nộp được qua công cụ hub thì nói rõ Naota đăng, và chỉ khi bạn đã cho phép file đích.
+    // A4 (mục 6.1): engine nộp được qua công cụ hub thì nói rõ NAOSO đăng, và chỉ khi bạn đã cho phép file đích.
     if (s.submit_tool) return '<div class="rsa-sub">' + esc(tw("resonance.a4_engine_submit")) + "</div>";
     return "";
   }
@@ -92,7 +92,7 @@
     // Trạng thái bằng chữ ("Auto: Bật") nằm đầu nhãn cho trình đọc màn hình và tooltip; mắt thấy nhãn ngắn "Auto" và
     // màu của công tắc.
     var aria = tw(stateKey(row)) + " · " + tw("resonance.t0_toggle_aria", { name: row.name || row.slug });
-    // nhãn ngắn "Auto" và công tắc nhỏ nằm TRONG thẻ trợ lý (góc dưới phải). Bật màu cam Naota, tắt xám; trạng
+    // nhãn ngắn "Auto" và công tắc nhỏ nằm TRONG thẻ trợ lý (góc dưới phải). Bật màu cam NAOSO, tắt xám; trạng
     // thái đọc được bằng chữ qua aria và tooltip, không chỉ bằng màu. Đang lưu thì khoá và nói "Đang lưu".
     return '<label class="ws-rs ws-auto' + (on ? " is-on" : "") + (o.saving ? " is-saving" : "") + '" title="' + esc(aria) + '">' +
       '<span class="ws-rs-text">' + esc(o.saving ? label : tw("resonance.auto_label")) + "</span>" +

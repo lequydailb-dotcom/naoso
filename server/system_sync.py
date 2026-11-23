@@ -1,5 +1,5 @@
 """
-system_sync.py - Tầng NĂNG LỰC HỆ THỐNG của NAOTA (tách khỏi dữ liệu người dùng trong brain).
+system_sync.py - Tầng NĂNG LỰC HỆ THỐNG của NAOSO (tách khỏi dữ liệu người dùng trong brain).
 
 Vấn đề giải quyết: trước đây các chức năng mặc định (skill naota-builder, ingest/query/lint,
 loop tự-cải-tiến) được seed create-if-missing vào TỪNG brain → brain tạo ở bản cũ không bao
@@ -18,7 +18,7 @@ Kiến trúc mới - 2 tầng rõ ràng:
 Skill trong brain có CANONICAL phẳng <brain>/skills/<slug>/SKILL.md (cùng hướng agents/workflows/
 memory). Tầng hệ thống được cài vào canonical đó qua sync có manifest, rồi MIRROR sang
 <brain>/.claude/skills để Claude Code nạp NATIVE ở ngữ cảnh cwd=brain (workflow/loop/learn/lint) -
-mirror chỉ là bản phái sinh (bonus), router chính của Naota không phụ thuộc nó. Brain cũ để skill
+mirror chỉ là bản phái sinh (bonus), router chính của NAOSO không phụ thuộc nó. Brain cũ để skill
 ở .claude/skills được migrate_brain() dời sang skills/ (idempotent, 1 chiều, không mất data):
   - Manifest <brain>/.naota/system-manifest.json ghi hash bản đã cài của từng file hệ thống.
   - Thiếu → cài (kể cả khi user lỡ xoá: file hệ thống tự hồi phục như file HĐH; muốn ngừng
@@ -332,7 +332,7 @@ def _cap_desc(text: str, cap: int) -> Optional[str]:
     skill vượt trần 150 ký tự của chính dự án (dài nhất 1.018), tổng mô tả 10.095 ký tự nạp
     mỗi phiên; ép đúng trần còn 3.892, giảm 61%. Bản canonical trong `skills/` GIỮ NGUYÊN chữ
     của người dùng - mirror vốn là bản phái sinh. Không mất năng lực: mô tả chỉ để định tuyến,
-    thân skill vẫn nạp đủ khi được gọi, và router của Naota xưa nay đã cắt đúng ở 150 rồi.
+    thân skill vẫn nạp đủ khi được gọi, và router của NAOSO xưa nay đã cắt đúng ở 150 rồi.
     """
     out = text or ""
     tran = _het_frontmatter(out)

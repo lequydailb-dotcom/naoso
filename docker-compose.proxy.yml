@@ -1,11 +1,11 @@
 # ============================================================================
-# NAOTA - PROXY DÙNG CHUNG cho NHIỀU BẢN Naota trên cùng một VPS.
+# NAOSO - PROXY DÙNG CHUNG cho NHIỀU BẢN NAOSO trên cùng một VPS.
 #
 # Chạy MỘT LẦN cho cả máy (không phải mỗi bản một cái). Nó giữ cổng 80/443, tự xin
-# và tự gia hạn chứng chỉ Let's Encrypt, rồi lái mỗi tên miền về đúng bản Naota của nó.
+# và tự gia hạn chứng chỉ Let's Encrypt, rồi lái mỗi tên miền về đúng bản NAOSO của nó.
 #
 # VÌ SAO PHẢI TÁCH RA MỘT FILE RIÊNG: một máy chỉ có MỘT cổng 443. Bản Caddy trong
-# docker-compose.https.yml nằm chung project với Naota, nên bản Naota thứ hai dựng lên là
+# docker-compose.https.yml nằm chung project với NAOSO, nên bản NAOSO thứ hai dựng lên là
 # hai Caddy tranh nhau cổng 443 và con thứ hai chết. Proxy phải sống ngoài mọi bản.
 #
 # CÀI (làm một lần cho cả VPS):
@@ -13,7 +13,7 @@
 #   curl -fsSLO https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.proxy.yml
 #   docker compose -f docker-compose.proxy.yml -p naota-proxy up -d
 #
-# SAU ĐÓ mỗi bản Naota chạy ở THƯ MỤC RIÊNG với .env riêng (xem docker-compose.multi.yml):
+# SAU ĐÓ mỗi bản NAOSO chạy ở THƯ MỤC RIÊNG với .env riêng (xem docker-compose.multi.yml):
 #   NAOTA_NAME=naota-shop     NAOTA_HOST_PORT=7777   DOMAIN_NAME=shop.tencuaban.com
 #   NAOTA_NAME=naota-ca-nhan  NAOTA_HOST_PORT=7778   DOMAIN_NAME=canhan.tencuaban.com
 #

@@ -1,6 +1,6 @@
 """Zalo Official Account (OA) gateway over the official OA Open API v3.
 
-Same shape as `messenger_bot`: Naota cannot pull messages, Zalo POSTs every event a customer
+Same shape as `messenger_bot`: NAOSO cannot pull messages, Zalo POSTs every event a customer
 sends to the OA to one webhook. Two halves:
 
   - `ZaloOABot`: the transport, same contract as `TelegramBot` (start/stop/status/send_text/
@@ -85,7 +85,7 @@ def split_credentials(raw) -> dict:
     Two forms. What the owner pastes: "<App ID> <App secret key> <OA secret key> <Refresh token>",
     told apart by shape: the App ID is all digits, the refresh token is the long one, and the two
     short keys are taken IN ORDER (app secret first). `key=value` parts are read by name, so
-    "oa_secret=..." fixes the order when needed. What Naota writes back after a refresh: JSON.
+    "oa_secret=..." fixes the order when needed. What NAOSO writes back after a refresh: JSON.
     """
     out = {k: "" for k in _FIELDS}
     out["expires_at"] = 0.0
@@ -627,13 +627,13 @@ class ZaloOABot(HangLuot):
             "user_name": name, "username": name, "user_id": chat,
             "message_id": str(msg.get("msg_id") or ""), "bot_username": self.bot_username,
             "mentioned": False, "reply_to_bot": False,
-            # When the message reached Naota, before any download: `chatbot_runtime.staff_yielding` tells the OA's
+            # When the message reached NAOSO, before any download: `chatbot_runtime.staff_yielding` tells the OA's
             # automatic reply to this message from a staff member's answer by it.
             "received_at": received_at,
         }
         if self.chat_ids and chat not in self.chat_ids:
             await self._send(client, chat, localefmt.chu(
-                "Bạn không có quyền dùng bot Naota này.", "You are not allowed to use this Naota bot."))
+                "Bạn không có quyền dùng bot NAOSO này.", "You are not allowed to use this NAOSO bot."))
             return
         text = await self._event_text(client, ev, chat)
         if not text:
@@ -868,8 +868,8 @@ _WINDOW = ("khách đã lâu không nhắn cho OA nên Zalo không cho gửi tin
            "the customer has not written to the OA for too long, so Zalo no longer allows a consultation "
            "message. The window reopens when they write again")
 _ERRORS = {
-    -216: ("access token Zalo OA không hợp lệ. Naota đã thử làm mới; nếu vẫn lỗi, tạo refresh token mới rồi dán lại",
-           "the Zalo OA access token is invalid. Naota tried to refresh it; if it still fails, create a new "
+    -216: ("access token Zalo OA không hợp lệ. NAOSO đã thử làm mới; nếu vẫn lỗi, tạo refresh token mới rồi dán lại",
+           "the Zalo OA access token is invalid. NAOSO tried to refresh it; if it still fails, create a new "
            "refresh token and paste it again"),
     -124: ("access token Zalo OA đã hết hạn", "the Zalo OA access token has expired"),
     -213: ("người này chưa quan tâm OA hoặc đã bỏ quan tâm", "this person does not follow the OA (or unfollowed it)"),

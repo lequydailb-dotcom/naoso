@@ -68,9 +68,9 @@ def _domain_deploy_target(request: Request = None):
 
 def _detect_public_ip():
     """This server's public address, or None. BLOCKING (DNS plus up to three HTTPS requests): call it in a thread,
-    never on the event loop. Every page that opened Naota asked /domain/status, which ran this
+    never on the event loop. Every page that opened NAOSO asked /domain/status, which ran this
     on the loop; on a server whose DNS or outbound HTTPS is slow that froze the whole server for 12 to 24 seconds, and
-    everyone else's live socket missed its pong ("Mất kết nối" as soon as another person opened Naota)."""
+    everyone else's live socket missed its pong ("Mất kết nối" as soon as another person opened NAOSO)."""
     import time as _t
     c = _PUBLIC_IP_CACHE
     if c["ip"] and _t.time() - c["ts"] < PUBLIC_IP_TTL:
@@ -115,9 +115,9 @@ def hostinger_names(base: str, label: str) -> list:
 
     `label.base`, then for the default instance the bare `base` too. No DNS guessing any more. An earlier version picked
     ONE name by comparing addresses, and the gateway's lookup read the VPS's /etc/hosts first (Ubuntu maps its own
-    hostname to 127.0.1.1), so Caddy got a certificate for srv123.hstgr.cloud while Naota checked naota.srv123...:
+    hostname to 127.0.1.1), so Caddy got a certificate for srv123.hstgr.cloud while NAOSO checked naota.srv123...:
     nobody was moved to https (seen on Ubuntu 26). The gateway now serves both names; whichever DNS
-    sends to this VPS gets a certificate, and Naota tries them in this order.
+    sends to this VPS gets a certificate, and NAOSO tries them in this order.
     """
     if not base:
         return []
@@ -144,15 +144,15 @@ def hostinger_suggestion(ip, ptr_lookup=None) -> str:
 
     Open in hPanel led to localhost: Hostinger does not tell a pasted compose its VPS
     hostname (TRAEFIK_HOST and HOSTNAME are not set for Compose-from-URL), so the owner had to dig the
-    srv<id>.hstgr.cloud name out of hPanel. Hostinger's reverse DNS of the VPS IP carries that name, so Naota can
+    srv<id>.hstgr.cloud name out of hPanel. Hostinger's reverse DNS of the VPS IP carries that name, so NAOSO can
     offer the exact line to paste.
     """
     names = hostinger_names(_hostinger_base(ip, ptr_lookup), _instance_label())
     return names[0] if names else ""
 
 
-# the gateway service writes what it is doing into a volume Naota mounts read-only (docker-compose.hostinger.yml):
-# "state=idle|busy|serving" and "names=<the names Caddy serves>". Naota then checks exactly the names that have a
+# the gateway service writes what it is doing into a volume NAOSO mounts read-only (docker-compose.hostinger.yml):
+# "state=idle|busy|serving" and "names=<the names Caddy serves>". NAOSO then checks exactly the names that have a
 # certificate, and Settings can say which step is stuck. Missing file = an older compose or no gateway at all.
 GATEWAY_STATUS_FILE = "/gateway/gateway.txt"
 
@@ -185,7 +185,7 @@ def auto_candidates(ip, gateway=None) -> list:
 
 
 # who answers on a candidate link. A random id per server process; /domain/auto only sends the browser to an
-# https link that answers with THIS id, so it never moves anyone to another site or another Naota on the same VPS.
+# https link that answers with THIS id, so it never moves anyone to another site or another NAOSO on the same VPS.
 _WHOAMI = __import__("secrets").token_hex(12)
 _AUTO = {"url": "", "ts": 0.0}
 AUTO_TTL_OK, AUTO_TTL_MISS = 300.0, 90.0
@@ -202,7 +202,7 @@ async def _answers_as_me(url: str) -> bool:
 
 
 async def _auto_link() -> str:
-    """The first candidate link that answers as THIS Naota over valid https, or "" (cached a few minutes)."""
+    """The first candidate link that answers as THIS NAOSO over valid https, or "" (cached a few minutes)."""
     import asyncio as _aio
     import time as _t
     now = _t.time()
@@ -231,18 +231,18 @@ def _req_is_secure(request: Request) -> bool:
 #   no_route     the proxy in front (Traefik on Hostinger) has no route for this hostname: its own 404
 #   cert_pending the route reaches this server, but the certificate is not issued yet (only works unverified)
 #   bad_gateway  the proxy has a route but cannot reach the app (502/503/504)
-#   other_naota  another Naota answered (a second stack on the same VPS, or the domain saved differently there)
+#   other_naota  another NAOSO answered (a second stack on the same VPS, or the domain saved differently there)
 #   other_site   some other website answered: DNS or the route points somewhere else
 #   cert_invalid the certificate is wrong and the page behind it is not ours either
 #   unreachable  nothing answers on port 443
 # Why /tls-check: it is public, and it answers 200 only when the hostname is the domain saved on THIS server,
-# so it tells this Naota apart from any other site or Naota behind the same address.
+# so it tells this NAOSO apart from any other site or NAOSO behind the same address.
 PROBE_CODES = ("ok", "no_route", "cert_pending", "bad_gateway", "other_naota", "other_site", "cert_invalid",
                "unreachable")
 
 
 def _classify_answer(status: int, body: str, verified: bool) -> str:
-    """Code for an HTTP answer to /tls-check. Pure, so tests can feed it real Traefik and Naota answers."""
+    """Code for an HTTP answer to /tls-check. Pure, so tests can feed it real Traefik and NAOSO answers."""
     text = (body or "").strip()
     naota_json = text.startswith("{") and '"ok"' in text
     if status == 200 and naota_json and '"ok": true' in text.replace('":true', '": true'):
@@ -270,23 +270,23 @@ def _probe_reason(code: str, hostinger: bool) -> str:
         return localefmt.chu("DNS đã tới máy chủ nhưng proxy phía trước chưa có đường cho tên miền này.",
                              "DNS reaches the server but the proxy in front has no route for this domain.")
     if code == "cert_pending":
-        return localefmt.chu("Đường đã thông tới Naota nhưng chứng chỉ chưa cấp xong. Đợi vài phút rồi Kiểm tra lại; "
+        return localefmt.chu("Đường đã thông tới NAOSO nhưng chứng chỉ chưa cấp xong. Đợi vài phút rồi Kiểm tra lại; "
                              "lâu hơn 10 phút thì xem cổng 80 có mở cho Let's Encrypt không.",
-                             "The route reaches Naota but the certificate is not issued yet. Wait a few minutes and "
+                             "The route reaches NAOSO but the certificate is not issued yet. Wait a few minutes and "
                              "check again; after 10 minutes, check that port 80 is open for Let's Encrypt.")
     if code == "bad_gateway":
-        return localefmt.chu("Proxy đã nhận tên miền nhưng không gọi được Naota (502). Kiểm tra container Naota đang "
+        return localefmt.chu("Proxy đã nhận tên miền nhưng không gọi được NAOSO (502). Kiểm tra container NAOSO đang "
                              "chạy và nhãn loadbalancer.server.port=7777.",
-                             "The proxy knows the domain but cannot reach Naota (502). Check that the Naota "
+                             "The proxy knows the domain but cannot reach NAOSO (502). Check that the NAOSO "
                              "container is running and loadbalancer.server.port=7777.")
     if code == "other_naota":
-        return localefmt.chu("Tên miền này đang mở một bản Naota KHÁC (ví dụ stack thứ hai trên cùng VPS). Kiểm tra "
+        return localefmt.chu("Tên miền này đang mở một bản NAOSO KHÁC (ví dụ stack thứ hai trên cùng VPS). Kiểm tra "
                              "DOMAIN_NAME của từng stack.",
-                             "This domain opens a DIFFERENT Naota (for example a second stack on the same VPS). "
+                             "This domain opens a DIFFERENT NAOSO (for example a second stack on the same VPS). "
                              "Check each stack's DOMAIN_NAME.")
     if code in ("other_site", "cert_invalid"):
-        return localefmt.chu("Tên miền đang mở một trang khác, không phải Naota này. Kiểm tra bản ghi DNS và cấu hình "
-                             "proxy.", "The domain opens another site, not this Naota. Check the DNS record and the "
+        return localefmt.chu("Tên miền đang mở một trang khác, không phải NAOSO này. Kiểm tra bản ghi DNS và cấu hình "
+                             "proxy.", "The domain opens another site, not this NAOSO. Check the DNS record and the "
                              "proxy setup.")
     if hostinger:
         return localefmt.chu("Không kết nối được cổng 443 của VPS.", "Cannot connect to the VPS on port 443.")
@@ -341,16 +341,16 @@ def _make_router() -> APIRouter:
 
     @router.get("/domain/whoami")
     async def domain_whoami():
-        """Public: lets /domain/auto tell this Naota apart from anything else answering on a candidate link."""
+        """Public: lets /domain/auto tell this NAOSO apart from anything else answering on a candidate link."""
         return JSONResponse({"id": _WHOAMI})
 
     @router.get("/domain/auto")
     async def domain_auto(request: Request):
-        """Public: the https link a browser that opened Naota by IP should move to, or "".
+        """Public: the https link a browser that opened NAOSO by IP should move to, or "".
 
         On install, a Hostinger VPS link is prepared so the customer can open it right away. hPanel's Open
         reaches http://<ip>:7777; the page asks here and moves to https://naota.srv<id>.hstgr.cloud (served by the
-        gateway, or by Traefik with DOMAIN_NAME) once that link answers as THIS Naota over a valid certificate.
+        gateway, or by Traefik with DOMAIN_NAME) once that link answers as THIS NAOSO over a valid certificate.
         Hostinger stack only, cached a few minutes.
         """
         if _domain_deploy_target(request) != "hostinger":
@@ -435,8 +435,8 @@ def _make_router() -> APIRouter:
             return JSONResponse({
                 "ok": False,
                 "error": localefmt.chu(
-                    "Hostinger quản lý HTTPS bằng Traefik. Hãy đặt DOMAIN_NAME trong Docker Manager rồi Redeploy; Naota không thể sửa route của hPanel từ bên trong container.",
-                    "Hostinger manages HTTPS with Traefik. Set DOMAIN_NAME in Docker Manager and Redeploy; Naota cannot change hPanel routes from inside the container."),
+                    "Hostinger quản lý HTTPS bằng Traefik. Hãy đặt DOMAIN_NAME trong Docker Manager rồi Redeploy; NAOSO không thể sửa route của hPanel từ bên trong container.",
+                    "Hostinger manages HTTPS with Traefik. Set DOMAIN_NAME in Docker Manager and Redeploy; NAOSO cannot change hPanel routes from inside the container."),
                 "hostinger": True,
                 "domain": custom,
                 "docs": "https://github.com/vuongtex/naota/blob/main/docs/15-thuong-hieu-ten-mien.md",

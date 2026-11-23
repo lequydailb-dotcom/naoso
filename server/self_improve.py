@@ -16,11 +16,11 @@ Nâng cấp từ loop ĐƠN (loop_config.json) thành hệ N loop:
     auto_paused_reason trong state (không sửa file .md của user) + ghi log + báo Telegram
     nếu deps.notify được tiêm. Bật lại / bấm Run now sẽ xoá pause.
 
-Triết lý MỖI VÒNG giữ nguyên bản gốc: Naota tự thức theo lịch, làm ĐÚNG MỘT việc cụ thể,
+Triết lý MỖI VÒNG giữ nguyên bản gốc: NAOSO tự thức theo lịch, làm ĐÚNG MỘT việc cụ thể,
 tự kiểm chứng độc lập (mode=auto, giả định kết quả SAI), ghi log Naota/loop-log/.
 
 An toàn theo tools_profile:
-  - "vault-safe" (MẶC ĐỊNH): file tools + MCP do Naota quản lý (POS/ads/lịch...) - loop ĐỌC
+  - "vault-safe" (MẶC ĐỊNH): file tools + MCP do NAOSO quản lý (POS/ads/lịch...) - loop ĐỌC
     được dữ liệu thật để làm việc. cwd ghim vault. Bash/WebFetch/WebSearch/Task NGOÀI allowlist
     → bị chặn. Ở hai mức nhẹ (suggest/auto) hành động ra ngoài qua MCP bị chặn bằng 3 lớp:
     (a) deny_tools per-server của MCP (apply_mcp gắn --disallowedTools), (b) chỉ dẫn trong
@@ -177,11 +177,11 @@ class LoopDeps:
     # Đổi engine việc nền theo model phụ người dùng chọn (Claude / Codex / API rẻ).
     # None = giữ nguyên Claude như trước (test dựng deps tối giản không cần tiêm).
     aux_swap: Optional[Callable] = None
-    # (source, ref, brain=, title=, error=, request=) -> report a broken run to Naota Core (incident_desk.py).
+    # (source, ref, brain=, title=, error=, request=) -> report a broken run to NAOSO Core (incident_desk.py).
     # also chat= (the loop's owner_chat), so the incident is told where the job came from.
     incident_hook: Optional[Callable] = None
     # a loop made in a partner chat (`agent:` in its frontmatter) runs as that assistant.
-    # build_agent_prompt(brain, slug) -> system prompt, raises when the assistant is gone (the loop then runs as Naota);
+    # build_agent_prompt(brain, slug) -> system prompt, raises when the assistant is gone (the loop then runs as NAOSO);
     # finish_agent_run(brain, slug, task, output) -> output without the NAOTA_LESSON lines (written to its memory).
     build_agent_prompt: Optional[Callable[[str, str], str]] = None
     finish_agent_run: Optional[Callable[[str, str, str, str], str]] = None
@@ -351,9 +351,9 @@ class LoopFeature:
             "max_runs_per_day": maxr,
             # owner_chat = chat_id người YÊU CẦU loop (để báo về đúng người). Rỗng = web → ID đầu.
             "owner_chat": str(fm.get("owner_chat", "") or "").strip(),
-            # the chatbot whose turn created the loop ("" = the owner or Naota Core), for the Tasks page.
+            # the chatbot whose turn created the loop ("" = the owner or NAOSO Core), for the Tasks page.
             "bot_id": str(fm.get("bot_id", "") or "").strip(),
-            # the Partners-page assistant this loop runs as ("" = Naota), set when a partner chat made it.
+            # the Partners-page assistant this loop runs as ("" = NAOSO), set when a partner chat made it.
             "agent": _agent_slug(fm.get("agent", "")),
             "notify": notify,
             "ambient_mcp": ambient_mcp,
@@ -789,7 +789,7 @@ class LoopFeature:
             ), ""
         if goal == "product":
             base = (
-                "MỤC TIÊU: TỰ CẢI THIỆN NAOTA hữu dụng hơn với người dùng.\n"
+                "MỤC TIÊU: TỰ CẢI THIỆN NAOSO hữu dụng hơn với người dùng.\n"
                 "Đọc log hội thoại gần đây (Memory/conversations) + các agent/workflow trong Naota/ + ghi chú phản hồi. "
                 "Nhận diện: người dùng hay vướng gì, yêu cầu lặp lại gì, thiếu agent/workflow/skill nào, chỗ nào gây khó. "
                 "KHÔNG sửa code server.\n"
@@ -801,7 +801,7 @@ class LoopFeature:
                     "hoặc ghi 1 note đề xuất cải tiến UX/tính năng vào '05 - Projects'. Báo cáo NGẮN: cải tiến gì, file nào, vì sao."
                 ), ""
             return base + (
-                "CHẾ ĐỘ ĐỀ XUẤT - chỉ đọc, không ghi. Liệt kê 3-5 cải tiến giá trị nhất để Naota hữu dụng hơn (mỗi cái 1 dòng + lý do)."
+                "CHẾ ĐỘ ĐỀ XUẤT - chỉ đọc, không ghi. Liệt kê 3-5 cải tiến giá trị nhất để NAOSO hữu dụng hơn (mỗi cái 1 dòng + lý do)."
             ), ""
         if goal == "custom":
             objective = (loop.get("body") or "").strip() or "Cải thiện vault theo cách hữu ích nhất bạn thấy."
@@ -830,7 +830,7 @@ class LoopFeature:
         """Dựng CLI cho 1 vòng loop.
         - profile 'code' (nâng cao, chỉ đặt qua .md): Bash/Web + file, cwd=workspace, VẪN 0 MCP
           (fail-closed nếu không tạo được file MCP rỗng) - cho loop sửa mã repo.
-        - MẶC ĐỊNH (mọi loop tạo qua form): file tools + MCP do Naota quản lý (POS/ads/lịch...).
+        - MẶC ĐỊNH (mọi loop tạo qua form): file tools + MCP do NAOSO quản lý (POS/ads/lịch...).
           Loop ĐỌC được dữ liệu thật; ghi allowlist kèm 'mcp__<server>' để tool MCP gọi được.
           An toàn tiền/đơn dựa vào: (a) deny_tools per-server (apply_mcp gắn --disallowedTools),
           (b) chỉ dẫn cứng trong prompt, (c) mode suggest = chỉ tool đọc.
@@ -988,8 +988,8 @@ class LoopFeature:
             if paused_now:
                 body += f"\n\n⚠ **{patch['auto_paused_reason']}** - bật lại hoặc bấm Chạy ngay để tiếp tục."
             self._log_append(brain, {"title": title, "body": body})
-            # BÁO CÁO mỗi vòng cho NGƯỜI YÊU CẦU loop (mặc định của Naota; đặt notify: false
-            # trong frontmatter để tắt loop nào quá ồn). owner_chat rỗng → Naota Core của brain loop
+            # BÁO CÁO mỗi vòng cho NGƯỜI YÊU CẦU loop (mặc định của NAOSO; đặt notify: false
+            # trong frontmatter để tắt loop nào quá ồn). owner_chat rỗng → NAOSO Core của brain loop
             # (trước đây là ID Telegram đầu tiên).
             report_sent = False
             # Thẻ cho khung chat web (dashboard/chat-viec.js): dòng đầu thẻ đã nói
@@ -1020,7 +1020,7 @@ class LoopFeature:
                     # thông báo - lúc đó cái đáng báo (loop hỏng, loop tự tạm dừng) cũng mất
                     # theo. Đây đúng luật việc Kanban đã theo: chỉ thứ CẦN
                     # người dùng ra tay mới được kêu.
-                    # the loop's own brain (an empty owner_chat lands in that brain's Naota Core) and a key
+                    # the loop's own brain (an empty owner_chat lands in that brain's NAOSO Core) and a key
                     # per run, so a retried report is filed once.
                     kw = {}
                     if _accepts(self.deps.report, "brain"):
@@ -1077,12 +1077,12 @@ class LoopFeature:
 
         sysprompt, as_agent = None, ""
         if loop.get("agent") and self.deps.build_agent_prompt:
-            # made in a partner chat -> this round runs as that assistant. Assistant gone -> plain Naota.
+            # made in a partner chat -> this round runs as that assistant. Assistant gone -> plain NAOSO.
             try:
                 sysprompt = await asyncio.to_thread(self.deps.build_agent_prompt, brain, loop["agent"])
                 as_agent = loop["agent"]
             except Exception as _e:
-                print(f"[loops] {slug}: assistant '{loop['agent']}' unavailable, running as Naota: "
+                print(f"[loops] {slug}: assistant '{loop['agent']}' unavailable, running as NAOSO: "
                       f"{type(_e).__name__}: {_e}", file=sys.stderr)
         if sysprompt is None:
             # built on a worker thread. It reads every skill, agent and plugin of the brain; on the event loop it

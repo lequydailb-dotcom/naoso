@@ -723,7 +723,7 @@
     // Danh mục cache 6 giờ ở phía server (`packs_store.TTL`). Với việc TÌM một gói mới thì 6
     // giờ là hợp lý. Với việc BIẾT gói mình đã cài có bản mới chưa thì nó sai một cách im
     // lặng: mở trang ra vẫn là danh mục của sáng nay, không dấu hiệu gì, và người dùng kết
-    // luận là Naota không có tính năng cập nhật.
+    // luận là NAOSO không có tính năng cập nhật.
     //
     // Nên khi bản đang cầm đã quá cũ, lấy lại MỘT lần ở nền rồi vẽ lại. Không đụng TTL của
     // server (các nơi khác vẫn hưởng cache), chỉ trang Kho mới trả cái giá một request nhỏ.
@@ -1425,7 +1425,7 @@
           + tw("store.back_to", { trang: esc(veTrang.nhan) }) + '</button>'
         : "")
       // No heading and no intro here: the page header right above already says
-      // "Naota Store" and what it holds, and the cards explain themselves. Where installs land on
+      // "NAOSO Store" and what it holds, and the cards explain themselves. Where installs land on
       // disk moved into the (i) of the Install from .zip dialog, the one place it matters.
       + '<div class="kho-khoi">'
       + (d.disabled

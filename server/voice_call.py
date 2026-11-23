@@ -1,6 +1,6 @@
 """Chọn ĐƯỜNG GỌI cho nút mic (voice-call-spec mục 3.1).
 
-Bấm mic là gọi Naota. Cuộc gọi chạy bằng một trong ba đường, máy tự chọn theo thứ tự:
+Bấm mic là gọi NAOSO. Cuộc gọi chạy bằng một trong ba đường, máy tự chọn theo thứ tự:
   chatgpt - ChatGPT Live qua gói ChatGPT (Codex app-server, không cần key);
   api     - Live qua API key (Gemini Live, OpenAI Realtime, GPT-Live);
   basic   - Cơ bản: Web Speech + tai nghe lại + Làn nhanh hay bộ não chính + giọng Edge.
@@ -108,7 +108,7 @@ def select_call_engine(cfg: dict) -> dict:
     if chat_ok and chatgpt_account(cfg) is None:
         chat_ok, why = False, "quota"   # every ChatGPT account is out of quota until its reset time
     if chat_ok and choice == "auto" and not chatgpt_in_use_order(cfg):
-        # Automatic keeps the previous path unless ChatGPT is one of the owner's brains. For Naota this is
+        # Automatic keeps the previous path unless ChatGPT is one of the owner's brains. For NAOSO this is
         # "not connected on the Models page", so the settings card keeps its "connect ChatGPT on the Models page" hint.
         # Choosing ChatGPT Live by hand still runs on any working Codex sign-in.
         chat_ok, why = False, "no_login"

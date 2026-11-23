@@ -485,7 +485,7 @@ def register(app, deps: ActivationApiDeps):
         except _ERRORS as error:
             return _fail(error)
 
-    # Automatic learning from chat: what Naota changed on its own, and undo.
+    # Automatic learning from chat: what NAOSO changed on its own, and undo.
     @app.get("/auto-learning")
     async def auto_learning_view(brain: str = "brain"):
         try:

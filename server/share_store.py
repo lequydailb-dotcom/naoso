@@ -157,7 +157,7 @@ SLUG_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$")
 
 
 def slugify(text: str) -> str:
-    """'Vibecode Naota GitHub!' -> 'vibecode-naota-github'. Strips Vietnamese marks (đ -> d)."""
+    """'Vibecode NAOSO GitHub!' -> 'vibecode-naota-github'. Strips Vietnamese marks (đ -> d)."""
     t = unicodedata.normalize("NFD", str(text or "")).replace("đ", "d").replace("Đ", "D")
     t = "".join(c for c in t if unicodedata.category(c) != "Mn").lower()
     t = re.sub(r"[^a-z0-9]+", "-", t).strip("-")

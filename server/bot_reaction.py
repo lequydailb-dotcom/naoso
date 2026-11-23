@@ -1,6 +1,6 @@
 """Emoji reactions on personal Zalo: read the ones customers put on messages, and let the bot put one.
 
-Requirement: customers' emoji reactions on Zalo are readable and Naota can drop reactions. Decided: whether a reaction
+Requirement: customers' emoji reactions on Zalo are readable and NAOSO can drop reactions. Decided: whether a reaction
 alone deserves an answer is learned by the judge, never hard-coded, and the bot reacts on the judge's say too.
 
 naota-zalo 1.7.0 puts each reaction in the live feed as an entry of type "reaction" pointing at the message it was put
@@ -9,7 +9,7 @@ on, and adds the tool `zalo_add_reaction`. Here:
   - `pick` takes the bot's own `[CAM_XUC:<name>]` marker out of an answer (Agent turns, private chats included);
   - `NAMES` is the one list both the judge and the Agent choose from.
 
-Naota never decides on its own to answer or to react: the judge (group chats in "Tự đánh giá") or the Agent does.
+NAOSO never decides on its own to answer or to react: the judge (group chats in "Tự đánh giá") or the Agent does.
 """
 from __future__ import annotations
 

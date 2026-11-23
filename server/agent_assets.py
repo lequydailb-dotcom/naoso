@@ -61,7 +61,7 @@ def _sach_hang(h, khoa_chinh):
         ra["label"] = str(h.get("label") or "").strip()
     ra["pinned"] = bool(h.get("pinned"))
     ra["added_at"] = moc
-    # 2026-11-13: one line saying what the document holds (Naota writes it, the owner can fix it). Kept only when set,
+    # 2026-11-13: one line saying what the document holds (NAOSO writes it, the owner can fix it). Kept only when set,
     # so an agent file without descriptions reads exactly as before.
     desc = " ".join(str(h.get("description") or "").split())[:DESCRIPTION_MAX]
     if desc:

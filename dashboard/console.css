@@ -1,5 +1,5 @@
 /* ============================================
-   NAOTA - Console layer (sidebar + pages)
+   NAOSO - Console layer (sidebar + pages)
    Tông màu kế thừa style.css (:root). Glassmorphism + glow.
    Cockpit (.hud) giữ nguyên; layer này bọc thêm bên ngoài.
    ============================================ */
@@ -24,7 +24,7 @@
 /* Header (.hud-top) thành thanh top TOÀN CỤC: luôn nằm trên cùng, cview quản lý bắt đầu dưới nó.
    .hud render sẵn phía sau → header (row 52px đầu) lộ ra; z-index để chắc chắn nổi trên cview. */
 .hud-top { position: relative; z-index: 45; }
-/* Nút điều khiển trợ lý (cài đặt, giọng nói, làm mới) chỉ thuộc cockpit Naota → ẩn khi đang ở trang quản lý */
+/* Nút điều khiển trợ lý (cài đặt, giọng nói, làm mới) chỉ thuộc cockpit NAOSO → ẩn khi đang ở trang quản lý */
 body.in-console .hud-actions { display: none; }
 
 /* ===== Rail (sidebar dọc, kính mờ) ===== */
@@ -1468,7 +1468,7 @@ body.has-rail .hud { margin-left: var(--rail-w); width: calc(100% - var(--rail-w
 .ol-hint { font-size: 12px; color: var(--text3); margin-top: 8px; line-height: 1.55; }
 .ol-empty-line { padding: 16px 4px; color: var(--text3); font-size: 13.5px; }
 
-/* Khung chưa nối: ba bước đọc từ trên xuống, không có nút "tự cài" nào - Naota trong container
+/* Khung chưa nối: ba bước đọc từ trên xuống, không có nút "tự cài" nào - NAOSO trong container
    không có quyền chạy lệnh trên máy vật lý của người dùng. */
 .ol-empty { text-align: center; max-width: 620px; margin: 10px auto; padding: 34px 26px; }
 .ol-empty-ico { color: var(--accent-ink); margin-bottom: 12px; }
@@ -2310,7 +2310,7 @@ body.has-rail .hud { margin-left: var(--rail-w); width: calc(100% - var(--rail-w
 @keyframes aa-think { 0%,100% { transform:translateY(0) rotate(-5deg); } 50% { transform:translateY(-3px) rotate(5deg); } }
 @keyframes aa-talk { 0%,100% { transform:scaleY(.7); } 50% { transform:scaleY(1.1); } }
 .aa-preview { display:flex; justify-content:center; padding:12px 0; min-height:112px; }
-/* Ảnh tự tải lên: tròn, phủ kín ô, cùng cỡ với hình Naota ở mọi chỗ vẽ. Hàng nút tải ảnh nằm ngay dưới ô xem thử. */
+/* Ảnh tự tải lên: tròn, phủ kín ô, cùng cỡ với hình NAOSO ở mọi chỗ vẽ. Hàng nút tải ảnh nằm ngay dưới ô xem thử. */
 .agent-avatar.has-img { border-radius:50%; overflow:hidden; background:var(--surface-2); }
 .agent-avatar.has-img img { display:block; width:100%; height:100%; object-fit:cover; }
 .aa-upload { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin:0 0 6px; }
@@ -2876,7 +2876,7 @@ body.has-rail .hud { margin-left: var(--rail-w); width: calc(100% - var(--rail-w
 .ht-form input:focus { border-color: var(--info-line); outline: none; }
 .ht-form .cb-kenh-o { background: var(--surface-1); }
 .ht-form-acts { gap: 8px; }
-/* Ô trả lời khách: chỉ hiện khi kênh gửi được từ Naota. */
+/* Ô trả lời khách: chỉ hiện khi kênh gửi được từ NAOSO. */
 .ht-compose { border-top: 1px solid var(--hairline); padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
 .ht-compose-note { font-size: 12.5px; color: var(--text3); display: flex; gap: 5px; align-items: center; }
 .ht-compose textarea { flex: 1 1 auto; min-width: 0; resize: vertical; padding: 8px 10px; border-radius: 9px;
@@ -4054,7 +4054,7 @@ span.tmp-lead { cursor: default; }
 .ws-item-text { flex: 1 1 auto; }
 .ws-item-top { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
 .ws-item-top > strong { flex: 1 1 auto; min-width: 0; }
-/* Naota Core, the system assistant. A small System badge on its card; the row keeps the accent edge like a
+/* NAOSO Core, the system assistant. A small System badge on its card; the row keeps the accent edge like a
    pinned one. */
 .ws-sys { flex: 0 0 auto; padding: 1px 7px; border-radius: 999px; font-size: 11.5px; font-weight: 600; line-height: 1.5;
   color: var(--accent-ink); background: var(--accent-wash); border: 1px solid var(--accent); }

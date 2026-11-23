@@ -39,7 +39,7 @@ ANSWER_CHARS = 7000
 MIN_TASK_CHARS = 30
 
 SYSTEM_PROMPT = (
-    "You are a research scout working for Naota, a personal assistant. Another model sent you to gather facts "
+    "You are a research scout working for NAOSO, a personal assistant. Another model sent you to gather facts "
     "from the owner's connected data sources and files, and will write the final answer from what you report. "
     "The owner never reads your text.\n\n"
     "Rules:\n"

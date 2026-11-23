@@ -102,19 +102,19 @@ async def _status(args, ctx, turn) -> str:
     try:
         src = await asyncio.to_thread(SU.source_status, _sid(args, ctx, turn), root)
         if not src["connected"]:
-            lines.append(f"Naota's code ({SU.SOURCE_REPO}): GitHub not connected. To fix Naota itself, send the "
+            lines.append(f"Naota's code ({SU.SOURCE_REPO}): GitHub not connected. To fix NAOSO itself, send the "
                          "developer a bug report with op=report (needs no connection).")
         elif src["attached"]:
             a = src["attached"]
-            lines.append(f"Mã nguồn Naota đã gắn vào chat này: {a.get('worktree') or a.get('clone')} "
+            lines.append(f"Mã nguồn NAOSO đã gắn vào chat này: {a.get('worktree') or a.get('clone')} "
                          f"(nhánh {a.get('branch') or '?'}).")
         elif src.get("can_write"):
-            lines.append(f"Mã nguồn Naota ({SU.SOURCE_REPO}): GitHub đã kết nối, chưa gắn vào chat này (op=source).")
+            lines.append(f"Mã nguồn NAOSO ({SU.SOURCE_REPO}): GitHub đã kết nối, chưa gắn vào chat này (op=source).")
         else:
-            lines.append(f"Naota's code ({SU.SOURCE_REPO}): this install cannot write to it. To fix Naota itself, "
+            lines.append(f"Naota's code ({SU.SOURCE_REPO}): this install cannot write to it. To fix NAOSO itself, "
                          "send the developer a bug report with op=report, do not edit code here.")
     except Exception as ex:  # noqa: BLE001 - status never fails because GitHub is unreachable
-        lines.append(f"Mã nguồn Naota: chưa đọc được trạng thái GitHub ({type(ex).__name__}).")
+        lines.append(f"Mã nguồn NAOSO: chưa đọc được trạng thái GitHub ({type(ex).__name__}).")
     return "\n".join(lines)
 
 
@@ -170,13 +170,13 @@ async def _run(args, ctx) -> str:
                         "a diff only if short). Hand the person the link it returns.")
             a = got["attached"]
             return "\n".join(x for x in [
-                f"Đã gắn mã nguồn Naota ({SU.SOURCE_REPO}) vào chat này.",
+                f"Đã gắn mã nguồn NAOSO ({SU.SOURCE_REPO}) vào chat này.",
                 f"Thư mục làm việc: {a.get('worktree') or a.get('clone')} (nhánh {a.get('branch') or '?'}, gốc "
                 f"{a.get('base_branch') or 'main'}).",
                 got.get("note") or "",
                 "Trước khi sửa: đọc CLAUDE.md và docs/quy-uoc-dev.md trong thư mục đó. Mỗi PR thêm đúng một file "
                 "changelog.d/<slug>.md, không sửa VERSION hay CHANGELOG. Sửa nhỏ, có test.",
-                "Hết lượt có sửa code, Naota TỰ kiểm tra ở máy, đẩy, mở PR, theo dõi CI và merge khi xanh (xem "
+                "Hết lượt có sửa code, NAOSO TỰ kiểm tra ở máy, đẩy, mở PR, theo dõi CI và merge khi xanh (xem "
                 "naota_github op=status). Workflow Release ra số phiên bản mới sau merge. Khi đó gọi "
                 "naota_improve op=update để máy này cập nhật. Đừng hứa tự báo lại.",
             ] if x)
@@ -198,13 +198,13 @@ async def _run(args, ctx) -> str:
 def register(ctx):
     ctx.register_tool(
         "naota_improve",
-        "Improve on the OWNER'S REQUEST (the owner asks to improve you, an assistant, a skill, a workflow or Naota "
+        "Improve on the OWNER'S REQUEST (the owner asks to improve you, an assistant, a skill, a workflow or NAOSO "
         "itself). op=status: what can be changed here, your own file, recent changes, Naota's code, versions. "
         "op=save {path, content | edits:[{old,new}], reason}: write ONE file of the brain (agents/, skills/, "
         "workflows/, Naota/loops/, memory/, the brain's CLAUDE.md) with a backup; returns a change id and a diff. "
         "Changing your own role, instructions, skills or model means editing your agents/<slug>.md. "
         "op=undo {id}: put a change back. op=history: recent changes. "
-        "op=source: attach Naota's own code to this chat to fix it; after the turn Naota checks, opens a PR and "
+        "op=source: attach Naota's own code to this chat to fix it; after the turn NAOSO checks, opens a PR and "
         "merges on green CI. Only an install that can push to Naota's repo gets it; elsewhere use op=report. "
         "op=report {title, body}: a link to a prefilled issue for Naota's developer (bug or fix proposal); nothing "
         "is sent until the person presses Submit. "

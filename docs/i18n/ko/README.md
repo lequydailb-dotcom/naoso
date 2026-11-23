@@ -1,9 +1,9 @@
 <!-- translated-from: README.en.md sha256:a4092d38f233 -->
 <div align="center">
 
-<img src="../../../dashboard/logo.svg" width="88" alt="NAOTA 로고">
+<img src="../../../dashboard/logo.svg" width="88" alt="NAOSO 로고">
 
-# NAOTA
+# NAOSO
 
 ### 교체 가능한 브레인을 갖춘 셀프 호스팅 AI 에이전트, 그리고 날마다 더 똑똑해지는 Second Brain.
 
@@ -46,7 +46,7 @@
 
 ## ⚡ 빠른 시작
 
-**가장 쉬운 방법: 사용 중인 AI에게 설치를 맡기세요.** 컴퓨터에 있는 Claude Code나 Codex에 이 저장소 링크를 주고 *"NAOTA 설치해 줘"* 라고 말하면 됩니다. 실행할 명령은 하나뿐입니다.
+**가장 쉬운 방법: 사용 중인 AI에게 설치를 맡기세요.** 컴퓨터에 있는 Claude Code나 Codex에 이 저장소 링크를 주고 *"NAOSO 설치해 줘"* 라고 말하면 됩니다. 실행할 명령은 하나뿐입니다.
 
 | 환경 | 명령 하나로 전부 설치 |
 |---|---|
@@ -99,13 +99,13 @@ Naota에서 모델은 교체할 수 있는 부품입니다. 쌓아 온 모든 �
 
 - **새 모델이 나왔나요? Models 페이지에서 바꾸고 그대로 이어 가세요.** 같은 메모리를 읽고, 같은 Skill, Agent, Workflow를 실행하고, MCP Hub를 통해 같은 연결을 호출합니다. 옮길 것도, 다시 만들 것도 없습니다.
 - **여러 브레인을 동시에 쓰세요.** 대화에는 강력한 모델, 백그라운드 작업에는 더 저렴한 모델, 개인 노트에는 로컬 Ollama 모델을 쓰면서 모두 같은 Brain 위에서 일하게 할 수 있습니다.
-- **Naota 없이도 읽을 수 있습니다.** Brain은 마크다운 폴더입니다. Obsidian이나 어떤 편집기로든 열어 보세요. 내일 Naota가 사라지더라도 지식은 일반 텍스트로 그대로 남아 있습니다.
+- **NAOSO 없이도 읽을 수 있습니다.** Brain은 마크다운 폴더입니다. Obsidian이나 어떤 편집기로든 열어 보세요. 내일 Naota가 사라지더라도 지식은 일반 텍스트로 그대로 남아 있습니다.
 - **버전 관리와 이식성.** 학습 한 번이 git 커밋 하나이므로 한 번의 탭으로 되돌릴 수 있고, Brain 전체를 내 비공개 GitHub 저장소와 동기화해 노트북과 VPS가 함께 쓸 수 있습니다.
-- **데이터는 내 하드웨어에 머뭅니다.** 중간에 Naota 클라우드는 없습니다. 요청은 그 작업에 고른 모델 제공자에게만 전달되고, 로컬 Ollama 모델을 쓰면 아예 컴퓨터 밖으로 나가지 않습니다.
+- **데이터는 내 하드웨어에 머뭅니다.** 중간에 NAOSO 클라우드는 없습니다. 요청은 그 작업에 고른 모델 제공자에게만 전달되고, 로컬 Ollama 모델을 쓰면 아예 컴퓨터 밖으로 나가지 않습니다.
 
-### 일반 챗봇과 나란히 놓고 본 Naota
+### 일반 챗봇과 나란히 놓고 본 NAOSO
 
-| | 일반 챗봇 | **NAOTA** |
+| | 일반 챗봇 | **NAOSO** |
 |---|---|---|
 | **브레인** | 하나의 모델에 묶여 있고, 메시지마다 상태 없는 API 호출 한 번 | **교체 가능**: 12개 제공자, 각각 도구, MCP, Skill, 세션을 모두 사용 가능. Ollama로 내 컴퓨터에서 실행하는 모델도 포함 |
 | **메모리** | 세션이 끝나면 모두 잊음 | 사용자를 기억하고 대화할수록 두터워지는 **살아 있는 Second Brain** |
@@ -128,7 +128,7 @@ Naota에서 모델은 교체할 수 있는 부품입니다. 쌓아 온 모든 �
 **Models** 페이지에서 브레인을 고르고 언제든 바꿀 수 있습니다. Naota는 현재 **12개 제공자** 를 지원합니다.
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/swappable-brain.svg" width="100%" alt="애니메이션 다이어그램: 가운데의 Naota 코어를 툴킷(MCP Hub, Skills, Second Brain, Tasks, Schedules, Plugins)이 둘러싸고 있고, 12개 브레인이 번갈아 연결되는 동안에도 모든 도구가 계속 켜져 있습니다">
+<img src="../../../docs/assets/diagrams/swappable-brain.svg" width="100%" alt="애니메이션 다이어그램: 가운데의 NAOSO 코어를 툴킷(MCP Hub, Skills, Second Brain, Tasks, Schedules, Plugins)이 둘러싸고 있고, 12개 브레인이 번갈아 연결되는 동안에도 모든 도구가 계속 켜져 있습니다">
 </p>
 
 | 브레인 | 결제 방식 | 셸, 웹, 서브 에이전트 |
@@ -137,10 +137,10 @@ Naota에서 모델은 교체할 수 있는 부품입니다. 쌓아 온 모든 �
 | **ChatGPT** (Codex 경유) | ChatGPT 요금제 | ✅ |
 | **Grok Build** | SuperGrok 또는 X Premium+ 요금제 | ✅ |
 | **Antigravity CLI** | Google 요금제(Antigravity IDE와 같은 모델 라인업, Claude 포함) | 셸 ✅ |
-| **OpenRouter** | API 키(키 하나로 수백 개 모델) | Naota 도구로 |
-| **OpenAI API** · **Anthropic API** · **Google Gemini** · **Groq** | API 키 | Naota 도구로 |
-| **Ollama Cloud** · **이 컴퓨터의 Ollama** | API 키, 또는 내 하드웨어에서 무료 | Naota 도구로 |
-| **OpenAI 호환 엔드포인트 전부** | 해당 엔드포인트가 요구하는 것 | Naota 도구로 |
+| **OpenRouter** | API 키(키 하나로 수백 개 모델) | NAOSO 도구로 |
+| **OpenAI API** · **Anthropic API** · **Google Gemini** · **Groq** | API 키 | NAOSO 도구로 |
+| **Ollama Cloud** · **이 컴퓨터의 Ollama** | API 키, 또는 내 하드웨어에서 무료 | NAOSO 도구로 |
+| **OpenAI 호환 엔드포인트 전부** | 해당 엔드포인트가 요구하는 것 | NAOSO 도구로 |
 
 모든 브레인은 연결된 MCP 서버를 호출하고, Brain을 읽고 쓰고, Skill을 실행하고, Kanban 작업을 대기열에 넣고, Agent, Workflow, Loop, 리마인더를 만들 수 있습니다. CLI 엔진은 여기에 더해 **셸 명령 실행**, **웹 가져오기와 검색**, **병렬 서브 에이전트 생성** 도 할 수 있습니다.
 
@@ -202,10 +202,10 @@ flowchart LR
     subgraph You
         W[Web dashboard<br>voice + graph]
         T[Telegram]
-        C[Naota CLI]
+        C[NAOSO CLI]
         Z[Zalo / bot channels]
     end
-    subgraph Naota["NAOTA (FastAPI, self-hosted)"]
+    subgraph NAOSO["NAOSO (FastAPI, self-hosted)"]
         R[Engine router]
         H[MCP Hub<br>shared toolbox]
         B[(Second Brain<br>Memory + Wiki + Sources)]
@@ -292,7 +292,7 @@ chmod +x install.sh && ./install.sh
 
 스크립트가 Python, Node, CLI 브레인을 설치하고, venv를 만들고, 부팅 시 시작되는 서비스를 등록한 뒤 접속 주소를 출력합니다.
 
-🍎 **macOS에서 앱처럼 열기:** `NAOTA.app`(또는 `Start NAOTA.command`)을 더블클릭합니다. 로그인 시 자동 시작: `./bin/naota-autostart.sh install`. 자세한 내용: [bin/README.md](../../../bin/README.md).
+🍎 **macOS에서 앱처럼 열기:** `NAOSO.app`(또는 `Start NAOSO.command`)을 더블클릭합니다. 로그인 시 자동 시작: `./bin/naota-autostart.sh install`. 자세한 내용: [bin/README.md](../../../bin/README.md).
 
 </details>
 
@@ -313,12 +313,12 @@ Stop:                                  stop-naota.bat
 Dashboard:                             http://localhost:7777
 ```
 
-🪟 **앱처럼 열기:** 처음 실행한 뒤에는 **`NAOTA.bat`** 을 더블클릭합니다. 서버가 백그라운드에서 시작되고 대시보드가 작업 표시줄 항목을 가진 **별도 창** 으로 열립니다. 로그인 시 자동 시작: `naota-autostart.bat install`(제거: `uninstall`).
+🪟 **앱처럼 열기:** 처음 실행한 뒤에는 **`NAOSO.bat`** 을 더블클릭합니다. 서버가 백그라운드에서 시작되고 대시보드가 작업 표시줄 항목을 가진 **별도 창** 으로 열립니다. 로그인 시 자동 시작: `naota-autostart.bat install`(제거: `uninstall`).
 
 </details>
 
 <details>
-<summary><b>VPS 하나에 Naota 여러 개 실행하기</b></summary>
+<summary><b>VPS 하나에 NAOSO 여러 개 실행하기</b></summary>
 
 Brain, 설정, 계정은 인스턴스마다 완전히 분리됩니다. 인스턴스끼리 다른 값은 `NAOTA_NAME`, `NAOTA_HOST_PORT`, `DOMAIN_NAME` 세 가지뿐입니다.
 
@@ -341,7 +341,7 @@ Naota를 열면 설정 마법사가 브라우저 언어로 차근차근 안내�
 
 ---
 
-## 📖 Naota 사용하기
+## 📖 NAOSO 사용하기
 
 왼쪽 레일은 페이지를 **6개 그룹** 으로 묶습니다. 모든 페이지에는 [docs/en/](../../../docs/en/README.md) 에 안내서가 있습니다.
 
@@ -351,8 +351,8 @@ Naota를 열면 설정 마법사가 브라우저 언어로 차근차근 안내�
 | **Code** | Terminal, Coding | [코드 터미널](../../../docs/en/27-code-terminal.md) |
 | **Capabilities** | Partners (Agent와 Workflow), Chatbot, Skills, Plugins | [Agent와 Workflow](../../../docs/en/07-agents-and-workflows.md) · [챗봇](../../../docs/en/25-chatbots.md) · [고객 대화](../../../docs/en/28-customer-conversations.md) · [Skill](../../../docs/en/06-skills.md) · [Plugin](../../../docs/en/20-plugins.md) |
 | **Work** | Tasks, Scheduled | [Tasks (Kanban)](../../../docs/en/21-kanban-work.md) · [반복 작업과 리마인더](../../../docs/en/08-recurring-jobs.md) |
-| **Connections** | Connections, Naota Store, Channels, Models | [연결과 비즈니스 데이터](../../../docs/en/09-connections-and-business-data.md) · [Telegram](../../../docs/en/11-telegram.md) · [Zalo](../../../docs/en/12-zalo-agent-mcp.md) · [모델과 엔진](../../../docs/en/10-models-and-engines.md) |
-| **System** | Settings, Share links, Account | [시작하기](../../../docs/en/01-getting-started.md) · [보안과 계정](../../../docs/en/14-security-and-accounts.md) · [사용량과 비용](../../../docs/en/23-usage-and-cost.md) · [Naota CLI](../../../docs/en/24-cli.md) |
+| **Connections** | Connections, NAOSO Store, Channels, Models | [연결과 비즈니스 데이터](../../../docs/en/09-connections-and-business-data.md) · [Telegram](../../../docs/en/11-telegram.md) · [Zalo](../../../docs/en/12-zalo-agent-mcp.md) · [모델과 엔진](../../../docs/en/10-models-and-engines.md) |
+| **System** | Settings, Share links, Account | [시작하기](../../../docs/en/01-getting-started.md) · [보안과 계정](../../../docs/en/14-security-and-accounts.md) · [사용량과 비용](../../../docs/en/23-usage-and-cost.md) · [NAOSO CLI](../../../docs/en/24-cli.md) |
 
 더 보기: [Second Brain: 메모리, Wiki, INGEST](../../../docs/en/13-second-brain.md) · [GitHub 백업](../../../docs/en/18-github-backup.md) · [노트 속 Tasks와 Dataview](../../../docs/en/19-tasks-and-dataview.md) · [브랜딩과 사용자 지정 도메인](../../../docs/en/15-branding-and-domains.md) · [문제 해결](../../../docs/en/17-troubleshooting.md)
 
@@ -428,7 +428,7 @@ naota/
 ├── tests/           # Python + JS test suite (python tests/run.py)
 ├── install.sh · install.ps1 · update.sh
 ├── Dockerfile · docker-compose*.yml
-└── CLAUDE.md        # The system prompt Naota runs on
+└── CLAUDE.md        # The system prompt NAOSO runs on
 ```
 
 ---
@@ -468,12 +468,12 @@ Naota가 유용하다면 저장소에 ⭐ 를 눌러 주세요. 다른 사람들
 ## 🙏 크레딧
 
 - **브레인:** [Claude Code](https://claude.com/claude-code) 와 [Claude Agent SDK](https://docs.claude.com/en/api/agent-sdk/overview)(Anthropic), [Codex CLI](https://developers.openai.com/codex/cli)(OpenAI), [Grok Build](https://x.ai)(xAI), [Antigravity](https://antigravity.google)(Google), 그리고 [OpenRouter](https://openrouter.ai), OpenAI, [Google Gemini](https://ai.google.dev), Anthropic, [Groq](https://groq.com), [Ollama](https://ollama.com) 의 API.
-- **도구 표준:** [Model Context Protocol](https://modelcontextprotocol.io). Naota 연결 스토어 전체가 이 표준 위에서 동작합니다.
+- **도구 표준:** [Model Context Protocol](https://modelcontextprotocol.io). NAOSO 연결 스토어 전체가 이 표준 위에서 동작합니다.
 - Second Brain과 디지털 Bullet Journal 패턴.
 
 ## 📄 라이선스
 
-© 2026 Hoàng Ngọc Vương ([vuong.ai](https://vuong.ai)). 모든 권리 보유. NAOTA 커뮤니티 회원은 NAOTA를 무료로 내려받아 설치하고 사용할 수 있습니다. [LICENSE](../../../LICENSE)를 참고하세요.
+© 2026 Hoàng Ngọc Vương ([vuong.ai](https://vuong.ai)). 모든 권리 보유. NAOSO 커뮤니티 회원은 NAOTA를 무료로 내려받아 설치하고 사용할 수 있습니다. [LICENSE](../../../LICENSE)를 참고하세요.
 
 
 <div align="center">

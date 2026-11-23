@@ -1,28 +1,28 @@
 <!-- translated-from: QUICKSTART.en.md sha256:9f8b8e3a6d68 -->
-# NAOTA - Быстрый старт
+# NAOSO - Быстрый старт
 
 *[English](../../../QUICKSTART.en.md) · [Tiếng Việt](../../../QUICKSTART.md) · [简体中文](../zh/QUICKSTART.md) · [Español](../es/QUICKSTART.md) · [日本語](../ja/QUICKSTART.md) · [हिन्दी](../hi/QUICKSTART.md) · [Português](../pt-BR/QUICKSTART.md) · [한국어](../ko/QUICKSTART.md) · **Русский** · [Deutsch](../de/QUICKSTART.md) · [Français](../fr/QUICKSTART.md) · [Bahasa Indonesia](../id/QUICKSTART.md)*
 
 > Это автоматический перевод английского руководства по быстрому старту.
 
-Запустите NAOTA за несколько минут. Полные руководства: [docs/en/](../../../docs/en/README.md).
+Запустите NAOSO за несколько минут. Полные руководства: [docs/en/](../../../docs/en/README.md).
 
 ## Личный компьютер (Windows, macOS) - скачайте установщик
 
-Установите Naota как обычное приложение: скачайте один файл, откройте его, и у вас появится значок NAOTA для ежедневного запуска. Установщик проверяет, чего не хватает на компьютере (Git, Python, Node, ИИ-движки), и ставит только это.
+Установите NAOSO как обычное приложение: скачайте один файл, откройте его, и у вас появится значок NAOSO для ежедневного запуска. Установщик проверяет, чего не хватает на компьютере (Git, Python, Node, ИИ-движки), и ставит только это.
 
-- **Windows 10/11:** скачайте [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), дважды щёлкните и нажимайте Next до конца. Ход установки показывается прямо в окне Setup, шаг за шагом (несколько минут), без отдельного чёрного окна. После этого на рабочем столе и в меню «Пуск» появится значок NAOTA.
+- **Windows 10/11:** скачайте [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), дважды щёлкните и нажимайте Next до конца. Ход установки показывается прямо в окне Setup, шаг за шагом (несколько минут), без отдельного чёрного окна. После этого на рабочем столе и в меню «Пуск» появится значок NAOSO.
 - **macOS 11 и новее:** откройте **Терминал** (Launchpad, введите Terminal), вставьте эту строку и нажмите Enter. При такой установке macOS не показывает предупреждений:
   ```
   curl -fsSL https://raw.githubusercontent.com/vuongtex/naota/main/packaging/macos/get-naota.sh | bash
   ```
-  Команда скачивает Naota, копирует **NAOTA** в **Applications** и устанавливает его прямо в этом окне Терминала (она может один раз попросить создать учётную запись администратора Naota и ввести пароль Mac). После этого откройте NAOTA из Launchpad.
+  Команда скачивает NAOSO, копирует **NAOSO** в **Applications** и устанавливает его прямо в этом окне Терминала (она может один раз попросить создать учётную запись администратора NAOSO и ввести пароль Mac). После этого откройте NAOSO из Launchpad.
 
-  Удобнее файл? Скачайте [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), откройте, перетащите **NAOTA** в **Applications** и запустите из Launchpad. Файл пока не подписан Apple Developer ID, поэтому macOS заблокирует первый запуск: как его разрешить, написано ниже, в разделе о заблокированных загрузках.
+  Удобнее файл? Скачайте [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), откройте, перетащите **NAOSO** в **Applications** и запустите из Launchpad. Файл пока не подписан Apple Developer ID, поэтому macOS заблокирует первый запуск: как его разрешить, написано ниже, в разделе о заблокированных загрузках.
 
-По щелчку на значке Naota открывается в отдельном окне (без адресной строки), запускается вместе с компьютером, а кнопка **Update** в приложении работает как обычно. Данные хранятся в папке `Naota` в папке пользователя; удаление приложения эту папку не трогает.
+По щелчку на значке NAOSO открывается в отдельном окне (без адресной строки), запускается вместе с компьютером, а кнопка **Update** в приложении работает как обычно. Данные хранятся в папке `Naota` в папке пользователя; удаление приложения эту папку не трогает.
 
-**Windows: установка без экрана предупреждения (рекомендуется).** Установщик для Windows пока не подписан, поэтому загрузку через браузер в первый раз блокируют. Вместо этого вставьте одну строку, и вы получите тот же установщик с логотипом Naota, без блокировки: нажмите «Пуск», введите `PowerShell`, откройте его, вставьте эту строку и нажмите Enter:
+**Windows: установка без экрана предупреждения (рекомендуется).** Установщик для Windows пока не подписан, поэтому загрузку через браузер в первый раз блокируют. Вместо этого вставьте одну строку, и вы получите тот же установщик с логотипом NAOSO, без блокировки: нажмите «Пуск», введите `PowerShell`, откройте его, вставьте эту строку и нажмите Enter:
 ```
 irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-naota.ps1 | iex
 ```
@@ -30,15 +30,15 @@ irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-
 Если вы уже скачали файл браузером и его заблокировали:
 - Edge или Chrome пишет "Naota-Setup.exe isn't commonly downloaded" и не сохраняет файл: в окне Downloads наведите курсор на эту строку, нажмите на три точки, выберите **Keep**, затем **Show more** и **Keep anyway**.
 - Windows пишет "Windows protected your PC": нажмите **More info**, затем **Run anyway**.
-- Антивирус удаляет файл, или Windows блокирует его без кнопки **Run anyway** (включён Smart App Control): установите без .exe. Установите [Git](https://git-scm.com/download/win), откройте PowerShell, вставьте эту строку и нажмите Enter. По окончании Naota откроется по адресу http://localhost:7777 и будет запускаться вместе с компьютером:
+- Антивирус удаляет файл, или Windows блокирует его без кнопки **Run anyway** (включён Smart App Control): установите без .exe. Установите [Git](https://git-scm.com/download/win), откройте PowerShell, вставьте эту строку и нажмите Enter. По окончании NAOSO откроется по адресу http://localhost:7777 и будет запускаться вместе с компьютером:
   ```
-  git clone https://github.com/vuongtex/naota.git "$env:USERPROFILE\Naota"; cd "$env:USERPROFILE\Naota"; powershell -ExecutionPolicy Bypass -File install.ps1
+  git clone https://github.com/vuongtex/naota.git "$env:USERPROFILE\NAOSO"; cd "$env:USERPROFILE\NAOSO"; powershell -ExecutionPolicy Bypass -File install.ps1
   ```
-- macOS сообщает, что не может открыть приложение: откройте **System Settings → Privacy & Security**, прокрутите вниз, нажмите **Open Anyway** и снова откройте NAOTA.
+- macOS сообщает, что не может открыть приложение: откройте **System Settings → Privacy & Security**, прокрутите вниз, нажмите **Open Anyway** и снова откройте NAOSO.
 
 ## Вариант 1 - VPS на Hostinger (Docker Manager, в один клик)
 
-> 🛒 **Ещё нет VPS?** [Возьмите VPS на Hostinger здесь](https://www.hostinger.com?REFERRALCODE=VUONGTEX). Docker Manager там встроен, поэтому Naota ставится в один клик. Когда VPS будет готов, вернитесь к шагам ниже.
+> 🛒 **Ещё нет VPS?** [Возьмите VPS на Hostinger здесь](https://www.hostinger.com?REFERRALCODE=VUONGTEX). Docker Manager там встроен, поэтому NAOSO ставится в один клик. Когда VPS будет готов, вернитесь к шагам ниже.
 
 1. hPanel → VPS → **Docker Manager** → **Compose** → **Compose from URL**.
 2. Вставьте этот URL:

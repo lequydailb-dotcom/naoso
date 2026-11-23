@@ -40,7 +40,7 @@
   }
 
   /* crc32 khớp từng bit với zlib.crc32 bên Python (server dùng chính hàm đó).
-   * Không dùng crypto.subtle: nó chỉ có trong ngữ cảnh bảo mật, mà Naota rất hay chạy
+   * Không dùng crypto.subtle: nó chỉ có trong ngữ cảnh bảo mật, mà NAOSO rất hay chạy
    * trên http:// theo IP của VPS - dùng nó là người gác cổng chết lặng đúng lúc cần nhất. */
   var BANG = null;
   function bangCrc() {
@@ -192,7 +192,7 @@
 
   /* Code and styles already
    * refresh by themselves: every .js/.css URL carries its own content hash, and this page itself is never cached. What
-   * a reload did NOT renew is what Naota keeps in localStorage, which Ctrl+Shift+R does not touch either: the list of
+   * a reload did NOT renew is what NAOSO keeps in localStorage, which Ctrl+Shift+R does not touch either: the list of
    * reads each moment batches (fetch-gop.js, keys "naota.batch.*"), recorded by the previous version's code. So the
    * first page opened on a new version drops them and they are recorded again from this version. This file runs before
    * fetch-gop.js reads them. */

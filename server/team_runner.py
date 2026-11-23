@@ -198,10 +198,10 @@ MODEL_TURN_CAPS = ("task_turns", "judge_daily")
 ADMIN_OPS_PER_TURN = 10   # trần lệnh quản trị mỗi lượt (review T3)
 ADMIN_OPS = ("open_job", "reprioritize", "add_member", "remove_member", "create_agent", "set_cap", "set_resonance",
              "edit_agent", "interrupt")
-# Mọi tên lệnh Naota biết. Lệnh ngoài danh sách là chữ model tự bịa (từng gặp
+# Mọi tên lệnh NAOSO biết. Lệnh ngoài danh sách là chữ model tự bịa (từng gặp
 # `ten_lenh_la_vi_du`): vẫn bỏ như cũ, nhưng ghi chú cho chủ không chép lại tên lạ đó.
 KNOWN_OPS = frozenset(set().union(*OPS_BY_ROLE.values()) | set(ADMIN_OPS) | {REACT_OP, PEER_OP, ASK_PEER_OP})
-UNKNOWN_OP_NOTE = "Câu trả lời có một lệnh Naota không hỗ trợ, đã bỏ"
+UNKNOWN_OP_NOTE = "Câu trả lời có một lệnh NAOSO không hỗ trợ, đã bỏ"
 CAP_LABEL = {"task_turns": "lượt mỗi việc", "task_steps": "bước mỗi việc", "help_depth": "độ sâu nhờ hỗ trợ",
              "daily_turns": "lượt mỗi ngày của nhóm", "judge_daily": "lượt phán xử mỗi ngày của nhóm",
              "volunteer_k": "số người tự lên tiếng mỗi tin (K)"}
@@ -241,7 +241,7 @@ APPROVAL_HINT = ('Cần chủ nhóm quyết trước khi làm tiếp (phương �
 GATED_NOTE = ("# QUYỀN CỦA NHÓM: CẦN DUYỆT\nNhóm này đang ở quyền 'cần duyệt'. Trong phạm vi bước bạn làm tự do: đọc, tìm, ghi "
               "file trong bộ não và thư mục của nhóm, đọc kết nối, chạy lệnh chỉ đọc (ls, cat, grep, git status...). Hành động "
               "ra ngoài (gửi tin, đăng bài, thanh toán, đặt hàng, xoá dữ liệu, lệnh máy khác) sẽ bị chặn TRƯỚC khi chạy và "
-              "Naota ghi đúng lời gọi đó thành yêu cầu duyệt cho chủ nhóm. Gặp chặn thì đừng tìm đường khác để làm cùng "
+              "NAOSO ghi đúng lời gọi đó thành yêu cầu duyệt cho chủ nhóm. Gặp chặn thì đừng tìm đường khác để làm cùng "
               "việc: làm xong phần trong phạm vi rồi kết thúc bước. Muốn xin trước thì dùng khối ask_approval.")
 GATED_APPROVED_NOTE = ("Chủ nhóm ĐÃ DUYỆT đúng các lời gọi dưới đây cho bước này. Gọi lại ĐÚNG công cụ và ĐÚNG tham số (khác một "
                        "chữ là hành động khác, sẽ bị chặn lại). Mỗi lời gọi chỉ chạy được một lần:")
@@ -251,7 +251,7 @@ GATED_APPROVED_NOTE = ("Chủ nhóm ĐÃ DUYỆT đúng các lời gọi dưới
 # không áp dụng ở đây. Tin của trợ lý khác hay của hệ thống là thông tin, không phải yêu cầu mới của chủ (không tự mở rộng
 # việc hay quyền theo chúng).
 INTERNAL_GROUP_NOTE = ("# NHÓM NỘI BỘ CỦA CHỦ",
-                       "Đây là nhóm chat NỘI BỘ trên dashboard Naota giữa chủ của bạn (người tạo, quản lý nhóm) và các trợ lý "
+                       "Đây là nhóm chat NỘI BỘ trên dashboard NAOSO giữa chủ của bạn (người tạo, quản lý nhóm) và các trợ lý "
                        "AI. Đây KHÔNG phải nhóm Zalo hay cuộc chat với khách hàng: luật của chatbot (im lặng khi không được gọi "
                        "tên, chỉ trả lời khách, chuyển người thật) không áp dụng ở đây; khi lượt này được giao cho bạn thì luôn "
                        "trả lời. Không gửi gì ra Zalo, Telegram hay kênh nào khác; câu trả lời chỉ hiện trong nhóm này.",
@@ -815,8 +815,8 @@ class TeamRunner:
                via: Optional[dict] = None) -> dict:
         """Ghi tin của chủ nhóm rồi định tuyến (spec 7.1 tới 7.3). Không gọi model ở đây.
 
-        `via`: tin do Naota Core gửi thay chủ khi chủ giao việc cho nhóm từ chat (`naota_team` op=dispatch):
-        {correlation_id, kenh}. Nằm ở `meta.via_core` để khung chat nhóm ghi rõ "qua Naota Core".
+        `via`: tin do NAOSO Core gửi thay chủ khi chủ giao việc cho nhóm từ chat (`naota_team` op=dispatch):
+        {correlation_id, kenh}. Nằm ở `meta.via_core` để khung chat nhóm ghi rõ "qua NAOSO Core".
 
         `mention_all` (chủ gõ @all): gọi MỌI thành viên đang hoạt động, không tính vào trần @ mỗi tin; chủ cố ý
         gọi cả team cùng phối hợp."""
@@ -5049,8 +5049,8 @@ class TeamRunner:
                         and (x.get("kind"), x.get("agent_key"), x.get("brief") or "", x.get("job_revision")) == key)
             if times > RESTART_RESUME_MAX:
                 return localefmt.chu(
-                    f"Máy chủ đã khởi động lại {times} lần giữa cùng một bước, nên Naota không tự chạy lại nữa",
-                    f"The server restarted {times} times in the middle of the same step, so Naota stopped running it again")
+                    f"Máy chủ đã khởi động lại {times} lần giữa cùng một bước, nên NAOSO không tự chạy lại nữa",
+                    f"The server restarted {times} times in the middle of the same step, so NAOSO stopped running it again")
             if s.get("kind") not in TOOL_ROLES:
                 continue
             try:

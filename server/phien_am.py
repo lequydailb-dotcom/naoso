@@ -549,7 +549,7 @@ VOICES_BY_GENDER = {
 }
 _MALE_VOICES = ("namminh", "andrew", "brian", "william", "guy", "davis", "christopher", "eric",
                 "roger", "steffan", "ryan", "thomas", "liam")
-# Any other language (2026-11-15, owner: "Naota must talk in any language"): a script that names its
+# Any other language (2026-11-15, owner: "NAOSO must talk in any language"): a script that names its
 # language gets that language's own voice; other Latin text gets the multilingual voice of the gender.
 _SCRIPT_VOICES = (
     (re.compile(r"[\u3040-\u30ff]"), {"f": "ja-JP-NanamiNeural", "m": "ja-JP-KeitaNeural"}),   # kana first

@@ -1,4 +1,4 @@
-/* chat-card.js - interactive cards inside a Naota answer.
+/* chat-card.js - interactive cards inside a NAOSO answer.
 
    Idea borrowed from OpenMausBot's chat widgets. An answer may carry hidden blocks
        <!-- NAOTA_CARD: {"type": "chart" | "stats" | "buttons", ...} -->

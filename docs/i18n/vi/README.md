@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧠 NAOTA
+# 🧠 NAOSO
 
 **AI agentic đổi được bộ não + Second Brain - chạy trên model nào bạn muốn (Claude Code, ChatGPT/Codex, Antigravity CLI, OpenRouter, OpenAI, Gemini, Anthropic API, Groq, Ollama), có giọng nói, đồ thị tri thức, và tự thông minh dần lên.**
 
@@ -32,7 +32,7 @@
 
 ## Cài nhanh bằng chính AI của bạn
 
-Đưa link repo này cho **Claude Code** hoặc **Codex** đang chạy trên máy bạn và nói "cài NAOTA giúp tôi". Nó chỉ cần chạy **một lệnh duy nhất**:
+Đưa link repo này cho **Claude Code** hoặc **Codex** đang chạy trên máy bạn và nói "cài NAOSO giúp tôi". Nó chỉ cần chạy **một lệnh duy nhất**:
 
 | Máy | Một lệnh cài hết |
 |---|---|
@@ -41,33 +41,33 @@
 
 Lệnh đó cài trọn gói: Python + thư viện, **bốn bộ não CLI chạy bằng gói thuê bao bạn đang có** (`claude`, `codex`, `agy`, `grok`), `.env`, rồi bật server ở `http://localhost:7777`. Sau đó đăng nhập từng bộ não **ngay trong trang Models** của dashboard, không phải gõ lệnh nữa.
 
-> ⚠️ Cài thêm một CLI **sau khi** Naota đã chạy thì **khởi động lại Naota**. Tiến trình đang chạy giữ PATH của lúc nó bật, nên CLI vừa cài nó chưa thấy.
+> ⚠️ Cài thêm một CLI **sau khi** NAOSO đã chạy thì **khởi động lại NAOSO**. Tiến trình đang chạy giữ PATH của lúc nó bật, nên CLI vừa cài nó chưa thấy.
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/install-terminal.svg" width="100%" alt="Terminal động: lệnh cài một dòng dựng Python, bốn bộ não CLI chạy bằng gói thuê bao và file .env, rồi báo Naota đang chạy ở http://localhost:7777">
+<img src="../../../docs/assets/diagrams/install-terminal.svg" width="100%" alt="Terminal động: lệnh cài một dòng dựng Python, bốn bộ não CLI chạy bằng gói thuê bao và file .env, rồi báo NAOSO đang chạy ở http://localhost:7777">
 </p>
 
 ---
 
-## Naota là gì?
+## NAOSO là gì?
 
-NAOTA **không phải** một chatbot. Nó là một **AI agentic tự host** chạy trên máy/VPS của bạn: đọc/ghi file, gọi công cụ (MCP), chạy skill, giao việc chạy nền, tự đặt lịch - rồi gói tất cả vào một **dashboard đẹp, điều khiển bằng giọng nói**, kèm một **Second Brain** (bộ nhớ + wiki) tích luỹ tri thức theo thời gian.
+NAOSO **không phải** một chatbot. Nó là một **AI agentic tự host** chạy trên máy/VPS của bạn: đọc/ghi file, gọi công cụ (MCP), chạy skill, giao việc chạy nền, tự đặt lịch - rồi gói tất cả vào một **dashboard đẹp, điều khiển bằng giọng nói**, kèm một **Second Brain** (bộ nhớ + wiki) tích luỹ tri thức theo thời gian.
 
 **Bộ não thì bạn chọn, và đổi lúc nào cũng được.** 14 đường dùng được ngay: **Claude Code**, **ChatGPT/Codex**, **Grok Build** và **Antigravity CLI** (dùng chính gói subscription bạn đang trả, không cần mua API riêng), **OpenRouter · OpenAI API · Google Gemini · Anthropic API · Groq · DeepSeek · Ollama Cloud** (chỉ cần API key), cộng thêm **Ollama chạy ngay trên máy bạn** và **mọi endpoint tương thích OpenAI hoặc Anthropic**.
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/swappable-brain.svg" width="100%" alt="Hình động: lõi Naota ở giữa, bộ đồ nghề (MCP Hub, Skills, Second Brain, Tasks, Schedules, Plugins) bao quanh, 12 bộ não lần lượt lắp vào mà mọi công cụ vẫn sáng nguyên">
+<img src="../../../docs/assets/diagrams/swappable-brain.svg" width="100%" alt="Hình động: lõi NAOSO ở giữa, bộ đồ nghề (MCP Hub, Skills, Second Brain, Tasks, Schedules, Plugins) bao quanh, 12 bộ não lần lượt lắp vào mà mọi công cụ vẫn sáng nguyên">
 </p>
 
-> **Lưu ý khi cho gói subscription chạy việc nền.** Anthropic chỉ tính gói Claude Pro/Max cho việc dùng **cá nhân, thông thường** của Claude Code. Chạy nền liên tục (loop, nhắc hẹn, việc Kanban, chatbot), chạy trên VPS, hoặc nhiều người dùng chung một tài khoản đều nằm ngoài phạm vi đó nên có nguy cơ **bị khoá tài khoản**, dù tới nay Naota chưa ghi nhận trường hợp nào. Nếu bạn gặp, hãy báo cho nhà phát triển qua [Issues](https://github.com/vuongtex/naota/issues/new/choose). Naota không tự đọc token đăng nhập của bạn - nó chạy qua đúng binary `claude`, nhưng như vậy vẫn không làm việc chạy nền 24/7 trở thành hợp lệ. Muốn yên tâm: ở trang **Models**, đặt Claude Code chạy bằng **API key**, hoặc trỏ **model việc nền** sang một provider khác. Xem `server/claude_auth.py`.
+> **Lưu ý khi cho gói subscription chạy việc nền.** Anthropic chỉ tính gói Claude Pro/Max cho việc dùng **cá nhân, thông thường** của Claude Code. Chạy nền liên tục (loop, nhắc hẹn, việc Kanban, chatbot), chạy trên VPS, hoặc nhiều người dùng chung một tài khoản đều nằm ngoài phạm vi đó nên có nguy cơ **bị khoá tài khoản**, dù tới nay NAOSO chưa ghi nhận trường hợp nào. Nếu bạn gặp, hãy báo cho nhà phát triển qua [Issues](https://github.com/vuongtex/naota/issues/new/choose). NAOSO không tự đọc token đăng nhập của bạn - nó chạy qua đúng binary `claude`, nhưng như vậy vẫn không làm việc chạy nền 24/7 trở thành hợp lệ. Muốn yên tâm: ở trang **Models**, đặt Claude Code chạy bằng **API key**, hoặc trỏ **model việc nền** sang một provider khác. Xem `server/claude_auth.py`.
 
-> Triết lý: **năng lực nằm ở Naota, không nằm ở model.** Mọi bộ não đều được cấp cùng bộ đồ nghề qua trung tâm kết nối (MCP Hub) chung - MCP đã đấu, tool đọc/ghi brain, skill, việc Kanban, agent/workflow/loop/nhắc hẹn. Khác biệt duy nhất: hai engine CLI chạy thêm được **lệnh máy**. Đổi từ Claude sang Gemini không làm Naota mất chức năng nào ngoài chuyện đó.
+> Triết lý: **năng lực nằm ở NAOSO, không nằm ở model.** Mọi bộ não đều được cấp cùng bộ đồ nghề qua trung tâm kết nối (MCP Hub) chung - MCP đã đấu, tool đọc/ghi brain, skill, việc Kanban, agent/workflow/loop/nhắc hẹn. Khác biệt duy nhất: hai engine CLI chạy thêm được **lệnh máy**. Đổi từ Claude sang Gemini không làm NAOSO mất chức năng nào ngoài chuyện đó.
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/chat-to-action.svg" width="100%" alt="Hình động: một câu chat đi vào Naota, Naota chọn công cụ nhỏ nhất đủ làm xong việc, từ trả lời thẳng, xếp việc, tới tạo agent, workflow, nhắc hẹn hay loop">
+<img src="../../../docs/assets/diagrams/chat-to-action.svg" width="100%" alt="Hình động: một câu chat đi vào NAOSO, NAOSO chọn công cụ nhỏ nhất đủ làm xong việc, từ trả lời thẳng, xếp việc, tới tạo agent, workflow, nhắc hẹn hay loop">
 </p>
 
-Bạn đấu các **kết nối** của riêng mình vào (bán hàng/POS, quảng cáo, lịch, email, Zalo, ghi chú…) → Naota tự phát hiện và **báo cáo kinh doanh + cuộc sống** bằng số liệu thật, nói chuyện như người.
+Bạn đấu các **kết nối** của riêng mình vào (bán hàng/POS, quảng cáo, lịch, email, Zalo, ghi chú…) → NAOSO tự phát hiện và **báo cáo kinh doanh + cuộc sống** bằng số liệu thật, nói chuyện như người.
 
 ### Cái bẫy không ai nói trước: bị khoá vào một nhà cung cấp AI
 
@@ -82,9 +82,9 @@ Tất cả nằm trên máy chủ của nhà cung cấp, theo định dạng c�
 
 Thế là bạn ở lại. Không phải vì model cũ còn tốt nhất, mà vì rời đi nghĩa là làm lại từ con số không. Và khi nhà cung cấp tăng giá, siết giới hạn, khai tử model hay khoá tài khoản, bạn không có đường lui.
 
-### Naota đảo ngược chuyện đó: model đi thuê, bộ não là của bạn
+### NAOSO đảo ngược chuyện đó: model đi thuê, bộ não là của bạn
 
-Trong Naota, model chỉ là một bộ phận thay được. Mọi thứ bạn tích luỹ đều nằm trong tay bạn, dưới dạng file mở ra đọc được:
+Trong NAOSO, model chỉ là một bộ phận thay được. Mọi thứ bạn tích luỹ đều nằm trong tay bạn, dưới dạng file mở ra đọc được:
 
 | Thứ bạn tích luỹ | Nằm ở đâu | Định dạng |
 |---|---|---|
@@ -99,13 +99,13 @@ Nhờ vậy:
 
 - **Có model mới? Đổi ở trang Models rồi làm tiếp.** Model mới đọc cùng trí nhớ, chạy cùng skill, agent, workflow, gọi cùng các kết nối qua MCP Hub. Không phải chuyển dữ liệu, không phải dựng lại gì cả.
 - **Dùng nhiều bộ não cùng lúc.** Model mạnh để trò chuyện, model rẻ chạy việc nền, model Ollama chạy ngay trên máy cho ghi chú riêng tư, tất cả cùng làm việc trên một brain.
-- **Không cần Naota vẫn đọc được.** Brain là một thư mục markdown, mở bằng Obsidian hay trình soạn thảo nào cũng được. Lỡ mai Naota không còn, tri thức của bạn vẫn nằm đó, bằng chữ thường.
-- **Có lịch sử phiên bản, mang đi đâu cũng được.** Mỗi lần Naota tự học là một commit git, hoàn tác bằng một chạm, và cả brain đồng bộ được lên repo GitHub riêng tư của bạn, dùng chung giữa laptop và VPS.
-- **Dữ liệu nằm trên máy của bạn.** Không có máy chủ Naota nào đứng giữa. Mỗi yêu cầu chỉ đi tới đúng nhà cung cấp model bạn chọn, còn dùng model Ollama trên máy thì không rời khỏi máy bạn.
+- **Không cần NAOSO vẫn đọc được.** Brain là một thư mục markdown, mở bằng Obsidian hay trình soạn thảo nào cũng được. Lỡ mai NAOSO không còn, tri thức của bạn vẫn nằm đó, bằng chữ thường.
+- **Có lịch sử phiên bản, mang đi đâu cũng được.** Mỗi lần NAOSO tự học là một commit git, hoàn tác bằng một chạm, và cả brain đồng bộ được lên repo GitHub riêng tư của bạn, dùng chung giữa laptop và VPS.
+- **Dữ liệu nằm trên máy của bạn.** Không có máy chủ NAOSO nào đứng giữa. Mỗi yêu cầu chỉ đi tới đúng nhà cung cấp model bạn chọn, còn dùng model Ollama trên máy thì không rời khỏi máy bạn.
 
-### Naota so với chatbot thường
+### NAOSO so với chatbot thường
 
-| | Chatbot thường | **NAOTA** |
+| | Chatbot thường | **NAOSO** |
 |---|---|---|
 | Bộ não | Khoá cứng 1 model, API gọi rời từng câu | **Đổi được**: 14 nhà cung cấp, cái nào cũng đủ tool, MCP, skill, session - kể cả model chạy ngay trên máy bạn qua Ollama |
 | Trí nhớ | Quên sau mỗi phiên | **Second Brain sống** - nhớ bạn, dày lên qua từng hội thoại |
@@ -115,7 +115,7 @@ Nhờ vậy:
 | Công việc của bạn | Nằm trên máy chủ nhà cung cấp, theo định dạng của họ | **File thường trên máy bạn**: lịch sử, trí nhớ, skill, agent, workflow mang sang được mọi model mới |
 | Triển khai | Khoá vào 1 nhà cung cấp | **Tự host**: [Hostinger](https://www.hostinger.com?REFERRALCODE=VUONGTEX) 1-click / Docker / VPS bất kỳ |
 
-> 💡 **Triết lý:** Naota *biên dịch một lần* tri thức từ ghi chú thô → Wiki, rồi *duy trì* nó sống cùng mỗi nguồn mới. Tri thức **tích luỹ**, không tái phát hiện mỗi lần.
+> 💡 **Triết lý:** NAOSO *biên dịch một lần* tri thức từ ghi chú thô → Wiki, rồi *duy trì* nó sống cùng mỗi nguồn mới. Tri thức **tích luỹ**, không tái phát hiện mỗi lần.
 
 ---
 
@@ -125,23 +125,23 @@ Nhờ vậy:
 <img src="../../../docs/assets/diagrams/second-brain-grows.svg" width="100%" alt="Đồ thị tri thức động: ghi chú và liên kết lần lượt mọc ra, Second Brain lớn dần từ vài ghi chú lên hơn một nghìn">
 </p>
 
-- 🎙️ **Trò chuyện bằng giọng nói rảnh tay** - nói, Naota nghe và trả lời bằng giọng. Chọn được nhà cung cấp giọng đọc: Edge TTS (miễn phí, mặc định), OpenAI hoặc ElevenLabs.
+- 🎙️ **Trò chuyện bằng giọng nói rảnh tay** - nói, NAOSO nghe và trả lời bằng giọng. Chọn được nhà cung cấp giọng đọc: Edge TTS (miễn phí, mặc định), OpenAI hoặc ElevenLabs.
 - 🌌 **Đồ thị tri thức** - bộ não của bạn hiện ra thành mạng note nối nhau qua `[[wikilink]]`, bằng canvas nhẹ và chạy được ngoại tuyến.
 - 💬 **Phiên hội thoại** - lưu / mở lại / **tìm kiếm toàn văn** mọi cuộc trò chuyện cũ; phiên dài được nén tóm tắt thay vì cắt cụt trí nhớ.
 - 🗂️ **Quản lý tệp tin** - duyệt, **sửa file `.md`/`.txt` trực tiếp** trong trình duyệt, tìm file theo tên hoặc theo nội dung, tải lên/về.
-- 🧩 **Skills** - gom nhóm, tìm kiếm, **bật/tắt từng skill**, thêm/sửa/xoá, nhập/xuất gói; Naota tự xếp skill mới vào đúng nhóm.
+- 🧩 **Skills** - gom nhóm, tìm kiếm, **bật/tắt từng skill**, thêm/sửa/xoá, nhập/xuất gói; NAOSO tự xếp skill mới vào đúng nhóm.
 - 🧰 **Plugins** - thả một thư mục Python vào là có thêm **tool/hook native** cho MỌI engine, không phải sửa lõi.
 - 🤖 **Agents & Workflows** - tạo trợ lý chuyên biệt (có bộ nhớ riêng) + chuỗi tự động nhiều bước, có bước kiểm chứng.
 - ♻️ **Việc định kỳ & nhắc hẹn** - nhiều vòng lặp chạy nền song song, mỗi vòng làm đúng một việc bạn mô tả rồi tự kiểm chứng; kèm nhắc hẹn theo giờ cố định hoặc cron.
 - 🗃️ **Việc (Kanban)** - giao một "goal" bằng lời, AI tự đặc tả, chọn worker, chạy nền và chỉ gọi bạn khi có ngoại lệ.
-- 🧠 **Tự học** - sau mỗi hội thoại Naota tự rút ký ức, đúc tri thức Wiki và kỹ năng; mỗi lần học là một commit git nên **hoàn tác được một chạm**.
-- 🔌 **Kho kết nối đa tài khoản** - Pancake POS, Zalo, Meta/Google/TikTok Ads, Google Workspace, Slack, Webcake, Substack… nhiều tài khoản cùng một dịch vụ, mỗi tài khoản một mức quyền riêng, Naota **chặn cứng** thao tác vượt quyền.
-- 📱 **Telegram & Zalo** - hỏi Naota qua Telegram; đọc, tìm lịch sử và gửi tin Zalo bằng MCP của `naota-zalo`, bản CLI Zalo riêng của Naota.
-- 💬 **Slack & WhatsApp** - chat với Naota và đặt bot khách hàng trên Slack (không cần tên miền) và WhatsApp (API chính thức của Meta). Hướng dẫn: [docs/29](../../../docs/29-slack-whatsapp.md).
+- 🧠 **Tự học** - sau mỗi hội thoại NAOSO tự rút ký ức, đúc tri thức Wiki và kỹ năng; mỗi lần học là một commit git nên **hoàn tác được một chạm**.
+- 🔌 **Kho kết nối đa tài khoản** - Pancake POS, Zalo, Meta/Google/TikTok Ads, Google Workspace, Slack, Webcake, Substack… nhiều tài khoản cùng một dịch vụ, mỗi tài khoản một mức quyền riêng, NAOSO **chặn cứng** thao tác vượt quyền.
+- 📱 **Telegram & Zalo** - hỏi NAOSO qua Telegram; đọc, tìm lịch sử và gửi tin Zalo bằng MCP của `naota-zalo`, bản CLI Zalo riêng của NAOSO.
+- 💬 **Slack & WhatsApp** - chat với NAOSO và đặt bot khách hàng trên Slack (không cần tên miền) và WhatsApp (API chính thức của Meta). Hướng dẫn: [docs/29](../../../docs/29-slack-whatsapp.md).
 - 🎨 **Tạo ảnh** bằng chính gói ChatGPT đã đăng nhập, không cần API key riêng.
-- 📊 **Mức dùng** - Naota tự đo token vào/ra và chi phí theo ngày, theo nhà cung cấp, tách rõ phần bạn gõ tay với phần Naota tự chạy nền.
+- 📊 **Mức dùng** - NAOSO tự đo token vào/ra và chi phí theo ngày, theo nhà cung cấp, tách rõ phần bạn gõ tay với phần NAOSO tự chạy nền.
 - ⇅ **Sao lưu brain lên GitHub** - đồng bộ 2 chiều mọi brain lên một repo riêng tư, dùng chung giữa máy nhà và VPS.
-- 🔄 **Đa engine, đổi không mất chức năng** - Claude Code, ChatGPT (Codex), OpenRouter, OpenAI API, Google Gemini, Anthropic API, Groq. Đổi trong **Models** một cú bấm; bộ não nào cũng gọi được MCP Naota, tool file brain và skill.
+- 🔄 **Đa engine, đổi không mất chức năng** - Claude Code, ChatGPT (Codex), OpenRouter, OpenAI API, Google Gemini, Anthropic API, Groq. Đổi trong **Models** một cú bấm; bộ não nào cũng gọi được MCP NAOSO, tool file brain và skill.
 - 🔐 **An toàn khi lên VPS** - tự bắt buộc đăng nhập khi chạy public, chống chiếm tài khoản, rate-limit, chặn CSRF, mã hoá khoá bí mật trong cấu hình.
 
 
@@ -153,9 +153,9 @@ Nhờ vậy:
 
 ## 🚀 Cài đặt
 
-> ⚠️ **Quan trọng về bảo mật:** Naota chạy bộ não AI với **toàn quyền** trên máy. Khi chạy public (Docker/VPS/Hostinger), Naota **tự bắt buộc đăng nhập** - mở app ra là màn tạo tài khoản / đăng nhập, không ai điều khiển được khi chưa có mật khẩu.
+> ⚠️ **Quan trọng về bảo mật:** NAOSO chạy bộ não AI với **toàn quyền** trên máy. Khi chạy public (Docker/VPS/Hostinger), NAOSO **tự bắt buộc đăng nhập** - mở app ra là màn tạo tài khoản / đăng nhập, không ai điều khiển được khi chưa có mật khẩu.
 
-> 💻 **Cài trên máy tính Windows hoặc Mac của bạn?** Naota cài như mọi ứng dụng: tự kiểm tra máy thiếu gì (Git, Python, Node, các bộ não AI), tự cài, rồi để lại biểu tượng NAOTA để bấm.
+> 💻 **Cài trên máy tính Windows hoặc Mac của bạn?** NAOSO cài như mọi ứng dụng: tự kiểm tra máy thiếu gì (Git, Python, Node, các bộ não AI), tự cài, rồi để lại biểu tượng NAOSO để bấm.
 >
 > - **Windows 10/11:** tải [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe) về rồi mở.
 > - **macOS 11+:** mở **Terminal** (Launchpad, gõ Terminal), dán dòng này rồi Enter. Cài cách này macOS không hiện cảnh báo:
@@ -168,7 +168,7 @@ Nhờ vậy:
 
 ### Cách 1 - Hostinger Docker Manager (tên miền + HTTPS) ⚡
 
-> 🛒 **Chưa có VPS?** [Đăng ký VPS Hostinger tại đây](https://www.hostinger.com?REFERRALCODE=VUONGTEX). VPS có sẵn Docker Manager nên cài Naota đúng một cú bấm. Thuê xong quay lại làm các bước dưới.
+> 🛒 **Chưa có VPS?** [Đăng ký VPS Hostinger tại đây](https://www.hostinger.com?REFERRALCODE=VUONGTEX). VPS có sẵn Docker Manager nên cài NAOSO đúng một cú bấm. Thuê xong quay lại làm các bước dưới.
 
 VPS Hostinger → **Docker Manager → Compose → URL** → dán **file Hostinger** rồi **Deploy**:
 ```
@@ -176,7 +176,7 @@ https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.y
 ```
 Ô **Environment** của mẫu mới chỉ còn 3 trường cần thiết: `DOMAIN_NAME`,
 `NAOTA_ADMIN_USER`, `NAOTA_ADMIN_PASSWORD`, cộng một trường tuỳ chọn
-`NAOTA_AUTO_UPDATE` (đặt `true` là Naota tự cập nhật mỗi ngày, bỏ trống thì cập
+`NAOTA_AUTO_UPDATE` (đặt `true` là NAOSO tự cập nhật mỗi ngày, bỏ trống thì cập
 nhật bằng nút trong app). Các biến kỹ thuật về cổng, state, brain và thư mục chạy
 đã được ẩn vì Docker image tự đặt đúng.
 
@@ -219,7 +219,7 @@ chmod +x install.sh && ./install.sh
 ```
 Script tự cài Python + Node + hai engine CLI (Claude Code, Codex), tạo venv, đăng ký dịch vụ systemd tự chạy khi boot, in ra địa chỉ. Báo Claude chưa đăng nhập thì chạy 1 lần: `claude auth login --claudeai`.
 
-> 🍎 **macOS - mở như một app:** sau khi cài xong, double-click `NAOTA.app` (hoặc `Start NAOTA.command`) để chạy server + mở dashboard; `./install.sh` cho Naota tự chạy khi đăng nhập máy và tự mở dashboard (tắt: `./bin/naota-autostart.sh uninstall`). Chi tiết: [bin/README.md](../../../bin/README.md).
+> 🍎 **macOS - mở như một app:** sau khi cài xong, double-click `NAOSO.app` (hoặc `Start NAOSO.command`) để chạy server + mở dashboard; `./install.sh` cho NAOSO tự chạy khi đăng nhập máy và tự mở dashboard (tắt: `./bin/naota-autostart.sh uninstall`). Chi tiết: [bin/README.md](../../../bin/README.md).
 
 ### Cách 4 - Windows (máy cá nhân)
 
@@ -241,11 +241,11 @@ Dừng:                                  stop-naota.bat
 Mở dashboard:                          http://localhost:7777
 ```
 
-> ⚠️ **Cài thêm một CLI sau khi Naota đang chạy thì phải khởi động lại Naota** (`stop-naota.bat` rồi `start-naota.vbs`). Tiến trình đang chạy giữ PATH của lúc nó bật, nên CLI vừa cài nó không thấy - trang Models sẽ vẫn báo "CLI chưa cài" cho một CLI đã nằm sẵn trên ổ đĩa.
+> ⚠️ **Cài thêm một CLI sau khi NAOSO đang chạy thì phải khởi động lại NAOSO** (`stop-naota.bat` rồi `start-naota.vbs`). Tiến trình đang chạy giữ PATH của lúc nó bật, nên CLI vừa cài nó không thấy - trang Models sẽ vẫn báo "CLI chưa cài" cho một CLI đã nằm sẵn trên ổ đĩa.
 
-> 🪟 **Windows - mở như một app:** sau khi `setup.bat` chạy xong lần đầu, từ đó về sau chỉ cần double-click **`NAOTA.bat`** - server tự chạy nền (không cửa sổ đen) rồi dashboard tự mở thành **cửa sổ riêng** không thanh địa chỉ, có ô riêng trên taskbar. Bộ cài cho Naota tự chạy khi đăng nhập máy và tự mở dashboard (tắt: `naota-autostart.bat uninstall` hoặc nút trong Cài đặt).
+> 🪟 **Windows - mở như một app:** sau khi `setup.bat` chạy xong lần đầu, từ đó về sau chỉ cần double-click **`NAOSO.bat`** - server tự chạy nền (không cửa sổ đen) rồi dashboard tự mở thành **cửa sổ riêng** không thanh địa chỉ, có ô riêng trên taskbar. Bộ cài cho NAOSO tự chạy khi đăng nhập máy và tự mở dashboard (tắt: `naota-autostart.bat uninstall` hoặc nút trong Cài đặt).
 
-### Nhiều bản Naota trên cùng một VPS (mỗi bản một link riêng)
+### Nhiều bản NAOSO trên cùng một VPS (mỗi bản một link riêng)
 
 Chạy được bao nhiêu bản cũng được - brain, cài đặt và tài khoản của mỗi bản tách bạch hoàn toàn.
 Chỉ cần ba giá trị khác nhau giữa các bản: `NAOTA_NAME`, `NAOTA_HOST_PORT`, `DOMAIN_NAME`.
@@ -264,12 +264,12 @@ Bỏ trống các biến = y hệt cách cài cũ. Từng bước một: **[DEPL
 
 ## 🎬 Thiết lập lần đầu
 
-Mở Naota → bộ cài đặt sẽ dẫn bạn qua:
+Mở NAOSO → bộ cài đặt sẽ dẫn bạn qua:
 
 1. **Tài khoản admin** - đặt mật khẩu (bắt buộc khi chạy public, để chặn người lạ).
 2. **Chọn bộ não** - đi bằng gói subscription thì đăng nhập 1 lần, không cần API key: Claude Code lưu token trong `~/.claude` (Docker: volume riêng → không mất khi update), ChatGPT/Codex đăng nhập ngay trong trang **Models**. Đi bằng API key thì chỉ dán key OpenRouter / OpenAI / Gemini / Anthropic là xong. Ở thẻ Claude Code còn một ô **"Chạy bằng"**: giữ gói đang đăng nhập, hoặc chuyển sang API key Anthropic - hai lựa chọn giữ nguyên năng lực, chỉ khác ai trả tiền và ai chịu rủi ro (xem cảnh báo ở trên).
 3. **Chọn model** - mặc định chọn sẵn Claude Code, nhưng đổi sang nhà cung cấp nào trong **Models** cũng được và **không mất chức năng nào** (trừ chạy lệnh máy, vốn chỉ có ở hai engine CLI).
-4. **Đấu kết nối** (tuỳ chọn) - vào **Kết nối**, chọn dịch vụ trong Kho rồi dán key hoặc quét QR. Naota sẽ báo cáo số liệu thật từ đó.
+4. **Đấu kết nối** (tuỳ chọn) - vào **Kết nối**, chọn dịch vụ trong Kho rồi dán key hoặc quét QR. NAOSO sẽ báo cáo số liệu thật từ đó.
 
 ---
 
@@ -284,35 +284,35 @@ Thanh điều hướng bên trái gom **22 trang** thành **6 nhóm**, hiện h�
 | **Bộ não** | **Đồ thị** | Màn chính khi mở app: đồ thị tri thức, trò chuyện (gõ hoặc nói), cây thư mục brain bên trái. | [Trò chuyện & giọng nói](../../../docs/02-tro-chuyen-va-giong-noi.md) · [Đồ thị tri thức](../../../docs/03-do-thi-tri-thuc.md) |
 | | **Trò chuyện** | Khung chat rộng toàn màn hình kèm cột lịch sử hội thoại. | [Phiên hội thoại](../../../docs/04-phien-hoi-thoai.md) |
 | | **Tệp tin** | Duyệt brain, **sửa `.md`/`.txt` trực tiếp**, tìm file theo tên/nội dung, tải lên/về. | [Quản lý tệp tin](../../../docs/05-quan-ly-tep-tin.md) |
-| | **Tự học** | Naota tự rút ký ức, đúc Wiki, kỹ năng sau mỗi hội thoại; hoàn tác được. | [Tự học](../../../docs/22-tu-hoc.md) |
+| | **Tự học** | NAOSO tự rút ký ức, đúc Wiki, kỹ năng sau mỗi hội thoại; hoàn tác được. | [Tự học](../../../docs/22-tu-hoc.md) |
 | **Năng lực** | **Agents** | Tạo trợ lý chuyên biệt (vai trò + skill + bộ nhớ riêng). | [Agents & Workflows](../../../docs/07-agents-va-workflows.md) |
 | | **Skills** | Gom nhóm + tìm kiếm + **bật/tắt** + thêm/sửa/xoá + nhập/xuất skill. | [Skills](../../../docs/06-skills.md) |
 | | **Workflows** | Tạo/chạy chuỗi tự động (agent → agent), có bước kiểm chứng. | [Agents & Workflows](../../../docs/07-agents-va-workflows.md) |
 | | **Plugins** | Thêm tool/hook native cho mọi engine bằng một thư mục Python. | [Plugins](../../../docs/20-plugins.md) |
 | | **Chatbot** | Đem Agent ra trả lời khách qua bot Telegram/Zalo/Slack/WhatsApp/Lark riêng, brain riêng. | [Chatbot](../../../docs/25-chatbot.md) |
 | | **Hội thoại** | Hộp thư gom mọi cuộc chat khách nhắn cho bot và Zalo cá nhân; đọc lại, tiếp quản khi cần người thật. | [Hội thoại khách](../../../docs/28-hoi-thoai-khach.md) |
-| | **Terminal** | **Dòng lệnh thật** của máy chạy Naota, mở ngay trong trình duyệt - khỏi mở SSH. | [Terminal](../../../docs/27-tab-code-terminal.md) |
+| | **Terminal** | **Dòng lệnh thật** của máy chạy NAOSO, mở ngay trong trình duyệt - khỏi mở SSH. | [Terminal](../../../docs/27-tab-code-terminal.md) |
 | **Việc** | **Việc** | Hàng đợi task nền do AI tự đặc tả và tự chạy; bạn chỉ xử lý ngoại lệ. | [Việc (Kanban)](../../../docs/21-viec-kanban.md) |
 | | **Việc định kỳ** | Nhiều vòng lặp chạy nền + nhắc hẹn theo giờ hoặc cron. | [Việc định kỳ & Nhắc hẹn](../../../docs/08-viec-dinh-ky.md) |
 | **Kết nối** | **Kết nối** | Kho dịch vụ ngoài, đa tài khoản cùng một dịch vụ, phân quyền 3 mức. | [Kết nối & số liệu](../../../docs/09-mcp-va-so-lieu.md) |
-| | **Kênh** | Bật bot Telegram, Zalo, Slack, WhatsApp (hỏi Naota qua điện thoại). | [Kênh Telegram](../../../docs/11-telegram.md) · [Kênh Zalo](../../../docs/12-zalo.md) · [Slack và WhatsApp](../../../docs/29-slack-whatsapp.md) |
-| | *(terminal)* | `pip install naota-cli` rồi gõ `naota "..."` - kênh thứ ba, cùng một Naota. | [Naota CLI](../../../docs/24-cli-terminal.md) |
+| | **Kênh** | Bật bot Telegram, Zalo, Slack, WhatsApp (hỏi NAOSO qua điện thoại). | [Kênh Telegram](../../../docs/11-telegram.md) · [Kênh Zalo](../../../docs/12-zalo.md) · [Slack và WhatsApp](../../../docs/29-slack-whatsapp.md) |
+| | *(terminal)* | `pip install naota-cli` rồi gõ `naota "..."` - kênh thứ ba, cùng một NAOSO. | [NAOSO CLI](../../../docs/24-cli-terminal.md) |
 | | **Models** | Main model + các provider + mức suy nghĩ + model việc nền. | [Models & engine](../../../docs/10-models-va-engine.md) |
 | **Hệ thống** | **Mức dùng** | Token và chi phí theo ngày, theo nhà cung cấp, theo nguồn phát sinh. | [Mức dùng](../../../docs/23-muc-dung-token.md) |
 | | **Cài đặt** | Trạng thái hệ thống, giao diện & brain, giọng nói, thương hiệu, tên miền. | [Bắt đầu & thiết lập](../../../docs/01-bat-dau-thiet-lap.md) |
 | | **Linh vật** | Hình dáng, bảng màu và bật tắt con pet nép ở mép màn hình. | [Bắt đầu & thiết lập](../../../docs/01-bat-dau-thiet-lap.md) |
 | | **Cập nhật** | Phiên bản hiện tại, cập nhật/Redeploy, tiến trình và nhật ký tính năng mới. | [Khắc phục sự cố](../../../docs/17-khac-phuc-su-co.md) |
-| | **Tài khoản** | Workspace, đăng nhập/đăng xuất, đổi/tắt mật khẩu, token API cho CLI. | [Bảo mật & tài khoản](../../../docs/14-bao-mat-tai-khoan.md) · [Naota CLI](../../../docs/24-cli-terminal.md) |
+| | **Tài khoản** | Workspace, đăng nhập/đăng xuất, đổi/tắt mật khẩu, token API cho CLI. | [Bảo mật & tài khoản](../../../docs/14-bao-mat-tai-khoan.md) · [NAOSO CLI](../../../docs/24-cli-terminal.md) |
 
 **Mục lục đầy đủ (27 trang):** [docs/README.md](../../../docs/README.md) - gồm thêm [Second Brain: bộ nhớ / Wiki / INGEST](../../../docs/13-second-brain-bo-nho-wiki.md), [Sao lưu brain lên GitHub](../../../docs/18-sao-luu-github.md), [Task & Dataview trong note](../../../docs/19-task-va-dataview.md), [Thương hiệu & tên miền riêng](../../../docs/15-thuong-hieu-ten-mien.md), [Cấu hình .env](../../../docs/16-cau-hinh-env.md).
 
 ### Vài luồng hay dùng
 
-- **Hỏi số liệu:** *"Doanh thu hôm nay thế nào? So với hôm qua?"* → Naota gọi đúng kết nối, trả số thật + đề xuất.
-- **Tiêu hoá tri thức (INGEST):** thả file/ghi chú vào → Naota tóm tắt, rút insight, viết vào Wiki, gợi ý task.
+- **Hỏi số liệu:** *"Doanh thu hôm nay thế nào? So với hôm qua?"* → NAOSO gọi đúng kết nối, trả số thật + đề xuất.
+- **Tiêu hoá tri thức (INGEST):** thả file/ghi chú vào → NAOSO tóm tắt, rút insight, viết vào Wiki, gợi ý task.
 - **Giao việc nền:** vào **Việc** → **+ Giao goal** → mô tả bằng lời (vd *"tổng hợp bán hàng tuần này, tìm hàng bán chậm, soạn 3 caption đẩy hàng"*) → AI tự đặc tả và chạy, báo kết quả về Telegram.
 - **Việc định kỳ:** vào **Việc định kỳ** → **+ Thêm việc** → chọn *Việc lặp* (mỗi N phút) hoặc *Nhắc hẹn* (8h30 mỗi ngày).
-- **Giọng nói:** bấm mic (hoặc bật rảnh tay) → nói → Naota trả lời bằng giọng.
+- **Giọng nói:** bấm mic (hoặc bật rảnh tay) → nói → NAOSO trả lời bằng giọng.
 
 ---
 
@@ -447,14 +447,14 @@ Người đóng góp quốc tế có [ARCHITECTURE.md](../../../ARCHITECTURE.md)
 ## 🙏 Cảm hứng & ghi nhận
 
 - **Bộ não:** [Claude Code](https://claude.com/claude-code) và [Claude Agent SDK](https://docs.claude.com/en/api/agent-sdk/overview) (Anthropic), [Codex CLI](https://developers.openai.com/codex/cli) (OpenAI), cùng API của [OpenRouter](https://openrouter.ai), OpenAI, [Google Gemini](https://ai.google.dev), Anthropic và [Groq](https://groq.com).
-- **Chuẩn công cụ:** [Model Context Protocol](https://modelcontextprotocol.io) - toàn bộ kho Kết nối của Naota chạy trên chuẩn này.
+- **Chuẩn công cụ:** [Model Context Protocol](https://modelcontextprotocol.io) - toàn bộ kho Kết nối của NAOSO chạy trên chuẩn này.
 - Pattern Second Brain + Bullet Journal số hoá.
 
 ---
 
 ## 📄 Giấy phép
 
-Bản quyền © 2026 Hoàng Ngọc Vương ([vuong.ai](https://vuong.ai)). Bảo lưu mọi quyền. Thành viên cộng đồng NAOTA được tải về, cài đặt và dùng miễn phí. Xem [LICENSE](../../../LICENSE).
+Bản quyền © 2026 Hoàng Ngọc Vương ([vuong.ai](https://vuong.ai)). Bảo lưu mọi quyền. Thành viên cộng đồng NAOSO được tải về, cài đặt và dùng miễn phí. Xem [LICENSE](../../../LICENSE).
 
 
 <div align="center">

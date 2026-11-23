@@ -3,7 +3,7 @@ Teams page.
 
 Projects and pinned chats keep their order in the session store (sort_order, pin_order). Tags live inside each agent
 file and each team row, so their order is a list of tag KEYS per page, in settings.json under "ui_order", like the
-brain order (brain_order.py): every device that opens this Naota shows the same order. A tag not in the list comes
+brain order (brain_order.py): every device that opens this NAOSO shows the same order. A tag not in the list comes
 after the ordered ones, by name.
 """
 from __future__ import annotations

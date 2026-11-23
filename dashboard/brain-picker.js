@@ -1,4 +1,4 @@
-/* brain-picker.js - the brain picker, drawn by Naota instead of the browser.
+/* brain-picker.js - the brain picker, drawn by NAOSO instead of the browser.
 
    Seen on a phone: the brain list "shows one way on one device and another
    way on the next", and the order could not be changed. The list was a plain <select>, so every browser drew its own
@@ -260,7 +260,7 @@
     return '<button type="button" class="bp-act' + (act === "delete" || act === "forget" ? " bp-act-del" : "") + '" data-act="' + act +
       '" title="' + esc(label) + '" aria-label="' + esc(label) + '"' + (disabled ? " disabled" : "") + ">" + icon(ic) + "</button>";
   }
-  // Export, Rename, Default, Delete on a brain Naota manages; only "remove from the list" on an outside folder.
+  // Export, Rename, Default, Delete on a brain NAOSO manages; only "remove from the list" on an outside folder.
   // The star: filled on the default brain, a button on every other one that makes it the default. That is
   // the way to delete the old default: it becomes an ordinary brain once another one is the default.
   function actsHtml(x) {
@@ -338,7 +338,7 @@
   function importHtml() {
     var f = imp.file;
     return '<div class="bp-import">' +
-      '<p class="bp-form-msg">' + esc(t("bpick.import_lead", null, "Choose a .zip exported by Naota, on this machine or another. Naota makes a NEW brain from it and never touches the brains you have.")) + "</p>" +
+      '<p class="bp-form-msg">' + esc(t("bpick.import_lead", null, "Choose a .zip exported by NAOSO, on this machine or another. NAOSO makes a NEW brain from it and never touches the brains you have.")) + "</p>" +
       '<label class="bp-drop">' + icon("upload-cloud") +
       '<span>' + esc(t("bpick.import_drop", null, "Drop the file here or tap to choose")) + "</span>" +
       (f ? '<span class="bp-file">' + esc(f.name) + " · " + esc(sizeText(f.size)) + "</span>" : "") +

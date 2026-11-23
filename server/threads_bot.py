@@ -1,5 +1,5 @@
 """Threads (Meta) gateway: replies under the owner's Threads posts land in the inbox and the bot can
-answer them publicly. Same shape as `messenger_bot`: Threads POSTs every new reply to a webhook, Naota never polls.
+answer them publicly. Same shape as `messenger_bot`: Threads POSTs every new reply to a webhook, NAOSO never polls.
 
 Two halves:
   - `ThreadsBot`: the transport, same contract as `TelegramBot` (start/stop/send_text/send_file). `start()` opens no
@@ -10,7 +10,7 @@ Two halves:
 What the platform allows, and so what this does:
   - Threads has NO private messages in its API. Only replies (comments) under the owner's posts are handled.
   - Every top-level reply under a post is its own conversation, keyed by that reply's id; a reply under a reply joins
-    its parent's conversation. Naota answers with a reply to that id (create a TEXT container with `reply_to_id`,
+    its parent's conversation. NAOSO answers with a reply to that id (create a TEXT container with `reply_to_id`,
     then publish it). A reply holds 500 characters; longer answers are split.
   - The bot's own replies come back on the webhook and are skipped, so it never answers itself.
   - Moderation: a reply can be hidden (`/manage_reply`), not deleted (only the author can delete their reply).
@@ -117,7 +117,7 @@ def comment_note(post: str = "") -> str:
 def reply_event(value: dict, own_username: str = "", own_id: str = ""):
     """One `replies` notification value -> the reply it carries, or None.
 
-    Skips the account's own replies (every answer Naota sends comes back here). A top-level reply (its parent is the
+    Skips the account's own replies (every answer NAOSO sends comes back here). A top-level reply (its parent is the
     root post) opens its own conversation; a reply under a reply joins its parent's."""
     v = value or {}
     rid = str(v.get("id") or "")
@@ -298,7 +298,7 @@ class ThreadsBot(HangLuot):
         return True, ""
 
     async def send_file(self, path, caption="", chat=None):
-        return False, localefmt.chu("Naota chỉ trả lời bình luận Threads bằng chữ", "Naota answers Threads replies with text only")
+        return False, localefmt.chu("NAOSO chỉ trả lời bình luận Threads bằng chữ", "NAOSO answers Threads replies with text only")
 
     async def _post_text(self, client, post_id) -> str:
         """The first words of the post a reply sits under, for the inbox title and for the bot. Cached."""

@@ -1,5 +1,5 @@
 # ============================================================================
-# NAOTA - docker compose (PRODUCTION: pull image dựng sẵn từ GHCR)
+# NAOSO - docker compose (PRODUCTION: pull image dựng sẵn từ GHCR)
 #
 # CÀI TRÊN HOSTINGER: dùng file RIÊNG cho Hostinger (1 container, deploy là chạy, không kén hạ tầng):
 #   https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.yml
@@ -15,14 +15,14 @@
 #
 # Muốn build từ source thay vì pull image:  docker compose -f docker-compose.build.yml up -d --build
 #
-# NHIỀU BẢN NAOTA TRÊN CÙNG MỘT VPS (mỗi bản một tên miền riêng): xem
+# NHIỀU BẢN NAOSO TRÊN CÙNG MỘT VPS (mỗi bản một tên miền riêng): xem
 #   docker-compose.multi.yml + docker-compose.proxy.yml (và mục "Nhiều bản" trong DEPLOY.md).
 #   Tóm tắt: mỗi bản chạy ở THƯ MỤC RIÊNG với .env riêng đặt NAOTA_NAME + NAOTA_HOST_PORT khác nhau.
 # ============================================================================
 services:
   naota:
     image: ghcr.io/vuongtex/naota:latest
-    # Tên container LẤY TỪ BIẾN, không đóng cứng: hai bản Naota trên cùng một VPS mà cùng tên
+    # Tên container LẤY TỪ BIẾN, không đóng cứng: hai bản NAOSO trên cùng một VPS mà cùng tên
     # container là con thứ hai chết ngay lúc `up` ("name is already in use"), kể cả khi đã chạy ở
     # thư mục khác - Docker đặt tên container theo phạm vi TOÀN MÁY chứ không theo project.
     container_name: ${NAOTA_NAME:-naota}
@@ -89,7 +89,7 @@ services:
   # coi như không có. Nay mặc định BẬT: cài mới là cập nhật được ngay, khỏi nhớ thêm lệnh nào.
   #
   # Đổi lại, Watchtower cần quyền Docker (socket). Host nào không cho là nó khởi động lại liên
-  # tục và Docker Manager báo stack "Partially running" - CONTAINER NAOTA VẪN CHẠY BÌNH THƯỜNG,
+  # tục và Docker Manager báo stack "Partially running" - CONTAINER NAOSO VẪN CHẠY BÌNH THƯỜNG,
   # chỉ mất cái nút, và trang Cập nhật sẽ nói thẳng là phải cập nhật tay. Không muốn có nó:
   #   docker compose up -d --scale watchtower=0
   #
@@ -107,7 +107,7 @@ services:
       WATCHTOWER_HTTP_API_ENDPOINTS: update                 # nhận lệnh cập nhật từ nút bấm
       WATCHTOWER_HTTP_API_TOKEN: ${WATCHTOWER_TOKEN:-naota-update}
       # TỰ đi tìm bản mới theo chu kỳ, KHÔNG chờ ai bấm nút. Mặc định TẮT có chủ ý: bật lên là
-      # Naota tự khởi động lại bất cứ lúc nào có image mới, cắt ngang việc nền và phiên chat
+      # NAOSO tự khởi động lại bất cứ lúc nào có image mới, cắt ngang việc nền và phiên chat
       # đang chạy. Muốn hoàn toàn tự động thì đặt trong .env:  NAOTA_AUTO_UPDATE=true
       # (chu kỳ mặc định 24h, đổi bằng NAOTA_AUTO_UPDATE_INTERVAL tính bằng GIÂY).
       WATCHTOWER_HTTP_API_PERIODIC_POLLS: ${NAOTA_AUTO_UPDATE:-false}
@@ -116,19 +116,19 @@ services:
       # One update from the button may take this long: pulling the image AND removing the old
       # container. Watchtower's default is 10 minutes; on a VPS with a slow disk it ran out while
       # Docker was still deleting the old container, Watchtower gave up without creating the new
-      # one, and Naota was gone (404) until a Redeploy (owner report 2026-11-13). See `guard`.
+      # one, and NAOSO was gone (404) until a Redeploy (owner report 2026-11-13). See `guard`.
       WATCHTOWER_HTTP_API_UPDATE_TIMEOUT: 30m
     # Theo dõi ĐÚNG container của bản này. Để trống hay ghi cứng "naota" thì trên VPS nhiều bản,
     # Watchtower của bản này sẽ đi cập nhật (và restart) container của bản khác.
     command: ${NAOTA_NAME:-naota}
 
-  # Brings Naota back when an update leaves it gone or stopped (owner report 2026-11-13).
+  # Brings NAOSO back when an update leaves it gone or stopped (owner report 2026-11-13).
   #
-  # Watchtower replaces Naota by stopping it, removing it, then creating the new one. If the stop or
+  # Watchtower replaces NAOSO by stopping it, removing it, then creating the new one. If the stop or
   # the removal returns an error (a timeout on a slow disk), it gives up and never creates the new
-  # one, while Docker often finishes the removal anyway: no Naota container at all, the domain answers
-  # 404. The guard keeps a copy of how Naota was created and, after 2 minutes of that state, creates
-  # it again (on the new image Watchtower already pulled) or starts it again. A Naota you stop by hand
+  # one, while Docker often finishes the removal anyway: no NAOSO container at all, the domain answers
+  # 404. The guard keeps a copy of how NAOSO was created and, after 2 minutes of that state, creates
+  # it again (on the new image Watchtower already pulled) or starts it again. A NAOSO you stop by hand
   # is left alone. Logs: docker logs naota-guard
   #
   # Same Docker socket as Watchtower, but no network at all (network_mode: none). The code is
@@ -140,7 +140,7 @@ services:
     restart: unless-stopped
     network_mode: none
     depends_on:
-      - naota          # `docker compose down` stops the guard first, so it never sees Naota "vanish"
+      - naota          # `docker compose down` stops the guard first, so it never sees NAOSO "vanish"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - guard-data:/guard

@@ -3,7 +3,7 @@
    Không có công tắc "Tập trung" và không có luật phải gọi tên. Rào chỉ còn
    bật ở đường Live (app.js đặt enabled theo đường gọi): im IDLE_MS thì ngắt nhà cung cấp cho đỡ
    tốn hạn mức, rồi CÂU NÓI THẬT đầu tiên (wakes) là nối lại. Đường Cơ bản không có gì để ngắt nên
-   nghe suốt cuộc gọi. Không dùng Groq: chữ "Naota" trình duyệt hay chép thành "Nau ta", bắt buộc gọi
+   nghe suốt cuộc gọi. Không dùng Groq: chữ "NAOSO" trình duyệt hay chép thành "Nau ta", bắt buộc gọi
    tên là đúng khâu từng làm cuộc gọi không nối lại được. */
 (function (root) {
   "use strict";

@@ -156,7 +156,7 @@
     this.background = 0;
     this.slow = false;
     this.deferred = [];
-    this.interruptedAt = "";   // câu Naota đọc tới lúc bị ngắt, đi vào tin kế tiếp
+    this.interruptedAt = "";   // câu NAOSO đọc tới lúc bị ngắt, đi vào tin kế tiếp
     this.history = [];
     this.turnAt = 0;           // mốc ms lượt hiện tại bắt đầu xử lý (V3: câu tiến độ)
     this.spoke = false;        // lượt này đã có chữ THẬT ra loa chưa
@@ -188,7 +188,7 @@
 
   VoiceTurn.prototype.delayFor = function (text) {
     // Một tiếng gọi tên thường là mở đầu câu ra lệnh. Chờ thêm một nhịp để không gửi
-    // riêng "Naota" trước khi người dùng nói tiếp; vẫn đáp nếu họ chỉ gọi tên.
+    // riêng "NAOSO" trước khi người dùng nói tiếp; vẫn đáp nếu họ chỉ gọi tên.
     if (/^(naota|nauta)( ơi)?$/.test(normalize(text))) return this.opts.maxDelay;
     return looksUnfinished(text) ? this.opts.maxDelay : this.opts.minDelay;
   };
@@ -226,7 +226,7 @@
       return acts.concat(this._recompute());
     }
     if (isStopPhrase(t)) {
-      // "thôi / dừng lại" chỉ làm Naota IM: lượt đang chạy vẫn viết nốt câu trả lời vào
+      // "thôi / dừng lại" chỉ làm NAOSO IM: lượt đang chạy vẫn viết nốt câu trả lời vào
       // khung chat. Quy tắc: trong cuộc gọi, lượt chỉ dừng khi bấm lại nút mic.
       if (this.speaking) { this.speaking = false; }
       acts.push({ type: "stop_tts" });
@@ -284,7 +284,7 @@
     return this._recompute();
   };
 
-  // Bộ rình RMS đủ 500 ms tiếng nói trong lúc Naota đang đọc.
+  // Bộ rình RMS đủ 500 ms tiếng nói trong lúc NAOSO đang đọc.
   VoiceTurn.prototype.bargeStart = function () {
     if (!this.speaking || this.interrupted) return [];
     this.interrupted = true;
@@ -313,7 +313,7 @@
     this.speaking = false;
     this.userSpeaking = true;
     if (spokenPrefix) this.interruptedAt = String(spokenPrefix);
-    // Cắt lời chỉ làm Naota IM, KHÔNG dừng lượt đang chạy. Trước đây cắt lời là dừng
+    // Cắt lời chỉ làm NAOSO IM, KHÔNG dừng lượt đang chạy. Trước đây cắt lời là dừng
     // luôn lượt, và lỗi đã gặp: nói chen một câu là "Đã dừng lượt này", mô hình bị cắt
     // liên tục. Nay lượt viết nốt câu trả lời vào khung chat (stop_tts đánh dấu phần còn lại không
     // đọc), câu người dùng vừa nói xếp hàng ở app.js và đi sau khi lượt xong.

@@ -92,13 +92,13 @@ def _collision(slug: str) -> dict:
     """Error dict when `slug` may never be installed from a zip, else {}."""
     if slug in plugins_host._slug_bundled():
         return _err("validate",
-                    f"'{slug}' trùng tên một plugin có sẵn của Naota. Đổi slug trong plugin.yaml rồi thử lại.",
-                    f"'{slug}' is the name of a built-in Naota plugin. Change the slug in plugin.yaml and try again.",
+                    f"'{slug}' trùng tên một plugin có sẵn của NAOSO. Đổi slug trong plugin.yaml rồi thử lại.",
+                    f"'{slug}' is the name of a built-in NAOSO plugin. Change the slug in plugin.yaml and try again.",
                     code="bundled")
     if slug in _pack_slugs():
         return _err("validate",
-                    f"'{slug}' trùng tên một plugin đến từ gói trong Naota Store. Đổi slug trong plugin.yaml rồi thử lại.",
-                    f"'{slug}' is the name of a plugin from a Naota Store pack. Change the slug in plugin.yaml and try again.",
+                    f"'{slug}' trùng tên một plugin đến từ gói trong NAOSO Store. Đổi slug trong plugin.yaml rồi thử lại.",
+                    f"'{slug}' is the name of a plugin from a NAOSO Store pack. Change the slug in plugin.yaml and try again.",
                     code="pack")
     return {}
 

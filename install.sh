@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# NAOTA - Linux/macOS native installer (no Docker)
+# NAOSO - Linux/macOS native installer (no Docker)
 #   ./install.sh
 # Installs python3 + node + Claude Code CLI, creates a venv, installs deps,
 # seeds .env, and registers a systemd service (or falls back to nohup).
@@ -153,7 +153,7 @@ ok "Claude CLI $(claude --version 2>/dev/null || echo installed)"
 
 # --- 4b. Codex CLI (gói ChatGPT) ---
 #
-# BEST-EFFORT, cố ý khác Claude ở trên: thiếu Claude thì Naota không còn bộ não mặc định nào
+# BEST-EFFORT, cố ý khác Claude ở trên: thiếu Claude thì NAOSO không còn bộ não mặc định nào
 # để chạy, còn thiếu cái này chỉ mất đúng một engine. Nên lỗi ở đây chỉ cảnh báo chứ không cho
 # `set -e` giết cả lần cài.
 #
@@ -181,7 +181,7 @@ cai_them_cli @openai/codex@latest codex "Codex CLI"
 #
 # BEST-EFFORT tuyệt đối: chạy script của nhà thứ ba nên hỏng là chuyện bình thường (mạng, máy
 # lạ, nhà cung cấp đổi URL) - hỏng thì nói một dòng rồi đi tiếp, không được giết lần cài.
-# ĐĂNG NHẬP thì vẫn là việc của người dùng, làm ở trang Models sau khi Naota chạy.
+# ĐĂNG NHẬP thì vẫn là việc của người dùng, làm ở trang Models sau khi NAOSO chạy.
 cai_cli_script() {   # <tên binary> <tên hiển thị> <URL script cài>
   if command -v "$1" >/dev/null 2>&1; then ok "$2 da co san"; return 0; fi
   log "Installing $2 (best-effort, script cua nha cung cap)..."
@@ -224,7 +224,7 @@ grep -q '^NAOTA_HOST=' .env || echo "NAOTA_HOST=127.0.0.1" >> .env
 
 # --- 7b. Tài khoản quản trị: ĐẶT SẴN ngay lúc cài ---
 #
-# Trước đây bước này không tồn tại, nên ai mở Naota ra công khai đều đụng "MÃ THIẾT LẬP":
+# Trước đây bước này không tồn tại, nên ai mở NAOSO ra công khai đều đụng "MÃ THIẾT LẬP":
 # server in một chuỗi ngẫu nhiên vào log lúc khởi động, và người dùng phải SSH vào VPS đọc log
 # rồi dán vào trình duyệt mới tạo được tài khoản. Cái mã đó có lý do tồn tại - nó chặn người
 # lạ chỉ-có-URL chiếm quyền admin lần đầu - nhưng bắt người ta đi đọc log là một trải nghiệm
@@ -273,7 +273,7 @@ else
   ADMIN_PW=""
   if [ -t 0 ]; then
     echo ""
-    log "Naota admin account (required: the AI brain runs with full rights on this machine):"
+    log "NAOSO admin account (required: the AI brain runs with full rights on this machine):"
     read -rp "  Username [admin]: " AU || true
     [ -n "${AU:-}" ] && ADMIN_USER="$AU"
     while :; do
@@ -338,7 +338,7 @@ elif command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
   log "Installing systemd service ($SVC.service, port $PORT)..."
   $SUDO tee "/etc/systemd/system/$SVC.service" >/dev/null <<UNIT
 [Unit]
-Description=NAOTA ($SVC)
+Description=NAOSO ($SVC)
 After=network-online.target
 Wants=network-online.target
 StartLimitIntervalSec=0
@@ -371,7 +371,7 @@ else
 fi
 
 echo ""
-ok "NAOTA is up at: http://127.0.0.1:$PORT"
+ok "NAOSO is up at: http://127.0.0.1:$PORT"
 log "Remote access (SSH tunnel): ssh -L $PORT:localhost:$PORT $(whoami)@<vps-ip>"
 
 # Mật khẩu tự sinh chỉ in ra ĐÚNG chỗ này, đúng một lần. Không ghi vào log service, không in

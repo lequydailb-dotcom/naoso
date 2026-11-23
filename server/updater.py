@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Updater tách rời của Naota cho bản GIT checkout (Windows + systemd + launchd + nohup).
+"""Updater tách rời của NAOSO cho bản GIT checkout (Windows + systemd + launchd + nohup).
 Server spawn DETACHED:
 
     python updater.py --old-sha <sha> --old-version <v> --target <v> --port <p> --server-pid <pid>
@@ -28,7 +28,7 @@ import winproc  # noqa: E402
 # Updater được server spawn DETACHED, tức nó chạy KHÔNG CÓ console. Trên Windows, một tiến trình
 # không console mà gọi chương trình console (git, pip, systemctl...) thì hệ điều hành tự cấp cho
 # đứa con một cửa sổ mới - người dùng thấy màn hình nháy đen liên tục suốt lượt cập nhật. Nên
-# mọi lời gọi dưới đây đều truyền cờ này. Hai chỗ CỐ Ý không truyền là lúc khởi động lại Naota,
+# mọi lời gọi dưới đây đều truyền cờ này. Hai chỗ CỐ Ý không truyền là lúc khởi động lại NAOSO,
 # vì tiến trình đó phải sống lâu hơn updater.
 _CAM = winproc.no_window()
 
@@ -106,7 +106,7 @@ def _launchd_target():
 
 
 def has_launchd_job():
-    """Mac chạy Naota dưới launchd (job KeepAlive) thì restart PHẢI qua launchd.
+    """Mac chạy NAOSO dưới launchd (job KeepAlive) thì restart PHẢI qua launchd.
 
     Bài học: updater kill PID server -> launchd KeepAlive respawn ngay tức thì,
     trong khi updater cũng Popen một bản uvicorn của riêng nó -> hai tiến trình giành cổng
@@ -270,11 +270,11 @@ def start_server(mode, port=""):
         for p in pids:
             _kill_pid(p)
         # Last resort: if launchd does not bring a server up (the plist is left over from an old install, or the
-        # agent was switched off), Naota must not stay down until someone opens it by hand. A copy outside launchd
+        # agent was switched off), NAOSO must not stay down until someone opens it by hand. A copy outside launchd
         # is still better than none, and port_guard hands the port back to launchd once its own copy starts.
         if not _wait_for_listener(port or "7777", LAUNCHD_RESPAWN_WAIT_S):
-            log(_chu("launchd không bật lại Naota: khởi động trực tiếp để Naota không nằm chết.",
-                     "launchd did not bring Naota back: starting it directly so it does not stay down."))
+            log(_chu("launchd không bật lại NAOSO: khởi động trực tiếp để NAOSO không nằm chết.",
+                     "launchd did not bring NAOSO back: starting it directly so it does not stay down."))
             _start_nohup(port)
     else:  # nohup: chạy lại uvicorn nền y như install.sh (fallback không systemd)
         _start_nohup(port)
@@ -493,7 +493,7 @@ def pip_install():
     """Cài thư viện. Mã lỗi TRẢ VỀ CHO NƠI GỌI KIỂM - trước đây không ai kiểm.
 
     pip hỏng (mất mạng giữa chừng, một gói bị gỡ khỏi PyPI, xung đột phiên bản giữa hai bản
-    Naota) là một trong hai đường dẫn thẳng tới cảnh "cập nhật xong máy chết hẳn": server mới
+    NAOSO) là một trong hai đường dẫn thẳng tới cảnh "cập nhật xong máy chết hẳn": server mới
     thiếu thư viện nên không lên, rồi đường lùi cũng chạy pip và cũng hỏng y hệt. Nuốt mã lỗi
     thì cả hai lần đều im lặng, và người dùng chỉ nhận được một câu chung chung."""
     r = run([venv_python(), "-m", "pip", "install", "-r", "requirements.txt", "-q"])
@@ -589,7 +589,7 @@ def _launch_systemd_worker(a):
         return True
     log(f"  systemd-run: {error[:400]}")
     # A service running as a normal user (User= in the unit) may neither create system units nor stop its own
-    # service. Its own user manager can host the worker, which then restarts Naota by signal. Only Restart=always
+    # service. Its own user manager can host the worker, which then restarts NAOSO by signal. Only Restart=always
     # brings the unit back after a SIGTERM: on-failure and friends count SIGTERM as a clean exit and leave it down.
     hint = ""
     if hasattr(os, "geteuid") and os.geteuid() != 0:
@@ -606,8 +606,8 @@ def _launch_systemd_worker(a):
             f"&& sudo systemctl restart {service_name}. Để nút Cập nhật chạy được: sudo loginctl enable-linger {user}.",
             f" Update by hand: cd {ROOT} && git pull --ff-only && .venv/bin/python -m pip install -r requirements.txt "
             f"&& sudo systemctl restart {service_name}. To make the Update button work: sudo loginctl enable-linger {user}.")
-    reason = _chu("Không chạy được updater độc lập; Naota vẫn được giữ nguyên. ",
-                  "Could not start an independent updater; Naota has been left running. ")
+    reason = _chu("Không chạy được updater độc lập; NAOSO vẫn được giữ nguyên. ",
+                  "Could not start an independent updater; NAOSO has been left running. ")
     if error:
         reason += error[:400]
     reason += hint
@@ -626,7 +626,7 @@ def main():
     ap.add_argument("--server-pid", type=int, default=0,
                     help="PID server đang chạy (để chế độ nohup kill đúng tiến trình)")
     ap.add_argument("--systemd-worker", action="store_true",
-                    help="Updater đã được tách khỏi cgroup của Naota")
+                    help="Updater đã được tách khỏi cgroup của NAOSO")
     ap.add_argument("--restart-by-signal", action="store_true",
                     help="Worker under the user's systemd: restart the service by signal, not systemctl")
     ap.add_argument("--dry-run", action="store_true")
@@ -645,8 +645,8 @@ def main():
             return 0 if _launch_systemd_worker(a) else 1
         except Exception as e:
             # Any surprise here must still end the update on screen; a dead launcher left "preparing" forever.
-            reason = _chu("Không chạy được updater độc lập; Naota vẫn được giữ nguyên. ",
-                          "Could not start an independent updater; Naota has been left running. ")
+            reason = _chu("Không chạy được updater độc lập; NAOSO vẫn được giữ nguyên. ",
+                          "Could not start an independent updater; NAOSO has been left running. ")
             reason += f"{type(e).__name__}: {e}"[:400]
             log(reason)
             us.write_state({"phase": "error", "result": "error", "error": reason, "finished_at": _now()})
@@ -712,8 +712,8 @@ def main():
         # Merge đã hủy hoặc fetch thất bại; xác nhận server cũ thật sự lên lại.
         start_server(mode, a.port)
         them = "" if poll_health(a.port, 60) else _chu(
-            " Server cũ CŨNG chưa lên lại - mở Naota bằng tay để chạy tiếp.",
-            " The old server has NOT come back up either - start Naota by hand to continue.")
+            " Server cũ CŨNG chưa lên lại - mở NAOSO bằng tay để chạy tiếp.",
+            " The old server has NOT come back up either - start NAOSO by hand to continue.")
         ly_do = chan_doan_pull_hong(git_error, merge_aborted=tree_safe)
         log("Chẩn đoán: " + (ly_do or "(không nhận ra nguyên nhân quen thuộc)"))
         tho = (git_error or _chu("Không hợp nhất được bản phát hành", "Could not merge the release")).strip()
@@ -850,7 +850,7 @@ def main():
             return 1
         us.write_state({"phase": "done", "result": "rolled_back",
                         "error": _chu("Bản mới lỗi, đã tự quay về bản cũ.",
-                                      "The new version failed, so Naota rolled back to the old one."),
+                                      "The new version failed, so NAOSO rolled back to the old one."),
                         "finished_at": _now()})
         return 0
 

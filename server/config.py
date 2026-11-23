@@ -1,5 +1,5 @@
 """
-Cấu hình tập trung của NAOTA - đọc/ghi server/settings.json (gitignored, chứa secret).
+Cấu hình tập trung của NAOSO - đọc/ghi server/settings.json (gitignored, chứa secret).
 Gồm: workspace, tài khoản admin (mật khẩu hash), model engine, telegram.
 Auth CHỈ bật khi đã đặt mật khẩu → bản local chưa đặt vẫn chạy như cũ.
 """
@@ -12,7 +12,7 @@ import hashlib
 import secrets
 from pathlib import Path
 
-# Mọi state Naota tự ghi (settings, auth sessions, loop config) nằm ở NAOTA_STATE_DIR.
+# Mọi state NAOSO tự ghi (settings, auth sessions, loop config) nằm ở NAOTA_STATE_DIR.
 # Mặc định = server/ (không đổi trên máy cũ). Docker/VPS đặt = /data/state (volume ghi được,
 # vì code tree /app là read-only trong container).
 STATE_DIR = Path(os.getenv("NAOTA_STATE_DIR", str(Path(__file__).parent)))
@@ -27,7 +27,7 @@ SETTINGS_PATH = STATE_DIR / "settings.json"
 BRANDING_DIR = STATE_DIR / "branding"
 
 _DEFAULT = {
-    "workspace_name": "NAOTA",
+    "workspace_name": "NAOSO",
     "setup_done": False,                       # đã qua bộ cài đặt lần đầu chưa
     # totp = xác thực 2 lớp. secret rỗng / enabled=false → cổng đăng nhập giữ nguyên như cũ.
     # `recovery` giữ BẢN BĂM của mã khôi phục (cùng cách băm mật khẩu), nên không có đường nào
@@ -42,7 +42,7 @@ _DEFAULT = {
     # Ngôn ngữ và locale. TÁCH BA BIẾN có chủ ý (spec đa ngôn ngữ mục 4.1):
     #   ui_lang     chữ trên màn hình      - "" = chưa ai chọn: dashboard đoán theo trình duyệt
     #               rồi ghi lại đây. Bản cài cũ đã lưu "vi" nên không bị đổi.
-    #   reply_lang  Naota trả lời          - always "auto" since 2026-11-15: Naota follows whoever writes and
+    #   reply_lang  NAOSO trả lời          - always "auto" since 2026-11-15: NAOSO follows whoever writes and
     #               Settings only set the interface (owner). Kept because the improvement trials read it; a pin
     #               saved before moves into the profile at startup (main.migrate_reply_lang_to_profile).
     #   tz/currency locale, KHÁC ngôn ngữ  - người dùng tiếng Anh ở VN vẫn xài UTC+7 và VND
@@ -78,7 +78,7 @@ _DEFAULT = {
         "live_provider": "gemini",     # gemini | openai (đều cần API key ở trang Models)
         "live_model": "",              # rỗng = gợi ý trong voice_live.PROVIDERS
         "live_voice": "",
-        "live_proactive": True,        # Live qua API: bỏ qua tiếng không nói với Naota (TV, người bên cạnh)
+        "live_proactive": True,        # Live qua API: bỏ qua tiếng không nói với NAOSO (TV, người bên cạnh)
         "live_turn": "normal",         # fast | normal | slow: nhịp trả lời của Live qua API
     },
     "model": {
@@ -94,7 +94,7 @@ _DEFAULT = {
         # người dùng đổi model liên tục trên web để thử (cả model local chạy 2-8 chữ/giây), mỗi
         # lần thử là điện thoại của cả nhà bị kéo theo.
         "telegram": {"provider": "", "model": ""},
-        # --- Tiền bạc: những gì Naota KHÔNG tự biết được và phải hỏi người dùng ---
+        # --- Tiền bạc: những gì NAOSO KHÔNG tự biết được và phải hỏi người dùng ---
         # Nhà cung cấp không cho lấy giá gói hay hạn mức gói qua API, nên bốn số này là do
         # người dùng khai. Để 0 = chưa khai, và trang Mức dùng phải nói "chưa khai" chứ đừng
         # đoán bừa rồi hiện một con số trông như thật.
@@ -119,7 +119,7 @@ _DEFAULT = {
         # --- Credentials theo provider ---
         # Gói Claude Code (provider 'anthropic-cli') xác thực bằng CÁI GÌ:
         #   "subscription" (mặc định) - phiên đăng nhập của chính Claude Code, tức gói Pro/Max
-        #       người dùng đang trả. Naota KHÔNG đọc token đó nữa; nó chỉ chạy binary `claude`
+        #       người dùng đang trả. NAOSO KHÔNG đọc token đó nữa; nó chỉ chạy binary `claude`
         #       và để chính sản phẩm của Anthropic lo đăng nhập.
         #   "api_key" - truyền `anthropic_api_key` xuống cho binary `claude` qua biến môi
         #       trường, tức trả tiền theo lượt dùng qua Claude Console. Đây là đường Anthropic
@@ -137,28 +137,28 @@ _DEFAULT = {
         "deepseek_api_key": "",                # provider DeepSeek (endpoint OpenAI-compat)
         # Provider 'ollama' = Ollama Cloud (ollama.com). Bản chạy trên máy nhà KHÔNG được đấu,
         # cố ý: nó đòi thêm một ô địa chỉ - ca đặc biệt duy nhất của cả lớp nhà cung cấp -
-        # trong khi phần đông người dùng Naota chạy nó trên VPS, nơi "localhost" là chính cái
+        # trong khi phần đông người dùng NAOSO chạy nó trên VPS, nơi "localhost" là chính cái
         # container chứ không phải máy họ.
         "ollama_key": "",
         # Provider 'openai-compat': MỘT endpoint bất kỳ nói chuẩn OpenAI Chat Completions
-        # (LiteLLM, vLLM, proxy tự dựng...). Base URL tính tới /v1, Naota tự nối /chat/completions
+        # (LiteLLM, vLLM, proxy tự dựng...). Base URL tính tới /v1, NAOSO tự nối /chat/completions
         # và /models. Key có thể rỗng nếu endpoint không đòi xác thực.
         "openai_compat_base": "",
         "openai_compat_key": "",
         # Provider 'anthropic-compat': ONE gateway speaking the Anthropic Messages API
         # (resellers of Claude, DeepSeek/Kimi/MiniMax "anthropic" endpoints...). The base URL has
-        # the shape of Claude Code's ANTHROPIC_BASE_URL (no /v1); Naota appends /v1/messages.
+        # the shape of Claude Code's ANTHROPIC_BASE_URL (no /v1); NAOSO appends /v1/messages.
         "anthropic_compat_base": "",
         "anthropic_compat_key": "",
         # --- Ollama chạy trên MÁY NHÀ (provider 'ollama-local') ---
         # Ca đặc biệt mà khối chú thích ngay trên vừa từ chối, nay mở ra nhưng KHÔNG bằng cách
-        # giả định "localhost là máy người dùng". Cái Naota lưu là một ĐỊA CHỈ người dùng tự
-        # khai: có thể là máy đang chạy Naota (bản native), có thể là một máy khác trong nhà.
+        # giả định "localhost là máy người dùng". Cái NAOSO lưu là một ĐỊA CHỈ người dùng tự
+        # khai: có thể là máy đang chạy NAOSO (bản native), có thể là một máy khác trong nhà.
         # Nhờ vậy bản Docker/VPS cũng dùng được - trỏ sang máy để bàn ở nhà là xong.
         "ollama_local_endpoint": "",           # vd http://127.0.0.1:11434 hoặc http://192.168.1.20:11434
         "ollama_local_key": "",                # chỉ cần khi Ollama nấp sau reverse proxy có auth
         # Cấu hình máy CHẠY OLLAMA, để gợi ý model vừa sức. `source`:
-        #   auto    - Naota tự đọc được (chỉ khi endpoint là localhost VÀ Naota chạy native)
+        #   auto    - NAOSO tự đọc được (chỉ khi endpoint là localhost VÀ NAOSO chạy native)
         #   manual  - người dùng tự khai (mọi trường hợp còn lại)
         #   unknown - chưa biết, gợi ý ở mức an toàn
         "ollama_local_specs": {"source": "unknown", "ram_gb": 0, "has_gpu": False, "vram_gb": 0},
@@ -206,12 +206,12 @@ _DEFAULT = {
     "image": {"strip_c2pa": False},
     # Vùng cache media của brain: attachments/ + inbox/. Ảnh là NGUYÊN LIỆU đi qua, không
     # phải tri thức - đọc xong rút thành .md là đủ dùng, nên chúng tự hết hạn thay vì nằm
-    # mãi làm phình đĩa VPS. Muốn giữ ảnh lâu dài thì đấu kho ngoài (Drive), đừng để Naota ôm.
+    # mãi làm phình đĩa VPS. Muốn giữ ảnh lâu dài thì đấu kho ngoài (Drive), đừng để NAOSO ôm.
     # max_age_days / max_mb <= 0 = tắt luật tương ứng. enabled=False = không dọn gì cả.
     # staging_days: hạn RIÊNG cho STATE_DIR/.staging - nơi file dán vào khung chat rơi xuống.
     # Ngắn hơn hẳn vì đó là chỗ trung chuyển một lượt chat, không ai mở lại bao giờ.
     # Kho gói: một tệp JSON công khai. Đổi được sang kho khác; rỗng thì dùng kho
-    # mặc định của Naota. Xem pack-store-index.
+    # mặc định của NAOSO. Xem pack-store-index.
     "packs": {"store_url": "", "tokens": {}},
     "media": {"enabled": True, "max_age_days": 30, "max_mb": 300, "staging_days": 3},
     "telegram": {"enabled": False, "token": "", "chat_id": ""},
@@ -220,7 +220,7 @@ _DEFAULT = {
     #
     # `chat_id` là whitelist, và trên Zalo nó là chuỗi HEX chứ không phải số. Zalo KHÔNG có
     # công cụ kiểu @userinfobot để tự tra id của mình, nên đừng bắt user đi tìm: người lạ nhắn
-    # cho bot thì Naota đưa họ vào hàng chờ kèm mã ghép nối, chủ bấm một nút là xong.
+    # cho bot thì NAOSO đưa họ vào hàng chờ kèm mã ghép nối, chủ bấm một nút là xong.
     # Xem `_ZALO_CHO` trong main.py.
     "zalo_bot": {"enabled": False, "token": "", "chat_id": ""},
     # Owner's control channels on Slack (Socket Mode) and WhatsApp (Cloud API). `allow`
@@ -265,8 +265,8 @@ _DEFAULT = {
         # lượt trong khung chat đổi giá trị này.
         "auto_resume": True,
     },
-    # MCP do Naota quản lý (registry connection ở mcp_servers.json). strict=True → CHỈ dùng
-    # kết nối của Naota (--strict-mcp-config), bỏ qua config MCP sẵn có của máy.
+    # MCP do NAOSO quản lý (registry connection ở mcp_servers.json). strict=True → CHỈ dùng
+    # kết nối của NAOSO (--strict-mcp-config), bỏ qua config MCP sẵn có của máy.
     # hub=True (mặc định): mọi engine đấu qua MCP HUB (1 entry "naota" - đa tài khoản, quyền,
     # audit tại hub). Đặt false để về chế độ cũ (per-server) nếu gặp sự cố.
     # lazy_tools: chống phình context khi đấu nhiều connector. "auto" = tự bật khi số tool
@@ -454,12 +454,12 @@ _DEFAULT = {
         # xét trước cái trần này ngay từ lượt sau.
         #
         # 32k là mức thận trọng: nằm dưới cửa sổ của gần như mọi model API đang bán, mà vẫn
-        # rộng gấp nhiều lần một capsule Naota điển hình (khoảng 1.000 token).
+        # rộng gấp nhiều lần một capsule NAOSO điển hình (khoảng 1.000 token).
         "api_context": {
             "context_window": 32000,
             "reserved_output_tokens": 4000,
         },
-        # NGÂN SÁCH TỪ HẠN MỨC NAOTA TỰ HỌC ĐƯỢC (limit_learner).
+        # NGÂN SÁCH TỪ HẠN MỨC NAOSO TỰ HỌC ĐƯỢC (limit_learner).
         #
         # Vì sao cần: fail-closed bắt phải khai quota_profiles trước, nên tới khi có người
         # ngồi khai thì mọi lượt đã rơi về đường cũ - đúng lúc bị siết lại là đúng lúc phần
@@ -468,7 +468,7 @@ _DEFAULT = {
         # đầu tiên, dùng luôn con số đó làm ngân sách thay vì đợi khai tay.
         #
         # safety_factor: chừa biên vì hạn mức mỗi phút là cửa sổ TRƯỢT (phần vừa gửi hỏng vẫn
-        # còn nằm trong cửa sổ) và bộ đếm token của Naota chỉ là ước lượng.
+        # còn nằm trong cửa sổ) và bộ đếm token của NAOSO chỉ là ước lượng.
         "learned_quota": {
             "enabled": True,
             "reserved_output_tokens": 1200,
@@ -602,7 +602,7 @@ def _settings_sig_now():
 
 
 # 2026-11-13: that one stat ran four times per request on the event loop (both guards, twice each). On a disk that
-# stalls it froze every request, so the loop now reads the signature from memory (kept.py). A save through Naota drops
+# stalls it froze every request, so the loop now reads the signature from memory (kept.py). A save through NAOSO drops
 # it and shows at once; a hand edit of the file shows on the event loop about a second later.
 _SETTINGS_SIG = kept.Value(lambda: _settings_sig_now(), key=lambda: str(SETTINGS_PATH), name="settings.json")
 
@@ -624,7 +624,7 @@ class SettingsUnreadable(RuntimeError):
 
 # Đọc lại mấy lần trước khi coi file là hỏng. Lỗi đọc THOÁNG QUA là chuyện thường trên Windows: phần
 # mềm diệt virus hay trình đồng bộ khoá file vừa được ghi trong vài chục mili giây, và
-# `os.replace` của chính Naota cũng khoá đích trong tích tắc. Đọc đúng lúc đó là PermissionError.
+# `os.replace` của chính NAOSO cũng khoá đích trong tích tắc. Đọc đúng lúc đó là PermissionError.
 _READ_TRIES = 6
 
 
@@ -682,7 +682,7 @@ def _doc_file_settings() -> dict:
             # Không mở được file (khoá, quyền), chứ không phải nội dung hỏng: file thật vẫn còn nguyên
             # đó. Coi là máy mới thì lần ghi kế tiếp xoá nó.
             raise SettingsUnreadable(f"settings.json không đọc được ({type(e).__name__}: {e}) và không có bản "
-                                     f"dự phòng dùng được. Naota KHÔNG coi đây là máy mới để khỏi ghi đè cấu hình thật.")
+                                     f"dự phòng dùng được. NAOSO KHÔNG coi đây là máy mới để khỏi ghi đè cấu hình thật.")
         # Nội dung hỏng THẬT (JSON vỡ qua mọi lần đọc lại) và không có .bak: bản hỏng đã được giữ ở
         # `.bad-*` bên trên, nên vẫn như trước: chạy bằng mặc định để chủ cài lại được.
     return {}
@@ -922,7 +922,7 @@ def _no_rong_pham_vi_bo_nao(cfg: dict) -> bool:
     thì máy đã cài rồi KHÔNG BAO GIỜ thấy. Mặc định mới chỉ tới được máy cài mới.
 
     Nó cắn đúng chỗ đau nhất: trước đây, `memory_canary` và `lazy_skill_canary` chỉ cho
-    "api". Mọi máy chạy Naota từ trước mốc đó có file settings.json ghim cứng `["api"]`. Chủ
+    "api". Mọi máy chạy NAOSO từ trước mốc đó có file settings.json ghim cứng `["api"]`. Chủ
     máy nâng cấp lên, bấm mức Tối ưu, thấy trang báo xanh "đã bật, có hiệu lực ngay" - rồi
     mọi lượt chat trên gói ChatGPT hay gói Claude vẫn gửi nguyên CLAUDE.md, vì cả ba nguồn
     đều bị loại với lý do `provider_kind_not_allowed`. Không lỗi, không cảnh báo, chỉ có dòng
@@ -962,7 +962,7 @@ def _ui_lang_ban_cu(cfg: dict, data: dict) -> None:
 
     mặc định `ui_lang` là "" (chưa chọn: dashboard đoán theo trình duyệt). Máy cài
     trước khi có khối locale thì file của nó không có khoá này, và đọc ra "" sẽ làm người dùng
-    Việt có trình duyệt để tiếng Anh bị đổi giao diện trong im lặng. Hồi đó Naota chỉ có tiếng
+    Việt có trình duyệt để tiếng Anh bị đổi giao diện trong im lặng. Hồi đó NAOSO chỉ có tiếng
     Việt, nên "vi" là đúng sự thật chứ không phải đoán. Chỉ chạm vào bộ nhớ, không ghi file.
     """
     if data and "ui_lang" not in (data.get("locale") or {}):
@@ -1107,12 +1107,12 @@ def _write_settings_full(cfg):
     _ghi_nguyen_tu(json.dumps(out, ensure_ascii=False, indent=2))
 
 
-# ---- Account block edited outside Naota ----
-# Someone with a shell on the VPS changed username, password and 2FA by editing settings.json. Every path in Naota that
+# ---- Account block edited outside NAOSO ----
+# Someone with a shell on the VPS changed username, password and 2FA by editing settings.json. Every path in NAOSO that
 # changes a password also ends the other sessions, but an edit of the file ends nothing, so the owner stayed signed in
 # and noticed only by chance. Each write through write_settings records a fingerprint of the account block in
 # .auth_stamp.json; a file whose account block no longer matches was changed by something else (a shell, an editor, an
-# agent writing the file). Naota then ends every session, logs the event and tells the owner.
+# agent writing the file). NAOSO then ends every session, logs the event and tells the owner.
 # It detects, it does not prevent: whoever can write settings.json can also rewrite the stamp, if they know about it.
 _AUTH_CHECK = {"sig": None, "pending": 0.0}
 AUTH_GUARD_GRACE = 2.0
@@ -1166,11 +1166,11 @@ def _stamp_auth(raw_auth) -> None:
 
 
 def auth_guard_check(grace: float = None):
-    """Compare the account block on disk with the last one Naota wrote. Returns None when nothing is wrong, or
+    """Compare the account block on disk with the last one NAOSO wrote. Returns None when nothing is wrong, or
     {"changed": [parts]} once, the first time an outside change is confirmed (sessions already ended, event logged).
 
     Cheap on the hot path: nothing is read again while the file's (mtime, size) stays the same. A mismatch must last
-    `grace` seconds before it counts, so a write by another Naota process (stamp first, file a moment later) is
+    `grace` seconds before it counts, so a write by another NAOSO process (stamp first, file a moment later) is
     never taken for an attack. No stamp yet (first run of this version) = adopt the current block silently."""
     grace = AUTH_GUARD_GRACE if grace is None else grace
     with _SETTINGS_LOCK:
@@ -1222,7 +1222,7 @@ def auth_guard_check(grace: float = None):
             security_log.forget_networks()
         except Exception:  # noqa: BLE001
             pass
-        print(f"[auth] settings.json: the account block ({', '.join(changed)}) was changed OUTSIDE Naota. "
+        print(f"[auth] settings.json: the account block ({', '.join(changed)}) was changed OUTSIDE NAOSO. "
               f"All {n} sessions were ended.", file=__import__('sys').stderr)
         return {"changed": changed}
 
@@ -1291,7 +1291,7 @@ def apply_tool_env(cfg=None):
 
 
 def child_utf8_env(env=None, os_name=None) -> dict:
-    """Windows: every child process Naota starts (engine CLIs, and through them the shell commands and Python scripts a
+    """Windows: every child process NAOSO starts (engine CLIs, and through them the shell commands and Python scripts a
     Team member or a chat turn runs) prints UTF-8. Without it a Python child writing Vietnamese to a pipe uses the ANSI
     code page (cp1252) and dies with UnicodeEncodeError. PYTHONUTF8 turns on UTF-8
     mode (3.7+); PYTHONIOENCODING also covers older or embedded interpreters. A value the user set is kept. Applied when
@@ -1321,12 +1321,12 @@ def auth_enabled(cfg=None):
 
 
 def require_login():
-    """Có BẮT BUỘC đăng nhập để dùng Naota không (kể cả khi CHƯA đặt mật khẩu → ép setup).
+    """Có BẮT BUỘC đăng nhập để dùng NAOSO không (kể cả khi CHƯA đặt mật khẩu → ép setup).
     - NAOTA_REQUIRE_LOGIN=1/0 ép bật/tắt tường minh.
     - Built-in remote access (Cloudflare Tunnel, remote_tunnel.py) is on → True.
     - Mặc định: BẬT khi server nghe public (NAOTA_HOST=0.0.0.0, vd Docker/Hostinger/VPS) -
       vì Claude chạy full quyền, không được để hở ai cũng vào được."""
-    # The built-in Cloudflare Tunnel (remote_tunnel.py) puts a localhost-only Naota on the Internet, which the bind
+    # The built-in Cloudflare Tunnel (remote_tunnel.py) puts a localhost-only NAOSO on the Internet, which the bind
     # address below cannot see. It wins over an explicit NAOTA_REQUIRE_LOGIN=0 for the same reason.
     try:
         if (read_settings().get("remote_tunnel") or {}).get("enabled"):
@@ -1604,7 +1604,7 @@ def valid_session(token):
     if not token:
         return False
     try:
-        auth_guard_check()   # an account block edited outside Naota ends every session (see auth_guard_check)
+        auth_guard_check()   # an account block edited outside NAOSO ends every session (see auth_guard_check)
     except Exception:  # noqa: BLE001
         pass
     if token not in SESSIONS:
@@ -1754,10 +1754,10 @@ def drop_session_by_id(sid: str) -> bool:
 _TOKENS_PATH = STATE_DIR / ".api_tokens.json"
 TOKEN_PREFIX = "nts_"
 # Đường mà token scope `chat` được đi. Danh sách TRẮNG, khớp theo tiền tố: thiếu tên nào thì
-# token đó bị từ chối chứ không lọt - fail-closed, đúng nếp của mọi hàng rào khác trong Naota.
+# token đó bị từ chối chứ không lọt - fail-closed, đúng nếp của mọi hàng rào khác trong NAOSO.
 TOKEN_SCOPE_CHAT = ("/chat", "/version", "/health", "/sessions")
 # Scope `sync` (20/11/2026): only saves Claude Code / Codex transcripts (POST /chat/external, see chat_bridge
-# `log_transcript`). Naota Gate mints one when the owner turns Naota Sync on from an outside AI, so connecting Gate is
+# `log_transcript`). NAOSO Gate mints one when the owner turns NAOSO Sync on from an outside AI, so connecting Gate is
 # all the setup there is. It can do what naota_chat_note already does and nothing else: no chat turn, no reading.
 TOKEN_SCOPE_SYNC = ("/chat/external",)
 TOKEN_SCOPES = ("full", "chat", "sync")

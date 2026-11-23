@@ -2,9 +2,9 @@
 
 *[Tiếng Việt](../17-khac-phuc-su-co.md) · **English***
 
-This page gathers the problems people hit most often with NAOTA and how to work through each one. Most of them need only one of two actions: restart the server, or reload the browser with Ctrl+Shift+R. A short FAQ closes the page.
+This page gathers the problems people hit most often with NAOSO and how to work through each one. Most of them need only one of two actions: restart the server, or reload the browser with Ctrl+Shift+R. A short FAQ closes the page.
 
-If you have just installed Naota for the first time, read [Getting started and first setup](01-getting-started.md) first. If you are editing environment variables, see [.env configuration](16-env-configuration.md).
+If you have just installed NAOSO for the first time, read [Getting started and first setup](01-getting-started.md) first. If you are editing environment variables, see [.env configuration](16-env-configuration.md).
 
 ## Before you read on: the two rescue actions used most
 
@@ -26,20 +26,20 @@ A great many errors disappear after one of these, so try them before worrying:
 | **Port 7777 is held** and the new build will not come up | Kill the old process FIRST, then start again. Windows: run `stop-naota.bat`, or `taskkill /F /PID <pid>` with the PID holding the port. Docker: `docker compose down` then `docker compose up -d`. |
 | **Hostinger cannot pull the image** | Set the GHCR package to **Public** (GitHub, the repo, Packages, choose `naota`, Package settings, Visibility = Public). Then wait for the GitHub Action build to finish (the repo's Actions tab) and Deploy again. |
 | Opening the app shows the **create-admin screen** on a public server | No admin exists yet, so whoever opens the link first can create it. Create the account now (password at least 8 characters), or next time preset the env vars `NAOTA_ADMIN_USER` and `NAOTA_ADMIN_PASSWORD` at deploy time and sign straight in. Once inside, turn on 2FA. |
-| **Claude reports it is not signed in** (Naota cannot answer) | Sign the Claude "brain" in once. In the app: open **Models**, on the Claude Code card click **Sign in to Claude**, open the link, paste the code if asked. By command: `claude auth login --claudeai` (on Docker, run it in the App terminal). |
+| **Claude reports it is not signed in** (NAOSO cannot answer) | Sign the Claude "brain" in once. In the app: open **Models**, on the Claude Code card click **Sign in to Claude**, open the link, paste the code if asked. By command: `claude auth login --claudeai` (on Docker, run it in the App terminal). |
 | **The Files page errors at "Loading..."** | The server has no Files endpoint yet (a 404). **Restart the server** to load the new endpoint, then press **Ctrl+Shift+R**. |
 | Images in old conversations show a grey **Image expired** box | By design: `attachments/` and `inbox/` are a cache, and files over 30 days (or when the 300MB ceiling is passed) are cleared. See "Old images and files disappear" below for how to keep them or turn clearing off. |
 | Voice / microphone will not turn on | Browsers only grant microphone permission over **HTTPS** (or on localhost). Opening `http://<ip>:7777` is always blocked. Use an `https://` URL (Hostinger `*.hstgr.cloud`, Cloudflare Tunnel, or a custom domain with SSL). See [Branding and custom domains](15-branding-and-domains.md). |
 | You updated in the app but **the version did not change** | Wait a little longer; if it still reports the old build, check the update log: `update.log` in the state folder (`server/update.log` locally, `/data/state/update.log` on Docker), or `docker compose logs`. |
-| **`naota` reports 401** or "invalid token" | The token is wrong or was revoked. Create a new one at **Integrations > API tokens** then run `naota login <address>` again. See [The Naota CLI](24-cli.md). |
+| **`naota` reports 401** or "invalid token" | The token is wrong or was revoked. Create a new one at **Integrations > API tokens** then run `naota login <address>` again. See [The NAOSO CLI](24-cli.md). |
 | **`naota task add` / `naota brain ls` report 403** | Your token is the **chat only** kind. These commands need a **full power** token, so create one at Integrations > API tokens. |
-| **`naota up` reports it cannot find a Naota install** | Exactly as it says: the CLI package does NOT contain the server. Point `NAOTA_HOME` at the Naota folder, run the command from inside that folder, or use `naota login <address>` to connect to a Naota running elsewhere. |
+| **`naota up` reports it cannot find a NAOSO install** | Exactly as it says: the CLI package does NOT contain the server. Point `NAOTA_HOME` at the NAOSO folder, run the command from inside that folder, or use `naota login <address>` to connect to a NAOSO running elsewhere. |
 
 The sections below explain each row in more detail.
 
 ## You edited code and nothing changed
 
-Naota has two parts that run differently, so refreshing them differs too:
+NAOSO has two parts that run differently, so refreshing them differs too:
 
 1. **Changing the core (Python `.py` files in `server/`)**: the running server still holds the old build in memory. You must **stop and start the server**:
    - Windows: run `stop-naota.bat`, wait a few seconds, then run `start-naota.vbs`.
@@ -67,7 +67,7 @@ When deploying through Hostinger Docker Manager and it cannot download the image
 
 ## Opening the app shows the create-admin screen on a public server
 
-When Naota runs public (Docker/VPS/Hostinger) with no admin yet, opening the app the first time shows the create-account screen, which only asks for a username and password. That means **whoever opens the link first can create the admin** (and the engine runs with full power on the machine), so:
+When NAOSO runs public (Docker/VPS/Hostinger) with no admin yet, opening the app the first time shows the create-account screen, which only asks for a username and password. That means **whoever opens the link first can create the admin** (and the engine runs with full power on the machine), so:
 
 1. **Preset the admin at deploy time (recommended)**: the two env vars `NAOTA_ADMIN_USER` and `NAOTA_ADMIN_PASSWORD` in the compose file or `.env`. Then opening the app takes you straight to sign-in.
 2. **Without the env vars**: create the account right after deploying, with a password of at least 8 characters.
@@ -77,7 +77,7 @@ Security details and how to set a password: [Security and accounts](14-security-
 
 ## Claude reports it is not signed in
 
-When you run the Claude engine, Naota borrows the `claude` CLI's own login session on the machine: sign in once and it survives every restart and update. If Naota does not answer or reports it is not signed in:
+When you run the Claude engine, NAOSO borrows the `claude` CLI's own login session on the machine: sign in once and it survives every restart and update. If NAOSO does not answer or reports it is not signed in:
 
 1. **In the interface:** open **Models** (the **Connections** group on the left nav rail). On the Claude Code card, the status line reads **○ Not signed in**. Click **Sign in to Claude**, the app shows a link; open it to sign in to claude.ai; if the page shows a code, paste it into the field and click **Send code**. When it finishes, the status changes to **● Connected**. There is a **↻ Check again** button to refresh the status.
 2. **By command:** run `claude auth login --claudeai` once (on Docker, run it in the **App terminal**), open the link, paste the code.
@@ -94,7 +94,7 @@ If it reports an expired session (a 401), just reload the page and sign in again
 
 Scrolling back through an old conversation and finding only a grey box reading **Image expired**, or a file you once uploaded no longer opening: this is deliberate behaviour, not a bug.
 
-A brain's `attachments/` and `inbox/` folders (images Naota generated, files you sent through chat or Telegram) are treated as a **cache**, not as knowledge. Knowledge is the `.md` files. Naota clears them under two rules:
+A brain's `attachments/` and `inbox/` folders (images NAOSO generated, files you sent through chat or Telegram) are treated as a **cache**, not as knowledge. Knowledge is the `.md` files. NAOSO clears them under two rules:
 
 | Rule | Default | Meaning |
 |---|---|---|
@@ -118,34 +118,34 @@ A note if you have GitHub sync on: `attachments/` and `inbox/` ARE within the sy
 
 ## The provider reports a rate limit
 
-The free tiers of API providers (Groq most visibly) tighten **four things in parallel**, and each demands a completely different response. Naota reads the error message and classifies it, so reading the notice in chat tells you which one you hit:
+The free tiers of API providers (Groq most visibly) tighten **four things in parallel**, and each demands a completely different response. NAOSO reads the error message and classifies it, so reading the notice in chat tells you which one you hit:
 
-- **Tokens per minute, this turn is too large.** Naota shortens the context itself and resends. If it still does not fit, turn on the **Optimised** level at the top of the Usage page, or ask a shorter question.
-- **Tokens per minute, the window is full.** Earlier turns have not aged out. Naota waits exactly the number of seconds the provider states then resends. Shortening the question does not help.
+- **Tokens per minute, this turn is too large.** NAOSO shortens the context itself and resends. If it still does not fit, turn on the **Optimised** level at the top of the Usage page, or ask a shorter question.
+- **Tokens per minute, the window is full.** Earlier turns have not aged out. NAOSO waits exactly the number of seconds the provider states then resends. Shortening the question does not help.
 - **Requests per minute.** Calls came too thick and fast. Wait a moment then ask again.
 - **A DAILY limit** (tokens or requests). The day's quota is spent. Shortening the question does not help at all. You have to wait for the new day, switch temporarily to another brain on the **Models** page, or upgrade your plan with the provider.
 
-If Naota cannot classify it, it shows the **provider's error message verbatim** rather than guessing. Sending that exact sentence in a bug report makes it far easier to trace.
+If NAOSO cannot classify it, it shows the **provider's error message verbatim** rather than guessing. Sending that exact sentence in a bug report makes it far easier to trace.
 
-To hit this far less often: choose the **Optimised** or **Ultra-saving** level at the top of the **Usage** page (new machines default to Ultra-saving). After the first refusal, Naota remembers that account's real limits (as stated by the provider itself) and keeps the context under the threshold on later turns, with nothing to declare.
+To hit this far less often: choose the **Optimised** or **Ultra-saving** level at the top of the **Usage** page (new machines default to Ultra-saving). After the first refusal, NAOSO remembers that account's real limits (as stated by the provider itself) and keeps the context under the threshold on later turns, with nothing to declare.
 
-### When the provider stumbles once, Naota re-asks by itself
+### When the provider stumbles once, NAOSO re-asks by itself
 
-A model call that fails on a **transient** error (429 too many calls, 5xx overload, a network blip) is retried automatically up to three times, seconds apart. If the provider sends `Retry-After`, Naota obeys that exact number of seconds. You usually see nothing at all, only an answer arriving a second or two later.
+A model call that fails on a **transient** error (429 too many calls, 5xx overload, a network blip) is retried automatically up to three times, seconds apart. If the provider sends `Retry-After`, NAOSO obeys that exact number of seconds. You usually see nothing at all, only an answer arriving a second or two later.
 
-Two cases where Naota **deliberately does not** retry:
+Two cases where NAOSO **deliberately does not** retry:
 
 - **The answer already started appearing.** Retrying would make you read the answer twice.
 - **The turn already ran tools** (sent a message, wrote a file, scheduled something). Retrying the whole round would do those things a second time. Better to report the error.
 
-If all three attempts fail, Naota reports the provider's error verbatim with the note *(retried 3 times)* so you know it was not a momentary blip. **Non**-transient errors (a wrong key, a wrong model name, a spent daily quota, exceeding the context size) are reported on the first attempt, because retrying identically only burns another call to receive the same error.
+If all three attempts fail, NAOSO reports the provider's error verbatim with the note *(retried 3 times)* so you know it was not a momentary blip. **Non**-transient errors (a wrong key, a wrong model name, a spent daily quota, exceeding the context size) are reported on the first attempt, because retrying identically only burns another call to receive the same error.
 
 ## Where to see the logs
 
 There are several places, depending on what you want to see:
 
-1. **The log of Naota running in the background**: open the **Work** group on the left nav rail, choose **Recurring jobs**, and scroll to **Recent log**. This is where turns of Naota waking to do a job are recorded, filterable per loop. See [Recurring jobs and reminders](08-recurring-jobs.md).
-2. **The self-learning log**: the **Self-learning** page (**Brain** group) has two separate panels, **What Naota taught itself (latest commit)** and **Learning log**. See [Self-learning](22-self-learning.md).
+1. **The log of NAOSO running in the background**: open the **Work** group on the left nav rail, choose **Recurring jobs**, and scroll to **Recent log**. This is where turns of NAOSO waking to do a job are recorded, filterable per loop. See [Recurring jobs and reminders](08-recurring-jobs.md).
+2. **The self-learning log**: the **Self-learning** page (**Brain** group) has two separate panels, **What NAOSO taught itself (latest commit)** and **Learning log**. See [Self-learning](22-self-learning.md).
 3. **The Updates page** (**System** group, the page title is **Update log**): this is where you see the running version and the feature history per release. There is no separate "Logs" or "Activity log" page any more; the `logs` item on the rail is this page.
 4. **The server's technical log** (when you need to dig into an error):
    - Windows running in the background through `start-naota.vbs`: the log is at `server\naota.log`.
@@ -161,27 +161,27 @@ No, if you run Docker. Every note, brain, setting and even the Claude login toke
 
 ### How does in-app updating work?
 
-Open **System → Settings → Updates**; the **NAOTA** card shows the running version and checks GitHub for a newer one. If there is one, the status line reads **🆕 New version available** with a **What's new** panel, and the **⬆ Update now** button appears when the environment supports it. Click it, confirm, and the app runs through the 6 steps shown on the progress bar (Prepare, Download code, Install libraries, Restart, Health check, Done) then reloads the page. If the new build is broken, Naota **rolls back by itself** and reports **↩ The new build failed, rolled back**. Below the card is the update-log timeline of released versions.
+Open **System → Settings → Updates**; the **NAOSO** card shows the running version and checks GitHub for a newer one. If there is one, the status line reads **🆕 New version available** with a **What's new** panel, and the **⬆ Update now** button appears when the environment supports it. Click it, confirm, and the app runs through the 6 steps shown on the progress bar (Prepare, Download code, Install libraries, Restart, Health check, Done) then reloads the page. If the new build is broken, NAOSO **rolls back by itself** and reports **↩ The new build failed, rolled back**. Below the card is the update-log timeline of released versions.
 
 An install directly on the machine (Windows, Linux, macOS) can always update itself. The Docker build only updates in place when the **Watchtower** container is running.
 
 Watchtower **ships by default** in both the VPS compose and the Hostinger compose, so a fresh install has the button. Still missing it means the stack is running from an older compose file: Watchtower used to sit under `profiles: ["update"]` (which `docker compose up -d` does not start) and the Hostinger stack shipped without it. The way out is to fetch the new compose and bring it up again - on a VPS run `curl -fsSLO https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.yml` then `docker compose up -d --pull always`; on Hostinger hit **Redeploy** in Docker Manager. Not ready to swap the file? `docker compose --profile update up -d` starts it on its own. The Updates panel tells you which case your machine is in.
 
-**The stack reports "Partially running" after updating the compose file**: almost always the `<name>-watchtower` container failing to reach the host's Docker socket (Hostinger has hit exactly this). The Naota app is unaffected - it is a separate container and keeps running; you simply lose the "Update now" button and fall back to Redeploy. The real reason is in the log: `docker logs naota-watchtower`.
+**The stack reports "Partially running" after updating the compose file**: almost always the `<name>-watchtower` container failing to reach the host's Docker socket (Hostinger has hit exactly this). The NAOSO app is unaffected - it is a separate container and keeps running; you simply lose the "Update now" button and fall back to Redeploy. The real reason is in the log: `docker logs naota-watchtower`.
 
-**After an update the domain answers 404 and the Naota container is gone from Docker**: Watchtower stops Naota, removes the old container, and only then creates the new one. On a VPS with a slow disk the removal can run past Watchtower's time limit (the `naota-watchtower` log shows `Failed to remove container ... context deadline exceeded`): Watchtower gives up without creating the new one, while Docker still finishes removing the old one. Since the release that added the `naota-guard` container this heals itself: when Naota has been gone or stopped halfway for 2 minutes, `naota-guard` creates it again (on the new version) or starts it again; see what it did with `docker logs naota-guard`. A machine without `naota-guard` needs one **Redeploy** (VPS: fetch the new compose file as above, then `docker compose up -d --pull always`), which brings Naota back together with `naota-guard` for next time. Data lives in volumes, so nothing is lost.
+**After an update the domain answers 404 and the NAOSO container is gone from Docker**: Watchtower stops NAOSO, removes the old container, and only then creates the new one. On a VPS with a slow disk the removal can run past Watchtower's time limit (the `naota-watchtower` log shows `Failed to remove container ... context deadline exceeded`): Watchtower gives up without creating the new one, while Docker still finishes removing the old one. Since the release that added the `naota-guard` container this heals itself: when NAOSO has been gone or stopped halfway for 2 minutes, `naota-guard` creates it again (on the new version) or starts it again; see what it did with `docker logs naota-guard`. A machine without `naota-guard` needs one **Redeploy** (VPS: fetch the new compose file as above, then `docker compose up -d --pull always`), which brings NAOSO back together with `naota-guard` for next time. Data lives in volumes, so nothing is lost.
 
 **A compose command reporting `not found`** comes in three shapes with three entirely different causes:
 
 | Error | Cause | What to do |
 |---|---|---|
 | `no configuration file provided: not found` | You are in the wrong folder. The folder name depends on how you cloned: `naota` if you followed the command in DEPLOY.md, `naota` if you cloned straight without renaming | `cd` into the folder holding `docker-compose.yml`. If you cannot remember where it is, ask Docker: `docker ps --format '{{.Names}}\t{{.Label "com.docker.compose.project.working_dir"}}'` |
-| `docker: command not found` | You are typing **inside** the Naota container (the app's terminal) rather than on the host | SSH into the VPS and type it there |
+| `docker: command not found` | You are typing **inside** the NAOSO container (the app's terminal) rather than on the host | SSH into the VPS and type it there |
 | `docker: 'compose' is not a docker command` | An old Compose (v1) | Write it hyphenated: `docker-compose --profile update up -d` |
 
 ### Can I run several brains (second brains)?
 
-Yes. Naota manages several brains in the `brains/` folder. From the brain dropdown in the interface you can:
+Yes. NAOSO manages several brains in the `brains/` folder. From the brain dropdown in the interface you can:
 
 1. Create a new brain: click the add-brain button and give it a name when asked.
 2. Switch brain: pick another one in the dropdown; the Files page, the graph and the memory all follow the selected brain.
@@ -191,9 +191,9 @@ Details in [Second Brain: memory, Wiki, INGEST](13-second-brain.md).
 
 ### Can a deleted brain be recovered?
 
-Yes, within 30 days. Deleting a brain is not permanent: Naota moves the whole brain folder to a **local trash** at `brain-trash` inside the state folder (`server/brain-trash` locally, `/data/state/brain-trash` on Docker), named `<brain name>__<date time>`. That copy is kept 30 days before being cleared, and it does **not** go to the sync repo. To recover, copy the folder back into `brains/` and reload the page.
+Yes, within 30 days. Deleting a brain is not permanent: NAOSO moves the whole brain folder to a **local trash** at `brain-trash` inside the state folder (`server/brain-trash` locally, `/data/state/brain-trash` on Docker), named `<brain name>__<date time>`. That copy is kept 30 days before being cleared, and it does **not** go to the sync repo. To recover, copy the folder back into `brains/` and reload the page.
 
-Conversely, the deletion **propagates to other machines** syncing the same repo (Naota writes a "tombstone" so the other machine does not resurrect the deleted brain). So if you want to recover, do it soon and do it on the machine that still holds the trash copy.
+Conversely, the deletion **propagates to other machines** syncing the same repo (NAOSO writes a "tombstone" so the other machine does not resurrect the deleted brain). So if you want to recover, do it soon and do it on the machine that still holds the trash copy.
 
 ### Are uploaded images and files kept forever?
 

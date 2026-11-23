@@ -1,6 +1,6 @@
-"""Brain backup on the GitHub account Naota is already signed in to (owner, 20/11/2026).
+"""Brain backup on the GitHub account NAOSO is already signed in to (owner, 20/11/2026).
 
-The owner: "Naota can sign in to GitHub directly now, but the two-way sync on the Self-learning page is still manual. Once
+The owner: "NAOSO can sign in to GitHub directly now, but the two-way sync on the Self-learning page is still manual. Once
 GitHub is connected, linking the backup should be easy too." Before this module the backup card wanted a repository URL
 and a fine-grained token made by hand on github.com, even on a machine whose Connections page already showed @login.
 
@@ -14,9 +14,9 @@ What it adds:
   - `link(full_name)`: point the backup at one of them and switch automatic sync on. The URL comes from GitHub's own
     `clone_url`, so GitHub Enterprise and the test fake work the same.
   - `create(name)`: make a new private repo. A classic token with `repo` can; a "Sign in with GitHub" token cannot,
-    because the Naota app does not ask for the Administration permission, so GitHub answers 403. Then the answer
+    because the NAOSO app does not ask for the Administration permission, so GitHub answers 403. Then the answer
     carries `manual` with a github.com/new link already filled in (name, private) and, for an app sign-in, the page
-    that lets Naota see the new repo, so the person still never makes a token.
+    that lets NAOSO see the new repo, so the person still never makes a token.
   - `unlink()`: stop syncing. The repo on GitHub is never touched.
 
 Stdlib plus github_api (httpx). No FastAPI, no main import: testable in isolation.
@@ -137,8 +137,8 @@ def link(full_name: str) -> Dict[str, Any]:
         r = _client().repo(fn)
     except GitHubError as e:
         if e.status == 404:
-            raise BackupLinkError(_c(f"Naota không thấy repository {fn}. Kiểm tra tên, hoặc cho Naota quyền vào repo đó.",
-                                     f"Naota cannot see the repository {fn}. Check the name, or give Naota access to it."))
+            raise BackupLinkError(_c(f"Naota không thấy repository {fn}. Kiểm tra tên, hoặc cho NAOSO quyền vào repo đó.",
+                                     f"Naota cannot see the repository {fn}. Check the name, or give NAOSO access to it."))
         raise BackupLinkError(_c(f"Không đọc được repository: {e}", f"Could not read the repository: {e}"))
     if not r.get("private"):
         raise BackupLinkError(_c("Repository này đang công khai. Brain có ghi chú và số liệu riêng, chỉ dùng repository riêng tư.",
@@ -155,7 +155,7 @@ def manual_steps(name: str = DEFAULT_NAME) -> Dict[str, Any]:
     conn = gh.status()
     web = "https://github.com"
     new_url = (f"{web}/new?name={quote(name)}&visibility=private"
-               f"&description={quote('Naota brain backup')}")
+               f"&description={quote('NAOSO brain backup')}")
     return {"manual": True, "new_url": new_url, "name": name,
             "install_url": conn.get("install_url") if conn.get("source") == "app" else ""}
 
@@ -169,7 +169,7 @@ def create(name: str = DEFAULT_NAME) -> Dict[str, Any]:
     cl = _client()
     try:
         r = cl.post("/user/repos", json={"name": name, "private": True, "auto_init": False,
-                                         "description": "Naota brain backup"})
+                                         "description": "NAOSO brain backup"})
     except GitHubError as e:
         if e.status == 422:
             # The name is taken on this account: most often the repo made on another machine. Link it when it is a

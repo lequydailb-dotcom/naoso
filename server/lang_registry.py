@@ -65,7 +65,7 @@ class Lang:
 
     # --- chữ để dựng prompt ---
     # Một câu viết bằng CHÍNH ngôn ngữ này. Model mạnh không cần, nhưng model nhỏ (Groq,
-    # Ollama Cloud) trôi theo ngôn ngữ của prompt, và prompt của Naota là tiếng Việt.
+    # Ollama Cloud) trôi theo ngôn ngữ của prompt, và prompt của NAOSO là tiếng Việt.
     nudge: str = ""
     weekdays: Tuple[str, ...] = ()          # thứ 2 -> chủ nhật, đúng thứ tự datetime.weekday()
     # Chỗ điền: {hm} {weekday} {date} {tz}, ĐÚNG bốn cái này. improvement_trial_dashboard dựng lại câu này với đúng bốn
@@ -183,7 +183,7 @@ LANGS: Dict[str, Lang] = {
 
 # ---------------------------------------------------------------- reply languages (2026-11-15)
 #
-# Owner, 2026-11-15: "Naota must work and talk in ANY language, like Claude or ChatGPT", "let the
+# Owner, 2026-11-15: "NAOSO must work and talk in ANY language, like Claude or ChatGPT", "let the
 # model handle the language", and "the language setting only sets the interface". So nothing in
 # Settings or on a bot names a reply language any more: the model answers in whatever language the
 # person writes. This catalog serves the few places that still NAME a language for a reason: a voice
@@ -268,7 +268,7 @@ def reply_code(code: str) -> str:
     """A reply-language code ("ja", "zh-tw") for any spelling ("ja-JP", "zh_Hant", "FIL"), "" when unknown.
 
     Wider than `chuan_hoa`, which only knows the languages with a full registry entry. Use this
-    where a person NAMES the language Naota answers in; use `chuan_hoa` for the interface.
+    where a person NAMES the language NAOSO answers in; use `chuan_hoa` for the interface.
     """
     s = str(code or "").strip().lower().replace("_", "-")
     if not s:

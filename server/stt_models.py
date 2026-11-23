@@ -1,6 +1,6 @@
-"""Each vendor's best speech-to-text model, found by asking the vendor instead of a name written in Naota.
+"""Each vendor's best speech-to-text model, found by asking the vendor instead of a name written in NAOSO.
 
-Owner: "pick the vendor's best Whisper by itself when they upgrade their models, not a hand update in Naota, so it
+Owner: "pick the vendor's best Whisper by itself when they upgrade their models, not a hand update in NAOSO, so it
 scales and we never chase the vendors". The model names used to be constants (`whisper-large-v3`, `gpt-4o-transcribe`,
 `gemini-2.5-flash`), so a vendor's new model reached nobody until someone edited the code. The chat model pickers
 already list live models (main._fetch_provider_models); this does the same for the ears.
@@ -13,7 +13,7 @@ How a model is chosen, per vendor, from its own model list (refreshed once a day
 The ChatGPT plan's ear needs nothing: its endpoint picks the model server side and upgrades with the plan.
 
 Rails, because "newest" is not always "works":
-  - SCORED BEFORE THE SWITCH (stt_gate): a model Naota has not judged yet hears the same short set of sentences as the
+  - SCORED BEFORE THE SWITCH (stt_gate): a model NAOSO has not judged yet hears the same short set of sentences as the
     model in use (Vietnamese, English, and Vietnamese with English terms) and is taken only when it is not worse. The
     verdict is kept in <STATE_DIR>/stt_models.json, so a restart does not score again, and a model that lost is not
     scored again for a month. When nothing can be measured (no Edge voice reachable) the model in use stays, unless

@@ -7,7 +7,7 @@ ours are hard to read and people skip them". Two causes, both fixed here:
 
 1. The bell took the FIRST line of a background run as its title. A model that works with tools often opens with a
    line about what it is about to do ("Em kiểm tra hướng dẫn và lượt nhắc đến hạn, rồi đối chiếu..."), so the card
-   said what Naota was going to do, never what it found. `headline` skips those lines.
+   said what NAOSO was going to do, never what it found. `headline` skips those lines.
 2. Nobody wrote a headline at all. A background run can now end with one hidden block,
    `<!-- NAOTA_NOTIFY: {"title": "...", "line": "...", "act": true} -->`, written by the model that did the work and
    knows what matters. `split_block` takes it out of the text (channels never show it) and the bell uses it.
@@ -85,7 +85,7 @@ def clean_line(s) -> str:
 
 
 def is_narration(line: str) -> bool:
-    """True for a line that says what Naota is about to do rather than what it found."""
+    """True for a line that says what NAOSO is about to do rather than what it found."""
     return bool(_NARRATION.match(clean_line(line)))
 
 

@@ -857,7 +857,7 @@ button.nv-hs-t:active { transform: scale(.97); }
 .nv-toastx:hover { opacity: 1; background: color-mix(in srgb, var(--bg) 14%, transparent); }
 .nv-toastx .ic { width: 18px; height: 18px; }
 
-/* segmented choices (add form: Me / Naota, kind): icon and label spaced, centred */
+/* segmented choices (add form: Me / NAOSO, kind): icon and label spaced, centred */
 .nv-seg button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .nv-seg button .ic { width: 18px; height: 18px; flex: none; }
 

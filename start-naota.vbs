@@ -1,5 +1,5 @@
 ' ============================================
-'  NAOTA - chạy NGẦM (ẩn cửa sổ cmd)
+'  NAOSO - chạy NGẦM (ẩn cửa sổ cmd)
 '  Double-click file này (hoặc start-naota.bat) để bật server ở chế độ nền.
 '  Log ghi vào server\naota.log. Dừng bằng stop-naota.bat.
 ' ============================================
@@ -21,7 +21,7 @@ sh.Run "cmd /c cd /d """ & root & """ && .venv\Scripts\python.exe server\main.py
 
 ' /open = cho server len roi MO dashboard (luc dang nhap may, luc cai xong). Yeu cau:
 ' "cai naota tren win hoac mac thi cai khoi dong cung trinh duyet". Khong co /open (nut Cap nhat, start-naota.bat)
-' thi van chay ngam nhu cu, khong bat cua so nao. Mo dang cua so app giong NAOTA.bat; chu trong file nay chi
+' thi van chay ngam nhu cu, khong bat cua so nao. Mo dang cua so app giong NAOSO.bat; chu trong file nay chi
 ' dung ASCII vi wscript doc file theo ANSI codepage.
 If WScript.Arguments.Count > 0 Then
   If LCase(WScript.Arguments(0)) = "/open" Then MoDashboard

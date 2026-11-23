@@ -1,12 +1,12 @@
-"""Login vault: the owner's sign-in cookies, kept encrypted, reused by Naota.
+"""Login vault: the owner's sign-in cookies, kept encrypted, reused by NAOSO.
 
 The owner signs in on their own browser, exports the cookies of that site and pastes them on the
 "Kho đăng nhập" page. Four shapes are read: a Cookie-Editor JSON export, a Playwright storage state,
-a Netscape cookies.txt and a bare `Cookie:` header. Naota then uses that sign-in to:
+a Netscape cookies.txt and a bare `Cookie:` header. NAOSO then uses that sign-in to:
 
 - open a page behind it for every engine (plugin tool `naota_login`, op=fetch),
 - check a page behind it on a schedule (web_watch, a watch with `login_id`), and
-- since 2026-11-21 put it into the browser the Playwright connection drives, so Naota can click and fill forms
+- since 2026-11-21 put it into the browser the Playwright connection drives, so NAOSO can click and fill forms
   signed in (`naota_login` op=browser, browser_login.py). Only a sign-in whose "act" switch is on goes there.
 
 Rules this module keeps:
@@ -264,7 +264,7 @@ def looks_signed_out(final_url: str, title: str = "", status: int = 0) -> bool:
 _COLS = ("id", "name", "domains", "cookies_enc", "origins_enc", "count", "allow_ai", "test_url", "status",
          "status_note", "checked_at", "used_at", "uses", "expires_at", "created_at", "updated_at",
          "allow_act", "browser_at")
-# Added later. `allow_act`: Naota may click and fill forms with this sign-in (rows stored under the old
+# Added later. `allow_act`: NAOSO may click and fill forms with this sign-in (rows stored under the old
 # "read only" promise keep 0 until the owner switches it on). `browser_at`: when this sign-in was last placed in
 # the browser, 0 = not there, or its cookies were replaced since, or another account of the same site took over.
 _ADDED_COLS = {"allow_act": "INTEGER NOT NULL DEFAULT 0", "browser_at": "REAL NOT NULL DEFAULT 0"}
@@ -378,10 +378,10 @@ def _encrypt(obj) -> str:
     try:
         return secrets_store.encrypt_required(json.dumps(obj, ensure_ascii=False))
     except RuntimeError as e:
-        raise VaultError(localefmt.chu("Máy này chưa mã hoá được dữ liệu (thiếu thư viện cryptography), nên Naota "
-                                       "không lưu đăng nhập. Cài lại Naota hoặc chạy: pip install cryptography",
+        raise VaultError(localefmt.chu("Máy này chưa mã hoá được dữ liệu (thiếu thư viện cryptography), nên NAOSO "
+                                       "không lưu đăng nhập. Cài lại NAOSO hoặc chạy: pip install cryptography",
                                        "This machine cannot encrypt data (the cryptography library is missing), so "
-                                       "Naota will not store sign-ins. Reinstall Naota or run: pip install cryptography")) from e
+                                       "NAOSO will not store sign-ins. Reinstall NAOSO or run: pip install cryptography")) from e
 
 
 def _decrypt(value: str):
@@ -430,17 +430,17 @@ class LoginVault:
         def read_only(row):
             return localefmt.chu(
                 f"Đăng nhập '{row['name']}' đang ở mức chỉ đọc. Chủ bật 'Cho bấm và điền form' ở thẻ đó trong "
-                "trang Cookies thì Naota mới thao tác được.",
-                f"The sign-in '{row['name']}' is read-only. The owner turns on 'Let Naota click and fill forms' on "
-                "its card on the Cookies page before Naota can act with it.")
+                "trang Cookies thì NAOSO mới thao tác được.",
+                f"The sign-in '{row['name']}' is read-only. The owner turns on 'Let NAOSO click and fill forms' on "
+                "its card on the Cookies page before NAOSO can act with it.")
         if login:
             row = self.store.get(login) or self.store.find_name(login)
             if not row:
                 return None, [], localefmt.chu(f"Không có đăng nhập nào tên '{login}' trong trang Cookies.",
                                                f"No sign-in named '{login}' on the Cookies page.")
             if only_allowed and not row.get("allow_ai"):
-                return None, [], localefmt.chu(f"Đăng nhập '{row['name']}' đang tắt quyền cho Naota dùng.",
-                                               f"The sign-in '{row['name']}' is not allowed for Naota.")
+                return None, [], localefmt.chu(f"Đăng nhập '{row['name']}' đang tắt quyền cho NAOSO dùng.",
+                                               f"The sign-in '{row['name']}' is not allowed for NAOSO.")
             if act and not row.get("allow_act"):
                 return None, [], read_only(row)
             ck = _decrypt(row["cookies_enc"])
@@ -587,7 +587,7 @@ class LoginVault:
             await asyncio.to_thread(self.release_browser, row["id"])
             return ""
         return localefmt.chu(
-            f"Đã lưu, nhưng chưa gỡ được phiên '{row['name']}' khỏi trình duyệt của Naota ({why}). Muốn chắc "
+            f"Đã lưu, nhưng chưa gỡ được phiên '{row['name']}' khỏi trình duyệt của NAOSO ({why}). Muốn chắc "
             "chắn, hãy đăng xuất phiên đó ngay trên trang web.",
             f"Saved, but the session '{row['name']}' could not be removed from Naota's browser ({why}). To be "
             "sure, sign that session out on the website itself.")

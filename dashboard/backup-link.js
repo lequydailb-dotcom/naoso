@@ -1,6 +1,6 @@
 /* backup-link.js - brain backup on the signed-in GitHub account (owner, 20/11/2026).
  *
- * The owner: "Naota signs in to GitHub directly now, but the two-way sync on the Self-learning page is still manual.
+ * The owner: "NAOSO signs in to GitHub directly now, but the two-way sync on the Self-learning page is still manual.
  * Once GitHub is connected, linking should be easy too." This draws the top of the "Sync brain with GitHub" box:
  *   connect  no GitHub, no repo: one "Connect GitHub" button (the same sign-in as the Connections page)
  *   pick     GitHub connected, no repo: "Create a private repo" or "Pick an existing one", one tap each
@@ -122,7 +122,7 @@
   }
 
   // GitHub refused to create the repo (a "Sign in with GitHub" token has no Administration permission): github.com/new
-  // already filled in, the page that lets Naota see the new repo when the sign-in is the app, then back to the list.
+  // already filled in, the page that lets NAOSO see the new repo when the sign-in is the app, then back to the list.
   function manualCreate(r, gh, next) {
     var M = window.NaotaConnModal;
     if (!M) return;

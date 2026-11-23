@@ -9,7 +9,7 @@ Bố trí thư mục skill trong 1 brain:
         <brain>/.agents/<slug>          - vị trí rất cũ
   - Skill TẮT: <base>/.disabled/<slug>
 
-Nguyên tắc độc lập engine: đây là router do Naota SỞ HỮU. Mọi engine (Claude/Codex/OpenRouter/
+Nguyên tắc độc lập engine: đây là router do NAOSO SỞ HỮU. Mọi engine (Claude/Codex/OpenRouter/
 OpenAI/Anthropic API) dùng skill qua router này (list bơm vào system prompt + tool naota_use_skill),
 KHÔNG phụ thuộc cơ chế native của Claude. `.claude/skills` chỉ là bản mirror phái sinh (bonus).
 
@@ -55,7 +55,7 @@ SKILL_DESC_MAX = 150
 # 20 là con số của thời brain còn ít skill, và nó có một tác dụng phụ không ai đo: `list_skills`
 # trả theo THỨ TỰ THƯ MỤC, nên `metas[:20]` cắt theo bảng chữ cái. Skill nào tên đứng sau thì
 # KHÔNG BAO GIỜ được router nhìn thấy - không phải vì nó kém quan trọng, mà vì nó tên vần v.
-# Một brain dùng lâu chắc chắn vượt 20, và lúc đó Naota mất skill một cách hoàn toàn tuỳ tiện,
+# Một brain dùng lâu chắc chắn vượt 20, và lúc đó NAOSO mất skill một cách hoàn toàn tuỳ tiện,
 # im lặng (đo thực tế).
 #
 # Nay có HAI trần, và chúng làm hai việc khác nhau:
@@ -116,7 +116,7 @@ def theo_ngon_ngu(meta: dict, khoa: str, lang: str = "") -> str:
     được cả hai), còn mô tả rỗng thì skill BIẾN MẤT khỏi router - hỏng nặng hơn hẳn.
 
     Đây cũng là lý do bản dịch mô tả skill là bước TUỲ CHỌN khi thêm một ngôn ngữ mới: thiếu
-    nó Naota vẫn chạy đúng, chỉ là danh sách skill hiện chữ Việt.
+    nó NAOSO vẫn chạy đúng, chỉ là danh sách skill hiện chữ Việt.
     """
     if not isinstance(meta, dict):
         return ""
@@ -385,7 +385,7 @@ def xep_theo_uu_tien(metas: list, root=None) -> list:
     Vì sao cần. Danh sách skill bị CẮT khi quá trần (xem SKILL_LIST_MAX), mà `list_skills` trả
     theo thứ tự thư mục, tức thứ tự bảng chữ cái. Cắt theo thứ tự đó là để một skill quan
     trọng biến mất khỏi router chỉ vì tên nó vần cuối - hỏng im lặng, và người dùng chỉ thấy
-    "Naota tự dưng không biết làm việc X nữa".
+    "NAOSO tự dưng không biết làm việc X nữa".
 
     `skill_usage` đã đếm sẵn số lần dùng cho đúng việc này, chỉ là chưa ai đọc nó ở đây.
 
@@ -437,7 +437,7 @@ def cat_theo_ngan_sach(metas: list, so_max: int = None, ngan_sach: int = None) -
         desc = (s.get("description") or "").replace("\n", " ")[:SKILL_DESC_MAX]
         dong = len(f"- {s.get('slug', '')} ({s.get('name', '')}): {desc}") + 1
         # Luôn giữ ÍT NHẤT một mục: ngân sách nhỏ tới đâu cũng không được trả về danh sách
-        # rỗng rồi để Naota tự khai là mình không có skill nào - câu đó sai, và sai theo
+        # rỗng rồi để NAOSO tự khai là mình không có skill nào - câu đó sai, và sai theo
         # hướng khiến nó đi tạo lại thứ đã có.
         if giu and tot + dong > ngan_sach:
             break

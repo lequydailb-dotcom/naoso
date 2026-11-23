@@ -9,9 +9,9 @@ Which WeChat this is, and why. WeChat has three official doors and one unofficia
     assistant, not a customer channel.
   - WeCom customer service: needs a verified WeCom company.
   - Unofficial personal-account protocols (pad, web, hooks): against WeChat's terms and get the
-    account banned. Naota does not use them.
+    account banned. NAOSO does not use them.
 
-Same shape as `zalo_oa_bot`: Naota cannot pull messages, WeChat POSTs every message a follower sends
+Same shape as `zalo_oa_bot`: NAOSO cannot pull messages, WeChat POSTs every message a follower sends
 to one URL. Two halves:
 
   - `WeChatBot`: the transport, same contract as `TelegramBot` (start/stop/status/send_text/
@@ -26,9 +26,9 @@ Configuration):
   - AppID (wx + 16 characters) and AppSecret (32 hex characters): fetch the access token
   - EncodingAESKey (43 characters), optional: decrypts messages in Safe mode
   - Original ID (gh_...), optional: tells accounts apart when several run in Plaintext mode
-The `Token` field of WeChat's server configuration is NOT pasted here: Naota generates one for the
+The `Token` field of WeChat's server configuration is NOT pasted here: NAOSO generates one for the
 whole machine and shows it on the Add account form (`/channels/webhook-info`), because WeChat checks
-the URL before any account exists in Naota.
+the URL before any account exists in NAOSO.
 
 Rules of the platform that shape the code:
   1. Five seconds. WeChat wants an answer to its POST within 5 seconds and retries three times, and
@@ -43,7 +43,7 @@ Rules of the platform that shape the code:
      ciphertext and the body is AES encrypted. An account that has an EncodingAESKey accepts
      encrypted messages only, and every request must carry a recent timestamp.
   5. The access token lives 2 hours and the caller's IP must be on the account's IP whitelist
-     (40164). `stable_token` is used so Naota does not invalidate the token of another system
+     (40164). `stable_token` is used so NAOSO does not invalidate the token of another system
      working on the same account.
   6. Text only up to 2048 BYTES, no markdown. JSON must go out as raw UTF-8: WeChat shows
      \\uXXXX escapes literally.
@@ -202,7 +202,7 @@ def decrypt(aes_key: str, encrypted: str) -> tuple:
 
 
 def encrypt(aes_key: str, app_id: str, text: str, random16: bytes = None) -> str:
-    """The reverse of `decrypt`. Naota never sends an encrypted reply (it answers "success" and uses
+    """The reverse of `decrypt`. NAOSO never sends an encrypted reply (it answers "success" and uses
     the customer service API); this exists so the tests build the exact envelope WeChat sends."""
     key = aes_key_bytes(aes_key)
     if key is None:
@@ -337,10 +337,10 @@ def _bot_for_plain(original_id: str):
         return None, "no account"
     for b in unknown:
         b.last_error = localefmt.chu(
-            "Có nhiều tài khoản WeChat nên Naota không biết tin này của tài khoản nào. Thêm ID gốc "
+            "Có nhiều tài khoản WeChat nên NAOSO không biết tin này của tài khoản nào. Thêm ID gốc "
             "(gh_...) vào cuối thông tin đăng nhập của từng tài khoản, hoặc bật Chế độ an toàn kèm "
             "EncodingAESKey.",
-            "Several WeChat accounts run here, so Naota cannot tell which one this message is for. Add "
+            "Several WeChat accounts run here, so NAOSO cannot tell which one this message is for. Add "
             "the Original ID (gh_...) at the end of each account's credentials, or turn on Safe mode "
             "with an EncodingAESKey.")
     return None, "ambiguous"
@@ -384,9 +384,9 @@ async def handle_webhook(raw: bytes, query: dict, token: str) -> tuple:
                 if b.original_id in ("", to):
                     b.last_error = _key_mismatch() if b.aes_key else localefmt.chu(
                         "WeChat đang gửi tin đã mã hoá (Chế độ an toàn) nhưng tài khoản này chưa có "
-                        "EncodingAESKey trong Naota. Sửa kênh, dán thêm EncodingAESKey.",
+                        "EncodingAESKey trong NAOSO. Sửa kênh, dán thêm EncodingAESKey.",
                         "WeChat is sending encrypted messages (Safe mode) but this account has no "
-                        "EncodingAESKey in Naota. Edit the channel and add the EncodingAESKey.")
+                        "EncodingAESKey in NAOSO. Edit the channel and add the EncodingAESKey.")
             print(f"[wechat] encrypted message for {to} but no running account has the EncodingAESKey "
                   "that opens it", file=sys.stderr)
             return 200, "success"
@@ -417,9 +417,9 @@ async def handle_webhook(raw: bytes, query: dict, token: str) -> tuple:
 
 def _key_mismatch() -> str:
     return localefmt.chu(
-        "EncodingAESKey trong Naota không mở được tin WeChat gửi tới. Chép lại đúng EncodingAESKey ở "
+        "EncodingAESKey trong NAOSO không mở được tin WeChat gửi tới. Chép lại đúng EncodingAESKey ở "
         "cấu hình máy chủ của WeChat rồi sửa kênh.",
-        "The EncodingAESKey in Naota does not open the messages WeChat sends. Copy the EncodingAESKey "
+        "The EncodingAESKey in NAOSO does not open the messages WeChat sends. Copy the EncodingAESKey "
         "from WeChat's server configuration again and edit the channel.")
 
 
@@ -718,7 +718,7 @@ class WeChatBot(HangLuot):
         }
         if self.chat_ids and chat not in self.chat_ids:
             await self._send(client, chat, localefmt.chu(
-                "Bạn không có quyền dùng bot Naota này.", "You are not allowed to use this Naota bot."))
+                "Bạn không có quyền dùng bot NAOSO này.", "You are not allowed to use this NAOSO bot."))
             return
         text = await self._message_text(client, msg, chat)
         if not text:
@@ -863,9 +863,9 @@ async def check_credentials(raw: str) -> dict:
 
 # Error codes the owner can act on. Unknown codes keep WeChat's own message.
 _ERRORS = {
-    40164: ("địa chỉ IP của máy chạy Naota chưa nằm trong danh sách IP được phép (IP whitelist) của "
+    40164: ("địa chỉ IP của máy chạy NAOSO chưa nằm trong danh sách IP được phép (IP whitelist) của "
             "tài khoản. Vào Cài đặt và Phát triển, Cấu hình cơ bản, thêm IP nêu trong lỗi",
-            "the IP address of the machine running Naota is not on the account's IP whitelist. In "
+            "the IP address of the machine running NAOSO is not on the account's IP whitelist. In "
             "Settings and Development, Basic Configuration, add the IP named in the error"),
     40001: ("AppSecret sai, hoặc access token không còn hợp lệ", "the AppSecret is wrong, or the access token is no longer valid"),
     40125: ("AppSecret sai", "the AppSecret is wrong"),

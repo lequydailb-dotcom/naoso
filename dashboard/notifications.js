@@ -22,9 +22,9 @@
                 // Both tabs list unread only;
                 // `xemDaDoc` is the "Show N read" link at the bottom, for this opening of the panel only.
                 xemDaDoc: false, an: new Set(), flash: "" };
-  // Naota Core as the notification commander (naota-core-chi-huy-thong-bao): notices
+  // NAOSO Core as the notification commander (naota-core-chi-huy-thong-bao): notices
   // its rules kept quiet are `filtered` and live under "Filtered"; every card takes the owner's feedback in the
-  // two buttons, "Needed" / "Not needed" (emoji go on the notice once it is opened in Naota Core's
+  // two buttons, "Needed" / "Not needed" (emoji go on the notice once it is opened in NAOSO Core's
   // chat, where every answer already takes the six reactions); the "Filter" view sets each group's mode, undoes changes.
   var GROUPS = ["reminder", "suggest", "question", "chatbot", "connection", "incident", "job", "agent", "team", "cost", "update",
     "other"];
@@ -222,7 +222,7 @@
   }
   // Bấm một mẩu thư = quay về ĐÚNG hội thoại đã hỏi. Mở hội thoại MỚI ở đây là sai: toàn bộ
   // ngữ cảnh nằm trong hội thoại cũ, hỏi tiếp ở chỗ khác là phải kể lại từ đầu.
-  // (Naota Core spec 9): an item of another brain switches the dashboard to that brain FIRST (only on this
+  // (NAOSO Core spec 9): an item of another brain switches the dashboard to that brain FIRST (only on this
   // click, never when a report arrives), so the chat opens in the right brain and what you type goes there.
   // Returns true when it switched (the caller then waits for the pages to redraw on the new brain).
   function chuyenBrainNeuCan(item) {
@@ -237,9 +237,9 @@
   function moThu(item) {
     item.read = true;
     docThu({ id: item.id }).then(render);
-    // A notice with no chat of its own opens in Naota Core (copied there with its source
-    // and time, once); a notice that answers a chat opens that chat. No separate "Ask Naota Core" button.
-    // "Store has updates" opens the Naota Store, whose banner lists what can be updated.
+    // A notice with no chat of its own opens in NAOSO Core (copied there with its source
+    // and time, once); a notice that answers a chat opens that chat. No separate "Ask NAOSO Core" button.
+    // "Store has updates" opens the NAOSO Store, whose banner lists what can be updated.
     if (item.channel === "store:updates" && (window.NaotaPacks || window.NaotaNapCham)) {
       closePanel();
       // packs.js nạp chậm (nap-cham.js).
@@ -255,7 +255,7 @@
   function moThuTiep(item) {
     // Hội thoại của một TRỢ LÝ / QUY TRÌNH phải mở ở trang Cộng sự, không đổ vào khung chat
     // của bộ não chính. Đổ nhầm thì hai chuyện xảy ra cùng lúc: người dùng nhìn một đoạn chat
-    // với trợ lý trên màn Naota mà không hiểu vì sao, và phiên đang mở trở thành phiên của
+    // với trợ lý trên màn NAOSO mà không hiểu vì sao, và phiên đang mở trở thành phiên của
     // trợ lý - tin gõ tiếp bay thẳng vào đó (đúng lỗi bản cũ đã chữa cho đường rời
     // trang, hòm thư mở lại nó bằng một cửa khác).
     // Thư về một NHÓM chat (kênh "team:<id>", vd. việc nhóm bị chặn) mở đúng nhóm ở trang Nhóm, nơi có nút giải quyết.
@@ -286,7 +286,7 @@
     } catch (e) {}
     try { if (window.NaotaSessions) window.NaotaSessions.open(item.session_id); } catch (e) {}
   }
-  // Naota Core (spec 7.3): the notice goes into this person's own Naota Core chat, with its source and time,
+  // NAOSO Core (spec 7.3): the notice goes into this person's own NAOSO Core chat, with its source and time,
   // and the chat opens there. The shared notice itself never changes.
   async function hoiCore(src, id) {
     var brain = "brain";
@@ -320,7 +320,7 @@
       state.note[item.id] = [window.t("noti.react_saved")].concat(r.messages || []).join(" ");
       state.policy = null;
       // Not needed also reads this notice, so it leaves
-      // the list at once. Its card is gone, so what Naota Core learned shows above the list instead.
+      // the list at once. Its card is gone, so what NAOSO Core learned shows above the list instead.
       if (body.axis === "not_needed") {
         state.flash = state.note[item.id];
         delete state.note[item.id];
@@ -357,7 +357,7 @@
   function theThu(item) {
     var chua = !item.read ? " unread" : "";
     var why = item.filtered ? (item.why === "repeat" ? "noti.why_repeat" : item.why === "muted" ? "noti.why_muted" : "noti.why_mode") : "";
-    // Where a press takes you: the chat it answers, or Naota Core for a notice with no chat of its own.
+    // Where a press takes you: the chat it answers, or NAOSO Core for a notice with no chat of its own.
     var phu = window.t(item.channel === "store:updates" ? "noti.open_store"
       : !item.session_id || item.channel === "agent:naota-core" ? "noti.open_core" : "noti.reopen_chat");
     return '<article class="noti-card' + chua + '" tabindex="0" role="button" data-thu-id="' + esc(item.id) + '">' +
@@ -448,7 +448,7 @@
     saveRead(moi ? [id] : null);
     render();
   }
-  // The "Filter" view: each group's mode, the per-kind rules, Naota Core's recent changes (each can be undone).
+  // The "Filter" view: each group's mode, the per-kind rules, NAOSO Core's recent changes (each can be undone).
   async function taiBoLoc() {
     try { state.policy = await (await fetch("/notify/policy", { cache: "no-store" })).json(); } catch (e) { state.policy = { ok: false }; }
     render();
@@ -786,7 +786,7 @@
     } catch (e) {}
   }
 
-  // A "Naota has answered" push opens its chat (/?mo_phien=<id>). The chat code may still be loading on a cold start.
+  // A "NAOSO has answered" push opens its chat (/?mo_phien=<id>). The chat code may still be loading on a cold start.
   function moPhien(sid) {
     var lan = 0;
     (function thu() {

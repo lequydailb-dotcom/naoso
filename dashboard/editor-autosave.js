@@ -9,7 +9,7 @@
      input event call poke().
    - Keeps a copy of the unsaved text in this browser (localStorage) a moment after each change, so a tab closed or
      crashed before the write landed still has the words. Opening the same file again puts them back when the file
-     on disk is still the one the copy was made from; a file changed since (Naota edited it) wins and the copy is
+     on disk is still the one the copy was made from; a file changed since (NAOSO edited it) wins and the copy is
      dropped.
    - Writes once more with fetch keepalive when the page is hidden or unloaded, and asks the browser to confirm
      leaving while something is still unsaved.

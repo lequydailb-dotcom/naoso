@@ -40,7 +40,7 @@ Cần có Git (Windows: `winget install -e --id Git.Git`). Mở PowerShell hoặ
 | **Windows** | `git clone https://github.com/vuongtex/naota.git naota; cd naota; powershell -ExecutionPolicy Bypass -File install.ps1` |
 | **Linux / macOS** | `git clone https://github.com/vuongtex/naota.git naota && cd naota && chmod +x install.sh && ./install.sh` |
 
-Lệnh cài Python, thư viện, các bộ não CLI, rồi mở NAOSO ở `http://localhost:7777`. Có bản mới thì bấm nút **Cập nhật** trong app. Phải tải bằng `git clone` như trên: tải file ZIP vẫn chạy được nhưng **không cập nhật được**. Trên Windows, lần sau chỉ cần bấm đúp **`NAOTA.bat`**. Các bước chi tiết ở [QUICKSTART.md](QUICKSTART.md), lên VPS xem [DEPLOY.md](DEPLOY.md).
+Lệnh cài Python, thư viện, các bộ não CLI, rồi mở NAOSO ở `http://localhost:7777`. Có bản mới thì bấm nút **Cập nhật** trong app. Phải tải bằng `git clone` như trên: tải file ZIP vẫn chạy được nhưng **không cập nhật được**. Trên Windows, lần sau chỉ cần bấm đúp **`NAOSO.bat`**. Các bước chi tiết ở [QUICKSTART.md](QUICKSTART.md), lên VPS xem [DEPLOY.md](DEPLOY.md).
 
 ## Bản quyền
 

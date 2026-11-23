@@ -1,5 +1,5 @@
 // ============================================================
-// NAOTA - Nhóm Code trên rail
+// NAOSO - Nhóm Code trên rail
 //
 // console.js gọi window.NaotaCode.render(el, id) khi vào một trang thuộc nhóm Code, và
 // window.NaotaCode.roi() khi rời.
@@ -113,7 +113,7 @@
     });
   }
 
-  // Bảng màu theo tông của Naota. xterm vẽ bằng canvas nên KHÔNG đọc được biến CSS - phải
+  // Bảng màu theo tông của NAOSO. xterm vẽ bằng canvas nên KHÔNG đọc được biến CSS - phải
   // truyền màu vào tay, và đổi lại mỗi khi người dùng lật tông.
   function bangMau() {
     var sang = !!(window.naotaTheme && window.naotaTheme.isLight());
@@ -145,7 +145,7 @@
       .then(function (r) {
         // Lỗi HTTP vẫn kèm JSON hợp lệ ({"detail":"Not Found"}) nên r.json() không ném gì;
         // st.bat khi đó là undefined và màn hình báo nhầm rằng admin đã đặt NAOTA_TERMINAL=0.
-        // Hay gặp nhất khi server còn chạy code cũ chưa có route này -> phải restart Naota.
+        // Hay gặp nhất khi server còn chạy code cũ chưa có route này -> phải restart NAOSO.
         if (!r.ok) throw new Error(window.t("term.http_err", { status: r.status }));
         return r.json();
       })

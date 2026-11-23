@@ -1,17 +1,17 @@
-"""Plugin bundled: tool `naota_add_mcp` - đấu thêm MCP server vào kho Kết nối của Naota.
+"""Plugin bundled: tool `naota_add_mcp` - đấu thêm MCP server vào kho Kết nối của NAOSO.
 
 Vì sao tool này tồn tại
 =======================
-Người dùng bảo "thêm MCP này cho anh" thì trước bản này Naota không có đường nào ĐÚNG để làm.
+Người dùng bảo "thêm MCP này cho anh" thì trước bản này NAOSO không có đường nào ĐÚNG để làm.
 Kho kết nối chỉ ghi được qua endpoint `/connect/add`, mà endpoint đó nằm sau lớp đăng nhập nên
-chỉ trang web gọi được. Còn lại Naota chỉ có hai lối, cả hai đều hỏng theo cách riêng:
+chỉ trang web gọi được. Còn lại NAOSO chỉ có hai lối, cả hai đều hỏng theo cách riêng:
 
 1. Chạy `claude mcp add ...` bằng Bash. Server đó rơi vào config RIÊNG của Claude Code, nên
    (a) chỉ mỗi engine Claude thấy, sáu bộ não còn lại đứng ngoài, (b) trên trang Kết nối nó
    không nằm ở khu "Đã kết nối" mà lọt xuống khu gập "Kết nối sẵn của Claude Code và Codex",
    khu này mặc định ĐÓNG và chỉ tải khi bấm mở. Người dùng nhìn trang Kết nối thấy y như cũ và
-   kết luận Naota nói dối. Đó chính là bug được báo.
-2. Nói suông "anh vào trang Kết nối tự thêm nhé". Đúng nhưng vô dụng, vì việc này Naota làm được.
+   kết luận NAOSO nói dối. Đó chính là bug được báo.
+2. Nói suông "anh vào trang Kết nối tự thêm nhé". Đúng nhưng vô dụng, vì việc này NAOSO làm được.
 
 Tool này đi thẳng vào `mcp_store` - CÙNG một kho mà trang Kết nối đọc (`/connect/catalog`), nên
 thêm xong là thấy ngay ở khu "Đã kết nối", dùng chung cho MỌI bộ não qua hub, có phân quyền và
@@ -22,11 +22,11 @@ An toàn (BẮT BUỘC, không tham số nào mở được)
 - `op=add` cần mức Toàn quyền (full), `op=find` chỉ cần safe; chatbot trả lời khách không thấy tool này
   (OWNER_ONLY_TOOLS trong mcp_hub.py). Vá bảo mật 2026-11-05: trước đó op=add chỉ cần safe, nên một
   chatbot mức "auto" do người lạ điều khiển, hay một việc nền mức auto, cắm được máy chủ MCP lạ vào kho
-  CHUNG của mọi brain và bắt máy chủ Naota gọi tới địa chỉ bất kỳ, kể cả mạng nội bộ.
-- Mức quyền mặc định là `readonly`. Luật `CLAUDE.md`: "Naota KHÔNG tự nâng quyền - user tự nâng ở
+  CHUNG của mọi brain và bắt máy chủ NAOSO gọi tới địa chỉ bất kỳ, kể cả mạng nội bộ.
+- Mức quyền mặc định là `readonly`. Luật `CLAUDE.md`: "NAOSO KHÔNG tự nâng quyền - user tự nâng ở
   trang Kết nối". Model chỉ được truyền `perm` cao hơn khi người dùng nói rõ họ muốn vậy, và câu
   trả lời phải nói ra mình đã đặt mức nào.
-- Transport `stdio` = CHẠY MỘT LỆNH trên máy chủ Naota. Thêm xong để TẮT, không thử kết nối, vì
+- Transport `stdio` = CHẠY MỘT LỆNH trên máy chủ NAOSO. Thêm xong để TẮT, không thử kết nối, vì
   chỉ riêng việc dial thử đã là chạy lệnh đó. Người dùng tự đọc lệnh rồi bật ở trang Kết nối.
   Không có tham số nào bật thẳng được: engine API vốn không có Bash, cho nó đẻ một stdio tự chạy
   là mở cửa hậu đúng bằng Bash.
@@ -130,7 +130,7 @@ def _mo_ta_card(c: dict) -> str:
     o = [f"- {c.get('name')} (card '{c.get('group') or c.get('name')}' trong Kho kết nối"
          + (f", nhóm {c.get('category')}" if c.get("category") else "") + ")"]
     if c.get("auth_type") == "oauth":
-        o.append("  Cần ĐĂNG NHẬP (OAuth) nên phải bấm ở trang Kết nối, Naota không đăng nhập hộ được.")
+        o.append("  Cần ĐĂNG NHẬP (OAuth) nên phải bấm ở trang Kết nối, NAOSO không đăng nhập hộ được.")
     else:
         ten_o = ", ".join(f.get("label") or f.get("key") for f in (c.get("fields") or []))
         o.append("  Cần điền: " + (ten_o or "không rõ, xem tại trang Kết nối") + ".")
@@ -187,7 +187,7 @@ async def _them(args, ctx) -> str:
             return ("Chưa đấu gì cả. Dịch vụ này ĐÃ CÓ SẴN trong Kho kết nối, đấu bằng card của nó "
                     "chứ không tự khai:\n" + "\n".join(_mo_ta_card(c) for c in kho[:_FIND_MAX])
                     + "\nNói người dùng mở trang Kết nối, tìm card đó rồi bấm Kết nối. "
-                    "Naota không tự đăng nhập hộ được.")
+                    "NAOSO không tự đăng nhập hộ được.")
         return ("ERROR: thiếu url (MCP chạy qua mạng) hoặc command (MCP chạy bằng lệnh trên máy). "
                 "Hỏi người dùng địa chỉ MCP, hoặc gọi op=find để tra xem Kho kết nối có sẵn dịch vụ này chưa.")
 
@@ -230,8 +230,8 @@ async def _them(args, ctx) -> str:
         mcp_hub.invalidate_cache()
         lenh = " ".join([command] + tham_so)
         return (f"Đã thêm '{ten}' vào trang Kết nối nhưng ĐỂ TẮT, vì nguồn này chạy bằng lệnh trên "
-                f"máy chủ Naota: `{lenh}`. Người dùng tự đọc lệnh, thấy ổn thì bật ở trang Kết nối "
-                f"(Naota không tự bật loại này). Mức quyền đang đặt: {perm}. " + _xem_o_dau(cid))
+                f"máy chủ NAOSO: `{lenh}`. Người dùng tự đọc lệnh, thấy ổn thì bật ở trang Kết nối "
+                f"(NAOSO không tự bật loại này). Mức quyền đang đặt: {perm}. " + _xem_o_dau(cid))
 
     val = await mcp_hub.validate_connection(cid)
     if not val.get("ok"):
@@ -268,7 +268,7 @@ async def _chay(args, ctx) -> str:
 def register(ctx):
     ctx.register_tool(
         "naota_add_mcp",
-        "Đấu thêm một MCP server vào kho Kết nối của Naota, để nó HIỆN ra trang Kết nối và MỌI bộ "
+        "Đấu thêm một MCP server vào kho Kết nối của NAOSO, để nó HIỆN ra trang Kết nối và MỌI bộ "
         "não dùng chung. Dùng tool này mỗi khi người dùng bảo thêm/đấu/nối một MCP hay một nguồn "
         "dữ liệu; TUYỆT ĐỐI không dùng `claude mcp add` hay `codex mcp add` (rơi vào config riêng "
         "của một CLI, người dùng không thấy trên trang Kết nối). "

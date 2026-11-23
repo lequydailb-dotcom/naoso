@@ -96,7 +96,7 @@ def resolve(brain_root: str, path: str) -> tuple:
     try:
         rel = full.relative_to(root).as_posix()
     except ValueError:
-        raise ImproveError(_c("Chỉ sửa được file trong brain. Mã nguồn Naota sửa qua op=source.",
+        raise ImproveError(_c("Chỉ sửa được file trong brain. Mã nguồn NAOSO sửa qua op=source.",
                               "Only files inside the brain. Naota's own code goes through op=source."))
     parts = tuple(rel.split("/"))
     if any(x.startswith(".") for x in parts) or parts[-1] in _DENY_NAMES:
@@ -360,7 +360,7 @@ def source_status(sid: str, brain_root: str) -> dict:
 def can_write_source() -> bool:
     """True only when GitHub says the connected account may push to the official repo, i.e. a maintainer's install.
 
-    Every install ships `op=source`, so before 2026-11-20 a user's Naota cloned the public repo, edited it for a whole
+    Every install ships `op=source`, so before 2026-11-20 a user's NAOSO cloned the public repo, edited it for a whole
     turn and then failed the push with "account X cannot write to vuongtex/naota". Owner, 20/11/2026: keep the
     value (users sending fixes) without that dead end, the smallest way: no write access means no clone and no edit,
     the model writes a bug report instead (`report_url`). Not connected, or GitHub not answering who may push

@@ -3,7 +3,7 @@
     GET  /tasks/stats?brain&from=YYYY-MM-DD&to=YYYY-MM-DD   (both days included, local time zone)
     POST /tasks/stats/minutes {brain, minutes: {kind: n}}    how many minutes the owner would spend on each kind of job
 
-What Naota did comes from three places, since no single store keeps it:
+What NAOSO did comes from three places, since no single store keeps it:
   - Kanban jobs: `task_events` of the Kanban store ("completed", "blocked", "retry_scheduled"), which survive the
     auto-archive of finished jobs;
   - loops: the markdown run log <brain>/Naota/loop-log/YYYY-MM-DD.md (headers carry the local time);
@@ -66,7 +66,7 @@ def _agent_slug(key: str) -> str:
     return p[2] if len(p) >= 3 and p[0] == "agent" else ""
 
 
-# ---------- what Naota did ----------
+# ---------- what NAOSO did ----------
 def kanban_events(store, root: str, since: float, until: float) -> list:
     """Finished, stopped and self-retried Kanban jobs of one brain between two times."""
     if store is None:
@@ -233,7 +233,7 @@ class TaskStats:
 
     def _bot_owners(self, brain: str, events: list, names: dict) -> None:
         """a job a chatbot made counts for the bot's assistant (or the bot itself when that assistant is not
-        in this brain), not for Naota Core. Only events with no assistant of their own are moved."""
+        in this brain), not for NAOSO Core. Only events with no assistant of their own are moved."""
         if not self.deps.bot_jobs:
             return
         try:
@@ -388,7 +388,7 @@ class TaskStats:
                           for x in open_tasks if int(x.get("moves") or 0) >= 2), key=lambda x: -x["moves"])[:5]
         overdue = sum(1 for x in open_tasks if x.get("date") and x["date"] < today)
 
-        # Things Naota could take over: jobs the owner keeps moving, and repeating chores they do by hand.
+        # Things NAOSO could take over: jobs the owner keeps moving, and repeating chores they do by hand.
         ideas = [{"kind": "moved", "id": x["id"], "title": x["title"], "n": x["moves"], "minutes": mins["kanban"]}
                  for x in delayed[:2]]
         month_ago = now - 30 * 86400

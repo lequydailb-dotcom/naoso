@@ -1,7 +1,7 @@
 """The task plan an engine keeps while it works through a turn, for the plan card in the chat.
 
 Claude's own app shows a "Plan" checklist beside a long task (what is done, what runs now, what is
-left) and Naota showed nothing. The engines already make that list: Claude Code calls `TodoWrite` (or `TaskCreate` /
+left) and NAOSO showed nothing. The engines already make that list: Claude Code calls `TodoWrite` (or `TaskCreate` /
 `TaskUpdate` in newer builds), Codex sends `turn/plan/updated` (app-server) or a `todo_list` item (`codex exec`), Grok
 Build calls `todo_write`. main.py used to keep only one line of the call for the step block ("Update task list"), so
 the list itself was thrown away.

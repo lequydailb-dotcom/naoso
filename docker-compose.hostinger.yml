@@ -1,5 +1,5 @@
 # ============================================================================
-# Naota - HOSTINGER VPS (Docker Manager). Domain + HTTPS through Hostinger's Traefik, or through
+# NAOSO - HOSTINGER VPS (Docker Manager). Domain + HTTPS through Hostinger's Traefik, or through
 # the bundled Caddy (service gateway) on a VPS without Traefik (plain Ubuntu 26 template).
 #
 # This file ALWAYS deploys:
@@ -10,7 +10,7 @@
 #   1) Docker Manager > Compose > URL > paste:
 #      https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.yml
 #   2) Environment box, four useful fields: DOMAIN_NAME, NAOTA_ADMIN_USER, NAOTA_ADMIN_PASSWORD,
-#      NAOTA_AUTO_UPDATE (true = Naota updates itself daily; empty = "Update now" in the app).
+#      NAOTA_AUTO_UPDATE (true = NAOSO updates itself daily; empty = "Update now" in the app).
 #      DOMAIN_NAME, to get HTTPS:
 #        - free link, no domain to buy:  DOMAIN_NAME=naota.<vps-hostname>.hstgr.cloud
 #          (the hostname is under hPanel > VPS, e.g. DOMAIN_NAME=naota.srv1234567.hstgr.cloud)
@@ -20,7 +20,7 @@
 # No Environment box? Press Manage, edit the .yaml, change the labels traefik.enable and ...rule to:
 #      - traefik.enable=true
 #      - traefik.http.routers.naota.rule=Host(`naota.srv1234567.hstgr.cloud`)   (your VPS hostname)
-# VPS hostname unknown? Open http://<ip>:7777 > Settings > Domain: Naota shows the DOMAIN_NAME=... line.
+# VPS hostname unknown? Open http://<ip>:7777 > Settings > Domain: NAOSO shows the DOMAIN_NAME=... line.
 #
 # NOTES
 #   - Declare NO networks: Hostinger's Traefik finds the container through its labels.
@@ -29,7 +29,7 @@
 #     with Caddy. Needs Docker and ports 80, 443 open in the firewall.
 #   - Not a Hostinger VPS: use docker-compose.yml + docker-compose.https.yml instead.
 #   - The GHCR image must be PUBLIC.
-#   - A second Naota on the same VPS: see the end of this file.
+#   - A second NAOSO on the same VPS: see the end of this file.
 #   - hPanel refuses a compose over 32,768 characters, so this file stays small: short ASCII
 #     comments here, the reasons in docs/dev/hostinger-compose.md
 #     (tests/python/test_hostinger_compose_size.py guards the size).
@@ -88,7 +88,7 @@ services:
   # ------------------------------------------------------------------------
   # One-click update from the app ("Update now"). Uses the maintained fork nicholas-fedor/watchtower,
   # pinned to major 1: the old containrrr image speaks Docker API 1.25, which current Docker refuses.
-  # Naota keeps running if this container fails: then update with Redeploy. Logs: `naota-watchtower`.
+  # NAOSO keeps running if this container fails: then update with Redeploy. Logs: `naota-watchtower`.
   watchtower:
     image: ghcr.io/nicholas-fedor/watchtower:1
     container_name: ${NAOTA_NAME:-naota}-watchtower
@@ -99,7 +99,7 @@ services:
       WATCHTOWER_HTTP_API_ENDPOINTS: update                 # takes the update call from the button
       WATCHTOWER_HTTP_API_TOKEN: naota-update               # matches WATCHTOWER_TOKEN above
       # Updates on its own, without the button. The installer's choice (fourth Environment field):
-      # Naota then restarts whenever a new version exists, cutting running work. Empty = off.
+      # NAOSO then restarts whenever a new version exists, cutting running work. Empty = off.
       WATCHTOWER_HTTP_API_PERIODIC_POLLS: ${NAOTA_AUTO_UPDATE:-false}
       WATCHTOWER_POLL_INTERVAL: 86400                       # 24h, only when the line above is on
       WATCHTOWER_CLEANUP: "true"                            # removes the old image after an update
@@ -112,7 +112,7 @@ services:
     command: ${NAOTA_NAME:-naota}
 
   # ------------------------------------------------------------------------
-  # Brings Naota back when an update leaves it gone (404) or stopped, after 2 minutes; a Naota you stop
+  # Brings NAOSO back when an update leaves it gone (404) or stopped, after 2 minutes; a NAOSO you stop
   # by hand is left alone. Docker socket only, no network. Logs: container `naota-guard`. Below is a
   # compact copy of docker/guard.py (explained there), written by tools/sync_guard.py: edit that file.
   guard:
@@ -121,7 +121,7 @@ services:
     restart: unless-stopped
     network_mode: none
     depends_on:
-      - naota          # deleting the stack stops the guard first, so it never sees Naota "vanish"
+      - naota          # deleting the stack stops the guard first, so it never sees NAOSO "vanish"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - guard-data:/guard
@@ -348,7 +348,7 @@ services:
   # HTTPS on a VPS WITHOUT Hostinger's Traefik. One link works on both templates:
   #   - another proxy holds 80/443 (Hostinger's Traefik) -> the gateway stays idle, Traefik serves SSL.
   #   - 80/443 free (plain Ubuntu 26) -> the gateway runs Caddy: Let's Encrypt for DOMAIN_NAME, then
-  #     forwards to Naota on the instance's host port.
+  #     forwards to NAOSO on the instance's host port.
   #   - DOMAIN_NAME empty -> it uses the VPS's own name when it has one, else it stays idle.
   # Host networking on purpose: publishing 80/443 next to Traefik fails the whole deploy with "port is
   # already allocated". The script checks the ports itself and looks again every 10 minutes.
@@ -377,9 +377,9 @@ services:
         ghi() { mkdir -p /status 2>/dev/null; printf 'state=%s\nnames=%s\n' "$$1" "$$2" > "$$S" 2>/dev/null || true; }
         # Chua dat DOMAIN_NAME: lay ten VPS Hostinger (srv<so>.hstgr.cloud) lam link. KHONG doan qua DNS nua.
         # Ban truoc so dia chi bang getent, ma getent doc /etc/hosts cua VPS truoc (Ubuntu ghi ten may -> 127.0.1.1),
-        # nen Caddy xin cert cho srv<so>.hstgr.cloud con Naota lai cho naota.srv<so>.hstgr.cloud: lech nhau, khong ai
+        # nen Caddy xin cert cho srv<so>.hstgr.cloud con NAOSO lai cho naota.srv<so>.hstgr.cloud: lech nhau, khong ai
         # duoc chuyen sang https. Gio Caddy phuc vu CA HAI ten (<ten-ban>.<may> va, voi ban
-        # mac dinh, chinh ten may); ten nao DNS tro ve may thi co cert. Danh sach ghi vao $$S de Naota thu dung cac ten nay.
+        # mac dinh, chinh ten may); ten nao DNS tro ve may thi co cert. Danh sach ghi vao $$S de NAOSO thu dung cac ten nay.
         if [ "$$D" = "localhost" ] || [ -z "$$D" ]; then
           M="$$( (hostname -f 2>/dev/null || hostname) | tr 'A-Z' 'a-z')"
           case "$$M" in
@@ -420,13 +420,13 @@ services:
     volumes:
       - gateway-data:/data       # issued certificates, kept across Redeploy (no new request)
       - gateway-config:/config
-      # The gateway writes its state here (idle / busy / serving + names); Naota reads it (read only).
+      # The gateway writes its state here (idle / busy / serving + names); NAOSO reads it (read only).
       - gateway-status:/status
     labels:
       - traefik.enable=false
 
 # ============================================================================
-# SEVERAL NAOTA INSTANCES ON ONE HOSTINGER VPS
+# SEVERAL NAOSO INSTANCES ON ONE HOSTINGER VPS
 # Deploy this compose once more (a new stack in Docker Manager) and change ALL THREE:
 #   Stack 1:  DOMAIN_NAME=shop.srv1234567.hstgr.cloud  NAOTA_NAME=(empty)     NAOTA_HOST_PORT=(empty)
 #   Stack 2:  DOMAIN_NAME=home.srv1234567.hstgr.cloud  NAOTA_NAME=naota-home  NAOTA_HOST_PORT=7778

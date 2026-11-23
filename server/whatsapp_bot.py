@@ -1,6 +1,6 @@
 """WhatsApp gateway over the official WhatsApp Business Cloud API (Meta).
 
-Unlike Telegram, Zalo and Slack, WhatsApp has no way for Naota to pull messages: Meta POSTs
+Unlike Telegram, Zalo and Slack, WhatsApp has no way for NAOSO to pull messages: Meta POSTs
 every inbound message to a webhook. So this module has two halves:
 
   - `WhatsAppBot`: the transport, same contract as `TelegramBot` (start/stop/status/send_text/
@@ -502,7 +502,7 @@ class WhatsAppBot(HangLuot):
         }
         if self.chat_ids and chat not in self.chat_ids:
             await self._send(client, chat, localefmt.chu(
-                "Bạn không có quyền dùng bot Naota này.", "You are not allowed to use this Naota bot."))
+                "Bạn không có quyền dùng bot NAOSO này.", "You are not allowed to use this NAOSO bot."))
             return
         text = await self._message_text(client, msg, chat)
         if not text:

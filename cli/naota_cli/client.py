@@ -1,4 +1,4 @@
-"""Lớp gọi HTTP tới máy chủ Naota. Không biết gì về cách hiển thị."""
+"""Lớp gọi HTTP tới máy chủ NAOSO. Không biết gì về cách hiển thị."""
 import json
 
 import httpx
@@ -12,14 +12,14 @@ class Client:
     def __init__(self, url: str, token: str = "", timeout: float = 900.0):
         if not url:
             raise LoiNaota(
-                "Chưa biết Naota của bạn ở đâu.\n"
+                "Chưa biết NAOSO của bạn ở đâu.\n"
                 "Chạy:  naota login <địa-chỉ>      ví dụ: naota login https://naota.example.com\n"
                 "Hoặc đặt biến môi trường NAOTA_URL.")
         self.url = url.rstrip("/")
         self.token = token or ""
         # 900 giây, và đây là chủ ý: một lượt agentic có thể đọc file, gọi vài tool rồi mới
         # trả lời. Cắt ngang ở phút thứ nhất là vứt hết công đã bỏ ra, mà người dùng thì
-        # không hiểu vì sao "Naota không trả lời".
+        # không hiểu vì sao "NAOSO không trả lời".
         self.timeout = timeout
 
     def _headers(self) -> dict:
@@ -85,5 +85,5 @@ class Client:
     def _loi_mang(self, e) -> str:
         return (f"Không kết nối được tới {self.url}.\n"
                 f"Chi tiết: {type(e).__name__}: {e}\n"
-                "Kiểm tra: Naota có đang chạy không, địa chỉ có đúng không, "
+                "Kiểm tra: NAOSO có đang chạy không, địa chỉ có đúng không, "
                 "và máy này có ra được tới đó không.")

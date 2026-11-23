@@ -1,7 +1,7 @@
-"""Signed-in browser: a sign-in from the Cookies page goes into the browser Naota drives.
+"""Signed-in browser: a sign-in from the Cookies page goes into the browser NAOSO drives.
 
 `naota_login` op=fetch only downloads a page and reads its text. To click a button or fill a form signed in,
-Naota needs a real browser that holds the sign-in. Two pieces were already there and not joined: the login
+NAOSO needs a real browser that holds the sign-in. Two pieces were already there and not joined: the login
 vault keeps cookies in Playwright's own shape, and the Playwright connection drives Chromium. This module joins
 them.
 

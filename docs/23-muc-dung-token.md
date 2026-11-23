@@ -2,7 +2,7 @@
 
 ***Tiếng Việt** · [English](en/23-usage-and-cost.md)*
 
-Trang **Mức dùng** trả lời hai câu hỏi đi liền nhau: *bạn đã đốt bao nhiêu token* và *làm sao đốt ít đi*. Naota tự đo lấy con số này từ log thật trên máy, không phải xin từ nhà cung cấp, nên bạn thấy được cả phần mà Claude hay ChatGPT không bao giờ lộ ra: phần do chính Naota chạy nền tiêu tốn.
+Trang **Mức dùng** trả lời hai câu hỏi đi liền nhau: *bạn đã đốt bao nhiêu token* và *làm sao đốt ít đi*. NAOSO tự đo lấy con số này từ log thật trên máy, không phải xin từ nhà cung cấp, nên bạn thấy được cả phần mà Claude hay ChatGPT không bao giờ lộ ra: phần do chính NAOSO chạy nền tiêu tốn.
 
 Ngay đầu trang là khối **Chế độ tiết kiệm token** với ba nút. Nó nằm ở đây; trước đó là một trang riêng tên "Tiết kiệm" trong thanh bên. Gộp lại vì tách hai chỗ thì người dùng đọc hết hoá đơn mà không bao giờ thấy cái công tắc.
 
@@ -10,7 +10,7 @@ Trang này hướng dẫn chọn mức tiết kiệm, rồi đọc từng thẻ,
 
 ## Tính năng này là gì
 
-Naota nhìn thấy số token vào/ra trong **mọi** lượt trả lời, bất kể lượt đó chạy qua engine nào (Claude Code, ChatGPT/Codex, OpenRouter, OpenAI, Anthropic). Vì thế con số ở đây là con số đồng nhất, **không phụ thuộc nhà cung cấp có cho xem hạn mức hay không**.
+NAOSO nhìn thấy số token vào/ra trong **mọi** lượt trả lời, bất kể lượt đó chạy qua engine nào (Claude Code, ChatGPT/Codex, OpenRouter, OpenAI, Anthropic). Vì thế con số ở đây là con số đồng nhất, **không phụ thuộc nhà cung cấp có cho xem hạn mức hay không**.
 
 Hai điều phải nhớ trước khi đọc bất cứ số nào:
 
@@ -19,7 +19,7 @@ Hai điều phải nhớ trước khi đọc bất cứ số nào:
 
 Trang cho bạn: bộ lọc 8 kỳ và 4 nhà cung cấp, các thẻ tổng kèm so kỳ trước, đồ thị token theo ngày, ba biểu đồ cột bóc tách (nguồn tiêu / hoạt động / nhà cung cấp), hai bảng xếp hạng (model và dự án), và một danh sách đề xuất tiết kiệm tự sinh.
 
-## Mở ở đâu trong Naota
+## Mở ở đâu trong NAOSO
 
 Mở dashboard (mặc định tại cổng 7777). Trên thanh điều hướng bên trái, bấm mở nhóm **Hệ thống** (nhóm này được ghim ở đáy thanh), chọn **Cài đặt → Mức dùng**.
 
@@ -27,7 +27,7 @@ Tab **Mức dùng** chứa các bộ lọc, thống kê token và chi phí.
 
 ## Chế độ tiết kiệm token (khối đầu trang)
 
-Mỗi lần bạn chat, Naota phải gửi kèm một mớ thông tin nền cho model: nó là ai, có công cụ nào, nhớ gì về bạn, đã nói gì trước đó. Mớ đó tốn tiền và ăn vào hạn mức. Ba nút ở đây quyết định mớ đó to bao nhiêu.
+Mỗi lần bạn chat, NAOSO phải gửi kèm một mớ thông tin nền cho model: nó là ai, có công cụ nào, nhớ gì về bạn, đã nói gì trước đó. Mớ đó tốn tiền và ăn vào hạn mức. Ba nút ở đây quyết định mớ đó to bao nhiêu.
 
 - **Tắt** - chế độ Đầy đủ. Gửi mọi thứ, mỗi lượt. An toàn nhất, tốn nhất.
 - **Tối ưu** - chỉ gửi phần liên quan tới câu vừa hỏi: bộ nhớ có chọn lọc, skill nạp khi cần.
@@ -39,7 +39,7 @@ Nếu bộ não bạn đang chạy không ăn được một mức nào đó, n�
 
 Khi đã có đủ lượt chạy ở cả hai chế độ trong 24 giờ, một khối số **đo thật** hiện ngay dưới ba nút: token mỗi lượt ở chế độ Đầy đủ, token mỗi lượt khi tiết kiệm, và phần trăm giảm được. Đây là số thật, không phải ước lượng.
 
-**Đổi mức có hiệu lực ngay**, không cần khởi động lại. Thấy Naota trả lời tệ đi thì bấm **Tắt** là quay lại như cũ lập tức.
+**Đổi mức có hiệu lực ngay**, không cần khởi động lại. Thấy NAOSO trả lời tệ đi thì bấm **Tắt** là quay lại như cũ lập tức.
 
 ### Vì sao mặc định là Siêu tiết kiệm
 
@@ -47,13 +47,13 @@ Trước đây mặc định là **Tắt**, và gần như không ai tự bật 
 
 Đây là mặc định an toàn được, không phải liều: mọi đường trong mức này đều **fail-closed**. Thiếu điều kiện thì lượt đó tự rơi về chế độ Đầy đủ chứ không trả lời sai.
 
-Nếu bạn **đã từng tự bấm một mức**, Naota ghim lựa chọn đó lại và không bản cập nhật nào đổi nó nữa - kể cả khi bạn cố ý bấm **Tắt**. Dòng chữ dưới ba nút cho biết bạn đang ở mặc định hay ở lựa chọn của mình.
+Nếu bạn **đã từng tự bấm một mức**, NAOSO ghim lựa chọn đó lại và không bản cập nhật nào đổi nó nữa - kể cả khi bạn cố ý bấm **Tắt**. Dòng chữ dưới ba nút cho biết bạn đang ở mặc định hay ở lựa chọn của mình.
 
 ## Cách dùng (từng bước)
 
 ### Bước 1: Mở trang và chờ quét lần đầu
 
-Vừa vào, trang hiện dòng "Đang dựng chỉ số token...". Lần mở đầu tiên Naota **quét lại log** rồi mới vẽ, nên có thể chậm vài giây nếu bạn đã dùng nhiều tháng. Những lần đổi bộ lọc sau đó thì không quét nữa, chỉ đọc lại từ chỉ mục nên rất nhanh.
+Vừa vào, trang hiện dòng "Đang dựng chỉ số token...". Lần mở đầu tiên NAOSO **quét lại log** rồi mới vẽ, nên có thể chậm vài giây nếu bạn đã dùng nhiều tháng. Những lần đổi bộ lọc sau đó thì không quét nữa, chỉ đọc lại từ chỉ mục nên rất nhanh.
 
 Nếu trang báo "Không tải được số liệu token." thì server chưa trả được dữ liệu, xem mục Sự cố thường gặp.
 
@@ -100,7 +100,7 @@ Trục ngang ghi ngày trong tháng. Rê chuột lên một cột hiện chú th
 
 Phần dưới đồ thị là ba biểu đồ cột ngang, đây là chỗ quan trọng nhất của trang:
 
-- **Nguồn tiêu (bạn vs Naota)** - hai dòng: "Bạn gõ tay" và "Naota (tự chạy)".
+- **Nguồn tiêu (bạn vs NAOSO)** - hai dòng: "Bạn gõ tay" và "NAOSO (tự chạy)".
 - **Hoạt động** - bốn dòng: "Chat", "Nền (loop/lịch)", "Subagent", "Thủ công".
 - **Provider** - "Claude Code", "ChatGPT/Codex", "API (OpenRouter...)".
 
@@ -109,11 +109,11 @@ Phần dưới đồ thị là ba biểu đồ cột ngang, đây là chỗ quan
 Kế đó là hai bảng xếp hạng, mỗi bảng hiện tối đa 8 dòng:
 
 - **Model ngốn nhất**: cột Model, Token, Quy đổi. Tên model được rút gọn cho vừa (bỏ tiền tố `claude-` / `gpt-`, cắt bớt phần đuôi dài). Cột Quy đổi hiện "-" khi model đó không có trong bảng giá.
-- **Dự án ngốn nhất**: cột Dự án, Token, Phiên. "Dự án" là tên brain nếu Naota nhận ra phiên đó thuộc brain nào, còn lại là tên thư mục làm việc.
+- **Dự án ngốn nhất**: cột Dự án, Token, Phiên. "Dự án" là tên brain nếu NAOSO nhận ra phiên đó thuộc brain nào, còn lại là tên thư mục làm việc.
 
 ### Bước 7: Đọc phần Đề xuất
 
-Nếu số liệu chạm ngưỡng, Naota sinh các thẻ đề xuất ở cuối trang. Thẻ ⚠️ viền cam là việc nên làm, thẻ 💡 viền xanh là gợi ý. Chi tiết ngưỡng ở mục [Các đề xuất tiết kiệm](#các-đề-xuất-tiết-kiệm).
+Nếu số liệu chạm ngưỡng, NAOSO sinh các thẻ đề xuất ở cuối trang. Thẻ ⚠️ viền cam là việc nên làm, thẻ 💡 viền xanh là gợi ý. Chi tiết ngưỡng ở mục [Các đề xuất tiết kiệm](#các-đề-xuất-tiết-kiệm).
 
 Không có thẻ nào nghĩa là mọi chỉ số đang trong ngưỡng bình thường, không phải lỗi.
 
@@ -142,23 +142,23 @@ Cách so của "Tuần này" và "Tháng này" là cố ý: kỳ đang chạy d�
 
 | Nhãn | Nghĩa là gì |
 |---|---|
-| **Bạn gõ tay** | Phiên bạn tự mở `claude` trong terminal, không đi qua Naota |
-| **Naota (tự chạy)** | Phiên do Naota khởi động qua Agent SDK: chat trên dashboard, chat qua Telegram, việc nền, workflow |
+| **Bạn gõ tay** | Phiên bạn tự mở `claude` trong terminal, không đi qua NAOSO |
+| **NAOSO (tự chạy)** | Phiên do NAOSO khởi động qua Agent SDK: chat trên dashboard, chat qua Telegram, việc nền, workflow |
 
 **Hoạt động** chia bốn:
 
 | Nhãn | Nghĩa là gì |
 |---|---|
-| **Chat** | Lượt gắn với một phiên hội thoại có thật trong lịch sử của bạn, kể cả các mạch cũ của nó trước khi Naota nén hội thoại dài sang mạch mới |
-| **Nền (loop/lịch)** | Lượt do Naota tự chạy mà không gắn phiên hội thoại nào: việc định kỳ, nhắc hẹn, việc Kanban, tiêu hoá nguồn, tự học |
+| **Chat** | Lượt gắn với một phiên hội thoại có thật trong lịch sử của bạn, kể cả các mạch cũ của nó trước khi NAOSO nén hội thoại dài sang mạch mới |
+| **Nền (loop/lịch)** | Lượt do NAOSO tự chạy mà không gắn phiên hội thoại nào: việc định kỳ, nhắc hẹn, việc Kanban, tiêu hoá nguồn, tự học |
 | **Subagent** | Lượt do một agent con được engine gọi ra để làm việc phụ |
-| **Thủ công** | Lượt của phiên bạn gõ tay ngoài Naota |
+| **Thủ công** | Lượt của phiên bạn gõ tay ngoài NAOSO |
 
 Trước đây mỗi lần hội thoại dài được nén sang mạch mới thì mạch cũ bị tính thành Nền, nên Nền phình to giả (đo thực tế: 514,6 triệu trong 722,9 triệu token "nền" thật ra là chat). Bản cũ nhớ mọi mạch của một hội thoại và quét lại chỉ số một lần để chia lại cho đúng.
 
 Cột **Nền (loop/lịch)** phình to là dấu hiệu rõ nhất rằng bạn đang có loop chạy quá dày. Xem lại chúng ở trang **Việc định kỳ** ([Việc định kỳ & Nhắc hẹn](08-viec-dinh-ky.md)) hoặc trang **Việc** ([Việc / Kanban](21-viec-kanban.md)).
 
-Một hạn chế cần biết: **cách chia này chỉ chính xác với Claude Code.** Với ChatGPT/Codex, Naota chưa tách được nền khỏi chat nên mọi lượt đều rơi vào "Naota (tự chạy)" + "Chat". Nhánh API cũng vậy.
+Một hạn chế cần biết: **cách chia này chỉ chính xác với Claude Code.** Với ChatGPT/Codex, NAOSO chưa tách được nền khỏi chat nên mọi lượt đều rơi vào "NAOSO (tự chạy)" + "Chat". Nhánh API cũng vậy.
 
 ## Chi phí quy đổi và tiền thật
 
@@ -166,7 +166,7 @@ Cột **Chi phí quy đổi** và cột **Quy đổi** trong bảng model đư�
 
 Nghĩa là con số quy đổi luôn là ước lượng, và luôn thấp hơn thực tế nếu bạn dùng model chưa có trong bảng giá. Muốn chính xác hơn thì sửa file đó bằng tay rồi khởi động lại server.
 
-**Số dư thật của OpenRouter** là thứ duy nhất trên trang này là tiền thật. Thẻ "OpenRouter còn" chỉ xuất hiện khi bạn đã lưu key OpenRouter ở trang **Models** (nhóm Hệ thống). Naota hỏi thẳng OpenRouter số tín dụng đã nạp và đã dùng, rồi hiện phần còn lại kèm dòng "tiền thật đã dùng $...". Không cắm key thì không có thẻ này, và không có nhà cung cấp nào khác cho lấy số tương đương.
+**Số dư thật của OpenRouter** là thứ duy nhất trên trang này là tiền thật. Thẻ "OpenRouter còn" chỉ xuất hiện khi bạn đã lưu key OpenRouter ở trang **Models** (nhóm Hệ thống). NAOSO hỏi thẳng OpenRouter số tín dụng đã nạp và đã dùng, rồi hiện phần còn lại kèm dòng "tiền thật đã dùng $...". Không cắm key thì không có thẻ này, và không có nhà cung cấp nào khác cho lấy số tương đương.
 
 ## Các đề xuất tiết kiệm
 
@@ -184,13 +184,13 @@ Mỗi thẻ kèm một dòng gợi ý hành động cụ thể, ví dụ đề x
 
 ## Công cụ hay dùng được ghim sẵn
 
-Khi một brain đấu nhiều nguồn, Naota giấu bớt công cụ và chỉ tìm ra khi cần, để mỗi câu hỏi nhẹ đi. Đổi lại, công cụ nào bạn dùng hằng ngày cũng tốn thêm một vòng "tìm rồi mới gọi".
+Khi một brain đấu nhiều nguồn, NAOSO giấu bớt công cụ và chỉ tìm ra khi cần, để mỗi câu hỏi nhẹ đi. Đổi lại, công cụ nào bạn dùng hằng ngày cũng tốn thêm một vòng "tìm rồi mới gọi".
 
-Từ bản này Naota tự đếm công cụ nào mỗi brain gọi nhiều nhất và **ghim sẵn** vài cái (mặc định tối đa 4, Naota Core tự nới tới 8 khi cần). Công cụ đã ghim được gọi thẳng, bớt một vòng mỗi lần dùng. Việc nền như loop được lợi nhiều nhất.
+Từ bản này NAOSO tự đếm công cụ nào mỗi brain gọi nhiều nhất và **ghim sẵn** vài cái (mặc định tối đa 4, NAOSO Core tự nới tới 8 khi cần). Công cụ đã ghim được gọi thẳng, bớt một vòng mỗi lần dùng. Việc nền như loop được lợi nhiều nhất.
 
 - Không phải cài gì. Lần đầu ghim và mỗi lần ghim thêm có một thông báo ở chuông.
 - Công cụ lâu không dùng tự rời danh sách. Danh sách của một brain đổi nhiều nhất một lần mỗi ngày.
-- Hỏi Naota "đang ghim công cụ nào" để xem. Nói "đừng ghim công cụ nữa" để tắt.
+- Hỏi NAOSO "đang ghim công cụ nào" để xem. Nói "đừng ghim công cụ nữa" để tắt.
 - Quyền không đổi: công cụ ghim vẫn theo đúng mức quyền của kết nối và của việc đang chạy.
 
 ## Kết quả tool lớn: cất nguyên vẹn, model chỉ đọc phần cần
@@ -208,14 +208,14 @@ Ba tính năng đi kèm:
 
 - **Trinh sát (`naota_scout`).** Việc đọc nhiều nguồn có thể được model chính giao cho **model việc nền** bạn đã chọn ở trang Models. Trinh sát chỉ được đọc, và chỉ kết luận quay về khung chat. Không chạy được thì model chính tự làm như trước.
 - **Chạy code đọc dữ liệu (`naota_code`).** Model viết một đoạn Python ngắn, gọi nhiều tool đọc nối tiếp nhau (lật trang, tra chi tiết từng đơn, ghép hai nguồn), tự tính rồi chỉ in ra kết quả. Dữ liệu thô không đi qua khung chat. Đoạn code chạy trong tiến trình riêng, không có khoá, không đọc file, không ra mạng, và chỉ gọi được tool đọc rõ ràng.
-- **Công thức cho việc định kỳ.** Sau hai lần chạy giống nhau ở hai ngày khác nhau, Naota tự lấy sẵn dữ liệu trước khi model bắt đầu. Naota chỉ làm vậy khi mọi cách hiểu về ngày tháng đều cho cùng một kết quả trong hôm đó, còn không thì chạy như cũ. Chỉ các lệnh đọc rõ ràng mới được lặp lại, và việc nào dùng kỳ không ở dạng `YYYY-MM-DD` (tháng `2026-11`, số tuần, `01/11/2026`) thì không bao giờ được ghi thành công thức. Nếu model vẫn phải tự gọi lại nguồn sau khi đã có dữ liệu lấy sẵn, công thức bị loại sau hai lần. Mỗi công thức là một file trong `<brain>/Naota/recipes/`, xoá file là quên.
+- **Công thức cho việc định kỳ.** Sau hai lần chạy giống nhau ở hai ngày khác nhau, NAOSO tự lấy sẵn dữ liệu trước khi model bắt đầu. NAOSO chỉ làm vậy khi mọi cách hiểu về ngày tháng đều cho cùng một kết quả trong hôm đó, còn không thì chạy như cũ. Chỉ các lệnh đọc rõ ràng mới được lặp lại, và việc nào dùng kỳ không ở dạng `YYYY-MM-DD` (tháng `2026-11`, số tuần, `01/11/2026`) thì không bao giờ được ghi thành công thức. Nếu model vẫn phải tự gọi lại nguồn sau khi đã có dữ liệu lấy sẵn, công thức bị loại sau hai lần. Mỗi công thức là một file trong `<brain>/Naota/recipes/`, xoá file là quên.
 
 Trong một lượt dài còn hai cách bớt nữa, không làm mất gì của model:
 
-- **Kết quả lặp lại.** Model gọi lại đúng công cụ với đúng tham số mà kết quả y hệt lần trước (đọc lại một file, liệt kê lại cùng dữ liệu) thì nhận một dòng tham chiếu tới bản đã có, thay vì cả khối chữ lần nữa. Công cụ vẫn chạy lại thật, nên dữ liệu đã đổi thì model nhận bản mới đầy đủ. Khi lượt dài tới mức Naota phải rút gọn kết quả cũ, nội dung đầy đủ được đặt lại vào chỗ tham chiếu mới nhất. Với Claude Code và Codex, Naota không nhìn thấy hội thoại của chúng nên làm việc này ở cổng hub, cho công cụ và nguồn kết nối của Naota: model hỏi lại ngay sau một tham chiếu thì nhận bản đầy đủ, và khi chúng nén hội thoại thì Naota quên sổ của lượt đó. Claude Code tự lo việc đọc lại một file chưa đổi.
+- **Kết quả lặp lại.** Model gọi lại đúng công cụ với đúng tham số mà kết quả y hệt lần trước (đọc lại một file, liệt kê lại cùng dữ liệu) thì nhận một dòng tham chiếu tới bản đã có, thay vì cả khối chữ lần nữa. Công cụ vẫn chạy lại thật, nên dữ liệu đã đổi thì model nhận bản mới đầy đủ. Khi lượt dài tới mức NAOSO phải rút gọn kết quả cũ, nội dung đầy đủ được đặt lại vào chỗ tham chiếu mới nhất. Với Claude Code và Codex, NAOSO không nhìn thấy hội thoại của chúng nên làm việc này ở cổng hub, cho công cụ và nguồn kết nối của NAOSO: model hỏi lại ngay sau một tham chiếu thì nhận bản đầy đủ, và khi chúng nén hội thoại thì NAOSO quên sổ của lượt đó. Claude Code tự lo việc đọc lại một file chưa đổi.
 - **JSON gọn.** Kết quả là JSON có thụt dòng, hoặc chữ Việt bị viết thành `\u1ec7`, được viết lại gọn với cùng nội dung. Kết quả đọc file, terminal, trang web và skill thì giữ nguyên từng ký tự, vì model có thể cần chép đúng để sửa.
 
-Skill dài kiểu "thực đơn" (mỗi yêu cầu chỉ cần một phần, như `naota-builder`: agent HOẶC loop HOẶC plugin) được nạp **có chọn lọc**. Naota tự chọn phần cần nạp trước khi nạp: chấm điểm từng mục theo câu yêu cầu, ở bất kỳ ngôn ngữ nào (chữ Latin, Nga, Ả Rập, Hindi, Trung, Nhật, Hàn, Thái...), luôn kèm các mục luật và quy trình, kèm cả phần mà phần được chọn dặn phải tạo trước (workflow kéo theo mẫu agent), và liệt kê phần còn lại để model lấy thêm bằng một lệnh. Không chắc là nạp cả skill như cũ. Skill dạng một quy trình liền mạch thì luôn nạp đủ, vì một yêu cầu chung cần mọi phần của nó. Naota học từ cách dùng: mục nào model hay phải lấy thêm thì lần sau nạp sẵn. Tính năng bật thử cho khoảng 10% phiên chat của chủ trước, tắt theo mức **Tắt**; xem biến `NAOTA_SKILL_SECTIONS` ở [Cấu hình .env](16-cau-hinh-env.md).
+Skill dài kiểu "thực đơn" (mỗi yêu cầu chỉ cần một phần, như `naota-builder`: agent HOẶC loop HOẶC plugin) được nạp **có chọn lọc**. NAOSO tự chọn phần cần nạp trước khi nạp: chấm điểm từng mục theo câu yêu cầu, ở bất kỳ ngôn ngữ nào (chữ Latin, Nga, Ả Rập, Hindi, Trung, Nhật, Hàn, Thái...), luôn kèm các mục luật và quy trình, kèm cả phần mà phần được chọn dặn phải tạo trước (workflow kéo theo mẫu agent), và liệt kê phần còn lại để model lấy thêm bằng một lệnh. Không chắc là nạp cả skill như cũ. Skill dạng một quy trình liền mạch thì luôn nạp đủ, vì một yêu cầu chung cần mọi phần của nó. NAOSO học từ cách dùng: mục nào model hay phải lấy thêm thì lần sau nạp sẵn. Tính năng bật thử cho khoảng 10% phiên chat của chủ trước, tắt theo mức **Tắt**; xem biến `NAOTA_SKILL_SECTIONS` ở [Cấu hình .env](16-cau-hinh-env.md).
 
 Việc chạy nền (việc Kanban, việc lặp, nhắc hẹn có làm việc) trên bộ não dùng **khóa API** mang **bộ luật việc nền ngắn** thay cho toàn bộ CLAUDE.md, nên phần cố định gửi ở mỗi lần gọi công cụ bớt khoảng 60%. Bộ luật này giữ mọi luật về hành động: làm đúng việc trong mức quyền, không bịa số, báo kết quả về đúng người giao, không hứa suông, không tự tạo thêm việc, plugin mới luôn tắt. Gói thuê bao (Claude Code, ChatGPT, Grok, Antigravity) vẫn mang bộ luật đầy đủ vì không tính tiền theo token. Bật thử cho khoảng 10% việc chạy nền trước, tắt theo mức **Tắt**; xem biến `NAOTA_BG_LEAN_PROMPT` ở [Cấu hình .env](16-cau-hinh-env.md).
 
@@ -223,7 +223,7 @@ Mục **Đề xuất** cuối trang có một dòng cho biết 7 ngày qua kết
 
 ## Số liệu này lấy từ đâu
 
-Naota không gọi API nào của nhà cung cấp để lấy thống kê. Nó **đọc lại log thô trên chính máy bạn** rồi dựng chỉ mục riêng:
+NAOSO không gọi API nào của nhà cung cấp để lấy thống kê. Nó **đọc lại log thô trên chính máy bạn** rồi dựng chỉ mục riêng:
 
 | Nguồn | Ở đâu | Cho ra |
 |---|---|---|
@@ -238,7 +238,7 @@ Việc quét là **quét tăng dần**: file nào không đổi kích thước v
 
 Nhánh API không có log thô nào để đọc, nên nó chỉ có số **từ lúc bạn nâng lên bản có tính năng này trở đi**. Claude và Codex thì có lịch sử ngược về tận lúc bạn bắt đầu dùng, vì log của chúng vốn đã nằm sẵn trên máy.
 
-Nếu bản cài không đọc được log thô (điển hình là bản Docker trên VPS, nơi thư mục `~/.claude` của bạn không có trong container), Naota dựng số từ nhật ký nội bộ thay thế, nên trang vẫn có số chứ không còn báo 0 như trước. Ngày nào có cả hai nguồn thì log thô thắng, không bị đếm trùng. Dấu hiệu nhận biết: trong bảng "Dự án ngốn nhất", dòng tên `(events)` là dòng dựng từ nhật ký nội bộ, dòng `(api)` là lượt qua provider API.
+Nếu bản cài không đọc được log thô (điển hình là bản Docker trên VPS, nơi thư mục `~/.claude` của bạn không có trong container), NAOSO dựng số từ nhật ký nội bộ thay thế, nên trang vẫn có số chứ không còn báo 0 như trước. Ngày nào có cả hai nguồn thì log thô thắng, không bị đếm trùng. Dấu hiệu nhận biết: trong bảng "Dự án ngốn nhất", dòng tên `(events)` là dòng dựng từ nhật ký nội bộ, dòng `(api)` là lượt qua provider API.
 
 ## Bảng tra nhanh nút và trạng thái
 
@@ -258,25 +258,25 @@ Nếu bản cài không đọc được log thô (điển hình là bản Docker
 ## Mẹo
 
 - Mở **Tháng này** trước để nhìn xu hướng, rồi mới bấm **Hôm nay** để soi ngày cụ thể. Đọc ngược lại dễ hoảng vì một ngày lẻ luôn trông bất thường.
-- Nghi loop chạy quá dày thì lọc **Claude Code** rồi nhìn cột "Nền (loop/lịch)" trong mục Hoạt động. Đây là con số duy nhất nói thẳng cho bạn biết Naota đang tự tiêu bao nhiêu khi bạn không ngồi trước máy.
+- Nghi loop chạy quá dày thì lọc **Claude Code** rồi nhìn cột "Nền (loop/lịch)" trong mục Hoạt động. Đây là con số duy nhất nói thẳng cho bạn biết NAOSO đang tự tiêu bao nhiêu khi bạn không ngồi trước máy.
 - Cache hit thấp mà tổng token cao thì vấn đề nằm ở độ dài phiên, không phải ở số lượt chat. Tách phiên ra là cách rẻ nhất để hạ.
 - Bảng "Dự án ngốn nhất" là cách nhanh để biết brain nào đang tốn nhất, khi bạn dùng nhiều brain.
 - Chỉ bấm **↻ Làm mới** khi bạn vừa chạy xong một việc lớn và muốn thấy nó ngay. Bình thường lần mở trang đã tự quét rồi.
 
 ## Sự cố thường gặp
 
-- **Trang báo toàn số 0.** Thường là bản cài không đọc được log thô, hay gặp nhất trên Docker/VPS vì thư mục `~/.claude` và `~/.codex` của bạn không nằm trong container. Từ bản mới, Naota lấy nhật ký nội bộ làm nguồn dự phòng nên vẫn ra số, nhưng chỉ tính từ thời điểm bạn nâng cấp trở đi. Đã nâng cấp mà vẫn 0 thì nghĩa là chưa có lượt chat nào được ghi lại kể từ đó, hãy chat vài câu rồi bấm **↻ Làm mới**.
-- **Số thấp hơn nhiều so với cảm nhận.** Kiểm tra bạn có đang lọc một nhà cung cấp không, và kiểm tra kỳ đang chọn. Ngoài ra phần "Bạn gõ tay" chỉ đếm được khi bạn chạy Claude Code trên **cùng máy** với Naota.
+- **Trang báo toàn số 0.** Thường là bản cài không đọc được log thô, hay gặp nhất trên Docker/VPS vì thư mục `~/.claude` và `~/.codex` của bạn không nằm trong container. Từ bản mới, NAOSO lấy nhật ký nội bộ làm nguồn dự phòng nên vẫn ra số, nhưng chỉ tính từ thời điểm bạn nâng cấp trở đi. Đã nâng cấp mà vẫn 0 thì nghĩa là chưa có lượt chat nào được ghi lại kể từ đó, hãy chat vài câu rồi bấm **↻ Làm mới**.
+- **Số thấp hơn nhiều so với cảm nhận.** Kiểm tra bạn có đang lọc một nhà cung cấp không, và kiểm tra kỳ đang chọn. Ngoài ra phần "Bạn gõ tay" chỉ đếm được khi bạn chạy Claude Code trên **cùng máy** với NAOSO.
 - **Cắm key Google Gemini nhưng cột API không nhúc nhích.** Lượt Gemini có được ghi vào nhật ký nội bộ, nhưng bộ dựng chỉ mục hiện chỉ nhận các nhà cung cấp OpenRouter, OpenAI và Anthropic vào cột API, nên phần Gemini chưa lên đồ thị này.
 - **Không thấy thẻ "OpenRouter còn".** Thẻ chỉ hiện khi có key OpenRouter trong Cài đặt model và OpenRouter trả lời được. Vào trang **Models** (nhóm Hệ thống) kiểm tra key, xem [Models & engine](10-models-va-engine.md).
 - **Trang hiện bảng đơn giản kiểu "Hôm nay / Tổng tích luỹ" thay vì bộ lọc kỳ.** Đó là giao diện dự phòng, xuất hiện khi tệp giao diện mới chưa nạp được. Tải lại trang, xoá cache trình duyệt nếu cần.
 - **Chi phí quy đổi hiện "-" cho model mình đang dùng.** Model đó chưa có trong bảng giá `server/usage_pricing.json`. Đây là bảng cập nhật tay, thêm dòng cho model của bạn rồi khởi động lại server.
-- **Vừa nâng cấp Naota nhưng trang chưa có gì đổi.** Trang này có phần chạy ở backend, nên sau khi cập nhật cần **khởi động lại server** rồi mới tải lại trang.
+- **Vừa nâng cấp NAOSO nhưng trang chưa có gì đổi.** Trang này có phần chạy ở backend, nên sau khi cập nhật cần **khởi động lại server** rồi mới tải lại trang.
 
 ## Liên quan
 
 - [Models & engine](10-models-va-engine.md) - đổi model, cắm key OpenRouter, hiểu từng engine ghi số vào đâu.
 - [Việc định kỳ & Nhắc hẹn](08-viec-dinh-ky.md) - nơi tắt bớt loop khi cột "Nền (loop/lịch)" phình to.
-- [Việc / Kanban](21-viec-kanban.md) - việc chạy nền cũng tính vào phần "Naota (tự chạy)".
+- [Việc / Kanban](21-viec-kanban.md) - việc chạy nền cũng tính vào phần "NAOSO (tự chạy)".
 - [Cấu hình .env](16-cau-hinh-env.md) - biến `NAOTA_STATE_DIR` quyết định chỉ mục token nằm ở đâu.
 - [Khắc phục sự cố & FAQ](17-khac-phuc-su-co.md) - các lỗi chung của dashboard.

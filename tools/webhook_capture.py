@@ -4,7 +4,7 @@
         --out tests/fixtures/webhooks/captured/poscake-order.json
     .venv/bin/python tools/webhook_capture.py check --config hook.json tests/fixtures/webhooks/captured/*.json
 
-`export` reads one stored event (its body exactly as received and the headers Naota keeps) and writes a fixture with
+`export` reads one stored event (its body exactly as received and the headers NAOSO keeps) and writes a fixture with
 every customer field and credential replaced, keeping the shape and the types: the rules see the same paths, the same
 number / text / boolean types and the same array lengths. Run it on STAGING, read the file before committing it.
 

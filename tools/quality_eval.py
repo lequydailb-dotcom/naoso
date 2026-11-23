@@ -1,17 +1,17 @@
 """Quality eval: do Naota's answers stay as good after a token saving? (2026-11-17)
 
-    python tools/quality_eval.py run                         # sample set, profile of the Naota CLI
+    python tools/quality_eval.py run                         # sample set, profile of the NAOSO CLI
     python tools/quality_eval.py run --set my_set.json --repeat 2 --out before.json
     python tools/quality_eval.py compare before.json after.json   # exit 1 when a task got worse
 
 Owner, 17/11/2026: "anh cần vừa tiết kiệm và vừa không ảnh hưởng đến chất lượng kết quả". Tokens are measured in many
-places; this measures the other half. It sends each task of a set to a RUNNING Naota through the same /chat endpoint
+places; this measures the other half. It sends each task of a set to a RUNNING NAOSO through the same /chat endpoint
 the CLI uses (token from `naota login`, or NAOTA_URL + NAOTA_TOKEN), in a fresh session per task, and records:
 
   - the answer, and how many of the task's key facts it covers (`must`: each item is a list of accepted spellings,
     matched without accents and case, like Graphify's key-fact coverage);
   - anything it must not contain (`must_not`, e.g. the em dash the owner banned);
-  - seconds, and the tokens the turn used when Naota runs on this machine (read from the lines usage-events.jsonl
+  - seconds, and the tokens the turn used when NAOSO runs on this machine (read from the lines usage-events.jsonl
     gained during the task; background jobs running at the same moment are counted too, so run it on a quiet machine).
 
 Run the set before a change and after it (or with a saving switched off and on: NAOTA_RESULT_REPEAT_REFS=0, restart),
@@ -59,7 +59,7 @@ def score(answer: str, must: list, must_not: list) -> dict:
 
 
 def profile(url: str, token: str) -> tuple[str, str]:
-    """URL and token: flags, else NAOTA_URL/NAOTA_TOKEN, else the Naota CLI's default profile."""
+    """URL and token: flags, else NAOTA_URL/NAOTA_TOKEN, else the NAOSO CLI's default profile."""
     if not (url and token):
         try:
             d = json.loads((Path.home() / ".naota" / "config.json").read_text(encoding="utf-8"))
@@ -72,7 +72,7 @@ def profile(url: str, token: str) -> tuple[str, str]:
 
 
 class UsageWindow:
-    """Tokens written to usage-events.jsonl between `start()` and `stop()` (Naota on this machine only)."""
+    """Tokens written to usage-events.jsonl between `start()` and `stop()` (NAOSO on this machine only)."""
 
     def __init__(self, state_dir: Path | None):
         self.path = (state_dir / "usage-events.jsonl") if state_dir else None
@@ -108,7 +108,7 @@ def run(a) -> int:
 
     url, token = profile(a.url, a.token)
     if not url:
-        print("No Naota to ask: run `naota login <url>` first, or pass --url and --token.", file=sys.stderr)
+        print("No NAOSO to ask: run `naota login <url>` first, or pass --url and --token.", file=sys.stderr)
         return 2
     spec = json.loads(Path(a.set).read_text(encoding="utf-8"))
     tasks = [t for t in spec.get("tasks") or [] if not a.only or t.get("id") in a.only.split(",")]
@@ -122,7 +122,7 @@ def run(a) -> int:
         headers["Authorization"] = "Bearer " + token
     results = []
     print(f"run {run_id}: {len(tasks)} tasks x {a.repeat} on {url}"
-          + ("" if window.path else " (tokens unknown: Naota is not on this machine)"))
+          + ("" if window.path else " (tokens unknown: NAOSO is not on this machine)"))
     with httpx.Client(timeout=a.timeout) as client:
         for t in tasks:
             tries = []
@@ -198,14 +198,14 @@ def compare(a) -> int:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    r = sub.add_parser("run", help="send every task of a set to a running Naota")
+    r = sub.add_parser("run", help="send every task of a set to a running NAOSO")
     r.add_argument("--set", default=str(DEFAULT_SET))
     r.add_argument("--only", default="", help="comma-separated task ids")
     r.add_argument("--repeat", type=int, default=1)
     r.add_argument("--brain", default=os.getenv("NAOTA_BRAIN", ""))
     r.add_argument("--url", default="")
     r.add_argument("--token", default="")
-    r.add_argument("--state-dir", default="", help="Naota state folder, to read token usage (local Naota only)")
+    r.add_argument("--state-dir", default="", help="NAOSO state folder, to read token usage (local NAOSO only)")
     r.add_argument("--timeout", type=float, default=900.0)
     r.add_argument("--out", default="")
     c = sub.add_parser("compare", help="compare two runs of the same set")

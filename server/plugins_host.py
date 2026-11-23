@@ -1,5 +1,5 @@
 """
-plugins_host.py - Hệ PLUGIN của Naota (port ý tưởng "plugin" của nousresearch/hermes-agent).
+plugins_host.py - Hệ PLUGIN của NAOSO (port ý tưởng "plugin" của nousresearch/hermes-agent).
 
 Plugin = THƯ MỤC Python thả vào, tự thêm TOOL (ra MỌI engine qua mcp_hub) + HOOK lifecycle,
 KHÔNG phải sửa lõi. Mỗi plugin gồm:
@@ -11,7 +11,7 @@ NGUỒN plugin (giống bundled/user của Hermes):
     - VAULT    <vault>/plugins/<slug>/  (hoặc  <vault>/Naota/plugins/<slug>/)   do user tạo
 
 TOOL plugin đi qua mcp_hub.discover_all → Claude Code / Codex (HTTP /hub/mcp) + engine API
-(in-process). TÔN TRỌNG 3 mức quyền của Naota qua `min_mode` (readonly/safe/full), enforce y hệt
+(in-process). TÔN TRỌNG 3 mức quyền của NAOSO qua `min_mode` (readonly/safe/full), enforce y hệt
 tool ghi file builtin. HOOK 'pre_tool_call'/'post_tool_call' được mcp_hub bắn quanh MỌI tool call
 khi có plugin đăng ký (0 overhead khi không plugin nào dùng hook).
 
@@ -448,8 +448,8 @@ class PluginContext:
     def on_unload(self, fn: Callable) -> None:
         """Đăng ký việc phải làm khi plugin bị TẮT hoặc GỠ. Chạy ngược thứ tự đăng ký.
 
-        Tool và hook thì Naota tự thu hồi được: chúng chỉ nằm trong danh sách của
-        `LoadedPlugin` trong cache, và hub dựng lại bảng route mỗi lần cache hết hạn. Cái Naota
+        Tool và hook thì NAOSO tự thu hồi được: chúng chỉ nằm trong danh sách của
+        `LoadedPlugin` trong cache, và hub dựng lại bảng route mỗi lần cache hết hạn. Cái NAOSO
         KHÔNG tự thu hồi được là thứ `register()` mở ra với thế giới bên ngoài - một thread,
         một socket, một watcher hệ tệp, một tiến trình con. Nếu plugin mở thứ như vậy thì phải
         tự đóng ở đây, nếu không nó sống tiếp sau khi người dùng đã bấm Tắt.
@@ -489,7 +489,7 @@ class PluginContext:
 
     # ---- đường HTTP ----
     #
-    # Sinh ra để "Naota trong ChatGPT" rời lõi thành một gói trong kho: gói đó phải mở cửa OAuth
+    # Sinh ra để "NAOSO trong ChatGPT" rời lõi thành một gói trong kho: gói đó phải mở cửa OAuth
     # và một địa chỉ MCP cho máy chủ OpenAI gọi vào, mà plugin trước đây chỉ đăng ký được tool
     # và hook. Cố ý làm CHUNG chứ không may đo cho một gói: webhook của dịch vụ ngoài là cùng
     # một nhu cầu.
@@ -603,7 +603,7 @@ def _signature(vault_root: Optional[str], scope_vault: bool = True) -> tuple:
     2026-11-13: computing it walks every plugin folder (bundled, packs, user, vault) and stats four files per
     plugin, a few hundred disk calls with a dozen packs installed, and `_load_all` asks for it on every tool list,
     every tool call that has hooks and every bot turn. On the event loop it now comes from memory (kept.py);
-    `invalidate()` drops it, so a plugin changed through Naota is seen at once."""
+    `invalidate()` drops it, so a plugin changed through NAOSO is seen at once."""
     return _SIGS.get((vault_root, bool(scope_vault)))
 
 
@@ -1263,7 +1263,7 @@ async def _fire_pre(vault_root: Optional[str], payload: dict) -> dict:
       - trả None / bất cứ gì khác -> không ảnh hưởng, y như trước
 
     **FAIL-OPEN là cố ý.** Hook ném lỗi thì tool VẪN CHẠY, chỉ ghi một dòng stderr. Hook là
-    thứ người dùng tự cài; để một plugin hỏng khoá được mọi tool của Naota là đổi một lỗi nhỏ
+    thứ người dùng tự cài; để một plugin hỏng khoá được mọi tool của NAOSO là đổi một lỗi nhỏ
     lấy một hệ thống chết. Ai cần fail-closed thì tự bắt lỗi trong hook rồi trả `deny`.
 
     Nhiều hook cùng đăng ký thì hook ĐẦU TIÊN nói `deny` thắng và dừng luôn vòng lặp: đã có

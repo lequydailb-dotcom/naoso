@@ -513,7 +513,7 @@ class ReadonlyOrchestrator:
                 "task_budget_preflight_rejected" if binding_task_budget
                 else "orchestrator_planner_compile_rejected",
                 policy, trace, bucket, "orchestrator",
-                "Planner capsule vượt budget đã xác minh. Naota chưa gọi model hoặc tool.",
+                "Planner capsule vượt budget đã xác minh. NAOSO chưa gọi model hoặc tool.",
             )
         exact_estimates = []
         for item in candidates:
@@ -539,7 +539,7 @@ class ReadonlyOrchestrator:
             return self._plan(
                 "reject", "task_budget_preflight_rejected", policy, trace, bucket,
                 "orchestrator",
-                "Evidence bundle dự kiến vượt budget. Naota chưa gọi model hoặc tool.",
+                "Evidence bundle dự kiến vượt budget. NAOSO chưa gọi model hoặc tool.",
             )
         worst_input = int(math.ceil((
             int(planner.trace_report.get("estimated_input_tokens") or 0) +
@@ -559,7 +559,7 @@ class ReadonlyOrchestrator:
                 "reject", "task_budget_preflight_rejected", policy, trace, bucket,
                 "orchestrator",
                 "Task read-only nhiều bước vượt token hoặc monetary budget. "
-                "Naota chưa gọi model hoặc tool.",
+                "NAOSO chưa gọi model hoặc tool.",
             )
         path = self.runtime.pin_execution_path(
             trace, "orchestrator", bucket, policy.version,
@@ -1021,7 +1021,7 @@ class ReadonlyOrchestrator:
     async def _finalize(self, plan, state: dict, trace, api_key: str, reasoning: str,
                         emitter: Emitter | None, final_generator: FinalGenerator):
         if not state["evidence"]:
-            return "Naota chưa thu được evidence read-only hợp lệ để trả lời an toàn.", "no_evidence"
+            return "NAOSO chưa thu được evidence read-only hợp lệ để trả lời an toàn.", "no_evidence"
         child = self.runtime.create_child_step(
             trace, "final", _hash({"evidence": [x["content_hash"] for x in state["evidence"]]})
         )
@@ -1274,7 +1274,7 @@ class ReadonlyOrchestrator:
         state = self._initial_state(plan)
         if not self._checkpoint(plan.trace, state, initialize=True):
             return OrchestratorResult(
-                "Không thể tạo checkpoint mã hoá cho task read-only; Naota đã dừng trước model/tool.",
+                "Không thể tạo checkpoint mã hoá cho task read-only; NAOSO đã dừng trước model/tool.",
                 plan.model, "FAILED", plan.trace.task_id, "checkpoint_initialize_failed",
                 0, 0, 0.0, (), 0,
             )

@@ -1,4 +1,4 @@
-/* star-nudge.js - mời tặng Naota một ngôi sao trên GitHub.
+/* star-nudge.js - mời tặng NAOSO một ngôi sao trên GitHub.
 
    Server quyết định CÓ MỜI KHÔNG (server/star_nudge.py: ngưỡng dùng, thời gian chờ, trạng thái
    chung cho mọi thiết bị). File này chỉ lo ba việc:
@@ -6,7 +6,7 @@
    1. Báo khoảnh khắc vui cho server, đúng lúc người dùng rảnh tay:
       - heart: vừa thả tim / like một câu trả lời (chat-reactions.js phát `naota:react-positive`).
         Lần đầu thả tim là lúc dễ nhận sao nhất.
-      - work: việc nền vừa trả kết quả, hay một lượt Naota làm nhiều bước vừa xong (app.js gọi
+      - work: việc nền vừa trả kết quả, hay một lượt NAOSO làm nhiều bước vừa xong (app.js gọi
         NaotaStar.moment("work")).
       - load: mở app (server tự xem có cột mốc mới hay bản vừa cập nhật không).
       - manual: người dùng tự bấm nút sao ở góc trái hay trên trang Cập nhật.
@@ -62,7 +62,7 @@
     return false;
   }
 
-  // ── Linh vật: ô vuông bo góc vàng NAOTA, cùng dáng logo (dashboard/logo.svg) và linh vật pet.js ─────
+  // ── Linh vật: ô vuông bo góc vàng NAOSO, cùng dáng logo (dashboard/logo.svg) và linh vật pet.js ─────
   // Từ 1.60.0 thay ngôi sao của logo cũ bản nguồn. Chỉ đổi nét mặt theo từng màn:
   //   vui   - mắt cười ^^ (màn mời);
   //   mong  - mắt tròn dài như linh vật đang sống, ngước lên chờ (màn "tặng xong chưa");
@@ -95,7 +95,7 @@
     if (laDienThoai()) {
       return '<div class="sn-gh sn-gh-dt" aria-hidden="true">'
         + '<div class="sn-gh-ten"><span class="sn-gh-ava"></span>vuongtex / <b>naota</b></div>'
-        + '<div class="sn-gh-mota">NAOTA</div>'
+        + '<div class="sn-gh-mota">NAOSO</div>'
         + '<div class="sn-gh-hang">' + nutStar + '<span class="sn-gh-nut">' + ic("git-branch") + " Fork</span></div></div>";
     }
     return '<div class="sn-gh" aria-hidden="true">'
@@ -264,7 +264,7 @@
     if (b) veNutGoc(b);
   });
 
-  /** Thẻ "Ủng hộ Naota" cố định trên trang Cập nhật (console.js gắn nút bấm). */
+  /** Thẻ "Ủng hộ NAOSO" cố định trên trang Cập nhật (console.js gắn nút bấm). */
   function theUngHo() {
     return '<div class="sn-ho"><div class="sn-lv">' + linhVat("vui") + "</div>"
       + '<div class="sn-ho-chu"><b>' + esc(t("star.support_title")) + "</b><span>" + esc(t("star.support_body")) + "</span></div>"

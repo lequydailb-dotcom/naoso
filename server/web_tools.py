@@ -6,17 +6,17 @@ Claude Code, Codex và Grok Build có WebSearch/WebFetch sẵn trong CLI của c
 (OpenRouter, OpenAI API, Anthropic API, Gemini, Groq, DeepSeek, Ollama) thì không: hỏi giá vàng
 hôm nay, đọc một bài báo, tra tài liệu của một thư viện là chúng đành đoán từ trí nhớ. Hermes
 Agent (github.com/NousResearch/hermes-agent, MIT) có `tools/web_tools.py` với hai công cụ đúng
-như vậy; file này học thiết kế đó, viết lại theo kiểu Naota.
+như vậy; file này học thiết kế đó, viết lại theo kiểu NAOSO.
 
 Hai quyết định
 --------------
 - **Tìm không cần key.** Mặc định dùng DuckDuckGo bản HTML (không key, không đăng ký). Ai có key
-  thì Naota dùng nguồn tốt hơn trước: Tavily, Brave Search, hoặc một máy SearXNG tự dựng. Nguồn
+  thì NAOSO dùng nguồn tốt hơn trước: Tavily, Brave Search, hoặc một máy SearXNG tự dựng. Nguồn
   nào lỗi thì rơi xuống nguồn kế, nên một key hết hạn không làm mất khả năng tìm.
 - **Đọc trang có rào mạng nội bộ ở MỌI chặng chuyển hướng**, dùng chung `web_watch.check_url`
   (cổng 80/443, không trỏ vào localhost, mạng LAN hay 169.254.169.254 của máy ảo đám mây). Thiếu
   rào này thì một câu "đọc giúp http://127.0.0.1:8000/admin" là model đọc được trang quản trị
-  của chính Naota.
+  của chính NAOSO.
 
 Trang dài không bị cắt mất: bản đã đọc nằm trong bộ đệm 30 phút, model gọi lại với `offset` để
 đọc tiếp. Trang cần đăng nhập thì dùng `naota_login` (Kho đăng nhập), file này không cầm cookie.

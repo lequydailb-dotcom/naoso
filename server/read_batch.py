@@ -1,6 +1,6 @@
 """Batched reads: many dashboard GETs in one round trip (performance stage 2).
 
-Why. The owner reaches Naota through a Cloudflare tunnel (150-400 ms per round trip). Measured over 250 ms: the app
+Why. The owner reaches NAOSO through a Cloudflare tunnel (150-400 ms per round trip). Measured over 250 ms: the app
 opens with ~32 reads, a chat switch makes 6, and most console pages read in 3 to 5 waves, each wave waiting for the one
 before it (a module asks only once the previous answer drew its part of the page). The waiting, not the server, was
 the cost: every read answers in under 10 ms.

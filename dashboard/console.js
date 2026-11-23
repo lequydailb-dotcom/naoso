@@ -1,5 +1,5 @@
 // ============================================
-// NAOTA - Console layer (sidebar + router)
+// NAOSO - Console layer (sidebar + router)
 // Bọc ngoài cockpit: rail điều hướng + trang quản lý. KHÔNG sửa app.js.
 // Đồ thị tự pause khi rời cockpit (qua window.__naotaGraph). Alpine cho UI.
 // Thêm trang mới = thêm 1 mục vào RAIL_ITEMS + 1 case trong renderPage().
@@ -144,10 +144,10 @@
   // Trang CÓ THẬT nhưng KHÔNG hiện trên thanh bên. Bỏ hẳn khỏi `RAIL_ITEMS` thì không dùng
   // được, vì đó mới là nguồn icon và nhãn; nên chỗ ẩn nằm ở đây.
   //
-  // Rỗng. Trước đây Naota Store bị ẩn với lý do "nó không phải một chức năng ngang
+  // Rỗng. Trước đây NAOSO Store bị ẩn với lý do "nó không phải một chức năng ngang
   // hàng với Trợ lý hay Kỹ năng, đường vào đúng là cái tab trên chính trang bạn đang đứng".
   // Lập luận đó đúng khi kho chỉ có vài gói và ai cũng tới nó từ một trang năng lực. Nó sai
-  // ngay khi kho thành chỗ chứa PHẦN LỚN kết nối của Naota (16 khuôn đã dọn ra kho):
+  // ngay khi kho thành chỗ chứa PHẦN LỚN kết nối của NAOSO (16 khuôn đã dọn ra kho):
   // một người mới cài, chưa đấu gì, không có trang nào để mà bấm tab - họ cần thấy lối vào
   // ngay trên thanh bên. Nên đưa ra, và đặt cạnh Kết nối.
   //
@@ -449,7 +449,7 @@
       // Về nơi có hiển thị model thì làm mới, phòng khi model bị đổi bằng đường khác
       // (trang Models, Cài đặt nhanh, hoặc chỉnh tay settings).
       if (id === "home" || id === "chat") refreshModelUi();
-      // Nút điều khiển cockpit (cài đặt, giọng nói, làm mới) chỉ hiện ở trang Naota, không hiện navbar trang quản lý
+      // Nút điều khiển cockpit (cài đặt, giọng nói, làm mới) chỉ hiện ở trang NAOSO, không hiện navbar trang quản lý
       document.body.classList.toggle("in-console", id !== "home");
       // Rời trang Cài đặt → cất #quickSet về holder TRƯỚC khi cviewBody bị ghi đè (giữ node + handler).
       if (id !== "settings") parkQuickSet(true);
@@ -924,7 +924,7 @@
   }
 
   // ============================================
-  // Trang Mức dùng (token & chi phí Naota tự đo, có đồ thị 14 ngày)
+  // Trang Mức dùng (token & chi phí NAOSO tự đo, có đồ thị 14 ngày)
   // ============================================
   let _uzCss = false;
   function _injectUsageCss() {
@@ -1214,7 +1214,7 @@
     const myGen = _renderGen;
     el.innerHTML = `<div class="cl-wrap">
       <section class="upd-card" aria-label="${window.t("cs.upd_aria")}">
-        <div class="upd-title"><span class="upd-name">NAOTA</span><span class="gcard-tag" id="updVerTag">…</span></div>
+        <div class="upd-title"><span class="upd-name">NAOSO</span><span class="gcard-tag" id="updVerTag">…</span></div>
         <div class="gcard-meta" id="updVerMeta">${window.t("cs.upd_checking")}</div>
         <div class="upd-changes" id="updVerChangelog"></div>
         <div class="js-actions">
@@ -1228,7 +1228,7 @@
       </section>
       <div id="clTimeline"><div class="cl-note">${window.t("cs.cl_loading")}</div></div>
     </div>`;
-    // Thẻ "Ủng hộ Naota" (star-nudge.js): ai muốn tặng sao lúc nào cũng tìm được ở đây.
+    // Thẻ "Ủng hộ NAOSO" (star-nudge.js): ai muốn tặng sao lúc nào cũng tìm được ở đây.
     const _snGo = el.querySelector(".sn-ho .sn-go");
     if (_snGo) _snGo.onclick = () => window.NaotaStar.open();
     // Nút "Kiểm tra lại" PHẢI làm mới cả danh sách bên dưới, không chỉ khung trên.
@@ -2486,7 +2486,7 @@
       if (window.NaotaPacks && window.NaotaPacks.moKho) window.NaotaPacks.moKho("tool", "plugins", VIEW_META.plugins ? VIEW_META.plugins.label : "plugins");
       else { const s = window.Alpine && Alpine.store("nav"); if (s && s.go) s.go("packs"); }
     });
-    // "Ask Naota in chat": opens the chat with a started sentence, never sends it, and never overwrites a draft.
+    // "Ask NAOSO in chat": opens the chat with a started sentence, never sends it, and never overwrites a draft.
     function askInChat() {
       const s = window.Alpine && Alpine.store("nav");
       if (s && s.go) s.go("chat");
@@ -2605,7 +2605,7 @@
       el.innerHTML = placeholder("webhooks", window.t("cs.mod_not_ready", { ten: "webhooks.js" }));
       return;
     }
-    // one page for every door another app uses to call Naota: Webhook | Token API.
+    // one page for every door another app uses to call NAOSO: Webhook | Token API.
     let whTab = "hooks";
     try { if (localStorage.getItem(WH_TAB_KEY) === "tokens") whTab = "tokens"; } catch (e) {}
     el.innerHTML = `
@@ -2793,7 +2793,7 @@
       loadAll();
     };
 
-    // Learning from chat: what Naota changed on its own; undo, or apply in "Đề xuất" mode.
+    // Learning from chat: what NAOSO changed on its own; undo, or apply in "Đề xuất" mode.
     async function loadChat() {
       const box = el.querySelector("#lnChat");
       let d = {}; try { d = await (await fetch(`/auto-learning?brain=${encodeURIComponent(fbrain())}`)).json(); } catch (e) { }
@@ -2974,7 +2974,7 @@
     const m = s.model || {};
     // Đọc từ model.main + model.providers (nguồn thật của trang Models), KHÔNG từ m.engine -
     // trường cũ đó chỉ biết "cli" với "openrouter" nên máy đang chạy Gemini/OpenAI vẫn bị
-    // ghi là "Claude CLI". Mọi provider đều có MCP Naota, khác nhau ở chỗ chạy được lệnh máy.
+    // ghi là "Claude CLI". Mọi provider đều có MCP NAOSO, khác nhau ở chỗ chạy được lệnh máy.
     const _mainP = (m.providers || []).find(p => p.id === (m.main || {}).provider) || {};
     const eng = (_mainP.label || (m.main || {}).provider || "-")
       + (_mainP.kind === "api" ? " " + window.t("cs.ov_eng_api") : _mainP.kind ? " " + window.t("cs.ov_eng_cli") : "");
@@ -2986,7 +2986,7 @@
       <div class="cview-section">
         <h3>${esc(window.t("cs.ov_version"))}</h3>
         <div class="gcard" style="max-width:640px">
-          <div class="gcard-top"><span class="gcard-name">NAOTA</span><span class="gcard-tag" id="ovVerTag">…</span></div>
+          <div class="gcard-top"><span class="gcard-name">NAOSO</span><span class="gcard-tag" id="ovVerTag">…</span></div>
           <div class="gcard-meta" id="ovVerMeta">${esc(window.t("cs.ov_checking"))}</div>
           <div id="ovVerChangelog" style="display:none;margin:8px 0;padding:8px 10px;border-left:3px solid var(--accent,var(--accent));background:rgba(120,140,160,.08);border-radius:6px;font-size:13px;line-height:1.6"></div>
           <div class="js-actions">
@@ -3003,7 +3003,7 @@
         <div class="cgrid">
           <div class="gcard"><div class="gcard-top"><span class="gcard-name">Engine</span></div><div class="gcard-meta">${esc(eng)}</div></div>
           <div class="gcard"><div class="gcard-top"><span class="gcard-name">Model</span></div><div class="gcard-meta">${esc(curModel)}</div></div>
-          <div class="gcard"><div class="gcard-top"><span class="gcard-name">${esc(window.t("cs.ac_ws_head"))}</span></div><div class="gcard-meta">${esc(s.workspace_name || "NAOTA")}</div></div>
+          <div class="gcard"><div class="gcard-top"><span class="gcard-name">${esc(window.t("cs.ac_ws_head"))}</span></div><div class="gcard-meta">${esc(s.workspace_name || "NAOSO")}</div></div>
           <div class="gcard"><div class="gcard-top"><span class="gcard-name">Telegram</span></div><div class="gcard-meta">${tg.enabled ? "● " + esc(window.t("settings.tag_on")) : "○ " + esc(window.t("settings.tag_off"))}${tg.chat_id ? " · " + esc(tg.chat_id) : ""}</div></div>
         </div>
       </div>
@@ -3286,8 +3286,8 @@
   }
 
   // ===== Tab Local Model (Ollama chạy trên máy) =====
-  // HAI trạng thái chứ không ba như bản demo. Demo có "đang cài Ollama" vì nó giả định Naota
-  // tự chạy được lệnh cài trên máy người dùng - chỉ đúng khi Naota chạy native. Bản Docker/VPS
+  // HAI trạng thái chứ không ba như bản demo. Demo có "đang cài Ollama" vì nó giả định NAOSO
+  // tự chạy được lệnh cài trên máy người dùng - chỉ đúng khi NAOSO chạy native. Bản Docker/VPS
   // không có quyền, cũng không có đường, chạy lệnh trên máy vật lý của người ta. Nên ở đây
   // chỉ còn: CHƯA NỐI (hiện lệnh cài để người dùng tự chạy trong terminal máy thật) và ĐÃ NỐI.
   const OL_LENH = {
@@ -3302,7 +3302,7 @@
     return st.host_platform === "mac" ? lenh + "   # " + t("ol.mac_hint") : lenh;
   }
   // Bản Docker cần NHIỀU HƠN một lệnh cài. Bản cũ chỉ nói "cài trên máy thật rồi điền địa
-  // chỉ", và người dùng dán ngay lệnh đó vào terminal của Naota - dễ hiểu, vì nút copy
+  // chỉ", và người dùng dán ngay lệnh đó vào terminal của NAOSO - dễ hiểu, vì nút copy
   // nằm ngay cạnh mà app thì có sẵn một cái terminal. Nhưng kể cả cài đúng chỗ vẫn còn hai bức
   // tường nữa: Ollama mặc định chỉ nghe 127.0.0.1 nên container không với tới, và không ai
   // đoán được phải điền địa chỉ cầu nối Docker. Thiếu một trong hai là "không nối được" mà
@@ -3319,7 +3319,7 @@
       "sudo systemctl daemon-reload && sudo systemctl restart ollama";
   }
   // (Hằng OL_DIA_CHI_DOCKER = "http://172.17.0.1:11434" ĐÃ BỎ.) 172.17.0.1 là cổng của mạng
-  // bridge MẶC ĐỊNH, chỉ đúng với `docker run` trần. Naota cài bằng compose thì nằm trên mạng
+  // bridge MẶC ĐỊNH, chỉ đúng với `docker run` trần. NAOSO cài bằng compose thì nằm trên mạng
   // riêng của project (172.18.x trở đi), nên con số đó SAI với gần như mọi bản cài - điền
   // đúng theo hướng dẫn vẫn không nối được. Nay server dò cổng thật và trả về `goi_y_endpoint`.
 
@@ -3337,7 +3337,7 @@
 
   function olVeChuaNoi(el, st) {
     const lenh = olLenhCai(st);
-    // Docker/VPS: máy chạy Naota KHÔNG phải máy người dùng, nên câu hướng dẫn phải khác hẳn -
+    // Docker/VPS: máy chạy NAOSO KHÔNG phải máy người dùng, nên câu hướng dẫn phải khác hẳn -
     // bảo họ chạy lệnh "trên máy này" là bảo họ cài Ollama vào trong container.
     const xa = st.deploy_mode === "docker";
     const lenhNghe = olLenhNghe(st);
@@ -3388,7 +3388,7 @@
               esc(t("common.copy")) + "</button></div>"
           : "") +
         (st.error ? '<div class="ol-err">' + ic("triangle-alert") + "<span>" + esc(st.error) + "</span>" + (xa ? infoBtn() : "") + "</div>" : "") +
-        // Đã lưu địa chỉ mà vẫn không nối được thì từ trong container Naota không phân biệt
+        // Đã lưu địa chỉ mà vẫn không nối được thì từ trong container NAOSO không phân biệt
         // nổi "chưa cài" với "đã chạy nhưng chỉ nghe 127.0.0.1". Máy chủ thì phân biệt được
         // bằng đúng một lệnh - đưa lệnh đó và cách đọc kết quả, thay vì để người dùng đoán.
         (st.error && xa ? infoBody('<div class="ol-note">' + ic("terminal") + "<span>" + esc(t("ol.dk_chan_doan")) + "</span></div>") : "") +
@@ -3975,7 +3975,7 @@
       if (p.id === "grok-cli") {
         // Bộ não thứ 11. Đây là thẻ CLI DUY NHẤT có nút "Đăng nhập" thật sự bấm được trên VPS:
         // `grok login --device-auth` in ra một link và một mã rồi tự đứng hỏi máy chủ, nên
-        // Naota chỉ cần bóc link + mã đưa lên đây, không phải giả lập terminal như bản `agy`
+        // NAOSO chỉ cần bóc link + mã đưa lên đây, không phải giả lập terminal như bản `agy`
         // Từng thử (và tắc trên Windows vì không có pseudo-terminal).
         const dn = p.dang_nhap || {};
         const st = on
@@ -4006,7 +4006,7 @@
         // Windows không có pseudo-terminal nên luôn tắc. Người dùng `agy` vốn là dân code, gõ
         // một lệnh nhanh hơn hẳn. Nên thẻ này chỉ đưa đúng lệnh cần gõ.
         // the card has Disconnect too. The keyring stays out of reach, so the server runs the
-        // CLI's own sign-out when it has one and otherwise switches the card off in Naota; "Connect again" undoes it.
+        // CLI's own sign-out when it has one and otherwise switches the card off in NAOSO; "Connect again" undoes it.
         const dn = p.dang_nhap || {};
         const off = !!p.naota_off;
         const st = on
@@ -4037,7 +4037,7 @@
       }
       if (p.kind === "cli") {   // Claude Code - trạng thái + login/logout nạp động qua /claude/status
         // Ô chọn nguồn xác thực. Cả hai lựa chọn giữ NGUYÊN năng lực (Bash, WebFetch, MCP, nối
-        // phiên cũ); khác nhau ở chỗ ai trả tiền và ai chịu rủi ro. Naota cố ý không tắt cứng
+        // phiên cũ); khác nhau ở chỗ ai trả tiền và ai chịu rủi ro. NAOSO cố ý không tắt cứng
         // đường subscription - chủ máy tự cân, nhưng phải cân khi đã BIẾT, nên có cảnh báo.
         const byKey = p.auth_mode === "api_key";
         return `${cardOpen(p, ord)}
@@ -4101,7 +4101,7 @@
         // clones, LiteLLM, vLLM...). The key may be blank for a server that needs none; the model list comes from the
         // seller, and the model box opens only for a seller that lists none.
         return `${cardOpen(p, ord)}
-          ${provHead(p, on, "MCP Naota", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", true, ord)}
+          ${provHead(p, on, "MCP NAOSO", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", true, ord)}
           ${infoBody(esc(t("models.oc_note")))}
           <div class="prov-action" style="flex-wrap:wrap">
             <input class="js-input" id="ocLabel" spellcheck="false" style="flex:1 1 100%" placeholder="${esc(t("models.adv_label_ph"))}">
@@ -4119,7 +4119,7 @@
         // the card also takes the model names the seller gave (comma separated).
         const typed = (m.anthropic_compat_models || []).join(", ");
         return `${cardOpen(p, ord)}
-          ${provHead(p, on, "MCP Naota", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", true, ord)}
+          ${provHead(p, on, "MCP NAOSO", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", true, ord)}
           ${infoBody(esc(t("models.ac_note")))}
           <div class="prov-action" style="flex-wrap:wrap">
             <input class="js-input" id="acLabel" spellcheck="false" style="flex:1 1 100%" placeholder="${esc(t("models.adv_label_ph"))}">
@@ -4134,7 +4134,7 @@
         </div>`;
       }
       return `${cardOpen(p, ord)}
-        ${provHead(p, on, p.kind === "cli" ? "MCP/skill" : "MCP Naota", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", false, ord)}
+        ${provHead(p, on, p.kind === "cli" ? "MCP/skill" : "MCP NAOSO", (on ? t("models.st_connected") : t("models.st_not_connected")) + " · " + p.models.length + " model", false, ord)}
         ${ord && multiKey.indexOf(p.id) >= 0 ? acctList(p) : p.needs_key
           ? `<div class="prov-action">${!on && multiKey.indexOf(p.id) >= 0 ? acctNameField(p.id) : ""}<input class="js-input" id="pk-${p.id}" type="password" placeholder="${on ? esc(t("models.key_change_ph", { duoi: masked })) : esc(t("models.key_ph"))}"><button class="gcard-btn" data-pk="${p.id}">${on ? esc(t("models.key_change")) : esc(t("models.connect"))}</button>${on && !ord ? `<button class="gcard-btn ghost" data-disc="${p.id}">${esc(t("models.disconnect"))}</button>` : ""}</div>`
           : `<div class="prov-note">${esc(t("models.no_key_note"))}</div>`}
@@ -4144,7 +4144,7 @@
 
     const swapRow = (i) => `<div class="ord-swap-row"><button type="button" class="ord-swap" data-swap="${i}" aria-label="${esc(t("models.ord_swap_aria", { a: connList[i - 1].label, b: connList[i].label }))}">${ORD_SWAP} ${esc(t("models.ord_swap"))}</button></div>`;
     const bgName = bgCfg.model || defName(bgCfg.provider);
-    // Automatic (10/11/2026): Naota picks two models of MAIN's provider, one for its own work, one for handed-over jobs.
+    // Automatic (10/11/2026): NAOSO picks two models of MAIN's provider, one for its own work, one for handed-over jobs.
     const bgAuto = !!bgCfg.auto;
     const bgAutoSub = bgAuto ? t("models.bg_auto_sub", { nha: bgP.label || bgCfg.provider,
       nhe: bgCfg.light || defName(bgCfg.provider), giua: bgName }) : "";
@@ -4305,7 +4305,7 @@
                                    { method: "POST" })).json(); }
       catch (e) { r = { ok: false, error: t("common.net_err") }; }
       agk.disabled = false; agk.textContent = cu2;
-      // Nói RIÊNG chuyện tool của Naota. "Chat được" và "gọi được tool của Naota" là hai
+      // Nói RIÊNG chuyện tool của NAOSO. "Chat được" và "gọi được tool của NAOSO" là hai
       // chuyện khác nhau, và suốt các bản 0.30-0.42 cái thứ hai luôn hỏng trong khi cái thứ
       // nhất vẫn xanh - nên thẻ này chỉ báo "Dùng được" là báo thiếu đúng chỗ đau.
       const mcpTxt = (r && r.mcp)
@@ -4350,7 +4350,7 @@
       if (!r || !r.ok) { if (msg) msg.innerHTML = Icons.warn((r && r.error) || t("models.cant_open")); return; }
       if (r.xong) { renderModelsCloudTab(el); return; }
       // Link + mã hiện ra để người dùng mở trên MÁY CỦA HỌ - đây là cả lý do tồn tại của
-      // đường device code: máy chạy Naota (VPS) không cần có trình duyệt.
+      // đường device code: máy chạy NAOSO (VPS) không cần có trình duyệt.
       if (box) {
         box.style.display = "";
         box.innerHTML = `<div>${esc(t("models.grok_open"))}<br><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a></div>`
@@ -4417,7 +4417,7 @@
                                    { method: "POST" })).json(); }
       catch (e) { r = { ok: false, error: t("common.net_err") }; }
       gkc.disabled = false; gkc.textContent = cu3;
-      // Nói RIÊNG chuyện tool của Naota: "chat được" và "gọi được tool của Naota" là hai
+      // Nói RIÊNG chuyện tool của NAOSO: "chat được" và "gọi được tool của NAOSO" là hai
       // chuyện khác nhau, và cái thứ hai mới là chỗ đã ba lần hỏng câm với `agy`.
       const mcpTxt2 = (r && r.mcp)
         ? (r.mcp.co_naota ? " · " + esc(t("models.mcp_ok"))
@@ -4430,7 +4430,7 @@
         setTimeout(() => renderModelsCloudTab(el), 700);
       } else if (msg) {
         msg.innerHTML = Icons.warn((r && r.error) || t("models.not_works")) + mcpTxt2;
-        // Chưa dùng được thì hiện luôn chỗ Naota đã nhìn: binary nào, thư mục nào, trong đó
+        // Chưa dùng được thì hiện luôn chỗ NAOSO đã nhìn: binary nào, thư mục nào, trong đó
         // có file gì. Chỉ TÊN file và TÊN khoá - giá trị trong auth.json là token thật.
         const cd = r && r.chan_doan, box2 = el.querySelector("#grokBox");
         if (cd && box2) {
@@ -4464,7 +4464,7 @@
   //
   // Vì sao cần: con số trên thẻ đọc từ `model.catalog` trong settings, mà catalog chỉ được ghi
   // SAU một lần lấy live thành công. ChatGPT không có catalog mặc định (danh sách model do
-  // Codex quyết, Naota cố ý không ghim version), nên trên máy mới đăng nhập xong là thẻ hiện
+  // Codex quyết, NAOSO cố ý không ghim version), nên trên máy mới đăng nhập xong là thẻ hiện
   // "● Đã kết nối · 0 model" và nằm im như vậy cho tới khi ai đó mở hộp chọn model - trông y
   // hệt đăng nhập hỏng. Máy cũ không thấy lỗi này chỉ vì catalog đã có sẵn từ lần trước.
   const _daHoiModel = new Set();   // hỏi HỤT thì thôi, không quay vòng vô tận
@@ -4539,7 +4539,7 @@
     const no = (ACCT_ITEMS[pid] || []).indexOf(cur) + 1;
     return [cur.label || t("models.pacct_n", { n: no }), cur.email, cur.plan].filter(Boolean).map(x => " · " + x).join("");
   };
-  // A subscription CLI with nothing set picks its own model by plan, which Naota cannot read: say so instead of "default".
+  // A subscription CLI with nothing set picks its own model by plan, which NAOSO cannot read: say so instead of "default".
   const PLAN_CLI = ["anthropic-cli", "openai-oauth", "grok-cli", "antigravity-cli"];
   const defName = (pid) => MODEL_DEFAULTS[pid] ? t("models.mp_default_is", { m: MODEL_DEFAULTS[pid] })
     : PLAN_CLI.indexOf(pid) >= 0 ? t("models.mp_default_cli") : t("models.mp_default");
@@ -4891,7 +4891,7 @@
       if (reId) planLogin(pid, box);
     };
     // An extra Google account for Antigravity (Linux only, plan_accounts). agy signs in on a keyboard screen, so the
-    // sheet copies a sign-in command made for this account and opens Naota's Terminal page (same user as Naota);
+    // sheet copies a sign-in command made for this account and opens Naota's Terminal page (same user as NAOSO);
     // the page then waits for the account's token file and adds the account.
     const agySheet = (btn, reId, reLabel) => {
       const pid = "antigravity-cli";
@@ -5124,7 +5124,7 @@
         const html = await window.NaotaModelList.render(o);
         if (!openPop || openPop.el !== pop) return;
         const typing = document.activeElement && document.activeElement.id === "ordBgSearch";
-        // First row: back to Automatic. Picking any model below is a choice by hand, which Naota then never replaces.
+        // First row: back to Automatic. Picking any model below is a choice by hand, which NAOSO then never replaces.
         const autoRow = `<div class="mb-item ${c.bgCfg.auto ? "cur" : ""}" data-bgauto="1" role="option"><span class="tick">`
           + `${c.bgCfg.auto ? ic("check", { cls: "ic-ok" }) : ""}</span><span>${esc(t("models.bg_auto_pick"))}</span></div>`;
         sh.body.innerHTML = autoRow + html;
@@ -5207,7 +5207,7 @@
 
   // One Disconnect for every card ("check that every model card can be disconnected"). Each
   // provider keeps its own way out: a plan logs out, an API card forgets its keys, a home Ollama forgets its address,
-  // Antigravity runs its own sign-out when it has one and is switched off in Naota either way. The card then leaves
+  // Antigravity runs its own sign-out when it has one and is switched off in NAOSO either way. The card then leaves
   // the usage order and the next card becomes MAIN.
   const DISC_URL = { "anthropic-cli": "/claude/logout", "openai-oauth": "/oauth/openai/disconnect",
                      "grok-cli": "/grok/logout", "antigravity-cli": "/antigravity/logout" };
@@ -5308,7 +5308,7 @@
 
   // Dòng "Claude Code bản nào + nút Cập nhật". Danh sách model của gói Claude đọc từ chính
   // binary `claude`, nên CLI cũ là model mới (Sonnet 5.5) không hiện - Claude Code không tự
-  // cập nhật khi chỉ được Naota gọi chạy ngầm. Server tự chạy `claude update` mỗi ngày; nút
+  // cập nhật khi chỉ được NAOSO gọi chạy ngầm. Server tự chạy `claude update` mỗi ngày; nút
   // này là để khỏi phải chờ.
   function veCapNhatClaude(el, d) {
     const box = el.querySelector("#cliUpd");
@@ -6030,7 +6030,7 @@
         force: !!m._forceAdd });
       if (!r.ok) {
         err.textContent = r.error || window.t("app.err_cap");
-        // can_force = server chặn có lý do (vd connector cần trình duyệt trên máy chạy Naota
+        // can_force = server chặn có lý do (vd connector cần trình duyệt trên máy chạy NAOSO
         // mà đang mở qua domain public ). Bấm lần nữa là xác nhận vẫn muốn đấu.
         if (r.can_force) { m._forceAdd = true; go.textContent = window.t("cs.cn_force_add"); }
         else { go.textContent = window.t("models.connect"); }
@@ -6367,7 +6367,7 @@
         await postJson("/connect/update", { id: c.id, deny_tools: v.split(",").map(x => x.trim()).filter(Boolean) });
         closeConnModal(); renderConnect(el);
       } else if (act === "relogin") {
-        // Nguồn tự giữ token ngoài Naota (workspace-mcp): nút Kết nối lại chỉ lưu key chứ không
+        // Nguồn tự giữ token ngoài NAOSO (workspace-mcp): nút Kết nối lại chỉ lưu key chứ không
         // đụng được token, nên token cấp thiếu quyền là thiếu mãi. Đây là đường duy nhất bắt nó
         // hỏi lại quyền.
         if (!confirm(window.t("cs.cn_relogin_confirm", { ten: c.label || "" }))) return;
@@ -6592,7 +6592,7 @@
     const st = await freshSettings();
     const main = (st.model && st.model.main) || {};
     const provs = (st.model && st.model.providers) || [];
-    // MỌI provider Naota hỗ trợ đều gọi được kho Kết nối: hai CLI (Claude Code, Codex) đi
+    // MỌI provider NAOSO hỗ trợ đều gọi được kho Kết nối: hai CLI (Claude Code, Codex) đi
     // native, bốn provider API đi qua vòng gọi tool + hub trong _api_stream_mcp. Gemini từng
     // thiếu trong danh sách này nên khách chạy Gemini bị banner vàng "chưa hỗ trợ gọi công cụ"
     // dù bên dưới đã chạy MCP ngon - nhánh vàng giờ chỉ còn để chặn provider lạ.
@@ -6612,12 +6612,12 @@
     const removed = d.removed || [];
     const orphans = d.orphans || [];
     // Kết nối mất khuôn thì `mcp_store.resolved` từ chối dựng dial spec, tức nó IM. Phải nói ra
-    // thay vì để người dùng ngồi đoán vì sao một nguồn đang có mà Naota bảo không có.
+    // thay vì để người dùng ngồi đoán vì sao một nguồn đang có mà NAOSO bảo không có.
     //
     // Hai nguyên nhân, hai lối thoát khác hẳn nhau - trộn làm một là đẩy người dùng đi sai
     // đường ở đúng lúc họ đang hoảng:
     //   `co_trong_kho`  người dùng vừa tự gỡ dịch vụ đó → cài lại ở khu "Đã gỡ" ngay dưới.
-    //   không có        dịch vụ đã DỌN RA Naota Store (đã dọn 16 cái) → cài lại từ kho.
+    //   không có        dịch vụ đã DỌN RA NAOSO Store (đã dọn 16 cái) → cài lại từ kho.
     //
     // Câu cũ ở nhánh thứ hai xui người dùng nâng cấp app hoặc bỏ kết nối đi. Nó
     // vừa sai vừa nguy hiểm: nâng cấp không mọc lại dịch vụ nữa, còn bỏ kết nối là vứt luôn
@@ -6643,7 +6643,7 @@
         + '</div>'
       : "";
     // A connected service whose extra tools moved to a store pack the machine does not have yet
-    // (Zalo -> naota.zalo). Naota never installs a pack silently, so it has to be said here.
+    // (Zalo -> naota.zalo). NAOSO never installs a pack silently, so it has to be said here.
     const banDiKem = (d.companions || []).filter(c => c.state !== "installed").map(c =>
       '<div class="conn-guide" style="border-left:3px solid var(--warn,#e0a33e);padding-left:10px;margin-bottom:12px">'
       + WARN_ICON + ' ' + esc(window.t(c.state === "disabled" ? "cs.cn_companion_disabled" : "cs.cn_companion_missing",
@@ -6676,7 +6676,7 @@
       + (conns.length > 3 ? '<input class="js-input conn-search" id="connQ" type="search" placeholder="' + esc(window.t("cs.cn_conn_search_ph")) + '">' : "")
       + '<div class="gcard-meta" style="max-width:740px">'
       + '<label style="cursor:pointer"><input type="checkbox" id="mcpStrict" ' + (d.strict ? "checked" : "") + '> ' + esc(window.t("cs.cn_strict")) + '</label></div>'
-      // GitHub is built into Naota (github-connect.js): its card is always first, connected or not.
+      // GitHub is built into NAOSO (github-connect.js): its card is always first, connected or not.
       + '<div class="prov-list" id="mcpGithub" style="margin-top:12px"></div>'
       + '<div class="prov-list" id="connList" style="margin-top:12px">' + (connectedHtml || '<div class="mp-empty">' + esc(window.t("cs.cn_empty_a")) + ' <b>' + esc(window.t("cs.cn_tab_sanco")) + '</b> ' + esc(window.t("cs.cn_empty_b")) + '</div>') + '</div>'
       // Connected Facebook Pages (messenger-connect.js), one card in this same list, drawn only once a Page is
@@ -7183,7 +7183,7 @@
   }
 
   // ---- Trang Kênh Admin: mỗi kênh một tab ----
-  // Kênh ADMIN là đường CHỦ nói chuyện với Naota qua app chat, đủ quyền như dashboard. Bot trả lời
+  // Kênh ADMIN là đường CHỦ nói chuyện với NAOSO qua app chat, đủ quyền như dashboard. Bot trả lời
   // KHÁCH nằm ở trang Chatbot, và tên trang nói rõ điều đó vì hai thứ từng bị nhầm.
   //
   // Mỗi tab cùng một khuôn, và khuôn đó sửa đúng chỗ người dùng vấp ở bản cũ:
@@ -7586,7 +7586,7 @@
         <h3>${esc(window.t("cs.ac_ws_head"))}</h3>
         <div class="gcard" style="max-width:560px">
           <label class="js-lbl">${esc(window.t("cs.ac_ws_name"))}</label>
-          <input class="js-input" id="acWs" value="${esc(s.workspace_name || "NAOTA")}">
+          <input class="js-input" id="acWs" value="${esc(s.workspace_name || "NAOSO")}">
           <button class="gcard-btn" id="acWsSave">${esc(window.t("common.save"))}</button>
           <div class="gcard-meta" id="acWsStatus"></div>
         </div>
@@ -7663,7 +7663,7 @@
       wsStatus.textContent = window.t("settings.saving");
       const r = await saveSetting("general", { workspace_name: document.getElementById("acWs").value.trim() });
       wsStatus.innerHTML = r.ok ? OK_ICON + " " + esc(window.t("cs.ac_saved")) : WARN_ICON + " " + esc(window.t("cs.ac_err_dot"));
-      const wn = document.getElementById("workspaceName"); if (wn) wn.textContent = document.getElementById("acWs").value.trim() || "NAOTA";
+      const wn = document.getElementById("workspaceName"); if (wn) wn.textContent = document.getElementById("acWs").value.trim() || "NAOSO";
     };
     const acStatus = document.getElementById("acStatus");
     // HAI đường, đừng gộp: /auth/setup là đường CÔNG KHAI cho lần đầu tạo admin và nó TỪ CHỐI
@@ -7991,12 +7991,12 @@
 
   // ---- Token API (CLI, scripts) ----
   // moved from the Account page to the Integrations page ("Tích hợp"), tab Token API. A token is a door for
-  // another program (the `naota` CLI, a script, cron) to call Naota, like a webhook, not part of the owner's own sign-in.
+  // another program (the `naota` CLI, a script, cron) to call NAOSO, like a webhook, not part of the owner's own sign-in.
   function renderTokenPanel(box) {
     if (!box) return;
     box.innerHTML = `
       <div class="cview-section">
-        <div class="gcard-meta tk-intro">${infoPair(`${esc(window.t("cs.ac_tk_intro_a"))} <b>Naota CLI</b> ${esc(window.t("cs.ac_tk_intro_b"))}`)}</div>
+        <div class="gcard-meta tk-intro">${infoPair(`${esc(window.t("cs.ac_tk_intro_a"))} <b>NAOSO CLI</b> ${esc(window.t("cs.ac_tk_intro_b"))}`)}</div>
         <div class="gcard" style="max-width:560px">
           <label class="js-lbl">${esc(window.t("cs.ac_tk_name"))}</label>
           <input class="js-input" id="tkName" placeholder="${esc(window.t("cs.ac_tk_name_ph"))}">
@@ -8150,9 +8150,9 @@
   // ---- Trang Cài đặt: nhúng #quickSet + bộ chọn nhà cung cấp giọng đọc ----
   // Dòng trạng thái 2FA trong khối "Tài khoản đăng nhập" cũ (#quickSet, index.html).
   //
-  // Vì sao cần: Naota có HAI bề mặt cài đặt tài khoản - trang Tài khoản (đủ thứ, gồm cả 2FA)
+  // Vì sao cần: NAOSO có HAI bề mặt cài đặt tài khoản - trang Tài khoản (đủ thứ, gồm cả 2FA)
   // và khối cũ này nhúng trong trang Cài đặt (chỉ đổi mật khẩu). Ai mở Cài đặt trước sẽ thấy
-  // một khối tài khoản không nhắc gì tới 2FA và kết luận Naota không có, rồi thôi.
+  // một khối tài khoản không nhắc gì tới 2FA và kết luận NAOSO không có, rồi thôi.
   //
   // Đây CHỈ là trạng thái + lối đi. Nút bấm mang data-settings-go="account" nên nó dùng chung
   // đúng đường chuyển trang với mấy nút còn lại, không tự gọi navigateTo.
@@ -8187,7 +8187,7 @@
   }
 
   // ---- Thẻ GIỌNG NÓI (voice-call-spec mục 5) ----
-  // Ba ô: dòng "Đang dùng", Giọng Naota (danh sách đổi theo đường gọi), Tập trung. Nâng cao: Đường
+  // Ba ô: dòng "Đang dùng", Giọng NAOSO (danh sách đổi theo đường gọi), Tập trung. Nâng cao: Đường
   // gọi, Tốc độ đọc, ElevenLabs. MỌI Ô TỰ LƯU khi đổi, không còn nút Lưu. Khung là node tĩnh trong
   // index.html (#voiceCard); hàm này chỉ đổ lựa chọn và nối tay bắt, nên gọi lại bao nhiêu lần
   // cũng được (mỗi lần mở tab Giọng nói, mỗi lần đổi đường gọi).
@@ -8238,7 +8238,7 @@
       return r;
     };
 
-    // Giọng Naota: mỗi đường gọi một bộ giọng.
+    // Giọng NAOSO: mỗi đường gọi một bộ giọng.
     const sel = $("vcVoice"), tryBtn = $("vcTry");
     const edgeSel = $("voiceSel");
     const basic = call.engine === "basic";
@@ -8853,7 +8853,7 @@
     //
     // Kích cỡ và cỡ mắt là THANH TRƯỢT: lúc kéo (tam = true) con pet đổi ngay nhưng chưa ghi
     // máy chủ, thả tay mới ghi. Màu thân và màu mắt có thêm ô TỰ CHỌN kèm ô gõ mã màu.
-    // image: the "Own picture" block (upload, back to the Naota face, use as tab icon) sits first on this page only.
+    // image: the "Own picture" block (upload, back to the NAOSO face, use as tab icon) sits first on this page only.
     const OPTS_ED = { size: true, vanh: true, image: true };
     const ve = () => {
       const cur = P.get();
@@ -9036,12 +9036,12 @@
     const engine = mainProvider?.label || ({ "openrouter": "OpenRouter", "openai": "OpenAI API", "openai-oauth": "ChatGPT OAuth", "anthropic-cli": "Claude CLI" }[mainProviderId] || mainProviderId);
     const currentModel = model.main?.model || (mainProviderId === "openrouter" ? model.openrouter_model : model.claude_model) || t("common.default");
     const opt = (val, label, cur) => `<option value="${esc(val)}"${val === cur ? " selected" : ""}>${esc(label)}</option>`;
-    // Language here is the INTERFACE's only (owner, 2026-11-15): Naota replies in the language of whoever writes,
-    // like Claude or ChatGPT, so the "Naota replies in" picker is gone. A fixed reply language is said in the chat or
+    // Language here is the INTERFACE's only (owner, 2026-11-15): NAOSO replies in the language of whoever writes,
+    // like Claude or ChatGPT, so the "NAOSO replies in" picker is gone. A fixed reply language is said in the chat or
     // written in the profile.
     const lc = s.locale || {};
     const uiLang = (window.NaotaI18n && NaotaI18n.lang()) || "vi";
-    // Timezone: what "today", "yesterday", reminders and report periods mean for Naota. Lives with the language
+    // Timezone: what "today", "yesterday", reminders and report periods mean for NAOSO. Lives with the language
     // pickers because both are "where and how I live", but it is saved separately (locale.tz), never inferred from language.
     const tzName = lc.tz || (s.locale_fmt && s.locale_fmt.tz) || "Asia/Ho_Chi_Minh";
     // MỘT thẻ cho cả hai ô ngôn ngữ. Trước là hai thẻ riêng nằm cạnh nhau trong lưới,
@@ -9074,7 +9074,7 @@
           <div class="settings-status-grid">
             <div><span>Engine</span><b>${esc(engine)}</b></div>
             <div><span>Model</span><b>${esc(currentModel)}</b></div>
-            <div><span>Workspace</span><b>${esc(s.workspace_name || "NAOTA")}</b></div>
+            <div><span>Workspace</span><b>${esc(s.workspace_name || "NAOSO")}</b></div>
             <div><span>Telegram</span><b>${esc(telegram.enabled ? t("settings.on") : t("settings.off"))}</b></div>
           </div>
           <div class="settings-links">
@@ -9161,7 +9161,7 @@
       const selUi = document.getElementById("vpUiLang");
       if (selUi) selUi.onchange = async () => {
         // Đổi NGAY trên máy này trước, rồi mới lưu lên server. Ngôn ngữ giao diện là lựa chọn
-        // THEO THIẾT BỊ (người dùng mở Naota từ nhiều máy), nên trải nghiệm phải tức thì và
+        // THEO THIẾT BỊ (người dùng mở NAOSO từ nhiều máy), nên trải nghiệm phải tức thì và
         // không được phụ thuộc vào việc gọi mạng có thành công hay không.
         try { await NaotaI18n.setLang(selUi.value); } catch (e) { /* noop */ }
         await saveSetting("locale", { ui_lang: uiLangForServer(selUi.value, s) });
@@ -9251,7 +9251,7 @@
   // Trang TRÒ CHUYỆN - khung chat toàn khung (mượn node chat của cockpit + sidebar lịch sử)
   // Không nhân đôi bộ máy chat: relocate chính #chatArea/#attachBar/#modelBar/#hudVoice
   // (giữ nguyên mọi handler + WebSocket + streaming đã gắn trong app.js) rồi TRẢ về HUD khi
-  // rời trang. Cùng một cuộc trò chuyện hiển thị ở cả màn Naota lẫn tab này.
+  // rời trang. Cùng một cuộc trò chuyện hiển thị ở cả màn NAOSO lẫn tab này.
   // ============================================
   // attachBar lives INSIDE #hudVoice so it is no longer borrowed on its own.
   const CHAT_NODE_IDS = ["callBar", "chatArea", "bgStrip", "goalBar", "modelBar", "hudVoice"];
@@ -9322,7 +9322,7 @@
     @media (prefers-reduced-motion:reduce){ .cp-conv{ animation:none; } }
     .chatpage-slot{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:10px; }
     /* Mở file từ tab Thư mục (desktop): trình sửa bên TRÁI, khung chat co thành CỘT PHẢI
-       y như màn Naota - hội thoại ở trên, ô nhập dưới đáy cột (bản xếp
+       y như màn NAOSO - hội thoại ở trên, ô nhập dưới đáy cột (bản xếp
        chồng dọc trước đó để chat nằm TRÊN trình sửa theo thứ tự DOM, nhìn ngược). Grid
        đặt chỗ theo ô nên thứ tự DOM không còn quyết định vị trí. Màn hẹp giữ lối cũ:
        trình sửa chiếm chỗ (luật display:none nằm trong khối @media 860px bên dưới),
@@ -9341,8 +9341,8 @@
     .cedit-thu-btn svg, .cedit-expand svg{ transform:scaleX(-1); }
     @media (min-width:861px){
       /* Bản trước nhét CẢ cụm nhập (file chip + thanh model + ô nhập) vào cột phải 340px
-         nên chật cứng - chỉnh lại: y như màn Naota, các thanh đó phải TRẢI DÀI TOÀN BỀ
-         RỘNG dưới cùng (ở màn Naota chúng nằm NGOÀI .hud-body, vắt ngang đáy), chỉ có
+         nên chật cứng - chỉnh lại: y như màn NAOSO, các thanh đó phải TRẢI DÀI TOÀN BỀ
+         RỘNG dưới cùng (ở màn NAOSO chúng nằm NGOÀI .hud-body, vắt ngang đáy), chỉ có
          HỘI THOẠI đứng cột phải. Slot tan vào lưới bằng display:contents để từng con của
          nó tự nhận ô grid riêng. */
       .chatpage-main.edit-on{ display:grid; column-gap:14px;
@@ -9383,11 +9383,11 @@
       flex:1 1 auto; min-height:0; min-width:0; border-radius:12px; }
     .chatpage-slot > *{ width:100%; max-width:900px; margin-left:auto; margin-right:auto; }
     .chatpage-slot .transcript{ flex:1 1 auto; min-height:0; max-height:none; background:transparent; }
-    /* Khung nhập giữ NGUYÊN bộ mặt của thanh nhập ở màn Naota (--bg2 + bo 18px). Trước đây
+    /* Khung nhập giữ NGUYÊN bộ mặt của thanh nhập ở màn NAOSO (--bg2 + bo 18px). Trước đây
        gõ cứng rgba(24,24,34,.6) nên tông sáng lòi ra một dải xám đen giữa nền giấy. */
     .chatpage-slot .hud-voice{ background:var(--bg2); border:1px solid var(--border); border-radius:24px; }
     .chatpage-slot .attach-bar{ flex:none; }
-    /* Màn hẹp: cả hàng tiêu đề phải nằm gọn MỘT dòng. Trước đây tiêu đề "Trò chuyện với Naota"
+    /* Màn hẹp: cả hàng tiêu đề phải nằm gọn MỘT dòng. Trước đây tiêu đề "Trò chuyện với NAOSO"
        xuống bốn dòng và chữ "Thu nhỏ" xuống hai dòng, đẩy khung chat tụt hẳn xuống - đã gặp
        đúng cảnh đó. Nay hàng này nhẹ hẳn: tiêu đề tĩnh và nhãn engine đều đã bỏ, chỉ
        còn hai nút (rút về icon) và chip project ở mép phải (tự cắt, xem style.css). */
@@ -9466,14 +9466,14 @@
   }
   // ===== Cho tab "Thư mục" của khung chat MƯỢN chính panel Vault =====
   // Không dựng lại cây thứ hai. Bản đầu của tính năng này viết hẳn một module cây riêng, và
-  // Có ý kiến: "sao không bê nguyên cái cây y hệt bên Naota sang mà phải dựng lại".
+  // Có ý kiến: "sao không bê nguyên cái cây y hệt bên NAOSO sang mà phải dựng lại".
   // Đúng - cây Vault đã có sẵn tìm theo tên/nội dung, tạo file, tạo thư mục, làm mới, tô sáng
   // file đang mở. Dựng bản thứ hai là chép lại từng đó thứ rồi để hai bản trôi lệch nhau.
   // Mượn node y như cách trang này vẫn mượn #chatArea: cùng một cây, chỉ đổi chỗ đứng.
   // ===== Trình sửa file đứng TRÊN khung chat khi mở file từ tab Thư mục =====
   // Ở màn chính, trình sửa là lớp nổi đè lên visual não - chỗ đó rỗng nên đè là hợp lý. Ở
   // trang Trò chuyện, desktop XẾP CHỒNG: trình sửa trên, khung chat rút gọn ở dưới - chủ
-  // Đã đổi ý (trước đó ẩn hẳn): vừa sửa file vừa nhắn Naota về file đó.
+  // Đã đổi ý (trước đó ẩn hẳn): vừa sửa file vừa nhắn NAOSO về file đó.
   // Màn hẹp vẫn ẩn hẳn khung chat vì không đủ chỗ. Xem khối CSS .chatpage-main.edit-on.
   // Vẫn MƯỢN chính #noteEditor chứ không dựng trình sửa thứ hai - cùng lý do với cây Vault.
   // `into` = khung sẽ mượn trình sửa. Bỏ trống = khung của trang Trò chuyện (#chatPageEdit).
@@ -9635,13 +9635,13 @@
     // chứ không để module tự đặt store.active: navigateTo còn dọn trang cũ, cất #quickSet và
     // vẽ lại đồ thị - bỏ qua mấy bước đó là để lại rác của trang trước trên trang sau.
     // `go` đi qua store Alpine chứ không gọi thẳng `navigateTo`: store còn BUNG NHÓM chứa trang
-    // vừa mở. Gọi thẳng thì mở trang bằng lời xong thanh bên vẫn gập, người dùng tưởng Naota
+    // vừa mở. Gọi thẳng thì mở trang bằng lời xong thanh bên vẫn gập, người dùng tưởng NAOSO
     // không hiểu "mở dropdown". Không có store (trang chưa dựng xong) thì lui về navigateTo.
     function _navStore() {
       try { return window.Alpine && window.Alpine.store("nav"); } catch (e) { return null; }
     }
     window.NaotaNav = {
-      // For the mascot menu (pet-menu.js): the rail icon of a page, and whether this Naota has that page at all.
+      // For the mascot menu (pet-menu.js): the rail icon of a page, and whether this NAOSO has that page at all.
       iconName(id) { return VIEW_ICON[id] || ""; },
       has(id) { return Object.prototype.hasOwnProperty.call(VIEW_META, id); },
       go(id) { const s = _navStore(); if (s && typeof s.go === "function") s.go(id); else navigateTo(id); },
@@ -9717,7 +9717,7 @@
               ic("chevron-left") + '<span data-i18n="cs.cp_min">' + esc(window.t("cs.cp_min")) + '</span></button>' +
             // the open conversation's name (sessions-ui.js renderTitle draws it).
             '<span class="cp-conv-host"></span>' +
-            // Tiêu đề tĩnh "Trò chuyện với Naota" ĐÃ BỎ . Nó nói
+            // Tiêu đề tĩnh "Trò chuyện với NAOSO" ĐÃ BỎ . Nó nói
             // đúng một điều mà rail đang tô sáng và khung trống đã ghi bằng chữ in nghiêng
             // ngay bên dưới, nên nó chỉ ăn chỗ. Chip project lùi về mép phải, chiếm chỗ đó.
             '<span class="proj-chip-host"></span>' +
@@ -9772,7 +9772,7 @@
       em.onclick = () => datEditThu(false);
       slot.appendChild(et); slot.appendChild(em);
     }
-    // Đường VỀ. Nút phóng to ở màn Naota nay dẫn thẳng sang trang này (lớp nổi .chat-stage đã
+    // Đường VỀ. Nút phóng to ở màn NAOSO nay dẫn thẳng sang trang này (lớp nổi .chat-stage đã
     // bỏ), nên trang này phải có nút thu nhỏ, nếu không người dùng chỉ còn cách bấm rail.
     el.querySelector("#cpMinBtn").onclick = () => navigateTo("home");
     // Cuộn xuống đáy + focus ô nhập cho tiện gõ ngay
@@ -9806,7 +9806,7 @@
       get meta() { void this.i18nTick; return VIEW_META[this.active] || VIEW_META.home; },
       // Trang đang mở là một trang Nâng cao: khi danh sách gập, dòng Nâng cao sáng lên thay cho nó.
       get menuActive() { return RAIL_MENU.includes(this.active) || RAIL_MENU_ADV.includes(this.active); },
-      // Xổ/gập Nâng cao. Xổ ra thì cuộn cột tới dòng cuối (Cộng đồng NAOTA), kẻo nó nằm khuất dưới hàng phiên bản.
+      // Xổ/gập Nâng cao. Xổ ra thì cuộn cột tới dòng cuối (Cộng đồng NAOSO), kẻo nó nằm khuất dưới hàng phiên bản.
       toggleAdv(btn) {
         this.advOpen = !this.advOpen;
         if (!this.advOpen || !btn) return;
@@ -10482,7 +10482,7 @@
     await _neDropAssist(true);   // a pending autosave must not recreate the file after it is deleted
     const fd = new FormData(); fd.append("brain", fbrain()); fd.append("path", rel);
     try { await fetch("/files/delete", { method: "POST", body: fd }); } catch (e) {}
-    // Ghim trỏ tới file vừa xoá thì bỏ, đừng để Naota đi mở một đường dẫn không còn tồn tại.
+    // Ghim trỏ tới file vừa xoá thì bỏ, đừng để NAOSO đi mở một đường dẫn không còn tồn tại.
     try {
       const p = window.NaotaPin && window.NaotaPin.get();
       if (p && p.rel === rel) window.NaotaPin.clear();
@@ -10542,7 +10542,7 @@
     // Chép đường dẫn file đang mở. Đứng đầu hàng nút vì nó nói về CHÍNH file này chứ không
     // sửa gì nó, và vì đây là thứ hay cần nhất khi đang đọc một file rồi muốn nhắc tới nó ở
     // chỗ khác. Chép đúng chuỗi `rel` (đường dẫn trong brain) - thứ NaotaOpenNoteAt, wikilink
-    // và mọi tool đọc file của Naota nhận vào.
+    // và mọi tool đọc file của NAOSO nhận vào.
     const bSao = mk(ic("copy"), window.t("common.copy_path") + ": " + rel,
                     () => { if (window.NaotaCopy) window.NaotaCopy(rel, bSao); });
     actions.appendChild(bSao);
@@ -10798,7 +10798,7 @@
   // Nội dung có khác lúc vừa mở không. So với BẢN ĐÃ VÒNG QUA markdown lúc mở, không phải
   // chữ thô đọc từ đĩa: bản render WYSIWYG đổi lại thành markdown luôn lệch đôi chỗ so với
   // file gốc (turndown chuẩn hoá dấu, xuống dòng). So với file gốc thì mỗi lần chỉ ĐỌC rồi
-  // rời đi cũng bị tính là có sửa, và Naota sẽ âm thầm ghi đè định dạng của file đó.
+  // rời đi cũng bị tính là có sửa, và NAOSO sẽ âm thầm ghi đè định dạng của file đó.
   function _neCoSuaChua() {
     if (!_neSaveFn || !_neLayNoiDung || _neGocText == null) return false;
     try { return _neLayNoiDung() !== _neGocText; } catch (e) { return false; }
@@ -11132,7 +11132,7 @@
   // của server rồi nối thêm hướng dẫn, ra một chuỗi dài hơn cả thanh trạng thái nên bị cắt
   // cụt, và nó còn chỉ sai chỗ ("mở terminal gõ /login") vì giờ kết nối ở trang Models.
   // Người dùng cũng không cần biết "bộ não claude" là gì: với họ chỉ có một sự thật là chưa
-  // dùng được Naota, và một việc phải làm là vào Models.
+  // dùng được NAOSO, và một việc phải làm là vào Models.
   async function refreshEngineBanner() {
     const b = document.getElementById("engineBanner");
     if (!b) return;
@@ -11189,7 +11189,7 @@
     const st = document.getElementById("studio");
     if (st) new MutationObserver(recomputeGraph).observe(st, { attributes: true, attributeFilter: ["class"] });
     // Màn hình co/giãn qua ngưỡng mobile → tính lại (chỉ tắt/bật graph, KHÔNG tự nhảy trang:
-    // đang đứng ở màn Naota mà tự bị đẩy sang Trò chuyện là mất chỗ đang xem)
+    // đang đứng ở màn NAOSO mà tự bị đẩy sang Trò chuyện là mất chỗ đang xem)
     window.matchMedia("(max-width: 860px)").addEventListener("change", recomputeGraph);
     // Đổi brain (Select Brain) → nạp lại trang quản lý đang xem theo brain mới (không cần F5)
     const gs = document.getElementById("graphSource");
@@ -11198,7 +11198,7 @@
       if (active !== "home") renderPage(active);
       // Cây vault ở cột trái sống ngoài hệ cview → tự làm mới theo brain mới
       _vtCache.clear(); _vtIndex = null; _vtActivePath = null; renderVaultTree();
-      // Ghim của brain cũ trỏ ra ngoài brain mới → bỏ, kẻo Naota sửa nhầm file brain khác.
+      // Ghim của brain cũ trỏ ra ngoài brain mới → bỏ, kẻo NAOSO sửa nhầm file brain khác.
       try { if (window.NaotaPin) window.NaotaPin.clear(); } catch (e) {}
       // Vệt đường đi cũng thuộc brain cũ: mọi bước trong đó trỏ vào file của brain kia.
       _neLichSu = []; _neViTri = -1; _neVeNutLui();
@@ -11208,7 +11208,7 @@
     renderVaultTree();
     initRailTooltip();   // tooltip nhanh cho rail thu gọn
     // Trang đầu của thiết bị là Trò chuyện; các lần sau quay lại đúng khung đang dùng.
-    // Khôi phục ngay, trước các lời gọi mạng ở freshSettings, để tránh nháy màn Naota.
+    // Khôi phục ngay, trước các lời gọi mạng ở freshSettings, để tránh nháy màn NAOSO.
     khoiPhucTrang();
     // the start-up screen waits from here for the first page's own "Loading..." lines to go (boot-splash.js).
     try { if (window.NaotaBoot) window.NaotaBoot.pageStarted(); } catch (e) {}

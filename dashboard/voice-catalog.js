@@ -1,4 +1,4 @@
-// voice-catalog.js - nam hay nữ của từng giọng Naota có thể nói.
+// voice-catalog.js - nam hay nữ của từng giọng NAOSO có thể nói.
 //
 // Lỗi đã gặp: cài đặt là nữ nhưng khi nói là giọng nam, lưu thế nào cũng không đổi được.
 // Hai nguyên nhân, cả hai đều ở cách thẻ Giọng nói trình bày:

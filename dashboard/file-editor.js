@@ -206,7 +206,7 @@
     modal.addEventListener("mousedown", function (e) { if (e.target === modal) close(); });
     modal.addEventListener("click", function (e) { if (e.target === modal) close(); });
     // Nut Back cua dien thoai (va cu vuot canh man hinh) phai dong trinh sua, khong phai thoat
-    // ca app. Truoc day khong co nhanh nay nen nguoi dung bam Back la bay ra khoi Naota - mot
+    // ca app. Truoc day khong co nhanh nay nen nguoi dung bam Back la bay ra khoi NAOSO - mot
     // duong "lui" ma khong ai muon. Ca app khong dung History API o cho nao khac, nen chen mot
     // buoc o day khong dam vao dieu huong nao.
     window.addEventListener("popstate", function () {

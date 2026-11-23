@@ -1,4 +1,4 @@
-/* chat-render.js - bo render chat "chan that nhu Claude" cho NAOTA.
+/* chat-render.js - bo render chat "chan that nhu Claude" cho NAOSO.
    Thay bo markdownToHtml regex cu trong app.js: markdown day du (heading h1-h6,
    danh sach co thu tu + long + checkbox, blockquote, duong ke ngang, in nghieng,
    gach ngang, link, anh), code block co nhan ngon ngu + to mau cu phap, render an
@@ -71,7 +71,7 @@
   // Vi sao can: duong dan anh trong tin nhan la tuong doi ("attachments/x.png"), khong mang
   // brain. Truoc day moi lan ve lai deu ghep voi brain DANG chon, nen mo mot hoi thoai cu
   // trong khi dang o brain khac la anh tro sai cho, 404, roi bi thay bang o xam - nguoi dung
-  // tuong Naota tu xoa anh di. Gan brain cua chinh hoi thoai do vao luot render thi het.
+  // tuong NAOSO tu xoa anh di. Gan brain cua chinh hoi thoai do vao luot render thi het.
   var _brainForRender = null;
   function brainPath() {
     if (_brainForRender != null) return _brainForRender;
@@ -106,11 +106,11 @@
   // thu cai ke tiep - khong phai hoi may chu truoc, va mot note tro dung duong van tai mot lan.
   //
   //   1. THEO THU MUC CUA CHINH FILE .md  - dung cach Obsidian, VS Code va GitHub hieu mot
-  //      duong dan tuong doi. Day la cai ma nguoi viet note mong doi, va la cai Naota thieu
+  //      duong dan tuong doi. Day la cai ma nguoi viet note mong doi, va la cai NAOSO thieu
   //      truoc ban nay: no phan giai MOI duong dan theo GOC BRAIN, nen note nam trong thu muc
   //      con ma viet ![](anh.jpg) thi di tim <brain>/anh.jpg, khong bao gio co.
   //   2. THEO GOC BRAIN - dung hanh vi cu. Giu lai de note nao dang tro kieu do van chay.
-  //   3. attachments/<ten file> - cho Naota tu cat anh no sinh ra (quy uoc trong CLAUDE.md).
+  //   3. attachments/<ten file> - cho NAOSO tu cat anh no sinh ra (quy uoc trong CLAUDE.md).
   function ungVienAnh(src) {
     var ra = [];
     var raw = String(src || "").trim().replace(/^\.\//, "");
@@ -233,7 +233,7 @@
     var ref = appFileRef(href);
     return ref ? ref.path : "";
   }
-  // A FULL path on the owner's computer, outside the brain: a deck Naota built in ~/Documents, a
+  // A FULL path on the owner's computer, outside the brain: a deck NAOSO built in ~/Documents, a
   // report in ~/Downloads. These used to render as dead text, because the file server only reaches
   // the brain. A click now asks the server to open the file with the
   // owner's own app (POST /files/open-local), which only works in a browser on that same machine.
@@ -257,8 +257,8 @@
     }
     return { local: p };
   }
-  // Such a link is drawn ONLY where a click can work: a browser on the machine that runs Naota. On a VPS, through a
-  // tunnel or a domain, or with Naota in Docker, the path stays the text it always was (and can still be copied
+  // Such a link is drawn ONLY where a click can work: a browser on the machine that runs NAOSO. On a VPS, through a
+  // tunnel or a domain, or with NAOSO in Docker, the path stays the text it always was (and can still be copied
   // whole), instead of a link that could only answer "not on this computer".
   //   - Not at a loopback address: never, and the server is not even asked.
   //   - At a loopback address: yes, until the server says otherwise (GET /files/open-local: Docker, or a Linux box
@@ -583,7 +583,7 @@
   // Khoi `---\n...\n---` o DAU mot file .md la METADATA (type, status, created...), khong phai
   // van ban de soan. Truoc ban nay no roi vao luat "--- = duong ke ngang", nen mo mot note trong
   // trinh sua WYSIWYG roi bam Luu la frontmatter bien thanh "* * *" cong may dong chu roi: file
-  // hong that su, va moi thu doc metadata (Naota, dataview, Obsidian) doc truot tu do. Da gap
+  // hong that su, va moi thu doc metadata (NAOSO, dataview, Obsidian) doc truot tu do. Da gap
   // dung canh nay ("mot so file .md dang khong doc duoc").
   //
   // Cach chua: cat ra thanh MOT khoi rieng, contenteditable=false, va giu NGUYEN VAN trong
@@ -1791,7 +1791,7 @@
     document.body.appendChild(_lb);
     document.body.classList.add("nt-lb-open");
     // Nut Back cua dien thoai (va cu vuot canh man hinh) phai DONG anh, khong phai roi khoi
-    // Naota. Loi da gap: dang xem anh thi vuot canh trai khong an gi, ma nut X thi
+    // NAOSO. Loi da gap: dang xem anh thi vuot canh trai khong an gi, ma nut X thi
     // bi thanh trang thai che - khong con duong nao ra. Chen mot buoc lich su o day de cu Back
     // co cho ma lui ve.
     if (!_lbDayLichSu) {
@@ -1831,7 +1831,7 @@
     // TAI FILE TREN IPHONE. App cai ra man hinh chinh (standalone) KHONG co nut Back.
     // Mot link tai file (<a download>, hay link toi /files/raw, /files/zip, /upload/raw) ma di
     // trong CUNG cua so thi iOS khong tai gi ca: no THAY ca app bang trang xem file ("Open in
-    // Preview / More..."), va khong con duong nao quay lai Naota ngoai tat app (loi da gap).
+    // Preview / More..."), va khong con duong nao quay lai NAOSO ngoai tat app (loi da gap).
     // Moi cho tai file deu roi vao day: link trong chat, nut Tai ve cua lightbox, trang
     // Tep tin (_dlGo, tai ca thu muc zip), trinh sua file, tai khoi code.
     //   - anh trong chat  -> mo lightbox ngay trong app (co nut Dong, nut Back cung dong duoc)

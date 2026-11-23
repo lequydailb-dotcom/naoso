@@ -1,5 +1,5 @@
 """
-Đăng nhập Zalo bằng QR ngay trong UI Naota (connector "zalo" - CLI naota-zalo).
+Đăng nhập Zalo bằng QR ngay trong UI NAOSO (connector "zalo" - CLI naota-zalo).
 Flow: POST /connect/zalo/start → spawn `npx -y --prefer-offline <gói> login --json` với HOME
 cô lập riêng cho tài khoản → bắt event {"event":"qr", dataUrl} đưa lên modal →
 user quét bằng app Zalo → thành công thì TỰ TẠO connection (config.home_dir trỏ
@@ -125,9 +125,9 @@ def _finish_ok(sess, obj):
         ten = str(dup.get("label") or "Zalo")
         sess.update(state="error", duplicate=True, error=localefmt.chu(
             f"Nick Zalo vừa quét đã kết nối sẵn ở \"{ten}\". Hai kết nối cùng một nick sẽ giành nhau và bot lỡ tin, nên "
-            "Naota không thêm kết nối này. Muốn nối nick khác: mở app Zalo bằng nick đó rồi quét lại.",
+            "NAOSO không thêm kết nối này. Muốn nối nick khác: mở app Zalo bằng nick đó rồi quét lại.",
             f"The Zalo account you scanned is already connected as \"{ten}\". Two connections of one account take the "
-            "connection from each other and the bots miss messages, so Naota did not add this one. To connect another "
+            "connection from each other and the bots miss messages, so NAOSO did not add this one. To connect another "
             "account, open the Zalo app signed in as that account and scan again."))
         return
     label = (obj.get("displayName") or obj.get("display_name") or obj.get("name")
@@ -226,8 +226,8 @@ def start(label=None):
     _sweep()
     argv = _npx_argv()
     if not argv:
-        return {"ok": False, "error": localefmt.chu("Cần cài Node.js 20+ (lệnh npx) trên máy chạy Naota - tải tại nodejs.org",
-                                                    "Node.js 20+ (the npx command) must be installed on the machine running Naota - download it at nodejs.org")}
+        return {"ok": False, "error": localefmt.chu("Cần cài Node.js 20+ (lệnh npx) trên máy chạy NAOSO - tải tại nodejs.org",
+                                                    "Node.js 20+ (the npx command) must be installed on the machine running NAOSO - download it at nodejs.org")}
     sid = uuid.uuid4().hex[:10]
     slug = mcp_store._slugify(label or "zalo")
     # Kèm sid: 2 tài khoản đặt CÙNG tên gợi nhớ vẫn phải 2 home riêng (account active của

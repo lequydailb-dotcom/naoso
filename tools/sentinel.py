@@ -1,13 +1,13 @@
-"""Naota health scan from outside the server. Read-only, no model calls.
+"""NAOSO health scan from outside the server. Read-only, no model calls.
 
-Works while the server is down, so it is the first thing to run when "Naota stopped doing my jobs".
+Works while the server is down, so it is the first thing to run when "NAOSO stopped doing my jobs".
 
     python tools/sentinel.py                         # human-readable report
     python tools/sentinel.py --json                  # one JSON document
     python tools/sentinel.py --state-dir DIR --brains-dir DIR --hours 48
     python tools/sentinel.py --out ~/naota-health    # also write report.json and report.md there
 
---out refuses a folder inside the state dir: the scan never writes where Naota keeps its data.
+--out refuses a folder inside the state dir: the scan never writes where NAOSO keeps its data.
 Exit code is always 0; read the report, not the exit code.
 """
 from __future__ import annotations
@@ -31,7 +31,7 @@ def _brains(brains_dir: Path) -> list:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="Read-only Naota health scan")
+    ap = argparse.ArgumentParser(description="Read-only NAOSO health scan")
     ap.add_argument("--state-dir", default=os.getenv("NAOTA_STATE_DIR", str(ROOT / "server")))
     ap.add_argument("--brains-dir", default=os.getenv("BRAINS_DIR", str(ROOT / "brains")))
     ap.add_argument("--hours", type=float, default=24.0)

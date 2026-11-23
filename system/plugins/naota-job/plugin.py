@@ -2,7 +2,7 @@
 
 Vì sao có tool này
 ============================
-Lỗi đã gặp: Naota nói "Đang render nền, xong mình ghép tiếng và gửi video" rồi im,
+Lỗi đã gặp: NAOSO nói "Đang render nền, xong mình ghép tiếng và gửi video" rồi im,
 video xong mà phải hỏi tới lần thứ ba mới biết. Máy chủ giờ TỰ nhận theo dõi mọi lệnh chạy ngầm
 mà engine bỏ lại khi hết lượt (`server/tien_trinh_nen.py`), không cần model làm gì. Tool này chỉ
 cho model nói thêm MỘT điều mà máy chủ không đoán được: xong rồi thì làm tiếp cái gì.
@@ -54,10 +54,10 @@ def _then(args, ctx) -> str:
                 "Truyền chat_id lấy từ khối KÊNH HỘI THOẠI HIỆN TẠI.")
     v = tien_trinh_nen.gan_loi_dan_cho_viec_dang_chay(cid, text)
     if v:
-        return (f"Đã gắn lời dặn vào việc đang chạy {v['id']} (`{v.get('mo_ta', '')}`). Xong là Naota "
+        return (f"Đã gắn lời dặn vào việc đang chạy {v['id']} (`{v.get('mo_ta', '')}`). Xong là NAOSO "
                 "tự báo về khung chat này và làm tiếp đúng lời dặn.")
     tien_trinh_nen.dat_loi_dan(cid, text)
-    return ("Đã ghi lời dặn. Hết lượt này, lệnh chạy ngầm nào của lượt còn sống sẽ được Naota theo "
+    return ("Đã ghi lời dặn. Hết lượt này, lệnh chạy ngầm nào của lượt còn sống sẽ được NAOSO theo "
             "dõi; xong là tự báo về khung chat này rồi mở một lượt mới để làm tiếp đúng lời dặn. "
             "Nếu hết lượt mà KHÔNG còn lệnh ngầm nào chạy thì lời dặn bị bỏ - hãy chắc lệnh đã "
             "được bật ngầm (vd `cmd > out.log 2>&1 &`) trước khi kết thúc lượt. Có thể nói với "
@@ -85,7 +85,7 @@ def _cancel(args, ctx) -> str:
     v = tien_trinh_nen.huy(jid)
     if not v:
         return f"Không có việc đang chạy nào mang mã {jid}."
-    return f"Đã gửi lệnh dừng cho {jid} (`{v.get('mo_ta', '')}`). Naota sẽ báo khi nó dừng hẳn."
+    return f"Đã gửi lệnh dừng cho {jid} (`{v.get('mo_ta', '')}`). NAOSO sẽ báo khi nó dừng hẳn."
 
 
 def _chay(args, ctx) -> str:
@@ -108,10 +108,10 @@ def register(ctx):
     ctx.register_tool(
         "naota_job",
         "Việc chạy nền do chính bạn bật ngầm bằng shell (render video, build, tải file lớn). "
-        "Hết lượt, Naota TỰ theo dõi mọi lệnh ngầm còn sống và báo về khung chat khi xong, "
+        "Hết lượt, NAOSO TỰ theo dõi mọi lệnh ngầm còn sống và báo về khung chat khi xong, "
         "bạn không cần hứa 'xong em báo'. "
         "op=then: dặn việc phải làm khi việc nền xong (vd 'ghép tiếng vào video, kiểm 8 khung "
-        "hình, gửi file'); Naota sẽ mở một lượt mới để làm đúng việc đó. Gọi trong cùng lượt "
+        "hình, gửi file'); NAOSO sẽ mở một lượt mới để làm đúng việc đó. Gọi trong cùng lượt "
         "đã bật lệnh ngầm. op=list: xem việc chạy nền của khung chat. op=cancel id=...: dừng một "
         "việc. Tool này không chạy lệnh.",
         _chay,

@@ -1,6 +1,6 @@
 /* Webhooks page.
  *
- * A webhook is a secret URL: when an outside system (a landing page form, a payment, a sheet) calls it, Naota runs a
+ * A webhook is a secret URL: when an outside system (a landing page form, a payment, a sheet) calls it, NAOSO runs a
  * workflow or a written job with the event attached, then reports like a reminder. Server: server/webhook_triggers.py.
  *
  * The token is shown ONCE, right after creating or rotating, because the server keeps only its hash.

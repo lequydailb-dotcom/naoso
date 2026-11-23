@@ -2,7 +2,7 @@
 
 `POST /chat` holds the HTTP request open for the whole turn, often 2 to 5 minutes for an agent with
 skills and web tools. A caller on a serverless host pays for every second of that wait, and a dropped
-connection loses an answer Naota already finished. `POST /chat/jobs` runs the SAME turn as a background
+connection loses an answer NAOSO already finished. `POST /chat/jobs` runs the SAME turn as a background
 task and answers at once with a job id; `GET /chat/jobs/{id}` reports the status and, once done, the
 same payload `/chat` returns.
 
@@ -18,7 +18,7 @@ Rules this module enforces:
 - A job still marked running after a restart is reported as an error: the task died with the old
   process, and the caller has to ask again.
 
-No callback URL on purpose: Naota POSTing to an address a caller supplies is a server-side request
+No callback URL on purpose: NAOSO POSTing to an address a caller supplies is a server-side request
 forgery risk that needs its own review (blocked private ranges, signed bodies). Polling covers the need.
 """
 from __future__ import annotations

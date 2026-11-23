@@ -1,6 +1,6 @@
-"""Open a file that lives OUTSIDE the brain with the owner's own app, on the machine running Naota.
+"""Open a file that lives OUTSIDE the brain with the owner's own app, on the machine running NAOSO.
 
-Why this exists: Naota often builds things outside the brain (a teaching deck in ~/Documents, a
+Why this exists: NAOSO often builds things outside the brain (a teaching deck in ~/Documents, a
 report in ~/Downloads), then names the file in chat. The chat only turns brain paths into links,
 and with login on the file server is locked to the brain, so the owner saw the file name as dead
 text and had to dig it out in Finder (owner request, 2026-11-09).
@@ -114,6 +114,6 @@ def launch(action: str, target: Path) -> None:
         cmd = ["explorer", "/select," + s]
     else:
         cmd = ["xdg-open", s if action == "open" else str(target.parent)]
-    # Naota on Windows runs with no console: without the flag a child can flash a black console window (winproc.py).
+    # NAOSO on Windows runs with no console: without the flag a child can flash a black console window (winproc.py).
     subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                      close_fds=True, creationflags=winproc.no_window())

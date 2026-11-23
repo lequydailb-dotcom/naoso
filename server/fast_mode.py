@@ -52,8 +52,8 @@ def claude_supports(model: str) -> bool:
 def claude_sdk_settings(model: str, on: bool) -> str:
     """`ClaudeAgentOptions(settings=...)` value (a JSON string).
 
-    Always explicit: Claude Code persists /fast in ~/.claude/settings.json, and Naota loads user
-    settings, so "nothing" would let a /fast typed once in a terminal bill every Naota turn 2x.
+    Always explicit: Claude Code persists /fast in ~/.claude/settings.json, and NAOSO loads user
+    settings, so "nothing" would let a /fast typed once in a terminal bill every NAOSO turn 2x.
     Flag settings win over user settings, so `false` here means normal speed."""
     return json.dumps({"fastMode": bool(on and claude_supports(model))})
 

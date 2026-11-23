@@ -2,7 +2,7 @@
 
 Vì sao có file này
 ==================
-Trước bản này, muốn Naota canh một trang (giá đối thủ, offer mới, trang chính sách) thì phải dựng
+Trước bản này, muốn NAOSO canh một trang (giá đối thủ, offer mới, trang chính sách) thì phải dựng
 loop, mà mỗi vòng loop là một lượt gọi AI: canh 15 phút một lần là gần trăm lượt mỗi ngày, phần lớn
 chỉ để thấy "chưa có gì mới".
 

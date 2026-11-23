@@ -1,7 +1,7 @@
 """GitHub connection and the repos a brain works on (spec github-trong-chat-spec, phase G1).
 
 What lives here:
-  1. The ONE GitHub connection of this Naota (section 5.1). It is built into the core: the Connections page always
+  1. The ONE GitHub connection of this NAOSO (section 5.1). It is built into the core: the Connections page always
      shows it, no Store pack, no MCP. The token is stored encrypted (`secrets_store`), or the connection points at the
      brain-backup token (`settings.backup.token`) after a check, so a person who already set up backup has nothing to
      paste twice. One connection per install rather than per brain: the backup token is per install too, and a second
@@ -18,10 +18,10 @@ What lives here:
 Git authentication never goes through argv or the remote URL: the token rides in `GIT_CONFIG_*` environment variables
 as an HTTP header, only for Naota's own git calls (`auth=True`). The clone's `origin` stays the clean https URL, so a
 model running shell commands in the worktree finds no credential on disk to push with (section 4.1: the model never
-pushes, Naota does).
+pushes, NAOSO does).
 
 Threat model of those authenticated calls (decided 12/11/2026). A chat's worktree shares the clone's `.git`, and the
-model has a shell there, so everything under `.git` is written by code Naota did not choose: the model, and whatever it
+model has a shell there, so everything under `.git` is written by code NAOSO did not choose: the model, and whatever it
 runs (an `npm install` that sets `core.hooksPath`, husky style, is the everyday case). git hands its whole
 environment, token included, to every program it starts, and applies an unscoped header to every URL. So a call that
 carries the token treats the repo's hooks and its repo-level config (`.git/config`, `config.worktree`, whatever they
@@ -33,7 +33,7 @@ include) as UNTRUSTED, and `auth_env` isolates the call from them:
     by the machine's own or emptied, and only the origin's protocol is allowed (no `ext::`, no helper of the repo's).
   - Repo-level settings that steer the connection and cannot be overridden (`url.*.insteadOf`, `http.proxy`,
     `include.path`, a changed `remote.origin.url`...) make the call refuse, naming them, instead of running.
-Trusted: the machine's own git config (system and global), PATH and the environment of the Naota process.
+Trusted: the machine's own git config (system and global), PATH and the environment of the NAOSO process.
 NOT a boundary: a program running as Naota's OS user that goes after the token on purpose. It can read STATE_DIR
 (settings plus `.secret_key`) or the environment of a running git. This isolation stops the token leaking THROUGH git;
 it does not sandbox the model. git itself has no supported way to hold a secret inside a repository it does not trust,
@@ -123,7 +123,7 @@ def backup_token() -> str:
 
 
 def token() -> str:
-    """The token Naota uses for GitHub, or "" when not connected."""
+    """The token NAOSO uses for GitHub, or "" when not connected."""
     conn = _read_conn()
     if conn.get("source") == "backup":
         return backup_token()
@@ -133,7 +133,7 @@ def token() -> str:
 
 
 def _app_token(conn: Dict[str, Any]) -> str:
-    """Token from "Sign in with GitHub". The Naota app issues tokens that do not expire; if one does carry an expiry
+    """Token from "Sign in with GitHub". The NAOSO app issues tokens that do not expire; if one does carry an expiry
     (the app setting was changed), renew it a minute early, and read as signed out when GitHub refuses."""
     tok = str(conn.get("token") or "").strip()
     try:
@@ -225,7 +225,7 @@ def connect_app(fields: Dict[str, Any]) -> Dict[str, Any]:
     return status()
 
 
-# How many accounts the Naota app is installed on, as the signed-in person sees it. Zero means signed in but no repo
+# How many accounts the NAOSO app is installed on, as the signed-in person sees it. Zero means signed in but no repo
 # picked yet, the one step people miss. Cached briefly: the Connections page reads status on every visit.
 _INSTALL_CACHE: Dict[str, Any] = {"at": 0.0, "n": -1}
 INSTALL_CACHE_S = 30.0
@@ -328,7 +328,7 @@ ISOLATION = (
     ("maintenance.auto", "false"),    # and `gc.recentObjectsHook` is one more program of the repo's choosing
     ("push.gpgSign", "false"),        # a signed push would start `gpg.program`
     # A submodule the chat initialised is a second repo with a config of its own, which nothing here vets. git walks
-    # into it by default on fetch, and on checkout and push when told to. Naota never manages submodules itself.
+    # into it by default on fetch, and on checkout and push when told to. NAOSO never manages submodules itself.
     ("fetch.recurseSubmodules", "false"),
     ("submodule.recurse", "false"),
     ("push.recurseSubmodules", "no"),
@@ -365,8 +365,8 @@ def _config_entries(cwd: str) -> List[tuple]:
     if p is None or p.returncode != 0:
         # Unreadable config: nothing proves the call is safe, so the token stays home.
         why = ((p.stderr if p else "") or "").strip().splitlines()[-1:] or ["?"]
-        raise RepoError(_c(f"Không đọc được cấu hình git của repository nên Naota không dùng token ở đây: {why[0]}",
-                           f"Could not read this repository's git config, so Naota will not use the token here: {why[0]}"))
+        raise RepoError(_c(f"Không đọc được cấu hình git của repository nên NAOSO không dùng token ở đây: {why[0]}",
+                           f"Could not read this repository's git config, so NAOSO will not use the token here: {why[0]}"))
     parts = (p.stdout or "").split("\0")
     out = []
     for i in range(0, len(parts) - 1, 2):
@@ -447,8 +447,8 @@ def _no_hooks_dir() -> str:
         else:
             child.unlink()
     if any(d.iterdir()):
-        raise RepoError(_c(f"Không dọn trống được {d}, Naota không dùng token khi thư mục đó còn file.",
-                           f"Could not empty {d}; Naota will not use the token while files remain there."))
+        raise RepoError(_c(f"Không dọn trống được {d}, NAOSO không dùng token khi thư mục đó còn file.",
+                           f"Could not empty {d}; NAOSO will not use the token while files remain there."))
     return d.as_posix()
 
 
@@ -479,7 +479,7 @@ def auth_env(cwd: str, origin: str, tok: Optional[str] = None, in_repo: bool = T
     `origin` is the URL the token may go to and must come from GitHub's API (the registry), never from the clone.
     Raises RepoError when the repo's config could still move the token (see `_vet_config`).
     `in_repo=False` is for `git clone`: it makes a repo and reads the config of none, not even of a repo that
-    happens to enclose `cwd` (a default install keeps STATE_DIR inside the Naota checkout), so only the machine's
+    happens to enclose `cwd` (a default install keeps STATE_DIR inside the NAOSO checkout), so only the machine's
     config counts there."""
     env = git_env()
     tok = token() if tok is None else tok
@@ -537,7 +537,7 @@ def git(args: List[str], cwd: str, *, timeout: int = GIT_TIMEOUT, auth: bool = F
     return p
 
 
-# Keyword arguments for every git call of Naota that puts files of ANOTHER commit on disk (worktree add, checkout).
+# Keyword arguments for every git call of NAOSO that puts files of ANOTHER commit on disk (worktree add, checkout).
 # The clone is a partial one (`--filter=blob:none`): a fetch brings commits and trees, never file contents, so the
 # first checkout of a commit that arrived later makes git download the missing contents from origin by itself, in the
 # middle of the command. That hidden fetch needs the token like any other, and its size follows the repo, not
@@ -552,7 +552,7 @@ def git_out(args: List[str], cwd: str, **kw) -> str:
 
 
 def identity() -> Dict[str, str]:
-    """Who Naota commits as: the connected GitHub account, with its noreply address."""
+    """Who NAOSO commits as: the connected GitHub account, with its noreply address."""
     login = str(_read_conn().get("login") or "") or "naota"
     uid = user_id()
     email = f"{uid}+{login}@users.noreply.github.com" if uid else f"{login}@users.noreply.github.com"
@@ -560,9 +560,9 @@ def identity() -> Dict[str, str]:
 
 
 def ensure_identity(cwd: str) -> None:
-    """Give the clone `cwd` belongs to a commit identity of its own, when it has none: the one Naota commits with.
+    """Give the clone `cwd` belongs to a commit identity of its own, when it has none: the one NAOSO commits with.
 
-    Naota names itself through the environment of its own commits, so the clone never needed `user.name`. The chat's
+    NAOSO names itself through the environment of its own commits, so the clone never needed `user.name`. The chat's
     engine runs git in the worktree too (`git merge` in a conflict fix round, `git stash`, a commit of its own), and
     there git falls back on the machine: with no global identity, as in a container or on a fresh server, it stops
     with "empty ident name" or "unable to auto-detect email address" before doing anything. A value the clone already
@@ -1218,15 +1218,15 @@ def prompt_block(sid: str, brain: str = "") -> str:
         lines.append(f"- {r['full_name']}: sửa trong {r['worktree']} (nhánh {r['branch'] or session_branch(sid)}, "
                      f"tách từ {r.get('base_branch') or r['default_branch'] or 'main'})")
     lines.append("Chỉ sửa trong các thư mục trên, KHÔNG sửa bản clone gốc. KHÔNG tự `git push`, không tự merge, "
-                 "không đổi remote: việc đẩy lên GitHub do Naota làm.")
+                 "không đổi remote: việc đẩy lên GitHub do NAOSO làm.")
     lines.append("Trước khi kết thúc lượt có sửa code: tự chạy test và lint của repo. Sửa lỗi thì viết hoặc chạy một "
                  "test TÁI HIỆN lỗi trước (đỏ), sửa, rồi chạy lại đúng test đó cho xanh. KHÔNG bỏ qua, xoá hay nới "
-                 "test, không sửa workflow CI để cho xanh. Sau mỗi lượt Naota tự chạy bộ kiểm tra của repo; xanh thì Naota "
-                 "tự commit, đẩy lên nhánh của cuộc này, mở PR và theo dõi CI. CI đỏ thì Naota mở một lượt sửa "
-                 "kèm log, tối đa 3 vòng. CI xanh thì Naota tự merge nếu repo bật tự merge (mặc định bật).")
+                 "test, không sửa workflow CI để cho xanh. Sau mỗi lượt NAOSO tự chạy bộ kiểm tra của repo; xanh thì NAOSO "
+                 "tự commit, đẩy lên nhánh của cuộc này, mở PR và theo dõi CI. CI đỏ thì NAOSO mở một lượt sửa "
+                 "kèm log, tối đa 3 vòng. CI xanh thì NAOSO tự merge nếu repo bật tự merge (mặc định bật).")
     lines += _work_state_lines(sid, repos)
     # Spec 7.1: the repo's own rules reach every engine, not only the ones that read CLAUDE.md natively.
-    # Spec 13.1: plus the lessons Naota wrote down for this repo after real failures (kept in the brain).
+    # Spec 13.1: plus the lessons NAOSO wrote down for this repo after real failures (kept in the brain).
     try:
         import github_gate
         import github_work
@@ -1259,7 +1259,7 @@ def _work_state_lines(sid: str, repos: List[Dict[str, Any]]) -> List[str]:
             fn = r["full_name"]
             if github_work.ship_failed(row):
                 out.append(f"Trạng thái {fn}: code đã commit trên máy nhưng CHƯA lên GitHub. Lý do: "
-                           f"{row.get('stuck_reason') or '?'} Không cần sửa code hay làm lại gì để đẩy: Naota tự đẩy lại "
+                           f"{row.get('stuck_reason') or '?'} Không cần sửa code hay làm lại gì để đẩy: NAOSO tự đẩy lại "
                            "ngay sau lượt này, định kỳ vài phút một lần, và ngay khi GitHub được kết nối lại; nút Đẩy lại "
                            "ở bảng GitHub của cuộc này cũng được.")
             elif row.get("pr_number"):
@@ -1268,7 +1268,7 @@ def _work_state_lines(sid: str, repos: List[Dict[str, Any]]) -> List[str]:
                            + (f", đang kẹt: {row['stuck_reason']}" if row.get("exec") == "stuck" and row.get("stuck_reason")
                               else "") + ".")
         if out:
-            out.append("Người dùng bảo đẩy lên hay merge thì nói đúng trạng thái trên và việc Naota sẽ làm tiếp; KHÔNG nói "
+            out.append("Người dùng bảo đẩy lên hay merge thì nói đúng trạng thái trên và việc NAOSO sẽ làm tiếp; KHÔNG nói "
                        "là mình không được làm, KHÔNG bảo họ tự chạy git, KHÔNG đề nghị sửa code chỉ để kích hoạt việc đẩy.")
         return out
     except Exception:
@@ -1344,7 +1344,7 @@ def set_auto_merge(brain: str, full_name: str, on: bool) -> Dict[str, Any]:
 
 
 def review_settings(rec: Dict[str, Any]) -> Dict[str, Any]:
-    """Cross review of one repo ("the person decides, not Naota"). Off by default; when on, Naota
+    """Cross review of one repo ("the person decides, not NAOSO"). Off by default; when on, NAOSO
     reviews each green commit before merging, on `provider` when one is pinned, else on the background model."""
     r = rec.get("review") if isinstance(rec.get("review"), dict) else {}
     return {"on": r.get("on") is True, "provider": str(r.get("provider") or "")}

@@ -1,5 +1,5 @@
 // ============================================================
-// Naota - "Try bot" panel.
+// NAOSO - "Try bot" panel.
 //
 // The owner types a message as if a customer sent it (privately or in a group) and sees what the bot WOULD do:
 // reply or stay silent, why (the same gate, reply judge and Agent the real message goes through), the answer

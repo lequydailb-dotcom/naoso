@@ -51,9 +51,9 @@ uvicorn.run(main.app, host="127.0.0.1", port=int(os.environ["REHEARSAL_PORT"]), 
 '''
 
 ORDER = {"shop_id": 7, "id": 1001, "status": 1, "bill_full_name": "Nguyen Lan", "bill_phone_number": "0912345678",
-         "items": [{"name": "Nuoc mam"}, {"name": "Goi TRO LY AI NAOTA 12 thang"}]}
+         "items": [{"name": "Nuoc mam"}, {"name": "Goi TRO LY AI NAOSO 12 thang"}]}
 RULES = {"filter": {"all": [{"path": "status", "op": "eq", "value": 1},
-                            {"path": "items[*].name", "op": "contains", "value": "TRO LY AI NAOTA",
+                            {"path": "items[*].name", "op": "contains", "value": "TRO LY AI NAOSO",
                              "quantifier": "any", "case_sensitive": False, "reason": "product_not_found"}]},
          "dedup": {"policy_version": 1, "business_paths": ["shop_id", "id", "status"], "ttl_s": 604800,
                    "missing": "quarantine"},

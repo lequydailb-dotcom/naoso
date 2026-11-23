@@ -1,9 +1,9 @@
 @echo off
 chcp 65001 >nul
-title Khoi dong NAOTA
+title Khoi dong NAOSO
 cd /d "%~dp0"
 
-echo Bat NAOTA chay NEN - khong con cua so den (port 7777)...
+echo Bat NAOSO chay NEN - khong con cua so den (port 7777)...
 REM Viec tat instance cu + chay server AN giao het cho start-naota.vbs (cua so an hoan toan).
 REM Log ghi vao server\naota.log (mo file do neu can xem loi). Tat server: stop-naota.bat.
 wscript //nologo start-naota.vbs

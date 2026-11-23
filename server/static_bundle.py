@@ -2,7 +2,7 @@
 
 WHY
 index.html loads about 110 classic scripts before the app can draw anything. Measured with the page set to
-the Partners page: 1.3 MB in all, so bandwidth is not the cost, but every file is one request. Over plain HTTP/1.1 (Naota
+the Partners page: 1.3 MB in all, so bandwidth is not the cost, but every file is one request. Over plain HTTP/1.1 (NAOSO
 reached at http://<vps-ip>:7777) the browser opens 6 connections per host, so 110 files queue in about 19 rounds, and
 each request also walks the server's whole Python middleware stack. With 150 ms to the VPS the list showed after 4.7 s;
 the same files as one bundle: 1.7 s (60 ms: 2.1 s down to 0.95 s), with no page error.

@@ -1,9 +1,9 @@
 <!-- translated-from: README.en.md sha256:a4092d38f233 -->
 <div align="center">
 
-<img src="../../../dashboard/logo.svg" width="88" alt="NAOTA 标志">
+<img src="../../../dashboard/logo.svg" width="88" alt="NAOSO 标志">
 
-# NAOTA
+# NAOSO
 
 ### 自托管的 AI Agent：大脑可以随时更换，Second Brain 每天都在变得更聪明。
 
@@ -35,18 +35,18 @@
 
 [🇬🇧 English](../../../README.en.md) · [🇻🇳 Tiếng Việt](../vi/README.md) · 🇨🇳 **简体中文** · [🇪🇸 Español](../es/README.md) · [🇯🇵 日本語](../ja/README.md) · [🇮🇳 हिन्दी](../hi/README.md) · [🇧🇷 Português](../pt-BR/README.md) · [🇰🇷 한국어](../ko/README.md) · [🇷🇺 Русский](../ru/README.md) · [🇩🇪 Deutsch](../de/README.md) · [🇫🇷 Français](../fr/README.md) · [🇮🇩 Bahasa Indonesia](../id/README.md) · [🌍 帮助翻译](../../../CONTRIBUTING.md#translations)
 
-[快速开始](#-快速开始) · [为什么选择 Naota](#-为什么选择-naota) · [大脑](#-12-种大脑一套工具) · [功能](#-功能特性) · [安装](#-安装) · [文档](../../../docs/en/README.md)
+[快速开始](#-快速开始) · [为什么选择 NAOSO](#-为什么选择-naota) · [大脑](#-12-种大脑一套工具) · [功能](#-功能特性) · [安装](#-安装) · [文档](../../../docs/en/README.md)
 
 
 </div>
 
-> 🌍 本文是英文 README 的自动翻译版本。无论你用哪种语言书写，Naota 都会用同一种语言回复；界面本身目前提供英文和越南语。完整文档为英文版（[docs/en](../../../docs/en/README.md)）。欢迎提交修正（[CONTRIBUTING](../../../CONTRIBUTING.md#translations)）。
+> 🌍 本文是英文 README 的自动翻译版本。无论你用哪种语言书写，NAOSO 都会用同一种语言回复；界面本身目前提供英文和越南语。完整文档为英文版（[docs/en](../../../docs/en/README.md)）。欢迎提交修正（[CONTRIBUTING](../../../CONTRIBUTING.md#translations)）。
 
 ---
 
 ## ⚡ 快速开始
 
-**最简单的方式：让你自己的 AI 来安装。** 把这个仓库链接交给你电脑上的 Claude Code 或 Codex，告诉它 *"帮我安装 NAOTA"*。它只需要运行一条命令：
+**最简单的方式：让你自己的 AI 来安装。** 把这个仓库链接交给你电脑上的 Claude Code 或 Codex，告诉它 *"帮我安装 NAOSO"*。它只需要运行一条命令：
 
 | 机器 | 一条命令装好一切 |
 |---|---|
@@ -57,17 +57,17 @@
 然后打开 **http://localhost:7777**。安装程序会配置好 Python、四个订阅制 CLI 大脑（`claude`、`codex`、`agy`、`grok`）以及 `.env`，随后启动服务器。每个大脑都在**仪表盘的 Models（模型）页面**上登录，无需再敲命令。
 
 > [!NOTE]
-> 在 Naota 已经运行**之后**又安装了新的 CLI？请**重启 Naota**。正在运行的进程保留的是它启动时的 PATH，因此看不到之后才安装的 CLI。
+> 在 NAOSO 已经运行**之后**又安装了新的 CLI？请**重启 NAOSO**。正在运行的进程保留的是它启动时的 PATH，因此看不到之后才安装的 CLI。
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/install-terminal.svg" width="100%" alt="动画终端：一行安装命令装好 Python、四个订阅制 CLI 大脑和 .env，然后提示 Naota 已在 http://localhost:7777 运行">
+<img src="../../../docs/assets/diagrams/install-terminal.svg" width="100%" alt="动画终端：一行安装命令装好 Python、四个订阅制 CLI 大脑和 .env，然后提示 NAOSO 已在 http://localhost:7777 运行">
 </p>
 
 ---
 
-## 🤔 为什么选择 Naota？
+## 🤔 为什么选择 NAOSO？
 
-NAOTA **不是**聊天机器人。它是一个运行在你自己的机器或 VPS 上的**自托管 Agent 式 AI**：它能读写文件、通过 MCP 调用工具、运行 Skill、把任务排入后台队列，还能自己安排日程。这一切都集成在一个**可语音控制的仪表盘**之后，并配有一个随时间不断积累知识的 **Second Brain**（记忆 + Wiki）。
+NAOSO **不是**聊天机器人。它是一个运行在你自己的机器或 VPS 上的**自托管 Agent 式 AI**：它能读写文件、通过 MCP 调用工具、运行 Skill、把任务排入后台队列，还能自己安排日程。这一切都集成在一个**可语音控制的仪表盘**之后，并配有一个随时间不断积累知识的 **Second Brain**（记忆 + Wiki）。
 
 ### 没人提醒过你的锁定陷阱
 
@@ -82,9 +82,9 @@ NAOTA **不是**聊天机器人。它是一个运行在你自己的机器或 VPS
 
 于是你留了下来。不是因为旧模型依然最好，而是因为离开就意味着从零开始。而当厂商涨价、收紧额度、下线某个模型或封禁你的账号时，你没有任何 B 计划。
 
-### Naota 反其道而行：模型是租来的，Brain 归你所有
+### NAOSO 反其道而行：模型是租来的，Brain 归你所有
 
-在 Naota 里，模型只是一个可以替换的部件。你积累的一切都留在你自己手里，是你能直接打开的文件：
+在 NAOSO 里，模型只是一个可以替换的部件。你积累的一切都留在你自己手里，是你能直接打开的文件：
 
 | 你积累的东西 | 存放位置 | 格式 |
 |---|---|---|
@@ -99,13 +99,13 @@ NAOTA **不是**聊天机器人。它是一个运行在你自己的机器或 VPS
 
 - **新模型出来了？在 Models 页面切换，继续往下做。** 它读取同样的记忆，运行同样的 Skill、Agent 和 Workflow，并通过 MCP Hub 调用同样的连接。无需迁移，也无需重建。
 - **同时使用多个大脑。** 强模型负责对话，便宜的模型负责后台任务，本地 Ollama 模型处理私密笔记，它们都在同一个 Brain 上工作。
-- **离开 Naota 也能读。** 你的 Brain 就是一个 markdown 文件夹，用 Obsidian 或任意编辑器都能打开。就算 Naota 明天消失了，你的知识依然以纯文本的形式留在那里。
+- **离开 NAOSO 也能读。** 你的 Brain 就是一个 markdown 文件夹，用 Obsidian 或任意编辑器都能打开。就算 NAOSO 明天消失了，你的知识依然以纯文本的形式留在那里。
 - **有版本记录，也能随身带走。** 每一轮学习都是一次 git 提交，一键即可撤销；整个 Brain 还能同步到你自己的私有 GitHub 仓库，在笔记本和 VPS 之间共享。
-- **数据留在你自己的硬件上。** 中间没有 Naota 云。请求只会发给你为它选定的模型提供商；如果使用本地 Ollama 模型，数据根本不会离开你的机器。
+- **数据留在你自己的硬件上。** 中间没有 NAOSO 云。请求只会发给你为它选定的模型提供商；如果使用本地 Ollama 模型，数据根本不会离开你的机器。
 
-### Naota 与普通聊天机器人对比
+### NAOSO 与普通聊天机器人对比
 
-| | 普通聊天机器人 | **NAOTA** |
+| | 普通聊天机器人 | **NAOSO** |
 |---|---|---|
 | **大脑** | 锁定在一个模型上，每条消息都是一次无状态的 API 调用 | **可更换**：12 家提供商，每一家都拥有完整的工具、MCP、Skill 和会话，包括通过 Ollama 在你自己机器上运行的模型 |
 | **记忆** | 每次会话结束就遗忘 | **一个活的 Second Brain**，记住你，并随着每次对话变得更丰富 |
@@ -115,20 +115,20 @@ NAOTA **不是**聊天机器人。它是一个运行在你自己的机器或 VPS
 | **你的成果** | 留在厂商的服务器上，用的是厂商的格式 | **你机器上的普通文件**：历史、记忆、Skill、Agent 和 Workflow 都能带到任何新模型 |
 | **部署** | 别人的云 | **自托管**：[Hostinger](https://www.hostinger.com?REFERRALCODE=VUONGTEX) 一键部署、Docker，或任意 VPS |
 
-> 💡 **设计理念：能力在 Naota 身上，而不在模型身上。** 每个大脑都通过同一个共享连接中心（MCP Hub）获得同一套工具箱。从 Claude 切换到 Gemini 不会让你失去任何东西，唯一的例外是 shell 访问，只有 CLI 引擎才有。
+> 💡 **设计理念：能力在 NAOSO 身上，而不在模型身上。** 每个大脑都通过同一个共享连接中心（MCP Hub）获得同一套工具箱。从 Claude 切换到 Gemini 不会让你失去任何东西，唯一的例外是 shell 访问，只有 CLI 引擎才有。
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/chat-to-action.svg" width="100%" alt="动画示意图：一条聊天消息进入 Naota，Naota 选择能完成任务的最小工具，从直接回答到排队任务，或创建 Agent、Workflow、提醒、Loop">
+<img src="../../../docs/assets/diagrams/chat-to-action.svg" width="100%" alt="动画示意图：一条聊天消息进入 NAOSO，NAOSO 选择能完成任务的最小工具，从直接回答到排队任务，或创建 Agent、Workflow、提醒、Loop">
 </p>
 
 ---
 
 ## 🧠 12 种大脑，一套工具
 
-在 **Models** 页面选择大脑，随时都可以更换。Naota 目前支持 **12 家提供商**。
+在 **Models** 页面选择大脑，随时都可以更换。NAOSO 目前支持 **12 家提供商**。
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/swappable-brain.svg" width="100%" alt="动画示意图：Naota 核心居中，工具箱（MCP Hub、Skills、Second Brain、Tasks、Schedules、Plugins）环绕四周，12 种大脑轮流接入，所有工具始终保持可用">
+<img src="../../../docs/assets/diagrams/swappable-brain.svg" width="100%" alt="动画示意图：NAOSO 核心居中，工具箱（MCP Hub、Skills、Second Brain、Tasks、Schedules、Plugins）环绕四周，12 种大脑轮流接入，所有工具始终保持可用">
 </p>
 
 | 大脑 | 付费方式 | Shell、网页、子 Agent |
@@ -137,15 +137,15 @@ NAOTA **不是**聊天机器人。它是一个运行在你自己的机器或 VPS
 | **ChatGPT**（通过 Codex） | 你的 ChatGPT 订阅 | ✅ |
 | **Grok Build** | 你的 SuperGrok 或 X Premium+ 订阅 | ✅ |
 | **Antigravity CLI** | 你的 Google 订阅（与 Antigravity IDE 的模型阵容相同，包括 Claude） | Shell ✅ |
-| **OpenRouter** | API key（一个 key 背后有数百个模型） | 通过 Naota 工具 |
-| **OpenAI API** · **Anthropic API** · **Google Gemini** · **Groq** | API key | 通过 Naota 工具 |
-| **Ollama Cloud** · **本机 Ollama** | API key，或在你自己的硬件上免费运行 | 通过 Naota 工具 |
-| **任意 OpenAI 兼容端点** | 视该端点的要求而定 | 通过 Naota 工具 |
+| **OpenRouter** | API key（一个 key 背后有数百个模型） | 通过 NAOSO 工具 |
+| **OpenAI API** · **Anthropic API** · **Google Gemini** · **Groq** | API key | 通过 NAOSO 工具 |
+| **Ollama Cloud** · **本机 Ollama** | API key，或在你自己的硬件上免费运行 | 通过 NAOSO 工具 |
+| **任意 OpenAI 兼容端点** | 视该端点的要求而定 | 通过 NAOSO 工具 |
 
 每个大脑都可以调用你已连接的 MCP 服务器、读写 Brain、运行 Skill、排入 Kanban 任务，以及创建 Agent、Workflow、Loop 和提醒。CLI 引擎还额外能运行 **shell 命令**、**抓取和搜索网页**，以及**启动并行的子 Agent**。
 
 > [!WARNING]
-> **让订阅账号运行后台任务之前的提示。** Anthropic 将 Claude Pro/Max 限定为 Claude Code 的**普通个人使用**。持续的后台执行（Loop、提醒、Kanban 任务、聊天机器人）、在 VPS 上运行，或多人共用一个账号，都超出了这个范围，因此存在账号**被锁定**的风险，不过到目前为止 Naota 尚未收到任何此类案例。如果你遇到了，请通过 [Issues](https://github.com/vuongtex/naota/issues/new/choose) 告诉开发者。Naota 从不读取你的登录令牌：它运行的是真正的 `claude` 程序，但这并不能让全天候的后台使用变得合规。稳妥起见，请在 Models 页面把 Claude Code 设置为使用 **API key** 运行，或把**后台任务模型**指向其他提供商。同样的注意事项也适用于 xAI 订阅。参见 `server/claude_auth.py`。
+> **让订阅账号运行后台任务之前的提示。** Anthropic 将 Claude Pro/Max 限定为 Claude Code 的**普通个人使用**。持续的后台执行（Loop、提醒、Kanban 任务、聊天机器人）、在 VPS 上运行，或多人共用一个账号，都超出了这个范围，因此存在账号**被锁定**的风险，不过到目前为止 NAOSO 尚未收到任何此类案例。如果你遇到了，请通过 [Issues](https://github.com/vuongtex/naota/issues/new/choose) 告诉开发者。NAOSO 从不读取你的登录令牌：它运行的是真正的 `claude` 程序，但这并不能让全天候的后台使用变得合规。稳妥起见，请在 Models 页面把 Claude Code 设置为使用 **API key** 运行，或把**后台任务模型**指向其他提供商。同样的注意事项也适用于 xAI 订阅。参见 `server/claude_auth.py`。
 
 ---
 
@@ -160,15 +160,15 @@ NAOTA **不是**聊天机器人。它是一个运行在你自己的机器或 VPS
 <td width="50%" valign="top">
 
 ### 🗣️ 和它对话
-- **免手动语音**：你说话，Naota 听完后大声回答（默认使用免费的 Edge TTS，也可选 OpenAI 和 ElevenLabs）。
+- **免手动语音**：你说话，NAOSO 听完后大声回答（默认使用免费的 Edge TTS，也可选 OpenAI 和 ElevenLabs）。
 - **聊天会话**可以保存、重新打开并全文搜索。长会话会被压缩成摘要，而不是被截断。
-- **Telegram、Slack、WhatsApp、Zalo、CLI 和网页仪表盘**，连接的都是同一个 Naota（[Slack 和 WhatsApp 的设置](../../../docs/en/29-slack-whatsapp.md)）。
-- **任意语言**：你用什么语言写，Naota 就用什么语言回复。界面提供英文和越南语。
+- **Telegram、Slack、WhatsApp、Zalo、CLI 和网页仪表盘**，连接的都是同一个 NAOSO（[Slack 和 WhatsApp 的设置](../../../docs/en/29-slack-whatsapp.md)）。
+- **任意语言**：你用什么语言写，NAOSO 就用什么语言回复。界面提供英文和越南语。
 
 ### 🧠 记住一切
 - **Second Brain**：一个 markdown 知识库（兼容 Obsidian），包含长期记忆、Wiki 和原始 Sources。
 - 由 `[[wikilink]]` 连接起来的笔记**知识图谱**，绘制在浅色画布上，可离线使用。
-- **自我学习**：每次对话后，Naota 会提炼出记忆、Wiki 知识和 Skill。每一轮学习都是一次 git 提交，因此**一键即可撤销**。
+- **自我学习**：每次对话后，NAOSO 会提炼出记忆、Wiki 知识和 Skill。每一轮学习都是一次 git 提交，因此**一键即可撤销**。
 - **备份到 GitHub**：每个 Brain 与私有仓库双向同步，在你的笔记本和 VPS 之间共享。
 
 </td>
@@ -181,7 +181,7 @@ NAOTA **不是**聊天机器人。它是一个运行在你自己的机器或 VPS
 - **聊天机器人**：把一个 Agent 放到你的客户面前，使用它自己的 Telegram、Slack、WhatsApp 或 Zalo 机器人，并配有一个你可以随时接管的共享收件箱。
 
 ### 🔌 连接一切
-- **MCP 连接商店**：每个服务可接入多个账号，并有三个由 Naota **强制执行**的权限级别。
+- **MCP 连接商店**：每个服务可接入多个账号，并有三个由 NAOSO **强制执行**的权限级别。
 - **Skill 和 Plugin**：放入一个文件夹，就能为所有引擎添加知识（Skill）或原生 Python 工具（Plugin）。
 - 使用你已登录的 ChatGPT 订阅**生成图片**。
 - **用量统计**：按天、按提供商统计 token 和费用，并区分你手动输入的部分和自动运行的部分。
@@ -202,10 +202,10 @@ flowchart LR
     subgraph You
         W[Web dashboard<br>voice + graph]
         T[Telegram]
-        C[Naota CLI]
+        C[NAOSO CLI]
         Z[Zalo / bot channels]
     end
-    subgraph Naota["NAOTA (FastAPI, self-hosted)"]
+    subgraph NAOSO["NAOSO (FastAPI, self-hosted)"]
         R[Engine router]
         H[MCP Hub<br>shared toolbox]
         B[(Second Brain<br>Memory + Wiki + Sources)]
@@ -232,12 +232,12 @@ flowchart LR
 ## 🚀 安装
 
 > [!IMPORTANT]
-> Naota 运行的 AI 大脑在机器上拥有**完全权限**。当它公开运行时（Docker、VPS、Hostinger），Naota 会**自动强制登录**：打开应用会先看到创建账号或登录的界面，没有密码的人无法操控它。
+> NAOSO 运行的 AI 大脑在机器上拥有**完全权限**。当它公开运行时（Docker、VPS、Hostinger），NAOSO 会**自动强制登录**：打开应用会先看到创建账号或登录的界面，没有密码的人无法操控它。
 
 <details open>
 <summary><b>方式一：Hostinger Docker Manager（域名 + HTTPS，一键部署）</b></summary>
 
-> 🛒 **还没有 VPS？** [在这里购买 Hostinger VPS](https://www.hostinger.com?REFERRALCODE=VUONGTEX)。它自带 Docker Manager，一键即可安装 Naota。开通后回到下面的步骤。
+> 🛒 **还没有 VPS？** [在这里购买 Hostinger VPS](https://www.hostinger.com?REFERRALCODE=VUONGTEX)。它自带 Docker Manager，一键即可安装 NAOSO。开通后回到下面的步骤。
 
 Hostinger VPS → **Docker Manager → Compose → URL** → 粘贴 Hostinger 专用文件，然后点击 **Deploy**：
 
@@ -245,7 +245,7 @@ Hostinger VPS → **Docker Manager → Compose → URL** → 粘贴 Hostinger �
 https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.yml
 ```
 
-**Environment** 框只需要填三个字段：`DOMAIN_NAME`、`NAOTA_ADMIN_USER`、`NAOTA_ADMIN_PASSWORD`，另外还有一个可选的 `NAOTA_AUTO_UPDATE`（设为 `true` 后 Naota 每天自动更新）。
+**Environment** 框只需要填三个字段：`DOMAIN_NAME`、`NAOTA_ADMIN_USER`、`NAOTA_ADMIN_PASSWORD`，另外还有一个可选的 `NAOTA_AUTO_UPDATE`（设为 `true` 后 NAOSO 每天自动更新）。
 
 设置 `DOMAIN_NAME`，让 Hostinger 的 Traefik 签发 HTTPS 证书：
 - **免费链接**（无需购买域名）：`DOMAIN_NAME=naota.<vps-hostname>.hstgr.cloud`（主机名可在 hPanel → VPS 中找到，例如 `naota.srv1234567.hstgr.cloud`）。
@@ -292,7 +292,7 @@ chmod +x install.sh && ./install.sh
 
 该脚本会安装 Python、Node 和各个 CLI 大脑，创建 venv，注册一个开机自启的服务，并打印访问地址。
 
-🍎 **在 macOS 上像应用一样打开：** 双击 `NAOTA.app`（或 `Start NAOTA.command`）。登录时自动启动：`./bin/naota-autostart.sh install`。详情：[bin/README.md](../../../bin/README.md)。
+🍎 **在 macOS 上像应用一样打开：** 双击 `NAOSO.app`（或 `Start NAOSO.command`）。登录时自动启动：`./bin/naota-autostart.sh install`。详情：[bin/README.md](../../../bin/README.md)。
 
 </details>
 
@@ -313,12 +313,12 @@ Stop:                                  stop-naota.bat
 Dashboard:                             http://localhost:7777
 ```
 
-🪟 **像应用一样打开：** 首次运行之后，双击 **`NAOTA.bat`**。服务器会在后台启动，仪表盘在**独立窗口**中打开，并拥有自己的任务栏图标。登录时自动启动：`naota-autostart.bat install`（移除：`uninstall`）。
+🪟 **像应用一样打开：** 首次运行之后，双击 **`NAOSO.bat`**。服务器会在后台启动，仪表盘在**独立窗口**中打开，并拥有自己的任务栏图标。登录时自动启动：`naota-autostart.bat install`（移除：`uninstall`）。
 
 </details>
 
 <details>
-<summary><b>在一台 VPS 上运行多个 Naota 实例</b></summary>
+<summary><b>在一台 VPS 上运行多个 NAOSO 实例</b></summary>
 
 每个实例的 Brain、设置和账号完全相互隔离。实例之间只有三个值不同：`NAOTA_NAME`、`NAOTA_HOST_PORT`、`DOMAIN_NAME`。
 
@@ -332,16 +332,16 @@ Dashboard:                             http://localhost:7777
 
 ### 🎬 首次运行
 
-打开 Naota 后，设置向导会以你浏览器的语言一步步引导你：
+打开 NAOSO 后，设置向导会以你浏览器的语言一步步引导你：
 
 1. **管理员账号**：公开运行时必须设置，用来阻止陌生人进入。
 2. **选择一个大脑**：用订阅账号登录一次，或粘贴一个 API key。Claude Code 卡片上有一个 **"Runs on"** 开关，可在你已登录的订阅和 Anthropic API key 之间切换。
 3. **选择一个模型**：以后切换提供商不会损失任何功能（shell 命令除外，只有 CLI 引擎才有）。
-4. **接入连接**（可选）：打开 **Connections（连接）**，选择一个服务，粘贴 key 或扫描二维码。之后 Naota 就会基于其中的真实数据进行汇报。
+4. **接入连接**（可选）：打开 **Connections（连接）**，选择一个服务，粘贴 key 或扫描二维码。之后 NAOSO 就会基于其中的真实数据进行汇报。
 
 ---
 
-## 📖 使用 Naota
+## 📖 使用 NAOSO
 
 左侧导航栏把页面分成 **6 个分组**。每个页面在 [docs/en/](../../../docs/en/README.md) 中都有对应的指南。
 
@@ -351,23 +351,23 @@ Dashboard:                             http://localhost:7777
 | **Code** | Terminal, Coding | [代码终端](../../../docs/en/27-code-terminal.md) |
 | **Capabilities** | Partners（Agent 和 Workflow）, Chatbot, Skills, Plugins | [Agent 与 Workflow](../../../docs/en/07-agents-and-workflows.md) · [聊天机器人](../../../docs/en/25-chatbots.md) · [客户对话](../../../docs/en/28-customer-conversations.md) · [Skill](../../../docs/en/06-skills.md) · [Plugin](../../../docs/en/20-plugins.md) |
 | **Work** | Tasks, Scheduled | [任务（Kanban）](../../../docs/en/21-kanban-work.md) · [周期任务与提醒](../../../docs/en/08-recurring-jobs.md) |
-| **Connections** | Connections, Naota Store, Channels, Models | [连接与业务数据](../../../docs/en/09-connections-and-business-data.md) · [Telegram](../../../docs/en/11-telegram.md) · [Zalo](../../../docs/en/12-zalo-agent-mcp.md) · [模型与引擎](../../../docs/en/10-models-and-engines.md) |
-| **System** | Settings, Share links, Account | [入门](../../../docs/en/01-getting-started.md) · [安全与账号](../../../docs/en/14-security-and-accounts.md) · [用量与费用](../../../docs/en/23-usage-and-cost.md) · [Naota CLI](../../../docs/en/24-cli.md) |
+| **Connections** | Connections, NAOSO Store, Channels, Models | [连接与业务数据](../../../docs/en/09-connections-and-business-data.md) · [Telegram](../../../docs/en/11-telegram.md) · [Zalo](../../../docs/en/12-zalo-agent-mcp.md) · [模型与引擎](../../../docs/en/10-models-and-engines.md) |
+| **System** | Settings, Share links, Account | [入门](../../../docs/en/01-getting-started.md) · [安全与账号](../../../docs/en/14-security-and-accounts.md) · [用量与费用](../../../docs/en/23-usage-and-cost.md) · [NAOSO CLI](../../../docs/en/24-cli.md) |
 
 更多：[Second Brain：记忆、Wiki 和 INGEST](../../../docs/en/13-second-brain.md) · [GitHub 备份](../../../docs/en/18-github-backup.md) · [笔记中的任务与 Dataview](../../../docs/en/19-tasks-and-dataview.md) · [品牌定制与自定义域名](../../../docs/en/15-branding-and-domains.md) · [故障排查](../../../docs/en/17-troubleshooting.md)
 
 ### 可以试试这些
 
-- **询问数据：** *"今天的收入和昨天相比怎么样？"* Naota 会调用对应的连接，用真实数字作答并给出建议。
-- **消化知识：** 放入一个文件或一条笔记。Naota 会总结内容、提炼洞见、写入 Wiki 并提出待办任务。
+- **询问数据：** *"今天的收入和昨天相比怎么样？"* NAOSO 会调用对应的连接，用真实数字作答并给出建议。
+- **消化知识：** 放入一个文件或一条笔记。NAOSO 会总结内容、提炼洞见、写入 Wiki 并提出待办任务。
 - **交出后台工作：** **Tasks** → **+ Assign goal** → *"总结本周销售情况，找出滞销库存，起草三条文案来推动销售"*。AI 会写好规格、执行任务并回报结果。
 - **安排日程：** *"每个工作日 8:30 提醒我检查广告预算"*，可以在聊天中说，也可以在 **Scheduled** 页面设置。
-- **使用语音：** 按下麦克风（或开启免手动模式），开口说话，Naota 会大声回答。
+- **使用语音：** 按下麦克风（或开启免手动模式），开口说话，NAOSO 会大声回答。
 
 
 ## ⚙️ 配置（`.env`）
 
-每一行都可以留空，Naota 照样能运行。把 `env.example` 复制为 `.env`，再添加你需要的内容。完整的变量列表及逐项说明见 [docs/en/16-env-configuration.md](../../../docs/en/16-env-configuration.md)。
+每一行都可以留空，NAOSO 照样能运行。把 `env.example` 复制为 `.env`，再添加你需要的内容。完整的变量列表及逐项说明见 [docs/en/16-env-configuration.md](../../../docs/en/16-env-configuration.md)。
 
 | 变量 | 含义 | 默认值 |
 |---|---|---|
@@ -406,7 +406,7 @@ Dashboard:                             http://localhost:7777
 
 | 症状 | 处理方法 |
 |---|---|
-| Models 页面说某个 CLI 没有安装，但实际上已经安装 | **重启 Naota**：正在运行的进程保留的是它启动时的 PATH。 |
+| Models 页面说某个 CLI 没有安装，但实际上已经安装 | **重启 NAOSO**：正在运行的进程保留的是它启动时的 PATH。 |
 | 7777 端口被占用，新版本无法启动 | 先停止旧进程（`stop-naota.bat`，或结束对应 PID），然后重新启动。 |
 | Hostinger 无法拉取镜像 | 把 GHCR 包设为 **Public**，并等待 GitHub Action 构建完成。 |
 | 某个大脑提示尚未登录 | **Models** → 该提供商的卡片 → 登录。 |
@@ -428,7 +428,7 @@ naota/
 ├── tests/           # Python + JS test suite (python tests/run.py)
 ├── install.sh · install.ps1 · update.sh
 ├── Dockerfile · docker-compose*.yml
-└── CLAUDE.md        # The system prompt Naota runs on
+└── CLAUDE.md        # The system prompt NAOSO runs on
 ```
 
 ---
@@ -437,7 +437,7 @@ naota/
 
 | 内容 | 目前支持的语言 |
 |---|---|
-| **Naota 的回复** | 任意语言：你用什么语言写，它就用什么语言回答，也可以在 Settings 中固定一种语言 |
+| **NAOSO 的回复** | 任意语言：你用什么语言写，它就用什么语言回答，也可以在 Settings 中固定一种语言 |
 | **仪表盘和服务器消息** | 🇬🇧 English · 🇻🇳 Tiếng Việt，按设备区分：在你选定语言之前，每个浏览器使用各自的语言 |
 | **连接商店、Plugin、新 Brain 的初始文件** | 🇬🇧 English · 🇻🇳 Tiếng Việt |
 | **README 和快速开始** | 🇬🇧 English · 🇻🇳 Tiếng Việt · 🇨🇳 简体中文 · 🇪🇸 Español · 🇯🇵 日本語 · 🇮🇳 हिन्दी · 🇧🇷 Português · 🇰🇷 한국어 · 🇷🇺 Русский · 🇩🇪 Deutsch · 🇫🇷 Français · 🇮🇩 Bahasa Indonesia |
@@ -459,7 +459,7 @@ naota/
 
 请遵守[行为准则](../../../CODE_OF_CONDUCT.md)，并按照 [SECURITY.md](../../../SECURITY.md) 中的说明私下报告安全问题。
 
-如果 Naota 对你有用，在仓库上点一个 ⭐ 能帮助更多人发现它。
+如果 NAOSO 对你有用，在仓库上点一个 ⭐ 能帮助更多人发现它。
 
 [![Star History Chart](https://api.star-history.com/svg?repos=vuongtex/naota&type=Date)](https://star-history.com/#vuongtex/naota&Date)
 
@@ -468,12 +468,12 @@ naota/
 ## 🙏 致谢
 
 - **大脑：** [Claude Code](https://claude.com/claude-code) 和 [Claude Agent SDK](https://docs.claude.com/en/api/agent-sdk/overview)（Anthropic）、[Codex CLI](https://developers.openai.com/codex/cli)（OpenAI）、[Grok Build](https://x.ai)（xAI）、[Antigravity](https://antigravity.google)（Google），以及 [OpenRouter](https://openrouter.ai)、OpenAI、[Google Gemini](https://ai.google.dev)、Anthropic、[Groq](https://groq.com) 和 [Ollama](https://ollama.com) 的 API。
-- **工具标准：** [Model Context Protocol](https://modelcontextprotocol.io)。整个 Naota 连接商店都建立在它之上。
+- **工具标准：** [Model Context Protocol](https://modelcontextprotocol.io)。整个 NAOSO 连接商店都建立在它之上。
 - Second Brain 和数字子弹笔记（Bullet Journal）的方法。
 
 ## 📄 许可证
 
-© 2026 Hoàng Ngọc Vương ([vuong.ai](https://vuong.ai))。保留所有权利。NAOTA 社区成员可免费下载、安装和使用 NAOTA。参见 [LICENSE](../../../LICENSE)。
+© 2026 Hoàng Ngọc Vương ([vuong.ai](https://vuong.ai))。保留所有权利。NAOSO 社区成员可免费下载、安装和使用 NAOSO。参见 [LICENSE](../../../LICENSE)。
 
 
 <div align="center">

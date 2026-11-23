@@ -6,9 +6,9 @@
 // dính vào DOM và fetch. Phần định dạng và phần quyết định của /goal vẫn là hàm thuần, xuất ra
 // module.exports để test (tests/js/test_chat_lenh.js), giống chat-ask.js và chat-slash.js.
 //
-// Nguyên tắc: máy chủ Naota tự xử lý, KHÔNG mượn lệnh có sẵn của Claude Code. Sáu engine API,
+// Nguyên tắc: máy chủ NAOSO tự xử lý, KHÔNG mượn lệnh có sẵn của Claude Code. Sáu engine API,
 // Codex, Grok, Antigravity đều không có /compact hay /plan của Claude Code, nên nếu dựa vào đó thì
-// năng lực đổi theo bộ não - trái với nguyên tắc "năng lực của Naota không đổi theo model".
+// năng lực đổi theo bộ não - trái với nguyên tắc "năng lực của NAOSO không đổi theo model".
 //
 // Trả lời của lệnh hiện thành một bong bóng CỤC BỘ (appendLenhReply trong app.js): không gửi cho
 // model, không lưu vào hội thoại. Ngoại lệ là /plan, /goal và /retry - ba lệnh này gửi một tin thật.
@@ -82,7 +82,7 @@
     });
   }
 
-  // HTML of the collapsible "Naota nudged itself to continue" line. `active`: the goal is still running, so the
+  // HTML of the collapsible "NAOSO nudged itself to continue" line. `active`: the goal is still running, so the
   // Stop goal button can be pressed; otherwise the button shows disabled.
   function vongHtml(r, active) {
     if (!r) return "";
@@ -98,7 +98,7 @@
 
   // Sau MỘT vòng của /goal: chạy tiếp hay dừng, và dừng vì sao. `st` = {vong, toiDa, left},
   // `ket` = {loi, hoiLai, marker}. Thứ tự các cổng là thứ tự an toàn: lỗi và câu hỏi ngược đứng
-  // trước mọi thứ vì lúc đó người dùng đang cần lên tiếng, không phải Naota cần chạy thêm.
+  // trước mọi thứ vì lúc đó người dùng đang cần lên tiếng, không phải NAOSO cần chạy thêm.
   function quyetDinhVongTiep(st, ket) {
     ket = ket || {};
     if (ket.loi) return { act: "dung", ly: "loi" };
@@ -220,7 +220,7 @@
     return dong.join("\n");
   }
 
-  // Bỏ mọi khối điều khiển <!-- NAOTA_...: ... --> khỏi tin của Naota trước khi xuất. Chúng vô
+  // Bỏ mọi khối điều khiển <!-- NAOTA_...: ... --> khỏi tin của NAOSO trước khi xuất. Chúng vô
   // hình trong khung chat nhưng sẽ hiện nguyên hình trong file markdown.
   function boKhoiDieuKhien(s) {
     return String(s || "").replace(/<!--\s*NAOTA_[A-Z_]+:[\s\S]*?-->/g, "").replace(/\n{3,}/g, "\n\n").trim();
@@ -229,13 +229,13 @@
   function dinhDangXuat(sess, gio, lamSachTinNguoi) {
     sess = sess || {};
     var sachNguoi = lamSachTinNguoi || function (x) { return x; };
-    var dong = ["# " + (sess.title || "Naota"), "", "_" + tw("lenh.ex_head", { gio: gio || "" }) + "_"];
+    var dong = ["# " + (sess.title || "NAOSO"), "", "_" + tw("lenh.ex_head", { gio: gio || "" }) + "_"];
     (sess.messages || []).forEach(function (m) {
       var nguoi = m.role === "user";
       if (!nguoi && m.role !== "assistant") return;
       var noi = nguoi ? sachNguoi(m.content || "") : boKhoiDieuKhien(m.content || "");
       if (!String(noi).trim()) return;
-      dong.push("", "## " + (nguoi ? tw("lenh.ex_you") : "Naota"), "", String(noi).trim());
+      dong.push("", "## " + (nguoi ? tw("lenh.ex_you") : "NAOSO"), "", String(noi).trim());
     });
     return dong.join("\n") + "\n";
   }

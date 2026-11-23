@@ -1,6 +1,6 @@
 /* vault-pins.js - pinned folders and folders open by default in the Vault tree (user request, 2026-11-11).
  *
- * "Let Naota pin a folder, and give an option to unfold a folder by default. I pin the wiki folder and keep it open."
+ * "Let NAOSO pin a folder, and give an option to unfold a folder by default. I pin the wiki folder and keep it open."
  * Two lists per brain, kept on the server (GET/POST /files/tree-prefs, server/vault_tree_prefs.py) so the phone and
  * the laptop show the same tree:
  *   - pinned: these folders are listed first, above the rest of the tree, wherever they sit in the brain;

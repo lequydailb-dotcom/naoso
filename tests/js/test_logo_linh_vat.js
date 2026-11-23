@@ -1,4 +1,4 @@
-/* Logo NAOTA và màu mặc định của linh vật (NAOTA 1.0.0).
+/* Logo NAOSO và màu mặc định của linh vật (NAOTA 1.0.0).
 
        node tests/js/test_logo_linh_vat.js
 
@@ -26,7 +26,7 @@ check("linh vật mặc định màu VÀNG NAOTA", /var MAC_DINH = \{[^}]*palett
 check("nút Đặt lại trả về ô vuông vàng NAOTA",
   /P\.setCfg\(\{ shape: "square", palette: "naota",/.test(read("dashboard/console.js")));
 check("trang Việc cần làm không còn ngôi sao cam cũ", !/#fd6100/i.test(read("dashboard/tasks.js")));
-check("logo.svg là logo chữ NAOTA 1.0.0, bọc đúng ảnh PNG", /Logo NAOTA 1\.0\.0/.test(svg) && /href="data:image\/png;base64,/.test(svg));
+check("logo.svg là logo chữ NAOTA 1.0.0, bọc đúng ảnh PNG", /Logo NAOSO 1\.0\.0/.test(svg) && /href="data:image\/png;base64,/.test(svg));
 check("logo.svg không còn ngôi sao cam cũ", !/#FD6100/i.test(svg));
 
 // Các PNG phải là ảnh vuông đúng cỡ (đọc thẳng header PNG, khỏi cần thư viện ảnh).

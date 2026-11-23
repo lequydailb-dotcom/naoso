@@ -1,14 +1,14 @@
 """Ring the bell when a long chat turn finishes (the owner has usually left the screen by then).
 
 a long video render or edit started from the chat finished, and nothing told them,
-neither the chat nor the notifications. A background job Naota tracks already reports through `_notify_owner`, but the
+neither the chat nor the notifications. A background job NAOSO tracks already reports through `_notify_owner`, but the
 answer that matters comes after it: the turn that waited for Claude Code's background task, or the follow-up turn
-Naota opens when a tracked job ends (it adds the audio, checks the file, sends the link). Both are ordinary chat turns,
+NAOSO opens when a tracked job ends (it adds the audio, checks the file, sends the link). Both are ordinary chat turns,
 whose answer lands in the chat only, so a phone in a pocket never hears of it.
 
 So a dashboard chat turn that ran at least `threshold_s()` (NAOTA_LONG_TURN_NOTIFY_S, default 180 seconds, 0 turns it
 off), or that is a background job's follow-up, also leaves its answer in the bell, which sends the push notification.
-The push is skipped on a device where Naota is open and in front of the owner (dashboard/sw.js, `quiet_if_visible`).
+The push is skipped on a device where NAOSO is open and in front of the owner (dashboard/sw.js, `quiet_if_visible`).
 
 The owner asked on 2026-11-17 for more: "after you answer, notify me, but only when I left for another app; still
 notify when I opened another chat in the dashboard". So with `push.turn_done` = "all" (the switch in the bell) EVERY

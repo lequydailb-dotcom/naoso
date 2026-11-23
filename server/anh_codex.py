@@ -95,7 +95,7 @@ def chep_vao_brain(src: Path, vault_root: str) -> Optional[str]:
     """Chép MỘT ảnh vào attachments/ của brain, trả đường tương đối theo gốc brain.
 
     Tên đích cố định theo tên nguồn (`codex-<thread 8 ký tự>-<tên>`), nên chạy lại lượt hay
-    resume cũng không đẻ bản sao thứ hai. PNG đi qua đúng đường gắn nhãn của ảnh Naota tự tạo."""
+    resume cũng không đẻ bản sao thứ hai. PNG đi qua đúng đường gắn nhãn của ảnh NAOSO tự tạo."""
     try:
         vault = Path(vault_root).resolve()
         adir = image_gen._attachments_dir(vault)

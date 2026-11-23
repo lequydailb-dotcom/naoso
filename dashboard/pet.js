@@ -1,6 +1,6 @@
-/* pet.js - LINH VẬT của Naota: một khuôn mặt nhỏ nép ở mép màn hình, lấp ló nửa người.
+/* pet.js - LINH VẬT của NAOSO: một khuôn mặt nhỏ nép ở mép màn hình, lấp ló nửa người.
 
-   Đây KHÔNG phải đồ trang trí. Nó là "sự hiện diện" của Naota ở mọi trang: nhìn theo con trỏ,
+   Đây KHÔNG phải đồ trang trí. Nó là "sự hiện diện" của NAOSO ở mọi trang: nhìn theo con trỏ,
    chớp mắt, và đổi biểu cảm theo đúng trạng thái thật của lượt trả lời (nghe / nghĩ / nói /
    lỗi). Trạng thái không tự bịa: app.js gọi NaotaPet.setState() ngay trong setOrbState(), tức
    là pet và chữ trên orb luôn nói cùng một điều.
@@ -71,7 +71,7 @@
     pink:       { key: "pet.color.pink",       sun: ["#C67FAB", "#EDB9D6", "#F0DFE9"], moon: ["#D1A2BF", "#E4CCDB", "#2D1D27"] },
     slate:      { key: "pet.color.slate",      sun: ["#7B8794", "#B8C4CD", "#E0E4E8"], moon: ["#969EA7", "#B7BDC3", "#222528"] },
     cocoa:      { key: "pet.color.cocoa",      sun: ["#79604F", "#BFA38A", "#E8DFD5"], moon: ["#A89080", "#C0B0A5", "#2C241E"] },
-    // VÀNG NAOTA là màu THƯƠNG HIỆU (từ 1.60.0): đúng màu vàng #FCCB1D của logo NAOTA (ô đen bo góc, chữ N vàng,
+    // VÀNG NAOSO là màu THƯƠNG HIỆU (từ 1.60.0): đúng màu vàng #FCCB1D của logo NAOSO (ô đen bo góc, chữ N vàng,
     // dashboard/logo.svg). Tông tối theo công thức chung: giữ sắc, bão hoà x0,88, sáng 60%.
     naota:      { key: "pet.color.naota",      sun: ["#FCCB1D", "#FBDE74", "#FBF2D0"], moon: ["#F0CA42", "#EAD27B", "#2D291D"] },
     // CAM là màu của logo ngôi sao CŨ (bản nguồn): thân #FD6100, viền #FBBA9C. Giữ làm một màu để chọn, xem
@@ -143,11 +143,11 @@
   };
   // `color` / `eyeColor` là mã màu của ô TỰ CHỌN. Chúng nằm sẵn trong cấu hình kể cả khi đang
   // dùng màu có sẵn, để bấm lại ô tự chọn là ra đúng màu lần trước chứ không về một màu lạ.
-  // Mặc định là LINH VẬT CHÍNH THỨC của NAOTA: ô vuông bo góc màu vàng NAOTA, cùng dáng logo (từ 1.60.0; trước đó
+  // Mặc định là LINH VẬT CHÍNH THỨC của NAOSO: ô vuông bo góc màu vàng NAOSO, cùng dáng logo (từ 1.60.0; trước đó
   // là ngôi sao của logo cũ bản nguồn). `look` là số đời của bộ mặc định: cấu hình nào chưa mang LOOK mà còn đúng
   // ngôi sao mặc định cũ thì chuanHoa() đổi sang hình mới, một lần, để máy đang chạy cũng thấy linh vật mới.
   // `image`: the owner's own picture (a name from the /avatars store, "" = the drawn face). `favicon`: also use that
-  // picture as the browser tab icon, so several Naota open side by side tell apart at a glance.
+  // picture as the browser tab icon, so several NAOSO open side by side tell apart at a glance.
   var LOOK = 2;
   var MAC_DINH = { enabled: true, shape: "square", palette: "naota", side: "right", pos: 0.62, size: 72, eye: "den", eyeSize: 1, color: "#fccb1d", eyeColor: "#2a62b0", image: "", favicon: true, look: LOOK };
   // Same name rule as server/avatar_upload.py: 20 hex characters of a content hash plus the real image type.
@@ -438,7 +438,7 @@
   }
   function chuanHoa(o) {
     var c = Object.assign({}, MAC_DINH, o || {});
-    // Đời 2 (1.60.0): ngôi sao mặc định cũ (nắng hay cam) sang ô vuông vàng NAOTA. Ai đã tự chọn hình khác thì giữ.
+    // Đời 2 (1.60.0): ngôi sao mặc định cũ (nắng hay cam) sang ô vuông vàng NAOSO. Ai đã tự chọn hình khác thì giữ.
     if (!(o && Number(o.look) >= LOOK) && c.shape === "star" && (c.palette === "nang" || c.palette === "cam")) {
       c.shape = "square"; c.palette = "naota";
     }
@@ -469,7 +469,7 @@
     el.dataset.out = "0";
     el.dataset.menu = "0";
     el.innerHTML =
-      '<button type="button" class="pet-body" aria-label="Naota">' +
+      '<button type="button" class="pet-body" aria-label="NAOSO">' +
         '<svg viewBox="0 0 320 320" aria-hidden="true">' +
           '<defs><clipPath id="naotaPetClip"><path class="pet-clip"></path></clipPath></defs>' +
           '<g class="pet-rig">' +
@@ -553,7 +553,7 @@
     pFace.setAttribute("d", d);
     pRing.setAttribute("d", d);
     // Own picture: it fills the shape and the drawn eyes step aside (eyes painted over a photo look like stickers).
-    // The orbit ring and the body moves (hop, squish, shake) still show what Naota is doing.
+    // The orbit ring and the body moves (hop, squish, shake) still show what NAOSO is doing.
     if (pClip) pClip.setAttribute("d", d);
     if (pPhoto) {
       pPhoto.setAttribute("href", cfg.image ? "/avatars/" + cfg.image : "");
@@ -1316,7 +1316,7 @@
   }
   // ---- OWN PICTURE (mascot page only, opts.image) ----
   // Upload goes through the same store as partner avatars (NaotaAvatar.uploadImage: cropped square, 256px, EXIF
-  // dropped in the browser). The drawn face stays underneath, so "Use the Naota face" brings it straight back.
+  // dropped in the browser). The drawn face stays underneath, so "Use the NAOSO face" brings it straight back.
   // The tab-icon switch shows only while a picture is in use: with none there is nothing to put on the tab.
   function anhHtml(v) {
     var coAnh = !!v.image;
@@ -1325,7 +1325,7 @@
       '<div class="aa-upload pet-upload"><button type="button" class="gcard-btn ghost" data-pet-upload>' +
       (typeof window.ic === "function" ? window.ic("image") : "") + " " +
       esc(t(coAnh ? "settings.pet_image_change" : "settings.pet_image_upload", "Upload a picture")) + '</button>' +
-      (coAnh ? '<button type="button" class="gcard-btn ghost" data-pet-unimg>' + esc(t("settings.pet_image_remove", "Use the Naota face")) + '</button>' : "") +
+      (coAnh ? '<button type="button" class="gcard-btn ghost" data-pet-unimg>' + esc(t("settings.pet_image_remove", "Use the NAOSO face")) + '</button>' : "") +
       '<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-pet-file hidden></div>' +
       '<div class="aa-upload-msg pet-upload-msg" role="status" aria-live="polite"></div>';
     if (coAnh) {
@@ -1450,13 +1450,13 @@
   // Bật linh vật thì chỗ logo hiện chính khuôn mặt ấy, để cả app nói cùng một nhân dạng.
   // TẮT linh vật, HOẶC người dùng đã tải logo riêng lên, thì trả lại thẻ <img src="/brand-logo">
   // nguyên bản: logo của người ta thì người ta quyết, một con vật không được đè lên.
-  // Chỉ thay RUỘT của ô dấu ấn, không thay cả khối thương hiệu: chữ "NAOTA" nằm cạnh đó
+  // Chỉ thay RUỘT của ô dấu ấn, không thay cả khối thương hiệu: chữ "NAOSO" nằm cạnh đó
   // trong cùng khối, thay cả khối là mỗi lần đổi hình dáng hay bảng màu lại xoá mất chữ.
   var LO_DAU_AN = ".rail-brand .brand-mark, .brand .brand-icon";
   var _logoRieng = false;      // người dùng đã tải logo riêng lên chưa
   // Tuỳ chọn chân dung khớp đúng con pet đang sống: màu thân tự chọn, màu mắt, cỡ mắt.
   function optsCfg() { return { mau: cfg.color, mat: cfg.eye, mauMat: cfg.eyeColor, coMat: cfg.eyeSize, anh: cfg.image }; }
-  // NAOTA 1.0.0 (anh Vương chốt 31/10/2026): chỗ logo luôn là logo chữ NAOTA, linh vật không
+  // NAOSO 1.0.0 (anh Vương chốt 31/10/2026): chỗ logo luôn là logo chữ NAOSO, linh vật không
   // thay vào đó nữa. Giữ hàm và đường trả lại <img> để bật lại chỉ cần sửa một dòng này.
   function dungDauAn() { return false && !!cfg.enabled && !_logoRieng; }
   function veDauAn() {

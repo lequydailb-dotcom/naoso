@@ -32,7 +32,7 @@ _lock = threading.RLock()
 
 
 class _FileLock:
-    """Several Naota processes may share one state folder (M1 supports that): the read-modify-write of the secrets
+    """Several NAOSO processes may share one state folder (M1 supports that): the read-modify-write of the secrets
     file and the key file is serialised across processes with an advisory lock (POSIX flock; a no-op where it is
     missing)."""
 

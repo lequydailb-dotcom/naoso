@@ -1,4 +1,4 @@
-/* chat-resonance.js - thẻ "Naota đang hướng tới" của Hệ thống cộng hưởng (Resonance M4).
+/* chat-resonance.js - thẻ "NAOSO đang hướng tới" của Hệ thống cộng hưởng (Resonance M4).
 
    Server gắn vào tin nhắn một khối ẩn (cùng khuôn với NAOTA_VIEC, NAOTA_ASK):
        <!-- NAOTA_RESONANCE: {"goal_id":"g_...","revision":1,"report":"outbox:12"} -->
@@ -152,7 +152,7 @@
   }
 
   /* A4: dòng quyền của thẻ (thiết kế A4 mục 8). Chỉ hiển thị; kho mới là căn cứ. Cho phép gửi đúng yêu cầu, đường,
-     bản nháp và sha đang hiện; thẻ cũ thì server trả 409 và thẻ vẽ lại. Naota không cấp quyền ghi từ lời chat. */
+     bản nháp và sha đang hiện; thẻ cũ thì server trả 409 và thẻ vẽ lại. NAOSO không cấp quyền ghi từ lời chat. */
   function kb(n) {
     var v = Number(n) || 0;
     return (Math.round(v / 102.4) / 10).toLocaleString();
@@ -315,7 +315,7 @@
     if (t.legacy) return '<div class="rs-line rs-muted rs-team">' + esc(tw("resonance.a5_legacy")) + "</div>";
     var mk = (t.maker || {}).slug || "", rv = (t.reviewer || {}).slug || "";
     if (t.status === "detached") {
-      // Naota gỡ người review cố định lúc nâng cấp. Mục tiêu đang dừng chờ chủ quyết, không tự chốt.
+      // NAOSO gỡ người review cố định lúc nâng cấp. Mục tiêu đang dừng chờ chủ quyết, không tự chốt.
       if (t.detached_by === "host:review_removed") {
         return '<div class="rs-line rs-team rs-review-removed">' + esc(tw("resonance.a5_removed_line")) + "</div>";
       }
@@ -367,7 +367,7 @@
 
   /* Thẻ tự THU GỌN khi không còn câu hỏi nào chờ chủ
      TRẢ LỜI. Thẻ chỉ mở đủ khi chủ phải đọc kỹ rồi quyết: chưa xác nhận cách hiểu, chờ duyệt sản phẩm, xin quyền ghi file, file
-     bị sửa ngoài Naota. Trục trặc vận hành (đang dừng, bị chặn, bộ não việc nền hỏng, mất theo dõi) KHÔNG cần đọc lại cả danh
+     bị sửa ngoài NAOSO. Trục trặc vận hành (đang dừng, bị chặn, bộ não việc nền hỏng, mất theo dõi) KHÔNG cần đọc lại cả danh
      sách ràng buộc: bản gọn tự nói trạng thái bằng một dòng cảnh báo và để sẵn đúng nút cần bấm. Thuần để test. */
   var LY_DO_EM = ["", "healthy", "scheduled", "discovery_done"];
   function canChu(g) {
@@ -451,7 +451,7 @@
       h += '<div class="rs-line rs-muted">' + esc(tw("resonance.next_wake", { at: fmtTime(g.next_wake.at) })) +
         " (" + esc(wakeLabel(g.next_wake.code)) + ")</div>";
     }
-    // A2: file bị sửa ngoài Naota, và trạng thái theo dõi điều kiện bảo vệ (không hiện như đang an toàn khi đã ngừng).
+    // A2: file bị sửa ngoài NAOSO, và trạng thái theo dõi điều kiện bảo vệ (không hiện như đang an toàn khi đã ngừng).
     if (active && g.source_drift) {
       h += '<div class="rs-warn">' + esc(tw("resonance.drift", { path: g.source_drift.path || "",
         at: g.next_wake ? fmtTime(g.next_wake.at) : "" })) + "</div>";

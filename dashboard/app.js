@@ -45,7 +45,7 @@ let stopTag = null;        // tag phiên chat server phát qua message hello →
 
 function updateStopBtn() {
   const active = isProcessing || voice.isSpeaking();
-  // while Naota works, typed text can still go out (as an add-on to the running turn).
+  // while NAOSO works, typed text can still go out (as an add-on to the running turn).
   // 2026-11-19 (owner: "khi gõ trong lúc 1 lệnh đang chạy thì anh muốn nút ngắt lệnh chuyển thành nút gửi thêm việc
   // đang làm để không tốn thêm diện tích"): Stop and the add-on send share ONE spot. Text or an attachment in the box
   // turns Stop into send; emptying the box brings Stop back.
@@ -115,8 +115,8 @@ function stopCurrent() {
   syncActiveUI();
 }
 function handsFreeActive() { return typeof handsFree !== "undefined" && handsFree; }
-// (Naota Core spec 9): one line in the chat saying the open chat belongs to another brain, with a button to
-// switch the dashboard to it. Naota already answers on that chat's brain (server side); this makes it visible.
+// (NAOSO Core spec 9): one line in the chat saying the open chat belongs to another brain, with a button to
+// switch the dashboard to it. NAOSO already answers on that chat's brain (server side); this makes it visible.
 function veNhanBrain(ten, uiVal) {
   try {
     const area = document.getElementById("chatArea");
@@ -181,7 +181,7 @@ const orbState = document.getElementById("orbState");
 // nên mọi truy cập phải guard để trang không chết trắng nếu thiếu.
 fetch("/config").then(r => r.json()).then(cfg => {
   const wn = document.getElementById("workspaceName");
-  if (wn) wn.textContent = cfg.workspace_name || "NAOTA";
+  if (wn) wn.textContent = cfg.workspace_name || "NAOSO";
 }).catch(() => {});
 
 // ============================================
@@ -230,7 +230,7 @@ const voice = new NaotaVoice({
     nhapGiong(text);
     if (text) petReact("nghe");   // mỗi lần bắt thêm chữ, linh vật gật nhẹ một cái
     // Đang tạm dừng vì nghi chen ngang mà có chữ -> chen ngang THẬT: đạo diễn trả stop_tts.
-    // Đọc phần Naota đã đọc ra tiếng TRƯỚC khi dừng, để tin kế tiếp mang ngắt_lời=.
+    // Đọc phần NAOSO đã đọc ra tiếng TRƯỚC khi dừng, để tin kế tiếp mang ngắt_lời=.
     if (turn.interrupted && text) turn.setInterruptedAt(voice.lastSpokenPrefix());
     runActions(turn.interim(text));
   },
@@ -339,7 +339,7 @@ function adaptiveReceipt(data) {
 }
 let _bargeTimer = null;   // 2 giây sau khi tạm dừng mà không có chữ -> chen ngang giả
 let _waitTimer = null;    // "khoan" rồi im lâu -> thôi chờ
-let _ngatLoiTai = "";     // câu Naota bị ngắt lúc đọc, đi vào tin kế tiếp rồi xoá
+let _ngatLoiTai = "";     // câu NAOSO bị ngắt lúc đọc, đi vào tin kế tiếp rồi xoá
 
 // ---- Voice V3: cắt cụm cho loa + câu tiến độ (voice-call-spec phụ lục A2) ----
 // Chữ stream của MỌI làn đi qua voice-chunker.js rồi mới ra loa: đọc theo cụm tự nhiên (hết
@@ -486,7 +486,7 @@ function runActions(acts) {
         if (a.interrupted) { clearTimeout(_bargeTimer); _bargeTimer = null; ketThucTheoLoi(true); }   // V3: đóng băng chỗ đã nói
         voice.stopSpeaking();
         // lượt vẫn chạy tiếp tới hết (không dừng), nhưng phần còn lại không đọc nữa, chỉ
-        // hiện chữ. Không thì Naota nói đè lên câu người dùng vừa chen vào.
+        // hiện chữ. Không thì NAOSO nói đè lên câu người dùng vừa chen vào.
         const _tLuot = savedSessionId ? turns[savedSessionId] : null;
         if (_tLuot && _tLuot.running) { _tLuot.imLoa = true; cum.reset(); }
         break;
@@ -531,7 +531,7 @@ function datCheDoGiong(mode) {
 }
 
 // ============================================
-// Gọi điện (voice-call-spec mục 4): bấm mic là GỌI Naota. Thanh gọi
+// Gọi điện (voice-call-spec mục 4): bấm mic là GỌI NAOSO. Thanh gọi
 // (call-bar.js) trên khung chat cho biết cuộc gọi đang ở đâu, có nút tắt mic và cúp máy. Trạng
 // thái lấy từ đúng nguồn thật của orb (đạo diễn lượt nói, rào chú ý, phiên Live).
 // ============================================
@@ -581,7 +581,7 @@ function capNhatThanhGoi() {
   }
   callBar.setState(st, info);
 }
-// Tắt mic giữa cuộc gọi: Naota vẫn nói được, chỉ không nghe. Live tắt track; đường Cơ bản dừng
+// Tắt mic giữa cuộc gọi: NAOSO vẫn nói được, chỉ không nghe. Live tắt track; đường Cơ bản dừng
 // nghe và vòng giữ mic (bên dưới) không mở lại cho tới khi bật lại.
 function datTatMic(muted) {
   _callMuted = !!muted;
@@ -671,7 +671,7 @@ let _liveUserBubble = null, _liveNaotaText = "", _liveNaotaBubble = null, _liveC
 let _liveStartSeq = 0;
 let _liveWaitingWake = false, _liveBusyUntil = 0;
 // Nối lại NHANH. Đo trên server thử: từ lúc người dùng ngừng nói tới
-// lúc nghe Naota mất ~5 giây, trong đó ~2,6 giây là mở mic, nối máy chủ, OpenAI dựng phiên và nối
+// lúc nghe NAOSO mất ~5 giây, trong đó ~2,6 giây là mở mic, nối máy chủ, OpenAI dựng phiên và nối
 // đường âm thanh. Nên nghe được mấy chữ đầu là bắt tay NGAY (noiSom), song song với lúc người dùng
 // còn đang nói; câu chốt xong chỉ còn gắn mic và gửi câu (noiTiepPhienSom). Bắt tay lúc đó CHƯA giữ
 // mic (deferMic) vì bộ nghe của trình duyệt còn đang nghe nốt câu và điện thoại chỉ cho một bên giữ mic.
@@ -679,12 +679,12 @@ let _liveSom = null;
 const NOI_SOM_HUY_MS = 12000;   // nối sớm mà mãi không có câu chốt (tiếng động) thì đóng, đỡ tốn hạn mức
 // Cuộc gọi này đã nối Live ít nhất một lần. Từ đó trở đi, nối lại hỏng KHÔNG chuyển sang đường
 // Cơ bản: ChatGPT Live lo trọn cuộc gọi, còn đường Cơ bản đọc bằng giọng Edge khác hẳn
-// nên nghe như Naota "tự đổi giọng nữ sang giọng nam" giữa chừng.
+// nên nghe như NAOSO "tự đổi giọng nữ sang giọng nam" giữa chừng.
 let _cuocGoiDaNoi = false;
 let _liveToolCount = 0;
 // Only one capture is alive: Live is closed before this free browser listener starts.
 // Lúc Live đã ngắt vì im lâu, CÂU NÓI THẬT đầu tiên là nối lại (attention.wakes): không
-// bắt buộc gọi "Naota" nữa, vì trình duyệt hay chép tên thành "Nau ta" và cuộc gọi không nối lại được.
+// bắt buộc gọi "NAOSO" nữa, vì trình duyệt hay chép tên thành "Nau ta" và cuộc gọi không nối lại được.
 // Câu đó đi làm lời đầu của phiên mới (batLive) nên không mất chữ.
 const liveWake = new NaotaVoice({
   lang: "vi-VN",
@@ -1001,7 +1001,7 @@ window.NaotaOrb = {
   setVoiceJobs: (n) => datSoViecGiong(n),
 };
 
-// ---- Voice V3: Naota TỰ HỎI THĂM khi việc nền chạy lâu ----
+// ---- Voice V3: NAOSO TỰ HỎI THĂM khi việc nền chạy lâu ----
 // Giao việc xong mà im lặng hàng phút thì người dùng "không rõ nó có chạy nền thật hay
 // không": nên cho nó nói kiểu "để em xem nhé", "chờ em tý", "em vẫn chưa xong". Người thật
 // nhận việc lâu thì thỉnh thoảng ngẩng lên nói một câu, chứ không ngồi câm.
@@ -1077,7 +1077,7 @@ function connect() {
 // ---- Socket chết mà không đóng ----
 // Máy ngủ, đổi Wi-Fi, router rớt kết nối: trình duyệt vẫn giữ socket ở trạng thái OPEN và không
 // bao giờ gọi onclose. Lượt chat vẫn chạy xong trên server, nhưng câu trả lời không tới được, nên
-// chữ "Naota đang suy nghĩ..." đếm mãi, người dùng phải gửi lại câu lệnh.
+// chữ "NAOSO đang suy nghĩ..." đếm mãi, người dùng phải gửi lại câu lệnh.
 // Im quá WS_IM_MS thì hỏi server một tiếng; không ai đáp trong WS_PONG_MS là socket chết thật:
 // bỏ nó, nối socket mới. Lời chào "hello" của socket mới đồng bộ lại lượt đang chạy và câu trả lời
 // đã xong trong lúc đứt.
@@ -1362,7 +1362,7 @@ function handleMessage(data) {
     return;
   }
   if (data.type === "external_message") {
-    // an outside AI posted into this chat through Naota Gate (server/chat_bridge.py). The server stored the
+    // an outside AI posted into this chat through NAOSO Gate (server/chat_bridge.py). The server stored the
     // message already; the tab looking at the chat draws the bubble now, then the answer streams in like any turn.
     if (isActive) {
       appendUserMessage(data.content || "", [], Date.now());
@@ -1376,7 +1376,7 @@ function handleMessage(data) {
     // Tin do việc chạy NỀN đẩy vào (việc Kanban / loop / nhắc hẹn xong), không thuộc lượt
     // hỏi-đáp nào. KHÔNG đụng turns[sid]: lượt đang chạy (nếu có) vẫn stream bình thường,
     // tin này chỉ chèn thêm một bong bóng. Server đã lưu vào kho phiên nên F5 vẫn còn.
-    // a "call me" reminder rings whichever chat is open. Its message usually lands in the brain's Naota Core
+    // a "call me" reminder rings whichever chat is open. Its message usually lands in the brain's NAOSO Core
     // chat (a reminder made without a chat id), so ringing only when that chat was the open one meant no call at all.
     const daGoi = goiDenTheoLich(data.content || "");
     if (isActive) {
@@ -1393,7 +1393,7 @@ function handleMessage(data) {
           reaction: null, entry: null });
       }
       scrollBottom();
-      // Đọc tin nền chỉ khi người dùng KHÔNG đang nói hay đang nghe Naota nói dở (Voice V1):
+      // Đọc tin nền chỉ khi người dùng KHÔNG đang nói hay đang nghe NAOSO nói dở (Voice V1):
       // chen một bản tin vào giữa câu người dùng là cắt ngang họ. Hoãn tới lúc rảnh.
       // Khối thẻ mục tiêu (Resonance M4, chat-resonance.js) đã vẽ ở bong bóng trên: bóc khỏi bản dùng để ĐỌC.
       if (window.NaotaResonance) data.content = window.NaotaResonance.tach(data.content || "").clean;
@@ -1415,7 +1415,7 @@ function handleMessage(data) {
     return;
   }
   if (data.type === "steer_ack" || data.type === "steer_read" || data.type === "steer_turn") {
-    // a message sent while Naota works was received, read by the running turn, or is now its own turn.
+    // a message sent while NAOSO works was received, read by the running turn, or is now its own turn.
     try { trangThaiBoSung(data); } catch (e) {}
     // The running turn took the message in, so its answer now covers it: move that answer below it.
     if (data.type === "steer_read" && isActive && t) { try { moveTurnBelow(t); } catch (e) {} }
@@ -1558,7 +1558,7 @@ function handleMessage(data) {
       // Có câu trả lời thật thì linh vật vui một nhịp. Đang đọc thành tiếng thì nó tự đợi đọc
       // xong mới nhảy (pet.js giữ cờ choXong), nên gọi ngay ở đây là đủ.
       if (finalText.trim()) petReact("xong");
-      // Naota vừa làm một việc nhiều bước cho người dùng: một khoảnh khắc vui để mời tặng sao GitHub
+      // NAOSO vừa làm một việc nhiều bước cho người dùng: một khoảnh khắc vui để mời tặng sao GitHub
       // (star-nudge.js tự đợi người dùng rảnh tay, server quyết định có mời không).
       try { if (finalText.trim() && t && ((t.buoc && t.buoc.so) || 0) >= 3 && window.NaotaStar) window.NaotaStar.moment("work"); } catch (e) {}
       // Mỗi lượt xong, Claude Code / Codex vừa báo hạn mức gói mới: vòng tròn cạnh chip Effort đọc lại (plan-limit.js).
@@ -1623,9 +1623,9 @@ function handleMessage(data) {
     // Lượt nói: server đã DIỄN GIẢI câu máy nghe (lớp sửa theo ngữ cảnh, hoặc bộ não giọng
     // viết lại dòng NAOTA_NGHE). Bong bóng người dùng đang hiện chữ thô của máy nghe, nên thay
     // bằng câu đã diễn giải và ghi chữ thô nhỏ bên dưới để đối chiếu. Ví dụ: nói
-    // "Naota" mà bong bóng vẫn "Nauta" thì không biết Naota đã hiểu đúng chưa.
+    // "NAOSO" mà bong bóng vẫn "Nauta" thì không biết NAOSO đã hiểu đúng chưa.
     // CỬA TẠP ÂM: bộ não giọng xét ra cả lượt chỉ là tiếng TV hay người khác trong phòng,
-    // không có câu nào nói với Naota. Gỡ HẲN bong bóng (ẩn luôn để mắt
+    // không có câu nào nói với NAOSO. Gỡ HẲN bong bóng (ẩn luôn để mắt
     // chỉ còn nội dung đang bàn), server đã xoá tin khỏi kho phiên nên F5 cũng không thấy lại.
     // Chỉ để lại một dòng ghi chú tự tắt: im hoàn toàn thì lúc cửa xét NHẦM, người dùng nói mà
     // không có gì xảy ra, trông y hệt mic hỏng và không có đầu mối nào để đi tắt bớt lọc.
@@ -1724,7 +1724,7 @@ function guiTinCho() {
   const opts=_tinChoOpts; _tinChoOpts=null;
   if (t) sendMessage(t,opts);       // stopCurrent() đã hạ cờ running nên lần này không quay lại đây
 }
-// ---- Câu nói lúc Naota đang trả lời, trong cuộc gọi ----
+// ---- Câu nói lúc NAOSO đang trả lời, trong cuộc gọi ----
 // Không dừng lượt đang chạy: câu xếp hàng (nói nhiều câu thì ghép lại), hiện thành bong bóng nháp,
 // và chỉ gửi khi lượt cũ đã xong VÀ loa đã đọc xong, vì hàm gửi tin cắt tiếng đang đọc.
 // Gọi từ turn_done và từ lúc loa đọc xong; điều kiện nào chưa đủ thì lần gọi sau gửi.
@@ -1977,7 +1977,7 @@ function sendMessage(text, opts) {
   if (!ws || ws.readyState !== WebSocket.OPEN) { if(opts && opts.adaptive){chatInput.value=msg;ghiChuThoang(window.t("app.ws_mat_ket_noi"));return;} giuTinKhiDutMang(msg); return; }
   // File còn ĐANG TẢI LÊN thì đợi nó xong rồi gửi, KHÔNG gửi thiếu. Trước đây dòng lọc
   // `a.path` bên dưới lặng lẽ bỏ file chưa tải xong: dán ảnh hay một đoạn văn dài rồi gõ câu
-  // hỏi và Enter ngay là tin bay đi tay không, bong bóng không có ảnh, Naota cũng không nhận
+  // hỏi và Enter ngay là tin bay đi tay không, bong bóng không có ảnh, NAOSO cũng không nhận
   // được file - đúng lỗi đã gặp. Chip trên thanh đính kèm vẫn hiện "đang
   // tải..." nên người dùng thấy vì sao tin chưa đi.
   const dangTai = pendingAttachments.filter(a => a.uploading);
@@ -2038,7 +2038,7 @@ function sendMessage(text, opts) {
   }
   const sid = savedSessionId;
   // Phiên đang trả lời thì không gửi chồng lượt. NHƯNG tin từ MIC (hay gõ trong lúc rảnh tay)
-  // là người dùng CHEN NGANG: họ vừa cắt lời Naota rồi nói câu mới, nên câu mới phải thắng -
+  // là người dùng CHEN NGANG: họ vừa cắt lời NAOSO rồi nói câu mới, nên câu mới phải thắng -
   // dừng lượt cũ rồi gửi. Nuốt lặng như trước là kẹt cứng: đạo diễn đã bật `processing` trong
   // endpoint() TRƯỚC khi gọi vào đây, mà lượt bị nuốt thì không bao giờ có turn_done để hạ nó,
   // nên orb đứng mãi ở "đang suy nghĩ" và người dùng không thấy tin mình vừa nói ở đâu cả.
@@ -2073,7 +2073,7 @@ function sendMessage(text, opts) {
   voice.resetSpokenWords();    // lượt mới đếm từ đã đọc lại từ 0
   nhapGiong("");               // bong bóng nháp (chữ đang nghe) nhường chỗ cho tin thật
   // Voice V3: đang ở phiên Live mà GÕ chữ thì đẩy thẳng vào phiên Live (cùng một cuộc nói
-  // chuyện, Naota đáp bằng giọng), không mở lượt chat riêng. Có file đính kèm thì đi đường thường.
+  // chuyện, NAOSO đáp bằng giọng), không mở lượt chat riêng. Có file đính kèm thì đi đường thường.
   if (voiceMode === "live" && !atts.length && window.NaotaVoiceLive && window.NaotaVoiceLive.isOn()) {
     chatInput.value = ""; chatInput.style.height = "auto";
     appendUserMessage(msg, []);
@@ -2114,7 +2114,7 @@ function sendMessage(text, opts) {
   recordTurn("user", msg, atts.map(a => ({ name: a.name, kind: a.kind, url: a.url || "" })));
   if (_goalRound) { convo[convo.length - 1].goalRound = _goalRound; persistSession(); }
 
-  // Soạn message gửi Naota (kèm đường dẫn file trong Sources)
+  // Soạn message gửi NAOSO (kèm đường dẫn file trong Sources)
   const _isSkill = _slash.type === "skill";
   // Tin của /plan, /goal: khối chỉ dẫn đứng ngay TRƯỚC câu người dùng, và ở SAU mọi khối ngữ cảnh
   // khác (file đính kèm, file ghim, ngữ cảnh giao diện). chuNguoiGo gỡ được từng khối theo thứ
@@ -2135,7 +2135,7 @@ function sendMessage(text, opts) {
   // File đang ghim đi TRƯỚC mọi thứ: nó là ngữ cảnh nền của cả lượt, không phải dữ liệu
   // đính kèm một lần. Gửi lại mỗi lượt vì engine API dựng lại payload từ SQLite mỗi lần,
   // không giữ trạng thái "đang mở file nào" giữa các lượt.
-  // Ngữ cảnh giao diện (Voice V1, spec mục 5): trang đang mở, đoạn đang bôi đen, câu Naota bị
+  // Ngữ cảnh giao diện (Voice V1, spec mục 5): trang đang mở, đoạn đang bôi đen, câu NAOSO bị
   // ngắt lời. Đứng SAU khối file ghim và TRƯỚC câu hỏi; rỗng thì không chèn gì.
   // `voice`: đang nói chuyện bằng giọng (tin từ mic, HAY gõ chữ khi mic rảnh tay đang bật):
   // câu trả lời sẽ đọc ra loa nên model phải trả lời ngắn như người đang nói (V3).
@@ -2215,7 +2215,7 @@ function boiNguCanh(outMsg, voice) {
   } catch (e) {}
   _ngatLoiTai = "";
   if (pinnedNote) {
-    outMsg = `[FILE ĐANG MỞ trong trình sửa của Naota: ${pinnedNote.abs}\n`
+    outMsg = `[FILE ĐANG MỞ trong trình sửa của NAOSO: ${pinnedNote.abs}\n`
       + `Đây là file người dùng ĐANG LÀM VIỆC TRÊN ĐÓ - coi như đầu vào của cuộc trò chuyện này. `
       + `Đọc nó trước khi trả lời. Khi được yêu cầu sửa/viết thêm/dọn lại mà không nói rõ file nào `
       + `thì ghi thẳng vào chính file này.]\n\n${outMsg}`;
@@ -2311,7 +2311,7 @@ function goTinNguoiDungCuoi(raw) {
   return true;
 }
 // Dòng ghi chú THOÁNG QUA giữa khung chat: hiện rồi tự tắt, không vào convo, không lưu
-// localStorage, không đọc ra loa, không đi vào ngữ cảnh lượt sau. Dùng cho chuyện Naota vừa
+// localStorage, không đọc ra loa, không đi vào ngữ cảnh lượt sau. Dùng cho chuyện NAOSO vừa
 // quyết mà không đáng để lại một lượt trong hội thoại.
 const GHI_CHU_MS = 6000;
 function ghiChuThoang(text) {
@@ -2455,7 +2455,7 @@ function veTinDaLuu(m, brainCua, sidCua) {
     const _vongCu = window.NaotaLenh && window.NaotaLenh.docVong ? window.NaotaLenh.docVong(m.content || "") : null;
     if (_vongCu) { appendGoalRound(_vongCu, false); return { role: "user", text: _sach, atts: [], ts, goalRound: _vongCu }; }
     const _atts = docDinhKem(m.content || "");
-    // the Naota Gate sender ("from ChatGPT") is read from the stored text, which still has its block.
+    // the NAOSO Gate sender ("from ChatGPT") is read from the stored text, which still has its block.
     const el = appendUserMessage(_sach, _atts, ts, nguonGate(m.content || ""));
     if(m.voice_metadata && m.voice_metadata.response_policy==='ack_only' && !m.voice_metadata.answer_requested) renderVoiceReceipt(el,{...m.voice_metadata,session_id:savedSessionId});
     return { role: "user", text: _sach, atts: _atts, ts, voice_metadata:m.voice_metadata };
@@ -2673,7 +2673,7 @@ function prefetchMany(ids) {
   };
   next();
 }
-// Rời một cuộc mà nó đã có thêm tin (mình gửi, Naota trả lời): bản trong bộ nhớ đã cũ.
+// Rời một cuộc mà nó đã có thêm tin (mình gửi, NAOSO trả lời): bản trong bộ nhớ đã cũ.
 // ask for the new copy right away instead of dropping the old one. Dropping it is why going back to the
 // chat being taught always waited for the server; now the copy is usually fresh again before the owner returns.
 function _quenPhienNeuDoi() {
@@ -2890,7 +2890,7 @@ function notifySessions(reason) {
 function actsHtml(role, ts, canResend) {
   return window.NaotaActs ? window.NaotaActs.actsHtml(role, ts, canResend) : "";
 }
-// Tin chỉ có ảnh (không kèm lời nhắn) thì chẳng có chữ nào để gửi lại. Ở tin của Naota
+// Tin chỉ có ảnh (không kèm lời nhắn) thì chẳng có chữ nào để gửi lại. Ở tin của NAOSO
 // thì cái quyết định là CÂU HỎI ngay trên nó, nên soi tin người dùng cuối cùng đã nằm
 // trong khung (chatAppend chèn theo đúng thứ tự nên lúc này nó đã có mặt).
 function lastUserText() {
@@ -2905,11 +2905,11 @@ function lastUserText() {
 // "[SKILL: " là khối do chat-slash.js dựng khi người dùng gõ lệnh "/". Gỡ nó ra thì bong bóng
 // hiện ĐÚNG câu họ đã gõ, thay vì câu máy dựng quanh câu đó - đã gặp đúng chuyện này.
 // Giữ MỘT DÒNG: test_dinh_kem_khong_roi.js bóc đúng dòng này ra để chạy docDinhKem bằng node.
-const _KHOI_NGU_CANH = ["[FILE ĐANG MỞ trong trình sửa của Naota:", "[File đính kèm", "[NGỮ CẢNH GIAO DIỆN:", "[SKILL: ", "[CHẾ ĐỘ KẾ HOẠCH:", "[MỤC TIÊU:", "[GỬI QUA NAOTA GATE:"];
-// a message an outside AI (ChatGPT, Claude...) posted through Naota Gate starts with
-// "[GỬI QUA NAOTA GATE: <name>. ...]" (server/chat_bridge.py). The block is stripped like the others;
+const _KHOI_NGU_CANH = ["[FILE ĐANG MỞ trong trình sửa của NAOSO:", "[File đính kèm", "[NGỮ CẢNH GIAO DIỆN:", "[SKILL: ", "[CHẾ ĐỘ KẾ HOẠCH:", "[MỤC TIÊU:", "[GỬI QUA NAOSO GATE:"];
+// a message an outside AI (ChatGPT, Claude...) posted through NAOSO Gate starts with
+// "[GỬI QUA NAOSO GATE: <name>. ...]" (server/chat_bridge.py). The block is stripped like the others;
 // this reads the name back so the bubble can say who sent it.
-const _KHOI_GATE = _KHOI_NGU_CANH[_KHOI_NGU_CANH.length - 1];   // the Naota Gate block, last in the list
+const _KHOI_GATE = _KHOI_NGU_CANH[_KHOI_NGU_CANH.length - 1];   // the NAOSO Gate block, last in the list
 function nguonGate(text) {
   const t = String(text == null ? "" : text).replace(/^\s+/, "");
   if (!t.startsWith(_KHOI_GATE + " ")) return "";
@@ -3047,7 +3047,7 @@ function appendUserMessage(text, attachments, ts, via) {
   vaAnhHong(div);
   chatAppend(div); scrollBottom(true);
 }
-// send more while Naota is working. The message is stored and shown at once; its small status line follows
+// send more while NAOSO is working. The message is stored and shown at once; its small status line follows
 // what the server reports: read by the running turn, or waiting to run right after it.
 let _boSungSeq = 0;
 const _boSungEl = {};   // client_id or "s<steer_id>" -> the status line of that message
@@ -3088,7 +3088,7 @@ function trangThaiBoSung(data) {
     (data.ids || []).forEach(id => ghi(_boSungEl["s" + id], data.type === "steer_read" ? "app.steer_read" : "app.steer_turn"));
   }
 }
-// A message sent while Naota works was read by the running turn (steer_read). The step block and answer
+// A message sent while NAOSO works was read by the running turn (steer_read). The step block and answer
 // bubble of that turn were drawn before the message, so the answer to it showed ABOVE it and the owner thought it had
 // not been done. The server stores that answer after the message, so move both below it, the same order
 // a reload shows. The activity chip stays last. chatAppend on a node already in the chat moves it, nothing is redrawn.
@@ -3120,8 +3120,8 @@ function ringReminder(el, raw) {
   if (!a) return;
   try { const p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) { /* autoplay blocked */ }
 }
-// (incoming-call.js): "Naota calls you at a set time". Answer = press the mic, and the call's first line asks
-// Naota to read the reminder aloud. Already in a call: nothing rings, the message is in the chat.
+// (incoming-call.js): "NAOSO calls you at a set time". Answer = press the mic, and the call's first line asks
+// NAOSO to read the reminder aloud. Already in a call: nothing rings, the message is in the chat.
 let _goiDenMoDau = "";
 function layMoDauGoiDen() { const s = _goiDenMoDau; _goiDenMoDau = ""; return s; }
 function goiDenTheoLich(raw) {
@@ -3447,13 +3447,13 @@ function flashCopied(btn, label) {
   setTimeout(() => { btn.textContent = label || old; }, 1200);
 }
 // Bấm một nút trong hàng .msg-acts. Tua lại lấy chữ GỐC của tin người dùng (dataset.text)
-// chứ không đọc lại DOM, vì tin dài đang thu gọn và tin Naota đã thành HTML.
+// chứ không đọc lại DOM, vì tin dài đang thu gọn và tin NAOSO đã thành HTML.
 function runMsgAct(btn) {
   const msgEl = btn.closest(".msg");
   if (!msgEl) return;
   const act = btn.dataset.act;
   if (act === "quote") {
-    // Bôi đen một đoạn TRONG tin này thì trích đúng đoạn đó; không thì trích cả tin. Tin Naota lấy
+    // Bôi đen một đoạn TRONG tin này thì trích đúng đoạn đó; không thì trích cả tin. Tin NAOSO lấy
     // markdown gốc (dataset.md), không lấy chữ đã vẽ, để đoạn trích còn nguyên đậm, danh sách, link.
     const chon = window.NaotaActs.selectedIn(msgEl);
     const b = msgEl.querySelector(".bubble");
@@ -3470,8 +3470,8 @@ function runMsgAct(btn) {
   }
   if (act === "copy") {
     const b = msgEl.querySelector(".bubble");
-    // Tin Naota giữ markdown gốc trong dataset.md: copy bản đó để bài viết dán sang
-    // CMS/website còn nguyên heading, đậm, link, bảng. Metadata ẩn chỉ có ở tin Naota;
+    // Tin NAOSO giữ markdown gốc trong dataset.md: copy bản đó để bài viết dán sang
+    // CMS/website còn nguyên heading, đậm, link, bảng. Metadata ẩn chỉ có ở tin NAOSO;
     // chữ người dùng phải giữ nguyên, kể cả khi họ thật sự gõ cú pháp HTML comment.
     if (b) {
       const value = msgEl.classList.contains("msg-naota")
@@ -3485,7 +3485,7 @@ function runMsgAct(btn) {
   if (act === "speak") { docThanhTieng(msgEl, btn); return; }
   // Chi tin NGUOI DUNG mang nut tua lai, nen chu goc luon nam ngay tren chinh no.
   // Truoc day con mot nhanh nguoc len tim tin nguoi dung gan nhat - do la duong cua nut "tra
-  // loi lai cau hoi phia tren" o tin Naota, da bo.
+  // loi lai cau hoi phia tren" o tin NAOSO, da bo.
   const text = msgEl.dataset.text || "";
   if (!text) return;
   if (act === "rewind") tuaLai(msgEl, text);
@@ -3562,7 +3562,7 @@ function datVaoONhap(text) {
 // Rewind. Delete this question and everything after it on the server (the engines'
 // threads too), redraw the chat from what is left, and put the question back in the composer: the conversation goes
 // on from there. It replaces "Send again" and "Edit": sending the restored question unchanged is the old resend.
-// Deleting cannot be undone, so it asks first, and it waits while Naota is answering (Stop first).
+// Deleting cannot be undone, so it asks first, and it waits while NAOSO is answering (Stop first).
 async function tuaLai(msgEl, text) {
   if (isProcessing) { alert(window.t("cact.rewind_busy")); return; }
   const sid = savedSessionId;
@@ -3729,7 +3729,7 @@ function ensureGraph() {
 // Safety net: console.js never reported the first page (a script error there) and the home screen is in view.
 function ensureGraphIfHome() { if (!_graphBuilding && _oManChinh()) ensureGraph(); }
 
-// Click node trong graph → Naota mở & thao tác note đó trong vault
+// Click node trong graph → NAOSO mở & thao tác note đó trong vault
 window.onGraphNodeClick = (node) => {
   if (!node || !node.path) return;
   const brainRel = (node.path || "").split("/").slice(1).join("/") || node.path;   // bỏ đoạn gốc → path tương đối brain
@@ -4197,7 +4197,7 @@ function pumpAudioLevel() {
   if (naotaGraph && (_lvl > 0 || (naotaGraph.level || 0) > 0.001)) { naotaGraph.setLevel(_lvl); live = true; }
   if (_theoLoi) live = true;
   if (_theoLoi && (_stopBtnTick % 3) === 0) nhipTheoLoi();   // V3: chữ theo lời ~20 lần/giây
-  // Cập nhật hiển thị nút stop ~6 lần/giây (theo dõi cả lúc Naota đang đọc)
+  // Cập nhật hiển thị nút stop ~6 lần/giây (theo dõi cả lúc NAOSO đang đọc)
   if (!live || (_stopBtnTick % 10) === 0) {
     updateStopBtn();
     // (Voice V1) orb do đạo diễn vẽ từ sự kiện thật: voice.js báo onSpeakEnd khi hết hàng đợi.
@@ -4720,7 +4720,7 @@ async function uploadFile(file, att) {
 }
 function _mb(b) { return (b / 1048576).toFixed(1).replace(/\.0$/, ""); }
 async function _taiLen(file, att) {
-  // Chỉ STAGE để Naota đọc - KHÔNG tự convert/lưu. Lưu Sources chỉ khi user yêu cầu.
+  // Chỉ STAGE để NAOSO đọc - KHÔNG tự convert/lưu. Lưu Sources chỉ khi user yêu cầu.
   let ve = 0;
   const onTien = (daGui, tong) => {
     if (daGui < 0) att.statusText = window.t("app.att_saving");
@@ -4906,7 +4906,7 @@ function sendTypingHint() {
 // Enter sends on a computer; an IME composition and a touch screen (Enter = new line) never send. The rules live in
 // chat-acts.js (NaotaActs.enterSends) so the Team chat follows the same ones.
 const chatInputComposing = window.NaotaActs.trackComposition(chatInput);
-// the likely next message shows grey in the empty box once Naota answers; Tab (or the ">" after it)
+// the likely next message shows grey in the empty box once NAOSO answers; Tab (or the ">" after it)
 // fills it in. It stays while the owner types along it, Right Arrow takes one word, and a draft
 // that goes another way is finished after a short pause. Shared with the Team chat (chat-suggest.js).
 const chatSuggest = window.NaotaSuggest ? window.NaotaSuggest.attach({
@@ -4977,7 +4977,7 @@ function alertMic(err) {
   if (err === "not-allowed") {
     // Trang không chạy ở ngữ cảnh bảo mật thì trình duyệt chặn thẳng, và KHÔNG hề hỏi quyền.
     // Bảo họ "cấp quyền" lúc này là chỉ họ đi tìm một cái nút không tồn tại. Hay gặp khi mở
-    // Naota qua địa chỉ LAN hoặc tên miền chưa có HTTPS.
+    // NAOSO qua địa chỉ LAN hoặc tên miền chưa có HTTPS.
     if (!window.isSecureContext) {
       alert(window.t("app.mic_insecure") + "\n" + "\n"
         + window.t("app.mic_insecure_fix"));
@@ -5017,7 +5017,7 @@ voiceBtn.addEventListener("click", () => {
   }
   voice.handsFree = handsFree && voiceMode !== "live";   // bật ngay, không đợi vòng 500 ms
   // Loa đi theo mic : bật nghe là muốn NÓI CHUYỆN bằng giọng, nên
-  // Naota phải đáp bằng giọng; tắt nghe là quay về gõ chữ, Naota im. Điện thoại từng không
+  // NAOSO phải đáp bằng giọng; tắt nghe là quay về gõ chữ, NAOSO im. Điện thoại từng không
   // có chỗ nào bật loa cả, nên gộp vào mic là một nút lo cả hai chiều.
   try { if (window.NaotaTts) window.NaotaTts.set(handsFree); } catch (e) {}
   // Voice V2 bậc Live: nút mic mở phiên nghe nói thẳng thay cho Web Speech + TTS.
@@ -5040,7 +5040,7 @@ voiceBtn.addEventListener("click", () => {
 
 // ---- Micro: máy tự lo, không còn ô cài đặt (voice-call-spec mục 5) ----
 // Im lặng bao lâu thì gửi: mặc định 1,2 giây; máy nào đã chọn mức khác ở bản cũ thì giữ mức đó
-// (giá trị cũ vẫn dùng tiếp). Ngắt lời Naota bằng giọng: LUÔN bật, vì gọi điện mà không chen
+// (giá trị cũ vẫn dùng tiếp). Ngắt lời NAOSO bằng giọng: LUÔN bật, vì gọi điện mà không chen
 // ngang được là cuộc gọi một chiều; khoá cũ naota.bargeIn = "0" không còn ô nào để bật lại nên
 // không đọc nữa.
 (function () {
@@ -5060,7 +5060,7 @@ setInterval(() => {
   // `micHong()` là chốt thứ hai (chốt thứ nhất là tatRanhTay() trong onError). Giữ cả hai vì
   // vòng này chạy hai lần mỗi giây: sót một nhịp là một hộp thoại nữa đập vào mặt người dùng.
   //
-  // KHÔNG còn đòi `!isProcessing`: trong lúc Naota đang nghĩ, người ta vẫn phải nói chen vào
+  // KHÔNG còn đòi `!isProcessing`: trong lúc NAOSO đang nghĩ, người ta vẫn phải nói chen vào
   // hay nói thêm ngữ cảnh được, y như nói chuyện với người thật. Chốt cũ đóng mic suốt thời
   // gian xử lý (có khi vài chục giây) nên nói vào chỗ trống, không ai nghe (đã gặp
   // thực tế). Tin nói lúc ấy đi qua sendMessage: nó dừng lượt cũ rồi gửi lại câu mới, và tin
@@ -5083,7 +5083,7 @@ document.getElementById("voiceFocusResume").addEventListener("click", () => {
 document.addEventListener("keydown", (e) => {
   if (e.code === "Escape") {
     // Esc chỉ thoát chế độ rảnh tay + tắt mic + đóng popup node nếu đang mở. KHÔNG còn dừng câu
-    // trả lời hay ngắt Naota đang nói (đã bỏ theo yêu cầu - đã có nút bật/tắt tiếng và nút Dừng).
+    // trả lời hay ngắt NAOSO đang nói (đã bỏ theo yêu cầu - đã có nút bật/tắt tiếng và nút Dừng).
     tatRanhTay();
     try { if (window.NaotaTts) window.NaotaTts.set(false); } catch (e2) {}   // Esc = thoát nói chuyện bằng giọng
     if (typeof closeNodePopup === "function") closeNodePopup();
@@ -5172,7 +5172,7 @@ const ENGINE_LABEL = {
   // Hai engine CLI gói thuê bao. Nhãn phải TÁCH khỏi nhà cung cấp API cùng tên: khác đường
   // và khác hoá đơn (gói đã trả, so với API key trả theo lượt gọi).
   "grok-cli": "Grok Build", "antigravity-cli": "Antigravity",
-  // A gateway the owner points Naota at: the label says which wire format, not who serves it.
+  // A gateway the owner points NAOSO at: the label says which wire format, not who serves it.
   "openai-compat": "OpenAI Compatible", "anthropic-compat": "Anthropic Compatible",
 };
 // Một dòng nhỏ dưới câu trả lời: lượt này chạy BẰNG GÌ, ở chế độ nào, và tốn bao nhiêu
@@ -5247,7 +5247,7 @@ async function refreshTgStatus() {
 
 
 // ============================================
-// Mức dùng (token Naota tự đo, đa nhà cung cấp) - panel sidebar
+// Mức dùng (token NAOSO tự đo, đa nhà cung cấp) - panel sidebar
 // ============================================
 const _PROV_LABEL = { cli: "Claude Code", codex: "ChatGPT", openrouter: "OpenRouter", openai: "OpenAI", "anthropic-api": "Anthropic", gemini: "Gemini", groq: "Groq", deepseek: "DeepSeek" };
 function _fmtTok(n) {
@@ -5588,7 +5588,7 @@ if (document.getElementById("settingsBtn")) {
 
   document.getElementById("saveGeneral").addEventListener("click", (e) => {
     _saveSetting("general", { workspace_name: document.getElementById("setWsName").value.trim() }, e.target)
-      .then(() => { const wn = document.getElementById("workspaceName"); if (wn) wn.textContent = document.getElementById("setWsName").value.trim() || "NAOTA"; });
+      .then(() => { const wn = document.getElementById("workspaceName"); if (wn) wn.textContent = document.getElementById("setWsName").value.trim() || "NAOSO"; });
   });
   document.getElementById("saveModel").addEventListener("click", (e) => {
     const sel = document.getElementById("setOrModelSel");
@@ -5813,7 +5813,7 @@ if (document.getElementById("wzFinish")) {
   sel.addEventListener("change", showNow);
   // 2026-11-12: the list is built when the wizard opens, not on every start of the app. Building it asks the browser
   // for the clock of some 420 timezones (measured: about 100 ms on a desktop, several times that on a phone), and it
-  // ran at each start and again when the dictionary arrived, for a wizard an installed Naota never shows again.
+  // ran at each start and again when the dictionary arrived, for a wizard an installed NAOSO never shows again.
   const wz = document.getElementById("setupWizard");
   const shown = () => !!(wz && wz.classList.contains("open"));
   let filled = false;

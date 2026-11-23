@@ -272,7 +272,7 @@
 
   function assignHtml(ui, data) {
     ui = ui || {};
-    // Naota Core takes no jobs of its own (no agent file, no team seat), so it gets no Assign button.
+    // NAOSO Core takes no jobs of its own (no agent file, no team seat), so it gets no Assign button.
     if (ui.noAssign) return "";
     if (!ui.assignOpen) {
       return '<button type="button" class="ws-btn primary aj-assign-open">' + ic("plus") + esc(tw("ajobs.assign")) + "</button>";

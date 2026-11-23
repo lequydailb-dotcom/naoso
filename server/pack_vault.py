@@ -37,7 +37,7 @@ says installed but I cannot install it there"). The ledger keeps one entry PER B
 the pack into, each with its own items and hashes. Installing from another brain adds that brain; an
 update refreshes every brain that still holds the pack; uninstalling the pack clears every brain.
 Ledger shape: `{"brains": {root: {"items": {...}}}, "brain": first root, "items": its items}`. The two
-top-level keys mirror the first brain so an older Naota (a rollback) still reads that brain correctly.
+top-level keys mirror the first brain so an older NAOSO (a rollback) still reads that brain correctly.
 """
 from __future__ import annotations
 

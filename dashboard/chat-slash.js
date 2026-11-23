@@ -21,7 +21,7 @@
   ];
   var SYSTEM_NAMES = SYSTEM_COMMANDS.map(function (x) { return x.cmd; });
   // Lệnh hệ thống CẦN nội dung (/goal, /plan) thì gõ ở đâu trong tin cũng chạy, phần chữ còn lại là nội
-  // dung (chủ repo 19/11: "...làm luôn giúp anh /goal" gõ cuối câu mà Naota chỉ chat thường). Lệnh không cần
+  // dung (chủ repo 19/11: "...làm luôn giúp anh /goal" gõ cuối câu mà NAOSO chỉ chat thường). Lệnh không cần
   // nội dung (/compact, /status...) vẫn chỉ ở ĐẦU tin: chạy nó giữa câu là bỏ mất câu đang viết.
   var NEED_ARG = SYSTEM_COMMANDS.filter(function (x) { return x.needArg; }).map(function (x) { return x.cmd; });
   function canNoiDung(cmd) { return NEED_ARG.indexOf(String(cmd || "").toLowerCase()) !== -1; }
@@ -126,7 +126,7 @@
   }
 
   // Tin có một token dạng lệnh giữa câu mà danh sách skill/cộng sự đang nhớ KHÔNG nhận ra. Trang chỉ nạp danh
-  // sách khi mở và khi gõ "/" (cache 5 giây), nên skill, agent hay workflow vừa cài GIỮA cuộc trò chuyện (Naota
+  // sách khi mở và khi gõ "/" (cache 5 giây), nên skill, agent hay workflow vừa cài GIỮA cuộc trò chuyện (NAOSO
   // tạo trong lượt trước, cài từ Store ở tab khác) bị coi là chữ thường. app.js thấy cờ này thì nạp lại danh
   // sách một lần rồi mới định tuyến.
   function coLenhLa(text) {

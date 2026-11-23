@@ -1,4 +1,4 @@
-"""Forget the Naota login password on this machine, so the owner can set a new one from scratch.
+"""Forget the NAOSO login password on this machine, so the owner can set a new one from scratch.
 
 For an owner who forgot the current password: the dashboard asks for the current one before it changes anything, so
 the way back starts on the machine itself. reset-auth.bat (Windows) and reset-auth.command (macOS) run this file; the
@@ -6,15 +6,15 @@ Account page reveals the right one in Explorer / Finder.
 
 What it clears:
   - the whole `auth` block of settings.json: username, password and 2FA. The old password is simply gone; the owner
-    opens Naota and sets a new one on the Account page (or in the account form Naota shows when login is required);
-  - NAOTA_ADMIN_PASSWORD / NAOTA_ADMIN_USER in the install's .env. install.sh writes them on macOS and Linux, and Naota
+    opens NAOSO and sets a new one on the Account page (or in the account form NAOSO shows when login is required);
+  - NAOTA_ADMIN_PASSWORD / NAOTA_ADMIN_USER in the install's .env. install.sh writes them on macOS and Linux, and NAOSO
     re-applies them at boot when the account has no marker of them, so leaving them would bring the old password back
     on the next start.
 
-What it keeps: `setup_done` and everything else (models, channels, keys), so Naota does NOT reopen the first-run
+What it keeps: `setup_done` and everything else (models, channels, keys), so NAOSO does NOT reopen the first-run
 wizard, which would also ask for the AI brain again.
 
-It writes the file directly and leaves .auth_stamp.json alone on purpose: a running Naota sees the account block
+It writes the file directly and leaves .auth_stamp.json alone on purpose: a running NAOSO sees the account block
 change outside the app and ends every signed-in session (config.auth_guard_check). Nothing needs a restart.
 
     python tools/reset_auth.py                  # settings.json in server/, or $NAOTA_STATE_DIR
@@ -73,19 +73,19 @@ def say(vi: str, en: str) -> None:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="Forget the Naota login password on this machine.")
+    ap = argparse.ArgumentParser(description="Forget the NAOSO login password on this machine.")
     ap.add_argument("--state-dir", default="", help="folder that holds settings.json")
     ap.add_argument("--env-file", default=str(ROOT / ".env"), help="the install's .env")
     args = ap.parse_args(argv)
     path = settings_path(args.state_dir)
     print("")
     print("  ==========================================")
-    print("  NAOTA - xoá mật khẩu / reset password")
+    print("  NAOSO - xoá mật khẩu / reset password")
     print("  ==========================================")
     print("")
     if not path.is_file():
-        say(f"Không thấy {path}. Naota đã chạy lần nào trên máy này chưa?",
-            f"{path} not found. Has Naota run on this computer yet?")
+        say(f"Không thấy {path}. NAOSO đã chạy lần nào trên máy này chưa?",
+            f"{path} not found. Has NAOSO run on this computer yet?")
         return 1
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -106,8 +106,8 @@ def main(argv=None) -> int:
                 f"Could not remove the old password from {env} ({e}). Delete the NAOTA_ADMIN_PASSWORD line by hand.")
     say("Xong, mật khẩu cũ đã bị xoá. Mọi thiết bị đang đăng nhập bị đăng xuất.",
         "Done, the old password is gone. Every signed-in device is signed out.")
-    say("Mở lại Naota rồi vào Tài khoản để đặt mật khẩu mới.",
-        "Open Naota again and set a new password on the Account page.")
+    say("Mở lại NAOSO rồi vào Tài khoản để đặt mật khẩu mới.",
+        "Open NAOSO again and set a new password on the Account page.")
     return 0
 
 

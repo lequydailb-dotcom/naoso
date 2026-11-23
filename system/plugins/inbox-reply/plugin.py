@@ -13,7 +13,7 @@ Safety (review of PR 1554):
 - Both stay inside the calling brain: conversations of channel accounts assigned to another brain are out of reach,
   by the same rule as the inbox list (`channel_accounts.keys_of_other_brains`).
 - A message sent from chat does NOT take the conversation over from its bot (an inbox reply typed by hand does). The
-  owner asked Naota to pass on one message; a bot that then fell silent for that customer until someone found the
+  owner asked NAOSO to pass on one message; a bot that then fell silent for that customer until someone found the
   "hand back" button would be a surprise, not help.
 
 Never returns a token.

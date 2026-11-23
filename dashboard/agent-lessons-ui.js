@@ -7,7 +7,7 @@
    Bản rút gọn: lý do là bài học cũ của một agent quá lòng vòng, Thu hồi với Dùng ở mọi nơi thì người
    dùng không biết dùng đâu. Mục chỉ còn hạn mức lượt tự phát hôm nay và ô chọn hạn mức. Danh sách bài học theo phạm
    vi, bài học cũ trong MEMORY.md, thay đổi của tự rà soát và đề xuất không còn trên màn hình: người dùng nhắn trong chat
-   ("thôi đừng làm vậy nữa"), Naota dùng tool `naota_memory` (op=lessons, lesson_revoke, lesson_add).
+   ("thôi đừng làm vậy nữa"), NAOSO dùng tool `naota_memory` (op=lessons, lesson_revoke, lesson_add).
 
    Ô chọn gọi POST /agents/{slug}/budget. Chỉ hiện "Đã lưu" và vẽ lại SAU khi máy chủ trả 200; lỗi thì nói lý do, giữ
    giá trị cũ. `partHtml`, `budgetLine`, `actionRequest` thuần (không DOM, không mạng) để test chạy dưới node. */

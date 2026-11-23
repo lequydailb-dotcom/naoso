@@ -1,6 +1,6 @@
-"""One Naota per port: checked before main.py does any startup work.
+"""One NAOSO per port: checked before main.py does any startup work.
 
-2026-11-19 incident: a Naota uvicorn started outside launchd (an old nohup restart of the updater) kept port 7777
+2026-11-19 incident: a NAOSO uvicorn started outside launchd (an old nohup restart of the updater) kept port 7777
 for 8 days. launchd's KeepAlive copy failed to bind every ~10 s, 8,000+ times, and each failed copy still ran the
 whole startup first (the Zalo read loop, the "previous server stopped without a clean shutdown" recovery) against
 state the live copy was using. uvicorn binds the port only AFTER the app is imported and its startup has run, so
@@ -8,7 +8,7 @@ nothing stopped that.
 
 `claim_port()` runs at the top of main.py, before anything else is imported:
 - port free: nothing to do.
-- port held, and this copy is the one launchd manages, and the holder is a Naota server from this same folder: the
+- port held, and this copy is the one launchd manages, and the holder is a NAOSO server from this same folder: the
   holder is an orphan. Stop it, so launchd's copy takes over.
 - port held otherwise: print one line and exit before any startup work.
 
@@ -47,7 +47,7 @@ def _is_this_main(path):
 
 
 def server_launch(argv):
-    """(host, port) when argv starts the Naota server, else None."""
+    """(host, port) when argv starts the NAOSO server, else None."""
     if not argv:
         return None
     if "main:app" not in argv and not _is_this_main(argv[0]):
@@ -153,7 +153,7 @@ def claim_port(argv=None, environ=None, log=None):
     holders = [(p, process_command(p), process_cwd(p)) for p in listener_pids(port) if p != me]
     if decide(holders, managed_by_launchd(environ)) == "stop":
         for pid, cmd, _ in holders:
-            log(f"[port-guard] port {port} is held by a Naota server launchd does not manage (PID {pid}: {cmd[:120]}); "
+            log(f"[port-guard] port {port} is held by a NAOSO server launchd does not manage (PID {pid}: {cmd[:120]}); "
                 "stopping it so the launchd copy takes over")
             _stop(pid)
         deadline = time.time() + 10

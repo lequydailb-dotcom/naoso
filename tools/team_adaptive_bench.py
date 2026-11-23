@@ -256,7 +256,7 @@ def summarize_ms(values) -> dict:
 
 class StallWatch:
     """Chẩn đoán: luồng canh xem event loop có bị giữ quá `limit` giây không; nếu có, chụp ngăn xếp của luồng loop và
-    đếm hàm sâu nhất trong code Naota (server/). Chỉ bật bằng --stall-watch."""
+    đếm hàm sâu nhất trong code NAOSO (server/). Chỉ bật bằng --stall-watch."""
 
     def __init__(self, limit: float = 0.05):
         self.limit = limit

@@ -1,13 +1,13 @@
-"""Naota update guard: brings the Naota container back when an update leaves it gone or stopped.
+"""NAOSO update guard: brings the NAOSO container back when an update leaves it gone or stopped.
 
 Watchtower replaces a container in three steps: stop it, remove it, create the new one. When the stop
 or the removal returns an error, it gives up and never creates the new one. The update button gives
 Watchtower 10 minutes for the pull AND the removal, and on a VPS with a slow disk deleting the old
 container can run past that limit, while Docker still finishes the removal on its own a moment later.
-Naota is then simply gone: the domain answers 404 and only a Redeploy brings it back (owner report
+NAOSO is then simply gone: the domain answers 404 and only a Redeploy brings it back (owner report
 2026-11-13).
 
-The guard runs beside Watchtower with the same Docker socket. While Naota runs it keeps a copy of how
+The guard runs beside Watchtower with the same Docker socket. While NAOSO runs it keeps a copy of how
 that container was created, and it acts only in the states a broken update leaves behind:
   - gone for GRACE seconds: create it again from that copy (on the image its tag points to now,
     which is the new version Watchtower already pulled) and start it;

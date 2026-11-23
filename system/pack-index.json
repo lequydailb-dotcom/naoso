@@ -3,10 +3,10 @@
   "format_version": 1,
   "updated": "2026-09-05",
   "store": {
-    "name": "Kho cài đặt Naota",
+    "name": "Kho cài đặt NAOSO",
     "url": "https://github.com/vuongtex/naota-store"
   },
-  "_doc": "ĐÃ ĐÔNG LẠI - kho thật nằm ở repo riêng https://github.com/vuongtex/naota-store. Tệp này ở lại để các bản Naota cũ (vốn trỏ cứng vào đây) vẫn xem và cài được, nên mục bên dưới dùng địa chỉ TUYỆT ĐỐI trỏ sang kho mới. Không thêm gì vào đây nữa; thêm gói mới ở repo kho.",
+  "_doc": "ĐÃ ĐÔNG LẠI - kho thật nằm ở repo riêng https://github.com/vuongtex/naota-store. Tệp này ở lại để các bản NAOSO cũ (vốn trỏ cứng vào đây) vẫn xem và cài được, nên mục bên dưới dùng địa chỉ TUYỆT ĐỐI trỏ sang kho mới. Không thêm gì vào đây nữa; thêm gói mới ở repo kho.",
   "packs": [
     {
       "id": "naota.tinh-gia",

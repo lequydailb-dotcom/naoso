@@ -28,11 +28,11 @@ import stt
 CHOICES = ("auto", "chatgpt", "groq", "openai", "off")
 DEFAULT = "auto"
 
-# Các tai Naota biết chạy. `kind`:
+# Các tai NAOSO biết chạy. `kind`:
 #   upload - trình duyệt ghi âm cả câu, hết câu mới gửi lên /stt.
 # `key_field`: the API key on the Models page this ear needs. `plan`: the signed-in plan it runs on instead.
 EARS = {
-    # the ChatGPT plan's own dictation ear (stt.chatgpt_nghe), on the login Naota already holds. No key.
+    # the ChatGPT plan's own dictation ear (stt.chatgpt_nghe), on the login NAOSO already holds. No key.
     "chatgpt": {"label": "ChatGPT plan", "kind": "upload", "plan": "openai-oauth"},
     "groq": {"label": "Groq Whisper", "kind": "upload", "key_field": "groq_api_key"},
     # a machine with an OpenAI key but no Groq key used to have no ear at all, so a Vietnamese sentence with
@@ -49,7 +49,7 @@ RANKING = ("groq", "chatgpt", "openai")
 
 # Provider của bộ não chính (main._effective_main) -> tai cùng hãng. No setting: the ear follows
 # the main model in use, on ChatGPT the ChatGPT plan's ear, and the same for the others. Claude, Antigravity and
-# Grok have no ear Naota can reach on their plans (Claude's voice needs the login token Naota never reads, `agy` keeps
+# Grok have no ear NAOSO can reach on their plans (Claude's voice needs the login token NAOSO never reads, `agy` keeps
 # its session in the OS keyring, xAI bills speech-to-text as an API apart from SuperGrok), so those brains get the
 # best ear the machine has and stay the brain.
 BRAIN_EAR = {

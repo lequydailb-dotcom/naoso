@@ -1,6 +1,6 @@
 # Voice partner context budgets
 
-Naota Voice calls launched from a partner chat build that partner's identity,
+NAOSO Voice calls launched from a partner chat build that partner's identity,
 instructions, and memory into a realtime prompt. Chat text and realtime Voice
 do **not** automatically have identical context windows.
 
@@ -11,7 +11,7 @@ do **not** automatically have identical context windows.
 | Partner Markdown body | 4,000 characters | 12,000 characters | `NAOTA_VOICE_AGENT_BODY_CHARS` | 24,000 |
 | Partner memory | 2,000 characters | 6,000 characters | `NAOTA_VOICE_AGENT_MEMORY_CHARS` | 12,000 |
 
-These budgets are Unicode character counts **inside Naota**, not provider
+These budgets are Unicode character counts **inside NAOSO**, not provider
 context-window sizes or audio token allowances. Overrides are loaded at server
 startup and clamped between 1,000 and the documented maximum. Invalid values
 fall back to defaults.
@@ -30,7 +30,7 @@ sources before quoting. Never claim an order was placed without a tool receipt.
 <!-- NAOTA_VOICE_RULES_END -->
 ```
 
-Naota moves this block ahead of ordinary partner instructions before applying
+NAOSO moves this block ahead of ordinary partner instructions before applying
 the character budget, and avoids duplicating it. An unmatched or empty marker
 is left unchanged. This lets the owner preserve priority rules even when they
 were written late in a large agent file.

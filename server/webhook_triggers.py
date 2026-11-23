@@ -125,7 +125,7 @@ class WebhookDeps:
     base_url: Callable[[Any], str]
     workflow_exists: Optional[Callable[[str, str], bool]] = None
     atomic_write_text: Optional[Callable[[Any, str], None]] = None
-    # (source, ref, brain=, title=, error=, request=) -> report a broken run to Naota Core (incident_desk.py)
+    # (source, ref, brain=, title=, error=, request=) -> report a broken run to NAOSO Core (incident_desk.py)
     incident_hook: Optional[Callable] = None
     # (brain, plugin slug, handler name) -> {"handler", "ctx", "min_mode", "schema", "ai", "idempotent"} | None
     plugin_handler: Optional[Callable] = None
@@ -482,7 +482,7 @@ def mask_row(r: dict, corr_key: str = "") -> dict:
 def evaluate_closed(rules: dict, body: bytes, content_type: str, event: Optional[dict] = None,
                     reveal: bool = False) -> dict:
     """webhook_rules.evaluate, FAILING CLOSED: if evaluation itself breaks, the event is `invalid` (quarantined, never
-    run). `event` (the provider's normalised event) is readable by the rules as `_event`, always set by Naota."""
+    run). `event` (the provider's normalised event) is readable by the rules as `_event`, always set by NAOSO."""
     try:
         full = event or {"provider": "none", "type": "", "id": "", "occurred_at": ""}
         if full.get("provider") == "systeme_io":
@@ -1139,7 +1139,7 @@ class WebhookFeature(webhook_worker.WebhookWorker):
             return 404, {"ok": False, "error": localefmt.chu("Không thấy webhook này.", "Webhook not found.")}
         raw = p.get("payload")
         if raw in (None, ""):
-            raw = {"test": True, "note": "sample event sent from the Naota dashboard"}
+            raw = {"test": True, "note": "sample event sent from the NAOSO dashboard"}
         body = (raw if isinstance(raw, str) else json.dumps(raw, ensure_ascii=False)).encode("utf-8")
         ct = str(p.get("content_type") or "application/json")
         code, prev = await asyncio.to_thread(self.simulate, {"id": hid, "payload": raw if isinstance(raw, str) else raw,
@@ -1259,7 +1259,7 @@ class WebhookFeature(webhook_worker.WebhookWorker):
         return host
 
     def authorize(self, hid: str, headers: Any, query: str = "") -> tuple:
-        """(hook, mode) for a request. mode: "token" (the Naota token matched), "signature" (a provider-checked hook
+        """(hook, mode) for a request. mode: "token" (the NAOSO token matched), "signature" (a provider-checked hook
         without the token: GitHub, Stripe, Shopify and Systeme.io cannot add a header, so the provider signature,
         checked on the raw body before anything is stored, is the authenticator), "off" (the hook stopped
         receiving) or "" (refused)."""

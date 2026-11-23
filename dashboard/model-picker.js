@@ -105,7 +105,7 @@
     try { await fetch(`/sessions/${encodeURIComponent(sid)}/model`, { method: "POST", body: fd }); } catch (e) {}
   }
 
-  // a Naota Core chat's pin is Naota Core's pin, also shown and set as the Model of its card on the Partners
+  // a NAOSO Core chat's pin is NAOSO Core's pin, also shown and set as the Model of its card on the Partners
   // page (the agent editor). The chip tells the page through one event.
   const CORE_EVENT = "naota:core-model";
   function coreChanged() {
@@ -590,7 +590,7 @@
   // đang mở (phiên này giữ đúng model kể cả khi mặc định chung bị đổi ở chỗ khác). Dùng chung
   // cho cú bấm trong bảng chọn và lệnh `/model <tên>` của khung chat.
   async function chonModel(prov, model) {
-    // In an assistant's chat (any partner, Naota Core) the choice pins THAT chat only. It
+    // In an assistant's chat (any partner, NAOSO Core) the choice pins THAT chat only. It
     // used to also rewrite the main chat's model. An assistant chat with no pin follows the main chat's model.
     if (!agentEff) await saveModel({ main: { provider: prov, model: model } });
     const sid = curSid();
@@ -737,7 +737,7 @@
     // vẽ lại, kẻo trong lúc đó đổi mặc định chung ở trang Models là bar nói sai.
     noteStamped: function (sid) {
       if (!sid || (sessionPin && pinSid === sid)) return;
-      // A Naota Core chat has no stamp of its own: it runs on Naota Core's pin, or on the main model while there is none
+      // A NAOSO Core chat has no stamp of its own: it runs on NAOSO Core's pin, or on the main model while there is none
       // (server `_chat_provider_for_session`). Showing the main model as pinned here made an unpinned Core chat look
       // pinned, and then "change" when the main model changed.
       if (agentEff && agentEff.slug === "naota-core" && pinSid === sid) return;
@@ -751,7 +751,7 @@
   window.addEventListener("naota:sessions-changed", async () => { await loadSessionPin(); renderBar(); });
   // The Models page turned Fast mode on or off from a card's Effort sheet: the composer's bolt follows at once.
   window.addEventListener("naota:fast-changed", (e) => { state.fast = !!(e.detail && e.detail.on); renderFast(); });
-  // The Core card pinned or unpinned Naota Core: an open Core chat redraws its chip.
+  // The Core card pinned or unpinned NAOSO Core: an open Core chat redraws its chip.
   window.addEventListener(CORE_EVENT, async (e) => {
     if ((e.detail || {}).from === "chat" || !(agentEff && agentEff.slug === "naota-core")) return;
     await loadSessionPin(); renderBar();

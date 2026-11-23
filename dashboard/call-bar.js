@@ -1,7 +1,7 @@
 /* call-bar.js - THANH GỌI ngay trên khung chat (voice-call-spec mục 4).
 
-   Bấm mic là gọi Naota; thanh này cho biết cuộc gọi đang ở đâu (đang nghe, Naota đang nói, đang
-   làm việc, đang chờ gọi tên, đang nối lại), đếm giờ, và có hai nút: tắt mic (Naota vẫn nói được)
+   Bấm mic là gọi NAOSO; thanh này cho biết cuộc gọi đang ở đâu (đang nghe, NAOSO đang nói, đang
+   làm việc, đang chờ gọi tên, đang nối lại), đếm giờ, và có hai nút: tắt mic (NAOSO vẫn nói được)
    và cúp máy. Lời hai bên vẫn chạy thành bong bóng chat thường nên bảng số, file, kết quả việc
    hiện đầy đủ, thanh chỉ là phần điều khiển.
 

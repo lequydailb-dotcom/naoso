@@ -1,7 +1,7 @@
 """Owner-started self-learning runs for one user skill (product side of server/improvement_loop.py).
 
 The owner keeps examples with known answers next to the skill (`skills/<slug>/examples.json`, a list of
-`{"prompt": ..., "expected": ..., "family"?: ...}`); Naota can write that file from chat. The host splits them
+`{"prompt": ..., "expected": ..., "family"?: ...}`); NAOSO can write that file from chat. The host splits them
 deterministically into tuning and sealed qualification cases (at least 10 sealed, so a verdict is possible), runs
 the loop with the brain's selected engine in text-only mode (no tools, no MCP, no files) on the skill BODY only,
 and stores the report. The frontmatter (name, description, group...) is never handed to the improver.

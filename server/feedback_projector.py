@@ -371,7 +371,7 @@ class FeedbackProjector:
             self._set_status(kind, row, row["id"], "received", "")
             return {"route": "agent_reaction", "source_ref": src}
         if not agent_key:
-            # Trang Trò chuyện chính (tác giả là Naota): lưu và hiện, không vào học hay phán xử của agent nào.
+            # Trang Trò chuyện chính (tác giả là NAOSO): lưu và hiện, không vào học hay phán xử của agent nào.
             self._set_status(kind, row, row["id"], "received", "")
             return {"route": "none", "source_ref": src}
         ctx = self._context_of(kind, row, agent_key)

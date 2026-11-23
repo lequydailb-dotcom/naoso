@@ -1,6 +1,6 @@
 /* i18n cho dashboard - KHÔNG có bước build, KHÔNG có thư viện ngoài.
  *
- * Dashboard của Naota là JS thuần phục vụ qua StaticFiles: không webpack, không vite, không
+ * Dashboard của NAOSO là JS thuần phục vụ qua StaticFiles: không webpack, không vite, không
  * bundler. Nên mọi giải pháp i18n "chuẩn công nghiệp" đều không lắp vào được, và đó là chuyện
  * tốt: cái vừa vặn ở đây nhỏ hơn nhiều so với một khung nặng.
  *
@@ -293,7 +293,7 @@
     return init(ma);
   }
 
-  // Nhãn hiển thị cho tên NHÓM / DANH MỤC do DỮ LIỆU mang tới (kho Kết nối, Naota Store).
+  // Nhãn hiển thị cho tên NHÓM / DANH MỤC do DỮ LIỆU mang tới (kho Kết nối, NAOSO Store).
   // Giá trị gốc là tiếng Việt và đang làm KHOÁ lọc (`data-cat`, `data-kho-nhom`), nên không
   // đổi ở nguồn - chỉ đổi lúc VẼ. Cách tra: tìm khoá `cat.*` nào có bản tiếng Việt đúng bằng
   // tên gốc rồi lấy bản dịch của khoá đó, nên mã này không phải viết chuỗi Việt nào. Tên lạ

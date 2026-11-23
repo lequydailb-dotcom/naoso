@@ -2,7 +2,7 @@
 
 Why this exists. A brain is addressed everywhere by its FOLDER: "brain" means `<BRAINS_DIR>/Brain Default`, any other
 brain is `path:<absolute folder>`. That address is stored in the browser, in chat bots, reminders, loops, Kanban tasks,
-sessions, the git backup (tombstones, mirror paths) and in links Naota writes into notes and chats
+sessions, the git backup (tombstones, mirror paths) and in links NAOSO writes into notes and chats
 (`/brains/<folder>/wiki/x.md`). Renaming the folder would quietly cut all of them, which is why the dashboard never
 offered it, and why Brain Default could not be renamed at all.
 

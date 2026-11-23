@@ -55,7 +55,7 @@ BO_QUA = {"inbox", "attachments", "naota", ".git", ".obsidian", ".trash", "node_
 # such as "products/agents" is still the user's.
 BO_QUA_GOC = {"agents", "workflows"}
 
-# File QUY ƯỚC VẬN HÀNH của chính Naota, seed vào MỌI brain (xem meta_tools.ensure_brain_pattern).
+# File QUY ƯỚC VẬN HÀNH của chính NAOSO, seed vào MỌI brain (xem meta_tools.ensure_brain_pattern).
 # Chúng nằm ở GỐC brain nên danh sách thư mục ở trên không chặn được.
 #
 # Đây là một lỗi đã xảy ra thật, không phải phòng xa: người dùng hỏi bot "sao lại kỷ luật cửa
@@ -606,16 +606,16 @@ def tim(root: Any, cau_hoi: str, k: int = 4, extra: Optional[List[dict]] = None,
             for d, p, n, m in ra[:k]]
 
 
-# Lines Naota itself adds to a customer's turn for the model to read: the hand-over note of a turn held while the owner
+# Lines NAOSO itself adds to a customer's turn for the model to read: the hand-over note of a turn held while the owner
 # was typing (`zalo_personal_channel.gop_cho_chu`), the "your previous answer was not sent" note, and the line saying
 # an earlier photo rides along (`channels/zalo_personal.py`). They are not the customer's words.
 # The 30 words of the hand-over note went into the document search with the question, diluted it below
 # `PHU_SAN`, and the bot answered "no information" about a schedule that was in its documents.
-_NAOTA_NOTE = re.compile(r"^[ \t]*\[(?:Ghi chú của Naota|Kèm ảnh khách gửi lúc)[^\n]*$", re.M)
+_NAOTA_NOTE = re.compile(r"^[ \t]*\[(?:Ghi chú của NAOSO|Kèm ảnh khách gửi lúc)[^\n]*$", re.M)
 
 
 def customer_words(text: Any) -> str:
-    """`text` without the note lines Naota added to the turn: what the customer actually wrote, for searching."""
+    """`text` without the note lines NAOSO added to the turn: what the customer actually wrote, for searching."""
     return _NAOTA_NOTE.sub("", str(text or "")).strip()
 
 
@@ -627,7 +627,7 @@ def thu_thap(root: Any, cau_hoi: str, k: int = 4, extra: Optional[List[dict]] = 
     khớp - lúc đó prompt phải nói thẳng ra như vậy thay vì im lặng đưa một khối rỗng, vì im
     lặng thì model tự lấp bằng trí nhớ chung của nó.
 
-    Only the customer's words are searched: notes Naota added to the turn are dropped first (`customer_words`).
+    Only the customer's words are searched: notes NAOSO added to the turn are dropped first (`customer_words`).
     """
     cau_hoi = customer_words(cau_hoi)
     try:

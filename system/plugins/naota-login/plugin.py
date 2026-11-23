@@ -32,7 +32,7 @@ def _vault():
 
 
 def _line(v: dict) -> str:
-    on = "Naota may use it" if v["allow_ai"] else "SWITCHED OFF for Naota"
+    on = "NAOSO may use it" if v["allow_ai"] else "SWITCHED OFF for NAOSO"
     act = "" if not v["allow_ai"] else (" · may click and fill forms (op=browser)" if v.get("allow_act")
                                         else " · read-only (op=fetch)")
     het = " · cookies past their expiry" if v.get("expired") else ""

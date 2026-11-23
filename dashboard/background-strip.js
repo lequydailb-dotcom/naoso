@@ -180,7 +180,7 @@
     lastData = d;
     // Voice V1: orb ghi hậu tố "N việc nền" từ đúng con số này (không có thì 0).
     try { if (window.NaotaOrb) window.NaotaOrb.setBackground((d && d.running_count) || 0); } catch (err) {}
-    // Voice V3: số việc nền do BỘ NÃO GIỌNG giao cho chính cuộc nói chuyện này. Naota dùng số
+    // Voice V3: số việc nền do BỘ NÃO GIỌNG giao cho chính cuộc nói chuyện này. NAOSO dùng số
     // này để tự hỏi thăm ("em vẫn đang xem") thay vì bắt người dùng hỏi mới biết.
     try { if (window.NaotaOrb && window.NaotaOrb.setVoiceJobs) window.NaotaOrb.setVoiceJobs((d && d.voice_count) || 0); } catch (err) {}
     var q = quyetDinh(d);

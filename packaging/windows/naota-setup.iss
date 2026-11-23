@@ -1,11 +1,11 @@
 ﻿; ============================================================
-; NAOTA - Windows installer (Inno Setup 6), builds dist\Naota-Setup.exe
+; NAOSO - Windows installer (Inno Setup 6), builds dist\Naota-Setup.exe
 ;
 ;   iscc /DAppVersion=1.1.0 packaging\windows\naota-setup.iss
 ;
 ; CI builds it in .github/workflows/desktop-installers.yml and publishes it on the
 ; "desktop" release. The .exe stays small: it carries bootstrap.ps1 and the icon only, and
-; bootstrap.ps1 clones the newest Naota and runs install.ps1 (see the header of that file
+; bootstrap.ps1 clones the newest NAOSO and runs install.ps1 (see the header of that file
 ; for why it is a git clone).
 ;
 ; No black window: bootstrap.ps1 runs hidden and every line it prints shows up in a box on the
@@ -26,13 +26,13 @@
 
 [Setup]
 AppId={{8F3C2A51-5D7E-4C0B-9E61-6A2D4B7C9E10}
-AppName=NAOTA
+AppName=NAOSO
 AppVersion={#AppVersion}
-AppVerName=NAOTA
+AppVerName=NAOSO
 AppPublisher=Hoang Ngoc Vuong
 AppPublisherURL=https://github.com/vuongtex/naota
 AppSupportURL=https://github.com/vuongtex/naota/issues
-DefaultDirName={localappdata}\Programs\NAOTA
+DefaultDirName={localappdata}\Programs\NAOSO
 DisableDirPage=yes
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
@@ -40,7 +40,7 @@ OutputDir=..\..\dist
 OutputBaseFilename=Naota-Setup
 SetupIconFile=..\assets\naota.ico
 UninstallDisplayIcon={app}\naota.ico
-UninstallDisplayName=NAOTA
+UninstallDisplayName=NAOSO
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -49,15 +49,15 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 CloseApplications=no
 ShowLanguageDialog=auto
-; Naota logo in the wizard (packaging/make_icons.py draws them): the tall panel on the first and
+; NAOSO logo in the wizard (packaging/make_icons.py draws them): the tall panel on the first and
 ; last page, the corner logo on the pages between. One file per display scale, Inno picks the
 ; closest, so the logo stays sharp on a 150% or 200% laptop screen.
 WizardImageFile=..\assets\wizard-100.bmp,..\assets\wizard-125.bmp,..\assets\wizard-150.bmp,..\assets\wizard-175.bmp,..\assets\wizard-200.bmp,..\assets\wizard-225.bmp,..\assets\wizard-250.bmp
 WizardSmallImageFile=..\assets\wizard-small-100.bmp,..\assets\wizard-small-125.bmp,..\assets\wizard-small-150.bmp,..\assets\wizard-small-175.bmp,..\assets\wizard-small-200.bmp,..\assets\wizard-small-225.bmp,..\assets\wizard-small-250.bmp
 WizardImageStretch=no
 VersionInfoCompany=Hoang Ngoc Vuong
-VersionInfoDescription=NAOTA Setup
-VersionInfoProductName=NAOTA
+VersionInfoDescription=NAOSO Setup
+VersionInfoProductName=NAOSO
 VersionInfoVersion={#AppVersion}
 ; Code signing, only when CI has a certificate (desktop-installers.yml passes /DSign and the
 ; matching /Snaota=... command). Without it the build stays unsigned, exactly as before.
@@ -73,37 +73,37 @@ Name: "vi"; MessagesFile: "Vietnamese.isl"
 #endif
 
 [CustomMessages]
-en.DesktopIconTask=Put a NAOTA icon on the Desktop
-en.LaunchNow=Open NAOTA now
-en.StopApp=Stop NAOTA
+en.DesktopIconTask=Put a NAOSO icon on the Desktop
+en.LaunchNow=Open NAOSO now
+en.StopApp=Stop NAOSO
 en.Bootstrapping=Checking this computer and installing what is missing. This takes a few minutes.
 en.StepGit=Step 1 of 5: checking Git
-en.StepClone=Step 2 of 5: downloading Naota
+en.StepClone=Step 2 of 5: downloading NAOSO
 en.StepPython=Step 3 of 5: checking Python
 en.StepLibs=Step 4 of 5: installing Python libraries (the longest step)
 en.StepBrains=Step 5 of 5: installing the AI brains (Claude Code, Codex, Antigravity, Grok)
 en.StepFinish=Almost done: finishing up
 en.BootstrapFailed=Setup did not finish:%n%n%1%n%nFix it, then run Naota-Setup.exe again: steps already done are skipped.%n%nFull log: %2
 en.BootstrapNoDetail=One of the install steps reported an error.
-en.NotFinishedTitle=NAOTA is not installed yet
+en.NotFinishedTitle=NAOSO is not installed yet
 en.NotFinishedText=One install step did not finish. Run Naota-Setup.exe again: steps already done are skipped.%n%nLog: %1
-en.DataKept=NAOTA was removed from this computer.%n%nYour brain (notes, memory, settings) is kept in:%n%1%n%nDelete that folder by hand if you want everything gone.
+en.DataKept=NAOSO was removed from this computer.%n%nYour brain (notes, memory, settings) is kept in:%n%1%n%nDelete that folder by hand if you want everything gone.
 #if FileExists(AddBackslash(SourcePath) + "Vietnamese.isl")
-vi.DesktopIconTask=Đặt biểu tượng NAOTA ra Desktop
-vi.LaunchNow=Mở NAOTA ngay
-vi.StopApp=Tắt NAOTA
+vi.DesktopIconTask=Đặt biểu tượng NAOSO ra Desktop
+vi.LaunchNow=Mở NAOSO ngay
+vi.StopApp=Tắt NAOSO
 vi.Bootstrapping=Đang kiểm tra máy và cài những gì còn thiếu. Việc này mất vài phút.
 vi.StepGit=Bước 1/5: kiểm tra Git
-vi.StepClone=Bước 2/5: tải Naota về máy
+vi.StepClone=Bước 2/5: tải NAOSO về máy
 vi.StepPython=Bước 3/5: kiểm tra Python
 vi.StepLibs=Bước 4/5: cài thư viện Python (bước lâu nhất)
 vi.StepBrains=Bước 5/5: cài các bộ não AI (Claude Code, Codex, Antigravity, Grok)
 vi.StepFinish=Sắp xong: hoàn tất cài đặt
 vi.BootstrapFailed=Cài đặt chưa xong:%n%n%1%n%nSửa xong thì chạy lại Naota-Setup.exe, các bước đã xong sẽ được bỏ qua.%n%nNhật ký đầy đủ: %2
 vi.BootstrapNoDetail=Một bước cài đặt báo lỗi.
-vi.NotFinishedTitle=NAOTA chưa cài xong
+vi.NotFinishedTitle=NAOSO chưa cài xong
 vi.NotFinishedText=Có một bước cài chưa xong. Chạy lại Naota-Setup.exe, các bước đã xong sẽ được bỏ qua.%n%nNhật ký: %1
-vi.DataKept=Đã gỡ NAOTA khỏi máy.%n%nBộ não của bạn (ghi chú, trí nhớ, cài đặt) vẫn được giữ ở:%n%1%n%nMuốn xoá sạch thì tự xoá thư mục đó.
+vi.DataKept=Đã gỡ NAOSO khỏi máy.%n%nBộ não của bạn (ghi chú, trí nhớ, cài đặt) vẫn được giữ ở:%n%1%n%nMuốn xoá sạch thì tự xoá thư mục đó.
 #endif
 
 [Tasks]
@@ -116,8 +116,8 @@ Source: "..\assets\naota.ico"; DestDir: "{app}"; Flags: ignoreversion
 [Icons]
 ; wscript + open-naota.vbs: no console window, and a second click only reopens the window
 ; instead of restarting the server (see the header of open-naota.vbs).
-Name: "{autoprograms}\NAOTA"; Filename: "{sys}\wscript.exe"; Parameters: "//nologo ""{code:CodeDir}\open-naota.vbs"""; WorkingDir: "{code:CodeDir}"; IconFilename: "{app}\naota.ico"
-Name: "{autodesktop}\NAOTA"; Filename: "{sys}\wscript.exe"; Parameters: "//nologo ""{code:CodeDir}\open-naota.vbs"""; WorkingDir: "{code:CodeDir}"; IconFilename: "{app}\naota.ico"; Tasks: desktopicon
+Name: "{autoprograms}\NAOSO"; Filename: "{sys}\wscript.exe"; Parameters: "//nologo ""{code:CodeDir}\open-naota.vbs"""; WorkingDir: "{code:CodeDir}"; IconFilename: "{app}\naota.ico"
+Name: "{autodesktop}\NAOSO"; Filename: "{sys}\wscript.exe"; Parameters: "//nologo ""{code:CodeDir}\open-naota.vbs"""; WorkingDir: "{code:CodeDir}"; IconFilename: "{app}\naota.ico"; Tasks: desktopicon
 Name: "{autoprograms}\{cm:StopApp}"; Filename: "{code:CodeDir}\stop-naota.bat"; WorkingDir: "{code:CodeDir}"; IconFilename: "{app}\naota.ico"
 
 [Run]
@@ -141,7 +141,7 @@ var
   bootstrap.ps1. }
 function CodeDir(Param: String): String;
 begin
-  Result := ExpandConstant('{%USERPROFILE}') + '\Naota';
+  Result := ExpandConstant('{%USERPROFILE}') + '\NAOSO';
 end;
 
 function BootstrapOk: Boolean;

@@ -1,7 +1,7 @@
-"""Keep the Claude Agent SDK (the Python package Naota drives Claude Code through) current on its own (2026-11-10).
+"""Keep the Claude Agent SDK (the Python package NAOSO drives Claude Code through) current on its own (2026-11-10).
 
 Claude Code updates itself daily (claude_update.py), but the `claude-agent-sdk` package that talks to it only moved when
-a Naota release changed `requirements.txt`. The two drift apart, and fixes in the SDK (CVE-2026-96620, fixed in 0.2.121,
+a NAOSO release changed `requirements.txt`. The two drift apart, and fixes in the SDK (CVE-2026-96620, fixed in 0.2.121,
 is the one that prompted this) waited for somebody to bump a number by hand.
 
 Once a day, on the same switch as the Claude Code update (Models page, or NAOTA_CLAUDE_AUTO_UPDATE=0), this module asks
@@ -11,7 +11,7 @@ every step is fenced:
 - Same series only. The installed `X.Y.*` moves to a newer `X.Y.*`, never to the next minor: that is where the SDK changes
   its interface. `requirements.txt` carries the same ceiling.
 - Cooled down. A release is taken only COOLDOWN_S after it was uploaded, and never a yanked one or a pre-release, so a
-  bad upload has time to be pulled before any Naota installs it.
+  bad upload has time to be pulled before any NAOSO installs it.
 - Nothing else moves. pip runs under a constraints file built from every exact pin of `requirements.txt`; a release that
   needs a different fastapi or starlette fails to install instead of dragging them along.
 - Proven before it is kept. A fresh Python process imports the new package and builds real engine options through Naota's
@@ -51,7 +51,7 @@ _VERSION_RE = re.compile(r"^\d+(\.\d+){1,3}$")       # plain release numbers onl
 _REQ_PIN_RE = re.compile(r"^\s*([A-Za-z0-9_.\-]+)(\[[^\]]*\])?\s*==\s*([A-Za-z0-9_.\-]+)\s*(?:#.*)?$")
 _MAX_BAD = 20
 
-# What a fresh interpreter must manage with the new package before Naota keeps it: import every name the server uses, then
+# What a fresh interpreter must manage with the new package before NAOSO keeps it: import every name the server uses, then
 # build engine options through Naota's own engine module, the code that will really run on it.
 _SMOKE = r"""
 import sys
@@ -277,8 +277,8 @@ def update(reason: str = "manual", *, fetch=None, pip_install=None, smoke=None, 
     res = {"ok": False, "ts": now, "reason": reason, "bad": bad, "changed": False}
     if deploy_info.deploy_mode() == "docker":
         res.update(docker=True, error=localefmt.chu(
-            "Bản Docker nhận Claude Agent SDK mới theo mỗi bản cập nhật Naota, không cập nhật riêng được.",
-            "The Docker build gets a new Claude Agent SDK with each Naota update; it cannot be updated on its own."))
+            "Bản Docker nhận Claude Agent SDK mới theo mỗi bản cập nhật NAOSO, không cập nhật riêng được.",
+            "The Docker build gets a new Claude Agent SDK with each NAOSO update; it cannot be updated on its own."))
         return res                      # not stored: nothing was tried, and the image is read-only for this user
     cur = installed()
     res["from"] = res["to"] = cur

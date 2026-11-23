@@ -1,8 +1,8 @@
-/* install-nudge.js - nhắc thêm Naota vào Màn hình chính, MỖI NGÀY MỘT LẦN.
+/* install-nudge.js - nhắc thêm NAOSO vào Màn hình chính, MỖI NGÀY MỘT LẦN.
 
-   Vì sao cần: trên điện thoại, Naota mở bằng tab trình duyệt và Naota mở bằng app đã cài là
+   Vì sao cần: trên điện thoại, NAOSO mở bằng tab trình duyệt và NAOSO mở bằng app đã cài là
    hai trải nghiệm khác hẳn nhau - và cái khác lớn nhất không nhìn thấy được. iOS CHỈ cho
-   nhận thông báo đẩy khi trang đã được "Thêm vào MH chính" (iOS 16.4+). Ai dùng Naota bằng
+   nhận thông báo đẩy khi trang đã được "Thêm vào MH chính" (iOS 16.4+). Ai dùng NAOSO bằng
    Safari thường sẽ không bao giờ nhận được kết quả việc nền, mà cũng không có gì nói cho họ
    biết vì sao. Nút "Mở như app" trên thanh trạng thái chỉ hiện ở trình duyệt có
    beforeinstallprompt (Chrome/Edge), tức là đúng iOS - nơi cần nhất - lại không có nút nào.
@@ -26,7 +26,7 @@
 
    Nút "Cài lên điện thoại" ở chân menu: lời nhắc mỗi ngày
    một lần thì ai đã bấm "Đừng nhắc nữa" hay lỡ đóng mất sẽ không còn đường nào mở lại hướng
-   dẫn. Nút này luôn có trên điện thoại khi Naota CHƯA chạy dạng app, bấm là mở đúng popup ở
+   dẫn. Nút này luôn có trên điện thoại khi NAOSO CHƯA chạy dạng app, bấm là mở đúng popup ở
    trên. Đã cài (mở từ màn hình chính) thì nút không hiện, cài xong ngay trong phiên thì nút
    tự gỡ. Nút không đọc cờ "Đừng nhắc nữa": cờ đó tắt lời nhắc tự bung, không tắt việc người
    dùng tự đi tìm hướng dẫn.

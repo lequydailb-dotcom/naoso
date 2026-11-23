@@ -7,7 +7,7 @@
    - from then on the splash waits until no "Loading..." line (.pg-loading) is visible anywhere on the page: the page has
      its own data, not only its frame;
    - that wait is capped at DATA_MAX_MS (2026-11-12). A machine whose lists take long used to sit behind the splash for
-     the whole MAX_MS and read it as "Naota loads slowly"; now the app shows after a few seconds and the slow list keeps
+     the whole MAX_MS and read it as "NAOSO loads slowly"; now the app shows after a few seconds and the slow list keeps
      its own "Loading..." line, as it does on every later page;
    - it never stays longer than MAX_MS, whatever happens (a script error, a page that never starts);
    - only a loader that is really on screen counts (2026-11-12): the "Loading more..." line at the end of the endless

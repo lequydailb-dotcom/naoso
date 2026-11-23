@@ -1,5 +1,5 @@
 """
-MCP client của Naota - để MỌI bộ não (API/OAuth lẫn hub) dùng được MCP.
+MCP client của NAOSO - để MỌI bộ não (API/OAuth lẫn hub) dùng được MCP.
 v2: SESSION POOL sống lâu giữa các tin nhắn (hết cảnh mỗi tool call mở session mới),
 thêm transport stdio (MCP local như naota-zalo, webcake-landing-mcp) và
 "internal" (cầu nối Python nội bộ như botcake_mcp).
@@ -184,7 +184,7 @@ class McpHttpSession:
         Đây là chỗ đã gây ra vụ từng gặp (Pancake POS "Quán Cơm Mẫu"): máy chủ MCP có
         quyền XOÁ PHIÊN bất cứ lúc nào - hết hạn, họ deploy lại, hoặc bộ cân tải đưa ta
         sang máy khác - và chuẩn quy định lúc đó máy chủ trả 404 còn CLIENT PHẢI TỰ BẮT TAY
-        LẠI. Naota trước đây không hề đọc mã HTTP, nên 404 kèm thân JSON-RPC được `r.json()`
+        LẠI. NAOSO trước đây không hề đọc mã HTTP, nên 404 kèm thân JSON-RPC được `r.json()`
         nuốt gọn thành một phản hồi bình thường, `tools/list` trả `[]` mà KHÔNG ném lỗi.
 
         Hậu quả dây chuyền, không có lấy một dòng lỗi ở đâu:
@@ -311,7 +311,7 @@ class McpHttpSession:
 def npx_node_argv(resolved) -> list | None:
     """`npx.cmd` -> `[node.exe, npx-cli.js]` of the same Node install, so Windows never routes npx through cmd.exe.
 
-    Why: `cmd.exe /c "C:\\Program Files\\nodejs\\npx.cmd" --user-data-dir "C:\\My Naota\\x"` loses its
+    Why: `cmd.exe /c "C:\\Program Files\\nodejs\\npx.cmd" --user-data-dir "C:\\My NAOSO\\x"` loses its
     quotes: when the command line after /c starts with a quote, cmd strips the first and the last one, and the
     connector died with "'C:\\Program' is not recognized". The default Node install lives in "Program Files", so
     any argument with a space broke. cmd also expands `% ^ & |` in arguments. zalo_cli.npx_command does the same.
@@ -364,7 +364,7 @@ class McpStdioSession:
         return self._init_task is not None and not self._init_task.done()
 
     def _argv(self):
-        # Tìm cả trong Scripts/bin của venv Naota: uvx/uv cài theo requirements nằm ở đó
+        # Tìm cả trong Scripts/bin của venv NAOSO: uvx/uv cài theo requirements nằm ở đó
         # (PATH hệ thống thường không có) → connector PyPI (uvx ...) chạy được out-of-the-box.
         venv_bin = str(Path(sys.executable).parent)
         search = venv_bin + os.pathsep + os.environ.get("PATH", "")
@@ -510,7 +510,7 @@ class McpStdioSession:
                 return obj
             if obj.get("method") == "notifications/tools/list_changed":
                 self.tools_changed = True   # the pool's cached tool list is stale (SessionPool.cached_tools)
-            # notification/request từ server → bỏ qua (Naota không hỗ trợ sampling)
+            # notification/request từ server → bỏ qua (NAOSO không hỗ trợ sampling)
 
     async def ensure_init(self):
         """Run the MCP handshake once per process, in a task of its own.
@@ -1031,7 +1031,7 @@ class SessionPool:
         down = self._down.get(key)
         if down and down[1] == h and time.time() - down[0] < _DOWN_TTL:
             return (f"ERROR: nguồn {spec.get('label') or key} vừa không khởi động được "
-                    f"({down[2]}). Naota tạm ngừng gọi nguồn này {_DOWN_TTL} giây, đừng gọi lại "
+                    f"({down[2]}). NAOSO tạm ngừng gọi nguồn này {_DOWN_TTL} giây, đừng gọi lại "
                     "liên tục: báo người dùng bấm Kiểm tra ở trang Kết nối.")
         started = [False]
 
@@ -1288,7 +1288,7 @@ async def discover_resolved(conns, bo_qua=None):
                 #     cây tiến trình, tức là giết luôn cái đơn đang lên dở - đúng lỗi "lên đơn
                 #     thứ 2 là rớt kết nối" (lỗi đã gặp). Giữ phiên, và trả
                 #     lại danh sách tool lần dò trước để nguồn KHÔNG biến mất khỏi hộp công cụ
-                #     chỉ vì nó đang bận (biến mất là Naota nói "chưa đấu POS", cũng sai nốt).
+                #     chỉ vì nó đang bận (biến mất là NAOSO nói "chưa đấu POS", cũng sai nốt).
                 # (b) Server thật sự treo giữa một request: huỷ từ ngoài để lại nửa câu trả lời
                 #     trong ống, lần sau đọc là lệch pha vĩnh viễn - vứt phiên, đừng tái dùng.
                 if pool.dang_goi_tool(spec):

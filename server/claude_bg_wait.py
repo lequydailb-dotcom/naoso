@@ -13,13 +13,13 @@ import localefmt
 
 
 # A turn that started background work (a background shell, a sub-agent) would otherwise end at its first ResultMessage:
-# Naota disconnects, Claude Code goes away with its tasks, and the follow-up that should read their result never comes.
+# NAOSO disconnects, Claude Code goes away with its tasks, and the follow-up that should read their result never comes.
 # Windows has no adoption of leftover processes (tien_trinh_nen) to soften that. So the turn stays connected while
 # Claude Code reports tasks still running, then reads the follow-up turn Claude Code starts by itself, or nudges it once when it does not.
 BG_WAIT_DEFAULT = "1800"     # NAOTA_CLAUDE_BG_WAIT, seconds; 0 turns the wait off (old behaviour)
-BG_NUDGE_S = 20.0            # tasks done and Claude Code silent this long: Naota asks it to carry on
+BG_NUDGE_S = 20.0            # tasks done and Claude Code silent this long: NAOSO asks it to carry on
 BG_MAX_ROUNDS = 5            # a follow-up that starts more background work again: at most this many waits per turn
-BG_NUDGE = ("[Naota] Các việc chạy nền của lượt này đã xong. Đọc kết quả của chúng, làm nốt phần việc đang dở rồi báo "
+BG_NUDGE = ("[NAOSO] Các việc chạy nền của lượt này đã xong. Đọc kết quả của chúng, làm nốt phần việc đang dở rồi báo "
             "kết quả cho người dùng. Đừng bật thêm việc nền mới nếu không thật cần.")
 
 
@@ -97,19 +97,19 @@ class BackgroundWait:
 
     def gave_up_text(self) -> str:
         mins = int((self.cap or 0) // 60)
-        # The process is kept alive for its tasks (claude_warm._linger) and, on POSIX, Naota adopts them at the end of
+        # The process is kept alive for its tasks (claude_warm._linger) and, on POSIX, NAOSO adopts them at the end of
         # the turn (tien_trinh_nen): the line saying what it now watches and that it reports back follows this one.
         import tien_trinh_nen
         if tien_trinh_nen.POSIX:
             return localefmt.chu(
-                f"\n\n_(Naota đã chờ việc chạy nền {mins} phút. Việc vẫn đang chạy tiếp, nên lượt này ngừng chờ để "
+                f"\n\n_(NAOSO đã chờ việc chạy nền {mins} phút. Việc vẫn đang chạy tiếp, nên lượt này ngừng chờ để "
                 f"khung chat không bị giữ. NAOTA_CLAUDE_BG_WAIT đổi thời gian chờ.)_",
-                f"\n\n_(Naota waited {mins} minutes for the background work. It is still running, so this turn stops "
+                f"\n\n_(NAOSO waited {mins} minutes for the background work. It is still running, so this turn stops "
                 f"waiting and frees the chat. NAOTA_CLAUDE_BG_WAIT changes the wait.)_")
         return localefmt.chu(
-            f"\n\n_(Naota đã chờ việc chạy nền {mins} phút mà chưa xong nên ngừng chờ. Nhắn \"làm tiếp\" khi muốn xem "
+            f"\n\n_(NAOSO đã chờ việc chạy nền {mins} phút mà chưa xong nên ngừng chờ. Nhắn \"làm tiếp\" khi muốn xem "
             f"kết quả; NAOTA_CLAUDE_BG_WAIT đổi thời gian chờ.)_",
-            f"\n\n_(Naota waited {mins} minutes for the background work and it is still not done, so it stopped "
+            f"\n\n_(NAOSO waited {mins} minutes for the background work and it is still not done, so it stopped "
             f"waiting. Send \"carry on\" when you want the result; NAOTA_CLAUDE_BG_WAIT changes the wait.)_")
 
 

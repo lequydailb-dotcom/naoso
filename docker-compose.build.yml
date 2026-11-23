@@ -1,5 +1,5 @@
 # ============================================================================
-# NAOTA - BUILD TỪ SOURCE (thay vì pull image GHCR).
+# NAOSO - BUILD TỪ SOURCE (thay vì pull image GHCR).
 #   docker compose -f docker-compose.build.yml up -d --build
 # Dùng khi: tự host registry riêng, fork sửa code, hoặc test image trước khi đẩy.
 # ============================================================================

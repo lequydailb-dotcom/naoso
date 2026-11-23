@@ -1,5 +1,5 @@
 // ============================================
-// NAOTA - Studio: Agents / Skills / Workflows
+// NAOSO - Studio: Agents / Skills / Workflows
 // ============================================
 (function () {
   // Locale để định dạng số/ngày. Lấy từ i18n chứ KHÔNG khoá "vi-VN": người dùng đổi
@@ -1386,7 +1386,7 @@
   }
 
   // Thanh xuất: hiện khi đã tick ít nhất một skill. Gói .zip đã sẵn cấu trúc chuẩn
-  // skills/<slug>/SKILL.md nên KHÔNG có ô chọn định dạng: cùng một gói nhập lại được vào Naota
+  // skills/<slug>/SKILL.md nên KHÔNG có ô chọn định dạng: cùng một gói nhập lại được vào NAOSO
   // và giải nén vào .claude là Claude Code dùng ngay.
   function veThanhChon() {
     const bar = document.getElementById("skBulk"); if (!bar) return;

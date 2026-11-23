@@ -1,25 +1,25 @@
-# NAOTA - Quick start
+# NAOSO - Quick start
 
 *[English](QUICKSTART.en.md) · **Tiếng Việt** · [简体中文](docs/i18n/zh/QUICKSTART.md) · [Español](docs/i18n/es/QUICKSTART.md) · [日本語](docs/i18n/ja/QUICKSTART.md) · [हिन्दी](docs/i18n/hi/QUICKSTART.md) · [Português](docs/i18n/pt-BR/QUICKSTART.md) · [한국어](docs/i18n/ko/QUICKSTART.md) · [Русский](docs/i18n/ru/QUICKSTART.md) · [Deutsch](docs/i18n/de/QUICKSTART.md) · [Français](docs/i18n/fr/QUICKSTART.md) · [Bahasa Indonesia](docs/i18n/id/QUICKSTART.md)*
 
-Chạy NAOTA trong vài phút. Chi tiết từng phần: [docs/](docs/README.md).
+Chạy NAOSO trong vài phút. Chi tiết từng phần: [docs/](docs/README.md).
 
 ## Máy tính cá nhân (Windows, macOS) - tải bộ cài
 
-Cài Naota như một ứng dụng bình thường: tải một file, bấm mở, xong thì có biểu tượng NAOTA để bấm vào mỗi ngày. Bộ cài tự kiểm tra máy còn thiếu gì (Git, Python, Node, các bộ não AI) và tự cài phần thiếu.
+Cài NAOSO như một ứng dụng bình thường: tải một file, bấm mở, xong thì có biểu tượng NAOSO để bấm vào mỗi ngày. Bộ cài tự kiểm tra máy còn thiếu gì (Git, Python, Node, các bộ não AI) và tự cài phần thiếu.
 
-- **Windows 10/11:** tải [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), bấm đúp, bấm Next tới hết. Tiến trình cài hiện ngay trong cửa sổ Setup, từng bước một (vài phút), không còn cửa sổ đen riêng. Xong thì có biểu tượng NAOTA trên Desktop và Start menu.
+- **Windows 10/11:** tải [Naota-Setup.exe](https://github.com/vuongtex/naota/releases/download/desktop/Naota-Setup.exe), bấm đúp, bấm Next tới hết. Tiến trình cài hiện ngay trong cửa sổ Setup, từng bước một (vài phút), không còn cửa sổ đen riêng. Xong thì có biểu tượng NAOSO trên Desktop và Start menu.
 - **macOS 11 trở lên:** mở **Terminal** (Launchpad, gõ Terminal), dán dòng này rồi Enter. Cài cách này macOS không hiện cảnh báo:
   ```
   curl -fsSL https://raw.githubusercontent.com/vuongtex/naota/main/packaging/macos/get-naota.sh | bash
   ```
-  Lệnh này tải Naota về, chép **NAOTA** vào **Applications** rồi cài luôn trong cửa sổ Terminal đó (có thể hỏi đặt tài khoản quản trị Naota và mật khẩu máy Mac một lần). Xong thì mở NAOTA từ Launchpad.
+  Lệnh này tải NAOSO về, chép **NAOSO** vào **Applications** rồi cài luôn trong cửa sổ Terminal đó (có thể hỏi đặt tài khoản quản trị NAOSO và mật khẩu máy Mac một lần). Xong thì mở NAOSO từ Launchpad.
 
-  Thích tải file hơn? Tải [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), mở ra, kéo **NAOTA** vào **Applications**, rồi mở từ Launchpad. File chưa ký bằng Apple Developer ID, nên lần mở đầu macOS sẽ chặn: cách mở nằm ở mục "bị chặn" bên dưới.
+  Thích tải file hơn? Tải [Naota-macOS.dmg](https://github.com/vuongtex/naota/releases/download/desktop/Naota-macOS.dmg), mở ra, kéo **NAOSO** vào **Applications**, rồi mở từ Launchpad. File chưa ký bằng Apple Developer ID, nên lần mở đầu macOS sẽ chặn: cách mở nằm ở mục "bị chặn" bên dưới.
 
-Bấm vào biểu tượng là Naota mở thành cửa sổ riêng (không thanh địa chỉ), Naota tự chạy cùng máy, nút **Cập nhật** trong app dùng được như thường. Dữ liệu nằm ở thư mục `Naota` trong thư mục người dùng; gỡ app không xoá thư mục này.
+Bấm vào biểu tượng là NAOSO mở thành cửa sổ riêng (không thanh địa chỉ), NAOSO tự chạy cùng máy, nút **Cập nhật** trong app dùng được như thường. Dữ liệu nằm ở thư mục `Naota` trong thư mục người dùng; gỡ app không xoá thư mục này.
 
-**Windows: cách cài không bị màn hình cảnh báo (khuyên dùng).** Bộ cài Windows chưa ký số, nên tải bằng trình duyệt thì lần đầu máy sẽ chặn lại. Dán một dòng lệnh thì không bị chặn, vẫn ra đúng bộ cài có logo Naota: bấm Start, gõ `PowerShell`, mở lên, dán dòng này rồi Enter:
+**Windows: cách cài không bị màn hình cảnh báo (khuyên dùng).** Bộ cài Windows chưa ký số, nên tải bằng trình duyệt thì lần đầu máy sẽ chặn lại. Dán một dòng lệnh thì không bị chặn, vẫn ra đúng bộ cài có logo NAOSO: bấm Start, gõ `PowerShell`, mở lên, dán dòng này rồi Enter:
 ```
 irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-naota.ps1 | iex
 ```
@@ -27,15 +27,15 @@ irm https://raw.githubusercontent.com/vuongtex/naota/main/packaging/windows/get-
 Nếu đã tải file bằng trình duyệt và bị chặn:
 - Edge hoặc Chrome báo "Naota-Setup.exe isn't commonly downloaded" và không lưu file: trong ô Downloads, rê chuột vào dòng đó, bấm dấu ba chấm, chọn **Keep**, rồi **Show more** và **Keep anyway**.
 - Windows hiện "Windows protected your PC": bấm **More info** rồi **Run anyway**.
-- Trình diệt virus xoá mất file, hoặc Windows chặn mà không có nút **Run anyway** (máy bật Smart App Control): cài không qua file exe. Cài [Git](https://git-scm.com/download/win), mở PowerShell, dán dòng này rồi Enter. Xong thì Naota tự mở ở http://localhost:7777 và tự chạy cùng máy:
+- Trình diệt virus xoá mất file, hoặc Windows chặn mà không có nút **Run anyway** (máy bật Smart App Control): cài không qua file exe. Cài [Git](https://git-scm.com/download/win), mở PowerShell, dán dòng này rồi Enter. Xong thì NAOSO tự mở ở http://localhost:7777 và tự chạy cùng máy:
   ```
-  git clone https://github.com/vuongtex/naota.git "$env:USERPROFILE\Naota"; cd "$env:USERPROFILE\Naota"; powershell -ExecutionPolicy Bypass -File install.ps1
+  git clone https://github.com/vuongtex/naota.git "$env:USERPROFILE\NAOSO"; cd "$env:USERPROFILE\NAOSO"; powershell -ExecutionPolicy Bypass -File install.ps1
   ```
-- macOS báo không mở được: vào **System Settings → Privacy & Security**, kéo xuống bấm **Open Anyway**, rồi mở lại NAOTA.
+- macOS báo không mở được: vào **System Settings → Privacy & Security**, kéo xuống bấm **Open Anyway**, rồi mở lại NAOSO.
 
 ## Cách 1 - Hostinger VPS (Docker Manager, 1-click)
 
-> 🛒 **Chưa có VPS?** [Đăng ký VPS Hostinger tại đây](https://www.hostinger.com?REFERRALCODE=VUONGTEX). VPS có sẵn Docker Manager nên cài Naota đúng một cú bấm. Thuê xong quay lại làm các bước dưới.
+> 🛒 **Chưa có VPS?** [Đăng ký VPS Hostinger tại đây](https://www.hostinger.com?REFERRALCODE=VUONGTEX). VPS có sẵn Docker Manager nên cài NAOSO đúng một cú bấm. Thuê xong quay lại làm các bước dưới.
 
 1. hPanel → VPS → **Docker Manager** → **Compose** → **Compose from URL**.
 2. Dán URL:
@@ -50,7 +50,7 @@ Nếu đã tải file bằng trình duyệt và bị chặn:
 4. **Deploy**. Đợi 1-3 phút. Mở app bằng nút **Open** (hoặc `https://<DOMAIN_NAME>`).
 5. Lần đầu: màn hình sẽ hỏi tạo tài khoản admin. Sau đó đăng nhập Claude Code trong terminal container 1 lần: `claude auth login --claudeai`.
 
-VPS cài **Ubuntu 26** hay hệ điều hành trắng, không có Traefik của Hostinger: vẫn dán đúng link trên, bỏ trống `DOMAIN_NAME` cũng được: bấm **Open** là Naota tự chuyển sang `https://naota.srvXXXX.hstgr.cloud` hoặc `https://srvXXXX.hstgr.cloud`. **Cài đặt → Tên miền** cho biết link đã chạy chưa. Container `naota-gateway` đi kèm tự cấp HTTPS cho `DOMAIN_NAME` khi cổng 80/443 trống; nhớ mở cổng 80, 443 ở tường lửa.
+VPS cài **Ubuntu 26** hay hệ điều hành trắng, không có Traefik của Hostinger: vẫn dán đúng link trên, bỏ trống `DOMAIN_NAME` cũng được: bấm **Open** là NAOSO tự chuyển sang `https://naota.srvXXXX.hstgr.cloud` hoặc `https://srvXXXX.hstgr.cloud`. **Cài đặt → Tên miền** cho biết link đã chạy chưa. Container `naota-gateway` đi kèm tự cấp HTTPS cho `DOMAIN_NAME` khi cổng 80/443 trống; nhớ mở cổng 80, 443 ở tường lửa.
 
 Cập nhật bản mới: bấm **⬆ Cập nhật ngay** trong app (trang Cập nhật), hoặc **Redeploy** trong Docker Manager (image `:latest`, `pull_policy: always`). Dữ liệu brain giữ nguyên trong volume.
 

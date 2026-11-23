@@ -7,7 +7,7 @@ each time: search first, then run. A round re-reads the whole context, so it is 
 This module counts which hidden tools each brain actually calls and pins the few it calls most: a pinned tool is
 shown directly next to the core tools, so the model calls it at once. Everything else stays behind search.
 
-It is one more knob of Naota Core's improvement loop (core_loop.py), not a machine of its own:
+It is one more knob of NAOSO Core's improvement loop (core_loop.py), not a machine of its own:
 
   - the KNOB is how many tools one brain may pin (`tools.pin_limit`, 0 to 8, 0 = off). The owner sets it in chat;
     a rule moves it one step when a brain has a tool waiting for a place, or when no brain fills the places.

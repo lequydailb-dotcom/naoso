@@ -23,14 +23,14 @@ Khế ước một module kênh (hàm thiếu = năng lực đó không có, s�
     bat(account_id, on) -> dict                      kind="account": bật/tắt ghi vào hộp thư
     async gui(tk: dict, chat_id, text, chat_type)    gửi MỘT tin chữ từ tài khoản `tk` tới cuộc
                                                      chat. Trả (ok, loi). Có hàm này = kênh có
-                                                     năng lực "trả lời từ Naota".
+                                                     năng lực "trả lời từ NAOSO".
 
 Ba LOẠI kênh (`kind`), khác nhau ở cách có tài khoản chứ không ở cách hiện ra:
     bot      - tài khoản là một TOKEN bot (Telegram Bot API, Zalo Bot API). Lưu ở
                `channel_accounts`, long-poll bằng `Transport`.
     account  - tài khoản là một PHIÊN đăng nhập sẵn có ở nơi khác (Zalo cá nhân qua MCP). Module
                tự liệt kê qua `tai_khoan()`, có công tắc ghi.
-    webhook  - nền tảng GỌI NGƯỢC vào Naota (chừa chỗ, chưa kênh nào dùng). WhatsApp, Messenger và Zalo OA
+    webhook  - nền tảng GỌI NGƯỢC vào NAOSO (chừa chỗ, chưa kênh nào dùng). WhatsApp, Messenger và Zalo OA
                cũng nhận tin qua webhook nhưng khai kind "bot": tài khoản vẫn là token lưu ở kho tài
                khoản, module khai thêm `WEBHOOK_PATH` để form thêm tài khoản hiện địa chỉ cần dán sang nền tảng.
 
@@ -38,7 +38,7 @@ Thêm một kênh = thêm một file ở đây + một dòng trong `_MODULES` + 
 Không sửa gì khác.
 
 Optional module attributes (internal API channel):
-    GENERATED_KEY = True          the account secret is a key Naota generates on Save and shows once (no pasted token);
+    GENERATED_KEY = True          the account secret is a key NAOSO generates on Save and shows once (no pasted token);
                                   the module provides `new_key()`, `key_meta(raw)`, `default_settings()`
     PERMISSION_CEILING = "<level>"  the highest Chatbot permission level a turn on this channel may run at;
                                   `chatbot_runtime` refuses a turn above it
@@ -247,7 +247,7 @@ def cho_giao_dien() -> List[dict]:
             "huong_dan": dict(getattr(_MOD.get(s.id), "GUIDE", None) or {}),
             # The channel has its own card on the Connections page (Messenger).
             "the_ket_noi": bool(getattr(_MOD.get(s.id), "CONNECT_CARD", False)),
-            # Naota generates the account key and shows it once (internal API): no token field, a Rotate button.
+            # NAOSO generates the account key and shows it once (internal API): no token field, a Rotate button.
             "khoa_tu_sinh": bool(getattr(_MOD.get(s.id), "GENERATED_KEY", False)),
             "tran_muc_quyen": str(getattr(_MOD.get(s.id), "PERMISSION_CEILING", "") or ""),
             "cai_dat_tk": _account_settings(_MOD.get(s.id)),
@@ -273,7 +273,7 @@ async def gui(kenh: str, tk: dict, chat_id: str, text: str, chat_type: str = "pr
     if not s or not m:
         return False, f"kênh '{kenh}' không có trong sổ đăng ký"
     if not s.nl("tra_loi_tu_naota"):
-        return False, f"{s.nhan} chưa gửi được tin từ Naota"
+        return False, f"{s.nhan} chưa gửi được tin từ NAOSO"
     try:
         return await m.gui(tk, str(chat_id), str(text or ""), chat_type or "private", **extra)
     except Exception as e:

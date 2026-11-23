@@ -45,7 +45,7 @@ def _status(sid: str) -> str:
         return "Khung chat này chưa có việc GitHub nào (chưa đẩy lên lần nào)."
     lines = []
     for r in s["repos"]:
-        # A merged PR's leftover "pending" CI mark is not news (merged while Naota was cut off from GitHub).
+        # A merged PR's leftover "pending" CI mark is not news (merged while NAOSO was cut off from GitHub).
         ci = "" if r["integ"] == "merged" and r["ci"] in ("pending", "running") else _CI.get(r["ci"], r["ci"])
         bits = [r["full_name"], r.get("branch") or "", ci, _INTEG.get(r["integ"], r["integ"])]
         if r.get("pr_url"):
@@ -82,7 +82,7 @@ def _chay(args, ctx) -> str:
         except ValueError as e:
             return f"ERROR: {e}"
         return (f"Đã xếp việc kế tiếp #{out['id']}. Khi mọi PR của khung chat này đã merge và kiểm tra sau merge "
-                "qua, Naota tự mở một lượt mới để làm việc này. Nói với người dùng đúng như vậy, đừng hứa tự báo.")
+                "qua, NAOSO tự mở một lượt mới để làm việc này. Nói với người dùng đúng như vậy, đừng hứa tự báo.")
     if op in ("review", "review_skip"):
         repo = _repo(sid, str((args or {}).get("repo") or "").strip())
         if repo.startswith("ERROR"):
@@ -122,7 +122,7 @@ async def _review(sid: str, repo: str, provider: str) -> str:
     except github_repos.RepoError as e:
         return f"ERROR: {e}"
     return (f"Đã bắt đầu review chéo {repo} bằng {out['reviewer']}. Chạy nền, kết quả tự hiện trong khung chat này, "
-            "Naota chưa merge cho tới khi có kết quả. Nói với người dùng đúng như vậy, đừng hứa tự báo.")
+            "NAOSO chưa merge cho tới khi có kết quả. Nói với người dùng đúng như vậy, đừng hứa tự báo.")
 
 
 async def _skip(sid: str, repo: str) -> str:
@@ -134,16 +134,16 @@ async def _skip(sid: str, repo: str) -> str:
         return f"ERROR: {e}"
     integ = ((out or {}).get("row") or {}).get("integ")
     return ("Đã bỏ qua các phát hiện và merge." if integ == "merged" else
-            "Đã bỏ qua các phát hiện. PR chưa merge (CI chưa xanh hoặc repo chưa cho merge), Naota merge khi đủ điều kiện.")
+            "Đã bỏ qua các phát hiện. PR chưa merge (CI chưa xanh hoặc repo chưa cho merge), NAOSO merge khi đủ điều kiện.")
 
 
 def register(ctx):
     ctx.register_tool(
         "naota_github",
-        "GitHub của khung chat này. Sau mỗi lượt có sửa code, Naota TỰ kiểm tra, commit, đẩy lên, mở PR, theo dõi CI "
+        "GitHub của khung chat này. Sau mỗi lượt có sửa code, NAOSO TỰ kiểm tra, commit, đẩy lên, mở PR, theo dõi CI "
         "và merge theo cài đặt của repo, bạn không làm mấy việc đó và không hứa 'xong em báo'. "
         "op=status: trạng thái nhánh, PR, CI, merge, lý do kẹt. op=next text=...: xếp MỘT việc người dùng đã giao để "
-        "Naota tự làm khi PR hiện tại đã merge xong (chỉ việc người dùng yêu cầu, không phải kế hoạch bạn tự nghĩ). "
+        "NAOSO tự làm khi PR hiện tại đã merge xong (chỉ việc người dùng yêu cầu, không phải kế hoạch bạn tự nghĩ). "
         "op=cancel id=...: bỏ một việc đang chờ. "
         "op=review [repo] [provider]: CHỈ khi người dùng bảo review chéo PR, chạy nền, mặc định bằng chính engine đang "
         "chat. op=review_skip [repo]: người dùng chọn bỏ qua các phát hiện review và merge. Người dùng bảo sửa các "

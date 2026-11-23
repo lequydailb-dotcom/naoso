@@ -1,8 +1,8 @@
 /* Cookies page, formerly "Kho đăng nhập" / Login vault.
  *
  * The owner signs in on their own browser, exports that site's cookies and pastes them here. The server
- * (server/login_vault.py) encrypts them; Naota then opens pages behind that sign-in (tool naota_login) and
- * page watches can use it. Since 2026-11-21 Naota can also click and fill forms with a sign-in, in the
+ * (server/login_vault.py) encrypts them; NAOSO then opens pages behind that sign-in (tool naota_login) and
+ * page watches can use it. Since 2026-11-21 NAOSO can also click and fill forms with a sign-in, in the
  * Playwright browser: each card has its own switch for that, and the add form states the risk before the
  * owner saves.
  * This page adds, checks, updates, switches off and deletes sign-ins. It never
@@ -311,7 +311,7 @@
           act(lg.id, this.checked ? "allow" : "deny");
         };
         card.querySelector('[data-act="toggle-act"]').onchange = function () {
-          // Switching it on lets Naota act for real with this account, so the owner confirms the risk first.
+          // Switching it on lets NAOSO act for real with this account, so the owner confirms the risk first.
           if (this.checked && !confirm(tw("lv.act_q", { ten: lg.name }))) { this.checked = false; return; }
           act(lg.id, this.checked ? "allow_act" : "deny_act");
         };

@@ -188,7 +188,7 @@ def fingerprint_parts(cli, opts) -> dict:
                              _stat(os.path.join(cwd, ".claude", "settings.local.json"))],
         "user_settings": _stat(os.path.join(conf_dir, "settings.json")),
         # NOT the credentials file: Claude Code rewrites it on every run, so its stat changes every turn and no warm
-        # process would ever be reused. A sign-in or sign-out through Naota drops the Claude slots instead
+        # process would ever be reused. A sign-in or sign-out through NAOSO drops the Claude slots instead
         # (warm_pool.drop_kind in main's /claude/login* and /claude/logout).
         "strict_mcp": bool(getattr(opts, "strict_mcp_config", False)),
     }
@@ -347,10 +347,10 @@ def resume_lost_event() -> dict:
     import localefmt
     return {"type": "error", "resume_failed": True,
             "content": localefmt.chu(
-                "Phiên Claude cũ không còn trên máy (mạch hội thoại phía Claude Code đã mất). Naota mở mạch mới và "
+                "Phiên Claude cũ không còn trên máy (mạch hội thoại phía Claude Code đã mất). NAOSO mở mạch mới và "
                 "mồi lại từ lịch sử đã lưu.",
                 "The old Claude session is no longer on this machine (Claude Code lost the conversation thread). "
-                "Naota opens a new thread and primes it from the saved history.")}
+                "NAOSO opens a new thread and primes it from the saved history.")}
 
 
 async def cold_query(cli, prompt) -> AsyncIterator[dict]:

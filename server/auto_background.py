@@ -1,12 +1,12 @@
 """Automatic background model : pick the two models background work runs on.
 
-Naota used to run every background job on the provider's default model, which on a plan is the
+NAOSO used to run every background job on the provider's default model, which on a plan is the
 strongest and most expensive one. With `model.auxiliary.auto` on, two picks per provider replace it
-(see model_routing.background_spec): `light` for the work Naota starts on its own, `mid` for the
+(see model_routing.background_spec): `light` for the work NAOSO starts on its own, `mid` for the
 work the owner handed over.
 
 How the picks are made, and why this file holds no table of model names. Names change faster than
-Naota ships: a rule keyed on a name was already wrong for the ChatGPT plan the day it was
+NAOSO ships: a rule keyed on a name was already wrong for the ChatGPT plan the day it was
 proposed. So the choice is made from the list the PROVIDER gives this account (ids, plus its own
 descriptions and prices when it sends them), read once by the main brain, which may answer "I do not
 know" for either slot. No answer, or an id that is not in the list, means no pick, and background

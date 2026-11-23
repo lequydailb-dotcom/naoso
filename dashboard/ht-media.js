@@ -114,7 +114,7 @@
     } catch (e) { return ""; }
   }
 
-  // Clicking a customer's photo opens it inside Naota (the chat lightbox, with a close button and Back closing it)
+  // Clicking a customer's photo opens it inside NAOSO (the chat lightbox, with a close button and Back closing it)
   // instead of a new tab (easier to go back to the customer's messages). Ctrl/Cmd/middle click
   // and a photo that failed to load keep the link's own new-tab behaviour.
   if (typeof document !== "undefined") {

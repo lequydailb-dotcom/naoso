@@ -1,12 +1,12 @@
-/* incoming-call.js - Naota calls you at a set time.
+/* incoming-call.js - NAOSO calls you at a set time.
 
    Idea borrowed from OpenMausBot's calendar calls: a reminder created with the "call" option rings the open
    dashboard like an incoming phone call. The server marks the pushed message's NAOTA_VIEC block with
    "call": "1" (server/reminders.py). Answering starts the ordinary voice call (the mic button, so Live when
-   it is set up, the basic voice path otherwise) and its first line asks Naota to read the reminder or report
+   it is set up, the basic voice path otherwise) and its first line asks NAOSO to read the reminder or report
    aloud, then keep talking. Declining or not answering in 45 seconds leaves the message in the chat as usual.
 
-   Nothing rings when no Naota tab is open: Telegram still gets the text (and the voice note when "read it
+   Nothing rings when no NAOSO tab is open: Telegram still gets the text (and the voice note when "read it
    aloud" is on). The ringtone is a short synthesized double beep, so no audio file ships with it.
 
    `parse` and `script` are pure (tested under node); `show` draws the card. */
@@ -31,7 +31,7 @@
     });
   }
 
-  /* {title, text} when `raw` is a reminder push marked as a call, else null. `text` is what Naota reads:
+  /* {title, text} when `raw` is a reminder push marked as a call, else null. `text` is what NAOSO reads:
      hidden blocks and the voice-note link removed, capped. */
   function parse(raw) {
     var m = RE.exec(String(raw || ""));
@@ -45,7 +45,7 @@
     return { title: String(v.title || "").slice(0, 160), text: text };
   }
 
-  /* The call's first line: what Naota is asked to read. */
+  /* The call's first line: what NAOSO is asked to read. */
   function script(c, t) {
     return tr(t, "call.in_script", { title: c.title || tr(t, "call.in_title_none"), text: c.text });
   }

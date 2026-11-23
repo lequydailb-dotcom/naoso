@@ -1,4 +1,4 @@
-"""Stdio MCP processes that outlived the Naota server which started them.
+"""Stdio MCP processes that outlived the NAOSO server which started them.
 
 Why this exists (a real incident): the bot stopped answering a Zalo group at
 21:09. The account had TWO `naota-zalo mcp start` processes: one from 20:49, one the server started

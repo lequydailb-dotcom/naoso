@@ -1,7 +1,7 @@
 """Memory and lessons handled from chat.
 
-The settings parts nobody used were removed (asking in chat is better than clicking). The memory list on the Naota Core card and the lesson lists on an
-assistant's settings column are gone from the screen; the person asks in chat and Naota does it with the
+The settings parts nobody used were removed (asking in chat is better than clicking). The memory list on the NAOSO Core card and the lesson lists on an
+assistant's settings column are gone from the screen; the person asks in chat and NAOSO does it with the
 `naota_memory` tool (system plugin `naota-memory`), on any engine.
 
 The rules stay where they were (`memory_control`, `agent_lessons`): a forgotten memory keeps only a fingerprint and is
@@ -117,7 +117,7 @@ def _op_forget(d: Deps, root: str, args: dict) -> str:
         return f"ERROR: không có ghi nhớ '{slug}'. Gọi op=list để xem slug đúng."
     except ValueError:
         return "ERROR: slug không hợp lệ."
-    return (f"Đã quên '{r['title']}'. Naota không tự học lại điều này từ chat cũ; lịch sử chat không bị xoá. "
+    return (f"Đã quên '{r['title']}'. NAOSO không tự học lại điều này từ chat cũ; lịch sử chat không bị xoá. "
             "Brain có git hoặc bản sao lưu thì nội dung cũ vẫn còn trong đó.")
 
 

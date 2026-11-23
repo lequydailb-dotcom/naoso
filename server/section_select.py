@@ -1,7 +1,7 @@
-"""Load only the parts of a long skill that the current task needs, chosen by Naota before loading (2026-11-18).
+"""Load only the parts of a long skill that the current task needs, chosen by NAOSO before loading (2026-11-18).
 
 Owner, 18/11/2026: worried that cutting what a model gets "mà không có cơ chế nào đó tìm thông tin nạp thông minh trước
-khi nạp" would hurt answers. So the choice is made here, by Naota, before anything is loaded, and every doubt resolves
+khi nạp" would hurt answers. So the choice is made here, by NAOSO, before anything is loaded, and every doubt resolves
 to loading everything, exactly as before:
 
 0. Only skills built as a menu of alternatives, where one request needs one part (naota-builder: agent OR loop OR
@@ -9,7 +9,7 @@ to loading everything, exactly as before:
    "audit my SEO" picked "On-Page" and left out crawlability, indexation and speed. So a skill is split only when it is
    on `MENU_SKILLS`, carries `sections: select` in its frontmatter, or is listed by the owner in settings
    (`context_runtime.skill_sections.skills`). Every other skill loads whole, as before.
-1. Naota scores each section against the task (the request of this turn, plus what the model says it needs), in any
+1. NAOSO scores each section against the task (the request of this turn, plus what the model says it needs), in any
    language (see "language-neutral text handling" below): words in a section's heading weigh most, rare words more
    than common ones. Nothing is left out unless a word of the task is in the best section's own heading.
 2. Sections that state rules are always loaded: the opening text and, when the alternatives sit under one section,
@@ -23,7 +23,7 @@ to loading everything, exactly as before:
 3. Not sure, load all: no heading matches, too many sections match, or the selection would be nearly the whole skill.
    Skills under 12,000 characters are never split.
 4. The model sees what was left out: the end lists every other part and how to read it in one call.
-5. Naota learns from use: a part the model had to fetch after a selective load, in two different turns, is loaded from
+5. NAOSO learns from use: a part the model had to fetch after a selective load, in two different turns, is loaded from
    then on; a skill that needed two or more extra parts (or the whole) in two turns is loaded whole from then on. The
    record resets when the skill text changes.
 6. It starts on a share of chat sessions only (10% by default, `context_runtime.skill_sections.allocation_basis_points`
@@ -470,7 +470,7 @@ _OPT_IN_RE = re.compile(r"^sections:\s*[\"']?select[\"']?\s*$", re.M)
 
 
 def opted_in(name: str, text: str) -> bool:
-    """A skill Naota may split (point 0 of the module docstring)."""
+    """A skill NAOSO may split (point 0 of the module docstring)."""
     if str(name or "") in MENU_SKILLS:
         return True
     head = str(text or "")
@@ -591,7 +591,7 @@ def for_skill(name: str, text: str, task: str = "", question: str | None = None,
         return None
     note_load("skill", name, key, session)
     _meter(tool, sel)
-    head = (f"[Naota loaded the parts of skill `{name}` that match this task ({sel.sent_chars:,} of "
+    head = (f"[NAOSO loaded the parts of skill `{name}` that match this task ({sel.sent_chars:,} of "
             f"{sel.full_chars:,} characters): its rules and steps, plus the sections the task names. The other parts "
             f"are listed at the end.]\n\n")
     tail = ("\n\n[Other parts of this skill, not loaded: "

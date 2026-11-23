@@ -13,10 +13,10 @@ standard Facebook Login redirect flow on the owner's OWN Meta app:
      hands each ticked Page to `messenger_setup.connect`, which derives the non-expiring Page
      token, registers the webhook and subscribes the Page, exactly as the wizard did.
 
-Why the owner's own app and not one shared "NAOTA" app: every Naota runs at its own address,
+Why the owner's own app and not one shared "NAOTA" app: every NAOSO runs at its own address,
 Meta wants each redirect URI registered in advance, its webhook takes one callback URL per app,
 and the repo is public so it cannot carry an app secret. A shared app needs a central relay;
-this flow needs nothing outside the owner's Naota.
+this flow needs nothing outside the owner's NAOSO.
 
 Pending logins live in memory for 15 minutes and are keyed by an unguessable `state`. The user
 token never leaves this module or the server; results carry Page ids, names and pictures only.
@@ -100,8 +100,8 @@ async def start(app_id: str, app_secret: str, redirect_uri: str, brain: str = ""
         return {"ok": False, "error": bad}
     if not str(redirect_uri or "").startswith("https://"):
         return {"ok": False, "error": _c(
-            "Naota cần địa chỉ HTTPS (Cài đặt, Truy cập từ xa) và bạn phải mở Naota bằng địa chỉ đó.",
-            "Naota needs an HTTPS address (Settings, Remote access) and you must open Naota through it.")}
+            "NAOSO cần địa chỉ HTTPS (Cài đặt, Truy cập từ xa) và bạn phải mở NAOSO bằng địa chỉ đó.",
+            "NAOSO needs an HTTPS address (Settings, Remote access) and you must open NAOSO through it.")}
     own = client is None
     client = client or httpx.AsyncClient(timeout=20)
     try:
@@ -141,8 +141,8 @@ async def callback(state: str, code: str, error: str = "", error_description: st
     with _lock:
         p = dict(_pending.get(str(state or "")) or {})
     if not p:
-        return {"ok": False, "error": _c("Phiên đăng nhập đã hết hạn. Quay lại Naota bấm Đăng nhập Facebook lần nữa.",
-                                         "This sign-in expired. Go back to Naota and click Log in with Facebook again.")}
+        return {"ok": False, "error": _c("Phiên đăng nhập đã hết hạn. Quay lại NAOSO bấm Đăng nhập Facebook lần nữa.",
+                                         "This sign-in expired. Go back to NAOSO and click Log in with Facebook again.")}
     if error or not code:
         msg = error_description or error or _c("Facebook không trả mã đăng nhập.", "Facebook returned no sign-in code.")
         if error == "access_denied":
@@ -227,7 +227,7 @@ def forget(state: str) -> None:
 
 def privacy_html(brand: str = "NAOTA", pages=()) -> str:
     """A plain privacy policy page Meta accepts as the app's Privacy Policy URL and User data deletion
-    instructions URL, served by this Naota itself so the owner can switch the app to Live. Both
+    instructions URL, served by this NAOSO itself so the owner can switch the app to Live. Both
     languages on one page: Meta's reviewers and the Page's customers may read either."""
     import html as h
     b = h.escape(str(brand or "NAOTA"))

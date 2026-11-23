@@ -1,4 +1,4 @@
-"""Bộ câu đo tai nghe: tiếng Việt thuần, tiếng Anh thuần, và câu Việt pha Anh kiểu ra lệnh cho Naota.
+"""Bộ câu đo tai nghe: tiếng Việt thuần, tiếng Anh thuần, và câu Việt pha Anh kiểu ra lệnh cho NAOSO.
 
 Mỗi câu là các đoạn (ngôn ngữ, chữ): "v" tiếng Việt, "e" tiếng Anh. `terms` là thuật ngữ phải
 nghe ĐÚNG thì lệnh mới chạy được (tên công cụ, tên người, số liệu quảng cáo).

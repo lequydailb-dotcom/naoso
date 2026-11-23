@@ -1,4 +1,4 @@
-# NAOTA architecture
+# NAOSO architecture
 
 This is the entry point for contributors. Read it before touching code. It describes how the
 pieces fit together today (version in [VERSION](VERSION)); every claim here was checked against
@@ -8,13 +8,13 @@ The code base was written in Vietnamese: comments, docstrings and most identifie
 Vietnamese without diacritics (`bat` = start, `nhac_hen` = reminder, `viec_nen` = background
 job). Keep GLOSSARY open while reading the code.
 
-## What Naota is
+## What NAOSO is
 
-Naota is a self-hosted personal AI assistant for "business and life". It runs as one Python
+NAOSO is a self-hosted personal AI assistant for "business and life". It runs as one Python
 FastAPI server with a plain-JavaScript dashboard, and keeps everything it knows in a folder of
 markdown files (the "Second Brain", Obsidian-compatible). The model behind it is swappable: the
 user picks a "brain" (a subscription CLI such as Claude Code, or an API provider such as
-OpenRouter) and every brain gets the same tools through Naota's own MCP Hub. Naota is an
+OpenRouter) and every brain gets the same tools through Naota's own MCP Hub. NAOSO is an
 orchestration layer, not an inference layer: when an answer is wrong, look first at the prompt
 it built, the tools it allowed and the brain folder it pointed at.
 
@@ -84,7 +84,7 @@ vendor:
 
 Things worth knowing:
 
-- Naota never reads the user's Claude login token; it runs the real `claude` binary through the
+- NAOSO never reads the user's Claude login token; it runs the real `claude` binary through the
   official `claude-agent-sdk` (see `claude_auth.py` for why). Codex, Grok and Antigravity also
   keep their own credentials.
 - Gemini CLI was removed (Google cut personal tiers); Antigravity CLI replaced it.
@@ -136,7 +136,7 @@ operations index and media cleanup; Kanban has its own dispatcher.
 | Loops | `self_improve.py` | `<brain>/Naota/loops/<slug>.md`, state in `Naota/loop-state.json` | "Every X minutes find one unit of work"; run one at a time |
 | Reminders and cron jobs | `reminders.py`, `cron_util.py` | `<brain>/Naota/reminders.json` | Dependency-free 5-field cron parser |
 | Webhook triggers | `webhook_triggers.py` | `STATE_DIR/webhooks.json` (token hashes only) | `POST /hooks/<id>` runs a workflow or job from an outside event |
-| Incidents | `incident_desk.py` | `STATE_DIR/incidents.json` | A broken background run reaches Naota Core: retried once or the owner is told what to fix |
+| Incidents | `incident_desk.py` | `STATE_DIR/incidents.json` | A broken background run reaches NAOSO Core: retried once or the owner is told what to fix |
 | Health scan | `sentinel.py`, `tools/sentinel.py` | (read only) | Groups failures from every store by cause; runs without the server |
 | Workflows | `execute_workflow()` in `main.py`, `workflow_runtime.py`, `workflow_runs.py` | `<brain>/workflows/<slug>.md`, run history in SQLite | A chain of agent steps with checkpoints |
 | Self-learning | `learn.py`, `git_brain.py` | `<brain>/memory/` | The learning fork is read-only; only trusted Python writes, and only when the brain is a git checkout |
@@ -293,7 +293,7 @@ voice-call-spec.
 - **Connector catalog + MCP Hub** (`/hub/mcp`, `/connect/*`), **GitHub sync of brains**.
 - **Studio** (agents, skills, workflows), **File manager**, **Dataview lite**.
 - **Self-improving loops**, **Self-learning**, **Kanban task queue**, **Reminders**,
-  **Background jobs of one chat**, **Naota index**, **Plugins**.
+  **Background jobs of one chat**, **NAOSO index**, **Plugins**.
 - **Version and updates**, **Autostart**, **Inbox and push**, **Branding**, **TTS**, **Voice
   V2**.
 - **Workflow sessions**, `_persist_turn()`, then **WebSocket `/ws`** (the main chat turn).
@@ -339,7 +339,7 @@ There are three separate places. Mixing them up is a classic mistake.
 | Place | Default | Holds | Owner |
 |-------|---------|-------|-------|
 | Code tree | the repo | `server/`, `dashboard/`, `system/`, `.claude/skills/`, `CLAUDE.md` | The repo. Not writable by the app inside Docker |
-| `NAOTA_STATE_DIR` | `server/` locally, `/data/state` in Docker | Runtime state, gitignored | Naota |
+| `NAOTA_STATE_DIR` | `server/` locally, `/data/state` in Docker | Runtime state, gitignored | NAOSO |
 | `BRAINS_DIR` | `<repo>/brains`, `/brains` in Docker | One folder per brain | The user (can be pushed to a private GitHub repo) |
 
 **`NAOTA_STATE_DIR`** contains, among others: `settings.json` (secret fields stored `enc:`),
@@ -348,7 +348,7 @@ history), `kanban.sqlite3`, `customer_conversations.sqlite3`, `mcp_servers.json`
 `mcp_audit.jsonl`, `tool_results.sqlite3` (full tool results, encrypted, short-lived),
 `tool_result_sizes.jsonl` (how large results were and how much a model read), `.oauth_mcp.json`, `chatbots.json`, `channel_accounts.json`, `inbox.json`,
 `usage*.json*`, `runtime.db`, `plugins/`, `plugins.json`, `packs/`, `branding/`, `naota.log`.
-Anything Naota writes at runtime goes here, never into the code tree.
+Anything NAOSO writes at runtime goes here, never into the code tree.
 
 **A brain** (default `BRAINS_DIR/Brain Default`, scaffolded by `_ensure_brain_scaffold()` from
 `STANDARD_STRUCTURE`):
@@ -396,7 +396,7 @@ Developer conventions therefore live in `docs/quy-uoc-dev.md`, not in `CLAUDE.md
      (`catalog_i18n.py`).
    - New-brain seed files: `HAT_GIONG` in `server/brain_seed_i18n.py`.
 3. **Logic gates** (fast paths, "claimed but did not do it" detectors, ...) read per-language
-   word lists in `server/lexicon/` (`vi.py`, `en.py`). A language without a lexicon makes Naota
+   word lists in `server/lexicon/` (`vi.py`, `en.py`). A language without a lexicon makes NAOSO
    more expensive, never less safe; a half-written lexicon is dangerous.
 4. **Locale** (time zone, currency, number format) is independent of language and lives in
    `localefmt.py`. `lang_registry.py` is the single registry that knows everything about a

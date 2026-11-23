@@ -1,8 +1,8 @@
 # Quy ước dev (phiên Claude Code làm việc trên repo này)
 
 File này tách khỏi `CLAUDE.md`. Lý do: `CLAUDE.md` là system prompt đi vào
-MỌI lượt chat của Naota, có trần ngân sách (`tests/python/test_prompt_budget.py`), mà quy ước
-dev thì người dùng Naota không bao giờ cần. Để ở đây thì viết bao nhiêu cũng được, không đánh
+MỌI lượt chat của NAOSO, có trần ngân sách (`tests/python/test_prompt_budget.py`), mà quy ước
+dev thì người dùng NAOSO không bao giờ cần. Để ở đây thì viết bao nhiêu cũng được, không đánh
 thuế lên lượt chat nào cả.
 
 ## Nhánh, PR và merge
@@ -52,7 +52,7 @@ mọi thứ đã xong.
 ## Thiết kế giao diện: đọc `docs/dev/design-style.md` trước
 
 `docs/dev/design-style.md` gom các lần sửa giao diện của bản nguồn (chữ, điện thoại, màu, bố cục, nút, câu chữ, trang
-của gói Store, cách làm việc), có danh sách kiểm trước khi gửi và bảng những lần đổi ý. Luật riêng của NAOTA (không tự
+của gói Store, cách làm việc), có danh sách kiểm trước khi gửi và bảng những lần đổi ý. Luật riêng của NAOSO (không tự
 bỏ tính năng, màu thương hiệu) đứng trên file đó.
 
 - Việc nào có giao diện (dashboard, trang HTML của gói trong `naota-store`) thì đọc file đó trước khi vẽ, và chạy mục 0
@@ -100,7 +100,7 @@ Giải thích dài phải gọn lại trong chữ (i), không để xổ hết r
 Tiêu đề lặp lại chỉ tốn diện tích hiển thị. Đầu mỗi trang đã có thanh tiêu đề chung (`.cview-head`, chữ lấy từ `page.<id>.title` và
 `page.<id>.sub`), nên:
 
-- **Thân trang không vẽ lại tên trang**, kể cả khi kèm một câu khẩu hiệu ("Webhook: sự kiện bên ngoài gọi Naota làm
+- **Thân trang không vẽ lại tên trang**, kể cả khi kèm một câu khẩu hiệu ("Webhook: sự kiện bên ngoài gọi NAOSO làm
   việc" ngay dưới tiêu đề "Webhook" là sai). Mở trang là vào thẳng thứ cần nhìn: số liệu, danh sách, nút bấm.
 - Nút (i) từng đứng cạnh cái tiêu đề thừa thì dời sang cạnh nút hành động chính, hoặc dùng `NaotaInfo.pair(html, nhãn)`
   với một nhãn nói đúng nội dung bên trong ("Cách lấy cookie").

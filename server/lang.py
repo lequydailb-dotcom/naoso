@@ -7,7 +7,7 @@ thế là xong - nó bám đúng cho MỌI thứ tiếng.
 Đây là một bước LÙI có chủ ý của module này, và lý do là số liệu đo được từ chính bản trước:
 
   - bộ dò tự chốt ngôn ngữ trả lời, và dò tiếng Anh trên câu hỏi thật chỉ đạt 16/18 - tức vẫn
-    có câu người ta gõ tiếng Anh mà Naota đáp tiếng Việt;
+    có câu người ta gõ tiếng Anh mà NAOSO đáp tiếng Việt;
   - người viết tiếng Thái, Nhật, Pháp, Tây Ban Nha thì LUÔN bị đáp tiếng Việt, kể cả khi bộ
     dò nhận ra đúng, vì các thứ tiếng đó không có trong sổ đăng ký nên rơi hết về mặc định.
 
@@ -22,10 +22,10 @@ BỘ DÒ VẪN CÒN, và vẫn cần, ở những chỗ KHÔNG CÓ MODEL trong v
 
 Ba biến ngôn ngữ tách rời (spec mục 4.1), đừng nhập một:
   ui_lang       chữ trên màn hình      - user chọn, lưu theo thiết bị
-  reply_lang    Naota trả lời          - since 2026-11-15 NOT a setting: the model follows whoever writes
+  reply_lang    NAOSO trả lời          - since 2026-11-15 NOT a setting: the model follows whoever writes
                                          (owner: "the language setting only sets the interface"). The
                                          key stays "auto" in settings.json, see main.migrate_reply_lang_to_profile
-  content_lang  nội dung trong brain   - của user, Naota không đụng
+  content_lang  nội dung trong brain   - của user, NAOSO không đụng
 
 Dò ngôn ngữ KHÔNG dùng thư viện ngoài. Chỉ cần phân biệt giữa các ngôn ngữ ĐÃ ĐĂNG KÝ, nên
 hai tầng là đủ: nhận hệ chữ qua khoảng mã Unicode (xong ngay tiếng Nhật, Thái, Hàn, Ả Rập,
@@ -63,7 +63,7 @@ class LangDecision:
 
         KHÁC `self.lang`, và phân biệt được hai cái là chuyện sống còn:
 
-      - `lang`        = Naota TRẢ LỜI bằng tiếng gì. Không bao giờ rỗng (rơi về mặc định).
+      - `lang`        = NAOSO TRẢ LỜI bằng tiếng gì. Không bao giờ rỗng (rơi về mặc định).
       - `lang_cau_hoi` = người dùng đang VIẾT tiếng gì. Rỗng nghĩa là chưa biết.
 
         Cổng chặn đọc CÂU HỎI, nên nó phải dùng cái thứ hai. Đưa nhầm `lang` xuống cổng là
@@ -75,7 +75,7 @@ class LangDecision:
         # Chỉ có một câu trả lời đúng: thứ dò được từ CHÍNH lượt này. Không dò được (câu quá
         # ngắn: "ok thanks", "cho anh xem") thì trả rỗng, và cổng chặn phải suy biến an toàn.
         #
-        # TUYỆT ĐỐI không mượn `self.lang` khi nó đến từ một cái GHIM: cái ghim nói Naota phải
+        # TUYỆT ĐỐI không mượn `self.lang` khi nó đến từ một cái GHIM: cái ghim nói NAOSO phải
         # TRẢ LỜI bằng tiếng gì, nó không nói gì về ngôn ngữ người dùng đang VIẾT. Mượn nhầm
         # là đúng con bệnh đã đo được - user ghim trả lời tiếng Anh rồi hỏi tiếng Việt thì
         # cổng đem bộ từ vựng tiếng Anh ra chấm một câu tiếng Việt.
@@ -98,7 +98,7 @@ class LangDecision:
                 "lang_has_lexicon": self.has_lexicon,
                 "lang_detected": self.detected,
                 # Đọc trace mà không có cờ này thì `lang` gây hiểu nhầm: nó là ngôn ngữ để
-                # NÊU TÊN ở vài chỗ trong prompt, không phải ngôn ngữ Naota đã trả lời.
+                # NÊU TÊN ở vài chỗ trong prompt, không phải ngôn ngữ NAOSO đã trả lời.
                 "lang_theo_nguoi_dung": self.theo_nguoi_dung}
 
 
@@ -184,7 +184,7 @@ _DAU_CHUNG = re.compile(r"[éáíóúàèìòù]", re.I)
 # Dấu RIÊNG của tiếng Việt. Cố ý KHÔNG lấy cả bộ dấu: à á è é ì í ò ó ù ú â ê ô dùng chung
 # với tiếng Pháp, Tây Ban Nha, Bồ Đào Nha, Ý. Bản đầu vơ hết vào đây, nên
 # "Peux-tu me résumer les ventes du mois de juin ?" bị nhận là tiếng Việt với độ tin 0.97
-# chỉ vì một chữ "é", rồi Naota được lệnh trả lời người Pháp bằng tiếng Việt.
+# chỉ vì một chữ "é", rồi NAOSO được lệnh trả lời người Pháp bằng tiếng Việt.
 #
 # Còn lại đây là những ký tự gần như chỉ tiếng Việt dùng: ă đ ơ ư, cùng các tổ hợp dấu hỏi,
 # ngã, nặng. Một ký tự trong nhóm này là đủ chắc.
@@ -304,7 +304,7 @@ def _yeu_cau_thang(text: str) -> str:
 
     Cố ý đòi một ĐỘNG TỪ ra lệnh đứng gần tên ngôn ngữ, chứ không chỉ thấy chữ "tiếng Anh" là
     đổi. Câu "anh cần dịch bài này sang tiếng Anh" là một YÊU CẦU DỊCH, không phải yêu cầu
-    Naota đổi ngôn ngữ trả lời, mà hai câu đó rất giống nhau ở mặt chữ.
+    NAOSO đổi ngôn ngữ trả lời, mà hai câu đó rất giống nhau ở mặt chữ.
     """
     s = _bo_dau(text)
     if not s:
@@ -331,7 +331,7 @@ def _yeu_cau_thang(text: str) -> str:
     # Dạng đảo ("in English please", "bang tieng Anh nhe") CHỈ tính khi cả tin nhắn là một
     # câu ra lệnh ngắn. Câu dài chỉ NHẮC TỚI một ngôn ngữ thì không phải lệnh: "File hợp đồng
     # bằng tiếng Anh nằm ở đâu trong brain" là một câu hỏi về vị trí file, không phải yêu cầu
-    # Naota đổi sang tiếng Anh - mà bản đầu hiểu đúng thành lệnh và đổi cả cuộc trò chuyện.
+    # NAOSO đổi sang tiếng Anh - mà bản đầu hiểu đúng thành lệnh và đổi cả cuộc trò chuyện.
     if len(s) <= 40:
         for code in lang_registry.ma_list():
             for tu in lang_registry.get(code).request_words:
@@ -375,7 +375,7 @@ def co_lexicon(code: str) -> bool:
 
 def resolve(*, turn_text: str = "", reply_pref: str = "auto", chatbot_pin: str = "",
             brain_pin: str = "", channel_default: str = "", ui_lang: str = "") -> LangDecision:
-    """Chốt xem lượt này Naota trả lời bằng tiếng gì.
+    """Chốt xem lượt này NAOSO trả lời bằng tiếng gì.
 
     NGUYÊN TẮC (đổi sau khi đo): **model tự bám theo ngôn ngữ người dùng, hàm này
     chỉ lo phần con người đã GHIM.**
@@ -435,7 +435,7 @@ def resolve(*, turn_text: str = "", reply_pref: str = "auto", chatbot_pin: str =
         # Có chữ của người dùng: model bám theo. `lang` ở đây KHÔNG phải ngôn ngữ trả lời,
         # nó chỉ là ngôn ngữ để nêu tên ở những chỗ buộc phải nêu (đồng hồ trong prompt, danh
         # sách skill, giọng đọc dự phòng) - lấy ngôn ngữ dò được nếu có, không thì cấu hình.
-        # 2026-11-15: a detected language Naota can NAME (Japanese, Thai, Korean...) is named too, not
+        # 2026-11-15: a detected language NAOSO can NAME (Japanese, Thai, Korean...) is named too, not
         # only vi/en: the fast-path capsule then says "answer in Japanese" instead of the interface's.
         neu_ten = lang_registry.reply_code(do_duoc) or ui_lang
         return _xong(neu_ten, "detect" if do_duoc else "ui", max(tin, 0.5), theo=True)
@@ -482,7 +482,7 @@ _PIN_REASON = {
     "channel": "the language of this channel or call",
 }
 
-# The prompt around this block is mostly Vietnamese (the blocks Naota inserts, the channel rules,
+# The prompt around this block is mostly Vietnamese (the blocks NAOSO inserts, the channel rules,
 # tool results, system skills), and its examples address the reader as mình/bạn. Measured
 # 2026-11-15: after the English kernel, the last ~13,000 characters before the model writes are
 # about 80% Vietnamese words. A model reads that as a hint; this line says it is none.

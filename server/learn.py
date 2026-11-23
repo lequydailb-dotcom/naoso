@@ -1,5 +1,5 @@
 """
-learn.py - Engine TỰ HỌC của Naota (rewire sau lượt + auto-Wiki + skill + curator).
+learn.py - Engine TỰ HỌC của NAOSO (rewire sau lượt + auto-Wiki + skill + curator).
 
 Triết lý an toàn (mạnh hơn cả kế hoạch gốc, theo review đối kháng):
   - FORK HỌC LÀ READ-ONLY. Nó chỉ Read/Glob/Grep/LS + trả về 1 MANIFEST JSON. Nó KHÔNG
@@ -235,7 +235,7 @@ def append_history(body: str, reason: str, today: str, old_body: str = "") -> st
     return "\n".join(out).strip()
 
 
-# Mục do Naota quản trong THÂN agent: ngoài hai mục này là của chủ, chốt chặn
+# Mục do NAOSO quản trong THÂN agent: ngoài hai mục này là của chủ, chốt chặn
 # agent_rules.missing_owner_lines bắt mọi lần ghi phải giữ nguyên.
 _AGENT_MANAGED = (_HISTORY_HEADER, agent_rules.LEARNED_ADDITIONS_HEADER)
 # Mục bài học trong bộ nhớ agent (main._BAI_HOC_HEADER), quay vòng 15 dòng nên được phép mất dòng.
@@ -413,10 +413,10 @@ class LearnDeps:
     # overlay (its additions then wait for the owner instead of going live), None otherwise. Raises ValueError
     # when the host checks refuse the text.
     stage_agent_procedure: Optional[Callable] = None
-    # side_work_paused() -> a short reason when work Naota starts on its own must wait (the plan's 5-hour
+    # side_work_paused() -> a short reason when work NAOSO starts on its own must wait (the plan's 5-hour
     # allowance is nearly used up), "" otherwise. None = never paused (tests with minimal deps).
     side_work_paused: Optional[Callable] = None
-    # learning_lessons(brain) -> the lessons about HOW to learn that Naota Core holds for this brain (what the
+    # learning_lessons(brain) -> the lessons about HOW to learn that NAOSO Core holds for this brain (what the
     # owner said, later what Core concluded), as ready prompt text; "" when there are none. None = not wired.
     learning_lessons: Optional[Callable] = None
 
@@ -432,7 +432,7 @@ class LearnFeature:
         self.DEFAULT = {
             "enabled": True,                    # mặc định BẬT tự học ngay
             "mode": "auto",                     # dry-run | suggest | auto - mặc định tự ghi (không cần git)
-            # task=False: Naota KHÔNG tự suy ra việc nền từ hội thoại nữa. Lý do, sau khi soi
+            # task=False: NAOSO KHÔNG tự suy ra việc nền từ hội thoại nữa. Lý do, sau khi soi
             # bảng thật: 28/28 việc là máy tự đẻ, phần lớn worker headless không
             # thể làm (cookie, gửi Zalo, chờ duyệt, repo ngoài brain) nên chết yểu. Việc chỉ
             # sinh khi được BẢO THẲNG trong chat (POST /kanban/task). Công tắc vẫn còn trong
@@ -441,7 +441,7 @@ class LearnFeature:
             # lớn (hiện thẳng trong Studio) nên mặc định TẮT, chủ bật ở trang Tự học. Khác
             # quyết định trước đó (cấm loop nền quét-nâng-cấp hàng loạt): đây chỉ học từ batch
             # hội thoại vừa diễn ra, tạo MỚI không ghi đè, và có vòng verify như skill.
-            # skill=False: out of the box Naota learns memories and wiki notes only.
+            # skill=False: out of the box NAOSO learns memories and wiki notes only.
             # Skill learning adds a second verify session per batch and switches on the whole
             # auto-learning judge (auto_learning follows this switch), which is where much of the
             # plan allowance went while nobody was typing. One switch on the Tự học page brings it back.
@@ -454,7 +454,7 @@ class LearnFeature:
             # messages. A day with no event learns nothing at all.
             # max_wait_min is a bound, not a rhythm: a shop whose bot talks to customers all day is never
             # quiet for 15 minutes, and without it the owner's own chats would wait forever.
-            # min_turns is a knob of Naota Core's loop (core_loop.py), moved by `min_turns_rule` from how many
+            # min_turns is a knob of NAOSO Core's loop (core_loop.py), moved by `min_turns_rule` from how many
             # recent batches learned nothing; nobody sets it by hand.
             "debounce": {"idle_min": 15, "max_wait_min": 120, "min_turns": 1},
             # No daily cap: "some people use a lot, some a little". fork_count and
@@ -568,7 +568,7 @@ class LearnFeature:
                 brains.append(brain)
                 cfg["brains"] = brains
                 self.write_config(cfg)
-            # learning switched off for this brain (Naota Core > Memory) = nothing new is queued.
+            # learning switched off for this brain (NAOSO Core > Memory) = nothing new is queued.
             try:
                 import memory_control
                 if not memory_control.learning_enabled(self.deps.brain_memory_dir(brain)):
@@ -599,7 +599,7 @@ class LearnFeature:
 
     # ── enqueue_job (gọi khi một VIỆC NỀN Kanban chạy xong) ──
     # Vì sao cần: `enqueue` ở trên chỉ nghe được luồng CHAT (`_persist_turn`), nên mọi thứ
-    # Naota tự làm trong nền - việc chạy trót lọt, và nhất là việc VƯỚNG - đi qua mà không để
+    # NAOSO tự làm trong nền - việc chạy trót lọt, và nhất là việc VƯỚNG - đi qua mà không để
     # lại bài học nào. Đó đúng là chỗ kinh nghiệm thực chiến sinh ra: một việc bị chặn vì
     # thiếu MCP, một quy trình phải làm đi làm lại, một cách làm vừa chạy thông.
     #
@@ -679,7 +679,7 @@ class LearnFeature:
             return False                # too little to be worth a batch yet; it stays queued (see min_turns_rule)
         return since >= idle
 
-    # ── a knob of Naota Core's loop: how many turns worth learning must be queued before a batch ──
+    # ── a knob of NAOSO Core's loop: how many turns worth learning must be queued before a batch ──
     MIN_TURNS_LO, MIN_TURNS_HI, MIN_TURNS_DEFAULT = 1, 4, 1
     YIELD_KEEP = 12       # automatic batches remembered (1 = it learned something, 0 = nothing)
     YIELD_NEED = 6        # batches needed before the rule says anything
@@ -772,7 +772,7 @@ class LearnFeature:
         parts: List[str] = []
         seen = 0
         self._leftover = {}
-        # Việc nền đứng TRƯỚC hội thoại: nó là thứ Naota tự làm, và cũng là phần dễ bị cắt
+        # Việc nền đứng TRƯỚC hội thoại: nó là thứ NAOSO tự làm, và cũng là phần dễ bị cắt
         # nhất nếu xếp sau (ngân sách ký tự tiêu gần hết cho chat). Đã tính vào `seen` nên
         # không làm digest phình quá trần.
         for khoi in (jobs or [])[:self._JOB_MAX]:
@@ -792,7 +792,7 @@ class LearnFeature:
                 msgs = []
             tail = [m for m in msgs if m.get("role") in ("user", "assistant") and m.get("content")][-2 * n_turns:]
             for i, m in enumerate(tail):
-                who = "NGƯỜI DÙNG" if m["role"] == "user" else "NAOTA(assistant)"
+                who = "NGƯỜI DÙNG" if m["role"] == "user" else "NAOSO(assistant)"
                 txt = str(m["content"])[:3000]
                 parts.append(f"[{who}] {txt}")
                 seen += len(txt)
@@ -1120,20 +1120,20 @@ class LearnFeature:
                 '"priority":1..3,"confidence":0..3}]')
 
         return (
-            "BẠN LÀ VÒNG HỌC READ-ONLY của Naota. TUYỆT ĐỐI KHÔNG ghi/sửa/xoá file, KHÔNG gọi tool ghi. "
+            "BẠN LÀ VÒNG HỌC READ-ONLY của NAOSO. TUYỆT ĐỐI KHÔNG ghi/sửa/xoá file, KHÔNG gọi tool ghi. "
             "Chỉ ĐỌC (Read/Glob/Grep) để dedup rồi TRẢ VỀ 1 KHỐI JSON DUY NHẤT (không văn xuôi ngoài JSON).\n\n"
             "PHÂN LOẠI ĐA-NHÃN (1 đoạn có thể sinh nhiều loại):\n"
             "• fact (Memory) = sự thật BỀN về CHÍNH user/doanh nghiệp này (bỏ tên riêng thì mất nghĩa).\n"
             "• wiki = KHÁI NIỆM/framework/quy trình TÁI DÙNG (đúng cả với người khác).\n"
-            "• skill = quy trình nhiều bước Naota VỪA TỰ LÀM, có công thức lặp lại.\n"
+            "• skill = quy trình nhiều bước NAOSO VỪA TỰ LÀM, có công thức lặp lại.\n"
             + ("• agent = VAI chuyên môn user nhờ đi nhờ lại hoặc yêu cầu rõ (vd 'viết email "
                "chăm khách', 'biên tập bài'), đáng đóng thành một vai có system prompt riêng.\n"
                if caps.get("agent") else "")
             + ("• workflow = CHUỖI từ 2 bước trở lên, nhiều vai nối nhau, user đã làm/nhờ lặp lại "
                "theo đúng trình tự đó.\n" if caps.get("workflow") else "")
-            + "• task = VIỆC NỀN cụ thể đáng giao Naota tự làm sau (yêu cầu lặp lại / việc bỏ dở / câu hỏi mở).\n\n"
+            + "• task = VIỆC NỀN cụ thể đáng giao NAOSO tự làm sau (yêu cầu lặp lại / việc bỏ dở / câu hỏi mở).\n\n"
             "PROVENANCE (bắt buộc, chống bịa): 'user'=user khẳng định; 'source'=trích nguồn có tên; "
-            "'assistant'=CHÍNH NAOTA tự nói không nguồn. ⚠ Mục wiki provenance='assistant' sẽ BỊ LOẠI "
+            "'assistant'=CHÍNH NAOSO tự nói không nguồn. ⚠ Mục wiki provenance='assistant' sẽ BỊ LOẠI "
             "(đẩy sang cần-xác-minh) → chỉ đưa vào wiki thứ user/nguồn khẳng định.\n"
             "DENSITY (wiki, 0-3): 0=nhắc thoáng, 3=được định nghĩa/giải thích có cấu trúc. Chỉ đưa density>=2.\n"
             "DEDUP: đọc INDEX dưới đây trước; nếu khái niệm ĐÃ CÓ → set same_as=tên trang (đừng tạo trùng); "
@@ -1298,7 +1298,7 @@ class LearnFeature:
             f"{s.get('description','')}"
             + (f" | lý do sửa: {str(s.get('reason') or '').strip()[:200]}" if is_update(s) else "")
             for s in skills)
-        prompt = ("Một vòng học đề xuất TẠO hoặc SỬA các SKILL sau (Naota tự quan sát từ việc đã "
+        prompt = ("Một vòng học đề xuất TẠO hoặc SỬA các SKILL sau (NAOSO tự quan sát từ việc đã "
                   "làm). GIẢ ĐỊNH chúng SAI/thừa. Với mỗi slug, quyết định giữ hay bỏ.\n" + listing +
                   "\nBỎ một bản TẠO nếu quy trình không có thật, không đủ cụ thể, hoặc trùng skill "
                   "có sẵn. BỎ một bản SỬA nếu lý do không dẫn được ra bằng chứng skill cũ đã cho "
@@ -1312,7 +1312,7 @@ class LearnFeature:
     # ── VERIFY agent + workflow (cùng lý do với skill: blast radius lớn - hiện thẳng Studio).
     # Gộp 1 spawn cho cả hai để không nhân đôi chi phí fork mỗi batch. ──
     async def _verify_agents_workflows(self, brain: str, manifest: dict, cfg: dict) -> None:
-        # Naota Core's file is the owner's to edit on its card; a learning round never rewrites it.
+        # NAOSO Core's file is the owner's to edit on its card; a learning round never rewrites it.
         manifest["agents"] = [a for a in (manifest.get("agents") or []) if str(a.get("slug") or "").lower() != "naota-core"]
         agents = manifest.get("agents") or []
         wfs = manifest.get("workflows") or []
@@ -1328,7 +1328,7 @@ class LearnFeature:
         if wfs:
             listing += ("\n" if listing else "") + "\n".join(
                 _dong("workflow", w, f"{len(w.get('steps') or [])} bước") for w in wfs)
-        prompt = ("Một vòng học đề xuất TẠO hoặc SỬA các AGENT/WORKFLOW sau (Naota tự quan sát từ "
+        prompt = ("Một vòng học đề xuất TẠO hoặc SỬA các AGENT/WORKFLOW sau (NAOSO tự quan sát từ "
                   "hội thoại). GIẢ ĐỊNH chúng SAI/thừa. Với mỗi slug, quyết định giữ hay bỏ.\n"
                   "  • Mục [TẠO]: chỉ giữ vai/chuỗi THẬT SỰ lặp lại, đủ cụ thể, không trùng cái "
                   "có sẵn trong agents/ và workflows/. Trùng một cái đã có mà lại đòi tạo mới → BỎ "
@@ -1439,7 +1439,7 @@ class LearnFeature:
                     if not title or not body or int(w.get("density", 0)) < 2:
                         continue
                     if (w.get("provenance") == "assistant"):
-                        self._append_open_question(brain, wiki_dir, title, "provenance=assistant (Naota tự nói, cần xác minh)", written_paths, root)
+                        self._append_open_question(brain, wiki_dir, title, "provenance=assistant (NAOSO tự nói, cần xác minh)", written_paths, root)
                         rep["blocked"].append(f"wiki '{title}': assistant-only → cần xác minh"); continue
                     if secret_hits(title + "\n" + body):
                         rep["blocked"].append(f"wiki '{title}': chứa secret"); continue
@@ -1991,7 +1991,7 @@ class LearnFeature:
 
             prompt = self._build_prompt(caps, brain, digest)
             if self.deps.learning_lessons:
-                # Lessons about HOW to learn (what the owner told Naota Core, later what Core concluded) go
+                # Lessons about HOW to learn (what the owner told NAOSO Core, later what Core concluded) go
                 # first: they decide what is worth writing down at all.
                 try:
                     lessons = str(await asyncio.to_thread(self.deps.learning_lessons, brain) or "").strip()
@@ -2199,7 +2199,7 @@ class LearnFeature:
         """Gỡ khỏi MEMORY.md những dòng mục lục KHÔNG CÒN GIÁ TRỊ. Trả {n, ly_do} hoặc None.
 
         Vì sao đây là việc đáng làm nhất trong "chống rác tri thức": MEMORY.md được nạp
-        TRƯỚC MỌI câu hỏi. Một fact đã bị thay thế mà còn nằm trong mục lục thì Naota vẫn
+        TRƯỚC MỌI câu hỏi. Một fact đã bị thay thế mà còn nằm trong mục lục thì NAOSO vẫn
         đọc thông tin cũ mỗi lượt, và index vẫn tính vào trần ~150 dòng. Nhánh `supersedes`
         của learn đã biết ghi `superseded_by:` vào file cũ, nhưng CHƯA AI gỡ dòng mục lục
         của nó, nên tri thức "đã nghỉ hưu" ở lại vĩnh viễn.
@@ -2387,7 +2387,7 @@ class LearnFeature:
 
         @router.get("/learn/review")
         def learn_review(brain: str = Query("brain"), limit: int = Query(20)):
-            """Danh sách commit học gần nhất (cho panel 'Naota đã tự học gì') + trạng thái git."""
+            """Danh sách commit học gần nhất (cho panel 'NAOSO đã tự học gì') + trạng thái git."""
             root = self.deps.brain_root(brain)
             return {"git_repo": git_brain.is_git_checkout(root),
                     "commits": git_brain.list_learn_commits(root, limit)}

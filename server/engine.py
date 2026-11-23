@@ -4,7 +4,7 @@ Lớp engine cho CHAT qua API nhà cung cấp: OpenRouter, OpenAI, Anthropic API
 
 Mỗi provider có HAI đường vào:
 - `*_chat`            : chat trần, không tool. Chỉ dùng khi hub không tìm được tool nào.
-- `*_chat_with_mcp`   : vòng gọi tool đầy đủ với MCP Naota + tool file brain + skill. Đây là
+- `*_chat_with_mcp`   : vòng gọi tool đầy đủ với MCP NAOSO + tool file brain + skill. Đây là
                         đường MẶC ĐỊNH mà main.py::_api_stream_mcp chọn, nên "engine API =
                         chat thuần" KHÔNG còn đúng từ 0.9.
 Stream token-by-token; trả các event {"type":"text"|"error","content":...} giống ClaudeCLI.query.
@@ -110,7 +110,7 @@ def _sanitize_surrogates(text: str) -> str:
 # "Độ ẩm 70-99%. ␣cite␣turn4view0␣".
 #
 # Bóc chứ không dịch, vì bên trong KHÔNG có gì để giữ: nó chỉ là mã tham chiếu nội bộ
-# ("turn4view0"), không kèm URL. Chính Naota cũng mắc bẫy này - được hỏi lấy tin ở đâu thì
+# ("turn4view0"), không kèm URL. Chính NAOSO cũng mắc bẫy này - được hỏi lấy tin ở đâu thì
 # trả lời "mình chỉ còn mã tham chiếu turn4view0, không có URL nguồn gốc". Để nguyên là vừa
 # bẩn màn hình vừa dạy model rằng đó là một nguồn có thật.
 #
@@ -753,9 +753,9 @@ async def thu_lai_khi_tam_thoi(tao_stream, *, so_lan=3, nhan=""):
                 )
             elif _qua_tai(loi_hoan):
                 cuoi["content"] += _c(
-                    " - model này đang quá tải phía nhà cung cấp, không phải lỗi của Naota hay của bạn. Thường hết sau "
+                    " - model này đang quá tải phía nhà cung cấp, không phải lỗi của NAOSO hay của bạn. Thường hết sau "
                     "vài phút: gửi lại sau ít phút, hoặc bấm chip model ở ô chat để đổi sang model khác.",
-                    " - this model is overloaded on the provider's side; it is not a fault in Naota or on your end. It "
+                    " - this model is overloaded on the provider's side; it is not a fault in NAOSO or on your end. It "
                     "usually passes within minutes: send again shortly, or press the model chip in the chat box to "
                     "switch to another model.")
             yield cuoi
@@ -823,7 +823,7 @@ def _is_claude_model(model):
 
 def _or_mark_system(messages):
     """Copy messages, đánh cache_control lên system message ĐẦU (định dạng OpenAI-style của
-    OpenRouter). System của Naota ~26k ký tự và bất biến trong phiên - cache được là lãi nhất.
+    OpenRouter). System của NAOSO ~26k ký tự và bất biến trong phiên - cache được là lãi nhất.
     KHÔNG mutate list gốc: or_messages sống qua nhiều lượt, mutate là marker dính vĩnh viễn."""
     out = []
     marked = False
@@ -937,9 +937,9 @@ DEFAULT_MODELS = {
 #   2. Địa chỉ KHÔNG cố định. Người dùng có thể chạy trên máy khác trong mạng, hoặc đổi cổng,
 #      nên URL phải dựng từ host trong cấu hình chứ không hằng số hoá được như bốn cái trên.
 # Ollama Cloud - model của Ollama chạy trên máy chủ của họ, xác thực bằng API key lấy ở
-# ollama.com. Naota CỐ Ý chỉ đấu bản Cloud: bản chạy trên máy nhà đòi một ô địa chỉ riêng,
+# ollama.com. NAOSO CỐ Ý chỉ đấu bản Cloud: bản chạy trên máy nhà đòi một ô địa chỉ riêng,
 # tức một ca đặc biệt duy nhất xuyên suốt lớp nhà cung cấp, trong khi phần đông người dùng
-# Naota chạy nó trên VPS - nơi "localhost" là chính cái container chứ không phải máy họ.
+# NAOSO chạy nó trên VPS - nơi "localhost" là chính cái container chứ không phải máy họ.
 OLLAMA_BASE = "https://ollama.com"
 OLLAMA_URL = OLLAMA_BASE + "/v1/chat/completions"
 
@@ -1018,7 +1018,7 @@ _ADAPTIVE_THINKING = ("opus-5", "opus-4-8", "opus-4-7", "opus-4-6", "opus-4-5",
                       "sonnet-5", "sonnet-4-6", "fable-5", "mythos-5")
 
 
-# Thang độ sâu suy nghĩ của Naota, sáu nấc.
+# Thang độ sâu suy nghĩ của NAOSO, sáu nấc.
 REASONING_LEVELS = ("off", "low", "medium", "high", "xhigh", "ultra")
 # Giá trị effort GỬI LÊN API kiểu OpenAI (OpenAI, Groq, Gemini, OpenRouter, Codex). Mấy nhà đó
 # chỉ nhận low|medium|high; gửi "ultra" là ăn 400 và hỏng cả lượt chat, nên hai nấc trên cùng
@@ -1031,7 +1031,7 @@ _API_EFFORT = {"low": "low", "medium": "medium", "high": "high", "xhigh": "high"
 
 
 def api_effort(reasoning):
-    """Mức Naota -> giá trị effort AN TOÀN để nhét vào payload của nhà cung cấp.
+    """Mức NAOSO -> giá trị effort AN TOÀN để nhét vào payload của nhà cung cấp.
 
     Nơi gọi phải TỰ chặn mức "off" trước (không gửi trường effort gì cả); hàm này chỉ lo dịch
     mức đã bật. Giá trị lạ rơi về "medium" để một chỗ ghi sai config không làm hỏng cả lượt chat.
@@ -1047,10 +1047,10 @@ _EFFORT_CO_MAX = ("opus-4-6", "sonnet-4-6")
 
 
 def _anthropic_effort(model, reasoning):
-    """Mức Naota -> mức effort của Messages API, theo đúng thứ model đó nhận được.
+    """Mức NAOSO -> mức effort của Messages API, theo đúng thứ model đó nhận được.
 
     Vì sao không dùng chung `api_effort`: bảng kia bóp "xhigh" và "ultra" xuống "high" cho hợp
-    với các nhà kiểu OpenAI, nên trên Anthropic thì ba nấc trên cùng của Naota ra cùng một kết
+    với các nhà kiểu OpenAI, nên trên Anthropic thì ba nấc trên cùng của NAOSO ra cùng một kết
     quả. Người dùng chọn "Tối đa" và không có gì thay đổi - hỏng kiểu im lặng nhất.
     """
     m = (model or "").lower()
@@ -1093,7 +1093,7 @@ def _groq_is_reasoning(model):
     return any(s in m for s in ("qwen3", "deepseek-r1", "gpt-oss", "thinking", "reasoning"))
 
 
-# Naota level -> DeepSeek `reasoning_effort`. DeepSeek only knows low|high|max (it maps
+# NAOSO level -> DeepSeek `reasoning_effort`. DeepSeek only knows low|high|max (it maps
 # medium/xhigh to high on its own), so send the values it names instead of relying on that.
 _DEEPSEEK_EFFORT = {"low": "low", "medium": "high", "high": "high", "xhigh": "max", "ultra": "max"}
 _DEEPSEEK_THINKING_OFF = {"thinking": {"type": "disabled"}}
@@ -1129,7 +1129,7 @@ def _gemini_is_reasoning(model):
     """True when a Gemini model takes `reasoning_effort` on the OpenAI-compatible endpoint.
 
     Every Gemini from 2.5 on thinks. The old check listed versions by hand ("2.5", "gemini-3"),
-    so Gemini 4 (Hydrogen, Argon, Carbon) was read as a model that cannot think: Naota never sent
+    so Gemini 4 (Hydrogen, Argon, Carbon) was read as a model that cannot think: NAOSO never sent
     the Effort level, and the slider silently did nothing on those models. Compare the version
     number instead, so the next family is covered too. Only 1.x and 2.0 stay out (they answer
     400 to the field), plus models that carry no Gemini version at all (gemma, learnlm).
@@ -1147,7 +1147,7 @@ def _gemini_is_reasoning(model):
 # ── Ollama (Local): its OWN thinking level, not the shared Effort button ─────────────────
 # qwen3 and most local reasoning models think BY DEFAULT when the request says nothing. On a home machine one long think can
 # eat the whole turn: a user counted CSV rows with qwen3 and got "Ollama (Local) returned nothing" after 69 s of thinking, and
-# a rerun was still thinking after 5 minutes. Naota never sent a thinking switch to this provider, so nothing could stop it.
+# a rerun was still thinking after 5 minutes. NAOSO never sent a thinking switch to this provider, so nothing could stop it.
 # And the Effort button is one setting for every model: "Medium" suits Claude but makes a local model ramble, "Off" tames the
 # local model but takes thinking away from Claude. So Ollama (Local) reads its own level, `model.ollama_local_reasoning`,
 # default "off", and the Effort button no longer reaches it.
@@ -1343,7 +1343,7 @@ async def openai_compat_chat_with_mcp(api_key, model, messages, reasoning, mcp_t
 
 async def ollama_local_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp_route):
     """Ollama máy nhà + vòng tool-calling MCP. Model local biết gọi tool (qwen3, mistral...)
-    thì có đủ đồ nghề của Naota y như mọi provider API khác."""
+    thì có đủ đồ nghề của NAOSO y như mọi provider API khác."""
     url = ollama_local_url()
     if not url:
         yield {"type": "error", "content": _c("Chưa đặt địa chỉ Ollama trong trang Models.", "No Ollama address set on the Models page.")}
@@ -1407,7 +1407,7 @@ async def _anthropic_stream_once(api_key, model, messages, reasoning="off", fast
     gỡ (xem claude_auth.py). Gói Claude Code nay đi qua binary `claude`, không qua đây.
     """
     sys_parts = [m.get("content", "") for m in messages if m.get("role") == "system"]
-    # Ảnh khách gửi đi theo khuôn OpenAI trong Naota; Anthropic có khuôn riêng, đổi ở đây.
+    # Ảnh khách gửi đi theo khuôn OpenAI trong NAOSO; Anthropic có khuôn riêng, đổi ở đây.
     conv = [{"role": m["role"], "content": vision_input.to_anthropic(m.get("content", ""))}
             for m in messages if m.get("role") in ("user", "assistant")]
     headers = anthropic_headers(api_key, compat)
@@ -1576,7 +1576,7 @@ async def single_tool_plan(provider, api_key, model, messages, reasoning, tool_s
     url, actual_model = endpoints[provider]
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     if provider == "openrouter":
-        headers.update({"HTTP-Referer": "http://localhost:7777", "X-Title": "NAOTA"})
+        headers.update({"HTTP-Referer": "http://localhost:7777", "X-Title": "NAOSO"})
     payload = {
         "model": actual_model, "messages": list(messages), "tools": [tool_spec],
         "tool_choice": {"type": "function", "function": {"name": fn}},
@@ -1635,7 +1635,7 @@ async def _openrouter_stream_once(api_key, model, messages, reasoning="off", fas
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         "HTTP-Referer": "http://localhost:7777",
-        "X-Title": "NAOTA",
+        "X-Title": "NAOSO",
     }
     if _is_claude_model(model):
         messages = _or_mark_system(messages)   # cache system ~26k cho model Claude qua OpenRouter
@@ -1881,7 +1881,7 @@ async def _openai_responses_stream_once(access_token, account_id, model, message
 
 
 # ============================================================
-# MCP đa-model - vòng tool-calling để model API/OAuth dùng MCP của Naota (qua mcp_client)
+# MCP đa-model - vòng tool-calling để model API/OAuth dùng MCP của NAOSO (qua mcp_client)
 # ============================================================
 async def _call_tool_for_model(mcp_route, fn, args):
     """One tool call whose result a MODEL reads next. The hub shapes a connection's result for that reader
@@ -2090,7 +2090,7 @@ def _schedule_read_request(messages):
 def _schedule_create_request(messages):
     """Chỉ nhận lệnh TẠO reminder/cron trực tiếp, không nhận câu đang bàn về khái niệm "đặt lịch".
 
-    ``naota_schedule`` là lịch tự động nội bộ của Naota, khác booking/cuộc hẹn/Calendar. Model có
+    ``naota_schedule`` là lịch tự động nội bộ của NAOSO, khác booking/cuộc hẹn/Calendar. Model có
     thể chủ động function-call ngay cả khi gateway không ép tool, nên điều kiện này còn được dùng
     làm cổng chặn trước mọi lần thực thi tool.
     """
@@ -2142,7 +2142,7 @@ def _schedule_create_request(messages):
 
 
 def _schedule_cancel_request(messages):
-    """Nhận diện yêu cầu huỷ/xoá lịch, không nhầm với câu chỉ hỏi hoặc lịch ngoài Naota."""
+    """Nhận diện yêu cầu huỷ/xoá lịch, không nhầm với câu chỉ hỏi hoặc lịch ngoài NAOSO."""
     last, command = _direct_schedule_cancel_request(messages)
     if last is None or command is None:
         return False
@@ -2153,7 +2153,7 @@ def _schedule_cancel_request(messages):
     )) or bool(re.search(r"\bhen\b", q))
     # Người dùng thường nói gọn "huỷ lịch Làm việc tại cafe", không nhắc lại chữ cron/reminder.
     # Trước đây câu này lọt khỏi gateway, model tự đoán DELETE/JSON rồi có thể sửa thẳng
-    # reminders.json. Chỉ nhận chữ "lịch" độc lập và tránh lịch ngoài Naota (Google Calendar,
+    # reminders.json. Chỉ nhận chữ "lịch" độc lập và tránh lịch ngoài NAOSO (Google Calendar,
     # cuộc họp/sự kiện) để không cướp yêu cầu của tool Calendar.
     plain_schedule = bool(re.search(r"\blich\b", q))
     external_calendar = any(x in q for x in (
@@ -2183,7 +2183,7 @@ def _schedule_tool_allowed(messages, name, args):
 def _schedule_tool_blocked_result():
     return (
         "BỊ CHẶN: user chỉ đang hỏi hoặc thảo luận về việc đặt lịch, không yêu cầu đọc hay thay đổi "
-        "lịch tự động của Naota. Hãy trả lời trực tiếp câu hỏi; không liệt kê cron/reminder và không "
+        "lịch tự động của NAOSO. Hãy trả lời trực tiếp câu hỏi; không liệt kê cron/reminder và không "
         "khẳng định đã tạo, sửa hoặc huỷ lịch."
     )
 
@@ -2304,7 +2304,7 @@ async def schedule_cancel_gateway(messages, mcp_tools, mcp_route):
 GON_NGAN_SACH = 200_000
 GON_GIU_MOI = 8
 GON_DAU = 1200
-_GON_DAU_HIEU = "[Naota đã rút gọn kết quả tool cũ này"
+_GON_DAU_HIEU = "[NAOSO đã rút gọn kết quả tool cũ này"
 
 
 def _gon_ngan_sach() -> int:
@@ -2382,7 +2382,7 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
         answers 400 when a thinking request with tools is missing it;
       - a turn that must force a tool runs with thinking off from the start, because a forced
         tool_choice is also a 400 in thinking mode;
-      - a 400 about thinking itself (Naota history never stored `reasoning_content` for older
+      - a 400 about thinking itself (NAOSO history never stored `reasoning_content` for older
         turns) drops to thinking off for the rest of the turn instead of failing it."""
     import mcp_client
     tools = _mcp_to_openai_tools(mcp_tools)
@@ -2414,7 +2414,7 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
             msgs.append({
                 "role": "system",
                 "content": (
-                    "Naota gateway đã thao tác lịch bằng dữ liệu thật. Xác nhận ngắn gọn kết quả sau, "
+                    "NAOSO gateway đã thao tác lịch bằng dữ liệu thật. Xác nhận ngắn gọn kết quả sau, "
                     "không nói rằng thiếu tool:\n\n" + cancel_gate.get("result", "")
                 ),
             })
@@ -2423,7 +2423,7 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
             msgs.append({
                 "role": "system",
                 "content": (
-                    "Naota đã đọc kho lịch thật và không có lịch đang chạy để xoá. "
+                    "NAOSO đã đọc kho lịch thật và không có lịch đang chạy để xoá. "
                     "Báo đúng kết quả này, không nói thiếu tool:\n\n"
                     + cancel_gate.get("list_result", "")
                 ),
@@ -2433,7 +2433,7 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
             msgs.append({
                 "role": "system",
                 "content": (
-                    "Naota đã đọc danh sách lịch thật nhưng có nhiều mục và chưa đủ chắc chắn để xoá. "
+                    "NAOSO đã đọc danh sách lịch thật nhưng có nhiều mục và chưa đủ chắc chắn để xoá. "
                     "Hãy hỏi user chọn đúng tên hoặc ID trong danh sách dưới đây; KHÔNG nói thiếu tool "
                     "và KHÔNG xác nhận đã xoá:\n\n" + cancel_gate.get("list_result", "")
                 ),
@@ -2627,9 +2627,9 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
             yield {
                 "type": "error",
                 "content": _c(
-                    f"{label} model '{model}' đã bỏ qua tool bắt buộc nên Naota không dùng câu trả lời "
+                    f"{label} model '{model}' đã bỏ qua tool bắt buộc nên NAOSO không dùng câu trả lời "
                     "có nguy cơ bịa dữ liệu. Hãy chọn model có hỗ trợ tool/function calling.",
-                    f"{label} model '{model}' skipped a required tool, so Naota did not use an answer "
+                    f"{label} model '{model}' skipped a required tool, so NAOSO did not use an answer "
                     "that risks made-up data. Pick a model that supports tool/function calling."
                 ),
             }
@@ -2664,7 +2664,7 @@ async def _cc_tool_loop(url, headers, model, messages, mcp_tools, mcp_route, rea
 #     Engine CLI (Claude Code, Codex) không có trần vòng nào, nên đổi bộ não sang API key mà bị
 #     cắt ở vòng 30 là phá lời hứa "đổi model không đổi năng lực".
 #   - BOT NÓI CHUYỆN VỚI KHÁCH và mọi lượt không rõ chủ (mặc định của cờ): 30, kẹp 1-120, chỉnh
-#     bằng NAOTA_MAX_TOOL_ROUNDS. Người lạ không được phép bắt Naota đốt hàng trăm vòng token.
+#     bằng NAOTA_MAX_TOOL_ROUNDS. Người lạ không được phép bắt NAOSO đốt hàng trăm vòng token.
 # Cờ `_PHIEN_CODING` (tên cũ, nghĩa nay là "lượt này là việc của chủ") do chỗ gọi bật bằng
 # `chay_trong_phien_coding`: main bật cho lượt chat của chủ, aux_engine bật cho việc nền có tool.
 _PHIEN_CODING: contextvars.ContextVar = contextvars.ContextVar("naota_phien_coding", default=False)
@@ -2701,7 +2701,7 @@ def _nhac_sap_het(vong: int, tong: int) -> str:
     """Câu nối vào kết quả tool khi lượt chỉ còn NHAC_KHI_CON vòng. "" ở mọi vòng khác."""
     if tong <= NHAC_KHI_CON * 2 or tong - vong - 1 != NHAC_KHI_CON:
         return ""
-    return (f"\n\n⚠ [Naota] Lượt này chỉ còn {NHAC_KHI_CON} vòng gọi tool. Chốt việc: làm nốt bước "
+    return (f"\n\n⚠ [NAOSO] Lượt này chỉ còn {NHAC_KHI_CON} vòng gọi tool. Chốt việc: làm nốt bước "
             "quan trọng nhất, rồi trả lời người dùng bằng bản tóm tắt đã làm gì, còn gì dở, và bước "
             "tiếp theo nên là gì.")
 
@@ -2732,19 +2732,19 @@ def _het_vong_msg() -> str:
     n = _max_tool_rounds()
     if _PHIEN_CODING.get():
         return _c(f"\n\n⚠ Đã chạy hết {n} vòng gọi tool cho lượt này nên phải dừng, câu trả lời ở "
-                  f"trên có thể còn dở. Cách xử lý: nhắn \"làm tiếp\" để Naota chạy nốt phần còn lại, "
+                  f"trên có thể còn dở. Cách xử lý: nhắn \"làm tiếp\" để NAOSO chạy nốt phần còn lại, "
                   f"hoặc nâng trần bằng biến môi trường NAOTA_MAX_TOOL_ROUNDS_CODING (tối đa "
-                  f"{TRAN_CHU_TOI_DA}, đặt 0 là không giới hạn) rồi khởi động lại Naota.",
+                  f"{TRAN_CHU_TOI_DA}, đặt 0 là không giới hạn) rồi khởi động lại NAOSO.",
                   f"\n\n⚠ All {n} tool-call rounds for this turn were used, so it had to stop; the answer "
-                  f"above may be incomplete. To fix: reply \"continue\" so Naota finishes the rest, or "
+                  f"above may be incomplete. To fix: reply \"continue\" so NAOSO finishes the rest, or "
                   f"raise the limit with the environment variable NAOTA_MAX_TOOL_ROUNDS_CODING (up to "
-                  f"{TRAN_CHU_TOI_DA}, 0 means no limit) and restart Naota.")
+                  f"{TRAN_CHU_TOI_DA}, 0 means no limit) and restart NAOSO.")
     return _c(f"\n\n⚠ Đã chạy hết {n} vòng gọi tool cho lượt này nên phải dừng, câu trả lời ở "
               f"trên có thể còn dở. Cách xử lý: chia nhỏ yêu cầu thành từng bước, hoặc nâng trần "
-              f"bằng biến môi trường NAOTA_MAX_TOOL_ROUNDS (tối đa 120) rồi khởi động lại Naota.",
+              f"bằng biến môi trường NAOTA_MAX_TOOL_ROUNDS (tối đa 120) rồi khởi động lại NAOSO.",
               f"\n\n⚠ All {n} tool-call rounds for this turn were used, so it had to stop; the answer "
               f"above may be incomplete. To fix: split the request into steps, or raise the limit "
-              f"with the environment variable NAOTA_MAX_TOOL_ROUNDS (up to 120) and restart Naota.")
+              f"with the environment variable NAOTA_MAX_TOOL_ROUNDS (up to 120) and restart NAOSO.")
 
 
 class _LapGuard:
@@ -2820,12 +2820,12 @@ class _LapGuard:
 
     def loi_nhac(self) -> str:
         if self.tham_do == self.DUNG_THAM_DO - 5:
-            return (f"\n\n⚠ [Naota] Bạn đã gọi lại đúng lời gọi này {self.tham_do} lần để chờ một việc "
+            return (f"\n\n⚠ [NAOSO] Bạn đã gọi lại đúng lời gọi này {self.tham_do} lần để chờ một việc "
                     "đang chạy. Nếu việc còn lâu, hãy chuyển nó chạy nền (naota_job op=then) rồi trả lời "
                     "người dùng thay vì ngồi chờ tiếp.")
         if self.lap != self.NHAC:
             return ""
-        return (f"\n\n⚠ [Naota] Bạn vừa gọi đúng tool này với đúng tham số này {self.NHAC} vòng "
+        return (f"\n\n⚠ [NAOSO] Bạn vừa gọi đúng tool này với đúng tham số này {self.NHAC} vòng "
                 "liên tiếp - kết quả sẽ không đổi. ĐỪNG gọi lại nữa: trả lời ngay bằng dữ liệu "
                 "đã có, hoặc đổi tham số nếu thật sự cần dữ liệu khác.")
 
@@ -2835,10 +2835,10 @@ class _LapGuard:
 
 def _loi_ket_vong() -> str:
     return _c("\n\n⚠ Model cứ gọi lại cùng tool với cùng tham số mà không tiến triển (kẹt vòng lặp) "
-              "nên Naota dừng lượt này để không đốt token vô ích. Câu trả lời ở trên có thể còn dở - "
+              "nên NAOSO dừng lượt này để không đốt token vô ích. Câu trả lời ở trên có thể còn dở - "
               "nhắn \"làm tiếp\", nói rõ hơn yêu cầu, hoặc đổi model ở trang Models.",
               "\n\n⚠ The model kept calling the same tool with the same arguments without making progress "
-              "(stuck in a loop), so Naota stopped this turn to avoid burning tokens. The answer above may "
+              "(stuck in a loop), so NAOSO stopped this turn to avoid burning tokens. The answer above may "
               "be incomplete - reply \"continue\", state the request more clearly, or switch model on the Models page.")
 
 
@@ -2855,7 +2855,7 @@ async def openai_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, m
 
 async def groq_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp_route):
     """Groq (endpoint OpenAI-compat) + vòng tool-calling MCP - Groq cũng là agent đủ đồ nghề
-    của Naota y như OpenAI/Gemini. Non-stream từng vòng (dùng _cc_tool_loop chung)."""
+    của NAOSO y như OpenAI/Gemini. Non-stream từng vòng (dùng _cc_tool_loop chung)."""
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     extra = {}
     if reasoning not in (None, "", "off") and _groq_is_reasoning(model):
@@ -2866,7 +2866,7 @@ async def groq_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp
 
 
 async def deepseek_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp_route):
-    """DeepSeek + vòng tool-calling MCP - đủ đồ nghề của Naota như các provider API khác.
+    """DeepSeek + vòng tool-calling MCP - đủ đồ nghề của NAOSO như các provider API khác.
 
     Thinking is on by default at DeepSeek, so "off" sends an explicit switch. When the user
     asks for thinking, `_cc_tool_loop` gets `thinking_fallback` and handles DeepSeek's two
@@ -2882,7 +2882,7 @@ async def deepseek_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools,
 
 
 async def ollama_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp_route):
-    """Ollama Cloud + vòng tool-calling MCP - cũng là agent đủ đồ nghề của Naota y như các
+    """Ollama Cloud + vòng tool-calling MCP - cũng là agent đủ đồ nghề của NAOSO y như các
     provider API khác, miễn model biết gọi tool (gpt-oss, qwen3-coder, deepseek... đều biết)."""
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     yield {"type": "meta", "model": model}
@@ -2893,7 +2893,7 @@ async def ollama_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, m
 
 async def gemini_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp_route):
     """Google Gemini (endpoint OpenAI-compat) + vòng tool-calling MCP - Gemini cũng thành
-    agent dùng MCP của Naota, y như OpenAI. Non-stream từng vòng (dùng _cc_tool_loop chung)."""
+    agent dùng MCP của NAOSO, y như OpenAI. Non-stream từng vòng (dùng _cc_tool_loop chung)."""
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     extra = {}
     if reasoning not in (None, "", "off") and _gemini_is_reasoning(model):
@@ -2906,7 +2906,7 @@ async def gemini_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, m
 
 async def openrouter_chat_with_mcp(api_key, model, messages, reasoning, mcp_tools, mcp_route):
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json",
-               "HTTP-Referer": "http://localhost:7777", "X-Title": "NAOTA"}
+               "HTTP-Referer": "http://localhost:7777", "X-Title": "NAOSO"}
     extra = {}
     if reasoning not in (None, "", "off"):
         extra["reasoning"] = {"effort": api_effort(reasoning)}

@@ -1,12 +1,12 @@
 """Sign in to GitHub with one button: the OAuth device flow of the "NAOTA" GitHub App.
 
-Why the device flow and not the redirect flow Claude uses: every Naota runs at its own address (localhost, a VPS IP,
+Why the device flow and not the redirect flow Claude uses: every NAOSO runs at its own address (localhost, a VPS IP,
 a tunnel), so there is no single callback URL to register, and the repo is public, so it cannot carry a client
-secret. The device flow needs neither: Naota asks GitHub for a short code, the person types it at
-github.com/login/device and presses Authorize, and Naota polls until GitHub hands over the token. It works the same on
+secret. The device flow needs neither: NAOSO asks GitHub for a short code, the person types it at
+github.com/login/device and presses Authorize, and NAOSO polls until GitHub hands over the token. It works the same on
 a VPS with no browser.
 
-Why a GitHub App and not an OAuth App: the person picks which repos Naota can see by installing the app on them
+Why a GitHub App and not an OAuth App: the person picks which repos NAOSO can see by installing the app on them
 (github.com/apps/naota/installations/new), and the token only carries the app's fine-grained permissions
 (Contents, Pull requests, Workflows read/write; Checks, Commit statuses, Actions read).
 
@@ -65,7 +65,7 @@ def _web() -> str:
 
 
 def install_url() -> str:
-    """Where the person picks the repos Naota may see (install the app, or change an existing install)."""
+    """Where the person picks the repos NAOSO may see (install the app, or change an existing install)."""
     return f"https://github.com/apps/{app_slug()}/installations/new"
 
 
@@ -94,10 +94,10 @@ def _error_text(code: str, desc: str = "") -> str:
                             "You pressed Cancel on GitHub. Press Sign in again to connect."),
         "expired_token": _c("Mã đã hết hạn. Bấm Đăng nhập lần nữa để lấy mã mới.",
                             "The code expired. Press Sign in again for a new one."),
-        "device_flow_disabled": _c("GitHub App của Naota chưa bật Device Flow.",
-                                   "The Naota GitHub App does not have Device Flow enabled."),
-        "incorrect_client_credentials": _c("GitHub không nhận Client ID của Naota.",
-                                           "GitHub does not recognise the Naota client id."),
+        "device_flow_disabled": _c("GitHub App của NAOSO chưa bật Device Flow.",
+                                   "The NAOSO GitHub App does not have Device Flow enabled."),
+        "incorrect_client_credentials": _c("GitHub không nhận Client ID của NAOSO.",
+                                           "GitHub does not recognise the NAOSO client id."),
     }
     return known.get(code) or _c(f"GitHub từ chối đăng nhập: {desc or code}", f"GitHub refused the sign-in: {desc or code}")
 
@@ -126,7 +126,7 @@ def poll() -> Dict[str, Any]:
     """One poll. Returns {status: pending} | {status: done, token: {...}} | {status: error, error}.
 
     The dashboard may poll faster than GitHub allows; a call before `next_at` answers pending without reaching GitHub,
-    so Naota never earns a `slow_down`. The token dict stays inside the server (the route stores it and drops it)."""
+    so NAOSO never earns a `slow_down`. The token dict stays inside the server (the route stores it and drops it)."""
     with _lock:
         p = dict(_pending)
     if not p:

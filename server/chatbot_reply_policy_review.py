@@ -641,8 +641,8 @@ def review_message(res: dict) -> str:
                           "One issue needs a code change (written to Naota/gop-y-bo-phan-xu.md): {f}",
                           f=untrusted_text(res["feedback"], 240)))
     if res.get("applied"):
-        parts.append(_chu('Không vừa ý thì nhắn Naota: "hoàn lại lần tự soát {r} của {b}".',
-                          'If you do not like it, tell Naota: "undo review {r} of {b}".', r=res["review_id"], b=name))
+        parts.append(_chu('Không vừa ý thì nhắn NAOSO: "hoàn lại lần tự soát {r} của {b}".',
+                          'If you do not like it, tell NAOSO: "undo review {r} of {b}".', r=res["review_id"], b=name))
     return "\n".join(parts)
 
 

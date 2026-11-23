@@ -1,19 +1,19 @@
 ---
-name: Naota Builder
-description: "Tạo hoặc sửa năng lực của Naota: agent, skill, workflow, loop, plugin. Kèm mẫu file chuẩn và luật chống trùng."
-description_en: "Create or edit a Naota capability: agent, skill, workflow, loop, plugin. Ships file templates and the rules against duplicates."
+name: NAOSO Builder
+description: "Tạo hoặc sửa năng lực của NAOSO: agent, skill, workflow, loop, plugin. Kèm mẫu file chuẩn và luật chống trùng."
+description_en: "Create or edit a NAOSO capability: agent, skill, workflow, loop, plugin. Ships file templates and the rules against duplicates."
 group: AI
 ---
 
-# Naota Builder - tạo agent / skill / workflow / loop
+# NAOSO Builder - tạo agent / skill / workflow / loop
 
 ## Khi nào dùng
 
 Kích hoạt khi người dùng nói những câu như: "tạo agent chuyên X", "thêm kỹ năng Y",
 "dựng workflow nghiên cứu rồi viết", "tạo loop mỗi 2 tiếng làm Z", "viết tool/plugin
-tính ...", "làm cho Naota biết làm ...".
+tính ...", "làm cho NAOSO biết làm ...".
 
-Khi người dùng muốn Naota có thêm một năng lực, bạn TỰ GHI FILE .md đúng chuẩn dưới đây vào
+Khi người dùng muốn NAOSO có thêm một năng lực, bạn TỰ GHI FILE .md đúng chuẩn dưới đây vào
 vault (brain đang chọn). Studio / trang tương ứng tự nhận file mới. Luôn báo cáo ngắn sau khi tạo.
 
 ## Quy trình (làm đúng thứ tự)
@@ -174,7 +174,7 @@ Cài thẳng vào app, mọi engine đều gọi được: `naota_plugin` op=wri
 - Trước khi tạo: op=list xem đã có plugin nào trùng việc chưa; có thì op=read rồi sửa plugin đó.
 - Sửa: op=read lấy file hiện tại, op=write chỉ gửi file đổi; `remove` = danh sách file cần xoá.
 - Tool tự từ chối lỗi cú pháp Python, đường dẫn lạ, đuôi file lạ, slug trùng plugin hệ thống: đọc câu ERROR, sửa, gửi lại.
-- Plugin mới, hoặc bản sửa đổi mã (.py) hay đổi tools/hooks/min_mode, luôn nằm TẮT. Naota KHÔNG bật được;
+- Plugin mới, hoặc bản sửa đổi mã (.py) hay đổi tools/hooks/min_mode, luôn nằm TẮT. NAOSO KHÔNG bật được;
   nói rõ với người dùng: đọc mã rồi bật ở trang Plugins. Sửa chỉ phần mô tả thì giữ nguyên trạng thái.
 - op=delete chỉ gỡ plugin do chính tool này tạo và đang tắt; còn lại để người dùng gỡ ở trang Plugins.
 
@@ -214,10 +214,10 @@ ctx có `ctx.vault_root`, `ctx.data_dir` (state riêng plugin, không đụng va
 - Skill do engine TỰ HỌC sinh ra -> tạo BẬT sẵn (đánh dấu `origin: naota-learned`), nhưng KHÔNG ghi
   đè skill đã có và KHÔNG hồi sinh skill user đã tắt; agent tự động -> để nháp chờ duyệt. Skill do
   user yêu cầu trực tiếp -> tạo bật luôn nhưng phải kiểm trùng + `description` nêu rõ năng lực,
-  phân biệt được với skill khác (mô tả mơ hồ làm Naota chọn skill sai). Đừng tạo skill trùng
+  phân biệt được với skill khác (mô tả mơ hồ làm NAOSO chọn skill sai). Đừng tạo skill trùng
   chức năng skill đã có.
 - Plugin user (toàn cục lẫn vault) chạy CODE PYTHON THẬT trong tiến trình server -> tạo qua `naota_plugin`
   (tool tự để `enabled: false`), `min_mode` đúng việc tool làm, và NÓI RÕ với user: plugin nằm tắt cho tới khi họ bật nó trong app.
-  Naota cho tải plugin người dùng mặc định; máy nào muốn chặn hẳn thì đặt env `NAOTA_ENABLE_USER_PLUGINS=false`
+  NAOSO cho tải plugin người dùng mặc định; máy nào muốn chặn hẳn thì đặt env `NAOTA_ENABLE_USER_PLUGINS=false`
   rồi khởi động lại. Plugin làm hành động ra ngoài thì khai `min_mode: full` cho đúng, hub xét theo mức quyền của chỗ gọi.
 - Sau khi tạo, KHÔNG tự chạy thứ có side-effect; để user xem trước.

@@ -19,7 +19,7 @@ Slow spots. An incident starts at BLOCK_S (2 s): long enough to drop sockets, fa
 owner felt "a few seconds" on page loads and chat switches while the loop froze 0.3 to 1.5 s at a time (the Kanban
 dispatcher writing SQLite on the loop), and none of it reached this report. So every freeze of SLOW_S or more is
 sampled too: the watch thread takes the loop thread's stack each tick while it is frozen, and the freeze is counted
-against the Naota code it was stuck in most often. GET /health/loop then lists the slow spots by total time lost
+against the NAOSO code it was stuck in most often. GET /health/loop then lists the slow spots by total time lost
 (`slow_top`) and the latest ones (`slow_recent`), on the owner's real machine instead of a guess.
 """
 from __future__ import annotations
@@ -82,7 +82,7 @@ def _stack_of(thread_id: Optional[int]) -> list:
 
 
 def _where(thread_id: Optional[int]) -> tuple:
-    """(place, stack) of the loop thread now: place = the three innermost Naota frames, innermost first."""
+    """(place, stack) of the loop thread now: place = the three innermost NAOSO frames, innermost first."""
     frame = sys._current_frames().get(thread_id) if thread_id else None
     if frame is None:
         return "", []

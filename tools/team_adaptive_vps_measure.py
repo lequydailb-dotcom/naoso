@@ -1,8 +1,8 @@
 """CHƯA CHẠY. Kịch bản đo nhóm chat thích nghi TRÊN VPS (T4), chỉ ĐỌC, chuẩn bị sẵn để chạy khi chủ dự án cho phép.
 
 TRẠNG THÁI: chưa chạy lần nào. Không ai được chạy script này khi chưa có lệnh duyệt trực tiếp của chủ dự án (GOAL mục 10, 13).
-Script KHÔNG tự kết nối tới VPS nào: người vận hành đăng nhập VPS theo cách thường lệ, chép script vào trong container Naota
-rồi chạy ở ĐÓ, trỏ tới chính Naota trong container (mặc định http://127.0.0.1:8080).
+Script KHÔNG tự kết nối tới VPS nào: người vận hành đăng nhập VPS theo cách thường lệ, chép script vào trong container NAOSO
+rồi chạy ở ĐÓ, trỏ tới chính NAOSO trong container (mặc định http://127.0.0.1:8080).
 
     python team_adaptive_vps_measure.py --owner-approved "<mã duyệt hay link tin duyệt>" \\
         --base-url http://127.0.0.1:8080 --state-dir /app/state --brain "<tên brain>" --out vps-t4.json
@@ -12,7 +12,7 @@ Chỉ đọc:
   không gửi tin, không bật tắt gì, không gọi model. Phiên đăng nhập lấy từ biến môi trường NAOTA_MEASURE_COOKIE (chuỗi
   Cookie của trình duyệt đã đăng nhập), không ghi ra file kết quả.
 - SQLite: mở `mode=ro` (URI chỉ đọc), chỉ đếm dòng và kích thước file; không ghi, không VACUUM, không tạo chỉ mục.
-- Header `Server-Timing` (app;dur=) tách thời gian Naota xử lý khỏi thời gian đi qua proxy.
+- Header `Server-Timing` (app;dur=) tách thời gian NAOSO xử lý khỏi thời gian đi qua proxy.
 
 Kết quả là JSON: máy, phiên bản, số dòng các kho, p50/p95 từng route (thời gian vòng và Server-Timing), độ trễ `/health` khi
 có tải đọc đồng thời (đại diện cho event loop bị giữ). So với team-chat-t4-bench (máy local, engine giả).
@@ -139,7 +139,7 @@ def main(argv=None) -> int:
         return 2
     host = urllib.parse.urlparse(a.base_url).hostname or ""
     if host not in ("127.0.0.1", "localhost", "::1"):
-        print("DỪNG: chỉ đo Naota ngay trong container (127.0.0.1); không đo qua mạng.", file=sys.stderr)
+        print("DỪNG: chỉ đo NAOSO ngay trong container (127.0.0.1); không đo qua mạng.", file=sys.stderr)
         return 2
     cookie = os.environ.get("NAOTA_MEASURE_COOKIE", "")
     q = {"brain": a.brain}

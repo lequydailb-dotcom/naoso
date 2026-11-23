@@ -1,15 +1,15 @@
 #!/bin/bash
 # ============================================================
-# NAOTA.app (the one inside Naota-macOS.dmg) - what a double-click runs.
+# NAOSO.app (the one inside Naota-macOS.dmg) - what a double-click runs.
 #
-# First run (no Naota in ~/Naota yet): opens Terminal on bootstrap.sh, which checks the Mac,
-# installs what is missing and starts Naota. Terminal on purpose: the first install takes
+# First run (no NAOSO in ~/Naota yet): opens Terminal on bootstrap.sh, which checks the Mac,
+# installs what is missing and starts NAOSO. Terminal on purpose: the first install takes
 # minutes and may ask for the Mac password once, so the person must SEE what happens.
-# Every run after that: bin/naota-start.sh, which only opens the window when Naota is already
+# Every run after that: bin/naota-start.sh, which only opens the window when NAOSO is already
 # up and starts it first when it is not. It never restarts a running server.
 #
-# Unlike the in-repo "NAOTA.app" (which must stay inside the repo folder), this bundle can
-# live in /Applications: it finds Naota through NAOTA_HOME, default ~/Naota.
+# Unlike the in-repo "NAOSO.app" (which must stay inside the repo folder), this bundle can
+# live in /Applications: it finds NAOSO through NAOTA_HOME, default ~/Naota.
 # ============================================================
 NAOTA_HOME="${NAOTA_HOME:-$HOME/Naota}"
 RES="$(cd "$(dirname "$0")/../Resources" && pwd)"
@@ -35,5 +35,5 @@ then
   # %q escapes spaces and quotes in a form both bash and zsh (the Terminal default) accept.
   printf 'NAOTA_HOME=%q bash %q\n' "${NAOTA_HOME}" "${RES}/bootstrap.sh" | pbcopy
   open -a Terminal
-  osascript -e 'display alert "NAOTA" message "Terminal is open. Paste (Cmd+V) and press Enter to install NAOTA.\n\nTerminal da mo. Dan (Cmd+V) roi bam Enter de cai NAOTA."' >/dev/null 2>&1 || true
+  osascript -e 'display alert "NAOTA" message "Terminal is open. Paste (Cmd+V) and press Enter to install NAOSO.\n\nTerminal da mo. Dan (Cmd+V) roi bam Enter de cai NAOSO."' >/dev/null 2>&1 || true
 fi

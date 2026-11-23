@@ -1,6 +1,6 @@
 """Pinned folders and folders open by default in the Vault tree (user request, 2026-11-11).
 
-A user who moved from a local Naota to a VPS asked for two things in the Vault panel: pin a folder to the top, and have
+A user who moved from a local NAOSO to a VPS asked for two things in the Vault panel: pin a folder to the top, and have
 a folder already unfolded when the tree loads ("I pin the wiki folder and keep it open"). On the local install they had
 patched the dashboard by hand; on a VPS that is not an option, so it is a setting now.
 
@@ -13,7 +13,7 @@ Stored in settings.json under "vault_tree", one entry per brain:
   server is reached (a whole drive on localhost, the brain on a public bind) while the brain root does not.
 - A folder that no longer exists is left out of what is read, and stays in the store until the next save. A folder
   that is missing for a moment (a git sync in progress) therefore comes back on its own.
-- A folder renamed or deleted through Naota (/files/rename, /files/delete) takes its entries along (`moved`): a pinned
+- A folder renamed or deleted through NAOSO (/files/rename, /files/delete) takes its entries along (`moved`): a pinned
   "Wiki" renamed "03 - Wiki" stays pinned, and so does every saved folder inside it.
 """
 from __future__ import annotations

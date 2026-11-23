@@ -6,7 +6,7 @@
       người dùng bấm là spam, và Chrome chặn vĩnh viễn miền đó sau vài lần bị từ chối - tức
       là hỏng luôn cả những lần sau khi người ta THẬT SỰ muốn bật. Chỉ hỏi khi bấm nút.
    2. Không có secure context thì ẩn hẳn nút, kèm lý do. Web Push đòi https (localhost được
-      tính là an toàn); Naota chạy trần bằng IP LAN qua http là không có cách nào lách.
+      tính là an toàn); NAOSO chạy trần bằng IP LAN qua http là không có cách nào lách.
    3. Hụt push không bao giờ đồng nghĩa mất tin: nội dung nằm trong hòm thư ở server. Nút
       này chỉ bật/tắt cái chuông cửa.
 */
@@ -134,12 +134,12 @@
     catch (e) { return []; }
   }
 
-  // Bấm vào thông báo khi Naota đang mở: service worker focus đúng tab này rồi nhắn sang.
+  // Bấm vào thông báo khi NAOSO đang mở: service worker focus đúng tab này rồi nhắn sang.
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.addEventListener("message", function (ev) {
       var d = ev.data || {};
       if (d.type === "naota-which-session") {
-        // sw.js asks which chat this tab shows before a "Naota has answered" notice: same chat = no notice.
+        // sw.js asks which chat this tab shows before a "NAOSO has answered" notice: same chat = no notice.
         var sid = "";
         try { sid = (window.NaotaSessions && window.NaotaSessions.current()) || ""; } catch (e) {}
         try { if (ev.ports && ev.ports[0]) ev.ports[0].postMessage({ session_id: sid }); } catch (e) {}

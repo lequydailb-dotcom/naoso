@@ -2,16 +2,16 @@
 
 ***Tiếng Việt** · [English](en/04-sessions.md)*
 
-Mọi cuộc trò chuyện bạn nói với Naota đều được lưu lại tự động. Trang này hướng dẫn cách xem lại, tìm kiếm, đổi tên, xoá và mở tiếp một cuộc trò chuyện cũ, kể cả cuộc đã diễn ra từ nhiều ngày trước.
+Mọi cuộc trò chuyện bạn nói với NAOSO đều được lưu lại tự động. Trang này hướng dẫn cách xem lại, tìm kiếm, đổi tên, xoá và mở tiếp một cuộc trò chuyện cũ, kể cả cuộc đã diễn ra từ nhiều ngày trước.
 
 Nếu bạn chưa quen với màn hình chat, đọc trước [Trò chuyện & giọng nói](02-tro-chuyen-va-giong-noi.md).
 
 ## Tính năng này là gì
 
-Naota tự lưu lại từng lượt hỏi và trả lời vào một cơ sở dữ liệu trên máy của bạn. Nhờ vậy bạn không mất nội dung khi tắt trình duyệt hay khởi động lại máy chủ. Cụ thể bạn có thể:
+NAOSO tự lưu lại từng lượt hỏi và trả lời vào một cơ sở dữ liệu trên máy của bạn. Nhờ vậy bạn không mất nội dung khi tắt trình duyệt hay khởi động lại máy chủ. Cụ thể bạn có thể:
 
 - Xem danh sách các cuộc trò chuyện cũ, mới nhất nằm trên đầu.
-- Tìm kiếm toàn văn: gõ một từ khoá và Naota tìm trong nội dung của mọi cuộc trò chuyện.
+- Tìm kiếm toàn văn: gõ một từ khoá và NAOSO tìm trong nội dung của mọi cuộc trò chuyện.
 - Mở lại một cuộc cũ và trò chuyện tiếp đúng mạch cũ.
 - Đổi tên cho dễ nhớ.
 - **Ghim** cuộc quan trọng lên đầu danh sách.
@@ -42,18 +42,18 @@ Muốn chuyển một cuộc sang nhóm khác thì rê chuột vào nó và bấ
 
 **Project tự học ngữ cảnh.** Bấm chip project dưới khung chat để mở khung project, gồm ba tab:
 
-- **Hướng dẫn**: luật riêng do bạn viết (tối đa 4000 ký tự), ghép vào mọi lượt chat trong project. Naota chỉ sửa
+- **Hướng dẫn**: luật riêng do bạn viết (tối đa 4000 ký tự), ghép vào mọi lượt chat trong project. NAOSO chỉ sửa
   phần này khi bạn bảo thẳng trong chat, và trả lại bản cũ để khôi phục.
-- **Đã học**: những điều bền và riêng của project mà Naota tự ghi trong lúc làm việc (sự thật, quyết định đã chốt,
+- **Đã học**: những điều bền và riêng của project mà NAOSO tự ghi trong lúc làm việc (sự thật, quyết định đã chốt,
   thuật ngữ). Bạn xem, sửa, xoá, thêm ngay ở đây. Ghi chú bạn viết hay sửa là của bạn và không bị thay khi đầy
   (mỗi project giữ tối đa 60 ghi chú).
 - **Tài liệu**: file, thư mục và link của project chung một danh sách, phân biệt bằng biểu tượng. Nút **Thêm tài
   liệu** có ba cách: tìm trong brain, tải từ máy lên, dán link. File hay link bạn thả vào chat để dùng lâu dài được
-  Naota tự gắn vào đây kèm một dòng nói nó chứa gì; file thả vào chat được chép vào thư mục sources của brain. Bấm
+  NAOSO tự gắn vào đây kèm một dòng nói nó chứa gì; file thả vào chat được chép vào thư mục sources của brain. Bấm
   cây bút trên một hàng để tự viết hay sửa dòng mô tả.
 
 Bạn cũng có thể nói thẳng trong chat: "ghi nhớ cho project này là...", "gắn file này vào project", "project này
-đang nhớ gì". Tắt việc ghi nhớ mới của brain thì Naota cũng ngừng tự ghi vào project. Naota không lưu khoá, mật
+đang nhớ gì". Tắt việc ghi nhớ mới của brain thì NAOSO cũng ngừng tự ghi vào project. NAOSO không lưu khoá, mật
 khẩu hay câu mệnh lệnh lấy từ tài liệu vào phần này.
 
 **Cộng sự và nhóm cũng vậy.** Tài liệu của một cộng sự (nút File & link trong trang Cộng sự) và của một nhóm (tab
@@ -62,7 +62,7 @@ liệu bạn đưa vào để dùng lâu dài và tự ghi mô tả. Mô tả c�
 theo nó khi bạn xuất ra hay chép brain sang máy khác.
 
 **Icon cho Project.** Mở menu chọn nhóm, rê chuột vào một project rồi bấm biểu tượng bảng
-màu. Bảng chọn hiện toàn bộ icon Naota đang dùng, kèm ô lọc theo tên (gõ `star`, `folder`,
+màu. Bảng chọn hiện toàn bộ icon NAOSO đang dùng, kèm ô lọc theo tên (gõ `star`, `folder`,
 `brain`...). Project chưa đặt icon thì mượn tạm icon thư mục, nên hàng nào cũng có icon và mắt
 quét theo cột icon được.
 
@@ -70,7 +70,7 @@ Icon chỉ có ở **Project**, không có ở từng cuộc trò chuyện. Lý 
 cũng là một cuộc trò chuyện nên icon ở đó chẳng phân loại được gì, chỉ thêm một nút phải bấm.
 Còn mỗi project thật sự là một thứ khác nhau, nên icon ở đó mới có việc để làm.
 
-Đây là **icon của chính Naota** chứ không phải emoji, và đó là chủ ý: icon Naota tự đổi màu
+Đây là **icon của chính NAOSO** chứ không phải emoji, và đó là chủ ý: icon NAOSO tự đổi màu
 theo tông sáng hay tối bạn đang dùng, và vẽ giống hệt nhau trên mọi máy. Emoji thì mỗi hệ
 điều hành vẽ một kiểu, lại có màu cứng nên nền tối nhìn chói.
 
@@ -86,7 +86,7 @@ Toàn bộ lịch sử nằm trong một tệp duy nhất tên `conversations.db
 | Mục | Giá trị mặc định | Ghi chú |
 |---|---|---|
 | Tên tệp | `conversations.db` | Định dạng SQLite |
-| Thư mục | Thư mục `server/` của Naota | Cùng chỗ với `settings.json` |
+| Thư mục | Thư mục `server/` của NAOSO | Cùng chỗ với `settings.json` |
 | Biến môi trường đổi vị trí tệp | `NAOTA_SESSIONS_DB` | Trỏ tới đường dẫn tệp `.db` khác |
 | Biến môi trường đổi thư mục gốc | `NAOTA_STATE_DIR` | Đổi cả thư mục chứa trạng thái |
 
@@ -96,21 +96,21 @@ Mỗi cuộc trò chuyện lưu kèm: tên (title), bộ não, engine đang dùn
 
 ## Cuộc trò chuyện đến từ Telegram
 
-Danh sách này không chỉ có các cuộc bạn mở trên web. Những gì bạn nhắn với Naota qua **Telegram** cũng được lưu vào đây và mang nhãn **TG** trong danh sách, nên ngồi máy tính bạn vẫn đọc lại và tìm kiếm được cuộc đã nói lúc đang đi đường.
+Danh sách này không chỉ có các cuộc bạn mở trên web. Những gì bạn nhắn với NAOSO qua **Telegram** cũng được lưu vào đây và mang nhãn **TG** trong danh sách, nên ngồi máy tính bạn vẫn đọc lại và tìm kiếm được cuộc đã nói lúc đang đi đường.
 
-Vì trên Telegram gần như không ai bấm bắt đầu cuộc mới, Naota tự cắt sang cuộc mới khi bạn nghỉ quá 12 tiếng hoặc khi cuộc hiện tại đã dài khoảng 100 lượt. Việc cắt này chỉ để bản lưu dễ đọc, không làm Naota quên mạch trong lúc bạn đang trò chuyện trên Telegram. Các cuộc Telegram cũ hơn 30 ngày được tự cất vào kho lưu nên không hiện ở danh sách mặc định, nhưng vẫn tìm được bằng ô tìm kiếm. Chi tiết ở [Kênh Telegram](11-telegram.md).
+Vì trên Telegram gần như không ai bấm bắt đầu cuộc mới, NAOSO tự cắt sang cuộc mới khi bạn nghỉ quá 12 tiếng hoặc khi cuộc hiện tại đã dài khoảng 100 lượt. Việc cắt này chỉ để bản lưu dễ đọc, không làm NAOSO quên mạch trong lúc bạn đang trò chuyện trên Telegram. Các cuộc Telegram cũ hơn 30 ngày được tự cất vào kho lưu nên không hiện ở danh sách mặc định, nhưng vẫn tìm được bằng ô tìm kiếm. Chi tiết ở [Kênh Telegram](11-telegram.md).
 
-## Mở ở đâu trong Naota
+## Mở ở đâu trong NAOSO
 
 Sidebar lịch sử nằm ở trang **Trò chuyện**. Có ba đường vào, đều dẫn tới đúng chỗ đó:
 
 - **Rail điều hướng.** Mở nhóm **Trợ lý** bên trái rồi bấm **Trò chuyện**.
-- **Nút ⛶** trên khung **HỘI THOẠI** ở màn hình chính Naota.
+- **Nút ⛶** trên khung **HỘI THOẠI** ở màn hình chính NAOSO.
 - **Nút 🕘 Lịch sử** ở hàng nút góc trên bên phải màn hình.
 
-Trang có hai cột: cột trái là **sidebar Lịch sử** gồm nút **＋ Hội thoại mới** trên cùng, ô tìm kiếm, và danh sách các cuộc trò chuyện nhóm theo thời gian (**Hôm nay / Hôm qua / 7 ngày qua / Cũ hơn**); cột phải là khung chat với tiêu đề "Trò chuyện với Naota". Cuộc đang mở được tô sáng trong danh sách để bạn biết mình đang ở đâu.
+Trang có hai cột: cột trái là **sidebar Lịch sử** gồm nút **＋ Hội thoại mới** trên cùng, ô tìm kiếm, và danh sách các cuộc trò chuyện nhóm theo thời gian (**Hôm nay / Hôm qua / 7 ngày qua / Cũ hơn**); cột phải là khung chat với tiêu đề "Trò chuyện với NAOSO". Cuộc đang mở được tô sáng trong danh sách để bạn biết mình đang ở đâu.
 
-Nút **🕘** trên thanh tiêu đề (chú thích khi rê chuột: "Ẩn/hiện lịch sử") thu hoặc mở cột trái. Nút **‹ Thu nhỏ** đưa về lại màn Naota. Trên màn hình hẹp (dưới 860px), sidebar tự ẩn và mở dạng ngăn kéo nổi; chọn một cuộc là ngăn kéo tự đóng.
+Nút **🕘** trên thanh tiêu đề (chú thích khi rê chuột: "Ẩn/hiện lịch sử") thu hoặc mở cột trái. Nút **‹ Thu nhỏ** đưa về lại màn NAOSO. Trên màn hình hẹp (dưới 860px), sidebar tự ẩn và mở dạng ngăn kéo nổi; chọn một cuộc là ngăn kéo tự đóng.
 
 ## Cách dùng (từng bước)
 
@@ -122,19 +122,19 @@ Nút **🕘** trên thanh tiêu đề (chú thích khi rê chuột: "Ẩn/hiện
 4. Danh sách hiện **20 cuộc** đầu tiên. Còn nữa thì cuối danh sách có nút **Xem thêm 20**, bấm một lần mở thêm 20 mục. Không có trần trên, bấm tiếp là ra tiếp.
 5. Nếu chưa có cuộc nào, sidebar hiện dòng "Chưa có hội thoại nào." kèm dòng "Bấm ＋ để bắt đầu."
 
-Cuộc chưa được đặt tên sẽ hiện tạm câu hỏi đầu tiên của bạn làm tên. Naota cũng tự đặt tên rút gọn từ câu hỏi đầu (khoảng 48 ký tự) ngay sau lượt trả lời đầu tiên.
+Cuộc chưa được đặt tên sẽ hiện tạm câu hỏi đầu tiên của bạn làm tên. NAOSO cũng tự đặt tên rút gọn từ câu hỏi đầu (khoảng 48 ký tự) ngay sau lượt trả lời đầu tiên.
 
 ### Nhận biết cuộc đang trả lời dở
 
 Cuộc nào còn một lượt đang chạy nền sẽ có biểu tượng **⏳** đứng trước tên (chú thích khi rê chuột: "Đang trả lời") và cả dòng được làm nổi. Bạn cứ đi làm việc khác, câu trả lời vẫn chạy tiếp trên máy chủ và tự lưu vào cuộc đó.
 
-Trong lúc đó bạn vẫn gửi thêm được vào chính cuộc đang chạy: Naota đọc tin đó ở bước kế tiếp mà không dừng việc đang làm, hoặc làm nó ngay sau khi xong. Xem [Gửi thêm việc khi Naota đang làm](02-tro-chuyen-va-giong-noi.md). Muốn một việc chạy hoàn toàn riêng thì bấm **＋ Hội thoại mới**.
+Trong lúc đó bạn vẫn gửi thêm được vào chính cuộc đang chạy: NAOSO đọc tin đó ở bước kế tiếp mà không dừng việc đang làm, hoặc làm nó ngay sau khi xong. Xem [Gửi thêm việc khi NAOSO đang làm](02-tro-chuyen-va-giong-noi.md). Muốn một việc chạy hoàn toàn riêng thì bấm **＋ Hội thoại mới**.
 
 ### Tìm kiếm toàn văn
 
 1. Mở sidebar Lịch sử.
 2. Bấm vào ô có chữ mờ **Tìm trong mọi hội thoại…** ở phía trên.
-3. Gõ từ khoá. Naota tự tìm sau khi bạn ngừng gõ một chút, không cần bấm Enter.
+3. Gõ từ khoá. NAOSO tự tìm sau khi bạn ngừng gõ một chút, không cần bấm Enter.
 4. Trong lúc tìm, danh sách hiện "Đang tìm…".
 5. Kết quả hiện các dòng khớp: tên cuộc trò chuyện, đoạn trích ngắn quanh từ khoá (phần trùng từ khoá được in đậm) và thời điểm của tin nhắn đó.
 6. Bấm vào một kết quả để mở thẳng cuộc trò chuyện chứa đoạn đó.
@@ -146,9 +146,9 @@ Nếu không có dòng nào khớp, sidebar hiện "Không tìm thấy." Tìm ki
 
 1. Trong danh sách (hoặc kết quả tìm kiếm), bấm vào cuộc bạn muốn mở.
 2. Khung chat bên phải nạp lại NGAY toàn bộ lượt hỏi và đáp cũ, dòng đó được tô sáng trong danh sách.
-3. Gõ câu mới như bình thường. Naota nối tiếp đúng mạch cuộc cũ, không bắt đầu lại từ đầu.
+3. Gõ câu mới như bình thường. NAOSO nối tiếp đúng mạch cuộc cũ, không bắt đầu lại từ đầu.
 
-Cách Naota giữ mạch khác nhau theo engine, xem mục "Naota nhớ mạch cũ bằng cách nào" bên dưới và [Models & engine](10-models-va-engine.md).
+Cách NAOSO giữ mạch khác nhau theo engine, xem mục "NAOSO nhớ mạch cũ bằng cách nào" bên dưới và [Models & engine](10-models-va-engine.md).
 
 ### Bắt đầu một cuộc trò chuyện mới
 
@@ -175,26 +175,26 @@ Tên tối đa khoảng 120 ký tự, phần thừa sẽ bị cắt bớt. Nếu
 
 Lưu ý: xoá là vĩnh viễn, không có thùng rác khôi phục. Cân nhắc kỹ trước khi xoá cuộc quan trọng. (Khác với xoá cả một bộ não - cái đó có thùng rác giữ 30 ngày, xem [Quản lý tệp tin](05-quan-ly-tep-tin.md).)
 
-## Naota nhớ mạch cũ bằng cách nào
+## NAOSO nhớ mạch cũ bằng cách nào
 
 Ba engine giữ ngữ cảnh theo ba cách khác nhau, nên hành vi khi mở lại cuộc cũ cũng khác nhau.
 
-**Engine Claude (Agent SDK).** Mỗi cuộc trò chuyện trên dashboard lưu kèm mã phiên gốc của Claude. Mở lại cuộc cũ là Naota nối đúng phiên đó, nên cả ngữ cảnh lẫn công cụ đã dùng đều còn nguyên.
+**Engine Claude (Agent SDK).** Mỗi cuộc trò chuyện trên dashboard lưu kèm mã phiên gốc của Claude. Mở lại cuộc cũ là NAOSO nối đúng phiên đó, nên cả ngữ cảnh lẫn công cụ đã dùng đều còn nguyên.
 
-**Engine Codex (gói ChatGPT).** Mỗi cuộc lưu kèm mã thread native riêng của Codex để lượt sau nối tiếp đúng thread. Nếu thread đó mất (máy được nâng cấp, rollout cũ bị dọn), Naota không bỏ mạch: nó dựng lại ngữ cảnh từ chính lịch sử đã lưu trong `conversations.db` rồi mở thread mới, và báo trong khung chat một dòng "Phiên Codex cũ không còn trên máy - Naota đang khôi phục ngữ cảnh từ lịch sử đã lưu." Phần lịch sử đưa vào có ngân sách khoảng 60.000 ký tự, ưu tiên giữ đoạn gần nhất.
+**Engine Codex (gói ChatGPT).** Mỗi cuộc lưu kèm mã thread native riêng của Codex để lượt sau nối tiếp đúng thread. Nếu thread đó mất (máy được nâng cấp, rollout cũ bị dọn), NAOSO không bỏ mạch: nó dựng lại ngữ cảnh từ chính lịch sử đã lưu trong `conversations.db` rồi mở thread mới, và báo trong khung chat một dòng "Phiên Codex cũ không còn trên máy - NAOSO đang khôi phục ngữ cảnh từ lịch sử đã lưu." Phần lịch sử đưa vào có ngân sách khoảng 60.000 ký tự, ưu tiên giữ đoạn gần nhất.
 
-Nếu bạn đổi sang engine khác rồi hỏi tiếp trong cùng một cuộc, liên kết thread Codex cũ được bỏ (vì thread đó không chứa lượt vừa rồi). Quay lại Codex, Naota dựng thread mới từ lịch sử đã lưu.
+Nếu bạn đổi sang engine khác rồi hỏi tiếp trong cùng một cuộc, liên kết thread Codex cũ được bỏ (vì thread đó không chứa lượt vừa rồi). Quay lại Codex, NAOSO dựng thread mới từ lịch sử đã lưu.
 
-**Engine gọi qua API (OpenRouter, OpenAI, Anthropic API, Google Gemini).** Mỗi lượt Naota dựng lại lịch sử từ cơ sở dữ liệu rồi gửi kèm. Cuộc dài thì phần cũ **được nén chứ không bị cắt câm**: Naota tự tóm tắt gộp phần đầu hội thoại, lưu bản tóm tắt lại, rồi ở các lượt sau chèn nó vào đầu payload dưới dạng ghi chú "[Tóm tắt phần đầu hội thoại - đã nén để tiết kiệm context...]". Model vẫn nhớ chủ đề, quyết định đã chốt, con số và việc đang dang dở, trong khi payload không phình vô hạn.
+**Engine gọi qua API (OpenRouter, OpenAI, Anthropic API, Google Gemini).** Mỗi lượt NAOSO dựng lại lịch sử từ cơ sở dữ liệu rồi gửi kèm. Cuộc dài thì phần cũ **được nén chứ không bị cắt câm**: NAOSO tự tóm tắt gộp phần đầu hội thoại, lưu bản tóm tắt lại, rồi ở các lượt sau chèn nó vào đầu payload dưới dạng ghi chú "[Tóm tắt phần đầu hội thoại - đã nén để tiết kiệm context...]". Model vẫn nhớ chủ đề, quyết định đã chốt, con số và việc đang dang dở, trong khi payload không phình vô hạn.
 
-Việc nén thường chạy nền sau mỗi lượt nên bạn không thấy chậm. Chỉ khi phần chưa nén dồn quá dài (hay gặp ở lượt API đầu tiên ngay sau một mạch chat bằng engine Claude) Naota mới nén ngay trong lượt, chậm thêm một nhịp. Nếu nhà cung cấp lỗi khiến bước tóm tắt hỏng, Naota mới rơi về cách cũ là cắt bớt phần rất cũ.
+Việc nén thường chạy nền sau mỗi lượt nên bạn không thấy chậm. Chỉ khi phần chưa nén dồn quá dài (hay gặp ở lượt API đầu tiên ngay sau một mạch chat bằng engine Claude) NAOSO mới nén ngay trong lượt, chậm thêm một nhịp. Nếu nhà cung cấp lỗi khiến bước tóm tắt hỏng, NAOSO mới rơi về cách cũ là cắt bớt phần rất cũ.
 
 ## Đổi bộ não giữa chừng
 
 Đổi bộ não ở ô chọn trên thanh trên cùng không chỉ đổi danh sách lịch sử, mà đổi cả khung chat:
 
 - Nội dung của bộ não cũ bị dọn khỏi khung chat ngay lập tức, để bạn không nhầm là đang nói chuyện trong bộ não mới.
-- Bộ não nào bạn đã xem trong lần tải trang này thì Naota mở lại đúng cuộc bạn đang dở ở đó.
+- Bộ não nào bạn đã xem trong lần tải trang này thì NAOSO mở lại đúng cuộc bạn đang dở ở đó.
 - Bộ não bạn chưa mở lần nào trong phiên trang này thì khung chat để trắng, coi như bắt đầu mới.
 - Việc ghi nhớ này chỉ sống trong một lần tải trang. Tải lại trang (F5) là quay về luật chung: mỗi lần mở trang là một hội thoại mới. Cuộc cũ vẫn nằm nguyên trong danh sách lịch sử, bấm vào là mở lại được.
 
@@ -203,9 +203,9 @@ Việc nén thường chạy nền sau mỗi lượt nên bạn không thấy ch
 | Thao tác | Nút / phím | Vị trí |
 |---|---|---|
 | Mở trang Trò chuyện (có sidebar lịch sử) | Mục `Trò chuyện` | Rail điều hướng, nhóm Trợ lý |
-| Mở trang Trò chuyện từ màn Naota | `⛶` hoặc `🕘 Lịch sử` | Khung HỘI THOẠI / hàng nút góc trên phải |
-| Ẩn/hiện sidebar | `🕘` | Thanh tiêu đề "Trò chuyện với Naota" |
-| Về lại màn Naota | `‹ Thu nhỏ` | Thanh tiêu đề |
+| Mở trang Trò chuyện từ màn NAOSO | `⛶` hoặc `🕘 Lịch sử` | Khung HỘI THOẠI / hàng nút góc trên phải |
+| Ẩn/hiện sidebar | `🕘` | Thanh tiêu đề "Trò chuyện với NAOSO" |
+| Về lại màn NAOSO | `‹ Thu nhỏ` | Thanh tiêu đề |
 | Tìm toàn văn | Ô "Tìm trong mọi hội thoại…" | Đầu sidebar |
 | Cuộc mới | `＋ Hội thoại mới` | Đầu sidebar |
 | Mở lại cuộc | Bấm vào dòng | Danh sách (cuộc đang mở được tô sáng) |
@@ -217,17 +217,17 @@ Việc nén thường chạy nền sau mỗi lượt nên bạn không thấy ch
 ## Mẹo
 
 - Đặt tên rõ ràng cho các cuộc quan trọng ngay sau khi làm xong, để sau này tìm nhanh mà không phải đọc lại từng cuộc.
-- Muốn giữ mạch cho một chủ đề dài, hãy mở lại đúng cuộc cũ thay vì bấm **＋ Hội thoại mới**. Như vậy Naota vẫn nhớ ngữ cảnh trước đó.
-- Khi làm một việc mới hoàn toàn không liên quan, bấm **＋ Hội thoại mới** để Naota không lẫn ngữ cảnh cũ vào câu trả lời.
+- Muốn giữ mạch cho một chủ đề dài, hãy mở lại đúng cuộc cũ thay vì bấm **＋ Hội thoại mới**. Như vậy NAOSO vẫn nhớ ngữ cảnh trước đó.
+- Khi làm một việc mới hoàn toàn không liên quan, bấm **＋ Hội thoại mới** để NAOSO không lẫn ngữ cảnh cũ vào câu trả lời.
 - Tìm kiếm quét cả nội dung tin nhắn, nên bạn có thể tìm theo một con số, một tên khách hàng hay một cụm từ đã trao đổi, không chỉ theo tên cuộc.
 - Danh sách và tìm kiếm luôn theo bộ não đang chọn. Nếu không thấy cuộc cần tìm, kiểm tra xem bạn có đang ở đúng bộ não hay không.
 - Cuộc rất dài vẫn dùng được, nhưng nếu bạn chuyển sang một chủ đề khác hẳn thì mở cuộc mới vẫn cho câu trả lời sắc hơn: phần cũ khi bị nén chỉ còn ở dạng tóm tắt, không còn nguyên chữ.
 
 ## Đồng bộ khi đổi máy
 
-Lịch sử hội thoại nằm trong tệp `conversations.db` trên chính máy chủ chạy Naota. Tệp này không tự đồng bộ lên đám mây và không tự chuyển sang máy khác.
+Lịch sử hội thoại nằm trong tệp `conversations.db` trên chính máy chủ chạy NAOSO. Tệp này không tự đồng bộ lên đám mây và không tự chuyển sang máy khác.
 
-- Nếu bạn chuyển Naota sang máy hoặc VPS mới mà muốn giữ lịch sử, hãy sao chép tệp `conversations.db` (trong thư mục `server/`) sang cùng vị trí ở máy mới, làm khi máy chủ đang tắt để tránh tệp đang mở.
+- Nếu bạn chuyển NAOSO sang máy hoặc VPS mới mà muốn giữ lịch sử, hãy sao chép tệp `conversations.db` (trong thư mục `server/`) sang cùng vị trí ở máy mới, làm khi máy chủ đang tắt để tránh tệp đang mở.
 - Nếu bạn không sao chép tệp, máy mới sẽ bắt đầu với lịch sử trống. Đây là hành vi bình thường, không phải lỗi.
 - Không nên mở cùng một tệp `conversations.db` từ hai máy chủ chạy song song, vì có thể gây tranh chấp ghi dữ liệu.
 - Khi sao lưu định kỳ, chỉ cần sao lưu tệp `conversations.db` là đủ để giữ toàn bộ lịch sử trò chuyện.
@@ -238,7 +238,7 @@ Lịch sử hội thoại nằm trong tệp `conversations.db` trên chính máy
 Nhiều khả năng bạn đang ở một bộ não khác. Danh sách chỉ hiện cuộc thuộc bộ não đang chọn. Đổi lại đúng bộ não rồi mở bảng lần nữa.
 
 **Bấm mở bảng nhưng hiện "Lỗi tải danh sách."**
-Máy chủ Naota có thể chưa chạy hoặc vừa khởi động lại. Kiểm tra máy chủ đang chạy ở cổng mặc định (7777) rồi thử lại. Xem thêm [Khắc phục sự cố & FAQ](17-khac-phuc-su-co.md).
+Máy chủ NAOSO có thể chưa chạy hoặc vừa khởi động lại. Kiểm tra máy chủ đang chạy ở cổng mặc định (7777) rồi thử lại. Xem thêm [Khắc phục sự cố & FAQ](17-khac-phuc-su-co.md).
 
 **Không thấy cuộc trò chuyện từ tuần trước ở cuối danh sách.**
 Danh sách chỉ nạp 20 cuộc một lần. Cuộn xuống cuối và bấm **Xem thêm 20** vài lần, hoặc nhanh hơn là gõ một từ khoá vào ô tìm kiếm.
@@ -247,10 +247,10 @@ Danh sách chỉ nạp 20 cuộc một lần. Cuộn xuống cuối và bấm **
 Kiểm tra bạn có đang ở đúng bộ não chứa cuộc đó không. Nếu vẫn không ra, thử từ khoá ngắn hơn hoặc một từ đơn giản hơn thay vì cả câu dài.
 
 **Gửi câu mới thì báo "Phiên này đang trả lời - đợi lượt hiện tại xong đã."**
-Tin gõ trong lúc đang chạy đi vào việc đang làm (xem [Gửi thêm việc khi Naota đang làm](02-tro-chuyen-va-giong-noi.md)), nên câu này chỉ còn gặp ở các đường khác như nút Chạy lại. Đợi lượt đó xong, hoặc bấm **＋ Hội thoại mới** để hỏi việc khác song song.
+Tin gõ trong lúc đang chạy đi vào việc đang làm (xem [Gửi thêm việc khi NAOSO đang làm](02-tro-chuyen-va-giong-noi.md)), nên câu này chỉ còn gặp ở các đường khác như nút Chạy lại. Đợi lượt đó xong, hoặc bấm **＋ Hội thoại mới** để hỏi việc khác song song.
 
-**Mở lại cuộc cũ nhưng Naota không nhớ ngữ cảnh trước.**
-Với engine Claude, khả năng nhớ đầy đủ phụ thuộc vào phiên gốc còn được lưu hay không. Với engine Codex, thread native có thể đã bị dọn khỏi máy - Naota sẽ tự khôi phục từ lịch sử đã lưu và báo một dòng trong khung chat. Với engine API, phần rất cũ có thể đã ở dạng tóm tắt nén thay vì nguyên văn, nên chi tiết vụn có thể mờ đi; khi đó nhắc lại ngắn gọn thông tin quan trọng trong câu hỏi mới là đủ.
+**Mở lại cuộc cũ nhưng NAOSO không nhớ ngữ cảnh trước.**
+Với engine Claude, khả năng nhớ đầy đủ phụ thuộc vào phiên gốc còn được lưu hay không. Với engine Codex, thread native có thể đã bị dọn khỏi máy - NAOSO sẽ tự khôi phục từ lịch sử đã lưu và báo một dòng trong khung chat. Với engine API, phần rất cũ có thể đã ở dạng tóm tắt nén thay vì nguyên văn, nên chi tiết vụn có thể mờ đi; khi đó nhắc lại ngắn gọn thông tin quan trọng trong câu hỏi mới là đủ.
 
 **Đổi bộ não xong thì khung chat trắng trơn.**
 Đúng như thiết kế: bộ não bạn chưa mở lần nào trong lần tải trang này thì khung chat bắt đầu trống. Cuộc cũ của bộ não đó vẫn nằm trong sidebar lịch sử, bấm vào là mở lại.

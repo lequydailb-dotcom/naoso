@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>NAOTA</string>
+    <string>NAOSO</string>
     <key>CFBundleDisplayName</key>
-    <string>NAOTA</string>
+    <string>NAOSO</string>
     <key>CFBundleIdentifier</key>
     <string>ai.vuong.naota</string>
     <key>CFBundleVersion</key>

@@ -1,6 +1,6 @@
 """Append-only log of finished background work, one file per brain.
 
-The Tasks page stats (task_stats.py) count what Naota did over any date range. Kanban jobs keep their own events and
+The Tasks page stats (task_stats.py) count what NAOSO did over any date range. Kanban jobs keep their own events and
 loops keep a markdown log, but a reminder keeps only its last run and a page watch only counters, so each finished
 reminder run and each page-watch alert adds one JSON line here:
 

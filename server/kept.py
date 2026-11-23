@@ -16,7 +16,7 @@ A `Value` wraps one such read (the signature of a few files, a small JSON store)
 - Every other thread reads for itself, exactly as before this module existed.
 - `drop()` forgets the value. Code that just changed the files calls it, and the very next call reads them.
 
-So a change made through Naota shows at once. A change made behind its back (a hand edit, another process) shows
+So a change made through NAOSO shows at once. A change made behind its back (a hand edit, another process) shows
 on the event loop within RECHECK_S; on other threads it still shows at once.
 
 NAOTA_KEPT_OFF=1 switches the event-loop rules off: every caller then reads for itself as it did before.
@@ -239,7 +239,7 @@ def resolved(path: Any) -> str:
 
 
 def forget_resolved() -> None:
-    """Folders were created, removed or renamed through Naota: resolve them again from now on."""
+    """Folders were created, removed or renamed through NAOSO: resolve them again from now on."""
     _RESOLVED.drop()
 
 

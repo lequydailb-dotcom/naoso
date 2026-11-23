@@ -1,4 +1,4 @@
-"""Autonomous task queue and dispatcher for NAOTA.
+"""Autonomous task queue and dispatcher for NAOSO.
 
 This module treats Kanban as an agent runtime, not a manual Trello board:
 
@@ -200,11 +200,11 @@ def sandbox_block_reason() -> str:
     return localefmt.chu(
         "Codex (ChatGPT) không ghi được file vì rào sandbox của chính Codex đang chỉ cho đọc, dù việc này chạy ở mức "
         "được ghi. Đây là lỗi môi trường, trả lời câu hỏi không sửa được. Trên Windows, xem mục [windows] sandbox "
-        "trong config.toml của Codex (để trống thì Naota tự đặt \"unelevated\"), hoặc chuyển việc nền sang bộ não "
+        "trong config.toml của Codex (để trống thì NAOSO tự đặt \"unelevated\"), hoặc chuyển việc nền sang bộ não "
         "khác, rồi chạy lại việc.",
         "Codex (ChatGPT) could not write files because its own sandbox only allowed reading, although this job runs "
         "at a level that may write. This is an environment problem that no answer can fix. On Windows, check "
-        "[windows] sandbox in Codex's config.toml (left empty, Naota sets \"unelevated\"), or move background work "
+        "[windows] sandbox in Codex's config.toml (left empty, NAOSO sets \"unelevated\"), or move background work "
         "to another brain, then run the job again.")
 # Gom thông báo việc KẸT: chờ ngần này giây kể từ việc kẹt đầu tiên rồi mới bắn MỘT tin cho
 # cả chùm. Điều phối lấy việc ra chạy theo lô nên việc kẹt hay kẹt thành chùm trong cùng một
@@ -275,7 +275,7 @@ class TasksDeps:
     # (root) -> [{slug, name, role, key}] the brain's assistants, so the specifier can hand a job to the one
     # whose speciality it matches. None or [] = no routing, the job runs as a plain Kanban job.
     agent_roster: Optional[Callable[[str], list]] = None
-    # (source, ref, brain=, title=, error=, request=) -> report a broken job to Naota Core (incident_desk.py).
+    # (source, ref, brain=, title=, error=, request=) -> report a broken job to NAOSO Core (incident_desk.py).
     incident_hook: Optional[Callable] = None
     # Owner, 17/11/2026 ("tôi duyệt rồi mà cứ báo duyệt lại hoài"): (brain, slug, task_id, node, code, tools=, mode=,
     # source=) -> events. Runs a workflow on from the approval step it stopped at. None = the old path: every answer
@@ -947,7 +947,7 @@ class TasksFeature:
         if not roster:
             return 'agent: always leave empty ("").'
         dong = ["Assistants in this brain. Pick ONE slug when the job CLEARLY matches that assistant's specialty, "
-                'otherwise leave it empty ("") and Naota does it itself:']
+                'otherwise leave it empty ("") and NAOSO does it itself:']
         for a in roster:
             vai = str(a.get("role") or "").strip().replace("\n", " ")[:120]
             dong.append(f"- {a['slug']}: {str(a.get('name') or a['slug'])[:60]}" + (f" ({vai})" if vai else ""))
@@ -978,7 +978,7 @@ class TasksFeature:
         roster = self._roster(task)
         roster_block = self._roster_block(roster)
         prompt = f"""
-You are the specifier of the Naota AI queue. Turn the goal below into a job that can run headless.
+You are the specifier of the NAOSO AI queue. Turn the goal below into a job that can run headless.
 Do not run the job, do not ask the user, do not add goals beyond its scope.
 
 Title: {task.get('title', '')}
@@ -1335,7 +1335,7 @@ plainly that acting on its own is allowed; otherwise auto, so the kernel stops i
         left = ("\nLEFT FOR THE OWNER (not yours: do not attempt, it is not checked; prepare what they need):\n"
                 + "\n".join("- " + x for x in handoff) + "\n") if handoff else ""
         prompt = f"""
-You are an autonomous Naota worker. Complete exactly the job you were given, in the pinned brain.
+You are an autonomous NAOSO worker. Complete exactly the job you were given, in the pinned brain.
 Check your result yourself before you finish. Do not widen the scope and do not ask in chat: this
 worker is headless.
 
@@ -1658,7 +1658,7 @@ Return ONLY one line of JSON, no markdown:
 
         Gom theo TỪNG người nhận: hai việc của hai kênh khác nhau không được trộn vào một tin.
         """
-        # One bucket per recipient AND source brain: an empty chat id means "this brain's Naota Core", and
+        # One bucket per recipient AND source brain: an empty chat id means "this brain's NAOSO Core", and
         # two brains' blocked jobs must not merge into one message.
         chat_id = str(task.get("chat_id") or "") + _BUCKET_SEP + str(task.get("brain_root") or "")
         try:
@@ -1687,7 +1687,7 @@ Return ONLY one line of JSON, no markdown:
         """Bắn rổ đã gom, tách làm hai loại tin.
 
         Trước đây mọi việc kẹt đều thành "⚠ ... bị chặn, cần bạn xem", và người dùng không rành kỹ thuật thì lo mà
-        không biết làm gì: phần lớn việc kẹt là lỗi kỹ thuật họ không sửa được, cũng không cần sửa (Naota Core nhận
+        không biết làm gì: phần lớn việc kẹt là lỗi kỹ thuật họ không sửa được, cũng không cần sửa (NAOSO Core nhận
         sự cố qua incident_hook, tự thử lại khi an toàn, và tự nhắn khi thật sự cần người). Nên:
           - xin quyền (`capability`): việc CHỈ chủ quyết được. Vẫn kêu, nói rõ đồng ý thì bấm gì, không thì thôi.
           - mọi thứ khác: báo LẶNG vào hòm thư, nói thẳng là không cần làm gì, chi tiết kỹ thuật để cuối.
@@ -1735,9 +1735,9 @@ Return ONLY one line of JSON, no markdown:
             return parts
         if len(items) == 1:
             parts = [localefmt.chu(
-                f"Việc '{items[0]['title']}' tạm dừng vì một trục trặc kỹ thuật. Bạn không cần làm gì: Naota đã ghi lại, "
+                f"Việc '{items[0]['title']}' tạm dừng vì một trục trặc kỹ thuật. Bạn không cần làm gì: NAOSO đã ghi lại, "
                 "sẽ tự thử lại khi được, và chỉ nhắn bạn nếu thật sự cần bạn.",
-                f"Job '{items[0]['title']}' paused on a technical hitch. You do not need to do anything: Naota logged "
+                f"Job '{items[0]['title']}' paused on a technical hitch. You do not need to do anything: NAOSO logged "
                 "it, will retry when it can, and only messages you if it really needs you.")]
             cho = items[0].get("waiting") or []
             if cho:
@@ -1751,8 +1751,8 @@ Return ONLY one line of JSON, no markdown:
                 parts.append(localefmt.chu("Chi tiết kỹ thuật: ", "Technical detail: ") + items[0]["reason"][:240])
         else:
             parts = [localefmt.chu(
-                f"{len(items)} việc tạm dừng vì trục trặc kỹ thuật. Bạn không cần làm gì, Naota đang lo:",
-                f"{len(items)} jobs paused on technical hitches. You do not need to do anything, Naota is on it:")]
+                f"{len(items)} việc tạm dừng vì trục trặc kỹ thuật. Bạn không cần làm gì, NAOSO đang lo:",
+                f"{len(items)} jobs paused on technical hitches. You do not need to do anything, NAOSO is on it:")]
             parts += [f"- {it['title']}" for it in items[:BAO_GOM_LIET_KE]]
             if len(items) > BAO_GOM_LIET_KE:
                 con = len(items) - BAO_GOM_LIET_KE
@@ -1773,7 +1773,7 @@ Return ONLY one line of JSON, no markdown:
     async def _hoc_tu_viec(self, root: str, task: dict) -> None:
         """Đẩy MỘT việc nền vừa kết thúc sang hàng đợi tự học.
 
-        Trước đây tự học chỉ nghe luồng chat (`_persist_turn`), nên mọi thứ Naota tự làm trong
+        Trước đây tự học chỉ nghe luồng chat (`_persist_turn`), nên mọi thứ NAOSO tự làm trong
         nền trôi qua không để lại gì - kể cả việc BỊ CHẶN, thứ đáng học nhất vì nó chỉ đúng chỗ
         hệ thống còn thiếu. Ở đây chỉ XẾP HÀNG; mẻ học thật vẫn chạy trong `learn.tick` với đủ
         debounce, rate-limit, fork read-only và vòng verify như luồng chat.
@@ -1809,12 +1809,12 @@ Return ONLY one line of JSON, no markdown:
         if len(treo) > 5:
             dong += localefmt.chu(f"\n- ...và {len(treo) - 5} thao tác nữa", f"\n- ...and {len(treo) - 5} more")
         return localefmt.chu(
-            f"Lần chạy trước có {len(treo)} thao tác ra ngoài mà Naota không chắc đã tới nơi (máy chủ dừng hoặc mất "
-            f"kết nối đúng lúc đang gọi):\n{dong}\nBạn kiểm tra giúp rồi trả lời \"đã gửi\" (Naota bỏ qua, không làm "
-            "lại) hoặc \"chưa gửi\" (Naota làm lại).",
-            f"The previous run made {len(treo)} outside action(s) that Naota cannot confirm went through (the server "
-            f"stopped or the connection dropped mid-call):\n{dong}\nPlease check, then answer \"sent\" (Naota skips "
-            "them) or \"not sent\" (Naota does them again).")
+            f"Lần chạy trước có {len(treo)} thao tác ra ngoài mà NAOSO không chắc đã tới nơi (máy chủ dừng hoặc mất "
+            f"kết nối đúng lúc đang gọi):\n{dong}\nBạn kiểm tra giúp rồi trả lời \"đã gửi\" (NAOSO bỏ qua, không làm "
+            "lại) hoặc \"chưa gửi\" (NAOSO làm lại).",
+            f"The previous run made {len(treo)} outside action(s) that NAOSO cannot confirm went through (the server "
+            f"stopped or the connection dropped mid-call):\n{dong}\nPlease check, then answer \"sent\" (NAOSO skips "
+            "them) or \"not sent\" (NAOSO does them again).")
 
     @staticmethod
     def _cau_hoi_dang_cho(task: dict) -> str:
@@ -2045,13 +2045,13 @@ Return ONLY one line of JSON, no markdown:
         if kind == "limit" and reason:
             return reason  # already written for people: which plan, and when it runs again
         if st == "blocked":
-            return localefmt.chu("Tạm dừng vì một trục trặc kỹ thuật. Bạn không cần làm gì: Naota đã ghi lại, tự thử "
+            return localefmt.chu("Tạm dừng vì một trục trặc kỹ thuật. Bạn không cần làm gì: NAOSO đã ghi lại, tự thử "
                                  "lại khi được, và chỉ nhắn bạn nếu thật sự cần.",
-                                 "Paused on a technical hitch. You do not need to do anything: Naota logged it, retries "
+                                 "Paused on a technical hitch. You do not need to do anything: NAOSO logged it, retries "
                                  "when it can, and only messages you if it really needs you.")
         if st in ("ready", "todo", "triage") and kind:
-            return localefmt.chu("Lần trước gặp trục trặc, Naota sẽ tự chạy lại.",
-                                 "The last try hit a hitch; Naota will run it again by itself.")
+            return localefmt.chu("Lần trước gặp trục trặc, NAOSO sẽ tự chạy lại.",
+                                 "The last try hit a hitch; NAOSO will run it again by itself.")
         return ""
 
     @classmethod
@@ -2104,8 +2104,8 @@ Return ONLY one line of JSON, no markdown:
             if self._worker_brains.get(tid) == root
         ]
         health = self.store.health(root)
-        # "Naota is asking you" holds only what the owner alone can move on; every other stopped job sits in
-        # "Naota is handling it", which asks nothing of them.
+        # "NAOSO is asking you" holds only what the owner alone can move on; every other stopped job sits in
+        # "NAOSO is handling it", which asks nothing of them.
         stopped = columns["blocked"] + columns["review"]
         attention = [t for t in stopped if t["waits_for_owner"]]
         handled = [t for t in stopped if not t["waits_for_owner"]]
@@ -2539,7 +2539,7 @@ Return ONLY one line of JSON, no markdown:
 # Vì sao không cho plugin POST /kanban/task như naota-schedule vẫn POST /reminders: đường đó đòi
 # đăng nhập, và cách duy nhất để mở là thêm nó vào `_AUTH_LOCAL_EXACT` (danh sách miễn auth cho
 # localhost). Làm vậy nghĩa là BẤT KỲ tiến trình nào trên cùng máy chủ cũng giao được việc cho
-# Naota mà không cần credential - một lỗ hổng thật, chỉ để tránh ba dòng code này.
+# NAOSO mà không cần credential - một lỗ hổng thật, chỉ để tránh ba dòng code này.
 _FEATURE: Optional["TasksFeature"] = None
 
 

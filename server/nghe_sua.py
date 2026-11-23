@@ -3,7 +3,7 @@
 Vì sao có lớp này: người dùng nói lẫn tiếng Việt và tiếng Anh, và máy nghe (Web
 Speech của trình duyệt lẫn Whisper) chép tên lạ thành từ gần âm: "Naota" thành "Nauta",
 "Nota", "Nau ta"; tên công cụ, tên dự án cũng cùng số phận. Câu đến bộ não mang
-từ sai đó, Naota trả lời bám nghĩa đen ("Nauta là ai?") nghe rất buồn cười. Sửa ở tầng máy
+từ sai đó, NAOSO trả lời bám nghĩa đen ("Nauta là ai?") nghe rất buồn cười. Sửa ở tầng máy
 nghe thì không được: Web Speech không nhận từ điển riêng, còn Whisper chỉ nhận một gợi ý.
 
 Cách làm, ba lớp bổ trợ nhau:
@@ -70,11 +70,11 @@ NGUONG_GOI_TEN = 0.8
 # được 0,75, đủ để một câu lệnh bình thường mất chữ cuối.
 KHOA_MIN_MO = 4
 
-# Từ đứng TRƯỚC vị trí gọi tên: "hey Naota", "ok Naota", "này Naota", "cảm ơn Naota".
+# Từ đứng TRƯỚC vị trí gọi tên: "hey NAOSO", "ok NAOSO", "này NAOSO", "cảm ơn NAOSO".
 _MO_DAU = frozenset("""
 hey hi hello ok okay alo alô này ê ơi à ừ ờ ừm um rồi thôi nào chào ơn xin cám cảm thanks thank
 """.split())
-# Từ đứng SAU vị trí gọi tên: "Naota ơi", "Naota à", "Naota này".
+# Từ đứng SAU vị trí gọi tên: "NAOSO ơi", "NAOSO à", "NAOSO này".
 _KET_GOI = frozenset("ơi à ạ nhé nha này ei ê hey".split())
 # Từ đứng trước cho biết đang nói về NGƯỜI THỨ BA, không phải gọi trợ lý.
 _NGOI_THU_BA = frozenset("""
@@ -94,7 +94,7 @@ one two three four five six seven eight nine ten hundred thousand million
 """.split())
 # Everyday Vietnamese function words, compared WITH their tone marks (2026-11-13). A group of two or three syllables
 # that holds one of them is ordinary speech far more often than a misheard name: "đã viết" has nearly the sound key of
-# "Naota" and "cần và" exactly that of "Canva", so "rồi đã viết xong" became "rồi Naota xong" and "anh cần và em" became
+# "Naota" and "cần và" exactly that of "Canva", so "rồi đã viết xong" became "rồi NAOSO xong" and "anh cần và em" became
 # "anh Canva em". Such a group is only taken when it is already spelled like the term; the rewrite model, which reads
 # the whole sentence and its context, decides the rest. One syllable alone ("David") is never held back by this.
 COMMON_WORDS = frozenset("""
@@ -106,7 +106,7 @@ bạn nó họ các những cái việc người
 # NGỮ CẢNH GIAO DIỆN. Cả hai không phải lời nói. Trước đây chỉ nhận khối sau, nên khi đang mở
 # file thì khối FILE bị tính là lời nói; dòng NAOTA_NGHE (chỉ có lời nói) bị coi là cắt chữ, và
 # cả lượt lặng lẽ rơi sang bộ não chính dù đã chọn bộ não trả lời nhanh.
-_UI_CONTEXT = re.compile(r"\A(?:\s*\[(?:FILE ĐANG MỞ trong trình sửa của Naota:|NGỮ CẢNH GIAO DIỆN:)"
+_UI_CONTEXT = re.compile(r"\A(?:\s*\[(?:FILE ĐANG MỞ trong trình sửa của NAOSO:|NGỮ CẢNH GIAO DIỆN:)"
                          r"[^\]]*\]\s*)+")
 # Speech can contain literal identifiers. Do not rewrite pieces of paths, URLs or email.
 VERBATIM = re.compile(r"\S*(?:[/\\@:_]|\w\.\w)\S*")
@@ -138,7 +138,7 @@ def bo_dau(s: str) -> str:
 def khoa_am(tu: str) -> str:
     """Rút một từ (hay cụm đã ghép liền) về khoá âm để so mờ.
 
-    Ví dụ: Naota, Naôta, Na ô ta -> đều là "naota"; Nauta, Nau ta -> đều là "nauta".
+    Ví dụ: NAOSO, Naôta, Na ô ta -> đều là "naota"; Nauta, Nau ta -> đều là "nauta".
     """
     s = re.sub(r"[^a-z]", "", bo_dau(tu))
     if not s:
@@ -228,7 +228,7 @@ def goi_y_whisper(tv, ky_thuat=TU_TIENG_ANH_MOI) -> str:
 
     Whisper coi prompt là "đoạn trước" của bản ghi và bắt chước cách viết trong đó, nên chỉ cần
     tên xuất hiện là nó ưu tiên chép đúng chính tả ấy. Cố ý KHÔNG viết thành câu ("Nói chuyện
-    với Naota") vì gặp im lặng Whisper hay chép lại chính câu mồi.
+    với NAOSO") vì gặp im lặng Whisper hay chép lại chính câu mồi.
 
     `ky_thuat` (mặc định `TU_TIENG_ANH_MOI`) đứng TRƯỚC bộ từ vựng: Whisper chỉ giữ phần cuối
     prompt, nên từ người dùng khai phải ở sát audio nhất; cắt độ dài thì bỏ từ mồi chung trước.
@@ -290,7 +290,7 @@ def _ten_rieng_hai_chu(toks, i, n, s, term) -> bool:
     return w[:1].isupper() and w.lower() not in _KET_GOI
 
 
-# Ca nghe nhầm ĐÃ BIẾT, sửa theo đúng chính tả, không cần so âm. Tên NAOTA đọc cả cụm hay bị
+# Ca nghe nhầm ĐÃ BIẾT, sửa theo đúng chính tả, không cần so âm. Tên NAOSO đọc cả cụm hay bị
 # máy nghe thành "Nauta OS" hoặc "Nota OS".
 KNOWN_MISHEARINGS = (("Nauta OS", "NAOTA"), ("Nota OS", "NAOTA"))
 _KNOWN_MISHEARINGS_RE = [(re.compile(r"(?<!\w)" + re.escape(a) + r"(?!\w)", re.IGNORECASE), b)

@@ -1,5 +1,5 @@
 // ============================================================
-// Naota - Sidebar "Lịch sử hội thoại" TRONG chat workspace (cột trái khi phóng to chat).
+// NAOSO - Sidebar "Lịch sử hội thoại" TRONG chat workspace (cột trái khi phóng to chat).
 // chat-zoom.js tạo khung <aside id="chatSide"> và gọi window.NaotaChatSide.mount/refresh;
 // module này render nội dung: + Hội thoại mới, tìm kiếm, danh sách nhóm theo thời gian,
 // đổi tên/xoá, highlight phiên đang mở. Mở phiên qua window.NaotaSessions (app.js).
@@ -23,7 +23,7 @@
   function brain() { try { return (window.NaotaSessions && window.NaotaSessions.brain()) || "brain"; } catch (e) { return "brain"; } }
   function currentId() { try { return (window.NaotaSessions && window.NaotaSessions.current()) || null; } catch (e) { return null; } }
 
-  // unread chats. The server marks a chat unread when Naota answered after the owner last looked at it; the
+  // unread chats. The server marks a chat unread when NAOSO answered after the owner last looked at it; the
   // chat open on a visible screen counts as read, so its row never shows the dot and the server is told.
   function chatOnScreen() {
     if (document.visibilityState && document.visibilityState !== "visible") return false;
@@ -431,7 +431,7 @@
   //
   // Chip nói về project CỦA LƯỢT CHAT, không phải bộ lọc cột trái. Hai thứ đó khác nhau và
   // server bơm hướng dẫn theo cái thứ nhất (`sessions.project_id`): mở lại một cuộc cũ thuộc
-  // project A trong khi cột trái đang lọc project B thì Naota vẫn nhận hướng dẫn của A. Chip
+  // project A trong khi cột trái đang lọc project B thì NAOSO vẫn nhận hướng dẫn của A. Chip
   // mà đọc bộ lọc là nó nói dối đúng vào lúc người dùng cần tin nó nhất.
 
   var PROJ_INSTR_MAX = 4000;       // gương của PROJECT_INSTRUCTIONS_MAX (server/sessions.py)
@@ -753,7 +753,7 @@
   // Dùng lại đúng vỏ ngăn kéo của project (đầu khung, tab, thân) chứ không dựng khung thứ
   // hai: hai danh sách này trông giống nhau, hành xử giống nhau, chỉ khác nguồn dữ liệu.
   //
-  // Danh sách của cuộc trộn HAI nguồn: phần Naota tự dò ra từ tin nhắn (`manual: false`,
+  // Danh sách của cuộc trộn HAI nguồn: phần NAOSO tự dò ra từ tin nhắn (`manual: false`,
   // không gỡ/ghim được vì nó không phải một bản ghi) và phần người dùng TỰ GẮN (`manual:
   // true`, có id nên đủ nút như bên project). Server lo phần trộn; ở đây chỉ chia nhóm.
   var cuocTS = null;      // {files, links, dangTai, loi} của cuộc đang xem
@@ -814,8 +814,8 @@
     // page it stays there on both scopes: the lessons belong to the assistant, whichever documents scope is showing.
     if (laHocTroLy()) return [tabDocs, { k: "learned", ico: "brain", nhan: pdT("proj.tab_learned"), n: soBaiHoc() }];
     if (pdLaCuoc() || pdLaAgent()) return [tabDocs];
-    // 2026-11-13: what Naota learnt about the project while working in it. Right after the instructions: both are
-    // context that rides on every turn, one written by the owner and one mostly by Naota.
+    // 2026-11-13: what NAOSO learnt about the project while working in it. Right after the instructions: both are
+    // context that rides on every turn, one written by the owner and one mostly by NAOSO.
     var tabLearned = { k: "learned", ico: "brain", nhan: pdT("proj.tab_learned"), n: (p.notes || []).length };
     return [{ k: "instr", ico: "scroll-text", nhan: pdT("proj.tab_instr"), n: 0 }, tabLearned, tabDocs];
   }
@@ -1251,8 +1251,8 @@
   function errText(prefix, r) { return pdT(prefix) + ((r && r.error) ? ": " + r.error : ""); }
 
   // ── Tab "Đã học" (2026-11-13) ────────────────────────────────────────────────
-  // What Naota learnt about the project while working in it: short notes (a fact, a settled decision, a term).
-  // Naota writes most of them itself (tool naota_project); here the owner reads, edits, removes and adds. A note the
+  // What NAOSO learnt about the project while working in it: short notes (a fact, a settled decision, a term).
+  // NAOSO writes most of them itself (tool naota_project); here the owner reads, edits, removes and adds. A note the
   // owner writes or edits becomes theirs: listed first and never dropped to make room.
   // 2026-11-19: 20 notes a page with a search box and a filter by kind; the text shows up to four lines and a tap opens
   // it whole in the edit box; adding and editing use that same box instead of an inline form and prompt().
@@ -1585,7 +1585,7 @@
     await napLaiHoc();
   }
 
-  /** One line saying what an attached file or link holds. Naota writes it when it attaches or reads the document;
+  /** One line saying what an attached file or link holds. NAOSO writes it when it attaches or reads the document;
    *  the owner can write or fix it here, in the same edit box as a note. Empty removes it. A project and an assistant
    *  keep one; a plain chat does not. */
   async function editAssetDescription(m, isFile) {
@@ -1631,7 +1631,7 @@
   }
 
   function hangMuc(o) {
-    // Hàng TỰ DÒ (chỉ có ở chế độ cuộc): Naota suy ra từ tin nhắn chứ không phải một bản ghi,
+    // Hàng TỰ DÒ (chỉ có ở chế độ cuộc): NAOSO suy ra từ tin nhắn chứ không phải một bản ghi,
     // nên không có id để gỡ hay ghim. Vẫn mở ra đọc được - đó mới là việc chính của nó.
     if (o.tuDong) {
       return '<div class="pd-row' + (o.mat ? " mat" : "") + '" data-path="' + esc(o.duong || "") + '">' +
@@ -1716,14 +1716,14 @@
 
   /** Files, folders and links in ONE list (owner 13/11/2026: "gom File & Link vào 1 chỗ để tiết kiệm diện tích ... chỉ
    *  cần có biểu tượng riêng để phân biệt file, link, folder"). Pinned rows first, then the rest, files before links
-   *  inside each group; in a chat, what Naota spotted in the messages comes last. */
+   *  inside each group; in a chat, what NAOSO spotted in the messages comes last. */
   function dsFileHtml(p) {
     var fs = p.files || [], ls = p.links || [];
     var laCuoc = pdLaCuoc();
     // A one-line description (what the document holds) reaches the prompt of a project and of an assistant, so only
     // there can it be written. A plain chat keeps none.
     var descOk = pdCheDo === "project" || pdCheDo === "agent";
-    // Chế độ cuộc: thứ người dùng GẮN TAY (có id) đứng trên, thứ Naota tự dò ra đứng dưới.
+    // Chế độ cuộc: thứ người dùng GẮN TAY (có id) đứng trên, thứ NAOSO tự dò ra đứng dưới.
     var tay = function (x) { return !laCuoc || x.manual; };
     var veFile = function (f) {
       // Ở chế độ cuộc, file đã dời/đổi tên vẫn ở lại danh sách - chỉ mờ đi và nói rõ. Im lặng
@@ -1733,7 +1733,7 @@
       return hangMuc({ id: f.id, kind: "file", ten: f.label || f.name || f.path,
                        sub: con ? (laCuoc ? (f.brain_path || f.path) : f.path) : pdT("cts.file_gone"),
                        // Chép đường dẫn TRONG BRAIN (brain_path), không phải đường dẫn tuyệt
-                       // đối trên máy chủ: đó mới là chuỗi mọi nơi khác của Naota nhận vào.
+                       // đối trên máy chủ: đó mới là chuỗi mọi nơi khác của NAOSO nhận vào.
                        sao: f.brain_path || f.path,
                        // A folder: its own icon, a pin that loads its file list, and NO "delete from the brain"
                        // button: one tap here must never remove a whole folder from disk.
@@ -2067,7 +2067,7 @@
     var box = pdEl && pdEl.querySelector(".pd-results");
     if (!box || !p) return;
     var theoDuong = {};
-    // Chỉ file GẮN TAY mới đối chiếu được: file Naota tự dò ra không có id nên không gỡ được,
+    // Chỉ file GẮN TAY mới đối chiếu được: file NAOSO tự dò ra không có id nên không gỡ được,
     // và người dùng vẫn có quyền gắn tay chính nó để ghim hoặc giữ lại.
     (p.files || []).forEach(function (f) { if (f.id) theoDuong[f.path] = f; });
     box.querySelectorAll(".pd-res").forEach(function (r) {
@@ -2679,7 +2679,7 @@
       // chiếm chỗ của giờ và số tin trong một cột hẹp ("agent:ng" trên từng dòng).
       // Lịch sử của một Agent gồm cả hội thoại của bot chuyên trách với khách (kênh `bot:<tên>`):
       // ở đó nhãn kênh KHÔNG thừa, vì nó phân biệt cuộc khách nhắn với cuộc chủ tự chat với Agent.
-      // the owner's admin-channel chats join the histories too (Naota Core's: `zalo`, `telegram`...; an
+      // the owner's admin-channel chats join the histories too (NAOSO Core's: `zalo`, `telegram`...; an
       // agent's: `zalo@<slug>`), labelled by the app they came from. The `@<slug>` part never shows.
       var rawCh = (s.channel || "").toString();
       var laBot = rawCh.indexOf("bot:") === 0;
@@ -2698,7 +2698,7 @@
       // Lớp `ghim` cho hàng ĐÃ GHIM: nhóm "Đã ghim" trên đầu nói được thứ tự, nhưng cuộn
       // xuống giữa danh sách thì không còn thấy cái nhãn ấy nữa. Vạch màu bên trái và dấu ghim
       // luôn hiện đi theo từng hàng, đúng khuôn danh sách trợ lý / quy trình của trang Cộng sự.
-      // Red dot for a chat Naota answered after the owner last looked. The chat open on screen is being read right now.
+      // Red dot for a chat NAOSO answered after the owner last looked. The chat open on screen is being read right now.
       // Project tag: only in the owner's own list (an agent's history has no projects) and only when the list is not
       // already filtered to that very project, where every row would repeat the same name.
       var pid = (!kenhLoc && s.project_id && s.project_id !== curProject()) ? String(s.project_id) : "";
@@ -3246,7 +3246,7 @@
     refreshProjects();
   });
   // Chip phải tự sống KHÔNG phụ thuộc cột trái: refresh() thoát sớm khi chưa mount sidebar,
-  // mà chip còn đứng ở màn Naota nơi cột đó chưa bao giờ mount. Đổi phiên là đổi project có
+  // mà chip còn đứng ở màn NAOSO nơi cột đó chưa bao giờ mount. Đổi phiên là đổi project có
   // hiệu lực, nên bỏ cache rồi vẽ lại.
   window.addEventListener("naota:sessions-changed", function () {
     quenPhienProj();

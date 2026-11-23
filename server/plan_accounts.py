@@ -158,7 +158,7 @@ def _share_claude_mcp(src_home: Path, folder: Path) -> None:
 
 
 def mark_signed_in(provider: str, folder) -> None:
-    """Remember that Naota saw this account finish signing in (Claude on macOS keeps the token in the Keychain,
+    """Remember that NAOSO saw this account finish signing in (Claude on macOS keeps the token in the Keychain,
     so no file in the folder proves it)."""
     if not folder:
         return
@@ -193,7 +193,7 @@ def signed_in(provider: str, account_id: str) -> bool:
     if (folder / ".credentials.json").exists():
         return True
     # Only macOS keeps the Claude token in the Keychain, where no file proves it; elsewhere a missing credentials
-    # file means signed out, whatever Naota remembered.
+    # file means signed out, whatever NAOSO remembered.
     return sys.platform == "darwin" and (folder / _MARK).exists()
 
 

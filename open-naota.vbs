@@ -1,12 +1,12 @@
 ' ============================================
-'  NAOTA - open like an app (what the Desktop and Start menu shortcuts run)
+'  NAOSO - open like an app (what the Desktop and Start menu shortcuts run)
 '
-'  Naota already running: only opens the window. Not running: starts it hidden through
+'  NAOSO already running: only opens the window. Not running: starts it hidden through
 '  start-naota.vbs /open, which waits for the server and then opens the window.
 '
 '  Why not point the shortcut straight at start-naota.vbs: that script ALWAYS stops the old
 '  instance first, so clicking the icon a second time would restart the server and kill every
-'  job running in the background. Same rule as "NAOTA.bat", minus the black console window.
+'  job running in the background. Same rule as "NAOSO.bat", minus the black console window.
 '
 '  ASCII only: wscript reads this file with the ANSI codepage.
 ' ============================================

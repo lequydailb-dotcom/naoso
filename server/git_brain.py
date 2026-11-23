@@ -99,7 +99,7 @@ def is_git_checkout(root: str) -> bool:
 # trăm MB media và thói quen render vài lượt mỗi clip sẽ đẩy repo lên nhiều GB trong ít tháng,
 # clone về máy mới phải tải cả những bản render đã bỏ từ lâu, và cách duy nhất rút xuống là
 # viết lại toàn bộ lịch sử - việc đó đổi mã băm mọi commit nên mọi bản sao ở máy khác thành
-# không tương thích. Với Naota đang đồng bộ hai chiều nhiều máy thì đó là thảm hoạ chứ không
+# không tương thích. Với NAOSO đang đồng bộ hai chiều nhiều máy thì đó là thảm hoạ chứ không
 # phải thao tác bảo trì. Nên cách đúng là ngay từ đầu đừng cho media vào git.
 #
 # Media vẫn nằm nguyên trên đĩa và vẫn dùng được bình thường; chỉ là nó không đi vào lịch sử
@@ -171,7 +171,7 @@ _GI_DONG = "# <<< hết khối của naota - viết luật riêng của bạn �
 # trước, mở lại cho chữ, rồi mới chặn lần nữa mấy thư mục không được vào kể cả khi là chữ.
 # Đảo thứ tự này là log thô (có thể chứa secret) lọt vào git dưới dạng .json.
 _GITIGNORE_BODY = (
-    ["# Naota chỉ đưa CHỮ vào git, không đưa media. Lý do dài nằm ở server/git_brain.py;",
+    ["# NAOSO chỉ đưa CHỮ vào git, không đưa media. Lý do dài nằm ở server/git_brain.py;",
      "# nói gọn: git nhớ mãi mãi, nên một file video commit vào là nằm đó vĩnh viễn, xoá về",
      "# sau cũng không đòi lại được dung lượng. Media vẫn nằm nguyên trên đĩa, chỉ là không",
      "# đi vào lịch sử git.",
@@ -198,7 +198,7 @@ _GITIGNORE_BODY = (
        "memory/agents/*/runs/",
        "Memory/agents/*/runs/",
        ".naota-agy/",
-       "# Cấu hình MCP của hai engine CLI Google - chứa hub token của Naota, không phải tri thức.",
+       "# Cấu hình MCP của hai engine CLI Google - chứa hub token của NAOSO, không phải tri thức.",
        ".agents/mcp_config.json",
        ".antigravity/",
        ".antigravitycli/",
@@ -225,7 +225,7 @@ _GITIGNORE = "\n".join([_GI_MO] + _GITIGNORE_BODY + [_GI_DONG]) + "\n"
 # Mọi dòng mà các bản template TRƯỚC ĐÂY từng ghi ra. Dọn đúng những dòng này khi nâng cấp một
 # brain cũ, để chúng không nằm lẫn ngoài khối rồi phá thứ tự luật ở trên.
 _GITIGNORE_CU = {
-    "# Naota brain - KHÔNG commit: khoá, log thô (có thể chứa secret), nhật ký nền.",
+    "# NAOSO brain - KHÔNG commit: khoá, log thô (có thể chứa secret), nhật ký nền.",
     "# Git chỉ version TRI THỨC ĐÃ CHƯNG CẤT (facts/wiki/skills/MEMORY.md) → undo sạch, an toàn.",
     ".naota-learn.lock", "Naota/learn-staging/", "Naota/learn-log/", "Naota/loop-log/",
     "Naota/skill-usage.json", "memory/conversations/", "Memory/conversations/", "*.tmp",
@@ -239,7 +239,7 @@ _GITIGNORE_CU = {
 
 
 def _ensure_gitignore_lines(root) -> bool:
-    """Ghi lại KHỐI CỦA NAOTA trong <root>/.gitignore, giữ nguyên mọi dòng user tự thêm.
+    """Ghi lại KHỐI CỦA NAOSO trong <root>/.gitignore, giữ nguyên mọi dòng user tự thêm.
 
     Vì sao phải ghi cả khối chứ không chỉ thêm dòng thiếu như bản trước: luật allowlist chỉ
     đúng khi ĐÚNG THỨ TỰ (chặn hết → mở cho chữ → chặn lại mấy thư mục cấm). Bản trước nối
@@ -247,7 +247,7 @@ def _ensure_gitignore_lines(root) -> bool:
     chữ" và git sẽ hiểu ngược: `Naota/learn-log/*.json` được mở lại. Log thô có thể chứa
     secret, nên đó không phải lỗi thẩm mỹ.
 
-    Khối của Naota đứng TRƯỚC phần của user để user còn viết ngoại lệ đè lên được.
+    Khối của NAOSO đứng TRƯỚC phần của user để user còn viết ngoại lệ đè lên được.
     Trả True nếu file có thay đổi.
     """
     try:
@@ -264,7 +264,7 @@ def _ensure_gitignore_lines(root) -> bool:
                 trong_khoi = False
                 continue
             if trong_khoi or s in _GITIGNORE_CU:
-                continue          # khối cũ của Naota: bỏ đi, lát nữa ghi lại bản mới
+                continue          # khối cũ của NAOSO: bỏ đi, lát nữa ghi lại bản mới
             rieng.append(dong)
         # Bỏ dòng trống thừa ở đầu/cuối phần của user cho file khỏi loang ra sau mỗi lần ghi.
         while rieng and not rieng[0].strip():
@@ -382,7 +382,7 @@ def ensure_git_repo(root: str) -> dict:
                     "error": (r.stderr or _c("git init lỗi", "git init failed"))[:200]}
         # Cấu hình identity cục bộ (repo có thể chạy trong container không có global config)
         _git(root, "config", "user.email", "naota@localhost")
-        _git(root, "config", "user.name", "Naota Learn")
+        _git(root, "config", "user.name", "NAOSO Learn")
         _ensure_gitignore_lines(root)   # merge chứ không ghi đè (brain có thể đã có .gitignore)
         _git(root, "add", ".gitignore")
         _git(root, "add", "-A")   # commit NỀN duy nhất được phép add -A (baseline, chưa có state học)
@@ -570,7 +570,7 @@ _BACKUP_SKIP_DIRS = {".git"}
 _BACKUP_SKIP_SUBSTR = ("/memory/conversations/", "/Memory/conversations/",
                        "/Naota/loop-log/", "/Naota/learn-log/", "/Naota/learn-staging/",
                        "/Naota/skill-usage.json/",
-                       # File ngữ cảnh Naota ghi tạm cho Antigravity CLI khi prompt dài hơn trần
+                       # File ngữ cảnh NAOSO ghi tạm cho Antigravity CLI khi prompt dài hơn trần
                        # dòng lệnh. Nó là BẢN SAO của system prompt + MEMORY.md + toàn bộ lịch
                        # sử hội thoại, đuôi .md, nên nếu không chặn ở đây thì nó vừa được chép
                        # sang mirror vừa lọt qua .gitignore (khối 2 mở lại mọi file .md) rồi
@@ -579,7 +579,7 @@ _BACKUP_SKIP_SUBSTR = ("/memory/conversations/", "/Memory/conversations/",
                        # thường file bị xoá ngay cuối lượt, nhưng chỉ cần một lượt đồng bộ chạy
                        # trúng lúc `agy` đang chạy là dính, và git thì giữ blob vĩnh viễn.
                        "/.naota-agy/",
-                       # Cấu hình MCP Naota ghi vào brain cho hai engine CLI của Google. Chúng
+                       # Cấu hình MCP NAOSO ghi vào brain cho hai engine CLI của Google. Chúng
                        # chứa `Authorization: Bearer <hub token>` và đuôi .json, mà khối 2 của
                        # .gitignore mở lại mọi .json - nên không chặn ở đây là token đi thẳng
                        # lên remote sao lưu của người dùng, và git giữ blob vĩnh viễn. Chặn
@@ -595,7 +595,7 @@ _BACKUP_SKIP_SUBSTR = ("/memory/conversations/", "/Memory/conversations/",
 
 def _raw_kept_out(rel: str) -> bool:
     """Raw material that never goes to the GitHub backup even though it is text:
-    agent run logs (`memory/agents/<slug>/runs/`) and text files under an attachments folder (the text Naota extracts
+    agent run logs (`memory/agents/<slug>/runs/`) and text files under an attachments folder (the text NAOSO extracts
     from a Team attachment, uploaded .txt/.csv files). The brain .gitignore already ignores both, but that file is only
     written when learning is switched on, so a brain without it pushed every run log and extracted text.
 

@@ -5,7 +5,7 @@
    rồi gửi về máy chủ (POST /client-errors, server/loi_may_khach.py); trang Sức khoẻ liệt kê theo nhóm.
 
    Dè dặt để không thành nguồn ồn: mỗi lỗi chỉ gửi một lần mỗi trang (cùng thông điệp, file, dòng), tối đa 20 lỗi một
-   lần mở trang, gom 2 giây một chuyến. Bỏ qua lỗi không phải của Naota (tiện ích trình duyệt, script từ nơi khác, "Script
+   lần mở trang, gom 2 giây một chuyến. Bỏ qua lỗi không phải của NAOSO (tiện ích trình duyệt, script từ nơi khác, "Script
    error." không có chi tiết). Không gửi nội dung chat, chỉ thông tin kỹ thuật.
 
    Số dòng báo về khớp mã nguồn dù file đã nén gọn (server/tinh_gon.py giữ nguyên số dòng). nenGui là hàm thuần cho test. */
@@ -13,7 +13,7 @@
   "use strict";
 
   var TOI_DA = 20;
-  // Tiếng ồn quen thuộc, không phải lỗi của Naota.
+  // Tiếng ồn quen thuộc, không phải lỗi của NAOSO.
   var BO_QUA = /^(Script error\.?|ResizeObserver loop|.*AbortError|The operation was aborted)/i;
 
   // Có nên gửi lỗi này không. `goc` là location.origin.

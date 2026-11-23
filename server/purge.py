@@ -92,7 +92,7 @@ def _thu_muc_home(conn: dict) -> list[Path]:
         if _an_toan_de_xoa(p, HOME_DIR):
             ra.append(p)
         else:
-            # Người dùng trỏ home ra ngoài vùng Naota quản. Không đụng, nhưng phải NÓI RA
+            # Người dùng trỏ home ra ngoài vùng NAOSO quản. Không đụng, nhưng phải NÓI RA
             # thay vì im lặng bỏ qua, kẻo họ tưởng đã xoá.
             print(f"[purge] bo qua home ngoai vung: {khai}", file=sys.stderr)
     cid = conn.get("connector_id") or ""
@@ -156,8 +156,8 @@ def plan_connection(cid: str) -> dict:
         last_key = False
     if last_key:
         muc.append({"kind": "last_key",
-                    "label": localefmt.chu("Key Google cuối cùng còn lưu trong Naota",
-                                           "The last copy of this Google key in Naota"),
+                    "label": localefmt.chu("Key Google cuối cùng còn lưu trong NAOSO",
+                                           "The last copy of this Google key in NAOSO"),
                     "n": 1,
                     "note": localefmt.chu("Google chỉ cho xem key này một lần. Muốn giữ thì đấu dịch vụ Google khác "
                                           "bằng key này trước.",

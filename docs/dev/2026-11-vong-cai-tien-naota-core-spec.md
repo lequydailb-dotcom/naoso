@@ -1,11 +1,11 @@
-# Vòng cải tiến của Naota Core: một vòng, nhiều núm
+# Vòng cải tiến của NAOSO Core: một vòng, nhiều núm
 
 Spec viết ngày 10/11/2026, đi tiếp sau `2026-11-so-diem-viec-nen-spec.md`. Chủ repo yêu cầu: "đề xuất cải tiến cùng
-Naota Core để có khả năng tự động scale và không ảnh hưởng đến performance, trở thành cả một hệ thống tự cải tiến theo
+NAOSO Core để có khả năng tự động scale và không ảnh hưởng đến performance, trở thành cả một hệ thống tự cải tiến theo
 thời gian và cách dùng của người sử dụng".
 
-Nguyên tắc: không phần nào của Naota tự mang theo bộ máy tự điều chỉnh riêng. Phần nào muốn tự cải tiến thì **đăng ký
-một núm chỉnh** với Naota Core, và Naota Core chạy cùng một vòng cho mọi núm.
+Nguyên tắc: không phần nào của NAOSO tự mang theo bộ máy tự điều chỉnh riêng. Phần nào muốn tự cải tiến thì **đăng ký
+một núm chỉnh** với NAOSO Core, và NAOSO Core chạy cùng một vòng cho mọi núm.
 
 Mục 1 đến 5 là phần ĐÃ LÀM. Mục 6 là phần chưa làm.
 
@@ -29,7 +29,7 @@ Vòng làm phần còn lại, giống nhau cho mọi núm:
 Ba loại tác nhân, theo chi phí tăng dần:
 
 - `rule`: mã nhìn các bộ đếm (`core_loop.tick`, 10 phút một lần, ở luồng phụ). Không gọi model.
-- `core`: Naota Core đề nghị sau khi suy xét, trong hạn mức ngày của chính nó. **Chưa làm** (mục 6).
+- `core`: NAOSO Core đề nghị sau khi suy xét, trong hạn mức ngày của chính nó. **Chưa làm** (mục 6).
 - `owner`: lời chủ nói trong chat (`naota_tune op=set`). Luôn thắng, được nhảy nhiều bước.
 
 Sổ điểm việc nền là họ núm đầu tiên (mỗi việc một núm, luật riêng là `job_scorecard.step`). Nó giữ bảng riêng vì dời
@@ -47,26 +47,26 @@ Số lượt đáng học phải có trong hàng chờ trước khi một mẻ t
 - Không mất gì: lượt chưa đủ ngưỡng vẫn nằm trong hàng chờ và được học cùng các lượt sau. Câu "ghi nhớ giúp" và mốc
   chờ tối đa 2 giờ bỏ qua núm này.
 
-Ý nghĩa: người hay hỏi nhanh một hai câu số liệu thì mẻ học thường rỗng, Naota tự thôi mở mẻ cho những cuộc như vậy.
+Ý nghĩa: người hay hỏi nhanh một hai câu số liệu thì mẻ học thường rỗng, NAOSO tự thôi mở mẻ cho những cuộc như vậy.
 Người hay bàn chuyện dài thì núm ở yên mức 1.
 
 ## 3. Tín hiệu mới: ghi nhớ bị chủ xoá
 
 `memory_control.forget_memory` báo cho người nghe (`on_forget`) kèm cờ `learned`: ghi nhớ đó do vòng tự học viết
-(`origin: naota-learned`) hay do chủ hoặc một lượt chat viết. Ghi nhớ Naota tự học mà chủ xoá thì tính một lần "hỏng do
+(`origin: naota-learned`) hay do chủ hoặc một lượt chat viết. Ghi nhớ NAOSO tự học mà chủ xoá thì tính một lần "hỏng do
 model" cho việc `learn` trong sổ điểm, nên mẻ học kế tiếp chạy model cao hơn một bậc. Ghi nhớ chủ tự viết bị xoá thì
 không nói gì về người học.
 
-## 4. Bài học về cách học do Naota Core giữ
+## 4. Bài học về cách học do NAOSO Core giữ
 
-- Lưu trong kho bài học có phạm vi sẵn có (`agent_lessons`), là bài học của Naota Core ở brain đó, phạm vi `*`, gắn
+- Lưu trong kho bài học có phạm vi sẵn có (`agent_lessons`), là bài học của NAOSO Core ở brain đó, phạm vi `*`, gắn
   nhãn `learning` để phân biệt với bài học về cách nói chuyện.
 - Chủ dặn bằng lời: `naota_tune op=teach {text}` ("đừng ghi doanh thu từng ngày thành ghi nhớ").
 - Mỗi mẻ tự học đọc các bài học này ĐẦU TIÊN, trước hướng dẫn có sẵn (`LearnDeps.learning_lessons`).
-- Xem và thu hồi như bài học của mọi trợ lý: `naota_memory op=lessons|lesson_revoke agent=naota-core`. Naota Core
+- Xem và thu hồi như bài học của mọi trợ lý: `naota_memory op=lessons|lesson_revoke agent=naota-core`. NAOSO Core
   được thêm vào danh sách trợ lý của tool đó.
-- Khối vai trò của Naota Core (`system/agents/naota-core.md`) thêm một dòng: việc nền và tự học đi qua `naota_tune`.
-  Dòng này chỉ có trong lượt chat với Naota Core, không vào prompt của lượt chat thường.
+- Khối vai trò của NAOSO Core (`system/agents/naota-core.md`) thêm một dòng: việc nền và tự học đi qua `naota_tune`.
+  Dòng này chỉ có trong lượt chat với NAOSO Core, không vào prompt của lượt chat thường.
 
 ## 5. Hiệu năng
 
@@ -78,7 +78,7 @@ không nói gì về người học.
 
 ## 6. Chưa làm
 
-1. **Tác nhân `core`: Naota Core suy xét bằng model mạnh.** Cắm vào nhịp sẵn có của Naota Core như một loại lý do mới
+1. **Tác nhân `core`: NAOSO Core suy xét bằng model mạnh.** Cắm vào nhịp sẵn có của NAOSO Core như một loại lý do mới
    (`agent_pulse_host.register_reason_handler`), dùng chung hạn mức 6 lượt mỗi ngày với ưu tiên thấp nhất. Đọc báo cáo
    gọn từ sổ điểm, các núm và nhật ký học; được đề nghị vài thay đổi trong danh sách núm đã đăng ký và viết bài học về
    cách học bằng lời; mỗi đề nghị dẫn bằng chứng. Cần vài ngày dữ liệu thật từ mục 1 đến 4 mới đáng một lượt gọi model.

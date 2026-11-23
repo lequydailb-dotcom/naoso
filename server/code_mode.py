@@ -1,14 +1,14 @@
 """`naota_code`: run a short read-only Python script that calls connection tools and returns only what it prints.
 
 Why: Cloudflare's "Code Mode" showed that a model writing a little code against an API spends far fewer tokens than a
-model calling tools one by one, because the intermediate results never pass through the conversation. Naota already
+model calling tools one by one, because the intermediate results never pass through the conversation. NAOSO already
 hides tool definitions behind the tool search and shapes large results into views with a ref (naota_query). What was
 still missing is CHAINING: read orders, then look up each customer, then join with the ad spend, all in one step, with
 only the final numbers coming back. This tool does that.
 
 Hard rules, enforced here and not by the prompt:
   - Read only. A script can only reach connection tools through `call(tool, args)`, and every call must pass
-    `tool_result_tools.is_plain_read` (the same strict test naota_query uses for reads Naota repeats by itself). The
+    `tool_result_tools.is_plain_read` (the same strict test naota_query uses for reads NAOSO repeats by itself). The
     call then goes through the tool's normal guarded route: permission level, rate limit and audit still apply.
   - Isolated. The script runs in a separate Python process with an empty environment (no keys), a temporary
     working directory, CPU, memory, file-size and process limits, and an audit hook that refuses files, sockets,

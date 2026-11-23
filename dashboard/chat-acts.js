@@ -1,7 +1,7 @@
-/* chat-acts.js - hang nut duoi moi tin nhan trong khung chat Naota.
+/* chat-acts.js - hang nut duoi moi tin nhan trong khung chat NAOSO.
 
    Moi bong bong co mot hang nho ben duoi. Tin cua NGUOI DUNG: gio gui, tua lai,
-   trich dan, sao chep. Tin cua NAOTA: gio gui, trich dan, sao chep, ghim vao muc luc, doc thanh tieng. Hang nay AN san (opacity 0), chi hien khi
+   trich dan, sao chep. Tin cua NAOSO: gio gui, trich dan, sao chep, ghim vao muc luc, doc thanh tieng. Hang nay AN san (opacity 0), chi hien khi
    hover tren may tinh hoac khi cham vao tin tren dien thoai (.acts-on).
 
    File nay chi giu phan THUAN (khong dung tai lieu DOM that) de test bang node:
@@ -60,9 +60,9 @@
 
   // role: "user" | "naota".
   //
-  // Tin cua NAOTA chi con gio + sao chep. Nut "Tra loi lai cau hoi phia tren" da BO
+  // Tin cua NAOSO chi con gio + sao chep. Nut "Tra loi lai cau hoi phia tren" da BO
   // no nam ngay canh nut sao chep, ma sao chep la thao tac
-  // hay dung nhat duoi mot cau tra loi - bam truot mot ly la Naota chay lai ca luot,
+  // hay dung nhat duoi mot cau tra loi - bam truot mot ly la NAOSO chay lai ca luot,
   // ton tien va de mat cau tra loi dang doc. Ai muon hoi lai thi go lai cau hoi, hoac
   // bam "Tua lai" ngay tren bong bong cau hoi cua chinh minh - van con day.
   //
@@ -81,7 +81,7 @@
       send = '<button class="msg-act" type="button" data-act="rewind" title="' + esc(tw("cact.rewind")) + '">↺</button>';
     }
     // Trich dan: dat doan nay len tren o nhap de hoi tiep, khoi go lai. Co o ca tin
-    // nguoi dung lan tin Naota. Bam truot cung vo hai: no chi dat chip, khong chay gi.
+    // nguoi dung lan tin NAOSO. Bam truot cung vo hai: no chi dat chip, khong chay gi.
     // Tin nguoi dung chi co anh thi khong co chu de trich, bo nut nhu nut gui lai.
     var quote = (role === "user" && canResend === false) ? "" :
       '<button class="msg-act" type="button" data-act="quote" title="' + esc(tw("cact.quote")) + '">' + ic("quote") + '</button>';

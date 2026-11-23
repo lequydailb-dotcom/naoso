@@ -1,14 +1,14 @@
-"""Tiến trình nền do engine bỏ lại: Naota nhận theo dõi, xong thì tự báo và tự làm tiếp.
+"""Tiến trình nền do engine bỏ lại: NAOSO nhận theo dõi, xong thì tự báo và tự làm tiếp.
 
 Vì sao có file này
 ==================
-Lỗi đã gặp: nhờ Naota làm video, Naota trả lời "Đang render
+Lỗi đã gặp: nhờ NAOSO làm video, NAOSO trả lời "Đang render
 nền, xong mình ghép tiếng và gửi video" rồi im. Video render xong lúc 14:57 mà phải tới 16:14,
-khi chủ hỏi "xong video chưa", Naota mới biết.
+khi chủ hỏi "xong video chưa", NAOSO mới biết.
 
 Gốc rễ: engine có shell (Codex, Grok Build, Antigravity) tự bật lệnh dài chạy ngầm (`cmd &`,
-`nohup cmd &`) rồi kết thúc lượt. Naota chỉ biết tự báo về cho việc Kanban, loop và nhắc hẹn.
-Một tiến trình do engine tự bật thì Naota không hề biết nó tồn tại, nên không có gì đánh thức
+`nohup cmd &`) rồi kết thúc lượt. NAOSO chỉ biết tự báo về cho việc Kanban, loop và nhắc hẹn.
+Một tiến trình do engine tự bật thì NAOSO không hề biết nó tồn tại, nên không có gì đánh thức
 khung chat khi nó xong. Còn lời hứa "xong mình gửi" là lời của model, không có cơ chế nào đứng
 sau.
 
@@ -96,7 +96,7 @@ def nhom_con_song(pgid: int) -> bool:
 
     Tiến trình đã chết mà chưa ai dọn (zombie, trạng thái Z) vẫn làm killpg(0) thành công. Máy
     thật có tiến trình số 1 dọn chúng (tini trong Docker, systemd, launchd), nhưng một container
-    chạy thẳng uvicorn làm PID 1 thì không: khi đó việc đã xong mà Naota tưởng còn chạy mãi. Nên
+    chạy thẳng uvicorn làm PID 1 thì không: khi đó việc đã xong mà NAOSO tưởng còn chạy mãi. Nên
     có /proc thì hỏi thêm trạng thái từng thành viên, chỉ tính người còn sống thật.
     """
     if not POSIX or not pgid:
@@ -253,7 +253,7 @@ def ghi_nhom(tag: str, pid: int) -> None:
 # ---------------------------------------------------------------------------------------
 # Reason: a long video render or edit started from the chat never
 # reported back, neither in the chat nor in the bell. The process group test above cannot see
-# Claude Code's work: Naota keeps its `claude` process warm between turns (it does not exit), the
+# Claude Code's work: NAOSO keeps its `claude` process warm between turns (it does not exit), the
 # SDK starts it without a session of its own, and its Bash tool runs every command in a NEW
 # session. So `nohup ffmpeg ... &` left behind by Claude Code was never adopted, and
 # `naota_job op=then` silently dropped its instruction at the end of the turn.
@@ -378,7 +378,7 @@ def _marked(mark: str) -> List[dict]:
 
 
 def groups_left_by_mark(mark) -> List[int]:
-    """Process groups the engine marked `mark` left running (see ENV_MARK). Groups Naota already
+    """Process groups the engine marked `mark` left running (see ENV_MARK). Groups NAOSO already
     tracks, the server's own group and groups holding an engine the server started are skipped."""
     m = _clean_mark(mark)
     if not POSIX or not m:
@@ -494,9 +494,9 @@ def nhan_nuoi_theo_tag(tag: str, brain_root: str, chat_id: str, *, hua: bool = F
 
 
 def theo_doi_nhom(pgid: int, mo_ta: str, cwd: str, brain_root: str, chat_id: str) -> str:
-    """Nhận theo dõi NGAY một nhóm tiến trình Naota tự bật (terminal của engine API).
+    """Nhận theo dõi NGAY một nhóm tiến trình NAOSO tự bật (terminal của engine API).
 
-    Khác `nhan_nuoi_theo_tag`: không cần đợi hết lượt rồi dò nhóm còn sống, vì chính Naota bật
+    Khác `nhan_nuoi_theo_tag`: không cần đợi hết lượt rồi dò nhóm còn sống, vì chính NAOSO bật
     tiến trình và biết chắc mã nhóm. Trả mã việc (rỗng nếu không theo dõi được).
     """
     if not POSIX or not pgid or not chat_id:

@@ -1,4 +1,4 @@
-/* pet-menu.js - the owner's own MASCOT MENU: which Naota features the pet opens, in which order.
+/* pet-menu.js - the owner's own MASCOT MENU: which NAOSO features the pet opens, in which order.
 
    "Chỉ cần thêm và sắp xếp vị trí thôi là ok rồi. Và cho phần này vào trong phần cài đặt linh vật."
    So this file only lets the owner ADD a feature and REORDER the list. No renaming, no icon or action change, no
@@ -50,7 +50,7 @@
     { id: "tasks", label: "page.tasks.label", fb: "Tasks", page: true, sub: "page.tasks.sub" },
     { id: "webhooks", label: "page.webhooks.label", fb: "Webhooks", page: true, sub: "page.webhooks.sub" },
     { id: "mcp", label: "page.mcp.label", fb: "Connections", page: true, sub: "page.mcp.sub" },
-    { id: "packs", label: "page.packs.label", fb: "Naota Store", page: true, sub: "page.packs.sub" },
+    { id: "packs", label: "page.packs.label", fb: "NAOSO Store", page: true, sub: "page.packs.sub" },
     { id: "channels", label: "page.channels.label", fb: "Admin channels", page: true, sub: "page.channels.sub" },
     { id: "logins", label: "page.logins.label", fb: "Cookies", page: true, sub: "page.logins.sub" },
     { id: "models", label: "page.models.label", fb: "Models", page: true, sub: "page.models.sub" },
@@ -137,7 +137,7 @@
   // "" when the feature can run now, else the reason in the owner's language.
   function why(id) {
     var c = BY_ID[id];
-    if (!c) return t("petmenu.why_gone", null, "This feature is no longer in Naota");
+    if (!c) return t("petmenu.why_gone", null, "This feature is no longer in NAOSO");
     if (id === "mic") {
       var md = root.navigator && root.navigator.mediaDevices;
       if (!md || typeof md.getUserMedia !== "function" || !document.getElementById("voiceBtn")) {
@@ -146,7 +146,7 @@
     }
     if (c.page) {
       try {
-        if (root.NaotaNav && root.NaotaNav.has && !root.NaotaNav.has(id)) return t("petmenu.why_page", null, "This Naota has no such page");
+        if (root.NaotaNav && root.NaotaNav.has && !root.NaotaNav.has(id)) return t("petmenu.why_page", null, "This NAOSO has no such page");
       } catch (e) {}
     }
     return "";

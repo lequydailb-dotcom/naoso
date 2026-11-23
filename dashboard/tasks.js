@@ -1,6 +1,6 @@
 /* tasks.js - the Tasks page ("Nhiệm vụ"). Spec: nhiem-vu-spec.
  *
- * One page replaces the old Kanban and Recurring work pages. Phase 1 draws the "Naota does" tab from data
+ * One page replaces the old Kanban and Recurring work pages. Phase 1 draws the "NAOSO does" tab from data
  * the server already keeps: Kanban jobs, reminders, loops and page watches, plus incidents for the
  * "Run errors" list. Everything is merged in the browser by pure functions (`model`, tested under node);
  * `mount(el)` fetches, draws and wires the actions.
@@ -28,7 +28,7 @@
   function LOC() { return (typeof window !== "undefined" && window.NaotaI18n && window.NaotaI18n.locale && window.NaotaI18n.locale()) || "vi-VN"; }
 
   // ---------- model: merge the sources into items, recurring jobs and failures (pure) ----------
-  var CORE = "naota-core";   // Naota Core's slug in GET /agents (server/naota_core.py SLUG)
+  var CORE = "naota-core";   // NAOSO Core's slug in GET /agents (server/naota_core.py SLUG)
   var FIN = { done: 1, cancel: 1 };
 
   function agentOf(card) {
@@ -212,7 +212,7 @@
       return ka < kb ? -1 : ka > kb ? 1 : 0;
     });
   }
-  // How a Naota job is scheduled on the server from the repeat picker (pure): a cron where cron can say it,
+  // How a NAOSO job is scheduled on the server from the repeat picker (pure): a cron where cron can say it,
   // otherwise a fixed step (repeat_min) from a start time. rule = {unit: min|hour|day|week|month|year, n, days}.
   function naotaSchedule(rule, date, time) {
     var hm = String(time || "08:00").split(":"), h = Number(hm[0]) || 0, m = Number(hm[1]) || 0;
@@ -585,7 +585,7 @@
     applyHidden();
     render();
   }
-  // The model of the open tab: the "Mine" lists or the "Naota does" lists.
+  // The model of the open tab: the "Mine" lists or the "NAOSO does" lists.
   function M() { return S.tab === "me" ? S.me : S.ai; }
   function today() { return S.ai.today; }
   // Items removed with "undo" still pending stay hidden until the server confirms.
@@ -647,7 +647,7 @@
     return id ? ((S.bots && S.bots.bots) || []).find(function (b) { return b.id === id; }) || { id: id, name: id } : null;
   }
   function agentName(slug) {
-    if (slug === CORE) return "Naota Core";
+    if (slug === CORE) return "NAOSO Core";
     if (slug === "me") return tw("nv.me");
     if (botOf(slug)) return botOf(slug).name;
     var a = (S.agents || []).find(function (x) { return x.slug === slug; });
@@ -852,7 +852,7 @@
   }
   // An overdue task needs no extra buttons (as few as possible): the tick already means done; Move and
   // Delete are icons left of the star, which keeps the rightmost column on every row. My tab has no "..." menu: everything
-  // it held (edit, give to Naota, move to another brain, delete) is in the task's details, one tap on the row.
+  // it held (edit, give to NAOSO, move to another brain, delete) is in the task's details, one tap on the row.
   // Every open task of mine: Move and Delete as icons, left of the star. A repeat moves or skips only
   // this time and deletes the whole repeat; a missed one also offers Skip.
   // An appointment: Move and Delete like a task; a repeating one also Skip this time (Move and Skip
@@ -1056,7 +1056,7 @@
     var P = pins("who"), busy = {};
     S.ai.items.forEach(function (i) { if (!FIN[i.st]) busy[i.who] = (busy[i.who] || 0) + 1; });
     var A = (S.agents || []).slice();
-    if (!A.some(function (a) { return a.slug === CORE; })) A.unshift({ slug: CORE, name: "Naota Core" });
+    if (!A.some(function (a) { return a.slug === CORE; })) A.unshift({ slug: CORE, name: "NAOSO Core" });
     // A chatbot whose assistant is not in this brain gets its own row once it owns a job.
     var owned = {};
     S.ai.items.concat(S.ai.recurring).forEach(function (i) { owned[i.who] = 1; });
@@ -1102,7 +1102,7 @@
     var nMe = S.me.items.filter(function (i) { return !FIN[i.st] && !i.over && (i.date === today() || !i.date); }).length;
     var nAi = S.ai.items.filter(function (i) { return !FIN[i.st]; }).length;
     return '<div class="nv-tabs" role="tablist">'
-      // Naota's tasks first (opening the page shows what Naota is doing), then mine.
+      // Naota's tasks first (opening the page shows what NAOSO is doing), then mine.
       + '<button type="button" role="tab" data-act="tab" data-v="ai" aria-selected="' + (S.tab === "ai") + '" class="' + (S.tab === "ai" ? "on" : "") + '">' + avatar(CORE, 18) + "<span>" + esc(tw("nv.tab.ai")) + '</span><span class="nv-n">' + nAi + "</span></button>"
       + '<button type="button" role="tab" data-act="tab" data-v="me" aria-selected="' + (S.tab === "me") + '" class="' + (S.tab === "me" ? "on" : "") + '">' + ic("circle-user") + "<span>" + esc(tw("nv.tab.me")) + '</span><span class="nv-n">' + nMe + "</span></button></div>";
   }
@@ -1365,7 +1365,7 @@
     return out;
   }
   function menuButtons(it) {
-    // The drawer of my task already has "Give to Naota" next to Done.
+    // The drawer of my task already has "Give to NAOSO" next to Done.
     return menuDefs(it).filter(function (m) { return !(it.src === "mine" && m[0] === "tonaota"); }).map(function (m) { return '<button type="button" class="nv-btn sm' + (m[0] === "del" ? " ghost danger" : "") + '" data-act="m-' + m[0] + '" data-id="' + esc(it.id) + '">' + ic(m[1]) + esc(tw(m[2])) + "</button>"; }).join("");
   }
 
@@ -1472,7 +1472,7 @@
     h += '<div class="nv-dpt"><label>' + ic("clock") + '<select class="nv-inp" data-dp="time"' + (d.date ? "" : " disabled") + ">" + times + '</select></label><input type="time" class="nv-inp" data-dp="other" aria-label="' + esc(tw("nv.dp.other")) + '" title="' + esc(tw("nv.dp.other")) + '"' + (d.date ? "" : " disabled") + "></div>";
     return h + '<div class="nv-acts two"><button type="button" class="nv-btn ghost" data-act="dp-clear">' + esc(tw("nv.dp.clear")) + '</button><button type="button" class="nv-btn pri" data-act="dp-ok">' + esc(tw("nv.dp.ok")) + "</button></div>";
   }
-  // Repeat picker: "Every [n] [unit]", weekday circles for weeks. Minutes and hours only for Naota jobs.
+  // Repeat picker: "Every [n] [unit]", weekday circles for weeks. Minutes and hours only for NAOSO jobs.
   function repPickerHtml(sh) {
     var r = sh.r, units = sh.naota ? ["min", "hour", "day", "week", "month", "year"] : ["day", "week", "month", "year"];
     var h = '<div class="nv-rp"><span>' + esc(tw("nv.rp.every")) + '</span><input type="number" class="nv-inp nv-rpn" min="1" max="365" value="' + (r.n || 1) + '" data-rp="n" aria-label="' + esc(tw("nv.rp.n")) + '"><select class="nv-inp" data-rp="unit" aria-label="' + esc(tw("nv.rp.unit")) + '">'
@@ -1484,7 +1484,7 @@
   }
 
   // ---------- habits: list head, mascot, checkbox, streak card ----------
-  // The mascot is Naota's own (dashboard/pet.js): the rounded square of the NAOTA logo in NAOTA yellow. All feeling
+  // The mascot is Naota's own (dashboard/pet.js): the rounded square of the NAOSO logo in NAOSO yellow. All feeling
   // sits in the eyes, no mouth.
   var PET_BODY = "M111 85 H209 Q235 85 235 111 V209 Q235 235 209 235 H111 Q85 235 85 209 V111 Q85 85 111 85 Z", PET_FILL = "#fccb1d";
   var PET_EYES = {
@@ -1496,7 +1496,7 @@
     love: '<path d="M0 11 C-15 0 -13 -13 -5.5 -13 C-2 -13 0 -10 0 -7.5 C0 -10 2 -13 5.5 -13 C13 -13 15 0 0 11 Z"/>',
     gang: ['<path class="pl" d="M-8 -9 L6 0 L-8 9"/>', '<path class="pl" d="M8 -9 L-6 0 L8 9"/>']
   };
-  // Naota's own mascot, small and still ("Naota" in the add form shows the mascot, not an avatar).
+  // Naota's own mascot, small and still ("NAOSO" in the add form shows the mascot, not an avatar).
   function jmini() {
     return '<svg class="nv-jmini" viewBox="56 50 208 200" aria-hidden="true"><path d="' + PET_BODY + '" fill="' + PET_FILL + '"/><g fill="#201e1e"><ellipse cx="145" cy="156" rx="9" ry="20"/><ellipse cx="175" cy="156" rx="9" ry="20"/></g></svg>';
   }
@@ -1551,7 +1551,7 @@
     return habitHead() + (H.length ? H.map(habitRow).join("") : '<div class="nv-empty">' + esc(tw("nv.h.empty")) + "</div>");
   }
   // The streak card under a habit's details: big number, three tiles, a month calendar (rest days thread the chain),
-  // the reminder choice, and what Naota has learned about it.
+  // the reminder choice, and what NAOSO has learned about it.
   function streakCard(t) {
     var k = habitCalc(t, today()); if (!k) return "";
     var td = today(), off = S.stkOff || 0, base = new Date(td + "T12:00:00"); base.setDate(1); base.setMonth(base.getMonth() + off);
@@ -1599,7 +1599,7 @@
       + (anyJ ? '<div class="nv-stk-leg"><i class="nt-by"></i>' + esc(tw("nv.h.by_naota")) + "</div>" : "")
       + '<div class="nv-stk-rem">' + remind + "</div></div>";
   }
-  // When "Naota reminds on its own" nudges today: an hour after the usual time (or the set time), earlier while frozen.
+  // When "NAOSO reminds on its own" nudges today: an hour after the usual time (or the set time), earlier while frozen.
   function autoAt(t, k) {
     var base = usualTime(t) || t.time || t.habit.at || "21:00", m = Number(base.slice(0, 2)) * 60 + Number(base.slice(3, 5));
     m = k && k.frozen ? Math.max(6 * 60, m - 30) : Math.min(23 * 60, m + 30);
@@ -1715,7 +1715,7 @@
         location: f.loc || "", repeat: f.rule && f.rule.unit !== "min" && f.rule.unit !== "hour" ? f.rule : null, tags: f.tags || [],
         prep: f.prep ? (f.prepT || tw("nv.ap.prep_default")) : "" });
       if (r && r.ok !== false && f.prep) {
-        // "Ask Naota to prepare": a reminder that does the job 30 minutes before the start.
+        // "Ask NAOSO to prepare": a reminder that does the job 30 minutes before the start.
         var at = fromMin(toMin(f.time) - 30);
         await createReminder((f.prepT || tw("nv.ap.prep_default")) + " (" + txt + ", " + f.date + " " + f.time + ")", "do", f.date, at, null);
       }
@@ -2039,7 +2039,7 @@
     if (r.src === "loop") return postForm("/loops/toggle", { brain: b, slug: r.ref });
     return postJSON("/watch/action", { id: r.ref, action: on ? "resume" : "pause", brain: b });
   }
-  // "Give to Naota": a dated task becomes a reminder that does the job, an undated one a Kanban job; mine goes away.
+  // "Give to NAOSO": a dated task becomes a reminder that does the job, an undated one a Kanban job; mine goes away.
   async function giveToNaota(it) {
     var t = it.raw; S.sheet = null; S.sel = null;
     var r = t.date || t.repeat ? await createReminder(t.title + (t.notes ? "\n" + t.notes : ""), "do", t.date, t.time, t.repeat)
@@ -2052,7 +2052,7 @@
       Promise.all([cancel, mine({ __url: "/my-tasks/restore", task: del.task })]).then(load).then(render);
     });
   }
-  // "Do it myself": the Naota job becomes my task (same title and date), the Naota job is cancelled after the undo window.
+  // "Do it myself": the NAOSO job becomes my task (same title and date), the NAOSO job is cancelled after the undo window.
   async function takeFromNaota(it) {
     S.sheet = null; S.sel = null;
     var raw = it.raw || {}, ts = it.src === "reminder" ? stamp(raw.due_at) : { date: it.date, time: it.time };
@@ -2506,7 +2506,7 @@
     var tab = "ai";   // the page always opens on Naota's tasks; each tab still remembers its list
     S = { root: el, tab: tab, view: lsGet("view." + tab, "today"), q: "", sel: null, layer: null, sheet: null, form: null, hidden: {}, showDone: false,
       hmsgHide: lsGet("hmsgx", "") === isoOf(new Date()), pmsgHide: lsGet("pmsgx", "") === isoOf(new Date()), moreWho: lsGet("moreWho", "") === "1", moreProj: lsGet("moreProj", "") === "1", phone: { screen: "home" }, agents: null, ai: null, me: null, my: null, subOpen: {} };
-    var legacy = lsGet("view", "");   // the old Scheduled link sets "rep" for the Naota tab
+    var legacy = lsGet("view", "");   // the old Scheduled link sets "rep" for the NAOSO tab
     if (legacy) { try { localStorage.removeItem(LS + "view"); } catch (e2) { /* ignore */ } if (legacy === "rep") { S.tab = "ai"; S.view = "rep"; } }
     el.classList.add("nv-root");
     el.innerHTML = '<div class="nv-desk"><nav class="nv-side" aria-label="' + esc(tw("nv.title")) + '"></nav><section class="nv-main"><div class="nv-top"></div>'
@@ -2556,7 +2556,7 @@
     S = null;
   }
 
-  // Naota opens a Kanban job on screen (ui-actions.js, action open_task): Naota tab, details of that job.
+  // NAOSO opens a Kanban job on screen (ui-actions.js, action open_task): NAOSO tab, details of that job.
   function show(ref) { return openItem("k:" + String(ref || "").replace(/^k:/, "")); }
   // A `#task=<id>` link (console.js runDeepLink) opens one item: a Kanban job (k:), a reminder (r:) or one of the
   // owner's own tasks (m:). It picks the tab the item lives on, reloads once when the item is not in the lists yet

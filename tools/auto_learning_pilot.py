@@ -3,7 +3,7 @@
 A door shop's quote skill misses three shop conventions (8% VAT, a 30% deposit on the total after VAT, delivery fee
 200.000 below 5.000.000 before VAT). Chat turns are produced by the real model with the current skill; the owner's
 next message corrects what was missed. Then the real pipeline runs: judge, case writer, Harness² loop with a model
-grader, apply. A fixed hand-written check on fresh requests (deterministic numbers, never seen by Naota) measures the
+grader, apply. A fixed hand-written check on fresh requests (deterministic numbers, never seen by NAOSO) measures the
 skill before and after.
 
     python tools/auto_learning_pilot.py --out <dir> [--model claude-opus-5-5] [--effort medium]
@@ -99,7 +99,7 @@ def main():
 
     def answer_with(skill_text, items):
         body = A.split_frontmatter(skill_text)[1]
-        return engine._call("You are a Naota assistant. Follow the skill below.\n\n<skill>\n" + body + "\n</skill>",
+        return engine._call("You are a NAOSO assistant. Follow the skill below.\n\n<skill>\n" + body + "\n</skill>",
                             request_text(items))
 
     log = {"model": args.model, "effort": args.effort, "started": time.strftime("%Y-%m-%d %H:%M")}

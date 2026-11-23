@@ -5,7 +5,7 @@
 #   sudo systemctl daemon-reload && sudo systemctl enable --now naota
 #   journalctl -u naota -f
 [Unit]
-Description=NAOTA
+Description=NAOSO
 After=network-online.target
 Wants=network-online.target
 StartLimitIntervalSec=0

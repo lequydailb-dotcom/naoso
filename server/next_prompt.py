@@ -1,4 +1,4 @@
-"""Suggest the owner's next message once Naota has answered.
+"""Suggest the owner's next message once NAOSO has answered.
 
 Claude often shows a ready answer in the empty chat box after it replies ("ok làm theo đề xuất cho
 cả 2 PR đi"), and Tab drops it into the box; "em xem có thêm được vào naota không?".
@@ -182,7 +182,7 @@ def _tidy(text) -> str:
     if len(t) >= 2 and t[0] == t[-1] and t[0] in "\"'`":
         t = t[1:-1].strip()
     t = t.strip("“”").strip()
-    # The owner bans the long dash in every text Naota writes.
+    # The owner bans the long dash in every text NAOSO writes.
     t = re.sub(r"\s*[\u2014\u2013]\s*", ", ", t)
     t = " ".join(t.split())
     if t.lower().rstrip(".!") in _NONE:
@@ -296,7 +296,7 @@ async def suggest(cfg: dict, context) -> dict:
     if not enabled(cfg):
         return {"text": "", "source": "", "off": True}
     ctx = shape_context(context)
-    # Nothing to go on until Naota has said something.
+    # Nothing to go on until NAOSO has said something.
     if not ctx or ctx[-1]["role"] != "assistant":
         return {"text": "", "source": ""}
     key = hashlib.sha1(repr(ctx).encode("utf-8")).hexdigest()

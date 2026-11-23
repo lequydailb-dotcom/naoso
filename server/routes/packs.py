@@ -105,7 +105,7 @@ def _connector_cua_app() -> list:
         ra = []
         for cid, c in (mcp_catalog.tat_ca() or {}).items():
             # Chạy LỆNH thì là bậc code, dù không một dòng Python nào: `transport: stdio` khiến
-            # Naota chạy `npx` với toàn bộ biến môi trường của máy chủ.
+            # NAOSO chạy `npx` với toàn bộ biến môi trường của máy chủ.
             code = str(c.get("transport") or "http").lower() == "stdio" or bool(c.get("command"))
             nhom = str(c.get("category") or "Khác")
             ra.append({
@@ -183,11 +183,11 @@ def _tu_choi():
     # say a sign-in password must be set first and send the user to Account instead of "Sign in".
     no_password = not cfgmod.auth_enabled()
     return JSONResponse({"ok": False, "need_password": no_password,
-                         "error": localefmt.chu("Naota Store cần mật khẩu đăng nhập. Đặt mật khẩu ở trang Tài khoản rồi đăng nhập.",
-                                                "Naota Store needs a sign-in password. Set one on the Account page, then sign in.")
+                         "error": localefmt.chu("NAOSO Store cần mật khẩu đăng nhập. Đặt mật khẩu ở trang Tài khoản rồi đăng nhập.",
+                                                "NAOSO Store needs a sign-in password. Set one on the Account page, then sign in.")
                          if no_password else
-                         localefmt.chu("Cần đăng nhập vào Naota để quản lý gói.",
-                                       "Sign in to Naota to manage packs.")},
+                         localefmt.chu("Cần đăng nhập vào NAOSO để quản lý gói.",
+                                       "Sign in to NAOSO to manage packs.")},
                         status_code=401)
 
 
@@ -377,7 +377,7 @@ def _make_router() -> APIRouter:
             g["nhom"] = _nhom(g)
         # Connector đi kèm app cũng hiện TRONG kho, đánh dấu sẵn là đã cài. Người dùng không
         # phân biệt "thứ ship theo app" với "thứ tải từ kho" - họ chỉ muốn một chỗ để nhìn xem
-        # Naota nối được với cái gì. Trộn vào đây thì lưới Kết nối của kho có đủ mặt hàng ngay
+        # NAOSO nối được với cái gì. Trộn vào đây thì lưới Kết nối của kho có đủ mặt hàng ngay
         # từ ngày đầu, thay vì trống trơn cho tới khi ai đó phát hành gói connector.
         #
         # Chúng KHÔNG tải về từ đâu cả (`download.url` rỗng), và gỡ chúng đi qua `core_off`

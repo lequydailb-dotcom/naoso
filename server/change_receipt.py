@@ -1,7 +1,7 @@
 """What a chat turn changed in the brain's capabilities, shown under the answer with Undo.
 
 Idea borrowed from OpenMausBot ("changes a bot makes to itself"): a bot can schedule, edit skills and
-create agents on its own, and each change shows as one plain line with Undo. Naota already does this
+create agents on its own, and each change shows as one plain line with Undo. NAOSO already does this
 for memory (memory_receipt.py); this covers the rest of what a turn can create from chat:
 
     reminders and cron jobs   Naota/reminders.json (pending ones)

@@ -1,4 +1,4 @@
-"""A/B with a real model: is an answer as good when Naota loads only the parts of a skill a task needs? (2026-11-18)
+"""A/B with a real model: is an answer as good when NAOSO loads only the parts of a skill a task needs? (2026-11-18)
 
     python tools/section_ab_eval.py                       # Anthropic (ANTHROPIC_API_KEY), 3 tries per case
     python tools/section_ab_eval.py --provider openai --model gpt-5-mini --base-url https://openrouter.ai/api/v1
@@ -11,7 +11,7 @@ correct answer must contain (the template's own fields and paths, the safety rul
 (exit 1) when the selective variant covers fewer key facts than the whole one on any case, averaged over the tries.
 
 Cases are naota-builder requests, the one skill on section_select.MENU_SKILLS. A skill added to that list should bring
-its own cases here first. Naota serves every language (owner, 18/11/2026), so cases come in several: a request in
+its own cases here first. NAOSO serves every language (owner, 18/11/2026), so cases come in several: a request in
 another language than the skill carries the `task` the model would pass to naota_use_skill, written in the skill's
 language as its description asks.
 """
@@ -127,7 +127,7 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default="")
     a = ap.parse_args(argv)
     skill = Path(a.skill).read_text(encoding="utf-8")
-    system_head = ("You are Naota, the owner's assistant. Follow the skill below exactly; it is your instructions for "
+    system_head = ("You are NAOSO, the owner's assistant. Follow the skill below exactly; it is your instructions for "
                    "this request.\n\n")
     rows, worse = [], 0
     for case in CASES:

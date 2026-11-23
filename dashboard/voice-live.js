@@ -16,12 +16,12 @@
    ChatGPT Live (voice-call-spec mục 3.4): khung `ready` mang
    transport "webrtc" thì KHÔNG đẩy PCM. Trình duyệt dựng RTCPeerConnection lấy track mic, kênh
    dữ liệu "oai-events" (offer thiếu nó là bị từ chối), gửi offer qua khung webrtc_offer, nhận
-   webrtc_answer rồi nói chuyện THẲNG với OpenAI; tiếng Naota là track remote. onReady chỉ báo
-   sau khi bắt tay xong, vì chữ gửi trước lúc đó (câu gọi Naota) không có phiên nào nhận.
+   webrtc_answer rồi nói chuyện THẲNG với OpenAI; tiếng NAOSO là track remote. onReady chỉ báo
+   sau khi bắt tay xong, vì chữ gửi trước lúc đó (câu gọi NAOSO) không có phiên nào nhận.
 
    One call, one set of audio parts. After 30 quiet seconds the call closes the provider and waits (app.js
    tickVoiceFocus); the first real sentence reopens it. That reopen happens in no press, and an iPhone only lets audio
-   run when it was started by one: the new AudioContexts stayed suspended, so the model heard nothing and Naota made
+   run when it was started by one: the new AudioContexts stayed suspended, so the model heard nothing and NAOSO made
    no sound. So stop() now only suspends the
    two contexts and keeps the remote <audio> element, all of them unlocked by the press that started the call, and
    the next session reuses them. unlock() is called inside a press; release() closes everything at hang-up.
@@ -131,7 +131,7 @@
     if (ws && ws.readyState === WebSocket.OPEN) { try { ws.send(JSON.stringify(obj)); } catch (e) {} }
   }
 
-  // WebRTC: "Naota đang nói" đo bằng mức âm track remote (không có hàng đợi phát nào để đếm).
+  // WebRTC: "NAOSO đang nói" đo bằng mức âm track remote (không có hàng đợi phát nào để đếm).
   function setRtcSpeaking(now) {
     if (now === rtcSpeaking) return;
     rtcSpeaking = now;
@@ -207,7 +207,7 @@
     }
   }
 
-  // Báo trạng thái "Naota đang nói" theo hàng đợi phát thật (không có sự kiện nào khác đáng tin).
+  // Báo trạng thái "NAOSO đang nói" theo hàng đợi phát thật (không có sự kiện nào khác đáng tin).
   function tickSpeaking() {
     clearTimeout(speakTimer);
     var now = !!playing.length;

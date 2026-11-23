@@ -1,9 +1,9 @@
 <!-- translated-from: README.en.md sha256:a4092d38f233 -->
 <div align="center">
 
-<img src="../../../dashboard/logo.svg" width="88" alt="Logo NAOTA">
+<img src="../../../dashboard/logo.svg" width="88" alt="Logo NAOSO">
 
-# NAOTA
+# NAOSO
 
 ### Agen AI self-hosted Anda dengan otak yang bisa diganti, dan Second Brain yang makin pintar setiap hari.
 
@@ -35,18 +35,18 @@ Jalankan di laptop atau VPS kecil. Ajak bicara dengan suara. Pasang Claude, Chat
 
 [🇬🇧 English](../../../README.en.md) · [🇻🇳 Tiếng Việt](../vi/README.md) · [🇨🇳 简体中文](../zh/README.md) · [🇪🇸 Español](../es/README.md) · [🇯🇵 日本語](../ja/README.md) · [🇮🇳 हिन्दी](../hi/README.md) · [🇧🇷 Português](../pt-BR/README.md) · [🇰🇷 한국어](../ko/README.md) · [🇷🇺 Русский](../ru/README.md) · [🇩🇪 Deutsch](../de/README.md) · [🇫🇷 Français](../fr/README.md) · 🇮🇩 **Bahasa Indonesia** · [🌍 Bantu menerjemahkan](../../../CONTRIBUTING.md#translations)
 
-[Mulai cepat](#-mulai-cepat) · [Mengapa Naota](#-mengapa-naota) · [Otak](#-12-otak-satu-toolkit) · [Fitur](#-fitur) · [Instalasi](#-instalasi) · [Dokumentasi](../../../docs/en/README.md)
+[Mulai cepat](#-mulai-cepat) · [Mengapa NAOSO](#-mengapa-naota) · [Otak](#-12-otak-satu-toolkit) · [Fitur](#-fitur) · [Instalasi](#-instalasi) · [Dokumentasi](../../../docs/en/README.md)
 
 
 </div>
 
-> 🌍 Ini adalah terjemahan otomatis dari README berbahasa Inggris. Naota membalas dalam bahasa apa pun yang Anda gunakan saat menulis; antarmukanya untuk saat ini tersedia dalam bahasa Inggris dan Vietnam. Dokumentasi lengkap tersedia dalam bahasa Inggris ([docs/en](../../../docs/en/README.md)). Koreksi sangat kami sambut ([CONTRIBUTING](../../../CONTRIBUTING.md#translations)).
+> 🌍 Ini adalah terjemahan otomatis dari README berbahasa Inggris. NAOSO membalas dalam bahasa apa pun yang Anda gunakan saat menulis; antarmukanya untuk saat ini tersedia dalam bahasa Inggris dan Vietnam. Dokumentasi lengkap tersedia dalam bahasa Inggris ([docs/en](../../../docs/en/README.md)). Koreksi sangat kami sambut ([CONTRIBUTING](../../../CONTRIBUTING.md#translations)).
 
 ---
 
 ## ⚡ Mulai cepat
 
-**Cara mudahnya: biarkan AI Anda sendiri yang menginstalnya.** Berikan link repo ini ke Claude Code atau Codex di mesin Anda lalu katakan *"instalkan NAOTA untuk saya"*. Ia cukup menjalankan satu perintah:
+**Cara mudahnya: biarkan AI Anda sendiri yang menginstalnya.** Berikan link repo ini ke Claude Code atau Codex di mesin Anda lalu katakan *"instalkan NAOSO untuk saya"*. Ia cukup menjalankan satu perintah:
 
 | Mesin | Satu perintah menginstal semuanya |
 |---|---|
@@ -57,17 +57,17 @@ Jalankan di laptop atau VPS kecil. Ajak bicara dengan suara. Pasang Claude, Chat
 Lalu buka **http://localhost:7777**. Installer akan menyiapkan Python, empat otak CLI berlangganan (`claude`, `codex`, `agy`, `grok`) dan sebuah `.env`, lalu menjalankan server. Anda login ke setiap otak **di halaman Models pada dashboard**, tanpa perlu mengetik perintah lagi.
 
 > [!NOTE]
-> Menginstal CLI tambahan **setelah** Naota sudah berjalan? **Restart Naota.** Proses yang sedang berjalan tetap memakai PATH saat ia pertama dijalankan, sehingga tidak bisa melihat CLI yang diinstal belakangan.
+> Menginstal CLI tambahan **setelah** NAOSO sudah berjalan? **Restart NAOSO.** Proses yang sedang berjalan tetap memakai PATH saat ia pertama dijalankan, sehingga tidak bisa melihat CLI yang diinstal belakangan.
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/install-terminal.svg" width="100%" alt="Terminal animasi: installer satu baris menyiapkan Python, empat otak CLI berlangganan dan sebuah .env, lalu melaporkan bahwa Naota berjalan di http://localhost:7777">
+<img src="../../../docs/assets/diagrams/install-terminal.svg" width="100%" alt="Terminal animasi: installer satu baris menyiapkan Python, empat otak CLI berlangganan dan sebuah .env, lalu melaporkan bahwa NAOSO berjalan di http://localhost:7777">
 </p>
 
 ---
 
-## 🤔 Mengapa Naota?
+## 🤔 Mengapa NAOSO?
 
-NAOTA **bukan** chatbot. Ini adalah **AI agentik self-hosted** yang berjalan di mesin atau VPS Anda sendiri: ia membaca dan menulis file, memanggil tool lewat MCP, menjalankan skill, mengantrekan pekerjaan background, dan menjadwalkan dirinya sendiri. Semua itu ada di balik **dashboard yang bisa dikendalikan dengan suara** dan sebuah **Second Brain** (memori + wiki) yang mengumpulkan pengetahuan dari waktu ke waktu.
+NAOSO **bukan** chatbot. Ini adalah **AI agentik self-hosted** yang berjalan di mesin atau VPS Anda sendiri: ia membaca dan menulis file, memanggil tool lewat MCP, menjalankan skill, mengantrekan pekerjaan background, dan menjadwalkan dirinya sendiri. Semua itu ada di balik **dashboard yang bisa dikendalikan dengan suara** dan sebuah **Second Brain** (memori + wiki) yang mengumpulkan pengetahuan dari waktu ke waktu.
 
 ### Jebakan lock-in yang tidak pernah diperingatkan siapa pun
 
@@ -82,9 +82,9 @@ Semuanya tersimpan di server vendor, dalam format vendor. Lalu model yang lebih 
 
 Jadi Anda bertahan. Bukan karena model lama masih yang terbaik, tetapi karena pindah berarti mulai dari nol. Dan ketika vendor menaikkan harga, memperketat batas, mempensiunkan sebuah model, atau mengunci akun Anda, tidak ada rencana B.
 
-### Naota membaliknya: sewa modelnya, miliki Brain Anda sendiri
+### NAOSO membaliknya: sewa modelnya, miliki Brain Anda sendiri
 
-Di Naota, model adalah komponen yang bisa Anda tukar. Semua yang Anda bangun tetap bersama Anda, sebagai file yang bisa Anda buka:
+Di NAOSO, model adalah komponen yang bisa Anda tukar. Semua yang Anda bangun tetap bersama Anda, sebagai file yang bisa Anda buka:
 
 | Yang Anda bangun | Tempat tinggalnya | Format |
 |---|---|---|
@@ -99,13 +99,13 @@ Apa yang Anda dapatkan dari situ:
 
 - **Ada model baru? Ganti di halaman Models dan lanjutkan saja.** Ia membaca memori yang sama, menjalankan skill, agent, dan workflow yang sama, serta memanggil koneksi yang sama lewat MCP Hub. Tidak ada yang perlu dimigrasi, tidak ada yang perlu dibangun ulang.
 - **Pakai beberapa otak sekaligus.** Model yang kuat untuk percakapan, yang lebih murah untuk pekerjaan background, model Ollama lokal untuk catatan pribadi, semuanya bekerja di Brain yang sama.
-- **Bisa dibaca tanpa Naota.** Brain Anda adalah folder berisi markdown. Buka di Obsidian atau editor apa pun. Kalau Naota hilang besok, pengetahuan Anda tetap ada, dalam teks biasa.
+- **Bisa dibaca tanpa NAOSO.** Brain Anda adalah folder berisi markdown. Buka di Obsidian atau editor apa pun. Kalau NAOSO hilang besok, pengetahuan Anda tetap ada, dalam teks biasa.
 - **Berversi dan portabel.** Setiap proses belajar adalah satu git commit yang bisa Anda batalkan dengan satu ketukan, dan seluruh Brain bisa disinkronkan ke repo GitHub privat milik Anda sendiri, dipakai bersama antara laptop dan VPS Anda.
-- **Data Anda tetap di perangkat keras Anda.** Tidak ada cloud Naota di tengah. Sebuah request hanya dikirim ke penyedia model yang Anda pilih untuknya, dan dengan model Ollama lokal, request itu tidak pernah keluar dari mesin Anda.
+- **Data Anda tetap di perangkat keras Anda.** Tidak ada cloud NAOSO di tengah. Sebuah request hanya dikirim ke penyedia model yang Anda pilih untuknya, dan dengan model Ollama lokal, request itu tidak pernah keluar dari mesin Anda.
 
-### Naota dibandingkan chatbot biasa
+### NAOSO dibandingkan chatbot biasa
 
-| | Chatbot biasa | **NAOTA** |
+| | Chatbot biasa | **NAOSO** |
 |---|---|---|
 | **Otak** | Terkunci di satu model, satu panggilan API stateless per pesan | **Bisa diganti**: 12 provider, masing-masing dengan set lengkap tool, MCP, skill dan sesi, termasuk model yang berjalan di mesin Anda sendiri lewat Ollama |
 | **Memori** | Lupa setiap kali sesi selesai | **Second Brain yang hidup**, yang mengingat Anda dan makin tebal di setiap percakapan |
@@ -115,20 +115,20 @@ Apa yang Anda dapatkan dari situ:
 | **Hasil kerja Anda** | Tertinggal di server vendor, dalam format vendor | **File biasa di mesin Anda**: riwayat, memori, skill, agent, dan workflow ikut pindah ke model baru mana pun |
 | **Deployment** | Cloud milik orang lain | **Self-hosted**: [Hostinger](https://www.hostinger.com?REFERRALCODE=VUONGTEX) sekali klik, Docker, atau VPS apa pun |
 
-> 💡 **Filosofinya: kemampuan ada di Naota, bukan di model.** Setiap otak mendapat kotak peralatan yang sama lewat satu hub koneksi bersama (MCP Hub). Beralih dari Claude ke Gemini tidak membuat Anda kehilangan apa pun kecuali akses shell, yang hanya dimiliki engine CLI.
+> 💡 **Filosofinya: kemampuan ada di NAOSO, bukan di model.** Setiap otak mendapat kotak peralatan yang sama lewat satu hub koneksi bersama (MCP Hub). Beralih dari Claude ke Gemini tidak membuat Anda kehilangan apa pun kecuali akses shell, yang hanya dimiliki engine CLI.
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/chat-to-action.svg" width="100%" alt="Diagram animasi: pesan chat masuk ke Naota, yang memilih tool terkecil yang bisa menyelesaikan pekerjaan, mulai dari menjawab langsung, mengantrekan tugas, membuat agent, workflow, pengingat, atau loop">
+<img src="../../../docs/assets/diagrams/chat-to-action.svg" width="100%" alt="Diagram animasi: pesan chat masuk ke NAOSO, yang memilih tool terkecil yang bisa menyelesaikan pekerjaan, mulai dari menjawab langsung, mengantrekan tugas, membuat agent, workflow, pengingat, atau loop">
 </p>
 
 ---
 
 ## 🧠 12 otak, satu toolkit
 
-Pilih otak di halaman **Models** dan ganti kapan pun Anda mau. Saat ini Naota mendukung **12 provider**.
+Pilih otak di halaman **Models** dan ganti kapan pun Anda mau. Saat ini NAOSO mendukung **12 provider**.
 
 <p align="center">
-<img src="../../../docs/assets/diagrams/swappable-brain.svg" width="100%" alt="Diagram animasi: inti Naota di tengah dengan toolkit-nya (MCP Hub, Skills, Second Brain, Tasks, Schedules, Plugins) di sekelilingnya, sementara 12 otak bergantian terpasang dan setiap tool tetap menyala">
+<img src="../../../docs/assets/diagrams/swappable-brain.svg" width="100%" alt="Diagram animasi: inti NAOSO di tengah dengan toolkit-nya (MCP Hub, Skills, Second Brain, Tasks, Schedules, Plugins) di sekelilingnya, sementara 12 otak bergantian terpasang dan setiap tool tetap menyala">
 </p>
 
 | Otak | Cara bayar | Shell, web, sub-agent |
@@ -137,15 +137,15 @@ Pilih otak di halaman **Models** dan ganti kapan pun Anda mau. Saat ini Naota me
 | **ChatGPT** (via Codex) | Paket ChatGPT Anda | ✅ |
 | **Grok Build** | Paket SuperGrok atau X Premium+ Anda | ✅ |
 | **Antigravity CLI** | Paket Google Anda (deretan model yang sama dengan Antigravity IDE, termasuk Claude) | Shell ✅ |
-| **OpenRouter** | API key (ratusan model di balik satu key) | via tool Naota |
-| **OpenAI API** · **Anthropic API** · **Google Gemini** · **Groq** | API key | via tool Naota |
-| **Ollama Cloud** · **Ollama di mesin ini** | API key, atau gratis di hardware Anda sendiri | via tool Naota |
-| **Endpoint apa pun yang kompatibel dengan OpenAI** | Apa pun yang dibutuhkan endpoint tersebut | via tool Naota |
+| **OpenRouter** | API key (ratusan model di balik satu key) | via tool NAOSO |
+| **OpenAI API** · **Anthropic API** · **Google Gemini** · **Groq** | API key | via tool NAOSO |
+| **Ollama Cloud** · **Ollama di mesin ini** | API key, atau gratis di hardware Anda sendiri | via tool NAOSO |
+| **Endpoint apa pun yang kompatibel dengan OpenAI** | Apa pun yang dibutuhkan endpoint tersebut | via tool NAOSO |
 
 Setiap otak bisa memanggil server MCP yang Anda hubungkan, membaca dan menulis Brain, menjalankan skill, mengantrekan pekerjaan Kanban, serta membuat agent, workflow, loop dan pengingat. Engine CLI juga bisa menjalankan **perintah shell**, **mengambil dan mencari di web**, serta **menjalankan sub-agent secara paralel**.
 
 > [!WARNING]
-> **Catatan sebelum membiarkan langganan menjalankan pekerjaan background.** Anthropic membatasi Claude Pro/Max untuk **penggunaan pribadi biasa** Claude Code. Eksekusi background terus-menerus (loop, pengingat, job Kanban, chatbot), menjalankannya di VPS, atau beberapa orang berbagi satu akun, berada di luar cakupan itu, jadi ada risiko akun **diblokir**, meski sejauh ini Naota belum mencatat satu kasus pun. Jika Anda mengalaminya, mohon kabari pengembang lewat [Issues](https://github.com/vuongtex/naota/issues/new/choose). Naota tidak pernah membaca token login Anda: ia menjalankan binary `claude` yang asli, tetapi itu tidak membuat penggunaan background nonstop menjadi sah. Agar aman, atur Claude Code agar berjalan dengan **API key** di halaman Models, atau arahkan **model untuk pekerjaan background** ke provider lain. Kehati-hatian yang sama berlaku untuk paket xAI. Lihat `server/claude_auth.py`.
+> **Catatan sebelum membiarkan langganan menjalankan pekerjaan background.** Anthropic membatasi Claude Pro/Max untuk **penggunaan pribadi biasa** Claude Code. Eksekusi background terus-menerus (loop, pengingat, job Kanban, chatbot), menjalankannya di VPS, atau beberapa orang berbagi satu akun, berada di luar cakupan itu, jadi ada risiko akun **diblokir**, meski sejauh ini NAOSO belum mencatat satu kasus pun. Jika Anda mengalaminya, mohon kabari pengembang lewat [Issues](https://github.com/vuongtex/naota/issues/new/choose). NAOSO tidak pernah membaca token login Anda: ia menjalankan binary `claude` yang asli, tetapi itu tidak membuat penggunaan background nonstop menjadi sah. Agar aman, atur Claude Code agar berjalan dengan **API key** di halaman Models, atau arahkan **model untuk pekerjaan background** ke provider lain. Kehati-hatian yang sama berlaku untuk paket xAI. Lihat `server/claude_auth.py`.
 
 ---
 
@@ -160,15 +160,15 @@ Setiap otak bisa memanggil server MCP yang Anda hubungkan, membaca dan menulis B
 <td width="50%" valign="top">
 
 ### 🗣️ Ajak bicara
-- **Suara hands-free**: Anda bicara, Naota mendengarkan dan menjawab dengan suara (Edge TTS gratis secara default, atau OpenAI dan ElevenLabs).
+- **Suara hands-free**: Anda bicara, NAOSO mendengarkan dan menjawab dengan suara (Edge TTS gratis secara default, atau OpenAI dan ElevenLabs).
 - **Sesi chat** yang bisa disimpan, dibuka lagi, dan dicari dengan full-text search. Sesi panjang dipadatkan menjadi ringkasan, bukan dipotong.
-- **Telegram, Slack, WhatsApp, Zalo, CLI, dan dashboard web**, semuanya terhubung ke Naota yang sama ([pengaturan Slack dan WhatsApp](../../../docs/en/29-slack-whatsapp.md)).
-- **Bahasa apa pun**: Naota membalas dalam bahasa yang Anda gunakan. Antarmukanya tersedia dalam bahasa Inggris dan Vietnam.
+- **Telegram, Slack, WhatsApp, Zalo, CLI, dan dashboard web**, semuanya terhubung ke NAOSO yang sama ([pengaturan Slack dan WhatsApp](../../../docs/en/29-slack-whatsapp.md)).
+- **Bahasa apa pun**: NAOSO membalas dalam bahasa yang Anda gunakan. Antarmukanya tersedia dalam bahasa Inggris dan Vietnam.
 
 ### 🧠 Ingat semuanya
 - **Second Brain**: vault markdown (kompatibel dengan Obsidian) dengan memori jangka panjang, Wiki, dan Sources mentah.
 - **Knowledge graph** dari catatan Anda yang terhubung lewat `[[wikilink]]`, di kanvas terang yang bisa dipakai offline.
-- **Belajar mandiri**: setelah setiap percakapan, Naota menyaring memori, pengetahuan wiki, dan skill. Setiap proses belajar adalah satu git commit, jadi **bisa dibatalkan dengan satu ketukan**.
+- **Belajar mandiri**: setelah setiap percakapan, NAOSO menyaring memori, pengetahuan wiki, dan skill. Setiap proses belajar adalah satu git commit, jadi **bisa dibatalkan dengan satu ketukan**.
 - **Backup ke GitHub**: sinkronisasi dua arah setiap Brain ke repo privat, dipakai bersama antara laptop dan VPS Anda.
 
 </td>
@@ -181,7 +181,7 @@ Setiap otak bisa memanggil server MCP yang Anda hubungkan, membaca dan menulis B
 - **Chatbot**: tempatkan agent di depan pelanggan Anda lewat bot Telegram, Slack, WhatsApp, atau Zalo-nya sendiri, dengan inbox bersama yang bisa Anda ambil alih.
 
 ### 🔌 Hubungkan apa saja
-- **Toko koneksi MCP** dengan beberapa akun per layanan dan tiga level izin yang **ditegakkan secara ketat** oleh Naota.
+- **Toko koneksi MCP** dengan beberapa akun per layanan dan tiga level izin yang **ditegakkan secara ketat** oleh NAOSO.
 - **Skill dan plugin**: taruh sebuah folder untuk menambahkan pengetahuan (skill) atau tool Python native (plugin) untuk setiap engine.
 - **Pembuatan gambar** memakai paket ChatGPT yang sudah Anda login-kan.
 - **Pelacakan penggunaan**: token dan biaya per hari, per provider, dipisahkan antara yang Anda ketik dan yang berjalan sendiri.
@@ -202,10 +202,10 @@ flowchart LR
     subgraph You
         W[Web dashboard<br>voice + graph]
         T[Telegram]
-        C[Naota CLI]
+        C[NAOSO CLI]
         Z[Zalo / bot channels]
     end
-    subgraph Naota["NAOTA (FastAPI, self-hosted)"]
+    subgraph NAOSO["NAOSO (FastAPI, self-hosted)"]
         R[Engine router]
         H[MCP Hub<br>shared toolbox]
         B[(Second Brain<br>Memory + Wiki + Sources)]
@@ -232,12 +232,12 @@ flowchart LR
 ## 🚀 Instalasi
 
 > [!IMPORTANT]
-> Naota menjalankan otak AI dengan **hak penuh** di mesin. Saat berjalan secara publik (Docker, VPS, Hostinger), Naota **mewajibkan login dengan sendirinya**: membuka aplikasi akan menampilkan layar buat akun atau login, dan tidak ada yang bisa mengendalikannya tanpa password.
+> NAOSO menjalankan otak AI dengan **hak penuh** di mesin. Saat berjalan secara publik (Docker, VPS, Hostinger), NAOSO **mewajibkan login dengan sendirinya**: membuka aplikasi akan menampilkan layar buat akun atau login, dan tidak ada yang bisa mengendalikannya tanpa password.
 
 <details open>
 <summary><b>Opsi 1: Hostinger Docker Manager (domain + HTTPS, sekali klik)</b></summary>
 
-> 🛒 **Belum punya VPS?** [Sewa VPS Hostinger di sini](https://www.hostinger.com?REFERRALCODE=VUONGTEX). Docker Manager sudah tersedia, jadi Naota terpasang sekali klik. Setelah siap, kembali ke langkah di bawah.
+> 🛒 **Belum punya VPS?** [Sewa VPS Hostinger di sini](https://www.hostinger.com?REFERRALCODE=VUONGTEX). Docker Manager sudah tersedia, jadi NAOSO terpasang sekali klik. Setelah siap, kembali ke langkah di bawah.
 
 VPS Hostinger → **Docker Manager → Compose → URL** → tempel file Hostinger lalu tekan **Deploy**:
 
@@ -245,7 +245,7 @@ VPS Hostinger → **Docker Manager → Compose → URL** → tempel file Hosting
 https://raw.githubusercontent.com/vuongtex/naota/main/docker-compose.hostinger.yml
 ```
 
-Kotak **Environment** hanya butuh tiga field: `DOMAIN_NAME`, `NAOTA_ADMIN_USER`, `NAOTA_ADMIN_PASSWORD`, ditambah `NAOTA_AUTO_UPDATE` yang opsional (isi `true` dan Naota akan memperbarui dirinya setiap hari).
+Kotak **Environment** hanya butuh tiga field: `DOMAIN_NAME`, `NAOTA_ADMIN_USER`, `NAOTA_ADMIN_PASSWORD`, ditambah `NAOTA_AUTO_UPDATE` yang opsional (isi `true` dan NAOSO akan memperbarui dirinya setiap hari).
 
 Isi `DOMAIN_NAME` agar Traefik milik Hostinger menerbitkan HTTPS:
 - **Link gratis** (tanpa beli domain): `DOMAIN_NAME=naota.<vps-hostname>.hstgr.cloud` (hostname ada di hPanel → VPS, contoh `naota.srv1234567.hstgr.cloud`).
@@ -292,7 +292,7 @@ chmod +x install.sh && ./install.sh
 
 Script ini menginstal Python, Node, dan otak CLI, membuat venv, mendaftarkan service yang berjalan saat boot, lalu menampilkan alamatnya.
 
-🍎 **macOS, buka seperti aplikasi:** klik dua kali `NAOTA.app` (atau `Start NAOTA.command`). Jalankan saat login: `./bin/naota-autostart.sh install`. Detail: [bin/README.md](../../../bin/README.md).
+🍎 **macOS, buka seperti aplikasi:** klik dua kali `NAOSO.app` (atau `Start NAOSO.command`). Jalankan saat login: `./bin/naota-autostart.sh install`. Detail: [bin/README.md](../../../bin/README.md).
 
 </details>
 
@@ -313,12 +313,12 @@ Stop:                                  stop-naota.bat
 Dashboard:                             http://localhost:7777
 ```
 
-🪟 **Buka seperti aplikasi:** setelah dijalankan pertama kali, klik dua kali **`NAOTA.bat`**. Server berjalan di background dan dashboard terbuka di **jendelanya sendiri** dengan entri taskbar sendiri. Jalankan saat login: `naota-autostart.bat install` (hapus: `uninstall`).
+🪟 **Buka seperti aplikasi:** setelah dijalankan pertama kali, klik dua kali **`NAOSO.bat`**. Server berjalan di background dan dashboard terbuka di **jendelanya sendiri** dengan entri taskbar sendiri. Jalankan saat login: `naota-autostart.bat install` (hapus: `uninstall`).
 
 </details>
 
 <details>
-<summary><b>Beberapa instance Naota di satu VPS</b></summary>
+<summary><b>Beberapa instance NAOSO di satu VPS</b></summary>
 
 Brain, pengaturan, dan akun tetap terpisah sepenuhnya per instance. Hanya tiga nilai yang berbeda di antara mereka: `NAOTA_NAME`, `NAOTA_HOST_PORT`, `DOMAIN_NAME`.
 
@@ -332,16 +332,16 @@ Langkah demi langkah: [DEPLOY.en.md](../../../DEPLOY.en.md).
 
 ### 🎬 Menjalankan pertama kali
 
-Buka Naota dan setup wizard akan memandu Anda, dalam bahasa browser Anda:
+Buka NAOSO dan setup wizard akan memandu Anda, dalam bahasa browser Anda:
 
 1. **Akun admin**: wajib saat berjalan secara publik, agar orang asing tidak bisa masuk.
 2. **Pilih otak**: login sekali dengan langganan, atau tempel API key. Kartu Claude Code punya switch **"Runs on"** untuk memilih antara paket yang Anda login-kan dan API key Anthropic.
 3. **Pilih model**: berganti provider nanti tidak menghilangkan fitur apa pun (kecuali perintah shell, yang hanya dimiliki engine CLI).
-4. **Pasang koneksi** (opsional): buka **Connections**, pilih layanan, lalu tempel key atau scan kode QR. Setelah itu Naota melapor berdasarkan angka nyata dari sana.
+4. **Pasang koneksi** (opsional): buka **Connections**, pilih layanan, lalu tempel key atau scan kode QR. Setelah itu NAOSO melapor berdasarkan angka nyata dari sana.
 
 ---
 
-## 📖 Menggunakan Naota
+## 📖 Menggunakan NAOSO
 
 Rail kiri mengelompokkan halaman menjadi **6 grup**. Setiap halaman punya panduan di [docs/en/](../../../docs/en/README.md).
 
@@ -351,23 +351,23 @@ Rail kiri mengelompokkan halaman menjadi **6 grup**. Setiap halaman punya pandua
 | **Code** | Terminal, Coding | [Terminal kode](../../../docs/en/27-code-terminal.md) |
 | **Capabilities** | Partners (agent dan workflow), Chatbot, Skills, Plugins | [Agent dan workflow](../../../docs/en/07-agents-and-workflows.md) · [Chatbot](../../../docs/en/25-chatbots.md) · [Percakapan pelanggan](../../../docs/en/28-customer-conversations.md) · [Skill](../../../docs/en/06-skills.md) · [Plugin](../../../docs/en/20-plugins.md) |
 | **Work** | Tasks, Scheduled | [Tugas (Kanban)](../../../docs/en/21-kanban-work.md) · [Job berulang dan pengingat](../../../docs/en/08-recurring-jobs.md) |
-| **Connections** | Connections, Naota Store, Channels, Models | [Koneksi dan data bisnis](../../../docs/en/09-connections-and-business-data.md) · [Telegram](../../../docs/en/11-telegram.md) · [Zalo](../../../docs/en/12-zalo-agent-mcp.md) · [Model dan engine](../../../docs/en/10-models-and-engines.md) |
-| **System** | Settings, Share links, Account | [Memulai](../../../docs/en/01-getting-started.md) · [Keamanan dan akun](../../../docs/en/14-security-and-accounts.md) · [Penggunaan dan biaya](../../../docs/en/23-usage-and-cost.md) · [Naota CLI](../../../docs/en/24-cli.md) |
+| **Connections** | Connections, NAOSO Store, Channels, Models | [Koneksi dan data bisnis](../../../docs/en/09-connections-and-business-data.md) · [Telegram](../../../docs/en/11-telegram.md) · [Zalo](../../../docs/en/12-zalo-agent-mcp.md) · [Model dan engine](../../../docs/en/10-models-and-engines.md) |
+| **System** | Settings, Share links, Account | [Memulai](../../../docs/en/01-getting-started.md) · [Keamanan dan akun](../../../docs/en/14-security-and-accounts.md) · [Penggunaan dan biaya](../../../docs/en/23-usage-and-cost.md) · [NAOSO CLI](../../../docs/en/24-cli.md) |
 
 Selengkapnya: [Second Brain: memori, Wiki, dan INGEST](../../../docs/en/13-second-brain.md) · [Backup GitHub](../../../docs/en/18-github-backup.md) · [Tasks dan Dataview di catatan](../../../docs/en/19-tasks-and-dataview.md) · [Branding dan domain kustom](../../../docs/en/15-branding-and-domains.md) · [Pemecahan masalah](../../../docs/en/17-troubleshooting.md)
 
 ### Beberapa hal untuk dicoba
 
-- **Minta angka:** *"Bagaimana omzet hari ini dibandingkan kemarin?"* Naota memanggil koneksi yang tepat dan menjawab dengan angka nyata beserta saran.
-- **Cerna pengetahuan:** taruh sebuah file atau catatan. Naota meringkasnya, mengambil insight, menuliskannya ke Wiki, dan mengusulkan tugas.
+- **Minta angka:** *"Bagaimana omzet hari ini dibandingkan kemarin?"* NAOSO memanggil koneksi yang tepat dan menjawab dengan angka nyata beserta saran.
+- **Cerna pengetahuan:** taruh sebuah file atau catatan. NAOSO meringkasnya, mengambil insight, menuliskannya ke Wiki, dan mengusulkan tugas.
 - **Serahkan pekerjaan background:** **Tasks** → **+ Assign goal** → *"rangkum penjualan minggu ini, cari stok yang lambat laku, buat draf tiga caption untuk mendorongnya"*. AI menyusun spesifikasinya, menjalankannya, dan melapor kembali.
 - **Jadwalkan sesuatu:** *"ingatkan saya setiap hari kerja jam 8:30 untuk mengecek budget iklan"*, lewat chat atau di halaman **Scheduled**.
-- **Gunakan suara Anda:** tekan mikrofon (atau aktifkan hands-free), bicara, dan Naota menjawab dengan suara.
+- **Gunakan suara Anda:** tekan mikrofon (atau aktifkan hands-free), bicara, dan NAOSO menjawab dengan suara.
 
 
 ## ⚙️ Konfigurasi (`.env`)
 
-Setiap baris boleh dibiarkan kosong dan Naota tetap berjalan. Salin `env.example` → `.env` lalu tambahkan yang Anda perlukan. Daftar lengkap beserta penjelasan tiap variabel ada di [docs/en/16-env-configuration.md](../../../docs/en/16-env-configuration.md).
+Setiap baris boleh dibiarkan kosong dan NAOSO tetap berjalan. Salin `env.example` → `.env` lalu tambahkan yang Anda perlukan. Daftar lengkap beserta penjelasan tiap variabel ada di [docs/en/16-env-configuration.md](../../../docs/en/16-env-configuration.md).
 
 | Variabel | Arti | Default |
 |---|---|---|
@@ -406,7 +406,7 @@ Di aplikasi: **Settings → Updates → Update now**, dengan progress bar dan to
 
 | Gejala | Yang harus dilakukan |
 |---|---|
-| Halaman Models bilang sebuah CLI belum terinstal, padahal sudah | **Restart Naota**: proses yang berjalan tetap memakai PATH saat ia dijalankan. |
+| Halaman Models bilang sebuah CLI belum terinstal, padahal sudah | **Restart NAOSO**: proses yang berjalan tetap memakai PATH saat ia dijalankan. |
 | Port 7777 terpakai dan build baru tidak mau jalan | Hentikan dulu proses lama (`stop-naota.bat`, atau kill PID-nya), lalu jalankan lagi. |
 | Hostinger tidak bisa menarik image | Atur package GHCR menjadi **Public** dan tunggu build GitHub Action selesai. |
 | Sebuah otak bilang belum login | **Models** → kartu provider tersebut → login. |
@@ -428,7 +428,7 @@ naota/
 ├── tests/           # Python + JS test suite (python tests/run.py)
 ├── install.sh · install.ps1 · update.sh
 ├── Dockerfile · docker-compose*.yml
-└── CLAUDE.md        # The system prompt Naota runs on
+└── CLAUDE.md        # The system prompt NAOSO runs on
 ```
 
 ---
@@ -437,7 +437,7 @@ naota/
 
 | Apa | Bahasa saat ini |
 |---|---|
-| **Balasan Naota** | Bahasa apa pun: ia menjawab dalam bahasa yang Anda gunakan, atau bahasa yang Anda kunci di Settings |
+| **Balasan NAOSO** | Bahasa apa pun: ia menjawab dalam bahasa yang Anda gunakan, atau bahasa yang Anda kunci di Settings |
 | **Dashboard dan pesan server** | 🇬🇧 English · 🇻🇳 Tiếng Việt, per perangkat: setiap browser mendapat bahasanya sendiri sampai Anda memilih |
 | **Toko koneksi, plugin, file awal Brain baru** | 🇬🇧 English · 🇻🇳 Tiếng Việt |
 | **README dan panduan mulai cepat** | 🇬🇧 English · 🇻🇳 Tiếng Việt · 🇨🇳 简体中文 · 🇪🇸 Español · 🇯🇵 日本語 · 🇮🇳 हिन्दी · 🇧🇷 Português · 🇰🇷 한국어 · 🇷🇺 Русский · 🇩🇪 Deutsch · 🇫🇷 Français · 🇮🇩 Bahasa Indonesia |
@@ -459,7 +459,7 @@ Laporan bug, ide, terjemahan, dan pull request semuanya disambut, dalam bahasa I
 
 Mohon ikuti [Code of Conduct](../../../CODE_OF_CONDUCT.md), dan laporkan masalah keamanan secara privat seperti dijelaskan di [SECURITY.md](../../../SECURITY.md).
 
-Jika Naota bermanfaat bagi Anda, satu ⭐ di repo ini membantu orang lain menemukannya.
+Jika NAOSO bermanfaat bagi Anda, satu ⭐ di repo ini membantu orang lain menemukannya.
 
 [![Star History Chart](https://api.star-history.com/svg?repos=vuongtex/naota&type=Date)](https://star-history.com/#vuongtex/naota&Date)
 
@@ -468,12 +468,12 @@ Jika Naota bermanfaat bagi Anda, satu ⭐ di repo ini membantu orang lain menemu
 ## 🙏 Kredit
 
 - **Otak:** [Claude Code](https://claude.com/claude-code) dan [Claude Agent SDK](https://docs.claude.com/en/api/agent-sdk/overview) (Anthropic), [Codex CLI](https://developers.openai.com/codex/cli) (OpenAI), [Grok Build](https://x.ai) (xAI), [Antigravity](https://antigravity.google) (Google), ditambah API dari [OpenRouter](https://openrouter.ai), OpenAI, [Google Gemini](https://ai.google.dev), Anthropic, [Groq](https://groq.com) dan [Ollama](https://ollama.com).
-- **Standar tool:** [Model Context Protocol](https://modelcontextprotocol.io). Seluruh toko koneksi Naota berjalan di atasnya.
+- **Standar tool:** [Model Context Protocol](https://modelcontextprotocol.io). Seluruh toko koneksi NAOSO berjalan di atasnya.
 - Pola Second Brain dan Bullet Journal digital.
 
 ## 📄 Lisensi
 
-© 2026 Hoàng Ngọc Vương ([vuong.ai](https://vuong.ai)). Hak cipta dilindungi. Anggota komunitas NAOTA boleh mengunduh, memasang, dan memakai NAOTA secara gratis. Lihat [LICENSE](../../../LICENSE).
+© 2026 Hoàng Ngọc Vương ([vuong.ai](https://vuong.ai)). Hak cipta dilindungi. Anggota komunitas NAOSO boleh mengunduh, memasang, dan memakai NAOSO secara gratis. Lihat [LICENSE](../../../LICENSE).
 
 
 <div align="center">

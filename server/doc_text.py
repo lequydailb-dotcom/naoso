@@ -45,7 +45,7 @@ def extract(path) -> str:
         if suf in XLSX_SUFFIXES:
             return _xlsx(p)
         if suf == ".xls":
-            return (f"ERROR: '{p.name}' là file Excel đời cũ (.xls), Naota chỉ đọc được .xlsx. Mở file bằng Excel hoặc "
+            return (f"ERROR: '{p.name}' là file Excel đời cũ (.xls), NAOSO chỉ đọc được .xlsx. Mở file bằng Excel hoặc "
                     f"Google Sheets rồi lưu lại thành .xlsx.")
         return _docx(p)
     except Exception as e:      # noqa: BLE001 - file hỏng hay lạ: nói thẳng, đừng làm sập lượt chat
@@ -56,8 +56,8 @@ def _pdf(p: Path) -> str:
     try:
         import pypdf
     except ImportError:
-        return ("ERROR: máy chủ Naota thiếu thư viện pypdf nên chưa đọc được PDF. Cập nhật Naota (bản mới cài sẵn), hoặc chạy "
-                "`pip install pypdf` trong môi trường của Naota.")
+        return ("ERROR: máy chủ NAOSO thiếu thư viện pypdf nên chưa đọc được PDF. Cập nhật NAOSO (bản mới cài sẵn), hoặc chạy "
+                "`pip install pypdf` trong môi trường của NAOSO.")
     r = pypdf.PdfReader(str(p))
     tong = len(r.pages)
     parts, image_only = [], []

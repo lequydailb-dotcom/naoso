@@ -1,6 +1,6 @@
 """Facebook Messenger gateway over the official Messenger Platform (Meta).
 
-Same shape as `whatsapp_bot` because the platform works the same way: Naota cannot pull
+Same shape as `whatsapp_bot` because the platform works the same way: NAOSO cannot pull
 messages, Meta POSTs every inbound message to a webhook. Two halves:
 
   - `MessengerBot`: the transport, same contract as `TelegramBot` (start/stop/status/send_text/
@@ -27,7 +27,7 @@ Rules of the platform that shape the code:
 
 Page comments, handled the way Pancake shows them: every top-level comment under a Page
 post is its own conversation in the inbox, every reply under it joins that conversation, and
-whatever Naota sends there goes out as a reply under that top-level comment. The conversation id
+whatever NAOSO sends there goes out as a reply under that top-level comment. The conversation id
 is `cmt:<top-level comment id>`, so a reply needs no stored state and still works after a
 restart. They arrive as `feed` changes on the same webhook. Each account picks a mode in its
 meta (`comments`): "off", "inbox" (shown in the inbox, the owner answers; the default) or
@@ -236,7 +236,7 @@ def raw_chat_id(chat) -> str:
 def ig_comment_event(value: dict, ig_id: str):
     """One Instagram `comments` change -> the new comment it carries, or None.
 
-    The account's own comments (every reply Naota sends) are skipped. A reply under a comment joins the
+    The account's own comments (every reply NAOSO sends) are skipped. A reply under a comment joins the
     top-level comment's thread (`parent_id`)."""
     v = value or {}
     cid = str(v.get("id") or "")
@@ -257,7 +257,7 @@ def comment_event(value: dict, page_id: str):
     """One `feed` change -> the new comment it carries, or None.
 
     Only new comments count (`item` comment, `verb` add); edits, removals, reactions and posts are
-    skipped, and so are the Page's own comments, which include every reply Naota sends. A reply
+    skipped, and so are the Page's own comments, which include every reply NAOSO sends. A reply
     under a reply still belongs to the top-level comment: `parent_id` is the post id for a
     top-level comment and the parent comment id otherwise."""
     v = value or {}
@@ -801,7 +801,7 @@ class MessengerBot(HangLuot):
             "user_name": name, "username": name, "user_id": chat,
             "message_id": mid, "bot_username": self.bot_username,
             "mentioned": False, "reply_to_bot": bool(msg.get("reply_to")),
-            # When the message reached Naota, before any download: `chatbot_runtime.staff_yielding` tells the Page's
+            # When the message reached NAOSO, before any download: `chatbot_runtime.staff_yielding` tells the Page's
             # automatic reply to this message from a staff member's answer by it.
             "received_at": received_at,
         }
@@ -809,7 +809,7 @@ class MessengerBot(HangLuot):
             meta["instagram"] = True
         if self.chat_ids and chat not in self.chat_ids:
             await self._send(client, chat, localefmt.chu(
-                "Bạn không có quyền dùng bot Naota này.", "You are not allowed to use this Naota bot."))
+                "Bạn không có quyền dùng bot NAOSO này.", "You are not allowed to use this NAOSO bot."))
             return
         found = {}
         text = await self._event_text(client, ev, chat, found)
@@ -1033,9 +1033,9 @@ class MessengerBot(HangLuot):
         # Subscribing needs pages_manage_metadata, which many Page tokens lack. A Page subscribed by
         # hand in the Meta app still delivers, so a failed subscribe is a warning, not a dead bot.
         self.loi_danh_tinh = "" if sub.get("ok") else localefmt.chu(
-            "Naota chưa tự gắn được Page vào webhook (" + sub.get("error", "") + "). Nếu Page đã được gắn tay "
+            "NAOSO chưa tự gắn được Page vào webhook (" + sub.get("error", "") + "). Nếu Page đã được gắn tay "
             "trong app Meta (Messenger, Webhooks, Add Subscriptions) thì bot vẫn nghe; chưa thì gắn tay ở đó.",
-            "Naota could not subscribe the Page to the webhook (" + sub.get("error", "") + "). If the Page was "
+            "NAOSO could not subscribe the Page to the webhook (" + sub.get("error", "") + "). If the Page was "
             "subscribed by hand in the Meta app (Messenger, Webhooks, Add Subscriptions) the bot still hears; "
             "otherwise subscribe it there.")
         self.bot_username = info.get("username", "")
@@ -1168,7 +1168,7 @@ async def subscribe_page(client, page_id, token) -> dict:
 
 async def unsubscribe_page(client, page_id, token) -> dict:
     """Stop the Page calling this app's webhook (Disconnect). Best effort: a token that no longer
-    works cannot unsubscribe, and the Page is removed from Naota either way."""
+    works cannot unsubscribe, and the Page is removed from NAOSO either way."""
     try:
         r = await client.delete(f"{GRAPH}/{page_id}/subscribed_apps", params={"access_token": token})
         d = r.json() or {}

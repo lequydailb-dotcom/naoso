@@ -432,7 +432,7 @@ class DashboardContextCapture:
         _check_path(expected)
         # No global instruction/settings contents, auth or foreign transcripts are
         # read. Presence itself is unsupported, never interpreted as permission.
-        # Native discovery has its own sources in addition to Naota catalogs.
+        # Native discovery has its own sources in addition to NAOSO catalogs.
         # Presence is unsupported even if a cache currently calls it disabled:
         # capture cannot run its loader or inspect potentially private contents.
         discovery = ("skills", "agents", "plugins", "commands", "output-styles")
@@ -692,7 +692,7 @@ class DashboardContextCapture:
             if path not in sources.files:
                 sources.code(filename)
         # Brain-native owner rules are additive protected instructions, distinct
-        # from Naota kernel and memory. Imports need an explicit future resolver.
+        # from NAOSO kernel and memory. Imports need an explicit future resolver.
         protected = []
         for relative in ("CLAUDE.md", "CLAUDE.local.md", ".claude/CLAUDE.md", ".claude/CLAUDE.local.md"):
             text = sources.read(root, relative, protected=True)

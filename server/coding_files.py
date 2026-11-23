@@ -11,7 +11,7 @@ và đó là lý do chính chúng sửa code chính xác.
 Thiết kế học từ Hermes Agent (github.com/NousResearch/hermes-agent, giấy phép MIT):
 `tools/fuzzy_match.py` (chuỗi chiến lược khớp mờ), `tools/file_tools.py` (đọc có số dòng,
 lỗi dạy được model), `tools/file_operations_lint.py` (chỉ báo lỗi do lần sửa sinh ra),
-`tools/file_tools_write_guards.py` (chặn ghi đè file chưa đọc). Viết lại theo kiểu Naota,
+`tools/file_tools_write_guards.py` (chặn ghi đè file chưa đọc). Viết lại theo kiểu NAOSO,
 không chép nguyên khối.
 
 Module này KHÔNG biết gì về hub, quyền hay đường dẫn an toàn: nó nhận đường dẫn ĐÃ được
@@ -41,7 +41,7 @@ import winproc         # lệnh con chạy câm trên Windows (không nháy cử
 # Đọc theo đoạn
 # ---------------------------------------------------------------------------------------
 # Mỗi lần đọc tối đa 2000 dòng (giống Hermes) và 50.000 ký tự. Hermes để 100.000, nhưng vòng tool
-# của Naota cắt mọi kết quả ở `engine.CAT_KET_QUA_CODING` (60.000) trong phiên Coding: một trang
+# của NAOSO cắt mọi kết quả ở `engine.CAT_KET_QUA_CODING` (60.000) trong phiên Coding: một trang
 # dài hơn sẽ bị cắt mất khúc giữa. Trang 50.000 thì lọt nguyên, và model đọc tiếp bằng offset.
 DOC_DONG_MAC_DINH = 2000
 DOC_KY_TU_TOI_DA = 50_000

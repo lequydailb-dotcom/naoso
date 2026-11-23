@@ -1,6 +1,6 @@
 """Claude Code's side of tool_result_reuse: drop a turn's record of repeated results when Claude Code compacts (2026-11-17).
 
-The hub hands a Claude Code turn a one-line reference in place of a byte-identical repeat of a Naota tool result
+The hub hands a Claude Code turn a one-line reference in place of a byte-identical repeat of a NAOSO tool result
 (tool_result_reuse, part 3). That is only right while the earlier copy is still in Claude Code's conversation, and
 Claude Code summarises its conversation when it runs long. The SDK announces that with a PreCompact hook; this module
 adds one that forgets the current turn's record, so after a compaction every repeat goes out whole again. The hook

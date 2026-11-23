@@ -1,4 +1,4 @@
-"""API của Hệ thống cộng hưởng cho dashboard (M4): thẻ "Naota đang hướng tới", phản hồi có nghĩa rõ, lệnh của người dùng.
+"""API của Hệ thống cộng hưởng cho dashboard (M4): thẻ "NAOSO đang hướng tới", phản hồi có nghĩa rõ, lệnh của người dùng.
 
 Kế hoạch: resonance-00-mvp, Task M4. Dashboard có một tài khoản đăng nhập
 duy nhất; middleware `_auth_guard` và `_csrf_guard` của main.py đã chặn trước khi tới đây, nên request tới được
@@ -376,9 +376,9 @@ def register_agents(app, deps: ResonanceApiDeps):
         if not slug:
             return _err(400, "Thiếu trợ lý", "Missing assistant")
         if slug.lower() == "naota-core" and not on:
-            # Naota Core: Auto is always on for the system assistant and cannot be switched off.
-            return _err(403, "Naota Core luôn bật Auto, không tắt được",
-                        "Auto is always on for Naota Core and cannot be switched off")
+            # NAOSO Core: Auto is always on for the system assistant and cannot be switched off.
+            return _err(403, "NAOSO Core luôn bật Auto, không tắt được",
+                        "Auto is always on for NAOSO Core and cannot be switched off")
         if on and deps.agent_file(root, slug) is None:
             store = deps.store() if _store_exists() else None
             live = store.agent(root, slug) if store else None
@@ -743,7 +743,7 @@ def register_a5(app, deps: ResonanceApiDeps):
         body = await _body(request)
         if not str(body.get("reviewer_slug") or "").strip():
             return {"ok": True, "pair": None, "removed": True}
-        return _err(410, "Naota đã bỏ người review cố định. Cần kiểm chứng thì giao một việc riêng cho trợ lý phù hợp "
+        return _err(410, "NAOSO đã bỏ người review cố định. Cần kiểm chứng thì giao một việc riêng cho trợ lý phù hợp "
                          "ở tab Công việc.",
                     "Fixed reviewers were removed. To get a check, assign a separate job to a suitable assistant on "
                     "the Jobs tab.", removed=True)

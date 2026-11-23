@@ -441,7 +441,7 @@ def live(brain: Path, now: float, tz: tzinfo, loop_now: dict | None, rem_now: di
     """Everything running at this second, oldest first, read only and scrubbed like build().
 
     loop_now = {"slug", "since"} of the loop iteration running, rem_now = {reminder id: started_at},
-    tasks = the task-board cards (only "running" ones count), procs = shell work Naota watches.
+    tasks = the task-board cards (only "running" ones count), procs = shell work NAOSO watches.
     Each item: {kind, id, name, since, since_at, secs}; `id` matches the job id in build() for
     loops and reminders, so the page can light the right desk.
     """

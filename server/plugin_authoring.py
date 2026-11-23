@@ -1,6 +1,6 @@
 """plugin_authoring.py - create, read and edit USER plugins in place, for the `naota_plugin` tool.
 
-Why this exists: asked in chat to make a plugin, Naota used to hand the owner
+Why this exists: asked in chat to make a plugin, NAOSO used to hand the owner
 a zip to download and upload again. API engines only write inside the vault through the vault
 tools, and CLI engines are not guaranteed write access to `<NAOTA_STATE_DIR>`, so the model had no
 way to put a plugin where the app loads it. This module is that way, behind one hub tool every
@@ -219,8 +219,8 @@ def _check_manifest(m: dict, slug: str, warnings: List[str]) -> dict:
             raise _err("Tên tool không hợp lệ: {t} (chữ thường a-z, số, gạch dưới)",
                        "Invalid tool name: {t} (lowercase a-z, digits, underscore)", t=repr(t))
         if t in reserved:
-            raise _err("Tên tool {t} đã thuộc về Naota hoặc một plugin hệ thống. Đặt tên khác.",
-                       "The tool name {t} already belongs to Naota or a system plugin. Pick another name.",
+            raise _err("Tên tool {t} đã thuộc về NAOSO hoặc một plugin hệ thống. Đặt tên khác.",
+                       "The tool name {t} already belongs to NAOSO or a system plugin. Pick another name.",
                        t=repr(t))
     if not str(m.get("name") or "").strip():
         m["name"] = slug
@@ -606,8 +606,8 @@ def delete_plugin(slug: str, vault_root: Optional[str], scope: str = "") -> dict
     pdir = base / slug
     key = _ledger_key(sc, base, slug)
     if key not in _read_ledger():
-        raise _err("Plugin {s} không do Naota tạo trong chat, nên chỉ gỡ được ở trang Plugins.",
-                   "Plugin {s} was not created by Naota in chat, so only the Plugins page can remove it.", s=repr(slug))
+        raise _err("Plugin {s} không do NAOSO tạo trong chat, nên chỉ gỡ được ở trang Plugins.",
+                   "Plugin {s} was not created by NAOSO in chat, so only the Plugins page can remove it.", s=repr(slug))
     manifest, _e = plugins_host._read_manifest(pdir)
     if manifest.get("enabled"):
         raise _err("Plugin {s} đang BẬT. Chủ phải tắt nó ở trang Plugins trước.",

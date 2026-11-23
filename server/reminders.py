@@ -1,7 +1,7 @@
 """
-reminders.py - Nhắc hẹn từ chat cho Naota: "30 phút nữa nhắc anh...", "8h30 sáng mai...".
+reminders.py - Nhắc hẹn từ chat cho NAOSO: "30 phút nữa nhắc anh...", "8h30 sáng mai...".
 
-Vá đúng lỗ hổng người dùng nêu: Naota GỬI được Telegram ngay lúc chat, nhưng CHƯA tự
+Vá đúng lỗ hổng người dùng nêu: NAOSO GỬI được Telegram ngay lúc chat, nhưng CHƯA tự
 hẹn giờ để thức dậy gửi SAU. Module này thêm hàng đợi nhắc hẹn BỀN (JSON trong vault,
 git-backed) + để scheduler nền (main._scheduler_loop, tick 30s) đánh thức đúng giờ:
   - mode "notify" (mặc định): tới giờ bắn thẳng tin nhắc qua Telegram cho ĐÚNG người đã đặt.
@@ -15,14 +15,14 @@ git-backed) + để scheduler nền (main._scheduler_loop, tick 30s) đánh th�
 Lịch: hẹn 1-lần (delay_min|at|due_at) HOẶC định kỳ bằng biểu thức CRON 5 trường (cron_util.py,
 tự viết, không phụ thuộc lib). Có cron thì mỗi lần fire xong tự tính due_at kế tiếp.
 
-Tạo nhắc: engine (Naota) tự gọi POST /reminders qua Bash curl từ localhost khi user nói
+Tạo nhắc: engine (NAOSO) tự gọi POST /reminders qua Bash curl từ localhost khi user nói
 "nhắc anh ..." (endpoint được khai báo trong channel_context). Dashboard tạo/sửa/huỷ/xoá được
 qua /reminders, /reminders/update, /reminders/cancel (giữ lịch sử), /reminders/delete (mất hẳn).
 
 ĐỦ ĐIỀU KIỆN MỚI TẠO: notify/task tồn tại chỉ để BÁO cho người, mà kênh báo duy nhất là
 Telegram. Chưa đấu Telegram thì _create ném NotifyNotReady kèm lý do, endpoint trả thêm cờ
 can_force để chỗ gọi hỏi lại người dùng (allow_no_channel=true mới tạo tiếp). Trước đây job cứ
-tạo, cứ chạy đúng giờ, rồi kết quả rơi vào hư không - người dùng tưởng Naota quên việc.
+tạo, cứ chạy đúng giờ, rồi kết quả rơi vào hư không - người dùng tưởng NAOSO quên việc.
 Thời gian do SERVER tính (giờ VN, UTC+7) từ delay_min | at | due_at → engine chỉ cần map câu
 nói của user, KHỎI cần biết "bây giờ" trong prompt (giữ prompt-cache ổn định).
 
@@ -102,7 +102,7 @@ VALID_MUC_QUYEN = {"suggest", "auto", "full"}
 # Nhắc hẹn khác loop ở chỗ căn bản: loop tự nghĩ ra việc để làm mỗi vòng, còn nhắc hẹn làm ĐÚNG
 # một việc người dùng đã viết ra và hẹn giờ từ trước. Nó là một câu lệnh trong chat được dời
 # sang giờ khác, nên trói nó chặt hơn lúc chat là tự mâu thuẫn: người dùng gõ "10h mai gửi
-# link vào nhóm" rồi tới giờ Naota báo về là nó không được phép gửi.
+# link vào nhóm" rồi tới giờ NAOSO báo về là nó không được phép gửi.
 #
 # Trước đây mức quyền bị ghim cứng ở chỉ-đọc, nên MỌI nhắc hẹn yêu cầu một hành động ra
 # ngoài (gửi tin, đăng bài, đặt lịch, tạo đơn) đều thức dậy đúng giờ, chạy, rồi báo về là không
@@ -216,7 +216,7 @@ class NotifyNotReady(ValueError):
     """Chưa có đường gửi kết quả (bot Telegram chưa bật / chưa có Chat ID).
 
     Tách riêng khỏi ValueError thường để endpoint trả thêm cờ can_force: đây KHÔNG phải lỗi cú
-    pháp mà là THIẾU ĐIỀU KIỆN, và người dùng có quyền chọn tạo tiếp (kết quả chỉ lưu trong Naota).
+    pháp mà là THIẾU ĐIỀU KIỆN, và người dùng có quyền chọn tạo tiếp (kết quả chỉ lưu trong NAOSO).
     """
 
     def __init__(self, reason: str):
@@ -236,11 +236,11 @@ SILENT_MARK = "[SILENT]"
 
 def _bell_notice(outcome: str, name: str, text: str, meta: dict, at: str = "") -> dict:
     """What the bell shows for one firing of a scheduled job (owner, 2026-11-19: "the notices are hard to read, people
-    skip them, and Naota sends far too many, even when there is nothing to do").
+    skip them, and NAOSO sends far too many, even when there is nothing to do").
 
     A job that ran fine is a result, not a reminder: it lands in its chat or channel as before and is filed in the
     bell as already read, without a red dot or a push. It rings only when the run itself says the owner has to act
-    (`act` in its NAOTA_NOTIFY block). A failure the owner has to fix rings; a network error that Naota retries by
+    (`act` in its NAOTA_NOTIFY block). A failure the owner has to fix rings; a network error that NAOSO retries by
     itself does not. Only a plain reminder (mode notify) keeps the "reminder" group, urgent by default.
 
     Returns {"title", "summary", "group", "level"} for `_notify_owner` (main.py)."""
@@ -420,11 +420,11 @@ class RemindersDeps:
     # () -> (sẵn_sàng, lý_do): có đường gửi kết quả cho người dùng chưa (bot Telegram bật +
     # token + Chat ID). None = bỏ qua kiểm tra (test dựng deps tối giản).
     notify_ready: Optional[Callable[[], tuple]] = None
-    # (source, ref, brain=, title=, error=, request=) -> report a broken run to Naota Core (incident_desk.py).
+    # (source, ref, brain=, title=, error=, request=) -> report a broken run to NAOSO Core (incident_desk.py).
     # also chat= (the reminder's chat_id), so the incident is told where the job came from.
     incident_hook: Optional[Callable] = None
     # (brain, agent slug) -> that Partners-page assistant's system prompt for a background run; raises when the
-    # assistant is gone. None = every task reminder runs on the brain's plain Naota prompt, as before.
+    # assistant is gone. None = every task reminder runs on the brain's plain NAOSO prompt, as before.
     build_agent_prompt: Optional[Callable[[str, str], str]] = None
     # (brain, agent slug, task, output) -> output without the NAOTA_LESSON lines, written to that assistant's
     # memory and run log like a workflow step. None = the output is posted as is.
@@ -526,7 +526,7 @@ class RemindersFeature:
         mq = str(muc_quyen or "").strip().lower()
         mq = mq if mq in VALID_MUC_QUYEN else MUC_QUYEN_MAC_DINH
         # ĐỦ ĐIỀU KIỆN MỚI TẠO. notify/task tồn tại chỉ để BÁO cho người - chưa đấu Telegram thì
-        # tới giờ nó chạy xong rồi ném kết quả vào hư không, người dùng tưởng Naota quên việc.
+        # tới giờ nó chạy xong rồi ném kết quả vào hư không, người dùng tưởng NAOSO quên việc.
         # Thà chặn ngay lúc tạo và nói thiếu gì. (script = job giám sát, im lặng là bình thường.)
         if mode in ("notify", "task") and not allow_no_channel:
             ready, why = self.notify_status()
@@ -603,9 +603,9 @@ class RemindersFeature:
                 "remember_last": bool(r.get("remember_last")),
                 "speak": bool(r.get("speak")),
                 "call": bool(r.get("call")),
-                # who made it. bot_id names the chatbot whose turn created it ("" = the owner or Naota Core).
+                # who made it. bot_id names the chatbot whose turn created it ("" = the owner or NAOSO Core).
                 "created_by": r.get("created_by", ""), "bot_id": r.get("bot_id", ""),
-                # the Partners-page assistant it runs as ("" = Naota).
+                # the Partners-page assistant it runs as ("" = NAOSO).
                 "agent": r.get("agent", ""),
                 "next_runs": next_runs(cron) if cron and r.get("status") == "pending" else [],
                 "result": (r.get("result") or "")[:500], "error": r.get("error", ""),
@@ -1008,9 +1008,9 @@ class RemindersFeature:
                     luc = _fmt_vn(retry_at)[:5]
                     msg = (localefmt.chu("⚠ Nhắc hẹn chưa chạy được nhiệm vụ: ", "⚠ The reminder could not run its task: ")
                            + err[:300] + "\n\n"
-                           + localefmt.chu(f"Có vẻ là lỗi mạng. Naota tự thử lại lúc {luc} "
+                           + localefmt.chu(f"Có vẻ là lỗi mạng. NAOSO tự thử lại lúc {luc} "
                                            f"(lần 1/{len(RETRY_DELAYS_S)}), việc đã gửi đi rồi thì không gửi lại.",
-                                           f"This looks like a network error. Naota will try again at {luc} "
+                                           f"This looks like a network error. NAOSO will try again at {luc} "
                                            f"(attempt 1 of {len(RETRY_DELAYS_S)}); anything already sent is not sent again."))
                     notice = _bell_notice("retrying", name, err, meta, at=luc)
                 else:
@@ -1089,7 +1089,7 @@ class RemindersFeature:
                 if _nhan_kw(self.deps.send_telegram, "viec"):
                     kw = {"viec": viec, "web": channel_context.strip_control_blocks(web)}
                 if _nhan_kw(self.deps.send_telegram, "brain"):
-                    # the reminder's own brain (an empty chat_id lands in its Naota Core) and one key per
+                    # the reminder's own brain (an empty chat_id lands in its NAOSO Core) and one key per
                     # firing, so a send repeated after a crash is filed once.
                     kw["brain"] = brain
                     # A network retry is a new message about the same firing: its own key, or the
@@ -1125,7 +1125,7 @@ class RemindersFeature:
                 cur["result"] = (body or "")[:RESULT_KEEP]
                 cur["error"] = (err or ("" if ok else send_err) or "")[:400]
                 if cur.get("status") == "failed" and rem.get("retry_of") and ok and not run_failed:
-                    cur["status"] = "done"   # a retry of the failed firing (Naota Core) worked
+                    cur["status"] = "done"   # a retry of the failed firing (NAOSO Core) worked
             elif cur is not None:
                 cur["fired_at"] = _now()
                 cur["result"] = (body or "")[:RESULT_KEEP]
@@ -1331,13 +1331,13 @@ class RemindersFeature:
         as_agent = False
         if agent and self.deps.build_agent_prompt:
             # a reminder made in a partner chat does its job as that assistant (role, file body, memory,
-            # owner rules). The assistant deleted since -> plain Naota, so the job still runs.
+            # owner rules). The assistant deleted since -> plain NAOSO, so the job still runs.
             try:
                 # Worker thread, like build_system_prompt below.
                 sysprompt = await asyncio.to_thread(self.deps.build_agent_prompt, brain, agent)
                 as_agent = True
             except Exception as e:
-                print(f"[reminders] assistant '{agent}' unavailable, running as Naota: {type(e).__name__}: {e}",
+                print(f"[reminders] assistant '{agent}' unavailable, running as NAOSO: {type(e).__name__}: {e}",
                       file=sys.stderr)
                 sysprompt = None
         if sysprompt is None:

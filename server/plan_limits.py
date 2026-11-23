@@ -1,7 +1,7 @@
 """Plan usage limits: how much of the subscription's 5-hour and weekly allowance is used.
 
 The composer ring shows these two meters for the brains that run on a plan the user already pays
-for: Claude Code signed in to Pro/Max, and ChatGPT through Codex. Naota never reads either login
+for: Claude Code signed in to Pro/Max, and ChatGPT through Codex. NAOSO never reads either login
 token, so the numbers come from what the two CLIs report on their own:
 
 - Claude Code sends a `rate_limit_event` in its stream after each request (hooked by `cai_vao_claude_sdk`). `rate_limit_info.raw`
@@ -355,7 +355,7 @@ def _doc_rollout(path: str) -> Optional[dict]:
 
 
 def quet_codex(now: float = None) -> Optional[dict]:
-    """Newest Codex rollout files (Codex used inside or outside Naota) -> the latest snapshot, if newer
+    """Newest Codex rollout files (Codex used inside or outside NAOSO) -> the latest snapshot, if newer
     than what is stored. Only the 3 newest files are opened, and an unchanged file is not reread."""
     now = time.time() if now is None else now
     try:
@@ -391,7 +391,7 @@ BRAIN_THEO_PROVIDER = {"anthropic-cli": "claude", "openai-oauth": "codex", "grok
 
 
 def side_pause(provider: str, now: float = None, model: str = "") -> dict:
-    """Should the work Naota starts on its own (self-learning, suggestions, judges) wait on this plan?
+    """Should the work NAOSO starts on its own (self-learning, suggestions, judges) wait on this plan?
 
     {"paused": bool, "pct": int, "resets_at": epoch or 0}. Paused while the 5-hour window is at SAT percent or
     more, or while the plan has refused a turn; it lifts by itself when the window resets. That work is the
@@ -507,7 +507,7 @@ def ten_goi_claude(config_dir=None, email: str = "") -> str:
 
     Claude Code fetches the account profile itself and stores `organization.plan_display_name` as
     `oauthAccount.planDisplayName` in its config file `.claude.json`. That file holds no token (the
-    login lives in `.credentials.json` or the OS keyring), so Naota reads only that one field and never
+    login lives in `.credentials.json` or the OS keyring), so NAOSO reads only that one field and never
     touches a credential. `email`: the account `claude auth status` reports; a config written by a
     different account is ignored instead of naming someone else's plan."""
     for f in _file_claude_json(config_dir):

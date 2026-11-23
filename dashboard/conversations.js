@@ -1240,7 +1240,7 @@
     tai(true);
   }
 
-  // Leaving a group also removes its chat from Naota; the question says so before it happens.
+  // Leaving a group also removes its chat from NAOSO; the question says so before it happens.
   async function menuLeave(id) {
     var c = rmItem(id);
     if (!c) return closeRowMenu(false);
@@ -2805,7 +2805,7 @@
       var g = guideUrl(k);
       if (g) lab.insertAdjacentHTML("beforeend", ' · <a class="ht-guide" href="' + esc(g) + '" target="_blank" rel="noopener">'
         + esc(window.t("ht.huong_dan")) + " ↗</a>");
-      // Internal API: Naota generates the key on Save, so there is no token to paste or check.
+      // Internal API: NAOSO generates the key on Save, so there is no token to paste or check.
       box.querySelector("#htTokenRow").hidden = !!k.khoa_tu_sinh;
       if (k.khoa_tu_sinh) lab.textContent = window.t("ht.khoa_lb");
       box.querySelector("#htLabel").placeholder = window.t(k.khoa_tu_sinh ? "ht.ph_nhan_api" : "ht.ph_nhan_tk");
@@ -2997,7 +2997,7 @@
     if (note.isConnected) note.textContent = window.t("ht.zo_oauth_het");
   }
 
-  // The key of a generated-key channel (internal API), shown ONCE: Naota keeps only its hash.
+  // The key of a generated-key channel (internal API), shown ONCE: NAOSO keeps only its hash.
   function hienKhoa(khoa) {
     var box = el('<div class="ht-modal"><div class="ht-form">' +
       '<h3>' + esc(window.t("ht.khoa_moi")) + '</h3>' +

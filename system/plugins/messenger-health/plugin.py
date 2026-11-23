@@ -133,7 +133,7 @@ def register(ctx):
     ctx.register_tool(
         name="messenger_check",
         description=("Kiểm tra kết nối bot Messenger của Fanpage: token có phải token Trang, đủ quyền, hết hạn chưa, "
-                     "App secret khớp, webhook của app trỏ về Naota và có nhận messages, Trang đã gắn app, có bot đang "
+                     "App secret khớp, webhook của app trỏ về NAOSO và có nhận messages, Trang đã gắn app, có bot đang "
                      "trực, và đường HTTPS còn truy cập được. Link nhanh dùng địa chỉ tunnel đang chạy, giữ đường dẫn nhận tin. "
                      "Dùng khi bot Messenger không trả lời khách. Trả từng dòng ok/FAIL/warn kèm cách sửa."),
         handler=_check, min_mode="readonly", schema=_SCHEMA,

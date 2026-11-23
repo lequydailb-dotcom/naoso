@@ -4,7 +4,7 @@
    shutter all pass and the call simply hears nothing. Only a person speaking can settle that: the
    meter moves for 5 seconds and the peak is reported, with a hint when it stayed near zero. The
    mic is opened with the same options as a call (echo cancellation, noise suppression, gain), so
-   what the meter shows is what Naota hears.
+   what the meter shows is what NAOSO hears.
 
    Pure helpers (level, verdict) are exported for node tests; the button wiring runs only in a page. */
 (function () {

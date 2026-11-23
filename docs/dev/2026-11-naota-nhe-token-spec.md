@@ -1,6 +1,6 @@
-# Naota Nhẹ: vì sao tốn token và thiết kế cắt giảm trên gói thuê bao
+# NAOSO Nhẹ: vì sao tốn token và thiết kế cắt giảm trên gói thuê bao
 
-Spec này viết ngày 10/11/2026 (bản 0.526.1), sau khi nhiều người dùng báo Naota "ngày càng đốt token": mở hạn mức
+Spec này viết ngày 10/11/2026 (bản 0.526.1), sau khi nhiều người dùng báo NAOSO "ngày càng đốt token": mở hạn mức
 được 40 phút, gần như không làm gì mà hết 30%. Phần 1 đến 4 là điều tra, phần 5 trở đi là thiết kế.
 
 Mỗi con số đều ghi rõ là **đo** (có nguồn) hay **ước** (suy từ số đo, chưa chạy thật).
@@ -19,14 +19,14 @@ cần chữ.
 
 | Việc | Ở đâu | Thay cho mục |
 |---|---|---|
-| Model việc nền có chế độ **Tự động**, là mặc định. Nhà cung cấp theo MAIN; hai model: `light` cho việc Naota tự làm, `mid` cho việc chủ giao | `server/auto_background.py`, `server/model_routing.py` (`background_spec`), `server/aux_engine.py` (`tier_for_tag`) | 5.4.2 |
+| Model việc nền có chế độ **Tự động**, là mặc định. Nhà cung cấp theo MAIN; hai model: `light` cho việc NAOSO tự làm, `mid` cho việc chủ giao | `server/auto_background.py`, `server/model_routing.py` (`background_spec`), `server/aux_engine.py` (`tier_for_tag`) | 5.4.2 |
 | Chọn hai model đó KHÔNG theo bảng tên: model chính đọc danh sách (kèm mô tả) của chính nhà cung cấp một lần, được phép trả "không chắc"; id ngoài danh sách bị bỏ; không chọn được thì dùng model của MAIN | `auto_background.choose`, `main._auto_background_tick` | mới |
 | Chỉ chọn lại khi danh sách model của nhà đó đổi (chữ ký danh sách, so mỗi ngày và lúc khởi động). Model chủ tự tay chọn không bao giờ bị ghi đè | `auto_background.signature`, `model_routing.background_auto` | mới |
 | Tự học mặc định chỉ ký ức và wiki; máy đã cài được tắt skill một lần | `server/learn.py` (`DEFAULT`, `_MIGRATIONS`) | 5.4.3 (một phần) |
 | Tự học nổ **15 phút sau sự kiện cuối cùng** của brain (lượt chat, việc nền xong, khách nhắn chatbot), một mẻ cho cả cuộc trò chuyện; bỏ luật "sau mỗi 3 lượt". Mỗi mẻ đọc đúng các lượt mới kể từ mẻ trước, phần vượt ngân sách xếp lại cho mẻ kế | `learn.LearnFeature._should_fire`, `touch`, `_build_digest`, `run_once` | 5.4.3 |
 | **Bỏ trần ngày** của tự học (40 mẻ, 15 triệu token): chủ repo chốt "người dùng nhiều người dùng ít", một con số chung không hợp | `learn.LearnFeature._rate_check` | thay P0.2 |
 | Lượt chỉ cần chữ đi trần: prompt riêng, `disallowed_tools` có `"*"` | `main._reply_policy_sandbox_engine(bare=True)` | P0.1, 5.4.1 |
-| Cửa sổ 5 giờ của gói dùng từ 80% thì việc Naota tự làm nghỉ tới lúc reset | `plan_limits.side_pause`, `main._side_work_paused` | thay ngân sách nền 5.4.4 |
+| Cửa sổ 5 giờ của gói dùng từ 80% thì việc NAOSO tự làm nghỉ tới lúc reset | `plan_limits.side_pause`, `main._side_work_paused` | thay ngân sách nền 5.4.4 |
 
 Vì sao bỏ ý "khớp theo tên dòng model": bản nháp đầu đề nghị tìm `mini`, `haiku` trong tên. Chủ repo chỉ ra ngay là
 dòng model của gói ChatGPT đã mang tên khác, tức luật theo tên sai từ ngày đầu và sẽ sai lại mỗi lần hãng đổi tên.
@@ -41,10 +41,10 @@ tự leo hay tự hạ bậc theo kết quả của chính nó và theo ý đị
 
 Còn mở, theo thứ tự đáng làm:
 
-1. **Việc nền chỉ ăn hạn mức thừa:** dồn việc Naota tự làm về cuối cửa sổ 5 giờ, khi còn dư.
+1. **Việc nền chỉ ăn hạn mức thừa:** dồn việc NAOSO tự làm về cuối cửa sổ 5 giờ, khi còn dư.
 2. **Giảm số vòng thay vì giảm chữ:** ghim tool hay dùng, gọi trước tool chỉ-đọc khi bộ dò đoán chắc.
 3. **Một tiền tố cache chung** cho mọi phiên của một brain (mục P0.3), và dòng giờ rời đầu prompt biên dịch (P0.4).
-4. **Tách "chat, việc bạn giao, Naota tự làm"** trong vòng tròn hạn mức, cần ghi tên việc vào usage event trước (P0.5).
+4. **Tách "chat, việc bạn giao, NAOSO tự làm"** trong vòng tròn hạn mức, cần ghi tên việc vào usage event trước (P0.5).
 5. **Mẻ tự học thành một lượt chữ** thay cho phiên agentic đọc file (mục 5.4.3), để mỗi mẻ rẻ hơn nữa.
 
 Chưa đo trên engine thật (môi trường viết mã không có `claude` hay `codex` đăng nhập): lượt chỉ cần chữ sau khi đi
@@ -53,16 +53,16 @@ dùng được thì việc nền chạy model của MAIN như trước.
 
 ## 1. Kết luận ngắn
 
-1. **Người dùng nói đúng.** Trên gói Claude Code, một lượt chat của Naota mang khoảng 57.000 đến 66.000 token ngữ
+1. **Người dùng nói đúng.** Trên gói Claude Code, một lượt chat của NAOSO mang khoảng 57.000 đến 66.000 token ngữ
    cảnh cố định cho MỖI vòng gọi model, trong khi chính Claude Code trần là khoảng 27.700 và một lượt hỏi không
    tool chỉ cần 183.
-2. **Phần tốn nhất không nằm ở lượt chat mà nằm ở những việc Naota tự chạy.** Tự học bật sẵn, nổ sau mỗi 3 lượt chat
+2. **Phần tốn nhất không nằm ở lượt chat mà nằm ở những việc NAOSO tự chạy.** Tự học bật sẵn, nổ sau mỗi 3 lượt chat
    và 10 phút sau lượt cuối, chạy bằng model mặc định (đắt nhất) của gói. Số đo thật: 12,5 triệu token trong một ngày.
    Đây là lời giải thích khớp nhất cho "không làm gì mà hết 30%".
 3. **Gốc rễ là một giả định sai nằm ở ba chỗ trong mã: "gói thuê bao thì không tính tiền theo token".** Vì giả định đó
    mà mọi cơ chế tiết kiệm đã xây (Adaptive Context Runtime, model việc nền, xoay mạch) đều nhường engine thuê bao,
    đúng nơi người dùng cảm nhận hạn mức rõ nhất.
-4. **Thiết kế đề xuất ("Naota Nhẹ")**: coi hạn mức gói là tiền; cho gói thuê bao chạy theo làn nhẹ giống engine API
+4. **Thiết kế đề xuất ("NAOSO Nhẹ")**: coi hạn mức gói là tiền; cho gói thuê bao chạy theo làn nhẹ giống engine API
    (nhân luật nhỏ cộng tool của hub) và chỉ leo lên làn đầy đủ khi lượt thật sự cần shell hay sửa code; đưa mọi việc
    nền về model rẻ, một lượt chữ, có ngân sách ngày. Kỳ vọng: phần cố định mỗi vòng giảm khoảng 10 đến 15 lần ở lượt
    chat thường, việc nền mặc định giảm hơn 20 lần.
@@ -75,11 +75,11 @@ dùng được thì việc nền chạy model của MAIN như trước.
 |---|---|---|---|
 | D1 | "chào em" qua `claude`, prompt trần, không tool | 183 token vào | `server/main.py:3756-3760` |
 | D2 | "chào em" qua `claude`, preset `claude_code` cùng mọi schema tool và danh sách skill | 27.665 token vào | như trên |
-| D3 | Lượt đầu một khung chat mới của Naota trên Claude Code | 8.907 đọc cache + 47.834 đến 57.320 ghi cache, tức 57.000 đến 66.000 | issue #975, đo từ `~/.claude/projects` |
+| D3 | Lượt đầu một khung chat mới của NAOSO trên Claude Code | 8.907 đọc cache + 47.834 đến 57.320 ghi cache, tức 57.000 đến 66.000 | issue #975, đo từ `~/.claude/projects` |
 | D4 | Một câu chào trên Claude Code hiện ở khung chat | "60k token" | `server/main.py:22810` |
 | D5 | Số lần mở phiên Claude Code trong một ngày của một người dùng | 74 lần, phần ghi lại cache chiếm khoảng 30% mức dùng | issue #975 |
-| D6 | System prompt Naota, brain mới tinh | 41.666 ký tự (CLAUDE.md 29.013, khối kênh 8.195) | `tests/python/test_prompt_budget.py`, chạy lại 10/11 |
-| D7 | System prompt Naota, brain giả lập 140 skill, 15 agent, 150 ghi nhớ | 61.455 ký tự (bộ nhớ 16.730, skill 4.502) | script đo trong phiên điều tra |
+| D6 | System prompt NAOSO, brain mới tinh | 41.666 ký tự (CLAUDE.md 29.013, khối kênh 8.195) | `tests/python/test_prompt_budget.py`, chạy lại 10/11 |
+| D7 | System prompt NAOSO, brain giả lập 140 skill, 15 agent, 150 ghi nhớ | 61.455 ký tự (bộ nhớ 16.730, skill 4.502) | script đo trong phiên điều tra |
 | D8 | Tỉ lệ ký tự trên token của CLAUDE.md với tokenizer Claude | khoảng 2,7 (28.599 ký tự ra khoảng 10.500 token) | `tests/python/test_prompt_budget.py:80-81` |
 | D9 | Lượt Codex trong cùng một hội thoại | 36k, 83k, 191k, 412k, 552k token vào; model chỉ viết 266 đến 1.496 token | `server/compaction.py:88-108` |
 | D10 | Tự học, một ngày thật | 12,5 triệu token (ước lượng cũ ghi 395 nghìn) | `server/learn.py:439-442`, `docs/22-tu-hoc.md:176` |
@@ -87,12 +87,12 @@ dùng được thì việc nền chạy model của MAIN như trước.
 | D12 | Một đợt auto-learning chạy toàn bằng Opus | 176 lượt gọi, quy đổi 3,02 USD; với model nền Haiku còn 0,24 đến 1,10 USD | `docs/superpowers/evidence/2026-10-27-auto-learning-cost.json` |
 | D13 | Một lần gọi `naota_search_tools` trên brain thật của chủ repo | trả về khoảng 9.000 đến 10.000 ký tự, riêng mô tả `naota_use_skill` nhúng 20 mô tả skill | gọi thử trong phiên điều tra |
 
-Từ D6, D7 và D8: phần Naota nối thêm vào mỗi vòng gọi là khoảng 15.000 token (brain mới) tới hơn 22.000 token
+Từ D6, D7 và D8: phần NAOSO nối thêm vào mỗi vòng gọi là khoảng 15.000 token (brain mới) tới hơn 22.000 token
 (brain dùng lâu). Cộng D2 ra đúng khoảng của D3, nên ba nguồn đo khớp nhau.
 
 ### 2.2 Một lượt chat thật tốn bao nhiêu (ước, từ các số đo trên)
 
-Mỗi vòng gọi tool là một request mới, đọc lại toàn bộ phần cố định. `tokens_in` Naota ghi là TỔNG mọi vòng, gồm cả
+Mỗi vòng gọi tool là một request mới, đọc lại toàn bộ phần cố định. `tokens_in` NAOSO ghi là TỔNG mọi vòng, gồm cả
 đọc cache (`server/claude_sdk_engine.py:412-413`).
 
 | Loại lượt trên gói Claude Code | Số vòng | Token vào (ước) |
@@ -105,12 +105,12 @@ Mỗi vòng gọi tool là một request mới, đọc lại toàn bộ phần c
 | Một mẻ tự học (sau mỗi 3 lượt) | vòng agentic đọc file | 150.000 đến 500.000 |
 
 Phần lớn là đọc cache. Anthropic không công bố đọc cache tính bao nhiêu vào hạn mức gói; các báo cáo của người
-dùng mâu thuẫn nhau. Điều chắc chắn: ghi cache và phiên mở nguội thì tính đủ, và mọi việc nền của Naota đều là
+dùng mâu thuẫn nhau. Điều chắc chắn: ghi cache và phiên mở nguội thì tính đủ, và mọi việc nền của NAOSO đều là
 phiên nguội.
 
 ## 3. So với app gốc
 
-| | App Claude / ChatGPT | Claude Code trần | Naota hôm nay (gói Claude Code) |
+| | App Claude / ChatGPT | Claude Code trần | NAOSO hôm nay (gói Claude Code) |
 |---|---|---|---|
 | Ngữ cảnh cố định mỗi vòng | vài nghìn đến khoảng 20.000 token (ước, không đo được từ ngoài) | 27.665 (đo, D2) | 57.000 đến 66.000 (đo, D3) |
 | Số vòng gọi model cho một câu hỏi số liệu | 1 đến 2 | 2 | 3 (thêm vòng tìm tool) |
@@ -118,12 +118,12 @@ phiên nguội.
 | Việc tự chạy khi người dùng ngồi yên | không | không | tự học, chấm điểm skill, nhịp trợ lý, loop, nhắc hẹn |
 | Model cho việc phụ | model nhỏ của hãng | không có | model mặc định của gói, tức model đắt nhất |
 
-Một ngày 10 lượt hỏi số liệu (ước): app gốc khoảng 0,1 đến 0,3 triệu token; Naota khoảng 1,2 đến 2 triệu cho chat,
+Một ngày 10 lượt hỏi số liệu (ước): app gốc khoảng 0,1 đến 0,3 triệu token; NAOSO khoảng 1,2 đến 2 triệu cho chat,
 0,2 đến 0,3 triệu cho gợi ý, 0,5 đến 2 triệu cho ba bốn mẻ tự học. Tức gấp cỡ 10 lần trở lên, và ngày đo thật D10
 cho thấy riêng tự học đã có thể lên 12,5 triệu.
 
-Lưu ý công bằng: Naota làm được việc mà app gốc không làm (nối POS, Zalo, lịch, chạy nền). Vấn đề không phải là
-Naota tốn hơn, mà là nó tốn như nhau cho câu "doanh thu hôm nay bao nhiêu" và cho việc sửa cả một repo.
+Lưu ý công bằng: NAOSO làm được việc mà app gốc không làm (nối POS, Zalo, lịch, chạy nền). Vấn đề không phải là
+NAOSO tốn hơn, mà là nó tốn như nhau cho câu "doanh thu hôm nay bao nhiêu" và cho việc sửa cả một repo.
 
 ## 4. Bảy nguyên nhân gốc
 
@@ -139,7 +139,7 @@ Naota tốn hơn, mà là nó tốn như nhau cho câu "doanh thu hôm nay bao n
   (`server/learn.py:506-518`, `1846` so với `1875`). `docs/22-tu-hoc.md:178-180` xác nhận phần phân tích luôn chạy.
 
 **N2. Mỗi vòng gọi trên Claude Code gánh hai bộ luật chồng nhau.** Preset `claude_code` cùng tool native (D2) cộng
-prompt Naota nối thêm (`server/claude_sdk_engine.py:797-804`), cộng `setting_sources` user, project, local và MCP có
+prompt NAOSO nối thêm (`server/claude_sdk_engine.py:797-804`), cộng `setting_sources` user, project, local và MCP có
 sẵn của máy ở mức Toàn quyền (`server/claude_sdk_engine.py:887`, `server/main.py:5245`; máy chủ repo từng đo 85 MCP,
 `docs/dev/2026-10-toc-do-luot-chat-spec.md`). Skill bị liệt kê hai lần: bản mirror `.claude/skills` cho Claude Code
 tự đọc và khối router trong prompt.
@@ -171,12 +171,12 @@ tool theo tên, không phải `["*"]` như đường tắt đã chứng minh là
 ngay sau Core Contract (`server/context_compiler.py:523-526`), đứng TRƯỚC CLAUDE.md; nếu nhánh này được dùng ở đa số
 lượt thì bản vá #975 bị vô hiệu ở đúng mức mặc định. Điểm này cần một phép đo xác nhận (mục 9).
 
-## 5. Thiết kế "Naota Nhẹ"
+## 5. Thiết kế "NAOSO Nhẹ"
 
 ### 5.1 Bốn nguyên tắc
 
 1. **Hạn mức là tiền.** Mọi quyết định tiết kiệm áp cho gói thuê bao y như cho API key.
-2. **Trả theo nhu cầu của lượt, không trả theo những gì Naota đang có.** Thêm skill, thêm MCP, thêm ghi nhớ không
+2. **Trả theo nhu cầu của lượt, không trả theo những gì NAOSO đang có.** Thêm skill, thêm MCP, thêm ghi nhớ không
    được làm lượt "doanh thu hôm nay" đắt lên.
 3. **Việc nền không được tiêu nhiều hơn chủ.** Có ngân sách ngày, model rẻ, và trần phải chặn TRƯỚC khi gọi model.
 4. **Leo thang chứ không đoán sai.** Làn nhẹ không đủ thì tự leo lên làn đầy đủ ngay trong lượt; không bao giờ trả
@@ -193,7 +193,7 @@ Ba chỗ ở N3 đổi sang hỏi điểm hạn mức thay vì hỏi "có phải
 
 ### 5.3 Ba làn thực thi cho engine thuê bao (phần đột phá)
 
-Ý tưởng: bảy engine API của Naota vốn đã chạy rất gọn (nhân luật nhỏ cộng 5 tool lazy của hub, 500 vòng). Engine
+Ý tưởng: bảy engine API của NAOSO vốn đã chạy rất gọn (nhân luật nhỏ cộng 5 tool lazy của hub, 500 vòng). Engine
 thuê bao tốn vì nó luôn khoác cả bộ Claude Code hay Codex. Vậy thì cho gói thuê bao chạy đúng kiểu engine API, qua
 chính binary `claude` (vẫn là đường chính chủ, không đụng token đăng nhập), và chỉ khoác bộ đầy đủ khi cần.
 
@@ -245,7 +245,7 @@ giao đúng lúc), bằng canary có sẵn (`allocation_basis_points`), và bằ
      (`server/learn.py:674-688`, `809`, `928`); thứ còn thiếu thì mã Python tra bằng `memory_index` trước khi gọi;
    - trần ngày kiểm TRƯỚC khi gọi model; chạm trần thì bỏ mẻ, không chạy thử;
    - kỳ vọng mỗi mẻ khoảng 25.000 đến 35.000 token trên model rẻ, cả ngày dưới 150.000, so với 12,5 triệu ở D10.
-4. **Ngân sách nền theo ngày, tính bằng điểm hạn mức.** Mặc định: việc Naota tự khởi (tự học, chấm skill, nhịp trợ
+4. **Ngân sách nền theo ngày, tính bằng điểm hạn mức.** Mặc định: việc NAOSO tự khởi (tự học, chấm skill, nhịp trợ
    lý, gợi ý) không vượt 15% điểm đã tiêu trong ngày và không vượt một trần tuyệt đối. Chạm trần thì các việc tự khởi
    nghỉ tới hôm sau; việc người dùng tự hẹn vẫn chạy nhưng báo lên chuông. Trang Mức dùng thêm một thẻ "Nền hôm nay:
    X điểm trên Y".
@@ -286,7 +286,7 @@ giao đúng lúc), bằng canary có sẵn (`allocation_basis_points`), và bằ
 ### 5.7 Nhìn thấy được
 
 - Dòng dưới mỗi câu trả lời: làn đã chạy, số vòng, token mới và token đọc cache tách riêng (khung `_ctx_frame` đã có).
-- Trang Mức dùng: tách "phần của bạn" (câu hỏi, lịch sử, kết quả tool) với "phần của Naota" (luật, tool, việc nền),
+- Trang Mức dùng: tách "phần của bạn" (câu hỏi, lịch sử, kết quả tool) với "phần của NAOSO" (luật, tool, việc nền),
   và cảnh báo khi phần nền vượt ngân sách.
 - Việc nền nào cũng ghi `execution` vào `usage-events.jsonl` (trường đã có) để bảng "cái gì ăn hạn mức" gọi được
   tên: tự học, gợi ý, loop nào, nhắc hẹn nào.
@@ -354,6 +354,6 @@ Thứ tự này đặt phần chắc ăn và ít rủi ro lên trước: Pha 0 v
    free). Đây là câu trả lời cho "dùng mô hình nào chạy việc nền cho đỡ tốn".
 2. **Tự học:** tắt, hoặc chuyển khỏi chế độ Tự ghi nếu không cần; bật lại khi đã có bản Pha 1.
 3. **Gợi ý câu tiếp theo** (menu "+" ở ô chat): tắt nếu không có key Groq.
-4. **Mở khung chat mới cho việc mới.** Mạch dài là thứ đắt nhất trên gói thuê bao, và hiện Naota chưa tự xoay.
+4. **Mở khung chat mới cho việc mới.** Mạch dài là thứ đắt nhất trên gói thuê bao, và hiện NAOSO chưa tự xoay.
 5. **Loop và nhắc hẹn làm việc:** giãn nhịp; việc chỉ cần canh một trang web thì dùng `naota_watch` (không gọi model).
 6. Xem trang Cài đặt, Mức dùng, cột "Nền (loop/lịch)" để biết phần nền đang chiếm bao nhiêu.

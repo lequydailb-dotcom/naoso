@@ -324,7 +324,7 @@
       .catch(function () { return state.viec || null; });
   }
 
-  // fetch KHÔNG reject với status 4xx/5xx, mà middleware đăng nhập của Naota lại trả 401 kèm
+  // fetch KHÔNG reject với status 4xx/5xx, mà middleware đăng nhập của NAOSO lại trả 401 kèm
   // một THÂN JSON. Nên `.then(r => r.json())` trơn sẽ resolve ngon lành với {error:...}, khối
   // .catch không bao giờ chạy, và trang vẽ ra "0 token / $0.00 / Chưa có dữ liệu" ở mọi ô -
   // trông y hệt một tháng chưa dùng gì. Phiên hết hạn mà báo là "bạn chưa tiêu đồng nào" là
@@ -644,7 +644,7 @@
     var k = t.tiet_kiem || {};
     if (!k.du_du_lieu) {
       // Hai lý do khác hẳn nhau, và gộp làm một là nói dối theo hướng làm người ta tắt chế độ
-      // tiết kiệm đi: "chưa chạy lượt nào" với "bạn đang chỉnh tay nên Naota không biết cấu
+      // tiết kiệm đi: "chưa chạy lượt nào" với "bạn đang chỉnh tay nên NAOSO không biết cấu
       // hình đó tốn bao nhiêu".
       if (k.khong_do_duoc) {
         // The reason is state, like "chua_luot" below, so it stays open.
@@ -705,7 +705,7 @@
   //   2. Sáng nay giờ nào đốt token. Biểu đồ theo NGÀY gộp cả ngày lại; chip "Hôm nay" chỉ ra
   //      đúng một cột.
   //   3. Giờ nào trong ngày AI dồn nhiều, giờ nào vắng: để dời việc nền sang giờ vắng.
-  // Những thứ KHÔNG lấy: "% hạn mức gói" chính thức (Naota không đọc token đăng nhập của gói,
+  // Những thứ KHÔNG lấy: "% hạn mức gói" chính thức (NAOSO không đọc token đăng nhập của gói,
   // nên vạch mốc là trần người dùng tự khai hoặc mức cao nhất từng chạm, và nói rõ là cái nào),
   // bảng "AI đang chạy" (gần như luôn trống, đã có dải việc nền), ô màu giờ có số trần không
   // đơn vị (ở đây số nằm trong chú thích khi rê chuột, màu có thang chú giải).

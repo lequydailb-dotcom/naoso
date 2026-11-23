@@ -4,7 +4,7 @@
  *   GET  /github/session/{sid}?brain=       repos attached to the team chat, with branch and status icon
  *   POST /github/session/{sid}/repos        add=<name>: attach one more (clone it if missing, its own worktree)
  *   POST /github/session/{sid}/detach       full_name: take one off; refused while work would be lost, unless force
- * Work/Help steps of a job edit the team's worktree, and Naota checks, commits, pushes and opens the PR once the JOB is
+ * Work/Help steps of a job edit the team's worktree, and NAOSO checks, commits, pushes and opens the PR once the JOB is
  * done (server: main._team_job_done). This file draws the picker that teams.js opens from its "+" menu and the chip.
  * Pure helpers are exported for node tests. Never use the em dash character here.
  */
@@ -22,7 +22,7 @@
     if (!list.length) return "";
     return shortName(list[0], max) + (list.length > 1 ? " +" + (list.length - 1) : "");
   }
-  // Signed in with the Naota app, a repo is listed only once the app may see it: the "+" row opens the app's page on
+  // Signed in with the NAOSO app, a repo is listed only once the app may see it: the "+" row opens the app's page on
   // GitHub to tick more (the same row as the main composer, github-connect.js). A pasted token already sees every repo,
   // so it gets no link and the row leads to Connections instead.
   function addReposUrl(st) { return st && st.source === "app" && st.install_url ? String(st.install_url) : ""; }

@@ -20,7 +20,7 @@ def input_bytes(data):
 
 
 def _proposal_method():
-    """Adapt upstream diagnosis/attribution to existing Naota evidence and fields."""
+    """Adapt upstream diagnosis/attribution to existing NAOSO evidence and fields."""
     return {
         'diagnosis': {
             'lenses': {

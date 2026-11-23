@@ -1,5 +1,5 @@
 // ============================================================
-// Naota - Bộ phán xử hội thoại nhóm: phần giao diện.
+// NAOSO - Bộ phán xử hội thoại nhóm: phần giao diện.
 //
 // KHÔNG còn ô cài đặt nào cho bộ phán xử. Chọn "Tự đánh giá" ở phần Bot trả lời ai là xong: máy tự
 // chọn mức hăng hái, tự tra tài liệu hay dựa vào vai, tự học từ phản ứng trong nhóm. Chủ chỉ còn hai việc, đều

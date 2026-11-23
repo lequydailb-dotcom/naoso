@@ -1,11 +1,11 @@
 """
 Ngữ cảnh kênh hội thoại - port ý tưởng gateway của hermes-agent (NousResearch).
 
-Vấn đề: Naota nhận tin từ nhiều "cửa" (Telegram, dashboard web) nhưng model
+Vấn đề: NAOSO nhận tin từ nhiều "cửa" (Telegram, dashboard web) nhưng model
 không tự biết mình đang trả lời qua cửa nào, và file tạo ra không quay về
 đúng kênh. Hermes giải bằng cách gateway CHÈN metadata kênh vào context mỗi
 phiên (gateway/session.py: Source + User + Connected Platforms + Delivery
-options). Module này làm đúng việc đó cho Naota:
+options). Module này làm đúng việc đó cho NAOSO:
 
 1. build_channel_block()  - block metadata kênh chèn vào system prompt.
 2. collect_turn_files()   - gom file sinh ra trong 1 lượt trả lời để gateway
@@ -35,7 +35,7 @@ _CHAT_APPS = {
     "whatsapp": ("WhatsApp", "a WhatsApp group", (
         "- A CAP of about 4000 characters per message. Write tight from the start; do not let the gateway "
         "cut it for you.",
-        "- WhatsApp lets Naota message first only within 24 HOURS of this person's last message. Background "
+        "- WhatsApp lets NAOSO message first only within 24 HOURS of this person's last message. Background "
         "work that runs longer than that may never deliver its result: say so plainly when you hand off "
         "long-running work over WhatsApp.")),
     "discord": ("Discord", "a Discord channel", (
@@ -80,7 +80,7 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
     Claude Code lane appends this whole prompt as one cached block, so a per-chat id here made every
     new chat rewrite ~40k tokens of cache instead of reading them.
 
-    2026-11-15: the text is English (it was Vietnamese). Naota talks to people in any language, and these
+    2026-11-15: the text is English (it was Vietnamese). NAOSO talks to people in any language, and these
     rules were the longest Vietnamese text the model read last before writing. Names the program itself
     reads or writes stay as they are: the block header, `[Phiên chat: ...]`, `[NGỮ CẢNH GIAO DIỆN: ...]`
     with its `trang=`/`chọn=`/`ngắt_lời=`/`kênh=giọng` fields, and the Vietnamese page names next to the
@@ -90,7 +90,7 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
     # The brain key-value pair for the curl JSON body (empty when the brain is unknown, the old behavior).
     # json.dumps so a path with SPACES ("My Notes Vault") is still a valid JSON string.
     brain_kv = f'"brain":{json.dumps(brain_root)},' if brain_root else ""
-    platforms = ["local (files on the machine running Naota)", "web dashboard"]
+    platforms = ["local (files on the machine running NAOSO)", "web dashboard"]
     if telegram_running or source == "telegram":
         platforms.append("Telegram bot")
     if source == "zalo":
@@ -106,10 +106,10 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
 
     lines = [
         "", "",
-        "# === KÊNH HỘI THOẠI HIỆN TẠI (current chat channel, inserted by the Naota gateway: real data, not a "
+        "# === KÊNH HỘI THOẠI HIỆN TẠI (current chat channel, inserted by the NAOSO gateway: real data, not a "
         "guess) ===",
         "- A user message may come from SPEECH RECOGNITION (mic, voice note): words from another language, "
-        "proper names and tool names are often written down as similar-sounding words (Naota becomes "
+        "proper names and tool names are often written down as similar-sounding words (NAOSO becomes "
         "Nauta/Nota). Read the sentence through the context of the conversation and do what they meant; "
         "do not cling to the literal misheard word and do not comment on it. Ask back only when a wrong "
         "guess would do harm (numbers, recipients, outside actions).",
@@ -189,7 +189,7 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
             "## Sending files to the user via Telegram (2 ways)",
             "1. AUTOMATIC (preferred - always reaches the RIGHT person asking): a file you create with the "
             "Write tool in this turn, a file whose ABSOLUTE PATH is in your final answer, OR an image/file "
-            "in the vault embedded as markdown ![](attachments/...) (e.g. an IMAGE Naota just made) - Naota "
+            "in the vault embedded as markdown ![](attachments/...) (e.g. an IMAGE NAOSO just made) - NAOSO "
             "attaches each of them to Telegram right after the answer (at most "
             f"{MAX_FILES_PER_TURN} files per turn, each under {MAX_FILE_MB}MB). For an image you just made, "
             "embedding ![](attachments/...) is ENOUGH for the user to receive it; NO curl needed (curl "
@@ -205,7 +205,7 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
             "- Files the user sends on Telegram are already downloaded by the gateway - the path is right "
             "in the message.",
             "",
-            "## Setting a reminder (Naota wakes up BY ITSELF and sends it later - use when the user wants "
+            "## Setting a reminder (NAOSO wakes up BY ITSELF and sends it later - use when the user wants "
             "to be reminded)",
             "When the user wants to be REMINDED at some point (\"remind me in 30 minutes...\", \"remind me "
             "at 8:30 tomorrow morning...\", \"remind me to take my medicine every morning at 7\", \"report "
@@ -230,7 +230,7 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
             "- SIMPLE REPEAT (no cron needed): add \"repeat_min\": minutes (e.g. 1440 = every day, 60 = "
             "every hour).",
             "- \"mode\":\"notify\" (default) = at the time, send the reminder text back as written. "
-            "\"mode\":\"task\" = at the time, Naota DOES the work described in text BY ITSELF (reads MCP "
+            "\"mode\":\"task\" = at the time, NAOSO DOES the work described in text BY ITSELF (reads MCP "
             "numbers, writes a draft) and sends the result back here.",
             "- \"mode\":\"script\" = a monitoring job that needs NO AI (cheap): runs a script that ALREADY "
             "EXISTS in Naota/scripts (\"script\":\"<file name .py/.sh/.ps1>\"), pushes its stdout back here; "
@@ -267,14 +267,14 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
             "Naota/loops/<slug>.md.",
             f"- Creating a JOB: when you POST http://127.0.0.1:{port}/kanban/task, include the field "
             f"\"chat_id\":\"{chat_id}\".",
-            "- owner_chat/chat_id left empty → the report goes to the Naota Core chat of that brain (and "
+            "- owner_chat/chat_id left empty → the report goes to the NAOSO Core chat of that brain (and "
             "the owner's own Telegram if linked), not to the person chatting.",
             "- To stop one loop reporting every iteration (too noisy): set `notify: false` in that loop's "
             "frontmatter.",
         ]
     elif source == "zalo":
         # The Zalo Bot channel. Deliberately NOT merged into the Telegram branch: the two differ in
-        # exactly the things where one wrong instruction teaches Naota an empty promise - sending
+        # exactly the things where one wrong instruction teaches NAOSO an empty promise - sending
         # documents, the length cap, and how a reminder finds its way back.
         who = (meta.get("user_name") or "").strip() or "user"
         conv = (f"group '{meta.get('chat_title') or '?'}', message from {who}"
@@ -295,7 +295,7 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
             "and .md CANNOT go out through this channel. NEVER say \"I've sent the file\" - say plainly it "
             "cannot be sent via Zalo yet, then give the PATH in the brain for the user to open, or offer to "
             "summarize the content right in the message.",
-            "- IMAGES are attached by Naota when you embed `![](attachments/...)` as usual, but this path "
+            "- IMAGES are attached by NAOSO when you embed `![](attachments/...)` as usual, but this path "
             "is still experimental: if sending fails, the user sees an error line.",
             "- Images the user sends are already downloaded by the gateway - the path is right in the "
             "message.",
@@ -306,7 +306,7 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
             f"\"{chat_id}\"` on a loop, or the field \"chat_id\":\"{chat_id}\" when you POST "
             f"http://127.0.0.1:{port}/kanban/task. Keep the `zalo:` prefix INTACT - that is what the "
             "server reads to send to Zalo rather than Telegram.",
-            "- Left empty, the result goes to the Naota Core chat of the brain on the dashboard, which "
+            "- Left empty, the result goes to the NAOSO Core chat of the brain on the dashboard, which "
             "means the person asking sees nothing.",
         ]
     elif source in _CHAT_APPS:
@@ -329,7 +329,7 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
             *dong_rieng,
             "",
             f"## Sending files via {ten}",
-            "- Naota attaches images and documents by itself when you embed `![](attachments/...)` or "
+            "- NAOSO attaches images and documents by itself when you embed `![](attachments/...)` or "
             "link a file in the brain as usual. Do not say \"sent\" when nothing was embedded.",
             "- Files the user sends are already downloaded by the gateway - the path is right in the "
             "message.",
@@ -343,10 +343,10 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
         ]
     elif source == "cli":
         # The terminal. Unlike the web it renders NOTHING: no images, no tables, no clickable links.
-        # Say so plainly here, or Naota returns the web's markdown and the user gets a pile of pipes.
+        # Say so plainly here, or NAOSO returns the web's markdown and the user gets a pile of pipes.
         who = (meta.get("host") or "").strip()
         lines += [
-            "- Source of this message: Naota CLI (the user is typing in a terminal"
+            "- Source of this message: NAOSO CLI (the user is typing in a terminal"
             + (f", machine {who}" if who else "") + ").",
             f"- Connected platforms: {', '.join(platforms)}.",
             "- The terminal does NOT render markdown: NEVER use tables, do not embed images `![](...)`, do "
@@ -363,7 +363,7 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
     else:
         web_sid = str(meta.get("session_id") or "").strip()
         lines += [
-            "- Source of this message: the Naota web dashboard (the user opened it in a browser; files "
+            "- Source of this message: the NAOSO web dashboard (the user opened it in a browser; files "
             "show as paths).",
             f"- Connected platforms: {', '.join(platforms)}.",
             "",
@@ -395,7 +395,7 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
             "an excuse to write longer or to break one small point into three bullets.",
             "",
             "## Controlling the dashboard and the computer by voice (Voice V1)",
-            "- The user asks to OPEN a page / file / job in Naota (\"open the Tasks page\", \"open file X\", "
+            "- The user asks to OPEN a page / file / job in NAOSO (\"open the Tasks page\", \"open file X\", "
             "\"show the job I just queued\", \"scroll down\"): call tool `naota_ui` (action open_page | "
             "open_file | open_task | scroll), then report exactly what the tool returned. Do not describe "
             "where to click when the tool can do it.",
@@ -405,7 +405,7 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
             "actually scrolled; report according to that.",
             "- The user asks to OPEN or CLOSE an app on the computer (\"open Chrome\", \"close Excel\", "
             "\"which apps are open\"): call `naota_app_open` / `naota_app_close` / `naota_app_list`. The "
-            "tool says so itself when Naota runs on a server rather than the user's computer; then report "
+            "tool says so itself when NAOSO runs on a server rather than the user's computer; then report "
             "exactly that. Closing an app happens right away as the user wants; pass `force=true` only when "
             "they say to force it.",
             "- The `[NGỮ CẢNH GIAO DIỆN: ...]` block (if any) at the head of a message is what the user IS "
@@ -454,7 +454,7 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
                 "page. If a comparative summary is wanted, tell the user to send one more message once the "
                 "results are in, OR queue one final job dedicated to summarizing (with `deps` pointing at "
                 "the earlier jobs) instead of making an empty promise.",
-                "- Naota CHECKS promises: at the end of each turn the server scans your answer for a "
+                "- NAOSO CHECKS promises: at the end of each turn the server scans your answer for a "
                 "promise to report back and compares it with the real background work there is. A promise "
                 "with no job behind it makes the server paste a correction line right under your answer "
                 "for the user to see. So an empty promise does not get you off the hook; it only makes the "
@@ -473,7 +473,7 @@ def build_channel_block(source: str, meta: dict = None, telegram_running: bool =
                 f"-d '{{\"text\":\"<reminder text>\",{brain_kv}\"delay_min\":30}}'` (or \"at\":\"HH:MM\" / "
                 "\"at\":\"YYYY-MM-DD HH:MM\", add \"repeat_min\" to repeat). Keep the \"brain\" field intact so "
                 "the reminder belongs to the right brain. The server works in the owner's time zone; at the "
-                "time, Naota reports into the Naota Core chat of that brain (and the owner's Telegram if "
+                "time, NAOSO reports into the NAOSO Core chat of that brain (and the owner's Telegram if "
                 "linked).",
             ]
     # The language rule goes last: this block comes AFTER the `# === NGÔN NGỮ ===` block and is the last
@@ -672,7 +672,7 @@ def collect_turn_files(reply_text: str, written_paths: list, t0: float,
 
     Ứng viên = file agent ghi bằng tool Write (written_paths) + đường dẫn tuyệt đối
     nhắc trong câu trả lời cuối + đường dẫn TƯƠNG ĐỐI trong vault nhúng dạng markdown
-    (![](attachments/x.png) - ảnh Naota tạo) khi có vault_root. Chỉ giữ file THẬT SỰ
+    (![](attachments/x.png) - ảnh NAOSO tạo) khi có vault_root. Chỉ giữ file THẬT SỰ
     vừa thay đổi trong lượt (mtime >= t0) - nhắc tới file cũ sẽ không spam gửi lại; muốn
     gửi file cũ thì agent gọi endpoint /telegram/send-file. exclude = set path (normcase)
     đã gửi trong lượt qua endpoint, tránh gửi trùng.
@@ -687,7 +687,7 @@ def collect_turn_files(reply_text: str, written_paths: list, t0: float,
         except Exception:
             continue
     cands += extract_paths(reply_text)
-    # Ảnh/tệp Naota tạo trong lượt thường được NHÚNG dạng path tương đối trong vault
+    # Ảnh/tệp NAOSO tạo trong lượt thường được NHÚNG dạng path tương đối trong vault
     # (![](attachments/x.png)); resolve về gốc vault để tự đính kèm về ĐÚNG phiên chat.
     cands += resolve_vault_relative(reply_text, vault_root)
 
@@ -721,10 +721,10 @@ def collect_turn_files(reply_text: str, written_paths: list, t0: float,
 # ============================================================
 # Hạ khối điều khiển xuống chữ cho kênh không phải web
 # ============================================================
-# Naota nhúng khối điều khiển dạng HTML comment ở cuối câu trả lời cho dashboard
+# NAOSO nhúng khối điều khiển dạng HTML comment ở cuối câu trả lời cho dashboard
 # đọc (hiện chỉ còn NAOTA_ASK - vẽ nút lựa chọn). Kênh chữ thuần như Telegram không
 # hiểu mấy khối này, mà md_to_mdv2 chỉ escape chứ không bóc, nên không lọc là người
-# dùng nhìn thấy nguyên cụm "<\!\-\- NAOTA\_ASK: ...".
+# dùng nhìn thấy nguyên cụm "<\!\-\- NAOSO\_ASK: ...".
 # Regex để CHUNG cho mọi NAOTA_*, không liệt kê từng tên: khối lạ (vd NAOTA_METRICS
 # thời còn bảng số liệu, hoặc ký ức cũ trong brain còn nhắc) thì lặng lẽ rơi mất
 # thay vì lọt nguyên xi ra chat.
@@ -735,7 +735,7 @@ _MAX_ASK_OPTS = 4
 def _ask_to_text(payload: str) -> str:
     """JSON của khối NAOTA_ASK -> câu hỏi + danh sách đánh số. JSON hỏng -> chuỗi rỗng.
 
-    Người dùng Telegram nhắn lại "1" là xong: Naota đọc "1" trong ngữ cảnh câu hỏi
+    Người dùng Telegram nhắn lại "1" là xong: NAOSO đọc "1" trong ngữ cảnh câu hỏi
     vừa hỏi thì tự hiểu, không cần lưu state.
     """
     try:
