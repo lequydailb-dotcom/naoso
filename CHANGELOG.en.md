@@ -4,6 +4,10 @@
 
 NAOTA release history. Newest first.
 
+## [1.60.3] - 2026-11-23
+### Fixed
+- **The footer keeps your own name.** "by Lê Quý Đại" and the Zalo number are back instead of the old author line.
+
 ## [1.60.2] - 2026-11-23
 ### Fixed
 - **The 3D office numbers bar shows proper labels.** It used to show raw keys like `office.st_today`.

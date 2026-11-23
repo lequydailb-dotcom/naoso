@@ -6,6 +6,10 @@ Lịch sử phiên bản NAOTA. Bản mới nhất ở trên cùng. Xem ngay tro
 
 Định dạng: mỗi phiên bản là một khối `## [x.y.z] - ngày`, bên dưới nhóm thay đổi theo `### Thêm mới / Sửa lỗi / Cải thiện / Bảo mật`.
 
+## [1.60.3] - 2026-11-23
+### Sửa lỗi
+- **Chân trang giữ đúng tên anh.** Dòng "by Lê Quý Đại" và số Zalo hiện lại, không còn tên tác giả cũ.
+
 ## [1.60.2] - 2026-11-23
 ### Sửa lỗi
 - **Thanh số liệu của Văn phòng 3D hiện đúng tiếng Việt.** Trước đó nó hiện chữ thô như `office.st_today`.
